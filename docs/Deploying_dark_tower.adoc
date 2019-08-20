@@ -222,12 +222,12 @@ tower_license: >
   {
     "eula_accepted": true,
     "company_name": "Red Hat",
-    "hostname": "d49db4e23faf48aa80262a12c14a96d8",
+    "hostname": "your-hostname-info-here",
     "instance_count": 500,
     "license_date": 1645192339,
-    "license_key": "12daf4cefa8e127de40353152e585aa5e8caab5db36fcfbac3f1159deee81a3e",
+    "license_key": "123456789090193839393939939393939399393993939329393",
     "license_type": "enterprise",
-    "subscription_name": "Red Hat Ansible Tower, Standard (500 Managed Nodes)"
+    "subscription_name": "Red Hat Ansible Tower, Standard (50 Managed Nodes)"
   }
 
 # GPTE RW AWS Creds
