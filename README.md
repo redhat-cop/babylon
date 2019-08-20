@@ -1,2 +1,0 @@
-# babylon
-The Babylon Project
