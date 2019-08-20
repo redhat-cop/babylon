@@ -5,8 +5,8 @@ Home to the documenattion and shared resources for The Babylon Project
 
 === Main Components
 
-* link:https://github.com/redhat-cop/agnosticd[AgnosticD - An Ansible based Cloud Agnostic Deployment Platform]
-* link:https://github.com/redhat-gpe/agnosticv[AgnosticV - Configuraition and vars for AgnosticD]
+* link:https://github.com/redhat-cop/agnosticd[AgnosticD - An Ansible based Cloud Agnostic Deployment Framework]
+* link:https://github.com/redhat-gpe/agnosticv[AgnosticV - Catalog management, Configuration and vars for AgnosticD]
 * link:https://github.com/redhat-gpte-devopsautomation/anarchy-operator.git[Anarchy - OpenShift Operator for Stateless API operations]
 * link:https://github.com/redhat-gpte-devopsautomation/babylon[Dark Tower - The Ansible Tower backend]
 
