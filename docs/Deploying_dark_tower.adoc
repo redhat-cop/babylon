@@ -1,0 +1,245 @@
+== Deploying a Babylon Dark Tower Cluster
+
+Overview
+
+This document outlines deploying:
+
+* Your own Dark Tower test/dev/prod infrastructure
+** Single tower server
+** Cluster
+
+A Babylon Tower cluster is an link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/ansible-tower[AgnosticD Config] with the necessary vars outlined below. 
+
+=== Pre-requisites
+
+* A host capable and configured for running Ansible
+* AWS Credentials
+* An Ansible Tower License
+
+==== Step 1 - Creating your Own Babylon Server
+
+. If necessary clone or pull link:https://github.com/redhat-cop/agnosticd.git[AgnosticD]
++
+[source,bash]
+----
+$ git clone https://github.com/redhat-cop/agnosticd.git
+----
+. Change directory into `agnosticd/ansible`
++
+[source,bash]
+----
+cd agnosticd/ansible
+----
+
+. Find the latest `ansible-tower-prod` tag:
++
+[source,bash]
+----
+git tag -l "ansible-tower-prod*" | sort --version-sort | tail -1
+----
++
+[source,bash]
+----
+ansible-tower-prod-0.3
+----
++
+[source,bash]
+----
+. Checkout the highest/latest revision
+git checkout <OUTPUT-OF-THE-PRIOR-COMMAND>
+----
+. Prepare a `yaml` based variable file 
++
+NOTE: The file below is an "all in one" for simplicity including AWS credentials and variables such as `own_repo_path`. This can be split into 2 files if preferred and invoked `ansible-playbook main.yml -e @non-secret-vars.yml -e @secret-vars.yml`
++
+_Sample Babylon Vars File_
++
+[source,yaml]
+----
+---
+env_type:                   ansible-tower           # Name of config to deploy
+subdomain_base_suffix:      .example.opentlc.com    # Your domain used in FQDN
+
+guid:                       baby-t01                # Unique string used in FQDN
+email:                      name@example.com        # User info for notificationsi, tag
+
+# Environment size - move to env_vars ?
+
+bastion_instance_type:      t2.medium
+tower_instance_type:        t2.medium
+worker_instance_type:       t2.medium
+support_instance_type:      t2.medium
+root_filesystem_size:       20                      # Size of the root filesystem
+
+# Deployer meta data
+
+output_dir:                 /tmp/workdir            # Writable working scratch directory
+
+
+cloud_tags: 
+  - Purpose: babylon
+  - Stage: dev
+
+# Cloud specfic settings - example given here for AWS
+
+cloud_provider:             ec2                     # Which AgnosticD Cloud Provider to use
+aws_region:                 us-east-1               # AWS Region to deploy in
+HostedZoneId:               Z3IHLWJZOU9SRT          # You will need to change this
+key_name:                   ocpkey                  # Keyname must exist in AWS
+cloudformation_retries:     0
+
+# Ansible Tower related vars 
+
+tower_version:              3.5.2-1                 # tower version you want to install 
+region:                     na                      # region can not be with special characters in case of isolated node group
+software_to_deploy:         tower                   # Define tower to install tower or none to have only infra ready.
+tower_instance_count:       3                       # 1 is a legal value (non-cluster)
+support_instance_count:     1                       # Postgres database - set to 2 if clustering in same VPC
+worker_instance_count:      1                       # Set 0 to not to provision worker(isolated) nodes.
+
+tower_host_name:                "tower1.{{ guid }}{{ subdomain_base_suffix }}" 
+tower_user_create_tower_accounts:      #Define users you want to create. Set superuser: yes to make user system wide System Administrator
+
+  - user: babylon
+    password: changeme
+    email: babylon@example.com
+    firstname: Baby
+    lastname: Lon
+    superuser: yes
+    
+  - user: babylon-viewer
+    password: changeme
+    email: babylon1@example.com
+    firstname: Babylon
+    lastname: Viewer
+
+
+tower_organization:                               # 
+  - name: babylon  
+  - name: gpte
+  - name: ansiblebu
+  - name: openshiftbu
+
+target_regions:                                   # These will create instance groups
+  - name: default
+  - name: na
+  - name: apac
+  - name: emea
+
+tower_projects:                                   # Tower project
+
+  - name:                     babylon
+    description:              Babylon master - main repo
+    organization:             "gpte"
+    scm_url:                  "https://github.com/redhat-gpte-devopsautomation/babylon.git"
+    scm_branch:               master
+    scm_update_on_launch:     true
+    #scm_type: 
+    #scm_credential: 
+
+  - name:                     babylon-dev
+    description:              Babylon development branch
+    organization:             "gpte"
+    scm_url:                  "https://github.com/redhat-gpte-devopsautomation/babylon.git"
+    scm_branch:               dev
+    scm_update_on_launch:     true
+
+tower_inventories:
+
+  - name:                     empty-inventory-default
+    description:              Default empty inventory for the job runner
+    organization:             babylon
+
+  - name:                     empty-inventory-emea
+    description:              emea
+    organization:             gpte
+    instance_group:           emea
+
+  - name:                     empty-inventory-na
+    description:              na
+    organization:             gpte
+    instance_group:           na
+
+tower_credentials:
+
+  - name:                   babylon-tower-credential
+    username:               admin
+    password:               changeme
+    description:            Babylon Tower Credential
+    organization:           babylon
+    type:                   tower
+    state:                  present
+    host:                   localhost
+
+tower_job_templates:
+
+  - name:                   job-runner
+    description:            "Babylon job-runner - main entry point for all deployers"
+    job_type:               run
+    project:                babylon
+    playbook:               job-runner.yml
+    become:                 yes
+    inventory:              empty-inventory-default
+
+  - name:                   job-runner-dev
+    description:            "Babylon job-runner - main entry point for all deployers"
+    job_type:               run
+    project:                babylon-dev
+    playbook:               job-runner.yml
+    become:                 yes
+    inventory:              empty-inventory-default
+    verbosity:              3
+ 
+tower_setting_params:               # Tower job settings - Change with CARE
+  AWX_PROOT_BASE_PATH:      "/tmp"
+  AWX_PROOT_SHOW_PATHS:     "'/var/lib/awx/.ssh', '/var/lib/awx/projects/', '/tmp'"
+
+tower_virtual_environment:      # List of virtual environment which will be created
+  - /var/lib/awx/venv/ansible
+  - /var/lib/awx/venv/test1
+
+# Path of Virtual Env for update
+tower_update_venv:          /var/lib/awx/venv/ansible
+
+# Pip packages with version which needs to be updated for venv
+pip_requirements:
+  - boto==2.49.0
+  - boto3==1.9.200
+  - awscli==1.16.210
+  - ansible-tower-cli==3.3.6
+
+key_local_path:           ~/.ssh/ocpkey.pem
+
+#####
+##### SECRET Stuff often stored and passed in a seperate var file
+#####
+
+---
+
+own_repo_path: http://admin.na.shared.opentlc.com/repos/tower/
+
+tower_license: >
+  {
+    "eula_accepted": true,
+    "company_name": "Red Hat",
+    "hostname": "d49db4e23faf48aa80262a12c14a96d8",
+    "instance_count": 500,
+    "license_date": 1645192339,
+    "license_key": "12daf4cefa8e127de40353152e585aa5e8caab5db36fcfbac3f1159deee81a3e",
+    "license_type": "enterprise",
+    "subscription_name": "Red Hat Ansible Tower, Standard (500 Managed Nodes)"
+  }
+
+# GPTE RW AWS Creds
+aws_access_key_id:        <YOUR-AWS-ACCESS-KEY>
+aws_secret_access_key:    <YOUR-SECRET-AWS-ACCESS-KEY>
+...
+----
++
+. Deploy your Babylon Tower Config
++
+[source,bash]
+----
+ansible-playbook main.yml -e @<Path-to-my-variable-file>
+----
+
