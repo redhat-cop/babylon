@@ -2,13 +2,15 @@
 
 Overview
 
-This document outlines deploying:
+This document outlines deploying the Dark Tower backend(s) for the Babylon project. So named as they can be deployed and run completely lights out without any manual configuration "lighting up" the Ansible Tower front end.
 
 * Your own Dark Tower test/dev/prod infrastructure
 ** Single tower server
 ** Cluster
 
-A Babylon Tower cluster is an link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/ansible-tower[AgnosticD Config] with the necessary vars outlined below. 
+NOTE: Dark Tower can be deployed on a global scale using peered VPCs on AWS on top of this link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/multi-region-example[AgnosticD configuration]. This is not covered in this document which serves as a Quick Start guide.
+
+A Babylon Dark Tower cluster is an link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/ansible-tower[AgnosticD Config] with the necessary vars outlined below. 
 
 === Pre-requisites
 
@@ -16,7 +18,7 @@ A Babylon Tower cluster is an link:https://github.com/redhat-cop/agnosticd/tree/
 * AWS Credentials
 * An Ansible Tower License
 
-==== Step 1 - Creating your Own Babylon Server
+==== Step 1 - Creating your Own Dark Tower Server or Cluster
 
 . If necessary clone or pull link:https://github.com/redhat-cop/agnosticd.git[AgnosticD]
 +
@@ -48,9 +50,24 @@ ansible-tower-prod-0.3
 . Checkout the highest/latest revision
 git checkout <OUTPUT-OF-THE-PRIOR-COMMAND>
 ----
-. Prepare a `yaml` based variable file 
+
+
+==== Preparing the Sample Vars files(s)
+
+The typical way to deploy an AgnosticD config from a control host or laptop is to invoke it with 1, or ideally 2, var files.
+
+NOTE: It is recommeded that you use 2 var files to seperate confidential information such as creds from configuration inofrmation which can be shared freely. That is the pattern we will use here:
+
 +
-NOTE: The file below is an "all in one" for simplicity including AWS credentials and variables such as `own_repo_path`. This can be split into 2 files if preferred and invoked `ansible-playbook main.yml -e @non-secret-vars.yml -e @secret-vars.yml`
+[source,bash]
+----
+ ansible-playbook main.yml \
+-e @~/dark-tower-vars.yml 
+-e @~/secret-vars.yml \
+----
+
+
+. Prepare a `yaml` based variable file 
 +
 _Sample Babylon Vars File_
 +
@@ -61,22 +78,13 @@ env_type:                   ansible-tower           # Name of config to deploy
 subdomain_base_suffix:      .example.opentlc.com    # Your domain used in FQDN
 
 guid:                       baby-t01                # Unique string used in FQDN
-email:                      name@example.com        # User info for notificationsi, tag
-
-# Environment size - move to env_vars ?
-
-bastion_instance_type:      t2.medium
-tower_instance_type:        t2.medium
-worker_instance_type:       t2.medium
-support_instance_type:      t2.medium
-root_filesystem_size:       20                      # Size of the root filesystem
+email:                      name@example.com        # User info for notifications, tag
 
 # Deployer meta data
 
 output_dir:                 /tmp/workdir            # Writable working scratch directory
 
-
-cloud_tags: 
+cloud_tags:                                         # Add your tags here
   - Purpose: babylon
   - Stage: dev
 
@@ -93,12 +101,13 @@ cloudformation_retries:     0
 tower_version:              3.5.2-1                 # tower version you want to install 
 region:                     na                      # region can not be with special characters in case of isolated node group
 software_to_deploy:         tower                   # Define tower to install tower or none to have only infra ready.
-tower_instance_count:       3                       # 1 is a legal value (non-cluster)
+
+tower_instance_count:       1                       # 1 is a legal value (non-cluster), otherwise odd
 support_instance_count:     1                       # Postgres database - set to 2 if clustering in same VPC
 worker_instance_count:      1                       # Set 0 to not to provision worker(isolated) nodes.
 
 tower_host_name:                "tower1.{{ guid }}{{ subdomain_base_suffix }}" 
-tower_user_create_tower_accounts:      #Define users you want to create. Set superuser: yes to make user system wide System Administrator
+tower_user_accounts:            #Define users you want to create. Set superuser: yes to make user system wide System Administrator
 
   - user: babylon
     password: changeme
@@ -106,13 +115,12 @@ tower_user_create_tower_accounts:      #Define users you want to create. Set sup
     firstname: Baby
     lastname: Lon
     superuser: yes
-    
+
   - user: babylon-viewer
     password: changeme
     email: babylon1@example.com
     firstname: Babylon
     lastname: Viewer
-
 
 tower_organization:                               # 
   - name: babylon  
@@ -133,7 +141,7 @@ tower_projects:                                   # Tower project
     organization:             "gpte"
     scm_url:                  "https://github.com/redhat-gpte-devopsautomation/babylon.git"
     scm_branch:               master
-    scm_update_on_launch:     true
+    scm_update_on_launch:     no
     #scm_type: 
     #scm_credential: 
 
@@ -142,7 +150,7 @@ tower_projects:                                   # Tower project
     organization:             "gpte"
     scm_url:                  "https://github.com/redhat-gpte-devopsautomation/babylon.git"
     scm_branch:               dev
-    scm_update_on_launch:     true
+    scm_update_on_launch:     yes
 
 tower_inventories:
 
@@ -150,15 +158,15 @@ tower_inventories:
     description:              Default empty inventory for the job runner
     organization:             babylon
 
-  - name:                     empty-inventory-emea
-    description:              emea
-    organization:             gpte
-    instance_group:           emea
-
   - name:                     empty-inventory-na
     description:              na
     organization:             gpte
     instance_group:           na
+
+  - name:                     empty-inventory-emea
+    description:              emea
+    organization:             gpte
+    instance_group:           emea
 
 tower_credentials:
 
@@ -182,7 +190,7 @@ tower_job_templates:
     inventory:              empty-inventory-default
 
   - name:                   job-runner-dev
-    description:            "Babylon job-runner - main entry point for all deployers"
+    description:            Babylon job-runner - deploys from head of development branch
     job_type:               run
     project:                babylon-dev
     playbook:               job-runner.yml
@@ -210,13 +218,15 @@ pip_requirements:
 
 key_local_path:           ~/.ssh/ocpkey.pem
 
+
+----
 #####
 ##### SECRET Stuff often stored and passed in a seperate var file
 #####
 
 ---
 
-own_repo_path: http://admin.na.shared.opentlc.com/repos/tower/
+own_repo_path: http://my-yum-server/repos
 
 tower_license: >
   {
