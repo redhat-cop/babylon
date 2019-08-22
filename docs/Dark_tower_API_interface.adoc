@@ -1,0 +1,150 @@
+
+:toc2:
+
+= AgnosticV, vars for link:https://github.com/redhat-cop/agnosticd[AgnosticD]
+
+
+This repo contains the variables needed for catalog items present in RHPDS and labs.opentlc.com.
+
+
+== Goals
+
+* Separate code and data
+
+== Structure
+
+----
+common.yaml
+
+ACCOUNT/
+    common.yaml
+
+   CATALOGITEM1/
+         common.yaml
+         dev.yaml
+         test.yaml
+         prod.yaml
+
+   
+   CATALOGITEM2/
+         common.yaml
+         dev.yaml
+         test.yaml
+         prod.yaml
+----
+
+When deploying, you provide 3 things to the deployer (scripts or tower).
+
+. _ACCOUNT_        (for example `gpte`, `openshift`, `sandboxes-gpte`, ...)
+. _CATALOGITEM_    (for example `OCP_CLIENTVM`)
+. _STAGE_          (`dev|test|prod`)
+
+
+If you want to change things happening *before* that, for example "specify what secrets to use", you have to configure your catalog item (or account) using variables from the `agnosticv_meta` dictionary.
+
+
++
+[source,yaml]
+----
+
+---
+guid:                               baby-three-01
+
+babylon_dark_tower_organization:    gpte
+babylon_dark_tower_run_group:       emea  # e.g.region hint, stage hint (dev|prod)
+
+babylon_deployer_scm_type:          git
+babylon_deployer_scm_url:           https://github.com/redhat-cop/agnosticd.git
+babylon_deployer_scm_ref:           three-tier-app-prod-1.14
+# babylon_deployer_scm_tag_prefix:    three-tier-app-prod  # Dynamic lookup of latest tag
+
+babylon_deployer_type:              agnosticd # default agnosticd
+babylon_deployer_action:            deploy 
+babylon_deployer_entry_point:       ansible/main.yml
+
+babylon_callback_url:               ""
+babylon_callback_token:             "" 
+
+environment_parameters:
+
+----
+
+
+[cols="15%,10%,15%,30%,30%]
+|=============================================
+| Variable name | type | default | Purpose | Example
+
+| `guid`
+| String
+| Mandatory
+| Global Unique Identifier
+| 1234
+
+| `babylon_dark_tower_organization`
+| String
+| Mandatory
+| Assign to Tower organization
+| gpte
+
+| `babylon_dark_tower_run_group`
+| String
+| us
+| Hint to Dark Tower for schdeuling locality
+| `emea` or `prod` 
+
+| `babylon_deployer_scm_type`
+| String
+| `git`
+| Type of SCM for Dark Tower project
+| `git`
+
+| `babylon_deployer_scm_url`           
+| URL
+| Mandatory
+| Location of deployer repo
+| https://github.com/redhat-cop/agnosticd.git
+
+| `babylon_deployer_scm_ref`
+| String
+| `development`
+| branch, commit, or tag to check out in job project
+| `three-tier-app-prod-1.14`
+
+| `babylon_deployer_scm_tag_prefix`
+| String
+| Optional
+| Dark Tower will look up the highest release tag of that prefix | 
+`three-tier-app-prod` footnote:[Mutually exclusive with `babylon_deployer_ref` *WARNING* abbreviated prefixes may lead to undesired effects e.g. `three-tier-app` would fetch the highest test tag and *not* rpoduction.]
+
+
+| `babylon_deployer_type`
+| String
+| `agnosticd`
+| Create maningfully named tower objects and log output
+| `agnosticd`
+
+| `babylon_deployer_action`            deploy 
+| String
+| deploy
+| Log output and hints to dark tower as to type of workload
+| `deploy|stop|start|destroy` etc.,
+
+| `babylon_deployer_entry_point`
+| String
+| Mandatory
+| Entry playbook for Dark Tower Job Template
+| `ansible/main.yml`
+
+| `babylon_callback_url`
+| URL
+| Optional
+| Callback URL for Dark Tower to communicate Job Status
+| http://reciever.openshift.example.com/callback
+
+| `babylon_callback_token`
+| Optional
+| Callback Token for Dark Tower to communicate Job Status
+| EIEp   IO
+| `sY45jk7632ooi43oiu`
+
+----
