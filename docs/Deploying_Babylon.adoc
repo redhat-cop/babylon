@@ -1,0 +1,6 @@
+== Deploying a complete Babylon Suite
+
+This document summarizes how to deploy the complete Babylon suite of components
+
+1. Deploy Dark Tower per the link:Deploying_dark_tower.adoc[Deploying `dev|test|prod` Dark Tower clusters] doc.
+2. Deploy OpenShift Container Platform cluster per the link:Deploying_OpenShift.adoc[Deploying OpenShift Container Platform] doc.
