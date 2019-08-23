@@ -1,0 +1,125 @@
+== Deploying a Babylon OpenShift Container Platform (including the Babylon Operators)
+
+Overview
+
+This document outlines deploying the OpenShift Container Platform cluster to be used for the Babylon project.
+
+A Babylon OpenShift Container Platform cluster is an link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/ansible-tower[AgnosticD Config] with the necessary vars outlined below. 
+
+=== Pre-requisites
+
+* A host capable and configured for running Ansible
+* AWS Credentials
+
+==== Step 1 - Creating your Own Babylon OpenShift Container Platform
+
+. If necessary clone or pull link:https://github.com/redhat-cop/agnosticd.git[AgnosticD]
++
+[source,bash]
+----
+$ git clone https://github.com/redhat-cop/agnosticd.git
+----
+. Change directory into `agnosticd/ansible`
++
+[source,bash]
+----
+cd agnosticd/ansible
+----
+
+
+==== Preparing the Vars files(s)
+
+The typical way to deploy an AgnosticD config from a control host, or laptop, is to invoke it with 1, or ideally 2, var files.
+
+NOTE: It is recommeded that you use 2 var files to seperate confidential information such as creds from configuration inofrmation which can be shared freely. That is the pattern we will use here:
+
+
+[source,bash]
+----
+ ansible-playbook main.yml \
+-e @~/install-vars.yml \
+-e @~/secret-vars.yml
+----
+
+
+===== Prepare the `yaml` based variable files
+
+_Sample Babylon OpenShift Container Platform Vars Files_
+
+**install-vars.yml**
+
+[source,yaml]
+----
+---
+HostedZoneId: <AWS Route53 Hosted Zone Id>
+aws_region: <aws-region-id>
+aws_vpc_name: "{{ guid }}.example.com"
+cloud_provider: ec2
+cloud_tags:
+  course_name: '{{ course_name | d(''unknown'') }}'
+  env_type: '{{ env_type }}'
+  guid: '{{ guid }}'
+  platform: '{{ platform | d(''unknown'') }}'
+  purpose: '{{ purpose | d(''unknown'') }}'
+
+admin_user: <desired-admin-user-name>
+admin_password: '<desired-admin-password>'
+
+default_workloads:
+- ocp4-workload-enable-lets-encrypt-certificates
+- ocp-workload-openshift-applier
+
+env_type: ocp4-workshop
+
+guid: '<unique-guid>'
+
+idle_after_deploy: 24000
+idle_after_start: 24000
+
+install_ftl: false
+install_idm: htpasswd
+install_ipa_client: false
+install_lets_encrypt_certificates: true
+install_ocp4: true
+install_student_user: false
+
+key_name: <ssh-key-name>
+
+master_instance_type: m5.xlarge
+osrelease: 4.1.0
+owner: <your-email-address>
+platform: <your-target-platform>
+purpose: development
+repo_method: file
+subdomain_base_suffix: .<subdomain>
+software_to_deploy: none
+student_name: lab-user
+student_password: 'lab-user01'
+worker_instance_count: 1
+worker_instance_type: m5.2xlarge
+ocp4_token: >-
+  {"auths":{"cloud.openshift.com": ......
+
+----
+
+
+**secret-vars.yml**
+
+----
+---
+
+own_repo_path: http://my-yum-server/repos
+
+aws_access_key_id:        <YOUR-AWS-ACCESS-KEY>
+aws_secret_access_key:    <YOUR-SECRET-AWS-ACCESS-KEY>
+...
+----
+
+
+===== Deploy your Babylon OpenShift Container Platform Config
+
+[source,bash]
+----
+ansible-playbook main.yml -e @<path-to-variable-file1> -e @<path-to-variable-file2> ... -e @<path-to-variable-fileN>
+----
+

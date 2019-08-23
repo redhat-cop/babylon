@@ -13,6 +13,4 @@ image::docs/images/babylon-high-level.png[width=95%,align="center"]
 
 === Getting Started
 
-
-* link:file:docs/Deploying_dark_tower.adoc[Deploying `dev|test|prod` Dark Tower clusters]
-*
+* Start with link:docs/Deploying_Babylon.adoc[Deploying Babylon Suite of Components]

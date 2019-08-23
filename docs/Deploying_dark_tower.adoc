@@ -62,14 +62,14 @@ NOTE: It is recommeded that you use 2 var files to seperate confidential informa
 [source,bash]
 ----
  ansible-playbook main.yml \
--e @~/dark-tower-vars.yml 
--e @~/secret-vars.yml \
+-e @~/dark-tower-vars.yml \
+-e @~/secret-vars.yml
 ----
 
 
 . Prepare a `yaml` based variable file 
 +
-_Sample Babylon Vars File_
+_Sample Dark Tower Vars File_
 +
 [source,yaml]
 ----
