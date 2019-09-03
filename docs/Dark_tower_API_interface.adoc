@@ -2,14 +2,151 @@
 
 = Dark Tower API Interface
 
-This document describes the optional and mandatory variables expectd by Dark Tower
+This document describes the optional and mandatory variables expected by Dark Tower's `job-runner` job template.
+
+NOTE: This document assumes basic familiarity with Ansible Tower and concepts such as Job Templates, Projects etc. 
+
+== Overview
+
+Dark Tower's `job-runner` expects to be called with a JSON payload consisting of at least one, and optionally two, dictionaries:
+
+* `job_vars`
+* `secrets`
+
+The entire variable payload can be passed in the `job_vars` dictionary but by using a second dictionary `secrets` a more secure separation of variable can be observed and allow for simpler sharing of the non confidential, and often organization specific, credentials etc.
+
+.Sample "all-in-one" vars file
+[source,yaml]
+----
+job_vars:                                                 <1>
+  __meta__:                                               <2> 
+    deployer:                                             <3>             
+      scm_type:                 git
+      scm_url:                  https://github.com/redhat-cop/agnosticd.git
+      scm_ref:                  three-tier-app-prod-1.14
+      scm_tag_prefix:           three-tier-app-prod  # Dynamic lookup of latest tag
+      type:                     agnosticd # default agnosticd
+      entry_point:              ansible/main.yml
+
+    callback:                                             <4>
+      url:                      ``
+      token:                    `` 
+
+    tower:                                                <5>
+      organization:             gpte
+      run_group:                emea  # e.g.region hint, stage hint (dev|prod)
+      action:                   deploy 
+                                                          <6>
+  guid:                         baby-three-01
+  env_type:                     three-tier-app
+  email:                        babylon@example.com
+  subdomain_base_suffix:        .example.opentlc.com
+  own_repo_path:                http://admin.na.shared.opentlc.com/repos/ocp/3.6
+  cloud_provider:               ec2
+  aws_region:                   us-east-1
+  aws_hosted_zone_id:           Z3IHLWJZOU9SRT
+  key_name:                     ocpkey
+  aws_access_key_id:            YOUR-KEY-HERE            
+  aws_secret_access_key:        YOUR-SECRET-KEY-HERE
+  ...
+----
+
+. `job_vars` top level dictionary
+. `__meta__` metadata not required to be passed to `agnosticd`
+. `deployer` metadata used by Dark Tower to create necessary Tower constructs
+. `callback` optional callback data to allow Dark Tower to call back to Anarchy for example
+. `tower` metadata specific to Tower internal structures and schduling
+/
+...
+''''
 
 
-[cols="15%,10%,15%,30%,30%]
+[cols="8%,8%,8%,25%,25%,10%]
 |=============================================
-| Variable name | type | default | Purpose | Example
+| Parent | | | | Purpose | Example | Mandatory
 
-| `guid`
+| `job_vars`
+| 
+|
+|
+| Top Level Dictionary
+| *NA*
+| Yes
+
+|
+| `__meta__`
+|
+|
+| Metadata for Dark Tower
+| *NA*
+| Yes
+
+|
+|
+| `deployer`
+|
+| Metadata for Ansible Based deployer repo e.g. AgnosticD
+| *NA*
+| Yes
+
+
+|
+|
+| 
+| `scm_type`                 
+| Type of SCM system
+| `git`
+| No
+
+
+|
+|
+| 
+| `scm_url`
+| URL of SCM
+| https://github.com/redhat-cop/agnosticd.git
+| Yes
+
+
+|
+|
+| 
+| `scm_ref`
+| git tag *or* branch to check out
+| `three-tier-app-prod-1.14`
+| No
+
+
+|
+|
+| 
+| `scm_tag_prefix`
+| git tag prefix to perform lookup of latest version and check out
+| `three-tier-app-prod`
+| No
+
+
+|
+|
+| 
+| `type`
+| Name of deployer
+| `agnosticd`
+| Yes
+
+
+|=============================================
+
+
+      type:                     agnosticd # default agnosticd
+      entry_point:              ansible/main.yml
+
+
+
+
+
+
+ `guid`
 | String
 | Mandatory
 | Global Unique Identifier
