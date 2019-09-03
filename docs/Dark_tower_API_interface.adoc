@@ -1,73 +1,8 @@
-
 :toc2:
 
-= AgnosticV, vars for link:https://github.com/redhat-cop/agnosticd[AgnosticD]
+= Dark Tower API Interface
 
-
-This repo contains the variables needed for catalog items present in RHPDS and labs.opentlc.com.
-
-
-== Goals
-
-* Separate code and data
-
-== Structure
-
-----
-common.yaml
-
-ACCOUNT/
-    common.yaml
-
-   CATALOGITEM1/
-         common.yaml
-         dev.yaml
-         test.yaml
-         prod.yaml
-
-   
-   CATALOGITEM2/
-         common.yaml
-         dev.yaml
-         test.yaml
-         prod.yaml
-----
-
-When deploying, you provide 3 things to the deployer (scripts or tower).
-
-. _ACCOUNT_        (for example `gpte`, `openshift`, `sandboxes-gpte`, ...)
-. _CATALOGITEM_    (for example `OCP_CLIENTVM`)
-. _STAGE_          (`dev|test|prod`)
-
-
-If you want to change things happening *before* that, for example "specify what secrets to use", you have to configure your catalog item (or account) using variables from the `agnosticv_meta` dictionary.
-
-
-+
-[source,yaml]
-----
-
----
-guid:                               baby-three-01
-
-babylon_dark_tower_organization:    gpte
-babylon_dark_tower_run_group:       emea  # e.g.region hint, stage hint (dev|prod)
-
-babylon_deployer_scm_type:          git
-babylon_deployer_scm_url:           https://github.com/redhat-cop/agnosticd.git
-babylon_deployer_scm_ref:           three-tier-app-prod-1.14
-# babylon_deployer_scm_tag_prefix:    three-tier-app-prod  # Dynamic lookup of latest tag
-
-babylon_deployer_type:              agnosticd # default agnosticd
-babylon_deployer_action:            deploy 
-babylon_deployer_entry_point:       ansible/main.yml
-
-babylon_callback_url:               ""
-babylon_callback_token:             "" 
-
-environment_parameters:
-
-----
+This document describes the optional and mandatory variables expectd by Dark Tower
 
 
 [cols="15%,10%,15%,30%,30%]
@@ -146,5 +81,30 @@ environment_parameters:
 | Callback Token for Dark Tower to communicate Job Status
 | EIEp   IO
 | `sY45jk7632ooi43oiu`
+|=============================================
+
+.Sample Var File for agnosticd link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/three-tier-app[config `three-tier-app`]
+[source,yaml]
+----
+
+---
+guid:                               baby-three-01
+
+babylon_dark_tower_organization:    gpte
+babylon_dark_tower_run_group:       emea  # e.g.region hint, stage hint (dev|prod)
+
+babylon_deployer_scm_type:          git
+babylon_deployer_scm_url:           https://github.com/redhat-cop/agnosticd.git
+babylon_deployer_scm_ref:           three-tier-app-prod-1.14
+# babylon_deployer_scm_tag_prefix:    three-tier-app-prod  # Dynamic lookup of latest tag
+
+babylon_deployer_type:              agnosticd # default agnosticd
+babylon_deployer_action:            deploy 
+babylon_deployer_entry_point:       ansible/main.yml
+
+babylon_callback_url:               ""
+babylon_callback_token:             "" 
+
+environment_parameters:
 
 ----
