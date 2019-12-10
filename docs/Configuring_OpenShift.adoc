@@ -1,0 +1,16 @@
+= Configure OCP and install Babylon components
+
+
+. Install link:https://github.com/redhat-gpte-devopsautomation/anarchy-operator.git[Anarchy - OpenShift Operator for Stateless API operations]
+. Install link:https://github.com/redhat-gpte-devopsautomation/poolboy.git[Poolboy - OpenShift Operator to manage OpenShift resources]
+. Install link:https://github.com/redhat-gpte-devopsautomation/agnosticv-operator[AgnosticV Operator]
+.. Add SSH private key as secret if any (see readme)
+.. Authorized SSH key in your git repo (settings/deploy key in github)
+.. Add agnosticvRepo(s) custom resource
+. Create secrets in `anarchy-operator` namespace (ex: AWS creds, repo urls, ...)
+. Cleanup OpenShift templates: If like us, you don't want to have all the default OpenShift Templates showing up in the Catalog, but only items populated by agnosticv-operator, then run the following:
++
+[source,shell]
+----
+oc delete template -n openshift --all
+----
