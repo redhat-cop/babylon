@@ -1,0 +1,18 @@
+# Variables for gathered cluster info
+k8s_info_cluster_ingress_domain: >-
+  {{ lookup('k8s', api_version='config.openshift.io/v1', kind='Ingress', resource_name='cluster').spec.domain }}
+
+k8s_resources:
+# Anarchy install for the cluster
+- openshift_template:
+    url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/install-template.yaml
+      
+k8s_namespaces:
+  anarchy-operator:
+    resources:
+    - openshift_template:
+        url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
+        parameters:
+          OPERATOR_HOSTNAME: anarchy-operator.{{ k8s_info_cluster_ingress_domain }}
+          OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
+          RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
