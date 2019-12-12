@@ -1,0 +1,54 @@
+---
+- name: Setup Babylon OpenShift GitOps
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    k8s_config_sources:
+    - name: local
+      base_path: "{{ playbook_dir }}"
+
+  pre_tasks:
+  - name: Check value of k8s_config_environment_level
+    fail:
+      msg: k8s_config_environment_level must be set to 'dev', 'test', or 'prod'
+    when: >-
+      k8s_config_environment_level|default('') not in ['dev','test','prod']
+
+  - name: Get cluster ingress configuration
+    k8s_info:
+      api_version: config.openshift.io/v1
+      kind: Ingress
+      name: cluster
+    register: _k8s_info_get_cluster_ingress
+
+  - name: Get anarchy-k8s-config default AnarchyRunner
+    k8s_info:
+      api_version: anarchy.gpte.redhat.com/v1
+      kind: AnarchyRunner
+      name: default
+      namespace: anarchy-k8s-config
+    register: _k8s_info_get_anarchy_k8s_config_default_anarchy_runner
+
+  - name: Get anarchy-operator default AnarchyRunner
+    k8s_info:
+      api_version: anarchy.gpte.redhat.com/v1
+      kind: AnarchyRunner
+      name: default
+      namespace: anarchy-operator
+    register: _k8s_info_get_anarchy_operator_default_anarchy_runner
+
+  - name: Set k8s_info fact
+    set_fact:
+      k8s_info:
+        cluster_ingress_domain: >-
+          {{ _k8s_info_get_cluster_ingress.resources[0].spec.domain }}
+        anarchy_k8s_config_default_runner_token: >-
+          {{ _k8s_info_get_anarchy_k8s_config_default_anarchy_runner.resources[0].spec.token
+           | default(lookup('password', '/dev/null length=15 chars=ascii_letters')) }}
+        anarchy_operator_default_runner_token: >-
+          {{ _k8s_info_get_anarchy_operator_default_anarchy_runner.resources[0].spec.token
+           | default(lookup('password', '/dev/null length=15 chars=ascii_letters')) }}
+
+  roles:
+  - role: k8s_config

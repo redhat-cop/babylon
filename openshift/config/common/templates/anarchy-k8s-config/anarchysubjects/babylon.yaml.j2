@@ -1,0 +1,21 @@
+apiVersion: anarchy.gpte.redhat.com/v1
+kind: AnarchySubject
+metadata:
+  name: babylon
+spec:
+  governor: gitops
+  vars:
+    # Interval for processing
+    # Should be specified as a positive number folled by 'd', 'h', or 'm'
+    # for units of 'day', 'hour', or 'minute'
+    run_interval: {{ anarchy_k8s_gitops_run_interval | default('1h') | to_json }}
+
+    # Variable used when loading babylon config source
+    k8s_config_environment_level: {{ k8s_config_environment_level | to_json }}
+
+    # Configuration sources
+    k8s_config_sources:
+    - name: babylon
+      git:
+        repo: https://github.com/redhat-cop/babylon.git
+      base_path: openshift/config
