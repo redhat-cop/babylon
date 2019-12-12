@@ -26,7 +26,7 @@ spec:
 
   actions:
     configure:
-      pre_tasks:
+      preTasks:
       - name: Check value of k8s_config_environment_level
         fail:
           msg: k8s_config_environment_level must be set to 'dev', 'test', or 'prod'
