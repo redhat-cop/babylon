@@ -1,0 +1,22 @@
+= Babylon OpenShift GitOps Configuration
+
+== Setup
+
+An ansible playbook is provided for Installation.
+
+. Install `k8s_config` ansible role:
++
+-----------------------------------------------------------------------------------------
+ansible-galaxy install git+https://github.com/redhat-gpte-devopsautomation/k8s_config.git
+-----------------------------------------------------------------------------------------
+
+. Run the `setup-playbook.yaml` Ansible playbook from this directory:
++
+The k8s_config_environment_level should be set to `dev`, `test`, or `prod`.
+If your OpenShift server is not configured with a known TLS certificate authority, set `k8s_api_validate_certs=false`.
++
+----------------------------------------
+ansible-playbook setup-playbook.yaml \
+-e k8s_config_environment_level=dev \
+-e k8s_api_validate_certs=false
+----------------------------------------

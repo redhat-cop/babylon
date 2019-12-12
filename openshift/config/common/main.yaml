@@ -1,18 +1,35 @@
-# Variables for gathered cluster info
-k8s_info_cluster_ingress_domain: >-
-  {{ lookup('k8s', api_version='config.openshift.io/v1', kind='Ingress', resource_name='cluster').spec.domain }}
-
+# Cluster level resources
 k8s_resources:
 # Anarchy install for the cluster
 - openshift_template:
     url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/install-template.yaml
-      
+# Grant cluster-admin access to anarchy-k8s-config
+- file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
+
+# Namespaced resources
 k8s_namespaces:
+  anarchy-k8s-config:
+    resources:
+    - openshift_template:
+        url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
+        parameters:
+          DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_k8s_config_default_runner_token }}"
+          OPERATOR_HOSTNAME: anarchy-k8s-config.{{ k8s_info.cluster_ingress_domain }}
+          OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
+          RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
+    - template:
+        file: anarchy-k8s-config/anarchygovernors/gitops.yaml.j2
+    - template:
+        file: anarchy-k8s-config/anarchysubjects/babylon.yaml.j2
+
+  # The anarchy-operator should probably move to a different namespace,
+  # perhaps simply "babylon"?
   anarchy-operator:
     resources:
     - openshift_template:
         url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
         parameters:
-          OPERATOR_HOSTNAME: anarchy-operator.{{ k8s_info_cluster_ingress_domain }}
+          DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_operator_default_runner_token }}"
+          OPERATOR_HOSTNAME: anarchy-operator.{{ k8s_info.cluster_ingress_domain }}
           OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
           RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
