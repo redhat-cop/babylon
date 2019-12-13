@@ -1,44 +1,48 @@
+# Component Versions
+anarchy_version: 0.3.6
+k8s_config_version: 0.1.4
+poolboy_version: 0.2.8
+
 # Cluster level resources
 k8s_resources:
+  # Anarchy install for the cluster
+  - openshift_template:
+      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/install-template.yaml
 
-# Anarchy install for the cluster
-- openshift_template:
-    url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/install-template.yaml
+  # Poolboy
+  - openshift_template:
+      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/deploy-template.yaml
+  - openshift_template:
+      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/deploy-template.yaml
+  - url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/babylon-provider.yaml
 
-# Poolboy
-- openshift_template:
-    url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/deploy-template.yaml
-- openshift_template:
-    url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/deploy-template.yaml
-- url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/babylon-provider.yaml
-
-# Grant cluster-admin access to anarchy-k8s-config
-- file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
+  # Grant cluster-admin access to anarchy-k8s-config
+  - file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
 
 # Namespaced resources
 k8s_namespaces:
   anarchy-k8s-config:
     resources:
-    - openshift_template:
-        url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
-        parameters:
-          DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_k8s_config_default_runner_token }}"
-          OPERATOR_HOSTNAME: anarchy-k8s-config.{{ k8s_info.cluster_ingress_domain }}
-          OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
-          RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
-    - template:
-        file: anarchy-k8s-config/anarchygovernors/gitops.yaml.j2
-    - template:
-        file: anarchy-k8s-config/anarchysubjects/babylon.yaml.j2
+      - openshift_template:
+          url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
+          parameters:
+            DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_k8s_config_default_runner_token }}"
+            OPERATOR_HOSTNAME: anarchy-k8s-config.{{ k8s_info.cluster_ingress_domain }}
+            OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
+            RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
+      - template:
+          file: anarchy-k8s-config/anarchygovernors/gitops.yaml.j2
+      - template:
+          file: anarchy-k8s-config/anarchysubjects/babylon.yaml.j2
 
   # The anarchy-operator should probably move to a different namespace,
   # perhaps simply "babylon"?
   anarchy-operator:
     resources:
-    - openshift_template:
-        url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
-        parameters:
-          DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_operator_default_runner_token }}"
-          OPERATOR_HOSTNAME: anarchy-operator.{{ k8s_info.cluster_ingress_domain }}
-          OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
-          RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
+      - openshift_template:
+          url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
+          parameters:
+            DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_operator_default_runner_token }}"
+            OPERATOR_HOSTNAME: anarchy-operator.{{ k8s_info.cluster_ingress_domain }}
+            OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
+            RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
