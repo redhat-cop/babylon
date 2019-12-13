@@ -1,4 +1,2 @@
 ---
-anarchy_version: 0.3.6
-k8s_config_version: 0.1.4
-poolboy_version: 0.2.8
+# This file should only contain variables specific to prod environments.
