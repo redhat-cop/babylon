@@ -1,0 +1,127 @@
+---
+# This Ansible Playbook show how to delete a service in Babylon.
+- name: Babylon Integration
+  hosts: localhost
+  gather_facts: false
+  vars:
+    # Vars to override as extra-vars
+    account: CHANGEME
+    catalog_item: CHANGEME
+    catalog_stage: CHANGE ME dev|test|prod
+    catalog_item_params_file: CHANGEME
+    kubeconfig: CHANGEME
+    cloudforms_username: CHANGEME
+
+    # After that don't touch
+    user_namespace: user-{{ cloudforms_username | replace('.', '-') }}
+    catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
+  tasks:
+  - name: Include vars
+    include_vars:
+      file: "{{ catalog_item_params_file }}"
+      name: catalog_item_params
+
+  - debug:
+      var: catalog_item_params
+      verbosity: 2
+
+  - fail:
+      msg: GUID must be defined
+    when: >-
+      "guid" not in catalog_item_params
+      or catalog_item_params.guid == ''
+
+  - name: Get resourceClaim
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: poolboy.gpte.redhat.com/v1
+      kind: ResourceClaim
+      namespace: "{{ user_namespace }}"
+      name: "{{ catalog_item_name }}-{{ catalog_item_params.guid }}"
+    register: r_claim
+
+  - when: r_claim.resources|length == 0
+    block:
+      - debug:
+          msg: "No resource claim found."
+
+      - name: Write tower information to yaml file
+        copy:
+          dest: "{{ output_dir }}/results.rc"
+          content: |
+            export SKIP_TOWER_LOGS=yes
+
+      - meta: end_play
+
+  - set_fact:
+      subject_name: >-
+        {{ r_claim.resources[0].status.resources[0]
+        .state.metadata.name }}
+      subject_namespace: >-
+        {{ r_claim.resources[0].status.resources[0]
+        .state.metadata.namespace }}
+
+  - name: Delete resource claim for GUID {{ catalog_item_params.guid }}
+    k8s:
+      kubeconfig: "{{ kubeconfig }}"
+      state: absent
+      api_version: poolboy.gpte.redhat.com/v1
+      kind: ResourceClaim
+      namespace: "{{ user_namespace }}"
+      name: "{{ catalog_item_name }}-{{ catalog_item_params.guid }}"
+
+  - name: Wait for the Tower deployerJob to start in the AnarchySubject
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: anarchy.gpte.redhat.com/v1
+      kind: AnarchySubject
+      namespace: "{{ subject_namespace }}"
+      name: "{{ subject_name }}"
+    register: r_subject
+    retries: 30
+    delay: 2
+    until: >-
+      'status' in r_subject.resources[0]
+      and 'state' in r_subject.resources[0].status
+      and r_subject.resources[0].status.state == 'destroying'
+
+  - name: Save the tower job
+    set_fact:
+      tower_job: "{{ r_subject.resources[0].status.towerJobs.destroy.deployerJob }}"
+
+  - name: Get Tower credentials and access information
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: v1
+      kind: Secret
+      namespace: anarchy-operator
+      name: babylon-tower
+    register: r_babylon_tower_secret
+
+  - fail:
+      msg: "babylon-tower secret not found"
+    when: r_babylon_tower_secret.resources | length == 0
+
+  - set_fact:
+      babylon_tower_secret: "{{ r_babylon_tower_secret.resources[0] }}"
+
+  - name: Save tower secret
+    set_fact:
+      tower_hostname: "{{ babylon_tower_secret.data.hostname | b64decode }}"
+      tower_user: "{{ babylon_tower_secret.data.user | b64decode }}"
+      tower_password: "{{ babylon_tower_secret.data.password | b64decode }}"
+
+  - name: Create output_dir/secrets
+    file:
+      path: "{{ output_dir }}/secrets"
+      state: directory
+      mode: 0700
+
+  - name: Write tower information to yaml file
+    copy:
+      dest: "{{ output_dir }}/secrets/tower.rc"
+      content: |
+        export TOWER_HOST="https://{{ tower_hostname }}"
+        export TOWER_USERNAME={{ tower_user | to_json }}
+        export TOWER_PASSWORD={{ tower_password | to_json }}
+        export TOWER_JOB={{ tower_job | to_json }}
