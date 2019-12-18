@@ -33,9 +33,9 @@
             poolboy.gpte.redhat.com/resource-provider-namespace: poolboy
           generateName: "{{ catalog_item_name }}-"
         spec:
-          desiredState: started
           governor: "{{ catalog_item_name }}"
           vars:
+            desired_state: started
             job_vars: "{{ vars.catalog_item_params }}"
 
   tasks:
