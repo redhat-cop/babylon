@@ -5,6 +5,12 @@
   gather_facts: false
   vars:
     k8s_config_sources:
+    - name: private
+      base_path: openshift/config
+      git:
+        accept_hostkey: true
+        repo: git@github.com:redhat-gpe/babylon-private.git
+        key_file: ~/.ssh/deploykey.rsa
     - name: local
       base_path: "{{ playbook_dir }}"
 

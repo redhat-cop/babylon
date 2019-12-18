@@ -3,8 +3,10 @@ anarchy_version: 0.3.6
 k8s_config_version: 0.1.4
 poolboy_version: 0.2.8
 
-# Cluster level resources
-k8s_resources:
+# Override in private repository
+babylon_private_resources: []
+
+babylon_resources:
   # Anarchy install for the cluster
   - openshift_template:
       url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/install-template.yaml
@@ -24,6 +26,9 @@ k8s_resources:
 
   # Grant cluster-admin access to anarchy-k8s-config
   - file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
+
+# Cluster level resources
+k8s_resources: "{{ babylon_private_resources + babylon_resources }}"
 
 # Namespaced resources
 k8s_namespaces:
