@@ -24,11 +24,11 @@
 
   - set_fact:
       desired_state: >-
-        {% if _action == 'stop' %}
+        {% if _action == 'stop' -%}
         stopped
-        {% elif _action == 'start' %}
+        {%- elif _action == 'start' -%}
         started
-        {% endif %}
+        {%- endif %}
 
   - name: Include vars
     include_vars:
@@ -75,6 +75,28 @@
         {{ r_claim.resources[0].status.resources[0]
         .state.metadata.namespace }}
 
+  - name: Get current desired_state of the Anarchy Subject
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      kind: AnarchySubject
+      name: "{{ subject_name }}"
+      namespace: "{{ subject_namespace }}"
+      api_version: anarchy.gpte.redhat.com/v1
+    register: r_subject
+
+  - when: r_subject.resources[0].spec.vars.current_state | default('unknown') == desired_state
+    block:
+      - debug:
+          msg: "Service is already in current_state == {{ desired_state }}"
+
+      - name: Write tower information to yaml file
+        copy:
+          dest: "{{ output_dir }}/results.rc"
+          content: |
+            export SKIP_TOWER_LOGS=yes
+
+      - meta: end_play
+
   - name: Update desired_state of the Anarchy Subject
     k8s:
       kubeconfig: "{{ kubeconfig }}"
@@ -120,16 +142,10 @@
     retries: 30
     delay: 2
     until: >-
-      r_claim.resources|length == 1
-      and 'status' in r_claim.resources[0]
-      and 'resources' in r_claim.resources[0].status
-      and r_claim.resources[0].status.resources|length > 0
-      and 'state' in r_claim.resources[0].status.resources[0]
-      and 'status' in r_claim.resources[0].status.resources[0].state
-      and 'towerJobs' in r_claim.resources[0].status.resources[0].state.status
-      and _action in r_claim.resources[0].status.resources[0].state.status.towerJobs
-      and 'deployerJob' in (r_claim.resources[0].status.resources[0]
-                           .state.status.towerJobs[_action])
+      'deployerJob' in (
+      r_claim.resources[0].status.resources[0]
+      .state.status.towerJobs[_action] | default([])
+      )
 
   - name: Save Tower job
     set_fact:
