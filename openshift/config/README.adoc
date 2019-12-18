@@ -10,6 +10,10 @@ An ansible playbook is provided for Installation.
 ansible-galaxy install git+https://github.com/redhat-gpte-devopsautomation/k8s_config.git
 -----------------------------------------------------------------------------------------
 
+. Create a deploy key SSH key pair for your private babylon repository.
++
+The private repository should define the variable `babylon_private_resources` with a list of resources to create such as cluster role bindings.
+
 . Run the `setup-playbook.yaml` Ansible playbook from this directory:
 +
 The k8s_config_environment_level should be set to `dev`, `test`, or `prod`.
@@ -18,5 +22,6 @@ If your OpenShift server is not configured with a known TLS certificate authorit
 ----------------------------------------
 ansible-playbook setup-playbook.yaml \
 -e k8s_config_environment_level=dev \
--e k8s_api_validate_certs=false
+-e k8s_api_validate_certs=false \
+-e deploy_key=~/.ssh/deploy-key.id_rsa
 ----------------------------------------
