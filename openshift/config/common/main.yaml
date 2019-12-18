@@ -12,6 +12,12 @@ k8s_resources:
   # Poolboy
   - openshift_template:
       url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/deploy-template.yaml
+  # The anarachy-operator namespace needs to exist to deploy poolboy/anarchy integration
+  - definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: anarchy-operator
   - openshift_template:
       url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/deploy-template.yaml
   - url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/babylon-provider.yaml
