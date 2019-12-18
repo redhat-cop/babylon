@@ -27,6 +27,20 @@ spec:
   actions:
     configure:
       preTasks:
+      - name: Get deploy-key secret
+        k8s_info:
+          api_version: v1
+          kind: Secret
+          name: deploy-key
+          namespace: "{{ lookup('file', '/run/secrets/kubernetes.io/serviceaccount/namespace') }}"
+        register: _k8s_deploy_key_secret
+
+      - name: Write deploy-key to file
+        copy:
+          content: "{{ _k8s_deploy_key_secret.resources[0].data.id_rsa | b64decode }}"
+          dest: /anarchy-runner/.ansible/deploy-key.id_rsa
+          mode: u=rw,go=
+
       - name: Check value of k8s_config_environment_level
         fail:
           msg: k8s_config_environment_level must be set to 'dev', 'test', or 'prod'
