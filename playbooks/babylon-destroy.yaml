@@ -81,9 +81,7 @@
     retries: 30
     delay: 2
     until: >-
-      'status' in r_subject.resources[0]
-      and 'state' in r_subject.resources[0].status
-      and r_subject.resources[0].status.state == 'destroying'
+      'destroying' == r_subject.resources[0].spec.vars.current_state|default('')
 
   - name: Save the tower job
     set_fact:

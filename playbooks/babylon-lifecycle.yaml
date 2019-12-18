@@ -75,7 +75,7 @@
         {{ r_claim.resources[0].status.resources[0]
         .state.metadata.namespace }}
 
-  - name: Update desiredState of the Anarchy Subject
+  - name: Update desired_state of the Anarchy Subject
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       kind: AnarchySubject
@@ -84,7 +84,8 @@
       api_version: anarchy.gpte.redhat.com/v1
       definition:
         spec:
-          desiredState: "{{ desired_state }}"
+          vars:
+            desired_state: "{{ desired_state }}"
 
   - name: Get Tower credentials and access information
     k8s_info:
