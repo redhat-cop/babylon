@@ -27,6 +27,10 @@ babylon_resources:
   # Grant cluster-admin access to anarchy-k8s-config
   - file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
 
+  # agnosticv-operator
+  - openshift_template:
+      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/agnosticv-operator/master/deploy-template.yaml
+
 # Cluster level resources
 k8s_resources: "{{ babylon_private_resources + babylon_resources }}"
 
