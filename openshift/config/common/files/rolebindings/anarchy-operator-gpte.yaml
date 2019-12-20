@@ -1,0 +1,13 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: anarchy-operator-gpte
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: anarchy-operator
+subjects:
+- kind: ServiceAccount
+  name: anarchy-operator
+  namespace: anarchy-operator
