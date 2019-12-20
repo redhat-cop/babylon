@@ -1,63 +1,78 @@
 # Component Versions
+agnosticv_operator_version: v0.0.24
 anarchy_version: 0.3.6
-k8s_config_version: 0.1.4
+k8s_config_version: 0.1.5
 poolboy_version: 0.2.8
 
 # Override in private repository
 babylon_private_resources: []
 
 babylon_resources:
+  # gpte namespace
+  - namespace: gpte
+    resources:
+      - name: opentlc-mgr service account
+        file: serviceaccounts/opentlc-mgr.yaml
+      - name: anarchy-operator-gpte rolebinding
+        file: rolebindings/anarchy-operator-gpte.yaml
+  - name: OpenTLC deployer cluster role
+    file: clusterroles/opentlc-deployer.yaml
+  - name: OpenTLC deployer cluster role binding
+    file: clusterrolebindings/opentlc-deployer.yaml
+
   # Anarchy install for the cluster
-  - openshift_template:
+  - name: Anarchy install template
+    openshift_template:
       url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/install-template.yaml
-
-  # Poolboy
-  - openshift_template:
-      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/deploy-template.yaml
-  # The anarachy-operator namespace needs to exist to deploy poolboy/anarchy integration
-  - definition:
-      apiVersion: v1
-      kind: Namespace
-      metadata:
-        name: anarchy-operator
-  - openshift_template:
-      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/deploy-template.yaml
-  - url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/babylon-provider.yaml
-
-  # Grant cluster-admin access to anarchy-k8s-config
-  - file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
-
-  # agnosticv-operator
-  - openshift_template:
-      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/agnosticv-operator/master/deploy-template.yaml
-
-# Cluster level resources
-k8s_resources: "{{ babylon_private_resources + babylon_resources }}"
-
-# Namespaced resources
-k8s_namespaces:
-  anarchy-k8s-config:
+  - namespace: anarchy-operator
     resources:
-      - openshift_template:
-          url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
-          parameters:
-            DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_k8s_config_default_runner_token }}"
-            OPERATOR_HOSTNAME: anarchy-k8s-config.{{ k8s_info.cluster_ingress_domain }}
-            OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
-            RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
-      - template:
-          file: anarchy-k8s-config/anarchygovernors/gitops.yaml.j2
-      - template:
-          file: anarchy-k8s-config/anarchysubjects/babylon.yaml.j2
-
-  # The anarchy-operator should probably move to a different namespace,
-  # perhaps simply "babylon"?
-  anarchy-operator:
-    resources:
-      - openshift_template:
+      - name: Anarchy deploy template
+        openshift_template:
           url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
           parameters:
             DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_operator_default_runner_token }}"
             OPERATOR_HOSTNAME: anarchy-operator.{{ k8s_info.cluster_ingress_domain }}
             OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
             RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
+      - name: OpenTLC secret manager role
+        file: roles/opentlc-secret-manager.yaml
+      - name: OpenTLC secret manager role binding
+        file: rolebindings/opentlc-secret-manager.yaml
+
+  # Poolboy
+  - name: Poolboy deploy template
+    openshift_template:
+      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/deploy-template.yaml
+  - name: Poolboy Anarchy integration template
+    openshift_template:
+      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/deploy-template.yaml
+  - name: Poolboy Anarchy Babylon ResourceProvider
+    url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/babylon-provider.yaml
+
+  # Grant cluster-admin access to anarchy-k8s-config
+  - namespace: anarchy-k8s-config
+    resources:
+      - name: anarchy-k8s-config deploy
+        openshift_template:
+          url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
+          parameters:
+            DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_k8s_config_default_runner_token }}"
+            OPERATOR_HOSTNAME: anarchy-k8s-config.{{ k8s_info.cluster_ingress_domain }}
+            OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
+            RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
+      - name: anarchy-k8s-config gitops AnarchyGovernor
+        template:
+          file: anarchy-k8s-config/anarchygovernors/gitops.yaml.j2
+      - name: anarchy-k8s-config babylon AnarchySubject
+        template:
+          file: anarchy-k8s-config/anarchysubjects/babylon.yaml.j2
+  - name: anarchy-k8s-config cluster admin
+    file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
+
+  # agnosticv-operator
+  - name: AgnosticV Operator Deploy
+    openshift_template:
+      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/agnosticv-operator/{{ agnosticv_operator_version }}/deploy-template.yaml
+
+# Cluster level resources
+k8s_resources: "{{ babylon_private_resources + babylon_resources }}"
