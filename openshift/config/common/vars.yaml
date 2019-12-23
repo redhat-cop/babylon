@@ -4,7 +4,8 @@ anarchy_version: 0.3.6
 k8s_config_version: 0.1.6
 poolboy_version: 0.2.8
 
-# Override in private repository
+# Default values for private config source
+babylon_private_deploy_key: ''
 babylon_private_resources: []
 
 babylon_resources:

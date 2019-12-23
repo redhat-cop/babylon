@@ -19,7 +19,7 @@ spec:
       base_path: openshift/config
       git:
         accept_hostkey: true
-        repo: git@github.com:redhat-gpe/babylon-private.git
+        repo: {{ babylon_private_repo | to_json }}
         key_file: /anarchy-runner/.ansible/deploy-key.id_rsa
 
     - name: babylon
