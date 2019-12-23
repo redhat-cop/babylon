@@ -23,5 +23,6 @@ If your OpenShift server is not configured with a known TLS certificate authorit
 ansible-playbook setup-playbook.yaml \
 -e k8s_config_environment_level=dev \
 -e k8s_api_validate_certs=false \
--e deploy_key=~/.ssh/deploy-key.id_rsa
+-e agnosticv_private_deploy_key=~/.ssh/deploy-key.id_rsa
+-e babylon_private_deploy_key=~/.ssh/deploy-key.id_rsa
 ----------------------------------------

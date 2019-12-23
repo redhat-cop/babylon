@@ -67,14 +67,14 @@ babylon_resources:
         template:
           file: anarchy-k8s-config/anarchysubjects/babylon.yaml.j2
       - name: anarchy-k8s-config deploy-key
-        when: deploy_key != ''
+        when: babylon_private_deploy_key != ''
         definition:
           apiVersion: v1
           kind: Secret
           metadata:
             name: deploy-key
           data:
-            id_rsa: "{{ lookup('file', deploy_key) | b64encode if deploy_key != '' else '' }}"
+            id_rsa: "{{ lookup('file', babylon_private_deploy_key) | b64encode if babylon_private_deploy_key != '' else '' }}"
   - name: anarchy-k8s-config cluster admin
     file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
 
