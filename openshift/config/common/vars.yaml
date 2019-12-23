@@ -1,10 +1,11 @@
 # Component Versions
 agnosticv_operator_version: v0.0.24
 anarchy_version: 0.3.6
-k8s_config_version: 0.1.5
+k8s_config_version: 0.1.6
 poolboy_version: 0.2.8
 
-# Override in private repository
+# Default values for private config source
+babylon_private_deploy_key: ''
 babylon_private_resources: []
 
 babylon_resources:
@@ -66,6 +67,15 @@ babylon_resources:
       - name: anarchy-k8s-config babylon AnarchySubject
         template:
           file: anarchy-k8s-config/anarchysubjects/babylon.yaml.j2
+      - name: anarchy-k8s-config deploy-key
+        when: babylon_private_deploy_key != ''
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: deploy-key
+          data:
+            id_rsa: "{{ lookup('file', babylon_private_deploy_key) | b64encode if babylon_private_deploy_key != '' else '' }}"
   - name: anarchy-k8s-config cluster admin
     file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
 

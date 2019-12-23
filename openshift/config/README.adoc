@@ -19,9 +19,15 @@ The private repository should define the variable `babylon_private_resources` wi
 The k8s_config_environment_level should be set to `dev`, `test`, or `prod`.
 If your OpenShift server is not configured with a known TLS certificate authority, set `k8s_api_validate_certs=false`.
 +
+If you have private configuration sources you may specify `babylon_private_repo` and `babylon_private_deploy_key` to add your private config source.
+Your private config source should define `babylon_private_resources` for custom `k8s_config` resources.
+If your private config source provides agnosticv-operator configuration you may also need to pass credentials for agnosticv access.
++
 ----------------------------------------
 ansible-playbook setup-playbook.yaml \
 -e k8s_config_environment_level=dev \
 -e k8s_api_validate_certs=false \
--e deploy_key=~/.ssh/deploy-key.id_rsa
+-e babylon_private_repo=git@github.com:redhat-gpe/babylon-private.git \
+-e babylon_private_deploy_key=~/.ssh/babylon-private.rsa \
+-e agnosticv_private_deploy_key='~/.ssh/agnosticv-private.rsa
 ----------------------------------------

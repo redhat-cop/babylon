@@ -4,14 +4,21 @@
   connection: local
   gather_facts: false
   vars:
-    deploy_key: ~/.ssh/deploykey.rsa
+    # Override deploy key variable with extra vars
+    babylon_private_repo: ''
+    babylon_private_deploy_key: ''
+
     k8s_config_sources:
+    # Load private config source with highest priority if deploy key is available
     - name: babylon-private
       base_path: openshift/config
       git:
         accept_hostkey: true
-        repo: git@github.com:redhat-gpe/babylon-private.git
-        key_file: "{{ deploy_key }}"
+        repo: "{{ babylon_private_repo }}"
+        key_file: "{{ babylon_private_deploy_key }}"
+      when: babylon_private_deploy_key != ''
+
+    # Local config, should be openshift/config in babylon repository
     - name: local
       base_path: "{{ playbook_dir }}"
 
@@ -59,15 +66,3 @@
 
   roles:
   - role: k8s_config
-
-  tasks:
-  - name: Store deploy key in anarchy-k8s-config secret
-    k8s:
-      definition:
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: deploy-key
-          namespace: anarchy-k8s-config
-        data:
-          id_rsa: "{{ lookup('file', deploy_key) | b64encode }}"
