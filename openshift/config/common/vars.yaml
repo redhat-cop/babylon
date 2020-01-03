@@ -1,6 +1,6 @@
 # Component Versions
 agnosticv_operator_version: v0.0.24
-anarchy_version: 0.3.7
+anarchy_version: v0.3.7
 k8s_config_version: 0.1.6
 poolboy_version: 0.2.8
 
@@ -24,17 +24,17 @@ babylon_resources:
   # Anarchy install for the cluster
   - name: Anarchy install template
     openshift_template:
-      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/install-template.yaml
+      url: https://raw.githubusercontent.com/redhat-cop/anarchy/{{ anarchy_version }}/install-template.yaml
   - namespace: anarchy-operator
     resources:
       - name: Anarchy deploy template
         openshift_template:
-          url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/anarchy-operator/{{ anarchy_version }}/deploy-template.yaml
+          url: https://raw.githubusercontent.com/redhat-cop/anarchy/{{ anarchy_version }}/deploy-template.yaml
           parameters:
             DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_operator_default_runner_token }}"
             OPERATOR_HOSTNAME: anarchy-operator.{{ k8s_info.cluster_ingress_domain }}
-            OPERATOR_IMAGE: quay.io/gpte-devops-automation/anarchy-operator:{{ anarchy_version }}
-            RUNNER_IMAGE: quay.io/gpte-devops-automation/anarchy-runner:{{ anarchy_version }}
+            OPERATOR_IMAGE: quay.io/redhat-cop/anarchy:{{ anarchy_version }}
+            RUNNER_IMAGE: quay.io/redhat-cop/anarchy-runner:{{ anarchy_version }}
       - name: OpenTLC secret manager role
         file: roles/opentlc-secret-manager.yaml
       - name: OpenTLC secret manager role binding
@@ -52,6 +52,8 @@ babylon_resources:
 
   # Grant cluster-admin access to anarchy-k8s-config
   - namespace: anarchy-k8s-config
+    # Don't deploy config management to dev
+    when: k8s_config_environment_level != 'dev'
     resources:
       - name: anarchy-k8s-config deploy
         openshift_template:
@@ -85,4 +87,4 @@ babylon_resources:
       url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/agnosticv-operator/{{ agnosticv_operator_version }}/deploy-template.yaml
 
 # Cluster level resources
-k8s_resources: "{{ babylon_private_resources + babylon_resources }}"
+k8s_resources: "{{ babylon_resources +  babylon_private_resources }}"
