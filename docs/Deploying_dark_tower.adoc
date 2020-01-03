@@ -106,6 +106,8 @@ tower_instance_count:       1                       # 1 is a legal value (non-cl
 support_instance_count:     1                       # Postgres database - set to 2 if clustering in same VPC
 worker_instance_count:      1                       # Set 0 to not to provision worker(isolated) nodes.
 
+root_filesystem_size: 20
+
 tower_host_name:                "tower1.{{ guid }}{{ subdomain_base_suffix }}" 
 tower_user_accounts:            #Define users you want to create. Set superuser: yes to make user system wide System Administrator
 
@@ -218,14 +220,12 @@ pip_requirements:
 
 key_local_path:           ~/.ssh/ocpkey.pem
 
-
-----
 #####
 ##### SECRET Stuff often stored and passed in a seperate var file
 #####
 
----
-
+# Base URL for yum repository, the full repo URL will be
+# {{ own_repo_path }}/{{ tower_version }}
 own_repo_path: http://my-yum-server/repos
 
 tower_license: >
@@ -240,7 +240,7 @@ tower_license: >
     "subscription_name": "Red Hat Ansible Tower, Standard (50 Managed Nodes)"
   }
 
-# GPTE RW AWS Creds
+# AWS Creds
 aws_access_key_id:        <YOUR-AWS-ACCESS-KEY>
 aws_secret_access_key:    <YOUR-SECRET-AWS-ACCESS-KEY>
 ...
