@@ -13,16 +13,25 @@ spec:
     # Variable used when loading babylon config source
     k8s_config_environment_level: {{ k8s_config_environment_level | to_json }}
 
-    # Configuration sources
+    # Configuration source vars
+    babylon_repo_url: {{ babylon_repo_url | to_json }}
+    babylon_repo_version: {{ babylon_repo_version | to_json }}
+    babylon_private_repo_url: {{ babylon_private_repo_url | to_json }}
+    babylon_private_repo_version: {{ babylon_private_repo_version | to_json }}
+{% raw %}
     k8s_config_sources:
     - name: babylon-private
       base_path: openshift/config
       git:
         accept_hostkey: true
-        repo: {{ babylon_private_repo | to_json }}
+        repo: "{{ babylon_private_repo_url }}"
         key_file: /anarchy-runner/.ansible/deploy-key.id_rsa
+        version: "{{ babylon_private_repo_version }}"
 
     - name: babylon
       git:
-        repo: https://github.com/redhat-cop/babylon.git
+        accept_hostkey: true
+        repo: "{{ babylon_repo_url }}"
+        version: "{{ babylon_repo_version }}"
       base_path: openshift/config
+{% endraw %}
