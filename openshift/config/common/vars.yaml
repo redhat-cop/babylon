@@ -1,7 +1,7 @@
 # Component Versions
 agnosticv_operator_version: v0.0.24
-anarchy_version: v0.3.7
-k8s_config_version: 0.1.6
+anarchy_version: v0.4.1
+k8s_config_version: 0.2.0
 poolboy_version: 0.2.8
 
 # Default values for private config source
