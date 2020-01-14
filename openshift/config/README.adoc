@@ -7,7 +7,7 @@ An ansible playbook is provided for Installation.
 . Install `k8s_config` ansible role:
 +
 -----------------------------------------------------------------------------------------
-ansible-galaxy install git+https://github.com/redhat-gpte-devopsautomation/k8s_config.git
+ansible-galaxy install git+https://github.com/redhat-cop/k8s_config.git
 -----------------------------------------------------------------------------------------
 
 . Create a deploy key SSH key pair for your private babylon repository.
