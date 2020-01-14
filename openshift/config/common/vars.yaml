@@ -2,7 +2,7 @@
 agnosticv_operator_version: v0.0.24
 anarchy_version: v0.4.1
 k8s_config_version: 0.2.0
-poolboy_version: 0.2.8
+poolboy_version: v0.2.11
 
 # Default values for private config source
 babylon_private_deploy_key: ''
@@ -43,12 +43,12 @@ babylon_resources:
   # Poolboy
   - name: Poolboy deploy template
     openshift_template:
-      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/deploy-template.yaml
+      url: https://raw.githubusercontent.com/redhat-cop/poolboy/{{ poolboy_version }}/deploy-template.yaml
   - name: Poolboy Anarchy integration template
     openshift_template:
-      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/deploy-template.yaml
+      url: https://raw.githubusercontent.com/redhat-cop/poolboy/{{ poolboy_version }}/integration/anarchy-operator/deploy-template.yaml
   - name: Poolboy Anarchy Babylon ResourceProvider
-    url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/poolboy/{{ poolboy_version }}/integration/anarchy-operator/babylon-provider.yaml
+    url: https://raw.githubusercontent.com/redhat-cop/poolboy/{{ poolboy_version }}/integration/anarchy-operator/babylon-provider.yaml
 
   # Grant cluster-admin access to anarchy-k8s-config
   - namespace: anarchy-k8s-config
