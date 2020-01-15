@@ -31,6 +31,15 @@ ansible-playbook setup-playbook.yaml \
 -e agnosticv_private_deploy_key=~/.ssh/agnosticv-private.rsa
 ----------------------------------------
 
+. Create a secret, `babylon-tower`, in the `anarchy-operator` namespace with the user, password, and hostname used to connect to the Anisble dark-tower component.
++
+-----
+oc create secret generic babylon-tower \
+--from-literal=hostname=... \
+--from-literal=user=... \
+--from-literal=password=...
+-----
+
 == Available Variables
 
 * `babylon_repo_url` - Source for main babylon config.
