@@ -23,8 +23,8 @@ def guid=''
 // Catalog items
 def choices = [
     'DevOps Team Development / DEV Babylon empty-config / tests',
-    'DevOps Deployement Testing / TEST Babylon empty-config / tests_prod',
-    'DevOps Deployement Testing / PROD Babylon empty-config / tests_prod',
+    'DevOps Deployment Testing / TEST Babylon empty-config / tests_prod',
+    'DevOps Deployment Testing / PROD Babylon empty-config / tests_prod',
 ].join("\n")
 
 pipeline {
