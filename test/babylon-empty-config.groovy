@@ -19,19 +19,12 @@ def ssh_admin_host = 'admin-host-na'
 
 // state variables
 def guid=''
-def ssh_location = ''
-
 
 // Catalog items
 def choices = [
-    'DevOps Team Development / DEV Babylon empty-config',
-    'DevOps Deployement Testing / TEST Babylon empty-config',
-//    'DevOps Deployement Testing / PROD Babylon empty-config',
-].join("\n")
-
-def region_choice = [
-    'tests',
-    'tests_prod',
+    'DevOps Team Development / DEV Babylon empty-config / tests',
+    'DevOps Deployment Testing / TEST Babylon empty-config / tests_prod',
+    'DevOps Deployment Testing / PROD Babylon empty-config / tests_prod',
 ].join("\n")
 
 pipeline {
@@ -45,17 +38,17 @@ pipeline {
         booleanParam(
             defaultValue: false,
             description: 'wait for user input before deleting the environment',
-                name: 'confirm_before_delete'
+            name: 'confirm_before_delete',
+        )
+        booleanParam(
+            defaultValue: false,
+            description: 'Additional debug information from Cloudforms API',
+            name: 'cf_debug',
         )
         choice(
             choices: choices,
             description: 'Catalog item',
             name: 'catalog_item',
-        )
-        choice(
-            choices: region_choice,
-            description: 'Region',
-            name: 'region',
         )
     }
 
@@ -64,7 +57,7 @@ pipeline {
             environment {
                 uri = "${cf_uri}"
                 credentials = credentials("${opentlc_creds}")
-                DEBUG = 'true'
+                DEBUG = "${params.cf_debug}"
             }
             /* This step use the order_svc_guid.sh script to order
              a service from CloudForms */
@@ -74,9 +67,7 @@ pipeline {
                 script {
                     def catalog = params.catalog_item.split(' / ')[0].trim()
                     def item = params.catalog_item.split(' / ')[1].trim()
-                    def ocprelease = params.ocprelease.trim()
-                    def region = params.region.trim()
-                    def environment = params.environment.trim()
+                    def region = params.catalog_item.split(' / ')[2].trim()
                     echo "'${catalog}' '${item}'"
                     guid = sh(
                         returnStdout: true,
@@ -93,23 +84,8 @@ pipeline {
                 }
             }
         }
-        /* Skip this step because sometimes the completed email arrives
-         before the 'has started' email
-        stage('Wait for first email') {
-            environment {
-                credentials=credentials("${imap_creds}")
-            }
-            steps {
 
-                sh """./tests/jenkins/downstream/poll_email.py \
-                    --server '${imap_server}' \
-                    --guid ${guid} \
-                    --timeout 20 \
-                    --filter 'has started'"""
-            }
-        }
-        */
-        stage('Wait for last email and parse SSH location') {
+        stage('Wait for last email and parse dummy login / password') {
             environment {
                 credentials=credentials("${imap_creds}")
             }
@@ -130,9 +106,9 @@ pipeline {
                     ).trim()
 
                     try {
-                    	def m = email =~ /<pre>. *ssh -i [^ ]+ *([^ <]+?) *<\/pre>/
-                    	ssh_location = m[0][1]
-                    	echo "ssh_location = '${ssh_location}'"
+                    	def m = email =~ /(?m)^Some random password (\w+)$/
+                    	def password = m[0][1]
+                    	echo "password from email = '${password}'"
                     } catch(Exception ex) {
                         echo "Could not parse email:"
                         echo email
@@ -140,20 +116,6 @@ pipeline {
                         throw ex
                     }
 
-                }
-            }
-        }
-
-        stage('SSH') {
-            steps {
-                withCredentials([
-                    sshUserPrivateKey(
-                        credentialsId: ssh_creds,
-                        keyFileVariable: 'ssh_key',
-                        usernameVariable: 'ssh_username')
-                ]) {
-                    sh "ssh -o StrictHostKeyChecking=no -i ${ssh_key} ${ssh_location} w"
-                    sh "ssh -o StrictHostKeyChecking=no -i ${ssh_key} ${ssh_location} oc version"
                 }
             }
         }
@@ -168,12 +130,13 @@ pipeline {
                 input "Continue ?"
             }
         }
+
         stage('Retire service from CF') {
             environment {
                 uri = "${cf_uri}"
                 credentials = credentials("${opentlc_creds}")
                 admin_credentials = credentials("${opentlc_admin_creds}")
-                DEBUG = 'true'
+                DEBUG = "${params.cf_debug}"
             }
             /* This step uses the delete_svc_guid.sh script to retire
              the service from CloudForms */
@@ -233,7 +196,7 @@ pipeline {
             ) {
                 sh """
                 export uri="${cf_uri}"
-                export DEBUG=true
+                export DEBUG="{params.cf_debug}"
                 ./opentlc/delete_svc_guid.sh '${guid}'
                 """
             }
@@ -247,7 +210,12 @@ pipeline {
                     usernameVariable: 'ssh_username')
             ]) {
                 sh("""
-                    ssh -o StrictHostKeyChecking=no -i ${ssh_key} ${ssh_admin} \
+                    ssh -vvv -o StrictHostKeyChecking=no -i ${ssh_key} ${ssh_admin} \
+                    "uptime"
+                """.trim()
+                )
+                sh("""
+                    ssh -vvv -o StrictHostKeyChecking=no -i ${ssh_key} ${ssh_admin} \
                     "find deployer_logs -name '*${guid}*log' | xargs cat"
                 """.trim()
                 )
