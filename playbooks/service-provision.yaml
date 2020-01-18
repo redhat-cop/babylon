@@ -135,7 +135,7 @@
       namespace: "{{ user_namespace }}"
       name: "{{ catalog_item_name }}-{{ catalog_item_params.guid }}"
     register: r_claim
-    retries: 30
+    retries: "{{ wait_retries | default(30) }}"
     delay: 2
     until: >-
       r_claim.resources|length == 1
