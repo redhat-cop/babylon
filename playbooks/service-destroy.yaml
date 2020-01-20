@@ -78,7 +78,7 @@
       namespace: "{{ subject_namespace }}"
       name: "{{ subject_name }}"
     register: r_subject
-    retries: 30
+    retries: "{{ wait_retries | default(30) }}"
     delay: 2
     until: >-
       'destroying' == r_subject.resources[0].spec.vars.current_state|default('')
