@@ -4,6 +4,12 @@
 
 An ansible playbook is provided for Installation.
 
+. Use `pip` to install `ansible` and `openshift`:
++
+----------------------------------------------
+pip install --upgrade --user ansible openshift
+----------------------------------------------
+
 . Install `k8s_config` ansible role:
 +
 -----------------------------------------------------------------------------------------
