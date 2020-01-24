@@ -31,10 +31,16 @@ If your private config source provides agnosticv-operator configuration you may 
 +
 ----------------------------------------
 ansible-playbook setup-playbook.yaml \
--e k8s_config_environment_level=dev \
--e babylon_private_repo_url=git@github.com:redhat-gpe/babylon-private.git \
--e babylon_private_deploy_key=~/.ssh/babylon-private.rsa \
--e agnosticv_private_deploy_key=~/.ssh/agnosticv-private.rsa
+-e '{
+  "k8s_config_environment_level": "dev",
+  "babylon_private_repo_url": "git@github.com:redhat-gpe/babylon-private.git",
+  "babylon_private_deploy_key": "~/.ssh/babylon-private.rsa",
+  "agnosticv_repositories": [{
+    "name": "gpte-agnosticv",
+    "url": "git@github.com:redhat-gpe/agnosticv.git",
+    "ssh_key": "~/.ssh/agnosticv-private.rsa"
+  }]
+}'
 ----------------------------------------
 
 . Create a secret, `babylon-tower`, in the `anarchy-operator` namespace with the user, password, and hostname used to connect to the Anisble dark-tower component.
