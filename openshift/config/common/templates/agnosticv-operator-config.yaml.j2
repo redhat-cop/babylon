@@ -1,0 +1,20 @@
+{% for agnosticv_repo in agnosticv_repositories %}
+---
+apiVersion: gpte.redhat.com/v1
+kind: AgnosticVRepo
+metadata:
+  name: {{ agnosticv_repo.name | to_json }}
+spec:
+  ref: master
+  url: {{ agnosticv_repo.url | to_json }}
+{%   if agnosticv_repo.ssh_key %}
+  sshKey: {{ (agnosticv_repo.name ~ '-sshkey') | to_json }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ (agnosticv_repo.name ~ '-sshkey') | to_json }}
+data:
+  id_rsa: "{{ lookup('file', agnosticv_repo.ssh_key) | b64encode }}"
+{%   endif %}
+{% endfor %}

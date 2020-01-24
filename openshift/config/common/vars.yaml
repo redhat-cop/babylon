@@ -1,5 +1,6 @@
 # Component Versions
 agnosticv_operator_version: v0.0.24
+agnosticv_repositories: []
 anarchy_version: v0.4.1
 k8s_config_version: 0.2.0
 poolboy_version: v0.2.12
@@ -101,6 +102,11 @@ babylon_resources:
   - name: AgnosticV Operator Deploy
     openshift_template:
       url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/agnosticv-operator/{{ agnosticv_operator_version }}/deploy-template.yaml
+  - namespace: agnosticv-operator
+    resources:
+    - name: Agnosticv Operator Configuration
+      template:
+        file: agnosticv-operator-config.yaml.j2
 
 # Cluster level resources
 k8s_resources: "{{ babylon_resources +  babylon_private_resources }}"
