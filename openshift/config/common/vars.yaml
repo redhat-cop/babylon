@@ -108,5 +108,11 @@ babylon_resources:
       template:
         file: agnosticv-operator-config.yaml.j2
 
+  # OpenShift template access
+  - name: openshift-template-access ClusterRole
+    file: clusterroles/openshift-template-access.yaml
+  - name: openshift-template-access ClusterRoleBinding
+    file: clusterrolebindings/openshift-template-access.yaml
+
 # Cluster level resources
 k8s_resources: "{{ babylon_resources +  babylon_private_resources }}"
