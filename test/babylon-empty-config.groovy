@@ -23,8 +23,14 @@ def guid=''
 // Catalog items
 def choices = [
     'DevOps Team Development / DEV Babylon empty-config / tests',
+    'DevOps Team Development / DEV Babylon empty-config AWS / tests',
+    'DevOps Team Development / DEV Babylon empty-config OSP / tests',
     'DevOps Deployment Testing / TEST Babylon empty-config / tests_prod',
+    'DevOps Deployment Testing / TEST Babylon empty-config AWS / tests_prod',
+    'DevOps Deployment Testing / TEST Babylon empty-config OSP / tests_prod',
     'DevOps Deployment Testing / PROD Babylon empty-config / tests_prod',
+    'DevOps Deployment Testing / PROD Babylon empty-config AWS / tests_prod',
+    'DevOps Deployment Testing / PROD Babylon empty-config OSP / tests_prod',
 ].join("\n")
 
 pipeline {
@@ -144,6 +150,8 @@ pipeline {
                 git 'https://github.com/redhat-gpte-devopsautomation/cloudforms-oob'
 
                 sh "./opentlc/delete_svc_guid.sh '${guid}'"
+
+                // TODO: make sure the string OKTODELETE appears in the logs
             }
             post {
                 failure {
