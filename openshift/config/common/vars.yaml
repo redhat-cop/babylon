@@ -1,9 +1,10 @@
 # Component Versions
-agnosticv_operator_version: v0.0.24
+agnosticv_operator_version: v0.0.25
 agnosticv_repositories: []
 anarchy_version: v0.4.1
+babylon_anarchy_governor_version: v0.0.3
 k8s_config_version: 0.2.0
-poolboy_version: v0.2.12
+poolboy_version: v0.2.13
 user_namespace_operator_version: 0.1.3
 
 # Default values for private config source
@@ -102,6 +103,8 @@ babylon_resources:
   - name: AgnosticV Operator Deploy
     openshift_template:
       url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/agnosticv-operator/{{ agnosticv_operator_version }}/deploy-template.yaml
+      parameters:
+        AGNOSTICV_IMAGE: quay.io/gpte-devops-automation/agnosticv-operator:{{ agnosticv_operator_version }}
   - namespace: agnosticv-operator
     resources:
     - name: Agnosticv Operator Configuration
