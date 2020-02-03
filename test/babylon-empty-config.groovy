@@ -75,18 +75,35 @@ pipeline {
                     def item = params.catalog_item.split(' / ')[1].trim()
                     def region = params.catalog_item.split(' / ')[2].trim()
                     echo "'${catalog}' '${item}'"
-                    guid = sh(
-                        returnStdout: true,
-                        script: """
-                          ./opentlc/order_svc_guid.sh \
-                          -c '${catalog}' \
-                          -i '${item}' \
-                          -G '${cf_group}' \
-                          -d 'expiration=7,runtime=8,region=${region}'
-                        """
-                    ).trim()
+
+                    def command = """
+                        ./opentlc/order_svc_guid.sh \
+                        -c '${catalog}' \
+                        -i '${item}' \
+                        -G '${cf_group}' \
+                        -d 'expiration=7,runtime=8,region=${region}'
+                    """
+
+                    try {
+
+                        guid = sh(
+                            returnStdout: true,
+                            script: command
+                        ).trim()
+
+                    } catch(e) {
+
+                        if (! params.cf_debug) {
+                            // Run again but with DEBUG=true
+                            guid = sh(
+                                returnStdout: true,
+                                script: "DEBUG=true " + command
+                            ).trim()
+                        }
+                    }
 
                     echo "GUID is '${guid}'"
+
                 }
             }
         }
