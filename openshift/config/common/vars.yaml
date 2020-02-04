@@ -5,7 +5,7 @@ anarchy_version: v0.4.1
 babylon_anarchy_governor_version: v0.0.3
 k8s_config_version: 0.2.0
 poolboy_version: v0.2.13
-user_namespace_operator_version: v0.1.4
+user_namespace_operator_version: v0.1.5
 
 # Default values for private config source
 babylon_private_deploy_key: ''
