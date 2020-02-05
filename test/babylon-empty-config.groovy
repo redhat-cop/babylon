@@ -129,7 +129,7 @@ pipeline {
                     ).trim()
 
                     try {
-                    	def m = email =~ /(?m)^Some random password (\w+)$/
+                    	def m = email =~ /(?m)^Some random (?:string|password) (\w+)$/
                     	def password = m[0][1]
                     	echo "password from email = '${password}'"
                     } catch(Exception ex) {
