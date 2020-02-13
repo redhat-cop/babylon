@@ -2,7 +2,7 @@
 agnosticv_operator_version: v0.0.25
 agnosticv_repositories: []
 anarchy_version: v0.4.1
-babylon_anarchy_governor_version: v0.0.4
+babylon_anarchy_governor_version: v0.0.6
 k8s_config_version: 0.2.0
 poolboy_version: v0.2.13
 user_namespace_operator_version: v0.1.5
