@@ -210,7 +210,7 @@ pipeline {
                     }
                     withCredentials([string(credentialsId: google_room_creds, variable: 'web_hook_endpoint')]) {
                         post_to_room(web_hook_endpoint,
-                                     ":rage: ${env.JOB_NAME} (${env.BUILD_NUMBER}) failed retiring ${guid}.")
+                                     "😡 ${env.JOB_NAME} (${env.BUILD_NUMBER}) failed retiring ${guid}.")
                     }
                 }
             }
@@ -279,20 +279,13 @@ pipeline {
             }
             withCredentials([string(credentialsId: google_room_creds, variable: 'web_hook_endpoint')]) {
                 post_to_room(web_hook_endpoint,
-                             ":rage: ${env.JOB_NAME} (${env.BUILD_NUMBER}) failed GUID=${guid}. It appears that ${env.BUILD_URL}/console is failing, somebody should do something about that.")
+                             "😡 ${env.JOB_NAME} (${env.BUILD_NUMBER}) failed GUID=${guid}. It appears that ${env.BUILD_URL}/console is failing, somebody should do something about that.")
             }
         }
         fixed {
             withCredentials([string(credentialsId: google_room_creds, variable: 'web_hook_endpoint')]) {
                 post_to_room(web_hook_endpoint,
-                             ":smile: ${env.JOB_NAME} is now FIXED, see ${env.BUILD_URL}/console")
-            }
-
-        }
-        always {
-            withCredentials([string(credentialsId: google_room_creds, variable: 'web_hook_endpoint')]) {
-                post_to_room(web_hook_endpoint,
-                             "(TEST) :smile: ${env.JOB_NAME} is done, see ${env.BUILD_URL}/console")
+                             "☺ ${env.JOB_NAME} is now FIXED, see ${env.BUILD_URL}/console")
             }
 
         }
