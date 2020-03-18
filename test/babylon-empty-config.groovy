@@ -23,7 +23,8 @@ def google_room_creds = 'google-room-babylon-robots'
  method java.net.URLConnection getOutputStream
  method java.net.URLConnection setDoOutput boolean
  method java.net.URLConnection setRequestProperty java.lang.String java.lang.String
- */
+ staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods getText java.io.InputStream
+*/
 def post_to_room(endpoint, text_content) {
     def post = new URL("${endpoint}").openConnection();
     def message = "{\"text\":\"${text_content}\"}"
