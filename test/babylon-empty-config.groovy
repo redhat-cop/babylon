@@ -9,7 +9,35 @@ def imap_creds = 'd8762f05-ca66-4364-adf2-bc3ce1dca16c'
 def imap_server = 'imap.gmail.com'
 // Notifications
 def notification_email = 'gucore@redhat.com'
-def rocketchat_hook = '5d28935e-f7ca-4b11-8b8e-d7a7161a013a'
+def google_room_creds = 'google-room-babylon-robots'
+
+/*
+ For the following function, you need the following script approval in jenkins:
+
+ method groovy.lang.GString getBytes java.lang.String
+ method java.io.OutputStream write byte[]
+ method java.net.HttpURLConnection getResponseCode
+ method java.net.HttpURLConnection setRequestMethod java.lang.String
+ method java.net.URL openConnection
+ method java.net.URLConnection getInputStream
+ method java.net.URLConnection getOutputStream
+ method java.net.URLConnection setDoOutput boolean
+ method java.net.URLConnection setRequestProperty java.lang.String java.lang.String
+ staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods getText java.io.InputStream
+*/
+def post_to_room(endpoint, text_content) {
+    def post = new URL("${endpoint}").openConnection();
+    def message = "{\"text\":\"${text_content}\"}"
+    post.setRequestMethod("POST")
+    post.setDoOutput(true)
+    post.setRequestProperty("Content-Type", "application/json")
+    post.getOutputStream().write(message.getBytes("UTF-8"));
+    def postRC = post.getResponseCode();
+    println(postRC);
+    if(postRC.equals(200)) {
+        println(post.getInputStream().getText());
+    }
+}
 
 // SSH key
 def ssh_creds = '15e1788b-ed3c-4b18-8115-574045f32ce4'
@@ -181,14 +209,9 @@ pipeline {
                             from: credentials.split(':')[0]
                         )
                     }
-                    withCredentials([string(credentialsId: rocketchat_hook, variable: 'HOOK_URL')]) {
-                        sh(
-                            """
-                            curl -H 'Content-Type: application/json' \
-                            -X POST '${HOOK_URL}' \
-                            -d '{\"username\": \"jenkins\", \"icon_url\": \"https://dev-sfo01.opentlc.com/static/81c91982/images/headshot.png\", \"text\": \"@here :rage: ${env.JOB_NAME} (${env.BUILD_NUMBER}) failed retiring ${guid}.\"}'\
-                            """.trim()
-                        )
+                    withCredentials([string(credentialsId: google_room_creds, variable: 'web_hook_endpoint')]) {
+                        post_to_room(web_hook_endpoint,
+                                     "😡 ${env.JOB_NAME} (${env.BUILD_NUMBER}) failed retiring ${guid}.")
                     }
                 }
             }
@@ -255,26 +278,17 @@ pipeline {
                     from: credentials.split(':')[0]
               )
             }
-            withCredentials([string(credentialsId: rocketchat_hook, variable: 'HOOK_URL')]) {
-                sh(
-                    """
-                      curl -H 'Content-Type: application/json' \
-                      -X POST '${HOOK_URL}' \
-                      -d '{\"username\": \"jenkins\", \"icon_url\": \"https://dev-sfo01.opentlc.com/static/81c91982/images/headshot.png\", \"text\": \"@here :rage: ${env.JOB_NAME} (${env.BUILD_NUMBER}) failed GUID=${guid}. It appears that ${env.BUILD_URL}/console is failing, somebody should do something about that.\"}'\
-                    """.trim()
-                )
+            withCredentials([string(credentialsId: google_room_creds, variable: 'web_hook_endpoint')]) {
+                post_to_room(web_hook_endpoint,
+                             "😡 ${env.JOB_NAME} (${env.BUILD_NUMBER}) failed GUID=${guid}. It appears that ${env.BUILD_URL}/console is failing, somebody should do something about that.")
             }
         }
         fixed {
-            withCredentials([string(credentialsId: rocketchat_hook, variable: 'HOOK_URL')]) {
-                sh(
-                    """
-                      curl -H 'Content-Type: application/json' \
-                      -X POST '${HOOK_URL}' \
-                      -d '{\"username\": \"jenkins\", \"icon_url\": \"https://dev-sfo01.opentlc.com/static/81c91982/images/headshot.png\", \"text\": \"@here :smile: ${env.JOB_NAME} is now FIXED, see ${env.BUILD_URL}/console\"}'\
-                    """.trim()
-                )
+            withCredentials([string(credentialsId: google_room_creds, variable: 'web_hook_endpoint')]) {
+                post_to_room(web_hook_endpoint,
+                             "☺ ${env.JOB_NAME} is now FIXED, see ${env.BUILD_URL}/console")
             }
+
         }
     }
 }
