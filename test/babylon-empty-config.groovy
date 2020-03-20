@@ -250,6 +250,7 @@ pipeline {
             }
 
             /* Print ansible logs */
+            /* this doesn't work yet
             withCredentials([
                 string(credentialsId: ssh_admin_host, variable: 'ssh_admin'),
                 sshUserPrivateKey(
@@ -268,6 +269,7 @@ pipeline {
                 """.trim()
                 )
             }
+             */
 
             withCredentials([usernameColonPassword(credentialsId: imap_creds, variable: 'credentials')]) {
                 mail(
