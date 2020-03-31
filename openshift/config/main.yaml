@@ -1,6 +1,6 @@
 ---
 # Config search path configured so that env settings override common
 k8s_config_search_path:
-- cluster/{{ cluster_ingress_domain | regex_replace('^apps\.cluster-[^.]*\.','') }}
+- cluster/{{ k8s_info.cluster_ingress_domain | regex_replace('^apps\.cluster-[^.]*\.','') }}
 - env/{{ k8s_config_environment_level }}
 - common
