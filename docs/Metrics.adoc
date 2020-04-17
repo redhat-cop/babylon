@@ -1,0 +1,41 @@
+= Metrics for Babylon clusters
+
+
+== Metrics for Dark Tower
+
+=== Ansible Tower metrics
+
+. Create a regular user with system-auditor (read-only) permissions
+. Then follow
+https://docs.ansible.com/ansible-tower/latest/html/administration/metrics.html to add this to your prometheus custom instance.
+
+=== node-exporter metrics
+
+If you used
+link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/ansible-tower[agnosticd ansible-tower config] to deploy Dark-Tower, then link:https://github.com/prometheus/node_exporter[`node-exporter`] is installed on all tower masters and the support1 instance (postgresql). The port 9100 is open.
+
+On your custom prometheus instance, edit the config file `prometheus.yml` and add your config to scrape_configs:
+
+.prometheus.yml
+[source,yaml]
+----
+scrape_configs:
+  - job_name: "babylon-tower-nodes"
+    static_configs:
+      - targets:
+        - "YOUR-TOWER1-HOSTNAME:9100"
+        - "YOUR-TOWER2-HOSTNAME:9100"
+        - "YOUR-TOWER3-HOSTNAME:9100"
+        - "YOUR-SUPPORT1-HOSTNAME:9100"
+----
+
+== Add OpenShift Prometheus as a datasource to a centralized grafana
+
+
+. `oc get secret prometheus-k8s-htpasswd -o yaml -n openshift-monitoring`
+. convert to file
+. add an entry (new user/password) using the htpasswd command
+. convert the file to using base64 command
+. edit the secret and replace the data
+. restart the prometheus-k8s-* pods in the openshift-monitoring namespace
+. go to granafan and add the datasource using the https route and the basic auth login/password you just added in the htpasswd
