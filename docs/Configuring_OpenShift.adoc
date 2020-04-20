@@ -1,5 +1,10 @@
 = Configure OCP and install Babylon components
 
+== Use `k8s_config`
+
+See link:https://github.com/redhat-cop/babylon/tree/master/openshift/config[openshift/config readme].
+
+== Manual
 
 . Install link:https://github.com/redhat-gpte-devopsautomation/anarchy-operator.git[Anarchy - OpenShift Operator for Stateless API operations]
 . Install link:https://github.com/redhat-gpte-devopsautomation/poolboy.git[Poolboy - OpenShift Operator to manage OpenShift resources]
