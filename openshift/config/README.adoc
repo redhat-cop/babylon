@@ -2,12 +2,25 @@
 
 == Setup
 
+Create a virtualenv using python3 and activate it
+
+----
+~$ virtualenv -p python3 virtualenvs/k8s-config
+created virtual environment CPython3.6.8.final.0-64 in 207ms
+  creator CPython3Posix(dest=/home/ec2-user/virtualenvs/k8s-config, clear=False, global=False)
+  seeder FromAppData(download=False, pip=latest, setuptools=latest, wheel=latest, via=copy, app_data_dir=/home/ec2-user/.local/share/virtualenv/seed-app-data/v1.0.1)
+  activators BashActivator,CShellActivator,FishActivator,PowerShellActivator,PythonActivator,XonshActivator
+
+~$ . virtualenvs/k8s-config/bin/activate
+(k8s-config) ~$
+----
+
 An ansible playbook is provided for Installation.
 
 . Use `pip` to install `ansible` and `openshift`:
 +
 ----------------------------------------------
-pip install --upgrade --user ansible openshift
+pip install --upgrade ansible openshift
 ----------------------------------------------
 
 . Install `k8s_config` ansible role:
@@ -16,9 +29,40 @@ pip install --upgrade --user ansible openshift
 ansible-galaxy install git+https://github.com/redhat-cop/k8s_config.git
 -----------------------------------------------------------------------------------------
 
-. Create a deploy key SSH key pair for your private babylon repository.
+. Create a deploy key SSH key pair for your private babylon repository, with no password.
 +
-The private repository should define the variable `babylon_private_resources` with a list of resources to create such as cluster role bindings.
+----
+ssh-keygen -f ~/.ssh/babylon-private.rsa
+----
++
+if you need one for the agnosticv repository:
++
+----
+ssh-keygen -f ~/.ssh/agnosticv-private.rsa
+----
+
+. In your Git hosting provider (github, gitlab, ...) add read-only access for
+those keys.
+For github it's in *Settings / Deploy keys*.
+Here is how to get the public key from the private key generated above, add `-y`
+to the `ssh-keygen` command:
++
+----
+ssh-keygen -f ~/.ssh/babylon-private.rsa -y
+----
++
+----
+ssh-keygen -f ~/.ssh/agnosticv-private.rsa -y
+----
++
+NOTE: The private babylon repository should define the variable `babylon_private_resources` with a list of resources to create such as cluster role bindings.
+
+. Clone this repository and enter the openshift/config directory
++
+----
+git clone https://github.com/redhat-cop/babylon.git
+cd babylon/openshift/config
+----
 
 . Run the `setup-playbook.yaml` Ansible playbook from this directory:
 +
