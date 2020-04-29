@@ -72,6 +72,7 @@ for namespace in claims:
     completed = 0
     failed = 0
     inprogress = 0
+    unknown = 0
     for claim in claims[namespace]:
         status_resources = claim.get('status', {}).get('resources', [])
         if not status_resources:
@@ -86,9 +87,13 @@ for namespace in claims:
 
             if provision_job.get('completeTimestamp'):
                 completed = completed + 1
+                continue
             elif deployer_job_id:
                 tower_job = get_tower_job(tower_api, deployer_job_id)
-                if tower_job['status'] in ['canceled', 'error', 'failed']:
+                if 'detail' in tower_job and tower_job['detail'] == 'Not found.':
+                    logger.info("deployer job %s not found." % deployer_job_id)
+                    unknown = unknown + 1
+                elif tower_job['status'] in ['canceled', 'error', 'failed']:
                     logger.info("AgnosticD {0} for {1}".format(tower_job['status'], anarchy_subject['metadata']['name']))
                     logger.info("Please check https://{0}/#/jobs/playbook/{1}".format(tower_api['hostname'], deployer_job_id))
                     failed = failed + 1
@@ -96,13 +101,18 @@ for namespace in claims:
                     inprogress = inprogress + 1
             elif launch_job_id:
                 tower_job = get_tower_job(tower_api, launch_job_id)
-                if tower_job['status'] in ['canceled', 'error', 'failed']:
+                if 'detail' in tower_job and tower_job['detail'] == 'Not found.':
+                    logger.info("launch job %s not found." % launch_job_id)
+                    unknown = unknown + 1
+                elif tower_job['status'] in ['canceled', 'error', 'failed']:
                     logger.info("DarkTower job-runner {0} for {1}".format(tower_job['status'], anarchy_subject['metadata']['name']))
                     logger.info("Please check https://{0}/#/jobs/playbook/{1}".format(tower_api['hostname'], launch_job_id))
                     failed = failed + 1
                 else:
                     inprogress = inprogress + 1
     status_info = ""
+    if unknown > 0:
+        status_info = "%s  UNKNOWN=%d" % (status_info, unknown)
     if inprogress > 0:
         status_info = "%s  INPROGRESS=%d" % (status_info, inprogress)
     if failed > 0:
