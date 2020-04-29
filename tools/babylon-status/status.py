@@ -23,6 +23,7 @@ def get_tower_api_config():
     }
 
 def get_tower_job(tower_api, job_id):
+    time.sleep(0.6)
     tower_job_url = "https://{0}/api/v2/jobs/{1}/".format(tower_api['hostname'], job_id)
     resp = requests.get(
        tower_job_url,
