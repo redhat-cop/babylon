@@ -6,3 +6,11 @@ This document summarizes how to deploy the complete Babylon suite of components
 2. Deploy OpenShift Container Platform cluster per the link:Deploying_OpenShift.adoc[Deploying OpenShift Container Platform] doc.
 3. Deploy Operators and configure OCP per the link:Configuring_OpenShift.adoc[Configuring OpenShift].
 4. Setup link:Metrics.adoc[Metrics].
+
+
+== Recommended setup
+
+- 4 ocp workers `m5.2xlarge`
+- 3 tower masters `c5.4xlarge`
+- 1 tower support (postgresql) `i4.4xlarge`
+- 5+ replicas of anarchy-runners
