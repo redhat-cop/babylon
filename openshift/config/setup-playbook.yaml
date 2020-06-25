@@ -11,6 +11,9 @@
     babylon_private_repo_version: master
     babylon_private_deploy_key: ''
 
+    k8s_config:
+      run_interval: 1h
+
     k8s_config_sources:
     # Load private config source with highest priority if deploy key is available
     - name: babylon-private
@@ -31,42 +34,57 @@
     fail:
       msg: k8s_config_environment_level must be set to 'dev', 'test', or 'prod'
     when: >-
-      k8s_config_environment_level|default('') not in ['dev','test','prod']
+      k8s_config_environment_level|default('') not in ['dev', 'test', 'prod']
+
+  - name: Get cluster version
+    k8s_info:
+      api_version: config.openshift.io/v1
+      kind: ClusterVersion
+      name: version
+    register: _k8s_info_cluster_version
+
+  - name: Get OpenShift API server information
+    k8s_info:
+      api_version: config.openshift.io/v1
+      kind: ClusterOperator
+      name: openshift-apiserver
+    register: _k8s_info_cluster_operator_openshift_apiserver
 
   - name: Get cluster ingress configuration
     k8s_info:
       api_version: config.openshift.io/v1
       kind: Ingress
       name: cluster
-    register: _k8s_info_get_cluster_ingress
+    register: _k8s_info_cluster_ingress
 
-  - name: Get anarchy-k8s-config default AnarchyRunner
-    k8s_info:
-      api_version: anarchy.gpte.redhat.com/v1
-      kind: AnarchyRunner
-      name: default
-      namespace: anarchy-k8s-config
-    register: _k8s_info_get_anarchy_k8s_config_default_anarchy_runner
-
-  - name: Get anarchy-operator default AnarchyRunner
-    k8s_info:
-      api_version: anarchy.gpte.redhat.com/v1
-      kind: AnarchyRunner
-      name: default
-      namespace: anarchy-operator
-    register: _k8s_info_get_anarchy_operator_default_anarchy_runner
-
-  - name: Set k8s_info fact
+  - name: Set k8s_cluster_info with set_k8s_cluster_info and discovered information
     set_fact:
-      k8s_info:
+      k8s_cluster_info:
+        cluster_domain: >-
+          {{ _k8s_info_cluster_ingress.resources[0].spec.domain
+           | regex_replace('^apps\.', '')
+           | regex_replace('cluster-(.*)\.\1', '\1')
+          }}
+        cluster_id: >-
+          {{ _k8s_info_cluster_version.resources[0].spec.clusterID }}
         cluster_ingress_domain: >-
-          {{ _k8s_info_get_cluster_ingress.resources[0].spec.domain }}
-        anarchy_k8s_config_default_runner_token: >-
-          {{ _k8s_info_get_anarchy_k8s_config_default_anarchy_runner.resources[0].spec.token
-           | default(lookup('password', '/dev/null length=15 chars=ascii_letters')) }}
-        anarchy_operator_default_runner_token: >-
-          {{ _k8s_info_get_anarchy_operator_default_anarchy_runner.resources[0].spec.token
-           | default(lookup('password', '/dev/null length=15 chars=ascii_letters')) }}
+          {{ _k8s_info_cluster_ingress.resources[0].spec.domain }}
+        env_level: >-
+          {{ k8s_config_environment_level }}
+
+  - name: Set openshift_api_version, openshift_api_minor_version, and openshift_version_channel
+    set_fact:
+      openshift_api_minor_version: >-
+        {{ _k8s_info_cluster_operator_openshift_apiserver.resources[0]
+         | json_query("status.versions[?name=='openshift-apiserver']|[0].version")
+         | regex_replace("\.\d+$", "")
+        }}
+      openshift_api_version: >-
+        {{ _k8s_info_cluster_operator_openshift_apiserver.resources[0]
+         | json_query("status.versions[?name=='openshift-apiserver']|[0].version")
+        }}
+      openshift_version_channel: >-
+        {{ _k8s_info_cluster_version.resources[0].spec.channel }}
 
   roles:
   - role: k8s_config
