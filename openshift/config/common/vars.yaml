@@ -27,6 +27,11 @@ babylon_resources:
   - name: OpenTLC deployer cluster role binding
     file: clusterrolebindings/opentlc-deployer.yaml
 
+  # Remove old Anarchy resources
+  - name: Remove old anarchy resources
+    action: delete
+    file: old-anarchy-resources.yaml
+
   # Anarchy install for the cluster
   - name: Anarchy install template
     openshift_template:
