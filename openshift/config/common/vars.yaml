@@ -74,8 +74,6 @@ babylon_resources:
     # Don't deploy config management to dev
     when: k8s_cluster_info.env_level != 'dev'
     resources:
-    - namespace: anarchy-k8s-config
-      resources:
       - name: Anarchy k8s-config deployment
         helm_template:
           dir: "institutions/gitops/helm"
