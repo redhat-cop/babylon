@@ -4,7 +4,7 @@ agnosticv_repositories: []
 anarchy_version: v0.8.2
 babylon_anarchy_governor_version: v0.0.7
 babylon_aws_sandbox_version: v0.0.1
-k8s_config_version: v0.4.2
+k8s_config_version: v0.4.3
 poolboy_version: v0.3.7
 user_namespace_operator_version: v0.1.5
 
@@ -99,7 +99,7 @@ babylon_resources:
           apiVersion: v1
           kind: Secret
           metadata:
-            name: deploy-key
+            name: babylon-private-deploy-key
           data:
             id_rsa: "{{ lookup('file', babylon_private_deploy_key) | b64encode if babylon_private_deploy_key != '' else '' }}"
 
@@ -122,4 +122,4 @@ babylon_resources:
     file: clusterrolebindings/openshift-template-access.yaml
 
 # Cluster level resources
-k8s_resources: "{{ babylon_resources +  babylon_private_resources }}"
+k8s_resources: "{{ babylon_resources + babylon_private_resources }}"

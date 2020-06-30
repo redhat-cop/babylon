@@ -17,7 +17,7 @@ spec:
       git:
         accept_hostkey: true
         repo: "{{ babylon_private_repo_url }}"
-        key_file: /anarchy-runner/.ansible/deploy-key.id_rsa
+        key_content: "{{ babylon_private_deploy_key.id_rsa }}"
         version: "{{ babylon_private_repo_version }}"
 
     - name: babylon
@@ -27,3 +27,6 @@ spec:
         version: "{{ babylon_repo_version }}"
       base_path: openshift/config
 {% endraw %}
+  varSecrets:
+  - name: babylon-private-deploy-key
+    var: babylon_private_deploy_key
