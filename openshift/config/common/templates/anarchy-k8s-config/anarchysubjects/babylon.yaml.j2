@@ -17,7 +17,7 @@ spec:
       git:
         accept_hostkey: true
         repo: "{{ babylon_private_repo_url }}"
-        key_content: "{{ babylon_private_deploy_key.id_rsa }}"
+        key_content: "{{ babylon_private_deploy_key_secret.id_rsa }}"
         version: "{{ babylon_private_repo_version }}"
 
     - name: babylon
@@ -29,4 +29,4 @@ spec:
 {% endraw %}
   varSecrets:
   - name: babylon-private-deploy-key
-    var: babylon_private_deploy_key
+    var: babylon_private_deploy_key_secret
