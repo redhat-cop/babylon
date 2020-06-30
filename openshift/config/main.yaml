@@ -1,6 +1,27 @@
 ---
 # Config search path configured so that env settings override common
+#
+# The k8s_config Ansible role will add each of these directories to the Ansible search
+# path used by k8s_config to find files and templates.
+#
+# All files ending in .json, .yml, or .yaml in these directories are loaded with `include_vars`.
+# The convention in this repo is to put all vars into a `vars.yaml`, ex: `common/vars.yaml`
+# Vars are loaded in reverse order so that files listed first will override items listed later.
+#
+# This file is loaded as a local config source for k8s_config using `k8s_config_sources`.
+# The configuration here including the search path may be augmented by other config sources,
+# particularly a private config source.
+#
 k8s_config_search_path:
-- cluster/{{ k8s_info.cluster_ingress_domain | regex_replace('^apps\.cluster-[^.]*\.','') }}
-- env/{{ k8s_config_environment_level }}
+# Search for specific configuration for the cluster by DNS domain.
+# If ingress domain is apps.cluster-foo.foo.example.com then search `cluster/foo.example.com`
+- cluster/{{ k8s_cluster_info.cluster_domain }}
+# Search environment level directory.
+# The environment level directories are for configuration that is not expected to progress
+# from dev->test->prod, but rather to store configuration that will remain different between
+# environment levels. For example, a different security policy for dev/test/prod.
+# Semantic version tags should be used on common for controlling version used in different
+# environments.
+- env/{{ k8s_cluster_info.env_level }}
+# Most configuration and vars should be in common.
 - common

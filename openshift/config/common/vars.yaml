@@ -1,11 +1,11 @@
 # Component Versions
 agnosticv_operator_version: v0.1.0
 agnosticv_repositories: []
-anarchy_version: v0.4.3
+anarchy_version: v0.8.3
 babylon_anarchy_governor_version: v0.0.7
 babylon_aws_sandbox_version: v0.0.1
-k8s_config_version: 0.2.0
-poolboy_version: v0.2.13
+k8s_config_version: v0.4.4
+poolboy_version: v0.3.7
 user_namespace_operator_version: v0.1.5
 
 # Default values for private config source
@@ -18,12 +18,19 @@ babylon_resources:
     resources:
       - name: opentlc-mgr service account
         file: serviceaccounts/opentlc-mgr.yaml
-      - name: anarchy-operator-gpte rolebinding
-        file: rolebindings/anarchy-operator-gpte.yaml
+      - name: anarchy-operator role
+        file: roles/anarchy-operator.yaml
+      - name: anarchy-operator rolebinding
+        file: rolebindings/anarchy-operator.yaml
   - name: OpenTLC deployer cluster role
     file: clusterroles/opentlc-deployer.yaml
   - name: OpenTLC deployer cluster role binding
     file: clusterrolebindings/opentlc-deployer.yaml
+
+  # Remove old Anarchy resources
+  - name: Remove old anarchy resources
+    action: delete
+    file: old-anarchy-resources.yaml
 
   # Anarchy install for the cluster
   - name: Anarchy install template
@@ -34,11 +41,6 @@ babylon_resources:
       - name: Anarchy deploy template
         openshift_template:
           url: https://raw.githubusercontent.com/redhat-cop/anarchy/{{ anarchy_version }}/deploy-template.yaml
-          parameters:
-            DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_operator_default_runner_token }}"
-            OPERATOR_HOSTNAME: anarchy-operator.{{ k8s_info.cluster_ingress_domain }}
-            OPERATOR_IMAGE: quay.io/redhat-cop/anarchy:{{ anarchy_version }}
-            RUNNER_IMAGE: quay.io/redhat-cop/anarchy-runner:{{ anarchy_version }}
       - name: OpenTLC secret manager role
         file: roles/opentlc-secret-manager.yaml
       - name: OpenTLC secret manager role binding
@@ -63,42 +65,43 @@ babylon_resources:
       parameters:
         NAMESPACE: poolboy
         IMAGE: quay.io/redhat-cop/poolboy:{{ poolboy_version }}
-  - name: Poolboy Anarchy integration template
-    openshift_template:
-      url: https://raw.githubusercontent.com/redhat-cop/poolboy/{{ poolboy_version }}/integration/anarchy-operator/deploy-template.yaml
-  - name: Poolboy Anarchy Babylon ResourceProvider
-    url: https://raw.githubusercontent.com/redhat-cop/poolboy/{{ poolboy_version }}/integration/anarchy-operator/babylon-provider.yaml
+
+  # Babylon configuration
+  - name: Babylon Helm Template
+    helm_template:
+      dir: babylon-config
+      values:
+        anarchy:
+          namespace: anarchy-operator
 
   # Grant cluster-admin access to anarchy-k8s-config
   - namespace: anarchy-k8s-config
     # Don't deploy config management to dev
-    when: k8s_config_environment_level != 'dev'
+    when: k8s_cluster_info.env_level != 'dev'
     resources:
-      - name: anarchy-k8s-config deploy
-        openshift_template:
-          url: https://raw.githubusercontent.com/redhat-cop/anarchy/{{ anarchy_version }}/deploy-template.yaml
-          parameters:
-            DEFAULT_RUNNER_TOKEN: "{{ k8s_info.anarchy_k8s_config_default_runner_token }}"
-            OPERATOR_HOSTNAME: anarchy-k8s-config.{{ k8s_info.cluster_ingress_domain }}
-            OPERATOR_IMAGE: quay.io/redhat-cop/anarchy:{{ anarchy_version }}
-            RUNNER_IMAGE: quay.io/redhat-cop/anarchy-runner:{{ anarchy_version }}
-      - name: anarchy-k8s-config gitops AnarchyGovernor
-        template:
-          file: anarchy-k8s-config/anarchygovernors/gitops.yaml.j2
+      - name: Anarchy k8s-config deployment
+        helm_template:
+          dir: "institutions/gitops/helm"
+          git:
+            repo: https://github.com/redhat-cop/anarchy.git
+            version: "{{ anarchy_version }}"
+          values:
+            k8s_config: "{{ k8s_config }}"
+            k8s_cluster_info: "{{ k8s_cluster_info }}"
+
       - name: anarchy-k8s-config babylon AnarchySubject
         template:
           file: anarchy-k8s-config/anarchysubjects/babylon.yaml.j2
+
       - name: anarchy-k8s-config deploy-key
         when: babylon_private_deploy_key != ''
         definition:
           apiVersion: v1
           kind: Secret
           metadata:
-            name: deploy-key
+            name: babylon-private-deploy-key
           data:
             id_rsa: "{{ lookup('file', babylon_private_deploy_key) | b64encode if babylon_private_deploy_key != '' else '' }}"
-  - name: anarchy-k8s-config cluster admin
-    file: clusterrolebindings/cluster-admin-anarchy-k8s-config.yaml
 
   # agnosticv-operator
   - name: AgnosticV Operator Deploy
@@ -119,4 +122,4 @@ babylon_resources:
     file: clusterrolebindings/openshift-template-access.yaml
 
 # Cluster level resources
-k8s_resources: "{{ babylon_resources +  babylon_private_resources }}"
+k8s_resources: "{{ babylon_resources + babylon_private_resources }}"

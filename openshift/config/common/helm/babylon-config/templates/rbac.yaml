@@ -1,0 +1,79 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: poolboy:{{ .Values.anarchy.namespace }}:{{ .Values.anarchy.defaultRunnerServiceAccountName }}
+  metadata:
+    description: >-
+      This cluster role is used to allow anarchy to manage poolboy claims and handles.
+rules:
+- apiGroups:
+  - {{ .Values.poolboy.apiGroup }}
+  resources:
+  - resourceclaims
+  - resourcehandles
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: poolboy:{{ .Values.anarchy.namespace }}:{{ .Values.anarchy.defaultRunnerServiceAccountName }}
+  annotations:
+    description: >-
+      This cluster role binding allows anarchy to manage poolboy claims and handles.
+rules:
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: poolboy:{{ .Values.anarchy.namespace }}:{{ .Values.anarchy.defaultRunnerServiceAccountName }}
+subjects:
+- kind: ServiceAccount
+  namespace: {{ .Values.anarchy.namespace }}
+  name: {{ .Values.anarchy.defaultRunnerServiceAccountName }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: poolboy
+  namespace: {{ .Values.anarchy.namespace }}
+  annotations:
+    description: >-
+      This role is used to allow poolboy to manage anarchy resources.
+rules:
+- apiGroups:
+  - {{ .Values.anarchy.apiGroup }}
+  resources:
+  - anarchysubjects
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: poolboy
+  namespace: {{ .Values.anarchy.namespace }}
+  annotations:
+    description: >-
+      This rolebinding allows poolboy to manage anarchy resources.
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: poolboy
+subjects:
+- kind: ServiceAccount
+  name: poolboy
+  namespace: {{ .Values.poolboy.namespace }}

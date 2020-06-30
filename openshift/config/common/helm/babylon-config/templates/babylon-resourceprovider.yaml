@@ -1,0 +1,84 @@
+---
+apiVersion: poolboy.gpte.redhat.com/v1
+kind: ResourceProvider
+metadata:
+  name: babylon
+  namespace: poolboy
+spec:
+  default:
+    spec:
+      vars:
+        desired_state: started
+  match:
+    apiVersion: anarchy.gpte.redhat.com/v1
+    kind: AnarchySubject
+    metadata:
+      annotations:
+        poolboy.gpte.redhat.com/resource-provider-name: babylon
+  matchIgnore:
+  - /spec/vars/current_state
+  - /spec/vars/desired_state
+  override:
+    metadata:
+      namespace: anarchy-operator
+    spec:
+      vars:
+        babylon_user_email: >-
+          {{ "{{: requester_identity.extra.email | default(None) if requester_identity else None :}}" }}
+        babylon_user_fullname: >-
+          {{ "{{: requester_identity.extra.name | default(None) if requester_identity else None :}}" }}
+        babylon_username: >-
+          {{ "{{: requester_user.metadata.name | default(None) if requester_user else None :}}" }}
+        job_vars:
+          guid: >-
+            {{ "{{: resource_handle.metadata.name[5:] if resource_handle.metadata.name.startswith('guid-') else resource_handle.metadata.name :}}" }}
+  updateFilters:
+  - pathMatch: /spec/vars/desired_state
+  validation:
+    openAPIV3Schema:
+      type: object
+      additionalProperties: false
+      required:
+      - apiVersion
+      - kind
+      - metadata
+      - spec
+      properties:
+        apiVersion:
+          type: string
+          enum:
+          - anarchy.gpte.redhat.com/v1
+        kind:
+          type: string
+          enum:
+          - AnarchySubject
+        metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            annotations:
+              additionalProperties:
+                type: string
+              type: object
+            generateName:
+              type: string
+            labels:
+              additionalProperties:
+                type: string
+              type: object
+        spec:
+          type: object
+          required:
+          - governor
+          additionalProperties: false
+          properties:
+            governor:
+              type: string
+            vars:
+              type: object
+              properties:
+                desired_state:
+                  enum:
+                  - started
+                  - stopped
+                  type: string
