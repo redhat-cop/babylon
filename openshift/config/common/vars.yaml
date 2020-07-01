@@ -8,6 +8,10 @@ k8s_config_version: v0.4.4
 poolboy_version: v0.3.7
 user_namespace_operator_version: v0.2.2
 
+# Default 2 replicas for Anarchy for high availability,
+# may be set to 0 for standby cluster.
+babylon_anarchy_replicas: 2
+
 # Default values for private config source
 babylon_private_deploy_key: ''
 babylon_private_resources: []
@@ -41,6 +45,8 @@ babylon_resources:
       - name: Anarchy deploy template
         openshift_template:
           url: https://raw.githubusercontent.com/redhat-cop/anarchy/{{ anarchy_version }}/deploy-template.yaml
+          parameters:
+            ANARCHY_REPLICAS: "{{ babylon_anarchy_replicas }}"
       - name: OpenTLC secret manager role
         file: roles/opentlc-secret-manager.yaml
       - name: OpenTLC secret manager role binding
