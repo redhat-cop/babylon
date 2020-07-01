@@ -2,17 +2,30 @@
 
 == Setup
 
+Make sure Python3 has SELinux support
+
+----
+sudo pip3 install selinux
+----
+
 Create a virtualenv using python3 and activate it
 
 ----
-~$ virtualenv -p python3 virtualenvs/k8s-config
+~$ virtualenv --system-site-packages -p python3 ~/virtualenvs/k8s-config
 created virtual environment CPython3.6.8.final.0-64 in 207ms
   creator CPython3Posix(dest=/home/ec2-user/virtualenvs/k8s-config, clear=False, global=False)
   seeder FromAppData(download=False, pip=latest, setuptools=latest, wheel=latest, via=copy, app_data_dir=/home/ec2-user/.local/share/virtualenv/seed-app-data/v1.0.1)
   activators BashActivator,CShellActivator,FishActivator,PowerShellActivator,PythonActivator,XonshActivator
 
-~$ . virtualenvs/k8s-config/bin/activate
+~$ . ~/virtualenvs/k8s-config/bin/activate
 (k8s-config) ~$
+----
+
+Install helm
+
+----
+curl -s https://get.helm.sh/helm-v3.2.4-linux-amd64.tar.gz | tar zxvf - -C ~/bin/ --strip-components=1 linux-amd64/helm
+mkdir ~/bin
 ----
 
 An ansible playbook is provided for Installation.
@@ -20,7 +33,7 @@ An ansible playbook is provided for Installation.
 . Use `pip` to install `ansible` and `openshift`:
 +
 ----------------------------------------------
-pip install --upgrade ansible openshift
+pip install --upgrade ansible jmespath openshift
 ----------------------------------------------
 
 . Install `k8s_config` ansible role:
