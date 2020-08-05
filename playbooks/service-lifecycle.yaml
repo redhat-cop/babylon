@@ -18,11 +18,13 @@
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
 
   tasks:
-  - fail:
+  - name: Check that _action is defined
+    fail:
       msg: _action must be defined
     when: _action is not defined
 
-  - set_fact:
+  - name: Set desired_state
+    set_fact:
       desired_state: >-
         {% if _action == 'stop' -%}
         stopped
@@ -35,23 +37,27 @@
       file: "{{ catalog_item_params_file }}"
       name: catalog_item_params
 
-  - debug:
+  - name: Show catalog_item_params
+    debug:
       var: catalog_item_params
       verbosity: 2
 
-  - fail:
-      msg: GUID must be defined
+  - name: Check that guid is set in catalog_item_params
+    fail:
+      msg: guid must be defined in catalog_item_params
     when: >-
       "guid" not in catalog_item_params
       or catalog_item_params.guid == ''
 
-  - name: Get resourceClaim
+  - name: Get ResourceClaim {{ _claim_name }} in {{ user_namespace }}
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
       api_version: poolboy.gpte.redhat.com/v1
       kind: ResourceClaim
       namespace: "{{ user_namespace }}"
-      name: "{{ catalog_item_name }}-{{ catalog_item_params.guid }}"
+      name: "{{ _claim_name }}"
+    vars:
+      _claim_name: "{{ catalog_item_name }}-{{ catalog_item_params.guid }}"
     register: r_claim
 
   - when: r_claim.resources|length == 0
@@ -67,7 +73,8 @@
 
       - meta: end_play
 
-  - set_fact:
+  - name: Set subject_name and subject_namespace
+    set_fact:
       subject_name: >-
         {{ r_claim.resources[0].status.resources[0]
         .state.metadata.name }}
@@ -117,19 +124,16 @@
       namespace: anarchy-operator
       name: babylon-tower
     register: r_babylon_tower_secret
+    failed_when: >-
+      r_babylon_tower_secret.resources | length != 1
 
-  - fail:
-      msg: "babylon-tower secret not found"
-    when: r_babylon_tower_secret.resources | length == 0
-
-  - set_fact:
-      babylon_tower_secret: "{{ r_babylon_tower_secret.resources[0] }}"
-
-  - name: Save tower secret
+  - name: Set tower_hostname, tower_user, and tower_password from babylon-tower secret
     set_fact:
-      tower_hostname: "{{ babylon_tower_secret.data.hostname | b64decode }}"
-      tower_user: "{{ babylon_tower_secret.data.user | b64decode }}"
-      tower_password: "{{ babylon_tower_secret.data.password | b64decode }}"
+      tower_hostname: "{{ _babylon_tower_secret.data.hostname | b64decode }}"
+      tower_user: "{{ _babylon_tower_secret.data.user | b64decode }}"
+      tower_password: "{{ _babylon_tower_secret.data.password | b64decode }}"
+    vars:
+      _babylon_tower_secret: "{{ r_babylon_tower_secret.resources[0] }}"
 
   - name: Wait for the Tower deployerJob to start
     k8s_info:
