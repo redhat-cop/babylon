@@ -46,8 +46,12 @@
     fail:
       msg: guid must be defined in catalog_item_params
     when: >-
-      "guid" not in catalog_item_params
-      or catalog_item_params.guid == ''
+      "guid" not in vars.catalog_item_params
+      or vars.catalog_item_params.guid == ''
+
+  - name: Set resource_claim_name from catalog_item_params
+    set_fact:
+      resource_claim_name: "{{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}"
 
   - name: Get ResourceClaim {{ _claim_name }} in {{ user_namespace }}
     k8s_info:
@@ -55,9 +59,7 @@
       api_version: poolboy.gpte.redhat.com/v1
       kind: ResourceClaim
       namespace: "{{ user_namespace }}"
-      name: "{{ _claim_name }}"
-    vars:
-      _claim_name: "{{ catalog_item_name }}-{{ catalog_item_params.guid }}"
+      name: "{{ resource_claim_name }}"
     register: r_claim
 
   - when: r_claim.resources|length == 0
@@ -141,7 +143,7 @@
       api_version: poolboy.gpte.redhat.com/v1
       kind: ResourceClaim
       namespace: "{{ user_namespace }}"
-      name: "{{ catalog_item_name }}-{{ catalog_item_params.guid }}"
+      name: "{{ resource_claim_name }}"
     register: r_claim
     retries: "{{ wait_retries | default(30) }}"
     delay: 2
