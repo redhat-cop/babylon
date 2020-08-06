@@ -21,15 +21,20 @@
       file: "{{ catalog_item_params_file }}"
       name: catalog_item_params
 
-  - debug:
+  - name: Show catalog_item_params
+    debug:
       var: catalog_item_params
       verbosity: 2
 
-  - fail:
-      msg: GUID must be defined
+  - name: Check that guid is set in catalog_item_params
+      msg: guid must be defined in catalog_item_params
     when: >-
-      "guid" not in catalog_item_params
-      or catalog_item_params.guid == ''
+      "guid" not in vars.catalog_item_params
+      or vars.catalog_item_params.guid == ''
+
+  - name: Set resource_claim_name from catalog_item_params
+    set_fact:
+      resource_claim_name: "{{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}"
 
   - name: Get resourceClaim
     k8s_info:
@@ -37,7 +42,7 @@
       api_version: poolboy.gpte.redhat.com/v1
       kind: ResourceClaim
       namespace: "{{ user_namespace }}"
-      name: "{{ catalog_item_name }}-{{ catalog_item_params.guid }}"
+      name: "{{ resource_claim_name }}"
     register: r_claim
 
   - when: r_claim.resources|length == 0
@@ -61,14 +66,14 @@
         {{ r_claim.resources[0].status.resources[0]
         .state.metadata.namespace }}
 
-  - name: Delete resource claim for GUID {{ catalog_item_params.guid }}
+  - name: Delete resource claim {{ resource_claim_name }}
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       state: absent
       api_version: poolboy.gpte.redhat.com/v1
       kind: ResourceClaim
       namespace: "{{ user_namespace }}"
-      name: "{{ catalog_item_name }}-{{ catalog_item_params.guid }}"
+      name: "{{ resource_claim_name }}"
 
   - name: Wait for the Tower deployerJob to start in the AnarchySubject
     k8s_info:
