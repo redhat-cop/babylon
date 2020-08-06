@@ -50,6 +50,7 @@
       verbosity: 2
 
   - name: Check that guid is set in catalog_item_params
+    fail:
       msg: guid must be defined in catalog_item_params
     when: >-
       "guid" not in vars.catalog_item_params
