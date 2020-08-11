@@ -89,13 +89,18 @@ If your private config source provides agnosticv-operator configuration you may 
 .Create and update this `cluster-vars.yml`
 ----------------------------------------
 k8s_config_environment_level: dev
+babylon_repo_url: https://github.com/redhat-cop/babylon.git
+babylon_repo_version: master
 babylon_private_repo_url: git@github.com:redhat-gpe/babylon-private.git
+babylon_private_repo_version: master
 babylon_private_deploy_key: ~/.ssh/babylon-private.rsa
 agnosticv_repositories:
   - name: gpte-agnosticv
     url: git@github.com:redhat-gpe/agnosticv.git
     ssh_key: ~/.ssh/agnosticv-private.rsa
 ----------------------------------------
++
+For production releases, the values of `babylon_repo_version` and `babylon_private_repo_version` should be set to release tags and these values are stored in an AnarchySubject in the anarchy-k8s-config namespace.
 +
 .Then run
 ----------------------------------------
