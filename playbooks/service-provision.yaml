@@ -17,27 +17,6 @@
     user_namespace: user-{{ cloudforms_username | replace('.', '-') }}
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
 
-
-    poolboy_resource_definition:
-      provider:
-        apiVersion: poolboy.gpte.redhat.com/v1
-        kind: ResourceProvider
-        name: babylon
-        namespace: poolboy
-      template:
-        apiVersion: anarchy.gpte.redhat.com/v1
-        kind: AnarchySubject
-        metadata:
-          annotations:
-            poolboy.gpte.redhat.com/resource-provider-name: babylon
-            poolboy.gpte.redhat.com/resource-provider-namespace: poolboy
-          generateName: "{{ catalog_item_name }}-"
-        spec:
-          governor: "{{ catalog_item_name }}"
-          vars:
-            desired_state: started
-            job_vars: "{{ vars.catalog_item_params }}"
-
   tasks:
   - name: Include vars
     include_vars:
@@ -60,7 +39,6 @@
     set_fact:
       guid: "{{ vars.catalog_item_params.guid }}"
       resource_claim_name: "{{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}"
-      resource_handle_name: guid-{{ vars.catalog_item_params.guid }}
 
   - name: Create namespace for {{ cloudforms_username }}
     k8s:
@@ -75,22 +53,6 @@
             openshift.io/requester: "{{ cloudforms_username }}"
           name: "{{ user_namespace }}"
 
-  - name: Create resource handle {{ resource_handle_name }}
-    k8s:
-      kubeconfig: "{{ kubeconfig }}"
-      definition:
-        apiVersion: poolboy.gpte.redhat.com/v1
-        kind: ResourceHandle
-        metadata:
-          labels:
-            poolboy.gpte.redhat.com/resource-pool-name: babylon-explicit-guid
-            guid: "{{ guid }}"
-          name: "{{ resource_handle_name }}"
-          namespace: poolboy
-        spec:
-          resources:
-          - "{{ poolboy_resource_definition }}"
-
   - name: Create resource claim {{ resource_claim_name }}
     k8s:
       kubeconfig: "{{ kubeconfig }}"
@@ -98,13 +60,29 @@
         apiVersion: poolboy.gpte.redhat.com/v1
         kind: ResourceClaim
         metadata:
-          labels:
-            poolboy.gpte.redhat.com/resource-pool-name: babylon-explicit-guid
           name: "{{ resource_claim_name }}"
           namespace: "{{ user_namespace }}"
         spec:
           resources:
-          - "{{ poolboy_resource_definition }}"
+          - provider:
+              apiVersion: poolboy.gpte.redhat.com/v1
+              kind: ResourceProvider
+              name: babylon
+              namespace: poolboy
+            template:
+              apiVersion: anarchy.gpte.redhat.com/v1
+              kind: AnarchySubject
+              metadata:
+                annotations:
+                  poolboy.gpte.redhat.com/resource-provider-name: babylon
+                  poolboy.gpte.redhat.com/resource-provider-namespace: poolboy
+                generateName: "{{ catalog_item_name }}-"
+              spec:
+                governor: "{{ catalog_item_name }}"
+                vars:
+                  desired_state: started
+                  job_vars: >-
+                    {{ vars.catalog_item_params | dict2items | json_query("[?key!='guid']") | items2dict }}
 
   - name: Get Tower credentials and access information
     k8s_info:
@@ -156,6 +134,9 @@
       and 'deployerJob' in (r_claim.resources[0].status.resources[0]
                            .state.status.towerJobs.provision)
 
+  - name: Report babylon assigned GUID
+    debug:
+      msg: "babylon.guid: {{ r_claim.resources[0].status.resources[0].state.spec.vars.job_vars.guid }}"
 
   - name: Save Tower provision job
     set_fact:
