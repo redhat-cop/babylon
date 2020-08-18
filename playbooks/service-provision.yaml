@@ -81,8 +81,12 @@
                 governor: "{{ catalog_item_name }}"
                 vars:
                   desired_state: started
+                  # Set job_vars, excluding "guid" and "cloud_tags", which are
+                  # handled by babylon provisioning.
                   job_vars: >-
-                    {{ vars.catalog_item_params | dict2items | json_query("[?key!='guid']") | items2dict }}
+                    {{ vars.catalog_item_params | dict2items
+                     | json_query("[?key!='guid' && key!='cloud_tags']")
+                     | items2dict }}
 
   - name: Get Tower credentials and access information
     k8s_info:
