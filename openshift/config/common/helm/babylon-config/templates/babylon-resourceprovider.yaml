@@ -20,9 +20,14 @@ spec:
   - /spec/vars/current_state
   - /spec/vars/desired_state
   # Ignore cloud tags when subject is requested. If matched to an existing
-  # subject then cloud tags will not be applied unles update functionality
+  # subject then cloud tags will not be applied unless update functionality
   # is implemented.
   - /spec/vars/job_vars/cloud_tags(/.*)?
+  # Ignore match for dynamic fields set on service request
+  - /spec/vars/job_vars/email
+  - /spec/vars/job_vars/ipa_host_password
+  - /spec/vars/job_vars/serviceid
+  - /spec/vars/job_vars/student_name
   override:
     metadata:
       namespace: anarchy-operator
