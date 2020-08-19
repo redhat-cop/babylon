@@ -37,8 +37,14 @@
 
   - name: Set vars from catalog_item_params
     set_fact:
-      guid: "{{ vars.catalog_item_params.guid }}"
-      resource_claim_name: "{{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}"
+      guid: >-
+        {{ vars.catalog_item_params.guid }}
+      # Take cloud_tags, but drop values to ignore, guid and uuid
+      cloud_tags: >-
+        {{ vars.catalog_item_params.cloud_tags | from_yaml
+         | dict2items | json_query("[?key!='guid' && key!='uuid']") | items2dict }}
+      resource_claim_name: >-
+        {{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}
 
   - name: Create namespace for {{ cloudforms_username }}
     k8s:
@@ -81,12 +87,11 @@
                 governor: "{{ catalog_item_name }}"
                 vars:
                   desired_state: started
-                  # Set job_vars, excluding "guid" and "cloud_tags", which are
-                  # handled by babylon provisioning.
+                  # Set job_vars, excluding "guid" and inserting filtered "cloud_tags"
                   job_vars: >-
                     {{ vars.catalog_item_params | dict2items
                      | json_query("[?key!='guid' && key!='cloud_tags']")
-                     | items2dict }}
+                     | items2dict | combine({"cloud_tags": cloud_tags}) }}
 
   - name: Get Tower credentials and access information
     k8s_info:
