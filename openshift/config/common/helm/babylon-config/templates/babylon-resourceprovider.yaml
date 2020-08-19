@@ -16,8 +16,13 @@ spec:
       annotations:
         poolboy.gpte.redhat.com/resource-provider-name: babylon
   matchIgnore:
+  # Allow match to subjects that are currently stopped or provisioning.
   - /spec/vars/current_state
   - /spec/vars/desired_state
+  # Ignore cloud tags when subject is requested. If matched to an existing
+  # subject then cloud tags will not be applied unles update functionality
+  # is implemented.
+  - /spec/vars/job_vars/cloud_tags(/.*)?
   override:
     metadata:
       namespace: anarchy-operator
