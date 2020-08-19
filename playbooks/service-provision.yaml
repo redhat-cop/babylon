@@ -86,15 +86,13 @@
               spec:
                 governor: "{{ catalog_item_name }}"
                 vars:
-                  # Cloud tags to apply
-                  cloud_tags: "{{ cloud_tags }}"
                   # Indicate that environment should start if match to a stopped environment
                   desired_state: started
-                  # Set job_vars, excluding "guid" and "cloud_tags"
+                  # Set job_vars, excluding "guid" and insert filtered "cloud_tags"
                   job_vars: >-
                     {{ vars.catalog_item_params | dict2items
                      | json_query("[?key!='guid' && key!='cloud_tags']")
-                     | items2dict }}
+                     | items2dict | combine({"cloud_tags": cloud_tags}) }}
 
   - name: Get Tower credentials and access information
     k8s_info:
