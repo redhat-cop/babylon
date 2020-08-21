@@ -25,7 +25,7 @@
 
   - name: Show catalog_item_params
     debug:
-      var: catalog_item_params
+      var: vars.catalog_item_params
       verbosity: 2
 
   - name: Check that guid is set in catalog_item_params
@@ -92,7 +92,7 @@
                   job_vars: >-
                     {{ vars.catalog_item_params | dict2items
                      | json_query("[?key!='guid' && key!='uuid' && key!='cloud_tags']")
-                     | items2dict | combine({"cloud_tags": cloud_tags}) }}
+                     | items2dict | combine({"cloud_tags": vars.cloud_tags}) }}
 
   - name: Get Tower credentials and access information
     k8s_info:
