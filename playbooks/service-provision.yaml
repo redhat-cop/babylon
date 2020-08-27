@@ -122,6 +122,12 @@
       state: directory
       mode: 0700
 
+  - name: Print debug Wait for deployerJob
+    debug:
+      msg: >-
+        Now wait for the deployJob to be populated in resourceClaim
+        "{{ resource_claim_name }}" in namespace "{{ user_namespace }}"
+
   - name: Wait for the Tower deployerJob to start
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
