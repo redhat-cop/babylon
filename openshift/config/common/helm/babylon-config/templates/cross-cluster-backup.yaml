@@ -1,0 +1,141 @@
+{{- if .Values.crossClusterBackup.enable -}}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.crossClusterBackup.namespace }}
+  annotations:
+    openshift.io/display-name: {{ .Values.crossClusterBackup.namespace }}
+    openshift.io/description: Babylon cross-cluster-backup
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: reader
+  namespace: {{ .Values.crossClusterBackup.namespace }}
+  annotations:
+    openshift.io/description: >-
+      Service account used for read access to peer cluster.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.crossClusterBackup.clusterRoleName }}
+  annotations:
+    openshift.io/description: >-
+      RBAC for access to read babylon resources from peer cluster.
+rules:
+- apiGroups:
+  - {{ .Values.anarchy.apiGroup }}
+  resources:
+  - anarchyactions
+  - anarchysubjects
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.poolboy.apiGroup }}
+  resources:
+  - resourceclaims
+  - resourcehandles
+  - resourcepools
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.crossClusterBackup.clusterRoleName }}
+  annotations:
+    openshift.io/description: >-
+      RBAC for access to read babylon resources from peer cluster.
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.crossClusterBackup.clusterRoleName }}
+subjects:
+- kind: ServiceAccount
+  name: reader
+  namespace: {{ .Values.crossClusterBackup.namespace }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cross-cluster-backup
+  namespace: {{ .Values.crossClusterBackup.namespace }}
+  annotations:
+    openshift.io/description: >-
+      Storage for Babylon backup YAML data.
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+{{ if .Values.crossClusterBackup.kubeConfig }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cross-cluster-backup
+  namespace: {{ .Values.crossClusterBackup.namespace }}
+  annotations:
+    openshift.io/description: >-
+      Secret containing kubeconfig.yaml for cross-cluster access
+data:
+  kubeconfig.yaml: {{ .Values.crossClusterBackup.kubeConfig | b64enc }}
+{{ end }}
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cross-cluster-backup
+  namespace: {{ .Values.crossClusterBackup.namespace }}
+spec:
+  schedule: '*/20 * * * *'
+  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 1
+  suspend: false
+  jobTemplate:
+    spec:
+      # Retry twice on failure
+      backoffLimit: 2
+      template:
+        spec:
+          serviceAccountName: default
+          restartPolicy: Never
+          containers:
+          - name: oc-cli
+            command:
+            - /bin/sh
+            - -xc
+            - |
+              set -e
+              DIR="/backup/$(date -u +%FT%TZ)"
+              mkdir $DIR
+              oc --kubeconfig=/secret/kubeconfig.yaml get anarchysubjects -n anarchy-operator -o yaml > $DIR/anarchysubjects.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get anarchyactions -n anarchy-operator -o yaml > $DIR/anarchyactions.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get resourcepools -n poolboy -o yaml > $DIR/resourcepools.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get resourcehandles -n poolboy -o yaml > $DIR/resourcehandles.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get resourceclaims --all-namespaces -o yaml > $DIR/resourceclaims.yaml
+              # Remove backup files older than 3 days
+              find /backup/ -mmin +$[3 * 24 * 60] -delete
+            image: image-registry.openshift-image-registry.svc:5000/openshift/cli
+            imagePullPolicy: Always
+            volumeMounts:
+            - mountPath: /backup/
+              name: backup
+            - mountPath: /secret/
+              name: secret
+              readOnly: true
+          volumes:
+          - name: backup
+            persistentVolumeClaim:
+              claimName: cross-cluster-backup
+          - name: secret
+            secret:
+              secretName: cross-cluster-backup
+{{- end }}

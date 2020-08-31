@@ -11,3 +11,9 @@ anarchy:
 poolboy:
   apiGroup: poolboy.gpte.redhat.com
   namespace: poolboy
+
+crossClusterBackup:
+  enable: false
+  clusterRoleName: babylon-cross-cluster-backup
+  namespace: babylon-cross-cluster-backup
+  #kubeConfig: ...
