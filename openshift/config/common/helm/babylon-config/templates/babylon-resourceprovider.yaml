@@ -42,8 +42,6 @@ spec:
         job_vars:
           guid: >-
             {{ "{{: resource_handle.metadata.name[5:] if resource_handle.metadata.name.startswith('guid-') else resource_handle.metadata.name :}}" }}
-          uuid: >-
-            {{ "{{: resource_handle.metadata.uid :}}" }}
   updateFilters:
   - pathMatch: /spec/vars/desired_state
   validation:
