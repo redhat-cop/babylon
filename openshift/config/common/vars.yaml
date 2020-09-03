@@ -22,6 +22,10 @@ babylon_resources:
     resources:
       - name: opentlc-mgr service account
         file: serviceaccounts/opentlc-mgr.yaml
+      - name: opentlc-secret-manager-admin role
+        file: roles/opentlc-secret-manager-admin.yaml
+      - name: OpenTLC secret manager Admin role binding
+        file: rolebindings/opentlc-secret-manager-admin.yaml
       - name: anarchy-operator role
         file: roles/anarchy-operator.yaml
       - name: anarchy-operator rolebinding
