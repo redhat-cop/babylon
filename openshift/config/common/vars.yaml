@@ -21,16 +21,10 @@ babylon_resources:
   # gpte namespace
   - namespace: gpte
     resources:
-      - name: opentlc-mgr service account
-        file: serviceaccounts/opentlc-mgr.yaml
       - name: anarchy-operator role
         file: roles/anarchy-operator.yaml
       - name: anarchy-operator rolebinding
         file: rolebindings/anarchy-operator.yaml
-  - name: OpenTLC deployer cluster role
-    file: clusterroles/opentlc-deployer.yaml
-  - name: OpenTLC deployer cluster role binding
-    file: clusterrolebindings/opentlc-deployer.yaml
 
   # Remove old Anarchy resources
   - name: Remove old anarchy resources
@@ -48,10 +42,6 @@ babylon_resources:
           url: https://raw.githubusercontent.com/redhat-cop/anarchy/{{ anarchy_version }}/deploy-template.yaml
           parameters:
             ANARCHY_REPLICAS: "{{ babylon_anarchy_replicas }}"
-      - name: OpenTLC secret manager role
-        file: roles/opentlc-secret-manager.yaml
-      - name: OpenTLC secret manager role binding
-        file: rolebindings/opentlc-secret-manager.yaml
 
   # User Namespace Operator
   - name: UserNamespaceConfig CRD
