@@ -1,11 +1,11 @@
 # Component Versions
 agnosticv_operator_version: v0.1.2
 agnosticv_repositories: []
-anarchy_version: v0.9.2
+anarchy_version: v0.10.2
 babylon_anarchy_governor_version: v0.1.6
 babylon_aws_sandbox_version: v0.0.3
 babylon_cross_cluster_backup_enable: false
-k8s_config_version: v0.4.4
+k8s_config_version: v0.4.5
 poolboy_version: v0.3.7
 user_namespace_operator_version: v0.2.2
 
@@ -26,22 +26,18 @@ babylon_resources:
       - name: anarchy-operator rolebinding
         file: rolebindings/anarchy-operator.yaml
 
-  # Remove old Anarchy resources
-  - name: Remove old anarchy resources
-    action: delete
-    file: old-anarchy-resources.yaml
-
-  # Anarchy install for the cluster
-  - name: Anarchy install template
-    openshift_template:
-      url: https://raw.githubusercontent.com/redhat-cop/anarchy/{{ anarchy_version }}/install-template.yaml
-  - namespace: anarchy-operator
-    resources:
-      - name: Anarchy deploy template
-        openshift_template:
-          url: https://raw.githubusercontent.com/redhat-cop/anarchy/{{ anarchy_version }}/deploy-template.yaml
-          parameters:
-            ANARCHY_REPLICAS: "{{ babylon_anarchy_replicas }}"
+  # Anarchy install and anarchy-operator deployment
+  - name: Anarchy install
+    helm_template:
+      git:
+        repo: https://github.com/redhat-cop/anarchy.git
+        version: "{{ anarchy_version }}"
+      dir: helm
+      include_crds: true
+      values:
+        namespace:
+          name: anarchy-operator
+        replicaCount: 2
 
   # User Namespace Operator
   - name: UserNamespaceConfig CRD
