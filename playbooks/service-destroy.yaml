@@ -46,10 +46,72 @@
       name: "{{ resource_claim_name }}"
     register: r_claim
 
-  - when: r_claim.resources|length == 0
+  - name: Delete with resource claim
+    when: r_claim.resources|length > 0
     block:
+    - name: Set subject_name and subject_namespace from claim
+      set_fact:
+        subject_name: "{{ __subject.metadata.name }}"
+        subject_namespace: "{{ __subject.metadata.namespace }}"
+      vars:
+        __subject: "{{ r_claim.resources[0].status.resources[0].state }}"
+
+    - name: Delete resource claim {{ resource_claim_name }}
+      k8s:
+        kubeconfig: "{{ kubeconfig }}"
+        state: absent
+        api_version: poolboy.gpte.redhat.com/v1
+        kind: ResourceClaim
+        namespace: "{{ user_namespace }}"
+        name: "{{ resource_claim_name }}"
+
+    - name: Wait for the Tower deployerJob to start in the AnarchySubject
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: anarchy.gpte.redhat.com/v1
+        kind: AnarchySubject
+        namespace: "{{ subject_namespace }}"
+        name: "{{ subject_name }}"
+      register: r_subject
+      retries: "{{ wait_retries | default(30) }}"
+      delay: 2
+      until: >-
+        'destroying' == r_subject.resources[0].spec.vars.current_state|default('')
+
+    - name: Save the tower job
+      set_fact:
+        tower_job: "{{ r_subject.resources[0].status.towerJobs.destroy.deployerJob }}"
+
+  - name: Delete without resource claim
+    when: r_claim.resources|length == 0
+    block:
+    - name: Get AnarchySubjects
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: anarchy.gpte.redhat.com/v1
+        kind: AnarchySubject
+        namespace: anarchy-operator
+      register: r_anarchy_subjects
+
+    - name: Set subject_name and subject_namespace if anarchy subject found
+      set_fact:
+        subject: "{{ __subject }}"
+        subject_name: "{{ __subject.metadata.name }}"
+        subject_namespace: "{{ __subject.metadata.namespace }}"
+      vars:
+        __subject_query: >-
+          [?
+            metadata.annotations."poolboy.gpte.redhat.com/resource-claim-name"==`{{ resource_claim_name | to_json }}` &&
+            metadata.annotations."poolboy.gpte.redhat.com/resource-claim-namespace"==`{{ resource_claim_namespace | to_json }}`
+          ]|[0]
+        __subject: "{{ r_anarchy_subjects.resources | json_query(__subject_query) }}"
+      when: __subject != ''
+
+    - name: Exit if not found
+      when: subject is not defined
+      block:
       - debug:
-          msg: "No resource claim found."
+          msg: "No resource claim or subject found."
 
       - name: Write tower information to yaml file
         copy:
@@ -59,39 +121,44 @@
 
       - meta: end_play
 
-  - set_fact:
-      subject_name: >-
-        {{ r_claim.resources[0].status.resources[0]
-        .state.metadata.name }}
-      subject_namespace: >-
-        {{ r_claim.resources[0].status.resources[0]
-        .state.metadata.namespace }}
+    - name: Create destroy action for {{ subject_name }}
+      k8s:
+        kubeconfig: "{{ kubeconfig }}"
+        definition:
+          api_version: anarchy.gpte.redhat.com/v1
+          kind: AnarchyAction
+          metadata:
+            namespace: anarchy-operator
+            generateName: "{{ subject_name }}-destroy-"
+          spec:
+            action: destroy
+            callbackToken: "{{ lookup('password', '/dev/null length=32 chars=hexdigits') }}"
+          subjectRef:
+            apiVersion: anarchy.gpte.redhat.com/v1
+            kind: AnarchySubject
+            name: "{{ subject_name }}"
+            namespace: "{{ subject_namespace }}"
 
-  - name: Delete resource claim {{ resource_claim_name }}
-    k8s:
-      kubeconfig: "{{ kubeconfig }}"
-      state: absent
-      api_version: poolboy.gpte.redhat.com/v1
-      kind: ResourceClaim
-      namespace: "{{ user_namespace }}"
-      name: "{{ resource_claim_name }}"
+    - name: Wait for the new Tower deployerJob to start in the AnarchySubject
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: anarchy.gpte.redhat.com/v1
+        kind: AnarchySubject
+        namespace: "{{ subject_namespace }}"
+        name: "{{ subject_name }}"
+      register: r_subject
+      retries: "{{ wait_retries | default(30) }}"
+      delay: 2
+      vars:
+        deployer_job: "{{ r_subject.resources[0].status.towerJobs.destroy.deployerJob | default('') }}"
+      # Wait until destroy deployerJob is set and is different from previous attempt
+      until: >-
+        deployer_job != '' and
+        deployer_job != subject.status.towerJobs.destroy.deployerJob | default('')
 
-  - name: Wait for the Tower deployerJob to start in the AnarchySubject
-    k8s_info:
-      kubeconfig: "{{ kubeconfig }}"
-      api_version: anarchy.gpte.redhat.com/v1
-      kind: AnarchySubject
-      namespace: "{{ subject_namespace }}"
-      name: "{{ subject_name }}"
-    register: r_subject
-    retries: "{{ wait_retries | default(30) }}"
-    delay: 2
-    until: >-
-      'destroying' == r_subject.resources[0].spec.vars.current_state|default('')
-
-  - name: Save the tower job
-    set_fact:
-      tower_job: "{{ r_subject.resources[0].status.towerJobs.destroy.deployerJob }}"
+    - name: Save the tower job
+      set_fact:
+        tower_job: "{{ r_subject.resources[0].status.towerJobs.destroy.deployerJob }}"
 
   - name: Get Tower credentials and access information
     k8s_info:
