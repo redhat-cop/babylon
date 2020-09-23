@@ -68,7 +68,7 @@ pipeline {
     agent any
 
     options {
-        buildDiscarder(logRotator(daysToKeepStr: '30'))
+        buildDiscarder(logRotator(daysToKeepStr: '3'))
     }
 
     parameters {
