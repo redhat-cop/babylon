@@ -17,6 +17,15 @@ metadata:
     openshift.io/description: >-
       Service account used for read access to peer cluster.
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: restore
+  namespace: {{ .Values.crossClusterBackup.namespace }}
+  annotations:
+    openshift.io/description: >-
+      Service account used for restore backup from peer.
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -59,6 +68,22 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: reader
+  namespace: {{ .Values.crossClusterBackup.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.crossClusterBackup.clusterRoleName }}-restore
+  annotations:
+    openshift.io/description: >-
+      RBAC for access to read babylon resources from peer cluster.
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: restore
   namespace: {{ .Values.crossClusterBackup.namespace }}
 ---
 apiVersion: v1
@@ -114,15 +139,19 @@ spec:
             - -xc
             - |
               set -e
-              DIR="/backup/$(date -u +%FT%TZ)"
-              mkdir $DIR
-              oc --kubeconfig=/secret/kubeconfig.yaml get anarchysubjects -n anarchy-operator -o yaml > $DIR/anarchysubjects.yaml
-              oc --kubeconfig=/secret/kubeconfig.yaml get anarchyactions -n anarchy-operator -o yaml > $DIR/anarchyactions.yaml
-              oc --kubeconfig=/secret/kubeconfig.yaml get resourcepools -n poolboy -o yaml > $DIR/resourcepools.yaml
-              oc --kubeconfig=/secret/kubeconfig.yaml get resourcehandles -n poolboy -o yaml > $DIR/resourcehandles.yaml
-              oc --kubeconfig=/secret/kubeconfig.yaml get resourceclaims --all-namespaces -o yaml > $DIR/resourceclaims.yaml
-              # Remove backup files older than 3 days
-              find /backup/ -mmin +$[3 * 24 * 60] -delete
+              rm -rf /backup/in-progress
+              mkdir /backup/in-progress
+              oc --kubeconfig=/secret/kubeconfig.yaml get anarchysubjects -n anarchy-operator -o yaml > /backup/in-progress/anarchysubjects.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get anarchyactions -n anarchy-operator -o yaml > /backup/in-progress/anarchyactions.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get resourcepools -n poolboy -o yaml > /backup/in-progress/resourcepools.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get resourcehandles -n poolboy -o yaml > /backup/in-progress/resourcehandles.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get resourceclaims --all-namespaces -o yaml > /backup/in-progress/resourceclaims.yaml
+              TIMESTAMP="$(date -u +%FT%TZ)"
+              mv /backup/in-progress "/backup/${TIMESTAMP}"
+              rm -f /backup/latest
+              ln -s "${TIMESTAMP}" /backup/latest
+              # Remove backup dirs older than 3 days
+              find /backup/ -maxdepth 1 -type d -regextype posix-egrep -regex '.*/[0-9]{4}-[0-9]{2}-[0-9]{2}T.*' -mmin +$[3 * 24 * 60] -exec rm -rf {} \; || :
             image: image-registry.openshift-image-registry.svc:5000/openshift/cli
             imagePullPolicy: Always
             volumeMounts:
@@ -138,4 +167,102 @@ spec:
           - name: secret
             secret:
               secretName: cross-cluster-backup
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: restore
+  namespace: {{ .Values.crossClusterBackup.namespace }}
+  annotations:
+    openshift.io/description: >-
+      Service account used to restore backups.
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cross-cluster-restore
+  namespace: {{ .Values.crossClusterBackup.namespace }}
+parameters:
+- description: Backup to Restore
+  displayName: Backup
+  name: BACKUP
+  required: true
+  value: manual
+- description: Image for restore Job
+  displayName: Image
+  name: IMAGE
+  required: true
+  value: quay.io/redhat-gpte/replik8s:latest
+- description: Restore mode, can be "manual", "latest", or backup timestamp.
+  displayName: RESTORE
+  name: RESTORE
+  required: true
+  value: manual
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    generateName: cross-cluster-restore-
+    namespace: {{ .Values.crossClusterBackup.namespace }}
+    labels:
+      cross-cluster-restore: ''
+  spec:
+    backoffLimit: 1
+    completions: 1
+    parallelism: 1
+    template:
+      spec:
+        serviceAccountName: restore
+        restartPolicy: Never
+        containers:
+        - name: restore
+          command:
+          - /bin/sh
+          - -c
+          - |
+            cat >/opt/app-root/bin/babylon-restore <<EOF
+            #!/bin/sh
+            set -o errexit
+            if [ -z "\${1}" ] || [ ! -e "\${1}" ]; then
+                echo "Usage: babylon-restore BACKUP_PATH"
+                exit 1
+            fi
+            /opt/app-root/bin/replik8s-restore "\${1}" \\
+              --restore-status-on \\
+                anarchysubjects.anarchy.gpte.redhat.com \\
+                anarchyactions.anarchy.gpte.redhat.com \\
+                resourceclaims.poolboy.gpte.redhat.com \\
+              --stop-operators \\
+                anarchy-operator/anarchy \\
+                poolboy/poolboy
+            echo "Restore Complete"
+            rm -f /tmp/restore-running
+            EOF
+            chmod a+x /opt/app-root/bin/babylon-restore
+
+            if [ "${RESTORE}" == "manual" ]; then
+                touch /tmp/restore-running
+                while [ -e /tmp/restore-running ]; do sleep 1; done
+                exit 0
+            else
+                /opt/app-root/bin/babylon-restore "/backup/${RESTORE}"
+            fi
+          env:
+          - name: RESTORE
+            value: ${RESTORE}
+          image: ${IMAGE}
+          imagePullPolicy: Always
+          volumeMounts:
+          - mountPath: /backup/
+            name: backup
+          - mountPath: /secret/
+            name: secret
+            readOnly: true
+        volumes:
+        - name: backup
+          persistentVolumeClaim:
+            claimName: cross-cluster-backup
+        - name: secret
+          secret:
+            secretName: cross-cluster-backup
 {{- end }}
