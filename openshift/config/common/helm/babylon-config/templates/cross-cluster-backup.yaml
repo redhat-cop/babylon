@@ -135,7 +135,7 @@ spec:
           containers:
           - name: oc-cli
             command:
-            - /bin/sh
+            - /bin/bash
             - -xc
             - |
               set -e
@@ -217,11 +217,11 @@ objects:
         containers:
         - name: restore
           command:
-          - /bin/sh
+          - /bin/bash
           - -c
           - |
             cat >/opt/app-root/bin/babylon-restore <<EOF
-            #!/bin/sh
+            #!/bin/bash
             set -o errexit
             if [ -z "\${1}" ] || [ ! -e "\${1}" ]; then
                 echo "Usage: babylon-restore BACKUP_PATH"
