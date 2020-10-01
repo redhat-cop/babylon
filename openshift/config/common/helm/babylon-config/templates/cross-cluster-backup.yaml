@@ -151,7 +151,7 @@ spec:
               rm -f /backup/latest
               ln -s "${TIMESTAMP}" /backup/latest
               # Remove backup dirs older than 3 days
-              find /backup/ -maxdepth 1 -type d -regextype posix-egrep -regex '.*/[0-9]{4}-[0-9]{2}-[0-9]{2}T.*' -mmin +$[3 * 24 * 60] -exec rm -rf {} \; || :
+              find /backup/ -maxdepth 1 -type d -regextype posix-egrep -regex '.*/[0-9]{4}-[0-9]{2}-[0-9]{2}T.*' -mmin +$((3 * 24 * 60)) -exec rm -rf {} \; || :
             image: image-registry.openshift-image-registry.svc:5000/openshift/cli
             imagePullPolicy: Always
             volumeMounts:
