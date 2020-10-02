@@ -24,7 +24,7 @@ metadata:
   namespace: {{ .Values.crossClusterBackup.namespace }}
   annotations:
     openshift.io/description: >-
-      Service account used for restore backup from peer.
+      Service account used to restore backups.
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -167,15 +167,6 @@ spec:
           - name: secret
             secret:
               secretName: cross-cluster-backup
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: restore
-  namespace: {{ .Values.crossClusterBackup.namespace }}
-  annotations:
-    openshift.io/description: >-
-      Service account used to restore backups.
 ---
 apiVersion: template.openshift.io/v1
 kind: Template
