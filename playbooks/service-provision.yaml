@@ -309,8 +309,8 @@
     copy:
       dest: "{{ output_dir }}/secrets/tower.rc"
       content: |
-        export TOWER_HOST="https://{{ tower_hostname }}"
+        export TOWER_HOST={{ ("https://" ~ tower_hostname) | quote }}
         export TOWER_VERIFY_SSL=false
-        export TOWER_USERNAME={{ tower_user | to_json }}
-        export TOWER_PASSWORD={{ tower_password | to_json }}
-        export TOWER_JOB={{ tower_job | to_json }}
+        export TOWER_USERNAME={{ tower_user | quote }}
+        export TOWER_PASSWORD={{ tower_password | quote }}
+        export TOWER_JOB={{ tower_job | quote }}
