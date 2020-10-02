@@ -1,6 +1,5 @@
 ---
 # This Ansible Playbook show how to add an Anarchy Subject through a Poolboy
-# ResourceHandle and ResourceClaim while setting an explicit GUID.
 - name: Babylon Integration
   hosts: localhost
   gather_facts: false
@@ -41,7 +40,7 @@
         {{ vars.catalog_item_params.guid }}
       # Take cloud_tags, but drop values to ignore, guid and uuid
       cloud_tags: >-
-        {{ vars.catalog_item_params.cloud_tags | from_yaml
+        {{ vars.catalog_item_params.cloud_tags | default('{}') | from_yaml
          | dict2items | json_query("[?key!='guid' && key!='uuid']") | items2dict }}
       resource_claim_name: >-
         {{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}
@@ -59,7 +58,7 @@
             openshift.io/requester: "{{ cloudforms_username }}"
           name: "{{ user_namespace }}"
 
-  - name: Create resource claim {{ resource_claim_name }}
+  - name: Create ResourceClaim {{ resource_claim_name }}
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       definition:
@@ -94,6 +93,132 @@
                      | json_query("[?key!='guid' && key!='uuid' && key!='cloud_tags']")
                      | items2dict | combine({"cloud_tags": vars.cloud_tags}) }}
 
+  - name: Report ResourceClaim
+    debug:
+      msg: "babylon.resourceClaim: {{ user_namespace }} {{ resource_claim_name }}"
+
+  - block:
+    - name: Wait for ResourceHandle to be assigned to ResourceClaim {{ resource_claim_name }}
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: poolboy.gpte.redhat.com/v1
+        kind: ResourceClaim
+        namespace: "{{ user_namespace }}"
+        name: "{{ resource_claim_name }}"
+      register: r_claim
+      retries: 30
+      delay: 2
+      until: >-
+        'resourceHandle' in r_claim.resources[0].status
+    rescue:
+    - name: Report failure waiting for ResourceHandle
+      fail:
+        msg: |-
+         No ResourceHandle assigned to ResourceClaim {{ resource_claim_name }} in project namespace {{ user_namespace }}.
+         Check poolboy logs:
+           oc logs -n poolboy deployment/poolboy | fgrep {{ resource_claim_name }}
+
+  - name: Report ResourceHandle
+    debug:
+      msg: "babylon.resourceHandle: {{ r_claim.resources[0].status.resourceHandle.name }}"
+
+  - block:
+    - name: Wait for AnarchySubject to appear in ResourceClaim {{ resource_claim_name }} status
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: poolboy.gpte.redhat.com/v1
+        kind: ResourceClaim
+        namespace: "{{ user_namespace }}"
+        name: "{{ resource_claim_name }}"
+      register: r_claim
+      retries: 30
+      delay: 2
+      until: >-
+        'state' in r_claim.resources[0].status.resources[0]
+    rescue:
+    - name: Report failure waiting for AnarchySubject
+      fail:
+        msg: |-
+          No AnarchySubject created for ResourceHandle {{ r_claim.resources[0].status.resourceHandle.name }}.
+          Check poolboy logs:
+            oc logs -n poolboy deployment/poolboy | fgrep {{ r_claim.resources[0].status.resourceHandle.name }}
+
+  - name: Set anarchy_subject_name
+    set_fact:
+      anarchy_subject_name: "{{ r_claim.resources[0].status.resources[0].state.metadata.name }}"
+
+  - name: Report AnarchySubject
+    debug:
+      msg: "babylon.anarchySubject: {{ anarchy_subject_name }}"
+
+  - block:
+    - name: Wait for AnarchySubject current_state
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: poolboy.gpte.redhat.com/v1
+        kind: ResourceClaim
+        namespace: "{{ user_namespace }}"
+        name: "{{ resource_claim_name }}"
+      register: r_claim
+      retries: 30
+      delay: 2
+      until: >-
+        'current_state' in r_claim.resources[0].status.resources[0].state.spec.vars | default({})
+    rescue:
+    - name: Report failure waiting for AnarchySubject current_state
+      fail:
+        msg: |-
+          AnarchySubject {{ anarchy_subject_name }} has not been handled by Anarchy.
+          Check anarchy-operator logs:
+            oc logs -n anarchy-operator deployment/anarchy | fgrep {{ anarchy_subject_name }}
+          Check for problems with AnarchyRun to process create of AnarchySubject:
+            oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+
+  - name: Report current state
+    debug:
+      msg: "babylon.currentState: {{ r_claim.resources[0].status.resources[0].state.spec.vars.current_state }}"
+
+  - name: Report babylon assigned GUID
+    debug:
+      msg: "babylon.guid: {{ r_claim.resources[0].status.resources[0].state.spec.vars.job_vars.guid }}"
+
+  - name: Report babylon assigned UUID
+    debug:
+      msg: "babylon.uuid: {{ r_claim.resources[0].status.resources[0].state.spec.vars.job_vars.uuid }}"
+
+  - block:
+    - name: Wait for Ansible Tower launch job to appear in AnarchySubject status
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: poolboy.gpte.redhat.com/v1
+        kind: ResourceClaim
+        namespace: "{{ user_namespace }}"
+        name: "{{ resource_claim_name }}"
+      register: r_claim
+      retries: 30
+      delay: 2
+      until: >-
+        'launchJob' in r_claim.resources[0].status.resources[0].state.status.towerJobs.provision | default({})
+    rescue:
+    - name: Report waiting for launch job to apper in the AnarchySubject status
+      fail:
+        msg: |-
+          AnarchySubject {{ anarchy_subject_name }} has not started the dark-tower job-runner
+          Check AnarchyActions:
+            oc get anarchyactions -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+          Check for problems with AnarchyRun for AnarchyAction:
+            oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+
+  - name: Set tower_launch_job
+    set_fact:
+      tower_launch_job: >-
+        {{ r_claim.resources[0].status.resources[0].state.status.towerJobs.provision.launchJob }}
+
+  - name: Report dark-tower job-runner Job
+    debug:
+      msg: >-
+        babylon.launchJob: {{ tower_launch_job }}
+
   - name: Get Tower credentials and access information
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
@@ -116,54 +241,74 @@
       tower_user: "{{ babylon_tower_secret.data.user | b64decode }}"
       tower_password: "{{ babylon_tower_secret.data.password | b64decode }}"
 
+  - block:
+    - name: Wait for AnarchySubject state provisioning or subsequent states
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: poolboy.gpte.redhat.com/v1
+        kind: ResourceClaim
+        namespace: "{{ user_namespace }}"
+        name: "{{ resource_claim_name }}"
+      register: r_claim
+      retries: 30
+      delay: 2
+      until: >-
+        r_claim.resources[0].status.resources[0].state.spec.vars.current_state | default('')
+        in ['provisioning', 'started', 'starting', 'stopping', 'stopped']
+    rescue:
+    - name: Report failure waiting for provisioning state
+      fail:
+        msg: |-
+          AnarchySubject {{ anarchy_subject_name }} has not moved to current_state of provisioning.
+          Check dark-tower job-runner:
+            https://{{ tower_hostname }}/#/jobs/playbook/{{ tower_launch_job }}
+          Check AnarchyRuns to see if callback event was not processed:
+            oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+
+  - name: Report current state
+    debug:
+      msg: >-
+        babylon.currentState:
+        {{ r_claim.resources[0].status.resources[0].state.spec.vars.current_state }}
+
+  - block:
+    - name: Wait for the Tower deployerJob to start
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: poolboy.gpte.redhat.com/v1
+        kind: ResourceClaim
+        namespace: "{{ user_namespace }}"
+        name: "{{ resource_claim_name }}"
+      register: r_claim
+      retries: "{{ wait_retries | default(30) }}"
+      delay: 2
+      until: >-
+        'deployerJob' in r_claim.resources[0].status.resources[0].state.status.towerJobs.provision | default({})
+    rescue:
+    - name: Report failure waiting for provisioning state
+      fail:
+        msg: |-
+          AnarchySubject {{ anarchy_subject_name }} has does not have a deployerJob in its status.
+          Check dark-tower job-runner:
+            https://{{ tower_hostname }}/#/jobs/playbook/{{ tower_launch_job }}
+          Check AnarchyRuns for errors processing callback event:
+            oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+
+  - name: Save Tower provision deployerJob
+    set_fact:
+      tower_job: >-
+        {{ r_claim.resources[0].status.resources[0].state.status.towerJobs.provision.deployerJob }}
+
+  - name: Report deployerJob
+    debug:
+      msg: >-
+        babylon.deployerJob: {{ tower_job }}
+
   - name: Create output_dir/secrets
     file:
       path: "{{ output_dir }}/secrets"
       state: directory
       mode: 0700
-
-  - name: Print debug Wait for deployerJob
-    debug:
-      msg: >-
-        Now wait for the deployJob to be populated in resourceClaim
-        "{{ resource_claim_name }}" in namespace "{{ user_namespace }}"
-
-  - name: Wait for the Tower deployerJob to start
-    k8s_info:
-      kubeconfig: "{{ kubeconfig }}"
-      api_version: poolboy.gpte.redhat.com/v1
-      kind: ResourceClaim
-      namespace: "{{ user_namespace }}"
-      name: "{{ resource_claim_name }}"
-    register: r_claim
-    retries: "{{ wait_retries | default(30) }}"
-    delay: 2
-    until: >-
-      r_claim.resources|length == 1
-      and 'status' in r_claim.resources[0]
-      and 'resources' in r_claim.resources[0].status
-      and r_claim.resources[0].status.resources|length > 0
-      and 'state' in r_claim.resources[0].status.resources[0]
-      and 'status' in r_claim.resources[0].status.resources[0].state
-      and 'towerJobs' in r_claim.resources[0].status.resources[0].state.status
-      and 'provision' in r_claim.resources[0].status.resources[0].state.status.towerJobs
-      and 'deployerJob' in (r_claim.resources[0].status.resources[0]
-                           .state.status.towerJobs.provision)
-
-  - name: Report babylon assigned GUID
-    debug:
-      msg: "babylon.guid: {{ r_claim.resources[0].status.resources[0].state.spec.vars.job_vars.guid }}"
-
-  - name: Report babylon assigned UUID
-    debug:
-      msg: "babylon.uuid: {{ r_claim.resources[0].status.resources[0].state.spec.vars.job_vars.uuid }}"
-
-  - name: Save Tower provision job
-    set_fact:
-      tower_job: >-
-        {{ r_claim.resources[0].status.resources[0]
-        .state.status.towerJobs.provision.deployerJob }}
-
 
   - name: Write tower information to yaml file
     copy:
