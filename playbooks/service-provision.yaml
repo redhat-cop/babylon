@@ -109,7 +109,7 @@
       retries: 30
       delay: 2
       until: >-
-        'resourceHandle' in r_claim.resources[0].status
+        'resourceHandle' in r_claim.resources[0].status | default({})
     rescue:
     - name: Report failure waiting for ResourceHandle
       fail:
@@ -134,7 +134,7 @@
       retries: 30
       delay: 2
       until: >-
-        'state' in r_claim.resources[0].status.resources[0]
+        'state' in r_claim.resources[0].status.resources[0] | default({})
     rescue:
     - name: Report failure waiting for AnarchySubject
       fail:
