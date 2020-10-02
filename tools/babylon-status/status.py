@@ -78,6 +78,9 @@ for namespace in claims:
         if not status_resources:
             continue
         for status_resource in status_resources:
+            if 'state' not in status_resource:
+                continue
+
             anarchy_subject = status_resource['state']
             anarchy_subject_status = anarchy_subject.get('status', {})
             tower_jobs = anarchy_subject_status.get('towerJobs', {})
