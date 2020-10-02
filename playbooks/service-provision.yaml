@@ -299,11 +299,6 @@
       tower_job: >-
         {{ r_claim.resources[0].status.resources[0].state.status.towerJobs.provision.deployerJob }}
 
-  - name: Report deployerJob
-    debug:
-      msg: >-
-        babylon.deployerJob: {{ tower_job }}
-
   - name: Create output_dir/secrets
     file:
       path: "{{ output_dir }}/secrets"
