@@ -45,6 +45,22 @@
       resource_claim_name: >-
         {{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}
 
+  - name: Wait for AnarchyGovernor {{ catalog_item_name }} params sync
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: anarchy.gpte.redhat.com/v1
+      kind: AnarchyGovernor
+      namespace: anarchy-operator
+      name: "{{ catalog_item_name }}"
+    register: r_governor
+    vars:
+      governor_job_vars: "{{ r_governor.resources[0].spec.vars.job_vars }}"
+    failed_when: >-
+      vars.catalog_item_params != vars.catalog_item_params | combine(governor_job_vars)
+    until: r_governor is success
+    delay: 5
+    retries: 60
+
   - name: Create namespace for {{ cloudforms_username }}
     k8s:
       kubeconfig: "{{ kubeconfig }}"
