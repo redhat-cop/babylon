@@ -303,7 +303,7 @@
     file:
       path: "{{ output_dir }}/secrets"
       state: directory
-      mode: 0700
+      mode: u=rwx,go=
 
   - name: Write tower information to yaml file
     copy:
