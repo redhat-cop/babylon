@@ -54,9 +54,20 @@
       name: "{{ catalog_item_name }}"
     register: r_governor
     vars:
-      governor_job_vars: "{{ r_governor.resources[0].spec.vars.job_vars }}"
+      # Check AnarchyGovernor vars that are not listed in params_to_variables
+      check_governor_job_vars: >-
+        {{ r_governor.resources[0].spec.vars.job_vars
+         | dict2items
+         | json_query(filter_var_query)
+         | items2dict
+        }}
+      filter_var_query: >-
+        [?!contains(`{{ filter_var_list | to_json }}`, key)]
+      filter_var_list: >-
+        {{ (vars.catalog_items_params.agnosticv_meta.params_to_variables | default({})).values()
+         + ["agnosticv_meta"] }}
     failed_when: >-
-      vars.catalog_item_params != vars.catalog_item_params | combine(governor_job_vars)
+      vars.catalog_item_params != vars.catalog_item_params | combine(check_governor_job_vars)
     until: r_governor is success
     delay: 5
     retries: 60
