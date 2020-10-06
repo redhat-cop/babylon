@@ -64,7 +64,7 @@
       filter_var_query: >-
         [?!contains(`{{ filter_var_list | to_json }}`, key)]
       filter_var_list: >-
-        {{ (vars.catalog_item_params.agnosticv_meta.params_to_variables | default({})).values()
+        {{ (vars.catalog_item_params.agnosticv_meta.params_to_variables | default({})).values() | list
          + ["agnosticv_meta"] }}
     failed_when: >-
       vars.catalog_item_params != vars.catalog_item_params | combine(check_governor_job_vars)
