@@ -133,8 +133,8 @@
         namespace: "{{ user_namespace }}"
         name: "{{ resource_claim_name }}"
       register: r_claim
-      retries: 30
-      delay: 2
+      retries: 60
+      delay: 5
       until: >-
         'resourceHandle' in r_claim.resources[0].status | default({})
     rescue:
@@ -158,8 +158,8 @@
         namespace: "{{ user_namespace }}"
         name: "{{ resource_claim_name }}"
       register: r_claim
-      retries: 30
-      delay: 2
+      retries: 60
+      delay: 5
       until: >-
         'state' in r_claim.resources[0].status.resources[0] | default({})
     rescue:
@@ -187,8 +187,8 @@
         namespace: "{{ user_namespace }}"
         name: "{{ resource_claim_name }}"
       register: r_claim
-      retries: 30
-      delay: 2
+      retries: 60
+      delay: 5
       until: >-
         'current_state' in r_claim.resources[0].status.resources[0].state.spec.vars | default({})
     rescue:
@@ -222,8 +222,8 @@
         namespace: "{{ user_namespace }}"
         name: "{{ resource_claim_name }}"
       register: r_claim
-      retries: 30
-      delay: 2
+      retries: 60
+      delay: 5
       until: >-
         'launchJob' in r_claim.resources[0].status.resources[0].state.status.towerJobs.provision | default({})
     rescue:
@@ -277,8 +277,8 @@
         namespace: "{{ user_namespace }}"
         name: "{{ resource_claim_name }}"
       register: r_claim
-      retries: 30
-      delay: 2
+      retries: 60
+      delay: 5
       until: >-
         r_claim.resources[0].status.resources[0].state.spec.vars.current_state | default('')
         in ['provisioning', 'started', 'starting', 'stopping', 'stopped']
@@ -307,8 +307,8 @@
         namespace: "{{ user_namespace }}"
         name: "{{ resource_claim_name }}"
       register: r_claim
-      retries: "{{ wait_retries | default(30) }}"
-      delay: 2
+      retries: "{{ wait_retries | default(60) }}"
+      delay: 5
       until: >-
         'deployerJob' in r_claim.resources[0].status.resources[0].state.status.towerJobs.provision | default({})
     rescue:
