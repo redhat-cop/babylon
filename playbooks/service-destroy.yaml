@@ -128,8 +128,11 @@
           api_version: anarchy.gpte.redhat.com/v1
           kind: AnarchyAction
           metadata:
+            # k8s module currently does not support generateName...
+            # https://github.com/ansible-collections/community.kubernetes/issues/186
+            # Need to generate a name while keeping the total length <= 63
+            name: "{{ (subject_name ~ '-destroy-')[:58] ~ lookup('password', '/dev/null chars=ascii_lowercase,digits length=5') }}"
             namespace: anarchy-operator
-            generateName: "{{ subject_name }}-destroy-"
           spec:
             action: destroy
             callbackToken: "{{ lookup('password', '/dev/null length=32 chars=hexdigits') }}"
