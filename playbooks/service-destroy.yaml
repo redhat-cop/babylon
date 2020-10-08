@@ -136,11 +136,11 @@
           spec:
             action: destroy
             callbackToken: "{{ lookup('password', '/dev/null length=32 chars=hexdigits') }}"
-          subjectRef:
-            apiVersion: anarchy.gpte.redhat.com/v1
-            kind: AnarchySubject
-            name: "{{ subject_name }}"
-            namespace: "{{ subject_namespace }}"
+            subjectRef:
+              apiVersion: anarchy.gpte.redhat.com/v1
+              kind: AnarchySubject
+              name: "{{ subject_name }}"
+              namespace: "{{ subject_namespace }}"
 
     - name: Wait for the new Tower deployerJob to start in the AnarchySubject
       k8s_info:
