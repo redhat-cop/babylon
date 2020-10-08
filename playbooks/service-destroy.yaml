@@ -102,7 +102,7 @@
         __subject_query: >-
           [?
             metadata.annotations."poolboy.gpte.redhat.com/resource-claim-name"==`{{ resource_claim_name | to_json }}` &&
-            metadata.annotations."poolboy.gpte.redhat.com/resource-claim-namespace"==`{{ resource_claim_namespace | to_json }}`
+            metadata.annotations."poolboy.gpte.redhat.com/resource-claim-namespace"==`{{ user_namespace | to_json }}`
           ]|[0]
         __subject: "{{ r_anarchy_subjects.resources | json_query(__subject_query) }}"
       when: __subject != ''
