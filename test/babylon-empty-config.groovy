@@ -112,7 +112,7 @@ pipeline {
                         -c '${catalog}' \
                         -i '${item}' \
                         -G '${cf_group}' \
-                        -d 'expiration=7,runtime=8,region=${region}'
+                        -d 'expiration=7,runtime=8,region=${region},notes=Development - Catalog item creation / maintenance'
                     """
 
                     try {
