@@ -1,3 +1,4 @@
 ---
 # This file should only contain variables specific to dev environments.
 # The values for these variables do not get promoted from dev to test or prod.
+babylon_aws_sandbox_version: master
