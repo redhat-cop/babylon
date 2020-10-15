@@ -9,6 +9,7 @@ spec:
     spec:
       vars:
         desired_state: started
+        healthy: true
   match:
     apiVersion: {{ .Values.anarchy.apiGroup }}/v1
     kind: AnarchySubject
@@ -83,3 +84,5 @@ spec:
                   - started
                   - stopped
                   type: string
+                healthy:
+                  type: boolean
