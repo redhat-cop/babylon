@@ -196,10 +196,16 @@
       fail:
         msg: |-
           AnarchySubject {{ anarchy_subject_name }} has not been handled by Anarchy.
+          {% if __anarchy_subject.status.runStatus | default('') != '' %}
+          Run status {{ __anarchy_subject.status.runStatus }}: {{ __anarchy_subject.status.runStatusMessage | default("no message") }}
+          {% else %}
           Check anarchy-operator logs:
             oc logs -n anarchy-operator deployment/anarchy | fgrep {{ anarchy_subject_name }}
           Check for problems with AnarchyRun to process create of AnarchySubject:
             oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+          {% endif %}
+      vars:
+        __anarchy_subject: "{{ r_claim.resources[0].status.resources[0].state | default({}) }}"
 
   - name: Report current state
     debug:
@@ -231,10 +237,16 @@
       fail:
         msg: |-
           AnarchySubject {{ anarchy_subject_name }} has not started the dark-tower job-runner
+          {% if __anarchy_subject.status.runStatus | default('') != '' %}
+          Run status {{ __anarchy_subject.status.runStatus }}: {{ __anarchy_subject.status.runStatusMessage | default("no message") }}
+          {% else %}
           Check AnarchyActions:
             oc get anarchyactions -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
           Check for problems with AnarchyRun for AnarchyAction:
             oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+          {% endif %}
+      vars:
+        __anarchy_subject: "{{ r_claim.resources[0].status.resources[0].state | default({}) }}"
 
   - name: Set tower_launch_job
     set_fact:
@@ -287,10 +299,16 @@
       fail:
         msg: |-
           AnarchySubject {{ anarchy_subject_name }} has not moved to current_state of provisioning.
+          {% if __anarchy_subject.status.runStatus | default('') != '' %}
+          Run status {{ __anarchy_subject.status.runStatus }}: {{ __anarchy_subject.status.runStatusMessage | default("no message") }}
+          {% else %}
           Check dark-tower job-runner:
             https://{{ tower_hostname }}/#/jobs/playbook/{{ tower_launch_job }}
           Check AnarchyRuns to see if callback event was not processed:
             oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+          {% endif %}
+      vars:
+        __anarchy_subject: "{{ r_claim.resources[0].status.resources[0].state | default({}) }}"
 
   - name: Report current state
     debug:
@@ -316,10 +334,16 @@
       fail:
         msg: |-
           AnarchySubject {{ anarchy_subject_name }} has does not have a deployerJob in its status.
+          {% if __anarchy_subject.status.runStatus | default('') != '' %}
+          Run status {{ __anarchy_subject.status.runStatus }}: {{ __anarchy_subject.status.runStatusMessage | default("no message") }}
+          {% else %}
           Check dark-tower job-runner:
             https://{{ tower_hostname }}/#/jobs/playbook/{{ tower_launch_job }}
           Check AnarchyRuns for errors processing callback event:
             oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+          {% endif %}
+      vars:
+        __anarchy_subject: "{{ r_claim.resources[0].status.resources[0].state | default({}) }}"
 
   - name: Save Tower provision deployerJob
     set_fact:

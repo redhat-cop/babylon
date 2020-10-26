@@ -1,7 +1,7 @@
 # Component Versions
 agnosticv_operator_version: v0.1.2
 agnosticv_repositories: []
-anarchy_version: v0.11.0
+anarchy_version: v0.12.0
 babylon_anarchy_governor_version: v0.2.0
 babylon_aws_sandbox_version: v0.0.5
 babylon_cross_cluster_backup_enable: false
