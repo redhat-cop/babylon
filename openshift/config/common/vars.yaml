@@ -5,7 +5,6 @@ babylon_anarchy_version: v0.12.3
 babylon_anarchy_include_crds: false
 babylon_anarchy_governor_version: v0.2.0
 babylon_aws_sandbox_version: v0.0.5
-babylon_catalog_namespaces: []
 poolboy_version: v0.3.12
 
 # Default 2 replicas for Anarchy for high availability,
@@ -49,7 +48,7 @@ babylon_resources:
         anarchy:
           namespace: anarchy-operator
         # Evaluation to preserve boolean type
-        catalogNamespaces: "{{ babylon_catalog_namespaces }}"
+        catalogNamespaces: "{{ babylon_catalog_namespaces | default([]) }}"
         crossClusterBackup: >-
           {{ {
             "enable": babylon_cross_cluster_backup_enable | default(false) | bool,
