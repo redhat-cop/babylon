@@ -1,13 +1,11 @@
 # Component Versions
 agnosticv_operator_version: v0.1.2
-agnosticv_repositories: []
-anarchy_version: v0.12.0
+babylon_anarchy_version: v0.12.3
+# Anarchy CRDs should already be installed
+babylon_anarchy_include_crds: false
 babylon_anarchy_governor_version: v0.2.0
 babylon_aws_sandbox_version: v0.0.5
-babylon_cross_cluster_backup_enable: false
-k8s_config_version: v0.4.5
 poolboy_version: v0.3.12
-user_namespace_operator_version: v0.2.2
 
 # Default 2 replicas for Anarchy for high availability,
 # may be set to 0 for standby cluster.
@@ -18,38 +16,18 @@ babylon_private_deploy_key: ''
 babylon_private_resources: []
 
 babylon_resources:
-  # gpte namespace
-  - namespace: gpte
-    resources:
-      - name: anarchy-operator role
-        file: roles/anarchy-operator.yaml
-      - name: anarchy-operator rolebinding
-        file: rolebindings/anarchy-operator.yaml
-
   # Anarchy install and anarchy-operator deployment
   - name: Anarchy install
     helm_template:
       git:
         repo: https://github.com/redhat-cop/anarchy.git
-        version: "{{ anarchy_version }}"
+        version: "{{ babylon_anarchy_version }}"
       dir: helm
-      include_crds: true
+      include_crds: "{{ babylon_anarchy_include_crds }}"
       values:
         namespace:
           name: anarchy-operator
         replicaCount: 2
-
-  # User Namespace Operator
-  - name: UserNamespaceConfig CRD
-    url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/user-namespace-operator/master/custom-resource-definitions/usernamespaceconfigs.yaml
-  - name: UserNamespace CRD
-    url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/user-namespace-operator/master/custom-resource-definitions/usernamespaces.yaml
-  - name: User Namespace Operator
-    openshift_template:
-      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/user-namespace-operator/{{ user_namespace_operator_version }}/deploy-template.yaml
-      parameters:
-        IMAGE: quay.io/gpte-devops-automation/user-namespace-operator:{{ user_namespace_operator_version }}
-        NAMESPACE: user-namespace-operator
 
   # Poolboy
   - name: Poolboy install
@@ -70,40 +48,12 @@ babylon_resources:
         anarchy:
           namespace: anarchy-operator
         # Evaluation to preserve boolean type
+        catalogNamespaces: "{{ babylon_catalog_namespaces | default([]) }}"
         crossClusterBackup: >-
           {{ {
-            "enable": babylon_cross_cluster_backup_enable | bool,
+            "enable": babylon_cross_cluster_backup_enable | default(false) | bool,
             "kubeConfig": babylon_cross_cluster_backup_kubeconfig | default('')
           } }}
-
-  # Grant cluster-admin access to anarchy-k8s-config
-  - namespace: anarchy-k8s-config
-    # Don't deploy config management to dev
-    when: k8s_cluster_info.env_level != 'dev'
-    resources:
-      - name: Anarchy k8s-config deployment
-        helm_template:
-          dir: "institutions/gitops/helm"
-          git:
-            repo: https://github.com/redhat-cop/anarchy.git
-            version: "{{ anarchy_version }}"
-          values:
-            k8s_config: "{{ k8s_config }}"
-            k8s_cluster_info: "{{ k8s_cluster_info }}"
-
-      - name: anarchy-k8s-config babylon AnarchySubject
-        template:
-          file: anarchy-k8s-config/anarchysubjects/babylon.yaml.j2
-
-      - name: anarchy-k8s-config deploy-key
-        when: babylon_private_deploy_key != ''
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: babylon-private-deploy-key
-          data:
-            id_rsa: "{{ lookup('file', babylon_private_deploy_key) | b64encode if babylon_private_deploy_key != '' else '' }}"
 
   # agnosticv-operator
   - name: AgnosticV Operator Deploy
@@ -117,11 +67,5 @@ babylon_resources:
       template:
         file: agnosticv-operator-config.yaml.j2
 
-  # OpenShift template access
-  - name: openshift-template-access ClusterRole
-    file: clusterroles/openshift-template-access.yaml
-  - name: openshift-template-access ClusterRoleBinding
-    file: clusterrolebindings/openshift-template-access.yaml
-
 # Cluster level resources
-k8s_resources: "{{ babylon_resources + babylon_private_resources }}"
+k8s_resources: "{{ babylon_resources }}"

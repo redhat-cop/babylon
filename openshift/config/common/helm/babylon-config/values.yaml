@@ -12,6 +12,8 @@ poolboy:
   apiGroup: poolboy.gpte.redhat.com
   namespace: poolboy
 
+catalogNamespaces: []
+
 crossClusterBackup:
   enable: false
   clusterRoleName: babylon-cross-cluster-backup
