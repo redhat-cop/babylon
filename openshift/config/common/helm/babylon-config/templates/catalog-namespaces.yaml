@@ -65,6 +65,6 @@ roleRef:
   name: babylon-anarchy-catalog-access
 subjects:
 - kind: ServiceAccount
-  name: {{ $.anarchy.serviceAccountName }}
-  namespace: {{ $.anarchy.namespace }}
+  name: {{ $.Values.anarchy.serviceAccountName }}
+  namespace: {{ $.Values.anarchy.namespace }}
 {{- end }}
