@@ -1,4 +1,4 @@
-{% for agnosticv_repo in agnosticv_repositories %}
+{% for agnosticv_repo in agnosticv_repositories | default([]) %}
 ---
 apiVersion: gpte.redhat.com/v1
 kind: AgnosticVRepo

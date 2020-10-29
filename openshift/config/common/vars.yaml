@@ -1,6 +1,5 @@
 # Component Versions
 agnosticv_operator_version: v0.1.2
-agnosticv_repositories: []
 babylon_anarchy_version: v0.12.3
 # Anarchy CRDs should already be installed
 babylon_anarchy_include_crds: false
