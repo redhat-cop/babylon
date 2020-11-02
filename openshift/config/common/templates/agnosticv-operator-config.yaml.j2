@@ -18,6 +18,6 @@ kind: Secret
 metadata:
   name: {{ (agnosticv_repo.name ~ '-sshkey') | to_json }}
 data:
-  id_rsa: "{{ lookup('file', agnosticv_repo.ssh_key) | b64encode }}"
+  id_rsa: "{{ lookup('file', agnosticv_repo.ssh_key, rstrip=false) | b64encode }}"
 {%   endif %}
 {% endfor %}
