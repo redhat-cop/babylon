@@ -1,19 +1,18 @@
 # Component Versions
 agnosticv_operator_version: v0.1.2
 babylon_anarchy_version: v0.12.3
-# Anarchy CRDs should already be installed
-babylon_anarchy_include_crds: false
 babylon_anarchy_governor_version: v0.2.0
 babylon_aws_sandbox_version: v0.0.5
 poolboy_version: v0.3.12
 
-# Default 2 replicas for Anarchy for high availability,
-# may be set to 0 for standby cluster.
-babylon_anarchy_replicas: 2
-
-# Default values for private config source
-babylon_private_deploy_key: ''
-babylon_private_resources: []
+# Variables defaults for a variables without the "default_" prefix
+default_babylon_anarchy_include_crds: true
+default_babylon_anarchy_replicas: 1
+default_babylon_catalog_namespaces:
+- babylon
+default_babylon_cross_cluster_backup_enable: false
+default_babylon_cross_cluster_backup_kubeconfig: ''
+default_babylon_default_anarchy_runner_min_replicas: 1
 
 babylon_resources:
   # Anarchy install and anarchy-operator deployment
@@ -23,11 +22,25 @@ babylon_resources:
         repo: https://github.com/redhat-cop/anarchy.git
         version: "{{ babylon_anarchy_version }}"
       dir: helm
-      include_crds: "{{ babylon_anarchy_include_crds }}"
+      include_crds: >-
+        {{ babylon_anarchy_include_crds | default(default_babylon_default_anarchy_runner_min_replicas) }}
       values:
         namespace:
           name: anarchy-operator
-        replicaCount: 2
+        replicaCount: >-
+          {{ babylon_anarchy_replicas | default(default_babylon_anarchy_replicas) }}
+        runners:
+        - name: default
+          minReplicas: >-
+            {{ babylon_default_anarchy_runner_min_replicas
+             | default(default_babylon_default_anarchy_runner_min_replicas) }}
+          resources:
+            limits:
+              cpu: "1"
+              memory: 256Mi
+            requests:
+              cpu: 500m
+              memory: 256Mi
 
   # Poolboy
   - name: Poolboy install
@@ -48,11 +61,13 @@ babylon_resources:
         anarchy:
           namespace: anarchy-operator
         # Evaluation to preserve boolean type
-        catalogNamespaces: "{{ babylon_catalog_namespaces | default([]) }}"
+        catalogNamespaces: "{{ babylon_catalog_namespaces | default(default_babylon_catalog_namespaces) }}"
         crossClusterBackup: >-
           {{ {
-            "enable": babylon_cross_cluster_backup_enable | default(false) | bool,
-            "kubeConfig": babylon_cross_cluster_backup_kubeconfig | default('')
+            "enable": babylon_cross_cluster_backup_enable
+              | default(default_babylon_cross_cluster_backup_enable) | bool,
+            "kubeConfig": babylon_cross_cluster_backup_kubeconfig
+              | default(default_babylon_cross_cluster_backup_kubeconfig)
           } }}
 
   # agnosticv-operator
