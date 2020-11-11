@@ -83,7 +83,7 @@
   - name: Report status if run recently
     when:
     - previous_status_complete_timestamp != ''
-    - previous_status_complete_timestamp > '%FT%TZ' | strftime(now(utc=True).timestamp() - 60)
+    - previous_status_complete_timestamp > '%FT%TZ' | strftime(now(utc=True).strftime('%s') | int - 60)
     block:
     - name: Write status.txt
       copy:
