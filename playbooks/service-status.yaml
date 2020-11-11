@@ -38,7 +38,7 @@
     set_fact:
       resource_claim_name: "{{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}"
 
-  - name: Get ResourceClaim {{ _claim_name }} in {{ user_namespace }}
+  - name: Get ResourceClaim
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
       api_version: poolboy.gpte.redhat.com/v1
@@ -132,15 +132,18 @@
       __resource_claim: "{{ r_claim.resources[0] }}"
       __subject: "{{ __resource_claim.status.resources[0].state }}"
 
-  - name: Create output_dir/secrets
+  - name: Create output_dir and secrets directories
     file:
-      path: "{{ output_dir }}/secrets"
+      path: "{{ item }}"
       state: directory
       mode: 0700
+    loop:
+    - "{{ output_dir }}/output_dir"
+    - "{{ output_dir }}/secrets"
 
   - name: Write status.txt
     copy:
-      dest: "{{ output_dir }}/status.txt"
+      dest: "{{ output_dir }}/output_dir/status.txt"
       content: >-
         {{ __subject.spec.vars.status_messages | default([]) | join("\n") ~ "\n" }}
     vars:
