@@ -1,0 +1,158 @@
+---
+# This Ansible Playbook runs a status action
+- name: Babylon Integration
+  hosts: localhost
+  gather_facts: false
+  vars:
+    # Vars to override as extra-vars
+    account: CHANGEME
+    catalog_item: CHANGEME
+    catalog_stage: CHANGE ME dev|test|prod
+    catalog_item_params_file: CHANGEME
+    kubeconfig: CHANGEME
+    cloudforms_username: CHANGEME
+
+    # After that don't touch
+    user_namespace: user-{{ cloudforms_username | replace('_', '-') | replace('.', '-') }}
+    catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
+
+  tasks:
+  - name: Include vars
+    include_vars:
+      file: "{{ catalog_item_params_file }}"
+      name: catalog_item_params
+
+  - name: Show catalog_item_params
+    debug:
+      var: catalog_item_params
+      verbosity: 2
+
+  - name: Check that guid is set in catalog_item_params
+    fail:
+      msg: guid must be defined in catalog_item_params
+    when: >-
+      "guid" not in vars.catalog_item_params
+      or vars.catalog_item_params.guid == ''
+
+  - name: Set resource_claim_name from catalog_item_params
+    set_fact:
+      resource_claim_name: "{{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}"
+
+  - name: Get ResourceClaim {{ _claim_name }} in {{ user_namespace }}
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: poolboy.gpte.redhat.com/v1
+      kind: ResourceClaim
+      namespace: "{{ user_namespace }}"
+      name: "{{ resource_claim_name }}"
+    register: r_claim
+
+  - when: r_claim.resources|length == 0
+    block:
+      - debug:
+          msg: "No resource claim found."
+
+      - name: Write tower information to yaml file
+        copy:
+          dest: "{{ output_dir }}/results.rc"
+          content: |
+            export SKIP_TOWER_LOGS=yes
+
+      - meta: end_play
+
+  - name: Set subject_name and subject_namespace
+    vars:
+      __subject "{{ r_claim.resources[0].status.resources[0].state }}"
+    set_fact:
+      subject_name: >-
+        {{ __subject.metadata.name }}
+      subject_namespace: >-
+        {{ __subject.metadata.namespace }}
+      previous_status_complete_timestamp: >-
+        {{ __subject.status.towerJobs.status.completeTimestamp | default('') }}
+
+  - name: Create AnarchyAction for status
+    k8s:
+      kubeconfig: "{{ kubeconfig }}"
+      definition:
+        apiVersion: anarchy.gpte.redhat.com/v1
+        kind: AnarchyAction
+        metadata:
+          generateName: "{{ subject_name }}-status-"
+          labels:
+            anarchy.gpte.redhat.com/action: status
+            anarchy.gpte.redhat.com/subject: "{{ subject_name }}"
+          namespace: "{{ subject_namespace }}"
+        spec:
+          action: status
+          callbackToken: "{{ (2**127) | random | to_uuid }}"
+          subjectRef:
+            apiVersion: anarchy.gpte.redhat.com/v1
+            kind: AnarchySubject
+            name: "{{ subject_name }}"
+            namespace: "{{ subject_namespace }}"
+
+  - name: Wait for the Tower deployerJob to complete
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: poolboy.gpte.redhat.com/v1
+      kind: ResourceClaim
+      namespace: "{{ user_namespace }}"
+      name: "{{ resource_claim_name }}"
+    register: r_claim
+    retries: "{{ wait_retries | default(30) }}"
+    delay: 2
+    vars:
+      __resource_claim: "{{ r_claim.resources[0] }}"
+      __subject: "{{ __resource_claim.status.resources[0].state }}"
+      __status_complete_timestamp: "{{ __subject.status.towerJobs.status.completeTimestamp | default('') }}"
+    until: >-
+      __status_complete_timestamp != '' and
+      __status_complete_timestamp != previous_status_complete_timestamp
+
+  - name: Get Tower credentials and access information
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: v1
+      kind: Secret
+      namespace: anarchy-operator
+      name: babylon-tower
+    register: r_babylon_tower_secret
+    failed_when: >-
+      r_babylon_tower_secret.resources | length != 1
+
+  - name: Set tower_hostname, tower_user, and tower_password from babylon-tower secret
+    set_fact:
+      tower_hostname: "{{ __babylon_tower_secret.data.hostname | b64decode }}"
+      tower_user: "{{ __babylon_tower_secret.data.user | b64decode }}"
+      tower_password: "{{ __babylon_tower_secret.data.password | b64decode }}"
+      tower_job: "{{ __subject.status.towerJobs.status.deployerJob }}"
+    vars:
+      __babylon_tower_secret: "{{ r_babylon_tower_secret.resources[0] }}"
+      __resource_claim: "{{ r_claim.resources[0] }}"
+      __subject: "{{ __resource_claim.status.resources[0].state }}"
+
+  - name: Create output_dir/secrets
+    file:
+      path: "{{ output_dir }}/secrets"
+      state: directory
+      mode: 0700
+
+  - name: Write status.txt
+    copy:
+      dest: "{{ output_dir }}/status.txt"
+      content: >-
+        {{ __subject.spec.vars.status_messages | default([]) | join("\n") ~ "\n" }}
+    vars:
+      __resource_claim: "{{ r_claim.resources[0] }}"
+      __subject: "{{ __resource_claim.status.resources[0].state }}"
+
+  - name: Write tower information to yaml file
+    copy:
+      dest: "{{ output_dir }}/secrets/tower.rc"
+      content: |
+        export TOWER_HOST="https://{{ tower_hostname }}"
+        export TOWER_VERIFY_SSL=false
+        export TOWER_USERNAME={{ tower_user | to_json }}
+        export TOWER_PASSWORD={{ tower_password | to_json }}
+        export TOWER_JOB={{ tower_job | to_json }}
