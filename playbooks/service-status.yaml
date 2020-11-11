@@ -71,6 +71,38 @@
       previous_status_complete_timestamp: >-
         {{ __subject.status.towerJobs.status.completeTimestamp | default('') }}
 
+  - name: Create output_dir and secrets directories
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: 0700
+    loop:
+    - "{{ output_dir }}/output_dir"
+    - "{{ output_dir }}/secrets"
+
+  - name: Report status if run recently
+    when:
+    - previous_status_complete_timestamp != ''
+    - previous_status_complete_timestamp > '%FT%TZ' | strftime(now(utc=True).timestamp() - 60)
+    block:
+    - name: Write status.txt
+      copy:
+        dest: "{{ output_dir }}/output_dir/status.txt"
+        content: >-
+          {{ __subject.spec.vars.status_messages | default([]) | join("\n") }}
+      vars:
+        __resource_claim: "{{ r_claim.resources[0] }}"
+        __subject: "{{ __resource_claim.status.resources[0].state }}"
+
+    - name: Write tower information to yaml file
+      copy:
+        dest: "{{ output_dir }}/results.rc"
+        content: |
+          export SKIP_TOWER_LOGS=yes
+
+    - name: End with previous status
+      meta: end_play
+
   - name: Create AnarchyAction for status
     k8s:
       kubeconfig: "{{ kubeconfig }}"
