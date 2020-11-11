@@ -62,7 +62,7 @@
 
   - name: Set subject_name and subject_namespace
     vars:
-      __subject "{{ r_claim.resources[0].status.resources[0].state }}"
+      __subject: "{{ r_claim.resources[0].status.resources[0].state }}"
     set_fact:
       subject_name: >-
         {{ __subject.metadata.name }}
