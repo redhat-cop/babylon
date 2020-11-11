@@ -78,14 +78,14 @@
         apiVersion: anarchy.gpte.redhat.com/v1
         kind: AnarchyAction
         metadata:
-          generateName: "{{ subject_name }}-status-"
+          name: "{{ subject_name }}-status-{{ lookup('password', '/dev/null length=5 chars=digits,ascii_lowercase') }}"
+          namespace: "{{ subject_namespace }}"
           labels:
             anarchy.gpte.redhat.com/action: status
             anarchy.gpte.redhat.com/subject: "{{ subject_name }}"
-          namespace: "{{ subject_namespace }}"
         spec:
           action: status
-          callbackToken: "{{ (2**127) | random | to_uuid }}"
+          callbackToken: "{{ lookup('password', '/dev/null length=32 chars=digits,ascii_lowercase') }}"
           subjectRef:
             apiVersion: anarchy.gpte.redhat.com/v1
             kind: AnarchySubject
