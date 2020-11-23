@@ -55,13 +55,13 @@ def choices = [
     'DevOps Team Development / DEV Babylon empty-config OSP / tests',
     'DevOps Deployment Testing / TEST Babylon empty-config / tests_prod',
     'DevOps Deployment Testing / TEST Babylon empty-config AWS / tests_prod',
-    'DevOps Deployment Testing / TEST Babylon empty-config OSP / tests_prod',
+//    'DevOps Deployment Testing / TEST Babylon empty-config OSP / tests_prod',
     'DevOps Deployment Testing / PROD Babylon empty-config / tests_prod',
     'DevOps Deployment Testing / PROD Babylon empty-config AWS / tests_prod',
-    'DevOps Deployment Testing / PROD Babylon empty-config OSP / tests_prod',
+//    'DevOps Deployment Testing / PROD Babylon empty-config OSP / tests_prod',
     'DevOps Deployment Testing / PROD Babylon empty-config 2 / ocp_west',
     'DevOps Deployment Testing / PROD Babylon empty-config AWS 2 / ocp_west',
-    'DevOps Deployment Testing / PROD Babylon empty-config OSP 2 / ocp_west',
+//    'DevOps Deployment Testing / PROD Babylon empty-config OSP 2 / ocp_west',
 ].join("\n")
 
 pipeline {
