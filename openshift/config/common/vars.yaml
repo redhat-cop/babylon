@@ -1,10 +1,22 @@
 # Component Versions
-agnosticv_operator_version: v0.3.0
+agnosticv_operator_version: v0.4.2
 babylon_anarchy_version: v0.12.5
 babylon_anarchy_governor_version: v0.3.0
 babylon_aws_sandbox_version: v0.0.5
 babylon_agnostics_version: v0.0.1
 poolboy_version: v0.3.12
+
+babylon_anarchy_governor_repository: https://github.com/redhat-gpte-devopsautomation/babylon_anarchy_governor.git
+babylon_anarchy_governor_role:
+  name: babylon_anarchy_governor
+  src: "{{ babylon_anarchy_governor_repository }}"
+  version: "{{ babylon_anarchy_governor_version }}"
+
+babylon_anarchy_roles: >-
+  {{ babylon_anarchy_governor_pre_roles | default([])
+   + [babylon_anarchy_governor_role]
+   + babylon_anarchy_governor_post_roles | default([])
+  }}
 
 # Variables defaults for a variables without the "default_" prefix
 default_babylon_anarchy_include_crds: true
@@ -73,15 +85,25 @@ babylon_resources:
 
   # agnosticv-operator
   - name: AgnosticV Operator Deploy
-    openshift_template:
-      url: https://raw.githubusercontent.com/redhat-gpte-devopsautomation/agnosticv-operator/{{ agnosticv_operator_version }}/deploy-template.yaml
-      parameters:
-        AGNOSTICV_IMAGE: quay.io/redhat-gpte/agnosticv-operator:{{ agnosticv_operator_version }}
-  - namespace: agnosticv-operator
-    resources:
-    - name: Agnosticv Operator Configuration
-      template:
-        file: agnosticv-operator-config.yaml.j2
+    helm_template:
+      git:
+        repo: https://github.com/redhat-gpte-devopsautomation/agnosticv-operator.git
+        version: "{{ agnosticv_operator_version }}"
+      dir: helm
+      include_crds: true
+      values:
+        agnosticvRepos: >-
+          [ {% for __repo in agnosticv_repositories %}
+            {
+              "name": {{ __repo.name | to_json }},
+              "url": {{ __repo.url | to_json }},
+              {% if __repo.ssh_key is defined %}
+              "sshKey": {{ __repo.ssh_key | to_json }},
+              {% endif %}
+              "ref": {{ __repo.ref | default('master') | to_json }}
+            }{% if not loop.last %},{% endif %}
+          {% endfor %} ]
+        babylonAnarchyRoles: "{{ babylon_anarchy_roles }}"
 
 # Cluster level resources
 k8s_resources: "{{ babylon_resources }}"
