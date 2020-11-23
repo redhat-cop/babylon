@@ -93,7 +93,7 @@ babylon_resources:
       include_crds: true
       values:
         agnosticvRepos: >-
-          [ {% for __repo in agnosticv_repositories %}
+          [ {% for __repo in agnosticv_repositories | default([]) %}
             {
               "name": {{ __repo.name | to_json }},
               "url": {{ __repo.url | to_json }},
