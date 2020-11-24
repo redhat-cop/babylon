@@ -93,17 +93,7 @@ babylon_resources:
       include_crds: true
       values:
         # Set agnosticv repos, passing ssh_key value as sshKey
-        agnosticvRepos: >-
-          [ {% for __repo in agnosticv_repositories | default([]) %}
-            {
-              "name": {{ __repo.name | to_json }},
-              "url": {{ __repo.url | to_json }},
-              {% if __repo.ssh_key is defined %}
-              "sshKey": {{ __repo.ssh_key | to_json }},
-              {% endif %}
-              "ref": {{ __repo.ref | default('master') | to_json }}
-            }{% if not loop.last %},{% endif %}
-          {% endfor %} ]
+        agnosticvRepos: "{{ babylon_agnosticv_repositories | default([]) }}"
         babylonAnarchyRoles: "{{ babylon_anarchy_roles }}"
 
 # Cluster level resources
