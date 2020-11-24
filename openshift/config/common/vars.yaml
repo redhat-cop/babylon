@@ -92,6 +92,7 @@ babylon_resources:
       dir: helm
       include_crds: true
       values:
+        # Set agnosticv repos, passing ssh_key value as sshKey
         agnosticvRepos: >-
           [ {% for __repo in agnosticv_repositories | default([]) %}
             {
