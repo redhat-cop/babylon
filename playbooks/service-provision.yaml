@@ -45,32 +45,45 @@
       resource_claim_name: >-
         {{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}
 
-  - name: Wait for AnarchyGovernor {{ catalog_item_name }} params sync
-    k8s_info:
-      kubeconfig: "{{ kubeconfig }}"
-      api_version: anarchy.gpte.redhat.com/v1
-      kind: AnarchyGovernor
-      namespace: anarchy-operator
-      name: "{{ catalog_item_name }}"
-    register: r_governor
-    vars:
-      # Check AnarchyGovernor vars that are not listed in params_to_variables
-      check_governor_job_vars: >-
-        {{ r_governor.resources[0].spec.vars.job_vars
-         | dict2items
-         | json_query(filter_var_query)
-         | items2dict
-        }}
-      filter_var_query: >-
-        [?!contains(`{{ filter_var_list | to_json }}`, key)]
-      filter_var_list: >-
-        {{ (vars.catalog_item_params.agnosticv_meta.params_to_variables | default({})).values() | list
-         + ["agnosticv_meta"] }}
-    failed_when: >-
-      vars.catalog_item_params != vars.catalog_item_params | combine(check_governor_job_vars)
-    until: r_governor is success
-    delay: 5
-    retries: 60
+  - block:
+    - name: Wait for AnarchyGovernor {{ catalog_item_name }} vars sync
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: anarchy.gpte.redhat.com/v1
+        kind: AnarchyGovernor
+        namespace: anarchy-operator
+        name: "{{ catalog_item_name }}"
+      register: r_governor
+      vars:
+        # Check AnarchyGovernor vars that are not listed in params_to_variables
+        check_governor_job_vars: >-
+          {{ r_governor.resources[0].spec.vars.job_vars
+           | dict2items
+           | json_query(filter_var_query)
+           | items2dict
+          }}
+        filter_var_query: >-
+          [?!contains(`{{ filter_var_list | to_json }}`, key)]
+        filter_var_list: >-
+          {{ (vars.catalog_item_params.agnosticv_meta.params_to_variables | default({})).values() | list
+           + ["agnosticv_meta"] }}
+      failed_when: >-
+        r_governor.resources | length == 0 or
+        vars.catalog_item_params != vars.catalog_item_params | combine(check_governor_job_vars)
+      until: r_governor is success
+      delay: 5
+      retries: 60
+    rescue:
+    - name: Report failure waiting for AnarchyGovernor vars sync
+      fail:
+        msg: |-
+         {% if r_governor.resources | length == 0 %}
+         AnarchyGovernor {{ catalog_item_name }} not found in anarchy-operator namespace.
+         {% else %}
+         AnarchyGovernor {{ catalog_item_name }} job_vars do not match agnosticv.
+         {% endif %}
+         Check agnosticv-operator logs:
+           oc logs -n agnosticv-operator deployment/agnosticv-operator
 
   - name: Create namespace for {{ cloudforms_username }}
     k8s:
