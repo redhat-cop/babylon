@@ -86,7 +86,6 @@ for namespace in claims:
             tower_jobs = anarchy_subject_status.get('towerJobs', {})
             provision_job = tower_jobs.get('provision', {})
             deployer_job_id = provision_job.get('deployerJob')
-            launch_job_id = provision_job.get('launchJob')
 
             if provision_job.get('completeTimestamp'):
                 completed = completed + 1
@@ -99,17 +98,6 @@ for namespace in claims:
                 elif tower_job['status'] in ['canceled', 'error', 'failed']:
                     logger.info("AgnosticD {0} for {1}".format(tower_job['status'], anarchy_subject['metadata']['name']))
                     logger.info("Please check https://{0}/#/jobs/playbook/{1}".format(tower_api['hostname'], deployer_job_id))
-                    failed = failed + 1
-                else:
-                    inprogress = inprogress + 1
-            elif launch_job_id:
-                tower_job = get_tower_job(tower_api, launch_job_id)
-                if 'detail' in tower_job and tower_job['detail'] == 'Not found.':
-                    logger.info("launch job %s not found." % launch_job_id)
-                    unknown = unknown + 1
-                elif tower_job['status'] in ['canceled', 'error', 'failed']:
-                    logger.info("DarkTower job-runner {0} for {1}".format(tower_job['status'], anarchy_subject['metadata']['name']))
-                    logger.info("Please check https://{0}/#/jobs/playbook/{1}".format(tower_api['hostname'], launch_job_id))
                     failed = failed + 1
                 else:
                     inprogress = inprogress + 1

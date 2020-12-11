@@ -8,7 +8,8 @@ This document outlines deploying the Dark Tower backend(s) for the Babylon proje
 ** Single tower server
 ** Cluster
 
-NOTE: Dark Tower can be deployed on a global scale using peered VPCs on AWS on top of this link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/multi-region-example[AgnosticD configuration]. This is not covered in this document which serves as a Quick Start guide.
+NOTE: Dark Tower can be deployed on a global scale using peered VPCs on AWS on top of this link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/multi-region-example[AgnosticD configuration].
+This is not covered in this document which serves as a Quick Start guide.
 
 A Babylon Dark Tower cluster is an link:https://github.com/redhat-cop/agnosticd/tree/development/ansible/configs/ansible-tower[AgnosticD Config] with the necessary vars outlined below. 
 
@@ -74,151 +75,83 @@ _Sample Dark Tower Vars File_
 [source,yaml]
 ----
 ---
+guid:                       babylon-01              # Unique string used in FQDN
 env_type:                   ansible-tower           # Name of config to deploy
-subdomain_base_suffix:      .example.opentlc.com    # Your domain used in FQDN
-
-guid:                       baby-t01                # Unique string used in FQDN
-email:                      name@example.com        # User info for notifications, tag
-
-# Deployer meta data
-
 output_dir:                 /tmp/workdir            # Writable working scratch directory
-
-cloud_tags:                                         # Add your tags here
-  - Purpose: babylon
-  - Stage: dev
-
-# Cloud specfic settings - example given here for AWS
 
 cloud_provider:             ec2                     # Which AgnosticD Cloud Provider to use
 aws_region:                 us-east-1               # AWS Region to deploy in
+aws_default_image:          RHEL78
 HostedZoneId:               Z3IHLWJZOU9SRT          # You will need to change this
-key_name:                   ocpkey                  # Keyname must exist in AWS
-cloudformation_retries:     0
+subdomain_base_suffix:      .example.opentlc.com    # Your domain used in FQDN
 
-# Ansible Tower related vars 
+# Tags applied to AWS instances
+cloud_tags:
+  - Purpose: babylon
+  - Stage: dev
 
-tower_version:              3.5.2-1                 # tower version you want to install 
-region:                     na                      # region can not be with special characters in case of isolated node group
-software_to_deploy:         tower                   # Define tower to install tower or none to have only infra ready.
+# Access key which must exsit in AWS
+key_name: ocpkey
 
-tower_instance_count:       1                       # 1 is a legal value (non-cluster), otherwise odd
-support_instance_count:     1                       # Postgres database - set to 2 if clustering in same VPC
-worker_instance_count:      1                       # Set 0 to not to provision worker(isolated) nodes.
+tower_version:       3.7.3-1
+software_to_deploy:  tower
 
-root_filesystem_size: 20
+bastion_instance_type:   t3.medium
+tower_instance_count:    5
+tower_instance_type:     c5.4xlarge
+support_instance_count:  1
+support_instance_type:   i3.2xlarge
+worker_instance_count:   0
+worker_instance_type:    t3.medium
+root_filesystem_size:    20
 
-tower_host_name:                "tower1.{{ guid }}{{ subdomain_base_suffix }}" 
-tower_user_accounts:            #Define users you want to create. Set superuser: yes to make user system wide System Administrator
+tower_hostname:  tower.{{ guid }}{{ subdomain_base_suffix }}
 
-  - user: babylon
-    password: changeme
-    email: babylon@example.com
-    firstname: Baby
-    lastname: Lon
-    superuser: yes
+ansible_tower_additional_packages:
+- gcc
+- python3
+- python3-devel
+- python3-libselinux
 
-  - user: babylon-viewer
-    password: changeme
-    email: babylon1@example.com
-    firstname: Babylon
-    lastname: Viewer
+infra_workloads:
+- tower-settings-update
+- tower-pip-packages
+- tower-user-create
+- tower-copy-ssh
 
-tower_organization:                               # 
-  - name: babylon  
-  - name: gpte
-  - name: ansiblebu
-  - name: openshiftbu
+ansible_tower_node_workloads:
+- tower_agnosticd_virtualenvs
 
-target_regions:                                   # These will create instance groups
-  - name: default
-  - name: na
-  - name: apac
-  - name: emea
+tower_setting_params:
+  AWX_PROOT_SHOW_PATHS:
+  - /var/lib/awx/.ssh
 
-tower_projects:                                   # Tower project
-
-  - name:                     babylon
-    description:              Babylon master - main repo
-    organization:             "gpte"
-    scm_url:                  "https://github.com/redhat-gpte-devopsautomation/babylon.git"
-    scm_branch:               master
-    scm_update_on_launch:     no
-    #scm_type: 
-    #scm_credential: 
-
-  - name:                     babylon-dev
-    description:              Babylon development branch
-    organization:             "gpte"
-    scm_url:                  "https://github.com/redhat-gpte-devopsautomation/babylon.git"
-    scm_branch:               dev
-    scm_update_on_launch:     yes
-
-tower_inventories:
-
-  - name:                     empty-inventory-default
-    description:              Default empty inventory for the job runner
-    organization:             babylon
-
-  - name:                     empty-inventory-na
-    description:              na
-    organization:             gpte
-    instance_group:           na
-
-  - name:                     empty-inventory-emea
-    description:              emea
-    organization:             gpte
-    instance_group:           emea
-
-tower_credentials:
-
-  - name:                   babylon-tower-credential
-    username:               admin
-    password:               changeme
-    description:            Babylon Tower Credential
-    organization:           babylon
-    type:                   tower
-    state:                  present
-    host:                   localhost
-
-tower_job_templates:
-
-  - name:                   job-runner
-    description:            "Babylon job-runner - main entry point for all deployers"
-    job_type:               run
-    project:                babylon
-    playbook:               job-runner.yml
-    become:                 yes
-    inventory:              empty-inventory-default
-
-  - name:                   job-runner-dev
-    description:            Babylon job-runner - deploys from head of development branch
-    job_type:               run
-    project:                babylon-dev
-    playbook:               job-runner.yml
-    become:                 yes
-    inventory:              empty-inventory-default
-    verbosity:              3
- 
-tower_setting_params:               # Tower job settings - Change with CARE
-  AWX_PROOT_BASE_PATH:      "/tmp"
-  AWX_PROOT_SHOW_PATHS:     "'/var/lib/awx/.ssh', '/var/lib/awx/projects/', '/tmp'"
-
-tower_virtual_environment:      # List of virtual environment which will be created
-  - /var/lib/awx/venv/ansible
-  - /var/lib/awx/venv/test1
-
-# Path of Virtual Env for update
-tower_update_venv:          /var/lib/awx/venv/ansible
-
-# Pip packages with version which needs to be updated for venv
+tower_update_venv: /var/lib/awx/venv/ansible
 pip_requirements:
-  - boto==2.49.0
-  - boto3==1.9.200
-  - awscli==1.16.210
-  - ansible-tower-cli==3.3.6
+- ansible-tower-cli
 
-key_local_path:           ~/.ssh/ocpkey.pem
+tower_user_accounts:
+# babylon account used for external integration
+- user:       babylon
+  password:   "{{ babylon_user_password }}"
+  email:      babylon@example.com
+  firstname:  Babylon
+  superuser:  yes
+
+# Readonly account used for external integration
+- user:       readonly
+  password:   "{{ tower_readonly_user_password }}"
+  email:      babylon@example.com
+  firstname:  Readonly
+  auditor:    yes
+
+# Used by tower-copy-ssh
+key_local_path:
+- ~/.ssh/opentlc_admin_backdoor.pem
+- ~/.ssh/ocpkey.pem
+
+tower_agnosticd_virtualenvs_venv_basedir: /opt/rh/virtualenvs
+
 
 #####
 ##### SECRET Stuff often stored and passed in a seperate var file
@@ -239,6 +172,11 @@ tower_license: >
     "license_type": "enterprise",
     "subscription_name": "Red Hat Ansible Tower, Standard (50 Managed Nodes)"
   }
+
+# Access passwords
+babylon_user_password: <PASSWORD>
+tower_admin_password: <PASSWORD>
+tower_readonly_user_password: <PASSWORD>
 
 # AWS Creds
 aws_access_key_id:        <YOUR-AWS-ACCESS-KEY>
