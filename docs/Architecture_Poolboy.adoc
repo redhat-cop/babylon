@@ -2,7 +2,7 @@
 
 Poolboy manages requests for infrastructure provisioning and pools of preallocated environments.
 
-image::images/babylon-high-level.png[width=95%,align="center"]
+image::images/BabylonArchitecture-Poolboy.png[width=95%,align="center"]
 
 Catalog requests are recorded as ResourceClaims in user namespaces.
 
