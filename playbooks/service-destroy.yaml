@@ -15,6 +15,7 @@
     # After that don't touch
     user_namespace: user-{{ cloudforms_username | replace('_', '-') | replace('.', '-') }}
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
+
   tasks:
   - name: Include vars
     include_vars:
