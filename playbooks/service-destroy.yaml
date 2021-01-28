@@ -85,7 +85,7 @@
         resource_claim: "{{ __claim }}"
 
   - name: Delete with resource claim
-    when: resource_claim is definied
+    when: resource_claim is defined
     block:
     - name: Set subject_name and subject_namespace from claim
       vars:
