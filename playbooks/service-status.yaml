@@ -84,7 +84,8 @@
       set_fact:
         resource_claim: "{{ __claim }}"
 
-  - when: resource_claim is undefined
+  - name: Report failure to find ResourceClaim
+    when: resource_claim is undefined
     block:
       - debug:
           msg: "No resource claim found."
@@ -140,26 +141,17 @@
     - name: End with previous status
       meta: end_play
 
-  - name: Create AnarchyAction for status
+  - name: Update AnarchySubject to request status check
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       definition:
         apiVersion: anarchy.gpte.redhat.com/v1
-        kind: AnarchyAction
-        metadata:
-          name: "{{ subject_name }}-status-{{ lookup('password', '/dev/null length=5 chars=digits,ascii_lowercase') }}"
-          namespace: "{{ subject_namespace }}"
-          labels:
-            anarchy.gpte.redhat.com/action: status
-            anarchy.gpte.redhat.com/subject: "{{ subject_name }}"
+        kind: AnarchySubject
+        name: "{{ subject_name }}"
+        namespace: "{{ subject_namespace }}"
         spec:
-          action: status
-          callbackToken: "{{ lookup('password', '/dev/null length=32 chars=digits,ascii_lowercase') }}"
-          subjectRef:
-            apiVersion: anarchy.gpte.redhat.com/v1
-            kind: AnarchySubject
-            name: "{{ subject_name }}"
-            namespace: "{{ subject_namespace }}"
+          vars:
+            check_status_state: "pending"
 
   - name: Wait for the Tower deployerJob to complete
     k8s_info:

@@ -99,7 +99,8 @@
       set_fact:
         resource_claim: "{{ __claim }}"
 
-  - when: resource_claim is undefined
+  - name: Report failure to find ResourceClaim
+    when: resource_claim is undefined
     block:
       - debug:
           msg: "No resource claim found."
