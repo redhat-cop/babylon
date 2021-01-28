@@ -10,10 +10,8 @@
     catalog_stage: CHANGE ME dev|test|prod
     catalog_item_params_file: CHANGEME
     kubeconfig: CHANGEME
-    cloudforms_username: CHANGEME
 
     # After that don't touch
-    user_namespace: user-{{ cloudforms_username | replace('_', '-') | replace('.', '-') }}
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
 
   tasks:
@@ -34,20 +32,60 @@
       "guid" not in vars.catalog_item_params
       or vars.catalog_item_params.guid == ''
 
-  - name: Set resource_claim_name from catalog_item_params
-    set_fact:
-      resource_claim_name: "{{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}"
+  - name: Check that uuid is set in catalog_item_params
+    fail:
+      msg: uuid must be defined in catalog_item_params
+    when: >-
+      "uuid" not in vars.catalog_item_params
+      or vars.catalog_item_params.uuid == ''
 
-  - name: Get ResourceClaim
+  - name: Set vars from catalog_item_params
+    set_fact:
+      guid: >-
+        {{ vars.catalog_item_params.guid }}
+      uuid: >-
+        {{ vars.catalog_item_params.uuid }}
+      resource_claim_name: >-
+        {{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}
+
+  - name: Get ResourceClaim by uuid label
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
       api_version: poolboy.gpte.redhat.com/v1
       kind: ResourceClaim
-      namespace: "{{ user_namespace }}"
-      name: "{{ resource_claim_name }}"
-    register: r_claim
+      label_selectors:
+      - uuid={{ uuid }}
+    register: r_claim_by_uuid
 
-  - when: r_claim.resources|length == 0
+  - name: Set resource_claim found by uuid
+    when: r_claim_by_uuid.resources | length > 0
+    set_fact:
+      resource_claim: "{{ r_claim_by_uuid.resources[0] }}"
+
+  - name: Fallback to find ResourceClaim by name
+    when: resource_claim is undefined
+    block:
+    - name: Get all ResourceClaims
+      k8s_info:
+        kubeconfig: "{{ kubeconfig }}"
+        api_version: poolboy.gpte.redhat.com/v1
+        kind: ResourceClaim
+      register: r_all_claims
+
+    - name: Set resource_claim
+      vars:
+        __claim_query: >-
+          [?metadata.name==`{{ resource_claim_name | to_json }}`]|[0]
+        __claim: >-
+          {{ r_all_claims.resources | to_json | from_json
+           | json_query(__claim_query)
+          }}
+      when: __claim != ''
+      set_fact:
+        resource_claim: "{{ __claim }}"
+
+  - name: Report failure to find ResourceClaim
+    when: resource_claim is undefined
     block:
       - debug:
           msg: "No resource claim found."
@@ -60,9 +98,9 @@
 
       - meta: end_play
 
-  - name: Set subject_name and subject_namespace
+  - name: Set subject_name and subject_namespace from claim
     vars:
-      __subject: "{{ r_claim.resources[0].status.resources[0].state }}"
+      __subject: "{{ resource_claim.status.resources[0].state }}"
     set_fact:
       subject_name: >-
         {{ __subject.metadata.name }}
@@ -103,34 +141,25 @@
     - name: End with previous status
       meta: end_play
 
-  - name: Create AnarchyAction for status
+  - name: Update AnarchySubject to request status check
     k8s:
       kubeconfig: "{{ kubeconfig }}"
+      api_version: anarchy.gpte.redhat.com/v1
+      kind: AnarchySubject
+      name: "{{ subject_name }}"
+      namespace: "{{ subject_namespace }}"
       definition:
-        apiVersion: anarchy.gpte.redhat.com/v1
-        kind: AnarchyAction
-        metadata:
-          name: "{{ subject_name }}-status-{{ lookup('password', '/dev/null length=5 chars=digits,ascii_lowercase') }}"
-          namespace: "{{ subject_namespace }}"
-          labels:
-            anarchy.gpte.redhat.com/action: status
-            anarchy.gpte.redhat.com/subject: "{{ subject_name }}"
         spec:
-          action: status
-          callbackToken: "{{ lookup('password', '/dev/null length=32 chars=digits,ascii_lowercase') }}"
-          subjectRef:
-            apiVersion: anarchy.gpte.redhat.com/v1
-            kind: AnarchySubject
-            name: "{{ subject_name }}"
-            namespace: "{{ subject_namespace }}"
+          vars:
+            check_status_state: "pending"
 
   - name: Wait for the Tower deployerJob to complete
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
       api_version: poolboy.gpte.redhat.com/v1
       kind: ResourceClaim
-      namespace: "{{ user_namespace }}"
-      name: "{{ resource_claim_name }}"
+      namespace: "{{ resource_claim.metadata.namespace }}"
+      name: "{{ resource_claim.metadata.name }}"
     register: r_claim
     retries: "{{ wait_retries | default(30) }}"
     delay: 2
@@ -163,15 +192,6 @@
       __babylon_tower_secret: "{{ r_babylon_tower_secret.resources[0] }}"
       __resource_claim: "{{ r_claim.resources[0] }}"
       __subject: "{{ __resource_claim.status.resources[0].state }}"
-
-  - name: Create output_dir and secrets directories
-    file:
-      path: "{{ item }}"
-      state: directory
-      mode: 0700
-    loop:
-    - "{{ output_dir }}/output_dir"
-    - "{{ output_dir }}/secrets"
 
   - name: Write status.txt
     copy:

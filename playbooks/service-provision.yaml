@@ -34,10 +34,19 @@
       "guid" not in vars.catalog_item_params
       or vars.catalog_item_params.guid == ''
 
+  - name: Check that uuid is set in catalog_item_params
+    fail:
+      msg: uuid must be defined in catalog_item_params
+    when: >-
+      "uuid" not in vars.catalog_item_params
+      or vars.catalog_item_params.uuid == ''
+
   - name: Set vars from catalog_item_params
     set_fact:
       guid: >-
         {{ vars.catalog_item_params.guid }}
+      uuid: >-
+        {{ vars.catalog_item_params.uuid }}
       # Take cloud_tags, but drop values to ignore, guid and uuid
       cloud_tags: >-
         {{ vars.catalog_item_params.cloud_tags | default('{}') | from_yaml
@@ -107,6 +116,8 @@
         metadata:
           name: "{{ resource_claim_name }}"
           namespace: "{{ user_namespace }}"
+          labels:
+            uuid: "{{ uuid }}"
         spec:
           resources:
           - provider:
