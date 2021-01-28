@@ -144,11 +144,11 @@
   - name: Update AnarchySubject to request status check
     k8s:
       kubeconfig: "{{ kubeconfig }}"
+      apiVersion: anarchy.gpte.redhat.com/v1
+      kind: AnarchySubject
+      name: "{{ subject_name }}"
+      namespace: "{{ subject_namespace }}"
       definition:
-        apiVersion: anarchy.gpte.redhat.com/v1
-        kind: AnarchySubject
-        name: "{{ subject_name }}"
-        namespace: "{{ subject_namespace }}"
         spec:
           vars:
             check_status_state: "pending"
