@@ -67,7 +67,7 @@
     block:
     - name: Get all ResourceClaims
       k8s_info:
-        #kubeconfig: "{{ kubeconfig }}"
+        kubeconfig: "{{ kubeconfig }}"
         api_version: poolboy.gpte.redhat.com/v1
         kind: ResourceClaim
       register: r_all_claims
