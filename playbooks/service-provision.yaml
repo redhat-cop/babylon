@@ -145,7 +145,7 @@
                   job_vars: >-
                     {% if __meta_catalog_parameter_names == '' -%}
                     {{ vars.catalog_item_params | dict2items
-                     | json_query("[?key!='guid' && key!='uuid' && key!='cloud_tags' && key!='agnosticv_meta']")
+                     | json_query("[?key!='guid' && key!='uuid' && key!='cloud_tags']")
                      | items2dict | combine({"cloud_tags": vars.cloud_tags}) }}
                     {%- else -%}
                     {{ vars.catalog_item_params | dict2items
