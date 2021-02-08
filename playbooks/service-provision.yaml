@@ -108,6 +108,9 @@
           name: "{{ user_namespace }}"
 
   - name: Create ResourceClaim {{ resource_claim_name }}
+    vars:
+      __meta_catalog_parameter_names: >-
+        {{ vars.catalog_item_params | json_query('__meta__.catalog.parameters[].name') | lower }}
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       definition:
@@ -140,9 +143,15 @@
                   desired_state: started
                   # Set job_vars, excluding "guid" and "uuid" and insert filtered "cloud_tags"
                   job_vars: >-
+                    {% if __meta_catalog_parameter_names == '' -%}
                     {{ vars.catalog_item_params | dict2items
                      | json_query("[?key!='guid' && key!='uuid' && key!='cloud_tags']")
                      | items2dict | combine({"cloud_tags": vars.cloud_tags}) }}
+                    {%- else -%}
+                    {{ vars.catalog_item_params | dict2items
+                     | json_query("[?key=='__meta__' || contains(`" ~ __meta_catalog_parameter_names | to_json ~ "`, key)]")
+                     | items2dict | combine({"cloud_tags": vars.cloud_tags}) }}
+                    {%- endif %}
 
   - name: Report ResourceClaim
     debug:
