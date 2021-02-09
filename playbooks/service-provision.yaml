@@ -263,9 +263,13 @@
       register: r_claim
       retries: 60
       delay: 5
+      vars:
+        __subject: "{{ r_claim.resources[0].status.resources[0].state }}"
       until: >-
-        r_claim.resources[0].status.resources[0].state.spec.vars.current_state | default('')
-        in ['provisioning', 'started', 'starting', 'stopping', 'stopped']
+        __subject.spec.vars.current_state | default('') in ['provisioning', 'started', 'starting', 'stopping', 'stopped']
+        and
+        __subject.status.towerJobs.provision.deployerJob | default('') != ''
+
     rescue:
     - name: Report failure waiting for provisioning state
       fail:
