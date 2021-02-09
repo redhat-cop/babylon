@@ -110,7 +110,7 @@
   - name: Create ResourceClaim {{ resource_claim_name }}
     vars:
       __meta_catalog_parameter_names: >-
-        {{ vars.catalog_item_params | json_query('__meta__.catalog.parameters[].name') | lower }}
+        {{ vars.catalog_item_params | json_query('__meta__.catalog.parameters[].name') }}
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       definition:
@@ -149,7 +149,7 @@
                      | items2dict | combine({"cloud_tags": vars.cloud_tags}) }}
                     {%- else -%}
                     {{ vars.catalog_item_params | dict2items
-                     | json_query("[?contains(`" ~ __meta_catalog_parameter_names | to_json ~ "`, key)]")
+                     | json_query("[?contains(`" ~ __meta_catalog_parameter_names | lower | to_json ~ "`, key)]")
                      | items2dict | combine({"cloud_tags": vars.cloud_tags} if 'cloud_tags' in __meta_catalog_parameter_names else {}) }}
                     {%- endif %}
 
