@@ -42,13 +42,7 @@ pip install --upgrade ansible jmespath openshift
 ansible-galaxy install git+https://github.com/redhat-cop/k8s_config.git
 -----------------------------------------------------------------------------------------
 
-. Create a deploy key SSH key pair for your private babylon repository, with no password.
-+
-----
-ssh-keygen -f ~/.ssh/babylon-private.rsa
-----
-+
-if you need one for the agnosticv repository:
+. Create a deploy for your AgnosticV repository:
 +
 ----
 ssh-keygen -f ~/.ssh/agnosticv-private.rsa
@@ -61,14 +55,8 @@ Here is how to get the public key from the private key generated above, add `-y`
 to the `ssh-keygen` command:
 +
 ----
-ssh-keygen -f ~/.ssh/babylon-private.rsa -y
-----
-+
-----
 ssh-keygen -f ~/.ssh/agnosticv-private.rsa -y
 ----
-+
-NOTE: The private babylon repository should define the variable `babylon_private_resources` with a list of resources to create such as cluster role bindings.
 
 . Clone this repository and enter the openshift/config directory
 +
@@ -82,25 +70,18 @@ cd babylon/openshift/config
 The k8s_config_environment_level should be set to `dev`, `test`, or `prod`.
 If your OpenShift server is not configured with a known TLS certificate authority, set `k8s_api_validate_certs=false`.
 +
-If you have private configuration sources you may specify `babylon_private_repo` and `babylon_private_deploy_key` to add your private config source.
-Your private config source should define `babylon_private_resources` for custom `k8s_config` resources.
-If your private config source provides agnosticv-operator configuration you may also need to pass credentials for agnosticv access.
-+
 .Create and update this `cluster-vars.yml`
 ----------------------------------------
 k8s_config_environment_level: dev
 babylon_repo_url: https://github.com/redhat-cop/babylon.git
-babylon_repo_version: master
-babylon_private_repo_url: git@github.com:redhat-gpe/babylon-private.git
-babylon_private_repo_version: master
-babylon_private_deploy_key: ~/.ssh/babylon-private.rsa
+babylon_repo_version: main
 agnosticv_repositories:
   - name: gpte-agnosticv
     url: git@github.com:redhat-gpe/agnosticv.git
     ssh_key: ~/.ssh/agnosticv-private.rsa
 ----------------------------------------
 +
-For production releases, the values of `babylon_repo_version` and `babylon_private_repo_version` should be set to release tags and these values are stored in an AnarchySubject in the anarchy-k8s-config namespace.
+For production releases, the value of `babylon_repo_version` should be set to a release tag and these values are stored in an AnarchySubject in the anarchy-k8s-config namespace.
 +
 .Then run
 ----------------------------------------
@@ -122,12 +103,4 @@ oc create -n anarchy-operator secret generic babylon-tower \
 Default: "https://github.com/redhat-cop/babylon.git"
 
 * `babylon_repo_version`: Repository version (tag or branch) for main babylon config.
-Default: "master"
-
-* `babylon_private_repo_url`: Private babylon configuration repository URL.
-Optional, no private repository by default.
-
-* `babylon_private_repo_version`: Private babylon configuration repository version.
-Default: "master"
-
-* `babylon_private_deploy_key`: Path to SSH key used to access private config repository.
+Default: "main"
