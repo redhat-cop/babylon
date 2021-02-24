@@ -67,6 +67,7 @@
         # Check AnarchyGovernor vars that are not listed in params_to_variables
         check_governor_job_vars: >-
           {{ r_governor.resources[0].spec.vars.job_vars
+           | default({})
            | dict2items
            | json_query(filter_var_query)
            | items2dict
