@@ -6,25 +6,12 @@
   vars:
     # Override deploy key variable with extra vars
     babylon_repo_url: https://github.com/redhat-cop/babylon.git
-    babylon_repo_version: master
-    babylon_private_repo_url: ''
-    babylon_private_repo_version: master
-    babylon_private_deploy_key: ''
+    babylon_repo_version: main
 
     k8s_config:
       run_interval: 1h
 
     k8s_config_sources:
-    # Load private config source with highest priority if deploy key is available
-    - name: babylon-private
-      base_path: openshift/config
-      git:
-        accept_hostkey: true
-        repo: "{{ babylon_private_repo_url }}"
-        key_file: "{{ babylon_private_deploy_key }}"
-        version: "{{ babylon_private_repo_version }}"
-      when: babylon_private_deploy_key != ''
-
     # Local config, should be openshift/config in babylon repository
     - name: local
       base_path: "{{ playbook_dir }}"
