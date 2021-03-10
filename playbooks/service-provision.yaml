@@ -192,7 +192,7 @@
       msg: "babylon.anarchySubject: {{ anarchy_subject_name }}"
 
   - block:
-    - name: Wait for AnarchySubject current_state
+    - name: Wait for AnarchySubject current_state to be updated in the ResourceClaim
       k8s_info:
         kubeconfig: "{{ kubeconfig }}"
         api_version: poolboy.gpte.redhat.com/v1
@@ -233,7 +233,7 @@
       msg: "babylon.uuid: {{ r_claim.resources[0].status.resources[0].state.spec.vars.job_vars.uuid }}"
 
   - block:
-    - name: Wait for AnarchySubject state provisioning or subsequent states
+    - name: Wait for AnarchySubject state provisioning or subsequent states to be updated in the ResourceClaim
       k8s_info:
         kubeconfig: "{{ kubeconfig }}"
         api_version: poolboy.gpte.redhat.com/v1
