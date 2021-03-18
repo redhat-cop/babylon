@@ -106,6 +106,8 @@
         {{ __subject.metadata.name }}
       subject_namespace: >-
         {{ __subject.metadata.namespace }}
+      check_status_state: >-
+        {{ __subject.spec.vars.check_status_state | default('') }}
       previous_status_complete_timestamp: >-
         {{ __subject.status.towerJobs.status.completeTimestamp | default('') }}
 
@@ -142,6 +144,9 @@
       meta: end_play
 
   - name: Update AnarchySubject to request status check
+    when:
+    - check_status_state != 'pending'
+    - check_status_state != 'running'
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       api_version: anarchy.gpte.redhat.com/v1
