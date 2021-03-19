@@ -34,7 +34,7 @@ babylon_resources:
         version: "{{ babylon_anarchy_version }}"
       dir: helm
       include_crds: >-
-        {{ babylon_anarchy_include_crds | default(default_babylon_default_anarchy_runner_min_replicas) }}
+        {{ babylon_anarchy_include_crds | default(default_babylon_anarchy_include_crds) }}
       values:
         namespace:
           name: anarchy-operator
