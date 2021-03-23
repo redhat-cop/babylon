@@ -79,7 +79,7 @@ export default {
         })
       )
       .then(response => {
-        if (response.status === 200) {
+        if (response.status === 201) {
           response.json().then(resourcepool =>
             this.$router.push('/r/resourcepool/' + resourcepool.metadata.namespace + '/' + resourcepool.metadata.name)
           )

@@ -12,6 +12,13 @@
       <router-link :to="'/r/resourceclaim/' + anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-namespace'] + '/' + anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-name']">ResourceClaim {{anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-name']}}</router-link>
     </p>
 
+    <template v-if="anarchySubject.status && anarchySubject.status.towerJobs">
+      <h2>Tower Jobs</h2>
+      <div v-for="(jobInfo, action) in anarchySubject.status.towerJobs" :key="action">
+        <b>{{action}}</b> <a :href="'https://' + towerHostname + '/#/jobs/playbook/' + jobInfo.deployerJob" target="_blank">{{jobInfo.deployerJob}}</a>
+      </div>
+    </template>
+
     <h2>AnarchyActions</h2>
     <table v-if="anarchyActions && anarchyActions.length > 0">
       <thead>
@@ -100,6 +107,7 @@ export default {
   data () {
     return {
       consoleUrl: '',
+      towerHostname: '',
       error: '',
       anarchySubject: null,
       anarchyActions: null,
@@ -113,6 +121,7 @@ export default {
     this.refresh();
     this.refreshAnarchyActions();
     this.refreshAnarchyRuns();
+    this.getTowerSecret();
   },
   methods: {
     deleteAnarchyAction (anarchyAction) {
@@ -196,6 +205,35 @@ export default {
           }
         })
       }
+    },
+    getTowerSecret () {
+      window.apiSession
+      .then(session =>
+        fetch(
+          '/api/v1/namespaces/anarchy-operator/secrets/babylon-tower',
+          {
+            headers: {
+              'Authentication': 'Bearer ' + session.token
+            }
+          }
+        )
+      )
+      .then(response => {
+        if (response.status === 200) {
+          response.json().then(data => {
+            this.towerHostname = atob(data.data.hostname);
+          })
+        } else if(response.status === 401) {
+          this.error = 'Session expired, please refresh.'
+        } else if(response.status === 403) {
+          this.error = 'Sorry, it seems you do not have access.'
+        } else {
+          this.error = response.status
+        }
+      })
+      .catch(error => {
+        this.error = error;
+      });
     },
     retryAnarchyRun (anarchyRun) {
       if (confirm('Retry AnarchyRun ' + anarchyRun.metadata.name + '?')) {

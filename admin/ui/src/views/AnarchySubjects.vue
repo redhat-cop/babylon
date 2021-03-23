@@ -136,7 +136,7 @@ export default {
             }
           })
         ).then(response => {
-          if (response.status === 201 || response.status === 200) {
+          if (response.status === 201) {
             response.json().then(anarchyAction =>
               this.$router.push('/r/anarchyaction/' + anarchyAction.metadata.namespace + '/' + anarchyAction.metadata.name)
             )
