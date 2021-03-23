@@ -1,0 +1,7 @@
+= Babylon Admin User Interface
+
+The Babylon admin user interface is composed of a Vue.js frontend and a Python flask API proxy to the OpenShift cluster UI.
+
+== Build
+
+A `Dockerfile` is provided which includes a two-stage build process which combines the build of the Vue.js UI and the Flask UI.

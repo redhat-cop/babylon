@@ -1,0 +1,19 @@
+= Babylon Admin API
+
+== Setup
+
+-----------------------------------------------
+python3 -m venv ~/virtualenv/babylon-admin-api/
+. ~/virtualenv/babylon-admin-api/bin/activate
+pip install -r requirements.txt
+-----------------------------------------------
+
+=== Running in Development
+
+Login with `oc`, then start the local development server.
+
+---------------------------------
+ENVIRONMENT=development ./wsgi.py
+---------------------------------
+
+The Vue.js user interface is configured to proxy requests to the server on port 5000.
