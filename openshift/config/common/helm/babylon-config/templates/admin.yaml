@@ -1,0 +1,271 @@
+{{- if .Values.admin.deploy -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.admin.namespace }}
+
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: admin
+  namespace: {{ .Values.admin.namespace }}
+  labels:
+    babylon-component: admin-ui
+spec:
+  tls:
+    termination: reencrypt
+  to:
+    kind: Service
+    name: admin-ui
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-ui
+  namespace: {{ .Values.admin.namespace }}
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: admin-ui-tls
+  labels:
+    babylon-component: admin-ui
+spec:
+  ports:
+  - name: proxy
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    babylon-component: admin-ui
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-ui
+  namespace: {{ .Values.admin.namespace }}
+  annotations:
+    serviceaccounts.openshift.io/oauth-redirectreference.primary: >-
+      {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"admin"}}
+  labels:
+    babylon-component: admin-ui
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-ui
+  namespace: {{ .Values.admin.namespace }}
+  labels:
+    babylon-component: admin-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      babylon-component: admin-ui
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        babylon-component: admin-ui
+    spec:
+      containers:
+      - name: app
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: admin-redis
+              key: database-password
+        - name: REDIS_SERVER
+          value: admin-redis
+        - name: REDIS_PORT
+          value: "6379"
+        - name: APP_CONFIG
+          value: config.py
+        - name: GUNICORN_PROCESSES
+          value: "{{ .Values.admin.gunicornProcesses }}"
+        - name: GUNICORN_THREADS
+          value: "{{ .Values.admin.gunicornThreads }}"
+        - name: WEB_CONCURRENCY
+          value: "{{ .Values.admin.concurrency }}"
+        image: {{ .Values.admin.image | quote }}
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: "1"
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      - name: oauth-proxy
+        args:
+        - --https-address=:8443
+        - --provider=openshift
+        - --openshift-service-account=admin-ui
+        - --upstream=http://localhost:8080
+        - --tls-cert=/etc/tls/private/tls.crt
+        - --tls-key=/etc/tls/private/tls.key
+        - --cookie-secret=SECRET
+        image: {{ .Values.admin.oauthProxyImage | quote }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: public
+          protocol: TCP
+        resources: {}
+        volumeMounts:
+        - mountPath: /etc/tls/private
+          name: proxy-tls
+      restartPolicy: Always
+      serviceAccountName: admin-ui
+      volumes:
+      - name: proxy-tls
+        secret:
+          defaultMode: 0644
+          secretName: admin-ui-tls
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.admin.namespace }}:admin-ui
+  labels:
+    babylon-component: admin-ui
+rules:
+- apiGroups:
+  - ""
+  - user.openshift.io
+  resources:
+  - users
+  verbs:
+  - impersonate
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.admin.namespace }}:admin-ui
+  labels:
+    babylon-component: admin-ui
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.admin.namespace }}:admin-ui
+subjects:
+- kind: ServiceAccount
+  name: admin-ui
+  namespace: {{ .Values.admin.namespace }}
+
+{{- if .Values.admin.redisPassword }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: admin-redis
+  namespace: {{ .Values.admin.namespace }}
+  labels:
+    babylon-component: admin-redis
+data:
+  {{- if eq .Values.admin.redisPassword "generate" }}
+  database-password: {{ randAlphaNum 32 | b64enc }}
+  {{- else }}
+  database-password: {{ .Values.admin.redisPassword | b64enc }}
+  {{- end }}
+{{- end }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-redis
+  namespace: {{ .Values.admin.namespace }}
+  labels:
+    babylon-component: admin-redis
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    babylon-component: admin-redis
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-redis
+  namespace: {{ .Values.admin.namespace }}
+  labels:
+    babylon-component: admin-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      babylon-component: admin-redis
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        babylon-component: admin-redis
+    spec:
+      containers:
+      - name: redis
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-password
+              name: admin-redis
+        image: {{ .Values.admin.redisImage | quote }}
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 6379
+          timeoutSeconds: 1
+        ports:
+        - containerPort: 6379
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -i
+            - -c
+            - test "$(redis-cli -h 127.0.0.1 -a $REDIS_PASSWORD ping)" == "PONG"
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /var/lib/redis/data
+          name: redis-data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - emptyDir: {}
+        name: redis-data
+{{- end }}
