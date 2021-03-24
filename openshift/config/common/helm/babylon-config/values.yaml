@@ -1,7 +1,15 @@
 ---
-  #https://raw.githubusercontent.com/redhat-cop/poolboy/{{ poolboy_version }}/integration/anarchy-operator/deploy-template.yaml
-  #- name: Poolboy Anarchy Babylon ResourceProvider
-  #url: https://raw.githubusercontent.com/redhat-cop/poolboy/{{ poolboy_version }}/integration/anarchy-operator/babylon-provider.yaml
+admin:
+  deploy: true
+  concurrency: 5
+  gunicornProcesses: 5
+  gunicornThreads: 1
+  namespace: babylon
+  image: quay.io/redhat-cop/babylon-admin:latest
+  oauthProxyImage: openshift/oauth-proxy:latest
+  redisImage: image-registry.openshift-image-registry.svc:5000/openshift/redis:5-el8
+  redisPassword: generate
+
 anarchy:
   apiGroup: anarchy.gpte.redhat.com
   namespace: anarchy
