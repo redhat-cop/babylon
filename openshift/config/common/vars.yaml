@@ -17,6 +17,7 @@ babylon_anarchy_roles: >-
   }}
 
 # Variables defaults for a variables without the "default_" prefix
+default_babylon_admin_image: "quay.io/redhat-cop/babylon-admin:latest"
 default_babylon_anarchy_include_crds: true
 default_babylon_anarchy_replicas: 1
 default_babylon_catalog_namespaces:
@@ -69,6 +70,9 @@ babylon_resources:
     helm_template:
       dir: babylon-config
       values:
+        admin:
+          image: "{{ babylon_admin_image | default(default_babylon_admin_image) }}"
+          redisPassword: "{{ babylon_admin_redis_password | default('generate') }}"
         anarchy:
           namespace: anarchy-operator
         # Evaluation to preserve boolean type
