@@ -1,0 +1,27 @@
+apiVersion: babylon.gpte.redhat.com/v1
+kind: CatalogItem
+metadata:
+  name: tests.babylon-empty-config.test
+  namespace: babylon-catalog
+spec:
+  displayName: Empty Config (test)
+  description: Test empty config.
+  keywords:
+  - agnosticd
+  - babylon
+  - empty
+  - test
+  resources:
+  - template:
+    apiVersion: anarchy.gpte.redhat.com/v1
+    kind: AnarchySubject
+    metadata:
+      annotations:
+        poolboy.gpte.redhat.com/resource-provider-name: babylon
+      generateName: tests.babylon-empty-config.test-
+      labels:
+        governor: tests.babylon-empty-config.test
+    spec:
+      governor: tests.babylon-empty-config.test
+      vars:
+        job_vars: {}

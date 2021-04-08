@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "babylonCatalog.clusterRoleBindingName" . }}
+  labels:
+    {{- include "babylonCatalog.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "babylonCatalog.clusterRoleName" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "babylonCatalog.serviceAccountName" . }}
+  namespace: {{ include "babylonCatalog.namespaceName" . }}

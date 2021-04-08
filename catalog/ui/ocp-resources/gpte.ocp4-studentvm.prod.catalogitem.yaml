@@ -1,0 +1,26 @@
+
+apiVersion: babylon.gpte.redhat.com/v1
+kind: CatalogItem
+metadata:
+  name: gpte.ocp4-studentvm.prod
+  namespace: babylon-catalog
+spec:
+  displayName: OpenShift 4 Student VM
+  description: OpenShift 4 student vm for doing stuff with OpenShift.
+  keywords:
+  - ocp
+  - ocp4
+  - openshift
+  resources:
+  - template:
+      apiVersion: anarchy.gpte.redhat.com/v1
+      kind: AnarchySubject
+      metadata:
+        annotations:
+          poolboy.gpte.redhat.com/resource-provider-name: babylon
+        generateName: gpte.ocp4-studentvm.prod-
+        labels:
+          governor: gpte.ocp4-studentvm.prod
+      spec:
+        governor: gpte.ocp4-studentvm.prod
+        vars: {}
