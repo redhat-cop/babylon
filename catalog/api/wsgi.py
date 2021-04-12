@@ -145,7 +145,7 @@ def get_user_namespace(api_client, user):
     user_uid = user_resource['metadata']['uid']
 
     for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid=' + user_uid).items:
-        return ns.metadata.name
+        return { 'name': ns.metadata.name }
 
     return None
 
