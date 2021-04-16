@@ -262,7 +262,7 @@
         namespace: "{{ user_namespace }}"
         name: "{{ resource_claim_name }}"
       register: r_claim
-      retries: 60
+      retries: 120
       delay: 5
       vars:
         __subject: "{{ r_claim.resources[0].status.resources[0].state }}"
