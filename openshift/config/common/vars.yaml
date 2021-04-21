@@ -62,6 +62,8 @@ babylon_resources:
         version: "{{ poolboy_version }}"
       dir: helm
       values:
+        admin:
+          deploy: false
         namespace:
           name: poolboy
 
