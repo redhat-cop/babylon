@@ -1,7 +1,26 @@
 import * as React from 'react';
+import './catalog-request.css';
+
 import { useHistory, useLocation, useRouteMatch, Link } from 'react-router-dom';
-import { Button, PageSection, Title } from '@patternfly/react-core';
-import { getApiSession, createNamespacedCustomObject, getNamespacedCustomObject } from '@app/api';
+import {
+  ActionList,
+  ActionListItem,
+  Button,
+  Checkbox,
+  Form,
+  FormGroup,
+  PageSection,
+  PageSectionVariants,
+  TextInput,
+  Title
+} from '@patternfly/react-core';
+import {
+  createNamespacedCustomObject,
+  getApiSession,
+  getNamespacedCustomObject
+} from '@app/api';
+
+import { DefaultTermsOfService  } from './TermsOfService/Default.tsx';
 
 export interface CatalogRequestProps {
   location?: any;
@@ -17,6 +36,10 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   const catalogItemName = catalogRequestRouteMatch.params.name;
 
   const [catalogItem, setCatalogItem] = React.useState(null);
+  const [termsOfServiceAgreed, setTermsOfServiceAgreed] = React.useState(false);
+  const [requestName, setRequestName] = React.useState('');
+
+  const requestNameValid = requestName == '' || requestName.match(/^[a-z0-9][a-z0-9\-\.]*[a-z0-9]$/);
 
   async function loadCatalogItem(): void {
     const resp = await getNamespacedCustomObject('babylon.gpte.redhat.com', 'v1', catalogNamespace, 'catalogitems', catalogItemName);
@@ -43,6 +66,10 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
     }
   }
 
+  async function onTermsOfServiceChange(): void {
+    setTermsOfServiceAgreed(value => !value);
+  }
+
   async function submitRequest(): void {
     const apiSession = await getApiSession();
     const namespace = apiSession.userNamespace.name;
@@ -50,16 +77,23 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       apiVersion: 'poolboy.gpte.redhat.com/v1',
       kind: 'ResourceClaim',
       metadata: {
+        annotations: {
+          'babylon.gpte.redhat.com/catalogItemDisplayName': displayName(catalogItem),
+        },
         labels: {
-          'babylon.gpte.redhat.com/catalogitem-namespace': catalogItem.metadata.namespace,
-          'babylon.gpte.redhat.com/catalogitem-name': catalogItem.metadata.name,
+          'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
+          'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
         }
       },
       spec: {
         resources: JSON.parse(JSON.stringify(catalogItem.spec.resources)),
       }
     };
-    requestResourceClaim.metadata.generateName = catalogItem.metadata.name + '-';
+    if (requestName) {
+      requestResourceClaim.metadata.name = requestName;
+    } else {
+      requestResourceClaim.metadata.generateName = catalogItem.metadata.name + '-';
+    }
 
     const resourceClaim = await createNamespacedCustomObject(
       'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', requestResourceClaim
@@ -68,20 +102,43 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
     history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
   }
 
+  const submitRequestEnabled = termsOfServiceAgreed && requestNameValid;
+
   const catalogRequestForm = catalogItem ? (
-    <div>
-      <Button aria-label="Action" onClick={submitRequest}>
-        Request
-      </Button>
-      <Button aria-label="Action" onClick={cancelRequest}>
-        Cancel
-      </Button>
-    </div>
+    <Form className="rhpds-catalog-request-form">
+      <FormGroup label="Request Name">
+        <TextInput type="text" id="name" name="name"
+          placeholder={catalogItem.metadata.name + '-*'}
+          onChange={(value) => setRequestName(value)}
+          validated={requestName == '' ? 'default' : requestNameValid ? 'success' : 'error'}
+        />
+      </FormGroup>
+      <DefaultTermsOfService
+        agreed={termsOfServiceAgreed}
+        onChange={onTermsOfServiceChange}
+      />
+      <ActionList>
+        <ActionListItem>
+          <Button
+            isDisabled={!submitRequestEnabled}
+            onClick={submitRequest}
+          >
+            Request
+          </Button>
+        </ActionListItem>
+        <ActionListItem>
+          <Button variant="secondary" onClick={cancelRequest}>
+            Cancel
+          </Button>
+        </ActionListItem>
+      </ActionList>
+    </Form>
   ) : null;
 
   return (
-    <PageSection>
+    <PageSection variant={PageSectionVariants.light}>
       <Title headingLevel="h1" size="lg">Request {catalogItem && displayName(catalogItem)}</Title>
+      <p>Request by completing the form. Default values may be provided.</p>
       {catalogRequestForm}
     </PageSection>
   );

@@ -1,0 +1,76 @@
+.rhpds-services.pf-c-page__main-section {
+  margin: 0;
+  padding: 0;
+}
+
+.rhpds-services.pf-c-page__main-section .pf-c-title {
+  background-color: white;
+  padding: 10pt 15pt 8pt;
+}
+
+.rhpds-services.pf-c-page__main-section .pf-c-data-list__cell a {
+  color: var(--pf-global--palette--black-900);
+}
+
+.rhpds-services.pf-c-page__main-section .pf-c-data-list__cell a:hover {
+  color: var(--pf-global--palette--black-900);
+  text-decoration: none;
+}
+
+.rhpds-services .pf-c-data-list__item-action {
+  display: grid;
+}
+
+.rhpds-services .pf-c-data-list__item-action > button {
+  margin: 3pt 0;
+  min-width: 100px;
+}
+
+.rhpds-services .pf-c-data-list__cell {
+  padding-top: 8pt;
+}
+
+.rhpds-services .pf-c-data-list__item-action {
+  padding-top: 8pt;
+  padding-bottom: 8pt;
+}
+
+.rhpds-services .pf-c-description-list {
+  row-gap: 2pt;
+}
+
+.rhpds-status-failed {
+  color: var(--pf-global--danger-color--100);
+}
+
+.rhpds-status-running {
+  color: var(--pf-global--success-color--100);
+}
+
+.rhpds-no-services-message.pf-l-bullseye {
+  height: 80%;
+}
+
+.rhpds-services .pf-c-data-list__expandable-content {
+  border-top: none;
+}
+
+.rhpds-user-data.pf-c-description-list {
+  border-left: 3px solid var(--pf-global--palette--black-300);
+  padding-left: 10px;
+}
+
+.rhpds-selected-service.pf-c-data-list__item::before {
+  width: 5px;
+}
+
+.rhpds-expand-details {
+  display: block;
+  font-size: 20pt;
+  text-align: center;
+  line-height: 5pt;
+}
+
+.rhpds-service-schedule.pf-c-data-list__cell {
+  padding-top: 23pt;
+}

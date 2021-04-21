@@ -75,3 +75,20 @@ export async function listNamespacedCustomObject(group, version, namespace, plur
   // FIXME - Check response code
   return await resp.json();
 }
+
+export async function patchNamespacedCustomObject(group, version, namespace, plural, name, patch, patchType='merge'): any {
+  const session = await getApiSession();
+  const resp = await fetch(
+    `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+      headers: {
+        'Authentication': `Bearer ${session.token}`,
+	'Content-Type': 'application/' + patchType + '-patch+json',
+      }
+    }
+  );
+  // FIXME - Check response code
+  return await resp.json();
+}

@@ -6,8 +6,6 @@ import { Catalog } from '@app/Catalog/Catalog';
 import { CatalogRequest } from '@app/Catalog/Request/CatalogRequest';
 import { Services } from '@app/Services/Services';
 import { Support } from '@app/Support/Support';
-import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
-import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
 import { NotFound } from '@app/NotFound/NotFound';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
@@ -66,25 +64,6 @@ const routes: AppRouteConfig[] = [
     label: 'Support',
     path: '/support',
     title: 'RHPDS | Support Page',
-  },
-  {
-    label: 'Settings',
-    routes: [
-      {
-        component: GeneralSettings,
-        exact: true,
-        label: 'General',
-        path: '/settings/general',
-        title: 'RHPDS | General Settings',
-      },
-      {
-        component: ProfileSettings,
-        exact: true,
-        label: 'Profile',
-        path: '/settings/profile',
-        title: 'RHPDS | Profile Settings',
-      },
-    ],
   },
 ];
 

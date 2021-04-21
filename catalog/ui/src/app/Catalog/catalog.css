@@ -1,0 +1,202 @@
+.rhpds-catalog-header.pf-c-page__main-section {
+  padding-bottom: 0;
+}
+
+/* pf-m-flat rhpds-catalog-box */
+.rhpds-catalog-box.pf-c-card {
+  border: 1px solid #f0f0f0;
+  box-shadow: none;
+}
+
+.rhpds-catalog-box .pf-c-card__body {
+  padding: 12px 0 12px 0;
+}
+
+.rhpds-catalog-box .pf-c-card__body .pf-c-tabs__link {
+  padding: 0 12px 0 12px;
+}
+
+.rhpds-catalog-box .pf-c-card__body .pf-c-tabs__item.pf-m-current .pf-c-tabs__item-text {
+  color: var(--pf-global--link--Color);
+}
+
+.rhpds-catalog-box .pf-c-tabs__scroll-button {
+  display: none;
+}
+
+.rhpds-catalog-box-header.pf-c-page__main-section {
+  padding: 0;
+}
+
+.rhpds-catalog-box .pf-c-tabs__item:first-child {
+  margin-bottom: 12px;
+}
+
+.rhpds-catalog-box .pf-c-tabs__item-text {
+  color: var(--pf-global--Color--100);
+}
+
+.rhpds-catalog-box .pf-c-tabs__item-text {
+  text-transform: capitalize;
+}
+
+.rhpds-catalog-title {
+  text-transform: capitalize;
+  margin: 0px 30px 0px 30px;
+}
+
+.rhpds-catalog-filter {
+  display: flex;
+  justify-content: space-between;
+  margin: 14px 30px 14px 30px;
+}
+
+.rhpds-catalog-keyword-search.pf-c-search-input {
+  box-sizing: border-box;
+}
+
+.rhpds-catalog-filter__item-count {
+  box-sizing: border-box;
+  font-weight: bold;
+}
+
+.rhpds-catalog-box-items {
+  background-color: var(--pf-global--palette--black-200);
+  display: grid;
+  gap: 25px 25px;
+  grid-auto-flow: dense;
+  grid-template-columns: repeat(auto-fill,280px);
+  min-height: 500px;
+}
+
+.rhpds-catalog-box-items > a {
+  color: var(--pf-global--Color--100);
+  display: block;
+  background-color: white;
+  box-shadow: var(--pf-c-card--BoxShadow);
+  height: 220px;
+  width: 280px;
+  padding: 18px 24px;
+}
+
+.rhpds-catalog-box-items > a:hover {
+  box-shadow: var(--pf-c-card--m-hoverable--hover--BoxShadow);
+  text-decoration: none;
+}
+
+.rhpds-catalog-box .pf-c-sidebar__panel .pf-c-tabs {
+  margin-bottom: 20px;
+}
+
+.rhpds-catalog-box .pf-c-sidebar__panel .pf-c-form__group {
+  margin-left: 10px;
+}
+
+.rhpds-catalog-box .pf-c-sidebar__panel .pf-c-form__group-label {
+  padding-bottom: 1px;
+}
+
+.rhpds-catalog-box .pf-c-sidebar__panel .pf-c-form__group-label .pf-c-form__label-text {
+  text-transform: capitalize;
+}
+
+.rhpds-catalog-box .pf-c-card__header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0;
+}
+
+.rhpds-catalog-box .rhpds-catalog-item-icon {
+  height: 50px;
+  width: 50px;
+  box-sizing: border-box;
+}
+
+.rhpds-catalog-item-title {
+  color: var(--pf-global--Color--100);
+  font-size: 12pt;
+}
+
+.rhpds-catalog-item-subtitle {
+  color: var(--pf-global--palette--black-500);
+  font-size: 11pt;
+  margin-bottom: 5pt;
+}
+
+.rhpds-catalog-item-description {
+  color: var(--pf-global--Color--100);
+  font-size: 11pt;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rhpds-catalog-item-details .pf-c-drawer__head {
+  display: grid;
+  grid-template-columns: auto 30px;
+}
+
+.rhpds-catalog-item-details .rhpds-catalog-item-icon {
+  height: 90px;
+  width: 90px;
+  margin-right: 20px;
+}
+
+.rhpds-catalog-item-header {
+  display: grid;
+  grid-template-columns: 120px auto;
+}
+
+.rhpds-catalog-item-details .rhpds-catalog-item-header-text {
+  font-weight: bold;
+}
+
+.rhpds-catalog-item-details .rhpds-catalog-item-title {
+  font-size: 20pt;
+  font-weight: bold;
+}
+
+.rhpds-catalog-item-details .pf-c-page__main-section {
+  padding-bottom: 10pt;
+}
+
+.rhpds-catalog-item-details .pf-c-drawer__body {
+  padding-bottom: 8pt;
+}
+
+.rhpds-catalog-item-details-body.pf-c-page__main-section {
+  border-top: 1px solid var(--pf-global--palette--black-300);
+  display: grid;
+  grid-template-columns: 150px auto;
+}
+
+.rhpds-catalog-item-details-body-sidebar {
+  font-size: 10pt;
+}
+
+.rhpds-catalog-item-details-body-sidebar .pf-c-description-list {
+  row-gap: 1pt;
+}
+
+.rhpds-catalog-item-details-body-sidebar .pf-c-description-list .pf-c-description-list__description {
+  margin-bottom: 7pt;
+}
+
+.rhpds-catalog-item-details-body-sidebar .rhpds-heading {
+  font-weight: bold;
+  margin-top: 10pt;
+}
+
+.rhpds-catalog-item-details-body-sidebar .rhpds-heading:first-child {
+  margin-top: 0;
+}
+
+.rhpds-no-data {
+  color: var(--pf-global--palette--black-500);
+}
+
+.rhpds-catalog-item-details-body-content .rhpds-heading {
+  font-size: 20pt;
+  color: var(--pf-global--palette--black-600);
+}
