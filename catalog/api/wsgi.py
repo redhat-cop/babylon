@@ -117,8 +117,8 @@ def get_catalog_namespaces(api_client):
                "spec": {
                  "resourceAttributes": {
                    "group": "babylon.gpte.redhat.com",
-                   "resource":"catalogitems",
-                   "verb":"list",
+                   "resource": "catalogitems",
+                   "verb": "list",
                    "namespace": ns.metadata.name
                  }
                },

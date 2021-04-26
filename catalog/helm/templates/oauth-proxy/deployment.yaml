@@ -37,7 +37,6 @@ spec:
       containers:
       - name: oauth-proxy
         args:
-        - --approval-prompt=auto
         - --cookie-secure=true
         - --https-address=:8443
         - --provider=openshift
