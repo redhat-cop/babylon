@@ -1,0 +1,90 @@
+= Development
+
+== Running locally
+
+Setup virtual env for API:
+
+------------------------
+python3 -m venv api-venv
+------------------------
+
+Activate virtual env:
+
+-----------------------
+. api-venv/bin/activate
+-----------------------
+
+Install requirements for API into the virtualenv:
+
+-------------------------------
+pip install -r requirements.txt
+-------------------------------
+
+Login to cluster to develop against. All access will occur as the user you authenticate as:
+
+--------------------------------------------------------------
+oc login --server=https://api.babydev.dev.open.redhat.com:6443
+--------------------------------------------------------------
+
+Start api locally:
+
+---------------------------------
+ENVIRONMENT=development ./wsgi.py 
+---------------------------------
+
+In a separate terminal, within the `ui` subdirectory, setup Node.js dependencies:
+
+-----------
+npm install
+-----------
+
+and start the React UI:
+
+-----------------
+npm run start:dev
+-----------------
+
+== Build and Deploy
+
+Set current project to development namespace:
+
+-----------------------------------
+oc project user-jon-snow-redhat-com
+-----------------------------------
+
+Create build configs:
+
+-------------------------------------------------
+oc process -f build-template.yaml | oc apply -f -
+-------------------------------------------------
+
+Build API:
+
+--------------------------------------------------------
+oc start-build --follow babylon-catalog-ui --from-dir=..
+--------------------------------------------------------
+
+Build React UI:
+
+--------------------------------------------------------
+oc start-build --follow babylon-catalog-ui --from-dir=..
+--------------------------------------------------------
+
+Process and deploy from built images:
+
+--------------------------------------------------------------------------------
+helm template helm \
+--include-crds \
+--set namespace.create=false \
+--set namespace.name=$(oc project --short) \
+--set redis.password=development \
+--set api.image.override="$(oc get is babylon-catalog-api -o jsonpath='{.status.tags[0].items[0].dockerImageReference}')" \
+--set ui.image.override="$(oc get is babylon-catalog-ui -o jsonpath='{.status.tags[0].items[0].dockerImageReference}')" \
+| oc apply -f -
+--------------------------------------------------------------------------------
+
+Get route URL and test:
+
+-------------------------------------------------------------------
+oc get route babylon-catalog -o jsonpath='https:{.spec.host}{"\n"}'
+-------------------------------------------------------------------

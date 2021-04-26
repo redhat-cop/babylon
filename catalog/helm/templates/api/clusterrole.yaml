@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "babylonCatalog.clusterRoleName" . }}
+  name: {{ include "babylonCatalog.apiClusterRoleName" . }}
   labels:
     {{- include "babylonCatalog.labels" . | nindent 4 }}
 rules:

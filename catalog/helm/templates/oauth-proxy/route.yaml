@@ -11,4 +11,4 @@ spec:
     insecureEdgeTerminationPolicy: Redirect
   to:
     kind: Service
-    name: {{ include "babylonCatalog.name" . }}
+    name: {{ include "babylonCatalog.oauthProxyName" . }}

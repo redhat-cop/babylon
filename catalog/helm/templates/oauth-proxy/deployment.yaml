@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "babylonCatalog.oauthProxyName" . }}
+  namespace: {{ include "babylonCatalog.namespaceName" . }}
+  labels:
+    {{- include "babylonCatalog.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.oauthProxy.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylonCatalog.oauthProxySelectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "babylonCatalog.oauthProxySelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.oauthProxy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.oauthProxy.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.oauthProxy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "babylonCatalog.oauthProxyName" . }}
+      {{- with .Values.oauthProxy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: oauth-proxy
+        args:
+        - --approval-prompt=auto
+        - --cookie-secure=true
+        - --https-address=:8443
+        - --provider=openshift
+        - --tls-cert=/etc/tls/private/tls.crt
+        - --tls-key=/etc/tls/private/tls.key
+        - {{ (printf "--cookie-secret=%s" (.Values.oauthProxy.cookieSecret | b64enc)) | quote }}
+        - {{ (printf "--openshift-service-account=%s" (include "babylonCatalog.oauthProxyName" .)) | quote }}
+        - {{ (printf "--upstream=http://%s:8080/api/" (include "babylonCatalog.apiName" .)) | quote }}
+        - {{ (printf "--upstream=http://%s:8080/apis/" (include "babylonCatalog.apiName" .)) | quote }}
+        - {{ (printf "--upstream=http://%s:8080/session" (include "babylonCatalog.apiName" .)) | quote }}
+        - {{ (printf "--upstream=http://%s:8080" (include "babylonCatalog.uiName" .)) | quote }}
+        image: {{ include "babylonCatalog.oauthProxyImage" . }}
+        imagePullPolicy: {{ .Values.oauthProxy.image.pullPolicy | quote }}
+        ports:
+        - containerPort: 8443
+          name: public
+          protocol: TCP
+        resources: {}
+        volumeMounts:
+        - mountPath: /etc/tls/private
+          name: proxy-tls
+      volumes:
+      - name: proxy-tls
+        secret:
+          defaultMode: 0644
+          secretName: {{ printf "%s-tls" (include "babylonCatalog.oauthProxyName" .) }}

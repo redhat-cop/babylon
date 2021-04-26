@@ -273,7 +273,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
   }
 
   function startStopButton(resourceClaim) {
-    if (resourceClaim.spec.resources[0].template.spec.vars.desired_state == 'started') {
+    if (!resourceClaim.spec || !resourceClaim.spec.resources[0].template || resourceClaim.spec.resources[0].template.spec.vars.desired_state == 'started') {
       return (
         <Button
           variant="primary"

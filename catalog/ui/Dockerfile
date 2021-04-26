@@ -8,6 +8,7 @@ FROM registry.access.redhat.com/ubi8/nginx-118:latest
 USER root
 
 COPY --from=builder /build/dist /tmp/src
+COPY nginx-default-cfg /tmp/src/nginx-default-cfg
 
 RUN chown -R 1001:0 /tmp/src && \
     chmod -R g+w /tmp/src

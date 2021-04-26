@@ -1,44 +1,74 @@
 ---
-gunicorn:
-  processes: 5
-  threads: 1
-
-image:
-  #override:
-  repository: quay.io/redhat-cop/babylon-catalog
-  pullPolicy: IfNotPresent
-
-imagePullSecrets: []
+nameOverride: ""
 
 namespace:
   create: true
   name:
 
-nameOverride: ""
+api:
+  name: # default use chart name + '-api'
+  gunicorn:
+    processes: 5
+    threads: 1
+  image:
+    #override:
+    repository: quay.io/redhat-cop/babylon-catalog-api
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+  serviceAccount:
+    name: # default use api component name
 
-replicaCount: 1
-
-resources:
-  requests:
-    cpu: 500m
-    memory: "2Gi"
-  limits:
-    cpu: "2"
-    memory: "2Gi"
-
-serviceAccount:
-  name: # default use chart name
+ui:
+  name: # default use chart name + '-ui'
+  image:
+    #override:
+    repository: quay.io/redhat-cop/babylon-catalog-ui
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: "256Mi"
+    limits:
+      cpu: "1"
+      memory: "256Mi"
 
 oauthProxy:
-  cookieSecret: SECRET
-  image: openshift/oauth-proxy:latest
+  name: # default use chart name + '-oauth-proxy'
+  # Cookie secret should be 32 bits long
+  cookieSecret: abcdefghijklmnopqrstuvwxyz012345
+  image:
+    #override:
+    pullPolicy: Always
+    repository: openshift/oauth-proxy
+    tag: latest
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: "256Mi"
+    limits:
+      cpu: "1"
+      memory: "256Mi"
 
 redis:
   name: # default use chart name + '-redis'
   deploy: true
   password:
   generatePassword: true
-  image: image-registry.openshift-image-registry.svc:5000/openshift/redis:5-el8
+  image:
+    #override:
+    pullPolicy: Always
+    repository: image-registry.openshift-image-registry.svc:5000/openshift/redis
+    tag: 5-el8
   resources:
     requests:
       cpu: 100m
