@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "babylonCatalog.apiName" . }}
+  namespace: {{ include "babylonCatalog.namespaceName" . }}
+  labels:
+    {{- include "babylonCatalog.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylonCatalog.apiSelectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "babylonCatalog.apiSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "babylonCatalog.apiServiceAccountName" . }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: api
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylonCatalog.redisName" . }}
+              key: database-password
+        - name: REDIS_SERVER
+          value: {{ include "babylonCatalog.redisName" . }}
+        - name: REDIS_PORT
+          value: "6379"
+        - name: GUNICORN_PROCESSES
+          value: "{{ .Values.api.gunicorn.processes }}"
+        - name: GUNICORN_THREADS
+          value: "{{ .Values.api.gunicorn.threads }}"
+        image: {{ include "babylonCatalog.apiImage" . | quote }}
+        imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        {{- with .Values.api.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}

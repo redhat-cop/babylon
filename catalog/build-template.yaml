@@ -1,0 +1,81 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  annotations:
+    description: Babylon Admin Build
+  name: babylon-catalog-build
+
+parameters:
+- name: NAME
+  value: babylon-catalog
+- name: GIT_REPO
+  value: https://github.com/redhat-cop/babylon.git
+- name: GIT_REF
+  value: main
+- name: PYTHON_S2I_IMAGE
+  value: registry.access.redhat.com/ubi8/python-38:latest
+
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: ${NAME}-api
+  spec:
+    lookupPolicy:
+      local: false
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: ${NAME}-api
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}-api:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      contextDir: catalog/api
+      git:
+        uri: ${GIT_REPO}
+        ref: ${GIT_REF}
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: ${PYTHON_S2I_IMAGE}
+    triggers: []
+
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: ${NAME}-ui
+  spec:
+    lookupPolicy:
+      local: false
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: ${NAME}-ui
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}-ui:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      contextDir: catalog/ui
+      git:
+        uri: ${GIT_REPO}
+        ref: ${GIT_REF}
+    strategy:
+      type: Docker
+      dockerStrategy: {}
+    triggers: []

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "babylonCatalog.uiName" . }}
+  namespace: {{ include "babylonCatalog.namespaceName" . }}
+  labels:
+    {{- include "babylonCatalog.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.ui.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylonCatalog.uiSelectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "babylonCatalog.uiSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.ui.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ui.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ui.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: default
+      {{- with .Values.ui.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: ui
+        image: {{ include "babylonCatalog.uiImage" . | quote }}
+        imagePullPolicy: {{ .Values.ui.image.pullPolicy }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        {{- with .Values.ui.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
