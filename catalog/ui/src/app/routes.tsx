@@ -31,12 +31,20 @@ export interface IAppRouteGroup {
 export type AppRouteConfig = IAppRoute | IAppRouteGroup;
 
 const routes: AppRouteConfig[] = [
+/* Dashboard not yet designed, but should include service status and alerts
   {
     component: Dashboard,
     exact: true,
     label: 'Dashboard',
     path: '/',
     title: 'RHPDS | Dashboard',
+  },
+*/
+  {
+    component: Catalog,
+    exact: true,
+    path: '/',
+    title: 'RHPDS | Catalog',
   },
   {
     // Catalog item from specific namespace
@@ -57,6 +65,7 @@ const routes: AppRouteConfig[] = [
     path: '/services',
     title: 'RHPDS | Services',
   },
+/*
   {
     component: Support,
     exact: true,
@@ -65,6 +74,7 @@ const routes: AppRouteConfig[] = [
     path: '/support',
     title: 'RHPDS | Support Page',
   },
+*/
 ];
 
 // a custom hook for sending focus to the primary content container

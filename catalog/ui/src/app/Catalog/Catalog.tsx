@@ -399,13 +399,14 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const catalogItemCards = filteredCatalogItems.map(
     catalogItem => (
       <Link
+        className="rhpds-catalog-item-card-link"
         key={catalogItem.metadata.uid}
         to={{
           pathname: '/catalog/' + catalogItem.metadata.namespace + '/' + catalogItem.metadata.name,
           state: { fromCatalog: true },
         }}
       >
-        <CardHeader>
+        <CardHeader className="rhpds-catalog-item-card-header">
           <CatalogItemIcon icon={icon(catalogItem)} />
           <div>
             <div>

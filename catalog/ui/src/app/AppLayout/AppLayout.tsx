@@ -1,17 +1,31 @@
 import * as React from 'react';
-import { NavLink, useLocation, useHistory } from 'react-router-dom';
+import './app-layout.css';
+
 import {
+  getApiSession,
+} from '@app/api';
+
+import { NavLink, useLocation, useHistory } from 'react-router-dom';
+
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownToggle,
   Nav,
   NavList,
   NavItem,
   NavExpandable,
   Page,
   PageHeader,
+  PageHeaderTools,
   PageSidebar,
   SkipToContent
 } from '@patternfly/react-core';
+
+import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
+
 import { routes, IAppRoute, IAppRouteGroup } from '@app/routes';
-import logo from '@app/bgimages/Patternfly-Logo.svg';
+import logo from '@app/bgimages/RHPDS-Logo.svg';
 
 interface IAppLayout {
   children: React.ReactNode;
@@ -19,8 +33,10 @@ interface IAppLayout {
 
 const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [isNavOpen, setIsNavOpen] = React.useState(true);
+  const [isUserControlDropdownOpen, setUserControlDropdownOpen] = React.useState(false);
   const [isMobileView, setIsMobileView] = React.useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = React.useState(false);
+  const [sessionUserName, setSessionUserName] = React.useState('');
   const onNavToggleMobile = () => {
     setIsNavOpenMobile(!isNavOpenMobile);
   };
@@ -31,19 +47,49 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     setIsMobileView(props.mobileView);
   };
 
+  async function determineSessionUserName() {
+    const session = await getApiSession();
+    setSessionUserName(session.user);
+  }
+
+  React.useEffect(() => {
+    determineSessionUserName();
+  }, []);
+
   function LogoImg() {
     const history = useHistory();
     function handleClick() {
       history.push('/');
     }
     return (
-      <img src={logo} onClick={handleClick} alt="PatternFly Logo" />
+      <img src={logo} onClick={handleClick} alt="Red Hat Product Demo System Logo" className="rhpds-logo" />
     );
   }
+
+  const UserControlDropdownItems = [
+    <DropdownItem key="logout" href="/oauth/sign_in">Log out</DropdownItem>,
+  ];
+
+  const HeaderTools = (
+    <PageHeaderTools>
+      <Dropdown
+        className="rhpds-user-controls"
+        isOpen={isUserControlDropdownOpen}
+        dropdownItems={UserControlDropdownItems}
+        toggle={
+          <DropdownToggle
+            onToggle={() => setUserControlDropdownOpen(isOpen => !isOpen)}
+            toggleIndicator={CaretDownIcon}
+          >{sessionUserName}</DropdownToggle>
+        }
+      />
+    </PageHeaderTools>
+  );
 
   const Header = (
     <PageHeader
       logo={<LogoImg />}
+      headerTools={HeaderTools}
       showNavToggle
       isNavOpen={isNavOpen}
       onNavToggle={isMobileView ? onNavToggleMobile : onNavToggle}

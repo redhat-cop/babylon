@@ -60,7 +60,40 @@
   font-weight: bold;
 }
 
-.rhpds-catalog-box-items {
+.rhpds-catalog-box.pf-c-card .pf-c-sidebar__panel .pf-c-tabs {
+  margin-bottom: 20px;
+}
+
+.rhpds-catalog-box.pf-c-card .pf-c-sidebar__panel .pf-c-form__group {
+  margin-left: 10px;
+}
+
+.rhpds-catalog-box.pf-c-card .pf-c-sidebar__panel .pf-c-form__group-label {
+  padding-bottom: 1px;
+}
+
+.rhpds-catalog-box.pf-c-card .pf-c-sidebar__panel .pf-c-form__group-label .pf-c-form__label-text {
+  text-transform: capitalize;
+}
+
+.rhpds-catalog-item-card-header.pf-c-card__header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 !important;
+}
+
+.rhpds-catalog-box.pf-c-card .rhpds-catalog-item-icon {
+  height: 50px;
+  width: 50px;
+  box-sizing: border-box;
+}
+
+.rhpds-catalog-box-items.pf-c-page__main-section > a:hover {
+  box-shadow: var(--pf-c-card--m-hoverable--hover--BoxShadow);
+  text-decoration: none;
+}
+
+.rhpds-catalog-box-items.pf-c-page__main-section {
   background-color: var(--pf-global--palette--black-200);
   display: grid;
   gap: 25px 25px;
@@ -69,7 +102,7 @@
   min-height: 500px;
 }
 
-.rhpds-catalog-box-items > a {
+.rhpds-catalog-box-items.pf-c-page__main-section > a {
   color: var(--pf-global--Color--100);
   display: block;
   background-color: white;
@@ -77,39 +110,6 @@
   height: 220px;
   width: 280px;
   padding: 18px 24px;
-}
-
-.rhpds-catalog-box-items > a:hover {
-  box-shadow: var(--pf-c-card--m-hoverable--hover--BoxShadow);
-  text-decoration: none;
-}
-
-.rhpds-catalog-box .pf-c-sidebar__panel .pf-c-tabs {
-  margin-bottom: 20px;
-}
-
-.rhpds-catalog-box .pf-c-sidebar__panel .pf-c-form__group {
-  margin-left: 10px;
-}
-
-.rhpds-catalog-box .pf-c-sidebar__panel .pf-c-form__group-label {
-  padding-bottom: 1px;
-}
-
-.rhpds-catalog-box .pf-c-sidebar__panel .pf-c-form__group-label .pf-c-form__label-text {
-  text-transform: capitalize;
-}
-
-.rhpds-catalog-box .pf-c-card__header {
-  display: flex;
-  justify-content: space-between;
-  padding: 0;
-}
-
-.rhpds-catalog-box .rhpds-catalog-item-icon {
-  height: 50px;
-  width: 50px;
-  box-sizing: border-box;
 }
 
 .rhpds-catalog-item-title {
