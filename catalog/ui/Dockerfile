@@ -1,7 +1,8 @@
 FROM node:15.11.0-alpine AS builder
 WORKDIR /build
 COPY . /build
-RUN npm run build
+RUN npm install rimraf && \
+    npm run build
 
 FROM registry.access.redhat.com/ubi8/nginx-118:latest
 
