@@ -84,6 +84,7 @@
     "@patternfly/react-icons": "^4.7.22",
     "@patternfly/react-styles": "^4.7.22",
     "asciidoctor": "^2.2.3",
+    "dompurify": "^2.2.8",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-router-last-location": "^2.0.1",
