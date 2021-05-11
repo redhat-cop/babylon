@@ -1,9 +1,9 @@
 {
-  "name": "patternfly-seed",
+  "name": "babylon-catalog-ui",
   "version": "0.0.2",
   "description": "An open source build scaffolding utility for web apps.",
-  "repository": "https://github.com/patternfly/patternfly-react-seed.git",
-  "homepage": "https://patternfly-react-seed.surge.sh",
+  "repository": "https://github.com/redhat-cop/babylon.git",
+  "homepage": "https://github.com/redhat-cop/babylon",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -84,6 +84,7 @@
     "@patternfly/react-icons": "^4.7.22",
     "@patternfly/react-styles": "^4.7.22",
     "asciidoctor": "^2.2.3",
+    "dompurify": "^2.2.8",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-router-last-location": "^2.0.1",

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as asciidoctor from 'asciidoctor';
+
 import './catalog.css';
 
 import {
@@ -53,6 +53,10 @@ import {
   listNamespacedCustomObject
 } from '@app/api';
 
+import {
+  renderAsciiDoc
+} from '@app/util';
+
 import { CatalogItemIcon } from './CatalogItemIcon';
 import { CatalogItemHealthDisplay } from './CatalogItemHealthDisplay';
 import { CatalogItemRating } from './CatalogItemRating';
@@ -82,7 +86,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   const [catalogItems, setCatalogItems] = React.useState({});
   const [activeCategory, setActiveCategory] = React.useState('all');
-  const [selectedAttributeFilters, setSelectedAttributeFilters] = React.useState({});
+  const [selectedLabelFilters, setSelectedLabelFilters] = React.useState({});
   const [keywordSearchValue, setKeywordSearchValue] = React.useState('');
 
   const selectedCatalogItem = (
@@ -204,7 +208,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   function onAttributeFilterChange(checked: boolean, event): void {
     const attributeFilterIdParts = event.target.id.split('/');
-    setSelectedAttributeFilters(value => {
+    setSelectedLabelFilters(value => {
       const ret = JSON.parse(JSON.stringify(value));
       if (ret[attributeFilterIdParts[0]]) {
         ret[attributeFilterIdParts[0]][attributeFilterIdParts[1]] = ret[attributeFilterIdParts[0]][attributeFilterIdParts[1]] ? false : true;
@@ -214,6 +218,15 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       return ret;
     });
   }
+
+  const descriptionDiv = selectedCatalogItem ? (
+    <div
+      className="rhpds-catalog-item-details-description"
+      dangerouslySetInnerHTML={{
+        __html: renderAsciiDoc(description(selectedCatalogItem), {allowIFrame: true})
+      }}
+    />
+  ) : null;
 
   const selectedCatalogItemDisplay = selectedCatalogItem ? (
     <DrawerPanelContent
@@ -232,7 +245,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           <DrawerCloseButton onClick={unselectCatalogItem} />
         </DrawerActions>
       </DrawerHead>
-      <PageSection variant={PageSectionVariants.light}>
+      <PageSection variant={PageSectionVariants.light} className="rhpds-catalo-item-details-actions">
         <Button aria-label="Action" onClick={requestCatalogItem}>
           Request
         </Button>
@@ -250,10 +263,25 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
               <CatalogItemHealthDisplay catalogItem={selectedCatalogItem} />
             </DescriptionListDescription>
 
-            <DescriptionListTerm>Provider</DescriptionListTerm>
-            <DescriptionListDescription>
-              { provider(selectedCatalogItem) }
-            </DescriptionListDescription>
+            { Object.keys(selectedCatalogItem.metadata.labels)
+              .filter(label => {
+                if (!label.startsWith('babylon.gpte.redhat.com/')) {
+                  return false;
+                }
+                const attr = label.substring(24);
+                return !['category'].includes(attr);
+              })
+              .map(label => {
+                const attr = label.substring(24);
+                const value = selectedCatalogItem.metadata.labels[label];
+                return (
+                  <DescriptionListGroup key={attr}>
+                    <DescriptionListTerm>{attr.replace('_', ' ')}</DescriptionListTerm>
+                    <DescriptionListDescription>{value}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                );
+              })
+            }
 
             <DescriptionListTerm>Created At</DescriptionListTerm>
             <DescriptionListDescription>
@@ -283,7 +311,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         </div>
         <div className="rhpds-catalog-item-details-body-content">
           <div className="rhpds-heading">Description</div>
-          <div dangerouslySetInnerHTML={{__html: asciidoctor().convert(description(selectedCatalogItem))}} />
+          { descriptionDiv }
         </div>
       </PageSection>
     </DrawerPanelContent>
@@ -331,10 +359,10 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       }
     }
 
-    for (const attr in selectedAttributeFilters) {
+    for (const attr in selectedLabelFilters) {
       let attrMatch = null;
-      for (const val in selectedAttributeFilters[attr]) {
-        if(selectedAttributeFilters[attr][val]) {
+      for (const val in selectedLabelFilters[attr]) {
+        if(selectedLabelFilters[attr][val]) {
           if (attrMatch === null) {
             attrMatch = false;
           }
@@ -367,7 +395,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     return av < bv ? -1 : av > bv ? 1 : 0;
   })
 
-  function extractAttributeFilters (catalogItems) {
+  function extractLabelFilters (catalogItems) {
     const ret = {};
     for (let i=0; i < catalogItems.length; ++i) {
       const ci = availableCatalogItems[i];
@@ -386,7 +414,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         } else {
           ret[attr][value] = {
             count: 1,
-            selected: selectedAttributeFilters[attr] && selectedAttributeFilters[attr][value],
+            selected: selectedLabelFilters[attr] && selectedLabelFilters[attr][value],
           }
         }
       }
@@ -394,7 +422,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     return ret;
   }
 
-  const attributeFilters = extractAttributeFilters(availableCatalogItems);
+  const labelFilters = extractLabelFilters(availableCatalogItems);
 
   const catalogItemCards = filteredCatalogItems.map(
     catalogItem => (
@@ -422,7 +450,10 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         <CardBody>
           <div className="rhpds-catalog-item-title">{displayName(catalogItem)}</div>
           <div className="rhpds-catalog-item-subtitle">provided by {provider(catalogItem)}</div>
-          <div className="rhpds-catalog-item-description">{description(catalogItem)}</div>
+          <div
+            className="rhpds-catalog-item-description"
+            dangerouslySetInnerHTML={{__html: renderAsciiDoc(description(catalogItem))}}
+          />
         </CardBody>
       </Link>
     )
@@ -458,12 +489,12 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                       { categories.map(cat => renderCategoryTab(cat)) }
                     </Tabs>
                     <Form>
-                    { Object.keys(attributeFilters).sort().map(attr => (
-                      <FormGroup key={attr} label={attr} fieldId={attr}>
-                      { Object.keys(attributeFilters[attr]).sort().map(val => (
+                    { Object.keys(labelFilters).sort().map(attr => (
+                      <FormGroup key={attr} label={attr.replace('_', ' ')} fieldId={attr}>
+                      { Object.keys(labelFilters[attr]).sort().map(val => (
                         <Checkbox id={attr + '/' + val} key={attr + '/' + val}
-                          label={val + ' (' + attributeFilters[attr][val].count + ')'}
-                          isChecked={attributeFilters[attr][val].selected}
+                          label={val + ' (' + labelFilters[attr][val].count + ')'}
+                          isChecked={labelFilters[attr][val].selected}
                           onChange={onAttributeFilterChange}
                         />
                       ))}
