@@ -1,0 +1,20 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: babylon-catalog
+    app.kubernetes.io/version: 0.0.1
+    helm.sh/chart: babylonCatalog-0.0.1
+  name: babylon-catalog
+  namespace: babylon
+spec:
+  host: babylon-catalog-babylon.apps.babydev.dev.open.redhat.com
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: reencrypt
+  to:
+    kind: Service
+    name: babylon-catalog-oauth-proxy
+    weight: 100
+  wildcardPolicy: None

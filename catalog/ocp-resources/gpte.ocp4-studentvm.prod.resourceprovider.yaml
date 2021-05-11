@@ -1,0 +1,53 @@
+apiVersion: poolboy.gpte.redhat.com/v1
+kind: ResourceProvider
+metadata:
+  name: gpte.ocp4-studentvm.prod
+  namespace: poolboy
+spec:
+  override:
+    apiVersion: anarchy.gpte.redhat.com/v1
+    kind: AnarchySubject
+    metadata:
+      namespace: anarchy-operator
+      generateName: gpte.ocp4-studentvm.prod-
+    spec:
+      governor: gpte.ocp4-studentvm.prod
+      vars:
+        babylon_user_email: >-
+          {{: requester_identity.extra.email | default(None) if requester_identity else None :}}
+        babylon_user_fullname: >-
+          {{: requester_identity.extra.name | default(None) if requester_identity else None :}}
+        babylon_username: >-
+          {{: requester_user.metadata.name | default(None) if requester_user else None :}}
+        healthy: true
+        job_vars:
+          guid: >-
+            {{: resource_handle.metadata.name[5:] if resource_handle.metadata.name.startswith('guid-') else resource_handle.metadata.name :}}
+  updateFilters:
+  - pathMatch: /spec/vars/desired_state
+  validation:
+    openAPIV3Schema:
+      additionalProperties: false
+      required:
+      - spec
+      properties:
+        spec:
+          type: object
+          required:
+          - vars
+          additionalProperties: false
+          properties:
+            vars:
+              type: object
+              additionalProperties: false
+              properties:
+                desired_state:
+                  description: >-
+                    Set to "stopped" to immediately stop the environment after provision.
+                  x-formLabel: Desired State
+                  x-formOrder: 9999
+                  type: string
+                  default: started
+                  enum:
+                  - started
+                  - stopped

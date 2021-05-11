@@ -1,19 +1,5 @@
 import * as React from 'react';
-
-// Use asciidoctor to translate descriptions
 import * as asciidoctor from 'asciidoctor';
-
-// Use dompurify to make asciidoctor output safe
-import dompurify from 'dompurify';
-
-// Force all links to target new window and not pass unsafe attributes
-dompurify.addHook('afterSanitizeAttributes', function(node) {
-  if (node.tagName == 'A' && node.getAttribute('href')) {
-    node.setAttribute('target', '_blank');
-    node.setAttribute('rel', 'noopener noreferrer');
-  }
-});
-
 import './catalog.css';
 
 import {
@@ -96,7 +82,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   const [catalogItems, setCatalogItems] = React.useState({});
   const [activeCategory, setActiveCategory] = React.useState('all');
-  const [selectedLabelFilters, setSelectedLabelFilters] = React.useState({});
+  const [selectedAttributeFilters, setSelectedAttributeFilters] = React.useState({});
   const [keywordSearchValue, setKeywordSearchValue] = React.useState('');
 
   const selectedCatalogItem = (
@@ -218,7 +204,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   function onAttributeFilterChange(checked: boolean, event): void {
     const attributeFilterIdParts = event.target.id.split('/');
-    setSelectedLabelFilters(value => {
+    setSelectedAttributeFilters(value => {
       const ret = JSON.parse(JSON.stringify(value));
       if (ret[attributeFilterIdParts[0]]) {
         ret[attributeFilterIdParts[0]][attributeFilterIdParts[1]] = ret[attributeFilterIdParts[0]][attributeFilterIdParts[1]] ? false : true;
@@ -228,22 +214,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       return ret;
     });
   }
-
-  const descriptionDiv = selectedCatalogItem ? (
-    <div
-      className="rhpds-catalog-item-details-description"
-      dangerouslySetInnerHTML={{
-        __html: dompurify.sanitize(
-          asciidoctor().convert(description(selectedCatalogItem)),
-          {
-            ADD_TAGS: ["iframe"],
-            ADD_ATTR: ['allowfullscreen', 'frameborder'],
-          }
-        )
-        //__html: asciidoctor().convert(description(selectedCatalogItem)))
-      }}
-    />
-  ) : null;
 
   const selectedCatalogItemDisplay = selectedCatalogItem ? (
     <DrawerPanelContent
@@ -262,7 +232,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           <DrawerCloseButton onClick={unselectCatalogItem} />
         </DrawerActions>
       </DrawerHead>
-      <PageSection variant={PageSectionVariants.light} className="rhpds-catalo-item-details-actions">
+      <PageSection variant={PageSectionVariants.light}>
         <Button aria-label="Action" onClick={requestCatalogItem}>
           Request
         </Button>
@@ -280,25 +250,10 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
               <CatalogItemHealthDisplay catalogItem={selectedCatalogItem} />
             </DescriptionListDescription>
 
-            { Object.keys(selectedCatalogItem.metadata.labels)
-              .filter(label => {
-                if (!label.startsWith('babylon.gpte.redhat.com/')) {
-                  return false;
-                }
-                const attr = label.substring(24);
-                return !['category'].includes(attr);
-              })
-              .map(label => {
-                const attr = label.substring(24);
-                const value = selectedCatalogItem.metadata.labels[label];
-                return (
-                  <DescriptionListGroup key={attr}>
-                    <DescriptionListTerm>{attr.replace('_', ' ')}</DescriptionListTerm>
-                    <DescriptionListDescription>{value}</DescriptionListDescription>
-                  </DescriptionListGroup>
-                );
-              })
-            }
+            <DescriptionListTerm>Provider</DescriptionListTerm>
+            <DescriptionListDescription>
+              { provider(selectedCatalogItem) }
+            </DescriptionListDescription>
 
             <DescriptionListTerm>Created At</DescriptionListTerm>
             <DescriptionListDescription>
@@ -328,7 +283,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         </div>
         <div className="rhpds-catalog-item-details-body-content">
           <div className="rhpds-heading">Description</div>
-          { descriptionDiv }
+          <div dangerouslySetInnerHTML={{__html: asciidoctor().convert(description(selectedCatalogItem))}} />
         </div>
       </PageSection>
     </DrawerPanelContent>
@@ -376,10 +331,10 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       }
     }
 
-    for (const attr in selectedLabelFilters) {
+    for (const attr in selectedAttributeFilters) {
       let attrMatch = null;
-      for (const val in selectedLabelFilters[attr]) {
-        if(selectedLabelFilters[attr][val]) {
+      for (const val in selectedAttributeFilters[attr]) {
+        if(selectedAttributeFilters[attr][val]) {
           if (attrMatch === null) {
             attrMatch = false;
           }
@@ -412,7 +367,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     return av < bv ? -1 : av > bv ? 1 : 0;
   })
 
-  function extractLabelFilters (catalogItems) {
+  function extractAttributeFilters (catalogItems) {
     const ret = {};
     for (let i=0; i < catalogItems.length; ++i) {
       const ci = availableCatalogItems[i];
@@ -431,7 +386,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         } else {
           ret[attr][value] = {
             count: 1,
-            selected: selectedLabelFilters[attr] && selectedLabelFilters[attr][value],
+            selected: selectedAttributeFilters[attr] && selectedAttributeFilters[attr][value],
           }
         }
       }
@@ -439,7 +394,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     return ret;
   }
 
-  const labelFilters = extractLabelFilters(availableCatalogItems);
+  const attributeFilters = extractAttributeFilters(availableCatalogItems);
 
   const catalogItemCards = filteredCatalogItems.map(
     catalogItem => (
@@ -503,12 +458,12 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                       { categories.map(cat => renderCategoryTab(cat)) }
                     </Tabs>
                     <Form>
-                    { Object.keys(labelFilters).sort().map(attr => (
-                      <FormGroup key={attr} label={attr.replace('_', ' ')} fieldId={attr}>
-                      { Object.keys(labelFilters[attr]).sort().map(val => (
+                    { Object.keys(attributeFilters).sort().map(attr => (
+                      <FormGroup key={attr} label={attr} fieldId={attr}>
+                      { Object.keys(attributeFilters[attr]).sort().map(val => (
                         <Checkbox id={attr + '/' + val} key={attr + '/' + val}
-                          label={val + ' (' + labelFilters[attr][val].count + ')'}
-                          isChecked={labelFilters[attr][val].selected}
+                          label={val + ' (' + attributeFilters[attr][val].count + ')'}
+                          isChecked={attributeFilters[attr][val].selected}
                           onChange={onAttributeFilterChange}
                         />
                       ))}
