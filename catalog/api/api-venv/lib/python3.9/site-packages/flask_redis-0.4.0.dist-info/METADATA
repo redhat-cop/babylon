@@ -1,0 +1,258 @@
+Metadata-Version: 2.1
+Name: flask-redis
+Version: 0.4.0
+Summary: A nice way to use Redis in your Flask app
+Home-page: https://github.com/underyx/flask-redis/
+Author: Bence Nagy
+Author-email: bence@underyx.me
+Maintainer: Bence Nagy
+Maintainer-email: bence@underyx.me
+License: UNKNOWN
+Download-URL: https://github.com/underyx/flask-redis/releases
+Keywords: flask,redis
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Flask
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*
+Description-Content-Type: text/markdown
+Requires-Dist: Flask (>=0.8)
+Requires-Dist: redis (>=2.7.6)
+Provides-Extra: dev
+Requires-Dist: coverage ; extra == 'dev'
+Requires-Dist: pytest ; extra == 'dev'
+Requires-Dist: pytest-mock ; extra == 'dev'
+Requires-Dist: pre-commit ; extra == 'dev'
+Provides-Extra: tests
+Requires-Dist: coverage ; extra == 'tests'
+Requires-Dist: pytest ; extra == 'tests'
+Requires-Dist: pytest-mock ; extra == 'tests'
+
+# flask-redis
+
+[![CircleCI](https://circleci.com/gh/underyx/flask-redis.svg?style=svg)](https://circleci.com/gh/underyx/flask-redis)
+[![codecov](https://codecov.io/gh/underyx/flask-redis/branch/master/graph/badge.svg)](https://codecov.io/gh/underyx/flask-redis)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/8f8297c1a5f542d49429c4837165984f)](https://www.codacy.com/app/bence/flask-redis?utm_source=github.com&utm_medium=referral&utm_content=underyx/flask-redis&utm_campaign=Badge_Grade)
+[![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/underyx/flask-redis.svg)](https://github.com/underyx/flask-redis/tags)
+
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flask-redis.svg)
+![Flask version support is 0.9+](https://img.shields.io/badge/flask-0.9%2B-blue.svg)
+![redis-py version support is 2.6+](https://img.shields.io/badge/redis--py-2.6%2B-blue.svg)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-black.svg)](https://github.com/ambv/black)
+
+A nice way to use Redis in your Flask app.
+
+## Configuration
+
+Start by installing the extension with `pip install flask-redis`.
+Once that's done, configure it within your Flask config.
+Set the URL of your Redis instance like this:
+
+```python
+REDIS_URL = "redis://:password@localhost:6379/0"
+```
+
+If you wanna connect to a Unix socket,
+you can specify it like `"unix://:password@/path/to/socket.sock?db=0"`.
+
+## Usage
+
+### Setup
+
+To add a Redis client to your application:
+
+```python
+from flask import Flask
+from flask_redis import FlaskRedis
+
+app = Flask(__name__)
+redis_client = FlaskRedis(app)
+```
+
+or if you prefer, you can do it the other way around:
+
+```python
+redis_client = FlaskRedis(app)
+def create_app():
+    app = Flask(__name__)
+    redis_client.init_app(app)
+    return app
+```
+
+### Accessing Redis
+
+The redis client you created above from `FlaskRedis` acts just like a regular `Redis` instance from the [`redis-py`](https://github.com/andymccurdy/redis-py) library:
+
+```python
+from my_app import redis_client
+
+@app.route('/')
+def index():
+    return redis_client.get('potato')
+```
+
+For detailed instructions on what methods you can use on the client,
+as well as how you can use advanced features
+such as Lua scripting, pipelines, and callbacks,
+please check the
+[redis-py documentation](https://redis-py.readthedocs.io/en/latest/).
+
+**Pro-tip:** The [redis-py](https://github.com/andymccurdy/redis-py)
+package uses the `redis` namespace, so it's nicer to name your Redis object something like `redis_client` instead of just `redis`.
+
+## Extra features in flask-redis
+
+### Custom providers
+
+Instead of the default `Redis` client from `redis-py`,
+you can provide your own.
+This can be useful to replace it with [mockredis](https://github.com/locationlabs/mockredis) for testing:
+
+```python
+from flask import Flask
+from flask_redis import FlaskRedis
+from mockredis import MockRedis
+
+
+def create_app():
+    app = Flask(__name__)
+    if app.testing:
+        redis_store = FlaskRedis.from_custom_provider(MockRedis)
+    else:
+        redis_store = FlaskRedis()
+    redis_store.init_app(app)
+    return app
+```
+
+## Contributing
+
+1. Check for open issues or open a fresh issue to start a discussion
+2. Fork [the repository](https://github.com/underyx/flask-redis) on GitHub.
+3. Send a pull request with your code!
+
+Merging will require a test which shows that the bug was fixed,
+or that the feature works as expected.
+Feel free to open a draft pull request though without such a test
+and ask for help with writing it if you're not sure how to.
+
+As [Bence](https://underyx.me) (the only maintainer) works full-time,
+please allow some time before your issue or pull request is handled.
+
+
+## Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+
+## 0.4.0 (2019-05-29)
+
+- Reorganized the module and rewrote everything other than the library code, mainly packaging and CI. There are no user-facing changes in behavior.
+
+## 0.3.0 (2016-07-18)
+
+- **Backwards incompatible:** The `FlaskRedis.init_app` method no
+  longer takes a `strict` parameter. Pass this flag when creating your
+  `FlaskRedis` instance, instead.
+- **Backwards incompatible:** The extension will now be registered
+  under the (lowercased) config prefix of the instance. The default
+  config prefix is `'REDIS'`, so unless you change that, you can still
+  access the extension via `app.extensions['redis']` as before.
+- **Backwards incompatible:** The default class has been changed to
+  `redis.StrictRedis`. You can switch back to the old `redis.Redis`
+  class by specifying `strict=False` in the `FlaskRedis` kwargs.
+- You can now pass all supported `Redis` keyword arguments (such as
+  `decode_responses`) to `FlaskRedis` and they will be correctly
+  passed over to the `redis-py` instance. Thanks, @giyyapan\!
+- Usage like `redis_store['key'] = value`, `redis_store['key']`, and
+  `del redis_store['key']` is now supported. Thanks, @ariscn\!
+
+## 0.2.0 (2015-04-15)
+
+- Made 0.1.0's deprecation warned changes final
+
+## 0.1.0 (2015-04-15)
+
+- **Deprecation:** Renamed `flask_redis.Redis` to
+  `flask_redis.FlaskRedis`. Using the old name still works, but emits
+  a deprecation warning, as it will be removed from the next version
+- **Deprecation:** Setting a `REDIS_DATABASE` (or equivalent) now
+  emits a deprecation warning as it will be removed in the version in
+  favor of including the database number in `REDIS_URL` (or
+  equivalent)
+- Added a `FlaskRedis.from_custom_provider(provider)` class method for
+  using any redis provider class that supports instantiation with a
+  `from_url` class method
+- Added a `strict` parameter to `FlaskRedis` which expects a boolean
+  value and allows choosing between using `redis.StrictRedis` and
+  `redis.Redis` as the defualt provider.
+- Made `FlaskRedis` register as a Flask extension through Flask's
+  extension API
+- Rewrote test suite in py.test
+- Got rid of the hacky attribute copying mechanism in favor of using
+  the `__getattr__` magic method to pass calls to the underlying
+  client
+
+## 0.0.6 (2014-04-09)
+
+- Improved Python 3 Support (Thanks underyx\!).
+- Improved test cases.
+- Improved configuration.
+- Fixed up documentation.
+- Removed un-used imports (Thanks underyx and lyschoening\!).
+
+## 0.0.5 (2014-02-17)
+
+- Improved suppot for the config prefix.
+
+## 0.0.4 (2014-02-17)
+
+- Added support for config_prefix, allowing multiple DBs.
+
+## 0.0.3 (2013-07-06)
+
+- Added TravisCI Testing for Flask 0.9/0.10.
+- Added Badges to README.
+
+## 0.0.2 (2013-07-06)
+
+- Implemented a very simple test.
+- Fixed some documentation issues.
+- Included requirements.txt for testing.
+- Included task file including some basic methods for tests.
+
+## 0.0.1 (2013-07-05)
+
+- Conception
+- Initial Commit of Package to GitHub.
+
+
+## Credits
+
+The `flask-redis` project is written and maintained
+by [Bence Nagy (underyx)](https://underyx.me).
+
+The project was originally created by [Rhys Elsmore](https://rhys.io/),
+who maintained it until the 0.0.6 release in 2014.
+His work was licensed under the Apache 2 license.
+The project has gone through a full rewrite since,
+but his work was essential as inspiration.
+Thanks, Rhys!
+
+A full list of contributors can be found on [GitHub's Contributors page](https://github.com/underyx/flask-redis/graphs/contributors)
+or you can obtain it on your own by running `git shortlog -sn`.
+
+

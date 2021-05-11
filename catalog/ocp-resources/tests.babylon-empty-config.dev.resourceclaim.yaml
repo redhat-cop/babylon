@@ -1,0 +1,12 @@
+apiVersion: poolboy.gpte.redhat.com/v1
+kind: ResourceClaim
+metadata:
+  generateName: tests.babylon-empty-config.dev-
+  namespace: user-jkupfere-redhat-com
+spec:
+  resources:
+  - provider:
+      apiVersion: poolboy.gpte.redhat.com/v1
+      kind: ResourceProvider
+      name: tests.babylon-empty-config.dev
+      namespace: poolboy
