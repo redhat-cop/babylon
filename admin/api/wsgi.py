@@ -10,6 +10,39 @@ import re
 import redis
 import string
 
+from urllib3.connection import HTTPHeaderDict
+
+class PatchedKubeApiClient(kubernetes.client.ApiClient):
+    """
+    Kubernetes API client with fixed support for multiple Impersonate-Group header values.
+    """
+    def request(
+        self, method, url,
+        query_params=None,
+        headers=None,
+        post_params=None,
+        body=None,
+        _preload_content=True,
+        _request_timeout=None
+    ):
+        """
+        Override of request method to handle multiple Impersonate-Group header values.
+        """
+        if headers and 'Impersonate-Group' in headers:
+            groups = headers['Impersonate-Group'].split("\t")
+            headers = HTTPHeaderDict([(k, v) for k, v in headers.items() if k != 'Impersonate-Group'])
+            for group in groups:
+                headers.add('Impersonate-Group', group)
+        return kubernetes.client.ApiClient.request(
+            self, method, url,
+            query_params=query_params,
+            headers=headers,
+            post_params=post_params,
+            body=body,
+            _preload_content=_preload_content,
+            _request_timeout=_request_timeout
+        )
+
 def random_string(length):
     return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(length)])
 
@@ -51,9 +84,9 @@ def proxy_user():
     return user
 
 def proxy_api_client(session):
+    api_client = PatchedKubeApiClient()
     if os.environ.get('ENVIRONMENT') == 'development':
-        return kubernetes.client.ApiClient()
-    api_client = kubernetes.client.ApiClient()
+        return api_client
     api_client.default_headers['Impersonate-User'] = session['user']
     api_client.default_headers['Impersonate-Group'] = session['groups']
     return api_client
@@ -128,7 +161,7 @@ def apis_proxy(path):
             flask.request.path,
             flask.request.method,
             auth_settings = ['BearerToken'],
-            collection_formats = {'Impersonate-Group': 'multi'},
+            collection_formats = {'Impersonate-Group': 'tsv'},
             body = flask.request.json,
             header_params = header_params,
             query_params = [ (k, v) for k, v in flask.request.args.items() ],
