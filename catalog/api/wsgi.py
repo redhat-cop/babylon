@@ -11,37 +11,37 @@ import redis
 import string
 
 from urllib3.connection import HTTPHeaderDict
-￼
+
 class PatchedKubeApiClient(kubernetes.client.ApiClient):
-￼    """
-￼    Kubernetes API client with fixed support for multiple Impersonate-Group header values.
-￼    """
-￼    def request(
-￼        self, method, url,
-￼        query_params=None,
-￼        headers=None,
-￼        post_params=None,
-￼        body=None,
-￼        _preload_content=True,
-￼        _request_timeout=None
-￼    ):
-￼        """
-￼        Override of request method to handle multiple Impersonate-Group header values.
-￼        """
-￼        if headers and 'Impersonate-Group' in headers:
-￼            groups = headers['Impersonate-Group'].split("\t")
-￼            headers = HTTPHeaderDict([(k, v) for k, v in headers.items() if k != 'Impersonate-Group'])
-￼            for group in groups:
-￼                headers.add('Impersonate-Group', group)
-￼        return kubernetes.client.ApiClient.request(
-￼            self, method, url,
-￼            query_params=query_params,
-￼            headers=headers,
-￼            post_params=post_params,
-￼            body=body,
-￼            _preload_content=_preload_content,
-￼            _request_timeout=_request_timeout
-￼        )
+    """
+    Kubernetes API client with fixed support for multiple Impersonate-Group header values.
+    """
+    def request(
+        self, method, url,
+        query_params=None,
+        headers=None,
+        post_params=None,
+        body=None,
+        _preload_content=True,
+        _request_timeout=None
+    ):
+        """
+        Override of request method to handle multiple Impersonate-Group header values.
+        """
+        if headers and 'Impersonate-Group' in headers:
+            groups = headers['Impersonate-Group'].split("\t")
+            headers = HTTPHeaderDict([(k, v) for k, v in headers.items() if k != 'Impersonate-Group'])
+            for group in groups:
+                headers.add('Impersonate-Group', group)
+        return kubernetes.client.ApiClient.request(
+            self, method, url,
+            query_params=query_params,
+            headers=headers,
+            post_params=post_params,
+            body=body,
+            _preload_content=_preload_content,
+            _request_timeout=_request_timeout
+        )
 
 def random_string(length):
     return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(length)])
