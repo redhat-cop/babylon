@@ -337,7 +337,9 @@ const Services: React.FunctionComponent<ServicesProps> = ({
                 { checkCanStop(resourceClaim) ? (
                   <p><OutlinedClockIcon/> Shutdown in <TimeInterval interval={10 * 60} /></p>
                 ): null }
-                <p><OutlinedClockIcon/> Retirement in <TimeInterval interval={3 * 24 * 60 * 60} /></p>
+		{ resourceClaim.status && resourceClaim.status.lifespan && resourceClaim.status.lifespan.end ? (
+                  <p><OutlinedClockIcon/> Retirement in <TimeInterval to={resourceClaim.status.lifespan.end} /></p>
+                ): null }
               </DataListCell>
             )]}
           />
