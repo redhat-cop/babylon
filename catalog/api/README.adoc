@@ -16,4 +16,4 @@ Login with `oc`, then start the local development server.
 ENVIRONMENT=development ./wsgi.py
 ---------------------------------
 
-The ReactJSs user interface is configured to proxy requests to the server on port 5000.
+The ReactJS user interface is configured to proxy requests to the server on port 5000.
