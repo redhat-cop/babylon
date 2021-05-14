@@ -1,19 +1,5 @@
 import * as React from 'react';
 
-// Use asciidoctor to translate descriptions
-import * as asciidoctor from 'asciidoctor';
-
-// Use dompurify to make asciidoctor output safe
-import dompurify from 'dompurify';
-
-// Force all links to target new window and not pass unsafe attributes
-dompurify.addHook('afterSanitizeAttributes', function(node) {
-  if (node.tagName == 'A' && node.getAttribute('href')) {
-    node.setAttribute('target', '_blank');
-    node.setAttribute('rel', 'noopener noreferrer');
-  }
-});
-
 import './catalog.css';
 
 import {
@@ -66,6 +52,10 @@ import {
   getApiSession,
   listNamespacedCustomObject
 } from '@app/api';
+
+import {
+  renderAsciiDoc
+} from '@app/util';
 
 import { CatalogItemIcon } from './CatalogItemIcon';
 import { CatalogItemHealthDisplay } from './CatalogItemHealthDisplay';
@@ -233,14 +223,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     <div
       className="rhpds-catalog-item-details-description"
       dangerouslySetInnerHTML={{
-        __html: dompurify.sanitize(
-          asciidoctor().convert(description(selectedCatalogItem)),
-          {
-            ADD_TAGS: ["iframe"],
-            ADD_ATTR: ['allowfullscreen', 'frameborder'],
-          }
-        )
-        //__html: asciidoctor().convert(description(selectedCatalogItem)))
+        __html: renderAsciiDoc(description(selectedCatalogItem), {allowIFrame: true})
       }}
     />
   ) : null;
@@ -467,7 +450,10 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         <CardBody>
           <div className="rhpds-catalog-item-title">{displayName(catalogItem)}</div>
           <div className="rhpds-catalog-item-subtitle">provided by {provider(catalogItem)}</div>
-          <div className="rhpds-catalog-item-description">{description(catalogItem)}</div>
+          <div
+            className="rhpds-catalog-item-description"
+            dangerouslySetInnerHTML={{__html: renderAsciiDoc(description(catalogItem))}}
+          />
         </CardBody>
       </Link>
     )

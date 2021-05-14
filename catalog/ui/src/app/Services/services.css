@@ -71,6 +71,6 @@
   line-height: 5pt;
 }
 
-.rhpds-service-schedule.pf-c-data-list__cell {
-  padding-top: 23pt;
+.rhpds-services .pf-c-description-list__group {
+  margin-top: 2pt;
 }

@@ -85,6 +85,7 @@
     "@patternfly/react-styles": "^4.7.22",
     "asciidoctor": "^2.2.3",
     "dompurify": "^2.2.8",
+    "parse-duration": "^1.0.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-router-last-location": "^2.0.1",
