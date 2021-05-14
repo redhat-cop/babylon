@@ -13,14 +13,14 @@ const TimeInterval: React.FunctionComponent<TimeIntervalProps> = ({
     interval = (Date.parse(to) - Date.now()) / 1000;
   }
 
-  if (interval > 2 * 24 * 60 * 60) {
-    return (<span>{ Math.floor(interval / 24 / 60 / 60) } days</span>);
-  } else if(interval > 2 * 60 * 60) {
-    return (<span>{ Math.floor(interval / 60 / 60) } hours</span>);
-  } else if(interval > 2 * 60) {
-    return (<span>{ Math.floor(interval / 60) } minutes</span>);
+  if (interval > 49 * 60 * 60) {
+    return (<span>{ Math.round(interval / 24 / 60 / 60) } days</span>);
+  } else if(interval > 120 * 60) {
+    return (<span>{ Math.round(interval / 60 / 60) } hours</span>);
+  } else if(interval > 200) {
+    return (<span>{ Math.round(interval / 60) } minutes</span>);
   } else {
-    return (<span>{ interval } seconds</span>);
+    return (<span>{ Math.round(interval) } seconds</span>);
   }
   const ts = new Date(Date.parse(timestamp)).toLocaleString();
   return (
