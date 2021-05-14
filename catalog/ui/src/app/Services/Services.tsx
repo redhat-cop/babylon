@@ -425,7 +425,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
                       { isSelected ? (
                         <GridItem span={11}>
                           <DescriptionList isHorizontal>
-                            { resourceState.spec.vars.provision_messages ? (
+                            { resourceState?.spec?.vars?.provision_messages ? (
                               <DescriptionListGroup key="user-info">
                                 <DescriptionListTerm>User Info</DescriptionListTerm>
                                 <DescriptionListDescription>
@@ -433,7 +433,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
                                 </DescriptionListDescription>
                               </DescriptionListGroup>
                             ) : null }
-                            { resourceState.spec.vars.provision_data ? (
+                            { resourceState?.spec?.vars?.provision_data ? (
                               <DescriptionListGroup key="user-data">
                                 <DescriptionListTerm>User Data</DescriptionListTerm>
                                 <DescriptionListDescription>
