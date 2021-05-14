@@ -231,6 +231,9 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     const data = {
       spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
     }
+    if (!data.spec.lifespan) {
+      data.spec.lifespan = {};
+    }
     data.spec.lifespan.end = endDate.toISOString().split('.')[0] + "Z";
 
     await patchNamespacedCustomObject(
