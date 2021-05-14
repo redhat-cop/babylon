@@ -31,6 +31,7 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
   toggleContent,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const [scrolledIntoView, setScrolledIntoView] = React.useState(false);
   const currentInterval = interval * Math.round(current / interval);
   const currentItemId = `${idPrefix}${currentInterval}`;
 
@@ -39,8 +40,9 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
   React.useEffect(() => {
     if (isOpen) {
       const elem = document.getElementById(currentItemId);
-      if (elem) {
+      if (elem && !scrolledIntoView) {
         elem.scrollIntoView({ block: "center" });
+        setScrolledIntoView(true);
       }
     }
   })
@@ -61,7 +63,14 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
   }
 
   function toggleIsOpen(): void {
-    setIsOpen(isOpen => !isOpen)
+    setIsOpen(isOpen => {
+      if (isOpen) {
+        return false;
+      } else {
+        setScrolledIntoView(false);
+        return true;
+      }
+    })
   }
 
   function _onSelect(event): void {
