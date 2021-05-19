@@ -46,7 +46,7 @@ spec:
         - {{ (printf "--openshift-service-account=%s" (include "babylonCatalog.oauthProxyName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080/api/" (include "babylonCatalog.apiName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080/apis/" (include "babylonCatalog.apiName" .)) | quote }}
-        - {{ (printf "--upstream=http://%s:8080/session" (include "babylonCatalog.apiName" .)) | quote }}
+        - {{ (printf "--upstream=http://%s:8080/auth/" (include "babylonCatalog.apiName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080" (include "babylonCatalog.uiName" .)) | quote }}
         image: {{ include "babylonCatalog.oauthProxyImage" . }}
         imagePullPolicy: {{ .Values.oauthProxy.image.pullPolicy | quote }}

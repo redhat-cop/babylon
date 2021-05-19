@@ -1,5 +1,13 @@
 import * as React from 'react';
 
+import {
+  useSelector,
+} from 'react-redux';
+
+import {
+  selectCatalogNamespaces,
+} from '@app/store/authSlice';
+
 import './catalog.css';
 
 import {
@@ -76,6 +84,8 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const catalogNamespaceRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/:namespace');
   const catalogItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/:namespace/:name');
 
+  const authCatalogNamespaces = useSelector(selectCatalogNamespaces);
+
   const catalogNamespace = (
     catalogItemRouteMatch ? catalogItemRouteMatch.params.namespace :
     catalogNamespaceRouteMatch ? catalogNamespaceRouteMatch.params.namespace : null
@@ -85,6 +95,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   );
 
   const [catalogItems, setCatalogItems] = React.useState({});
+  const [catalogNamespaces, setCatalogNamespaces] = React.useState([]);
   const [activeCategory, setActiveCategory] = React.useState('all');
   const [selectedLabelFilters, setSelectedLabelFilters] = React.useState({});
   const [keywordSearchValue, setKeywordSearchValue] = React.useState('');
@@ -102,16 +113,22 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     });
   }
 
-  async function refreshCatalog(): void {
-    const session = await getApiSession();
-    session.catalogNamespaces.forEach(namespace => {
-      refreshCatalogFromNamespace(namespace);
-    })
+  async function refreshCatalog(namespaces): void {
+    if (namespaces) {
+      namespaces.forEach(namespace => {
+        refreshCatalogFromNamespace(namespace);
+      })
+    }
   }
 
-  React.useEffect(() => {
-    refreshCatalog();
-  }, []);
+  if (catalogNamespaces != authCatalogNamespaces) {
+    console.log("Refreshing");
+    setCatalogItems({});
+    setCatalogNamespaces(authCatalogNamespaces);
+    refreshCatalog(authCatalogNamespaces);
+  } else {
+    console.log(authCatalogNamespaces);
+  }
 
   function badge(catalogItem): string {
     if (catalogItem.metadata.labels) {

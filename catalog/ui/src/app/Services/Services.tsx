@@ -1,4 +1,13 @@
 import * as React from 'react';
+
+import {
+  useSelector,
+} from 'react-redux';
+
+import {
+  selectUserNamespace,
+} from '@app/store/authSlice';
+
 import './services.css';
 const parseDuration = require('parse-duration');
 
@@ -75,6 +84,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
   );
 
   const [resourceClaims, setResourceClaims] = React.useState({});
+  const userNamespace = useSelector(selectUserNamespace);
 
   async function deleteResourceClaim(resourceClaim): void {
     await deleteNamespacedCustomObject(
@@ -91,13 +101,14 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     const resp = await listNamespacedCustomObject('poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims');
     setResourceClaims((state) => {
       const copy = Object.assign({}, state);
-      return Object.assign(copy, { [namespace]: resp.items })
+      return Object.assign(copy, { [namespace]: resp.items || [] })
     });
   }
 
   async function refreshResourceClaims(): void {
-    const session = await getApiSession();
-    refreshResourceClaimsFromNamespace(session.userNamespace.name);
+    if (userNamespace) {
+      refreshResourceClaimsFromNamespace(userNamespace.name);
+    }
   }
 
   React.useEffect(() => {
@@ -324,16 +335,16 @@ const Services: React.FunctionComponent<ServicesProps> = ({
             dataListCells={[(
               <DataListCell key="claim">
                 <Grid>
-                  <GridItem span={6}>
+                  <GridItem span={5}>
                     <Link to={resourceClaimLinkTo}>{catalogItemDisplayName(resourceClaim)}</Link>
                   </GridItem>
                   <GridItem span={5}>
                     <Link to={resourceClaimLinkTo}>{resourceClaim.metadata.name}</Link>
                   </GridItem>
-                  <GridItem span={1} rowSpan={2}>
+                  <GridItem span={2} rowSpan={2}>
                    <DeleteButton onClick={() => {if (confirm('Delete service request ' + resourceClaim.metadata.name + '?')) { deleteResourceClaim(resourceClaim)}}} />
                   </GridItem>
-                  <GridItem span={6}>
+                  <GridItem span={5}>
                     <DescriptionList isHorizontal>
                       <DescriptionListGroup>
                         <DescriptionListTerm>Requested On</DescriptionListTerm>
@@ -377,7 +388,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
 
                   return (
                     <Grid key={idx}>
-                      <GridItem span={6}>
+                      <GridItem span={5}>
                         <DescriptionList isHorizontal>
                           <DescriptionListGroup>
                             <DescriptionListTerm>Status</DescriptionListTerm>
@@ -410,7 +421,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
                           />
                         ) : null }
                       </GridItem>
-                      <GridItem span={1} rowSpan={2}>
+                      <GridItem span={2} rowSpan={2}>
                         { (startTime && stopTime && startTime < Date.now() && stopTime > Date.now()) ? (
                             <Button
                               variant="primary"

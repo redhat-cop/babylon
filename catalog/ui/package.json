@@ -83,13 +83,18 @@
     "@patternfly/react-core": "^4.106.2",
     "@patternfly/react-icons": "^4.7.22",
     "@patternfly/react-styles": "^4.7.22",
+    "@reduxjs/toolkit": "^1.5.1",
+    "@types/react-redux": "^7.1.16",
     "asciidoctor": "^2.2.3",
     "dompurify": "^2.2.8",
     "parse-duration": "^1.0.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
+    "react-redux": "^7.2.4",
     "react-router-last-location": "^2.0.1",
     "react-star-ratings": "^2.3.0",
+    "redux": "^4.1.0",
+    "reselect": "^4.0.0",
     "sirv-cli": "^1.0.10"
   }
 }

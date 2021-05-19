@@ -1,16 +1,33 @@
 import * as React from 'react';
 import './app-layout.css';
+import {
+  useDispatch,
+  useSelector,
+} from 'react-redux'
 
 import {
   getApiSession,
+  getUserInfo,
+  listClusterCustomObject,
+  clearImpersonateUser,
+  setAuthUser,
 } from '@app/api';
+
+import {
+  selectAuthUser,
+  selectImpersonateUser,
+} from '@app/store/authSlice';
 
 import { NavLink, useLocation, useHistory } from 'react-router-dom';
 
 import {
+  Button,
   Dropdown,
   DropdownItem,
+  DropdownPosition,
   DropdownToggle,
+  Modal,
+  ModalVariant,
   Nav,
   NavList,
   NavItem,
@@ -19,10 +36,12 @@ import {
   PageHeader,
   PageHeaderTools,
   PageSidebar,
+  SearchInput,
   SkipToContent
 } from '@patternfly/react-core';
 
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
+import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
 
 import { routes, IAppRoute, IAppRouteGroup } from '@app/routes';
 import logo from '@app/bgimages/RHPDS-Logo.svg';
@@ -36,7 +55,10 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = React.useState(false);
   const [isMobileView, setIsMobileView] = React.useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = React.useState(false);
-  const [sessionUserName, setSessionUserName] = React.useState('');
+  const [sessionInfo, setSessionInfo] = React.useState({});
+  const [users, setUsers] = React.useState([]);
+  const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState({});
+
   const onNavToggleMobile = () => {
     setIsNavOpenMobile(!isNavOpenMobile);
   };
@@ -47,13 +69,97 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     setIsMobileView(props.mobileView);
   };
 
-  async function determineSessionUserName() {
+  const dispatch = useDispatch();
+  const authUser = useSelector(selectAuthUser);
+  const impersonateUser = useSelector(selectImpersonateUser);
+
+  async function getUsers() {
+    const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users');
+    setUsers(resp.items);
+  }
+
+  async function waitForSession() {
     const session = await getApiSession();
-    setSessionUserName(session.user);
+    dispatch({
+      type: "auth/startSession",
+      payload: {
+        admin: session.admin || false,
+        user: session.user,
+        userNamespace: session.userNamespace,
+        catalogNamespaces: session.catalogNamespaces,
+      },
+    });
+
+    setSessionInfo({
+      admin: session.admin,
+      user: session.user,
+    })
+    if (session.admin) {
+      getUsers(session);
+    }
+  }
+
+  async function applyUserImpersonation() {
+    const user = userImpersonationDialogState.value;
+    const userInfo = await getUserInfo(user);
+    console.log(userInfo);
+    dispatch({
+      type: "auth/setImpersonateUser",
+      payload: {
+        user: user,
+        catalogNamespaces: userInfo.catalogNamespaces,
+        userNamespace: userInfo.userNamespace,
+      },
+    });
+    setUserImpersonationDialogState({
+      isOpen: false,
+      matchCount: 0,
+      value: "",
+    });
+  }
+
+  function closeUserImpersonationDialog() {
+    setUserImpersonationDialogState({
+      isOpen: false,
+      matchCount: 0,
+      value: "",
+    });
+  }
+
+  function openUserImpersonationDialog() {
+    setUserImpersonationDialogState({
+      isOpen: true,
+      matchCount: 0,
+      value: "",
+    });
+  }
+
+  function clearUserImpersonation() {
+    dispatch({
+      type: "auth/clearImpersonateUser",
+    });
+    setUserControlDropdownOpen(false);
+  }
+
+  function onUserImpersonationSearchInputChange(value: string) {
+    const filteredUsers = users.filter(user => user.metadata.name.startsWith(value));
+    setUserImpersonationDialogState({
+      isOpen: true,
+      matchCount: filteredUsers.length,
+      value: filteredUsers.length == 1 ? filteredUsers[0].metadata.name : value,
+    });
+  }
+
+  function onUserImpersonationSearchInputClear() {
+    setUserImpersonationDialogState({
+      isOpen: true,
+      matchCount: 0,
+      value: "",
+    });
   }
 
   React.useEffect(() => {
-    determineSessionUserName();
+    waitForSession();
   }, []);
 
   function LogoImg() {
@@ -69,20 +175,55 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const UserControlDropdownItems = [
     <DropdownItem key="logout" href="/oauth/sign_in">Log out</DropdownItem>,
   ];
+  if (sessionInfo.admin) {
+    UserControlDropdownItems.push(
+      <DropdownItem key="impersonate" onClick={openUserImpersonationDialog}>Impersonate user</DropdownItem>
+    )
+    if (impersonateUser) {
+      UserControlDropdownItems.push(
+        <DropdownItem key="clear-impersonation" onClick={clearUserImpersonation}>Clear user impersonation</DropdownItem>
+      )
+    }
+  }
 
   const HeaderTools = (
     <PageHeaderTools>
       <Dropdown
-        className="rhpds-user-controls"
+        className={impersonateUser ? ['rhpds-user-controls', 'rhpds-warning'] : ['rhpds-user-controls']}
+        position={DropdownPosition.right}
         isOpen={isUserControlDropdownOpen}
         dropdownItems={UserControlDropdownItems}
         toggle={
           <DropdownToggle
             onToggle={() => setUserControlDropdownOpen(isOpen => !isOpen)}
             toggleIndicator={CaretDownIcon}
-          >{sessionUserName}</DropdownToggle>
+          >
+            {impersonateUser ? impersonateUser : authUser}
+          </DropdownToggle>
         }
       />
+      <Modal
+        variant={ModalVariant.small}
+        title="Impersonate User"
+        isOpen={userImpersonationDialogState.isOpen}
+        onClose={closeUserImpersonationDialog}
+        actions={[
+          <Button key="confirm" variant="primary" isDisabled={userImpersonationDialogState.matchCount != 1} onClick={applyUserImpersonation}>
+            Confirm
+          </Button>,
+          <Button key="cancel" variant="link" onClick={closeUserImpersonationDialog}>
+            Cancel
+          </Button>
+        ]}
+      >
+        <SearchInput
+          placeholder="Select user"
+          value={userImpersonationDialogState.value}
+          onChange={onUserImpersonationSearchInputChange}
+          onClear={onUserImpersonationSearchInputClear}
+          resultsCount={userImpersonationDialogState.matchCount}
+        />
+      </Modal>
     </PageHeaderTools>
   );
 

@@ -1,6 +1,31 @@
+import {
+  store
+} from '@app/store';
+import {
+  selectImpersonateUser
+} from '@app/store/authSlice';
+
+async function apiFetch(path:string, opt?:object): any {
+  const session = await getApiSession();
+
+  const options = opt ? JSON.parse(JSON.stringify(JSON.opt)) : {};
+  options.method = options.method || 'GET';
+  options.headers = options.headers || {};
+  options.headers.Authentication = `Bearer ${session.token}`;
+
+  const impersonateUser = selectImpersonateUser(store.getState());
+  if (impersonateUser) {
+    options.headers['Impersonate-User'] = impersonateUser;
+  }
+
+  const resp = await fetch(path, options);
+  // FIXME - Check response code
+  return resp;
+}
+
 function refreshApiSession(): void {
   window.apiSessionPromise = new Promise((resolve) => {
-    fetch('/session')
+    fetch('/auth/session')
     .then(response => response.json())
     .then(session => {
       if (window.apiSessionInterval) { clearInterval(window.apiSessionInterval) }
@@ -10,85 +35,91 @@ function refreshApiSession(): void {
   });
 }
 
-export function getApiSession(): Promise {
-  if (window.apiSessionPromise) { return window.apiSessionPromise }
-  refreshApiSession();
-  return window.apiSessionPromise;
+export async function getApiSession(): Promise {
+  if (!window.apiSessionPromise) {
+    refreshApiSession();
+  }
+  const session = await window.apiSessionPromise;
+  if (window.apiSessionImpersonateUser) {
+    session.impersonateUser = window.apiSessionImpersonateUser;
+  }
+  return session;
+}
+
+export async function getUserInfo(user): object {
+  const session = await getApiSession();
+  const resp = await fetch(
+    `/auth/users/${user}`,
+    {
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+      }
+    }
+  );
+  return await resp.json();
 }
 
 export async function createNamespacedCustomObject(group, version, namespace, plural, obj): any {
   const session = await getApiSession();
-  const resp = await fetch(
+  const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
     {
       method: 'POST',
       body: JSON.stringify(obj),
       headers: {
-        'Authentication': `Bearer ${session.token}`,
-	'Content-Type': 'application/json',
+        'Content-Type': 'application/json',
       }
     }
   );
-  // FIXME - Check response code
   return await resp.json();
 }
 
 export async function deleteNamespacedCustomObject(group, version, namespace, plural, name): any {
   const session = await getApiSession();
-  const resp = await fetch(
+  const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
     {
       method: 'DELETE',
-      headers: {
-        'Authentication': `Bearer ${session.token}`
-      }
     }
   );
-  // FIXME - Check response code
   return await resp.json();
 }
 
 export async function getNamespacedCustomObject(group, version, namespace, plural, name): any {
   const session = await getApiSession();
-  const resp = await fetch(
+  const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
-    {
-      headers: {
-        'Authentication': `Bearer ${session.token}`
-      }
-    }
   );
-  // FIXME - Check response code
+  return await resp.json();
+}
+
+export async function listClusterCustomObject(group, version, plural): any {
+  const session = await getApiSession();
+  const resp = await apiFetch(
+    `/apis/${group}/${version}/${plural}`,
+  );
   return await resp.json();
 }
 
 export async function listNamespacedCustomObject(group, version, namespace, plural): any {
   const session = await getApiSession();
-  const resp = await fetch(
+  const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}`,
-    {
-      headers: {
-        'Authentication': `Bearer ${session.token}`
-      }
-    }
   );
-  // FIXME - Check response code
   return await resp.json();
 }
 
 export async function patchNamespacedCustomObject(group, version, namespace, plural, name, patch, patchType='merge'): any {
   const session = await getApiSession();
-  const resp = await fetch(
+  const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
     {
       method: 'PATCH',
       body: JSON.stringify(patch),
       headers: {
-        'Authentication': `Bearer ${session.token}`,
-	'Content-Type': 'application/' + patchType + '-patch+json',
+        'Content-Type': 'application/' + patchType + '-patch+json',
       }
     }
   );
-  // FIXME - Check response code
   return await resp.json();
 }
