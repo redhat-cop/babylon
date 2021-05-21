@@ -50,7 +50,7 @@ const routes: AppRouteConfig[] = [
     // Catalog item from specific namespace
     component: CatalogRequest,
     exact: true,
-    path: '/catalog/:namespace/:name/request',
+    path: '/catalog/request/:namespace/:name',
     title: 'RHPDS | Catalog',
   },
   {

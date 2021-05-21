@@ -18,6 +18,7 @@ class MakeCatalogItemException(Exception):
 
 def create_catalog_item(
     name,
+    namespace,
     governors,
     category=None,
     description=None,
@@ -31,7 +32,7 @@ def create_catalog_item(
         return custom_objects_api.get_namespaced_custom_object(
             'babylon.gpte.redhat.com',
             'v1',
-            'babylon-catalog',
+            namespace,
             'catalogitems',
             name
         )
@@ -44,7 +45,7 @@ def create_catalog_item(
         'kind': 'CatalogItem',
         'metadata': {
             'name': name,
-            'namespace': 'babylon-catalog',
+            'namespace': namespace,
             'annotations': {
                 'babylon.gpte.redhat.com/description': description,
                 'babylon.gpte.redhat.com/displayName': display_name,
@@ -85,13 +86,14 @@ def create_catalog_item(
     return custom_objects_api.create_namespaced_custom_object(
         'babylon.gpte.redhat.com',
         'v1',
-        'babylon-catalog',
+        namespace,
         'catalogitems',
         catalog_item,
     )
 
 def define_catalog_item(
     name,
+    namespace,
     category=None,
     description=None,
     display_name=None,
@@ -118,6 +120,7 @@ def define_catalog_item(
 
     catalog_item = create_catalog_item(
         name=name,
+        namespace=namespace,
         category=category,
         description=description,
         display_name=display_name,
@@ -131,7 +134,7 @@ def define_catalog_item(
     custom_objects_api.patch_namespaced_custom_object_status(
         'babylon.gpte.redhat.com',
         'v1',
-        'babylon-catalog',
+        namespace,
         'catalogitems',
         name,
         {
@@ -281,6 +284,11 @@ def main():
         type=str,
     )
     argument_parser.add_argument(
+        '--namespace',
+        help='CatalogItem namespace',
+        type=str,
+    )
+    argument_parser.add_argument(
         '--product',
         help='Product label',
         type=str,
@@ -303,6 +311,7 @@ def main():
     argument_parser.add_argument(
         'name',
         help='CatalogItem name',
+        type=str,
     )
     arguments = argument_parser.parse_args()
 

@@ -24,9 +24,9 @@ module.exports = merge(common('development'), {
     overlay: true,
     open: true,
     proxy: {
-      "/session": "http://localhost:5000",
       "/api": "http://localhost:5000",
       "/apis": "http://localhost:5000",
+      "/auth": "http://localhost:5000",
     }
   },
   module: {

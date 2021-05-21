@@ -74,3 +74,19 @@
 .rhpds-services .pf-c-description-list__group {
   margin-top: 2pt;
 }
+
+.rhpds-project-select.pf-c-page__main-section {
+  padding: 5pt 15pt;
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+  display: flex;
+}
+
+.rhpds-project-select.pf-c-page__main-section .pf-c-dropdown__toggle {
+  color: var(--pf-global--palette--black-900);
+}
+
+
+.rhpds-project-select.pf-c-page__main-section .pf-c-dropdown__menu {
+  max-height: 500px;
+  overflow-y: scroll;
+}

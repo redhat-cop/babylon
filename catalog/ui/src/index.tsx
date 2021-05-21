@@ -2,6 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom";
 import App from '@app/index';
 
+import { Provider } from 'react-redux';
+import { store } from './app/store';
+
 if (process.env.NODE_ENV !== "production") {
   const config = {
     rules: [
@@ -16,4 +19,9 @@ if (process.env.NODE_ENV !== "production") {
   axe(React, ReactDOM, 1000, config);
 }
 
-ReactDOM.render(<App />, document.getElementById("root") as HTMLElement);
+ReactDOM.render(
+  <Provider store={store}>
+    <App />
+  </Provider>,
+  document.getElementById("root") as HTMLElement
+);

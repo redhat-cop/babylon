@@ -11,6 +11,7 @@ import {
   PlayIcon,
   PowerOffIcon,
   QuestionCircleIcon,
+  ExclamationCircleIcon,
   TrashIcon,
 } from '@patternfly/react-icons';
 
@@ -27,7 +28,9 @@ const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
   startTime,
   stopTime,
 }) => {
-  if (currentState === 'new') {
+  if (!currentState) {
+    return (<span className="rhpds-status-unknown"><QuestionCircleIcon/> Unknown</span>);
+  } else if (currentState === 'new') {
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> New</span>);
   } else if (currentState === 'provision-failed') {
     return (<span className="rhpds-status-failed"><ExclamationCircleIcon/> Provision Failed</span>);
@@ -55,8 +58,10 @@ const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
     return (<span className="rhpds-status-stopped"><PauseCircleIcon/> Stopped</span>);
   } else if (currentState === 'stopping') {
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> Stopping</span>);
+  } else if (currentState.endsWith('-failed')) {
+    return (<span className="rhpds-status-failed"><ExclamationCircleIcon/> {currentState}</span>);
   } else {
-    return (<span className="rhpds-status-unknown"><QuestionCircleIcon/>{currentState}</span>);
+    return (<span className="rhpds-status-unknown"><QuestionCircleIcon/> {currentState}</span>);
   }
 }
 

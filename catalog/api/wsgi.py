@@ -92,18 +92,25 @@ def proxy_api_client(session):
     api_client.default_headers['Impersonate-Group'] = session['groups']
     return api_client
 
-def start_user_session(user):
+def get_user_groups(user):
     user_groups = []
     for group in custom_objects_api.list_cluster_custom_object(
         'user.openshift.io', 'v1', 'groups'
     ).get('items', []):
         if user in group.get('users', []):
             user_groups.append(group['metadata']['name'])
+    return user_groups
+
+def start_user_session(user):
 
     session = {
         'user': user,
-        'groups': user_groups
+        'groups': get_user_groups(user),
     }
+
+    api_client = proxy_api_client(session)
+    if check_admin_access(api_client):
+        session['admin'] = True
 
     token = random_string(32)
     if redis_connection:
@@ -111,7 +118,7 @@ def start_user_session(user):
     else:
         session_cache[token] = session
 
-    return session, token
+    return api_client, session, token
 
 def get_user_session(proxy_user):
     authentication_header = flask.request.headers.get('Authentication')
@@ -136,6 +143,34 @@ def get_user_session(proxy_user):
             flask.abort(401, description='Invalid bearer token, user mismatch')
         return session
 
+def check_admin_access(api_client):
+    """
+    Check and return true if api_client is configured with babylon admin access.
+    Access is determined by whether the user can directly manage AnarchySubjects.
+    """
+    (data, status, headers) = api_client.call_api(
+        '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
+        'POST',
+        auth_settings = ['BearerToken'],
+        collection_formats = {'Impersonate-Group': 'tsv'},
+        body = {
+           "apiVersion": "authorization.k8s.io/v1",
+           "kind": "SelfSubjectAccessReview",
+           "spec": {
+             "resourceAttributes": {
+               "group": "anarchy.gpte.redhat.com",
+               "resource": "anarchysubjects",
+               "verb": "patch",
+             }
+           },
+           "status": {
+             "allowed": False
+           }
+        },
+        response_type = 'object',
+    )
+    return data.get('status', {}).get('allowed', False)
+
 def get_catalog_namespaces(api_client):
     namespaces = []
     for ns in core_v1_api.list_namespace(label_selector='babylon.gpte.redhat.com/catalog').items:
@@ -143,7 +178,7 @@ def get_catalog_namespaces(api_client):
             '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
             'POST',
             auth_settings = ['BearerToken'],
-            collection_formats = {'Impersonate-Group': 'multi'},
+            collection_formats = {'Impersonate-Group': 'tsv'},
             body = {
                "apiVersion": "authorization.k8s.io/v1",
                "kind": "SelfSubjectAccessReview",
@@ -169,6 +204,24 @@ def get_catalog_namespaces(api_client):
             })
     return namespaces
 
+def get_service_namespaces(api_client, user_namespace, user_is_admin):
+    namespaces = []
+
+    if user_is_admin:
+        for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid').items:
+            name = ns.metadata.name
+            requester = ns.metadata.annotations.get('openshift.io/requester')
+            display_name = ns.metadata.annotations.get('openshift.io/display-name', 'User ' + requester)
+            namespaces.append({
+                'name': name,
+                'displayName': display_name,
+                'requester': requester
+            })
+    elif user_namespace:
+        namespaces.append(user_namespace)
+
+    return namespaces
+
 def get_user_namespace(api_client, user):
     namespaces = []
 
@@ -178,32 +231,85 @@ def get_user_namespace(api_client, user):
     user_uid = user_resource['metadata']['uid']
 
     for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid=' + user_uid).items:
-        return { 'name': ns.metadata.name }
+        name = ns.metadata.name
+        requester = ns.metadata.annotations.get('openshift.io/requester')
+        display_name = ns.metadata.annotations.get('openshift.io/display-name', 'User ' + requester)
+        return {
+            'name': name,
+            'displayName': display_name,
+            'requester': requester
+        }
 
     return None
 
-@application.route("/session")
-def get_session():
+@application.route("/auth/session")
+def get_auth_session():
     user = proxy_user()
-    session, token = start_user_session(user)
-    api_client = proxy_api_client(session)
+    api_client, session, token = start_user_session(user)
     catalog_namespaces = get_catalog_namespaces(api_client)
+    user_is_admin = session.get('admin', False)
     user_namespace = get_user_namespace(api_client, user)
-    return flask.jsonify({
+    service_namespaces = get_service_namespaces(api_client, user_namespace, user_is_admin)
+    ret = {
+        "admin": user_is_admin,
         "user": user,
         "token": token,
         "catalogNamespaces": catalog_namespaces,
         "lifetime": session_lifetime,
+        "serviceNamespaces": service_namespaces,
         "userNamespace": user_namespace,
-    })
+    }
+
+    return flask.jsonify(ret)
+
+@application.route("/auth/users/<user_name>")
+def get_auth_users_info(user_name):
+    user = proxy_user()
+    session = get_user_session(user)
+    api_client = proxy_api_client(session)
+
+    if not check_admin_access(api_client):
+        flask.abort(403)
+
+    api_client.default_headers['Impersonate-User'] = user_name
+    api_client.default_headers['Impersonate-Group'] = get_user_groups(user_name)
+    user_is_admin = check_admin_access(api_client)
+
+    try:
+        user = custom_objects_api.get_cluster_custom_object(
+            'user.openshift.io', 'v1', 'users', user_name
+        )
+    except kubernetes.client.rest.ApiException as e:
+        if e.status == 404:
+            flask.abort(404)
+        else:
+            raise
+
+    catalog_namespaces = get_catalog_namespaces(api_client)
+    user_namespace = get_user_namespace(api_client, user_name)
+    service_namespaces = get_service_namespaces(api_client, user_namespace, user_is_admin)
+
+    ret = {
+        "admin": user_is_admin,
+        "user": user_name,
+        "catalogNamespaces": catalog_namespaces,
+        "serviceNamespaces": service_namespaces,
+        "userNamespace": user_namespace,
+    }
+    return flask.jsonify(ret)
 
 @application.route("/api/<path:path>", methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])
 @application.route("/apis/<path:path>", methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])
 def apis_proxy(path):
     user = proxy_user()
     session = get_user_session(user)
-
     api_client = proxy_api_client(session)
+
+    impersonate_user = flask.request.headers.get('Impersonate-User')
+    if impersonate_user and check_admin_access(api_client):
+        api_client.default_headers['Impersonate-User'] = impersonate_user
+        api_client.default_headers['Impersonate-Group'] = get_user_groups(impersonate_user)
+
     header_params = {}
     if flask.request.headers.get('Accept'):
         header_params['Accept'] = flask.request.headers['Accept']
@@ -214,7 +320,7 @@ def apis_proxy(path):
             flask.request.path,
             flask.request.method,
             auth_settings = ['BearerToken'],
-            collection_formats = {'Impersonate-Group': 'multi'},
+            collection_formats = {'Impersonate-Group': 'tsv'},
             body = flask.request.json,
             header_params = header_params,
             query_params = [ (k, v) for k, v in flask.request.args.items() ],

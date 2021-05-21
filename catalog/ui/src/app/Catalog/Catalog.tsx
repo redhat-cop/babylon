@@ -1,5 +1,14 @@
 import * as React from 'react';
 
+import {
+  useSelector,
+} from 'react-redux';
+
+import {
+  selectCatalogItems,
+  selectCatalogNamespaces,
+} from '@app/store';
+
 import './catalog.css';
 
 import {
@@ -29,6 +38,9 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
+  Dropdown,
+  DropdownItem,
+  DropdownToggle,
   Form,
   FormGroup,
   PageSection,
@@ -73,45 +85,28 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 }) => {
   const history = useHistory();
 
-  const catalogNamespaceRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/:namespace');
-  const catalogItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/:namespace/:name');
+  const catalogNamespaceRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/ns/:namespace');
+  const catalogNamespaceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/ns/:namespace/item/:name');
+  const catalogItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/item/:namespace/:name');
 
-  const catalogNamespace = (
-    catalogItemRouteMatch ? catalogItemRouteMatch.params.namespace :
-    catalogNamespaceRouteMatch ? catalogNamespaceRouteMatch.params.namespace : null
-  );
-  const catalogItemName = (
-    catalogItemRouteMatch ? catalogItemRouteMatch.params.name : null
-  );
+  const catalogItemNamespace = catalogNamespaceItemRouteMatch?.params.namespace || catalogItemRouteMatch?.params.namespace;
+  const catalogItemName = catalogNamespaceItemRouteMatch?.params.name || catalogItemRouteMatch?.params.name;
+  const catalogNamespaceName = catalogNamespaceItemRouteMatch?.params.namespace || catalogNamespaceRouteMatch?.params.namespace;
+  const catalogPath = catalogNamespaceName ? `/catalog/ns/${catalogNamespaceName}` : '/catalog';
 
-  const [catalogItems, setCatalogItems] = React.useState({});
+  const catalogItems = useSelector(selectCatalogItems);
+  const catalogNamespaces = useSelector(selectCatalogNamespaces);
+  const catalogNamespace = catalogNamespaceName ? (catalogNamespaces.find(ns => ns.name == catalogNamespaceName) || {name: catalogNamespaceName, displayName: catalogNamespaceName, description: ""}) : null;
+
   const [activeCategory, setActiveCategory] = React.useState('all');
-  const [selectedLabelFilters, setSelectedLabelFilters] = React.useState({});
+  const [catalogNamespaceSelectIsOpen, setCatalogNamespaceSelectIsOpen] = React.useState(false);
   const [keywordSearchValue, setKeywordSearchValue] = React.useState('');
+  const [selectedLabelFilters, setSelectedLabelFilters] = React.useState({});
 
   const selectedCatalogItem = (
-    catalogItemName && catalogItems[catalogNamespace]
-    ? catalogItems[catalogNamespace].find(catalogItem => catalogItem.metadata.name === catalogItemName) : null
+    catalogItemName && catalogItems[catalogItemNamespace]
+    ? catalogItems[catalogItemNamespace].find(catalogItem => catalogItem.metadata.name === catalogItemName) : null
   );
-
-  async function refreshCatalogFromNamespace(namespace): void {
-    const resp = await listNamespacedCustomObject('babylon.gpte.redhat.com', 'v1', namespace.name, 'catalogitems');
-    setCatalogItems((state) => {
-      const copy = Object.assign({}, state);
-      return Object.assign(copy, { [namespace.name]: resp.items })
-    });
-  }
-
-  async function refreshCatalog(): void {
-    const session = await getApiSession();
-    session.catalogNamespaces.forEach(namespace => {
-      refreshCatalogFromNamespace(namespace);
-    })
-  }
-
-  React.useEffect(() => {
-    refreshCatalog();
-  }, []);
 
   function badge(catalogItem): string {
     if (catalogItem.metadata.labels) {
@@ -189,7 +184,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   function requestCatalogItem(): void {
     history.push({
-      pathname: `/catalog/${catalogNamespace}/${catalogItemName}/request`,
+      pathname: `/catalog/request/${catalogItemNamespace}/${catalogItemName}`,
       state: { fromCatalog: true },
     });
   }
@@ -198,7 +193,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     if (location.state) {
       history.goBack();
     } else {
-      history.push('/catalog');
+      history.push(catalogPath);
     }
   }
 
@@ -318,7 +313,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   ) : null;
 
   const allCatalogItems = (
-    (catalogNamespace ? (catalogItems[catalogNamespace] || []) : Object.values(catalogItems).flat())
+    (catalogNamespaceName ? (catalogItems[catalogNamespaceName] || []) : Object.values(catalogItems).flat())
   );
 
   const availableCatalogItems = allCatalogItems.filter(ci => {
@@ -430,7 +425,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         className="rhpds-catalog-item-card-link"
         key={catalogItem.metadata.uid}
         to={{
-          pathname: '/catalog/' + catalogItem.metadata.namespace + '/' + catalogItem.metadata.name,
+          pathname: catalogNamespace ? `${catalogPath}/item/${catalogItem.metadata.name}` :  `${catalogPath}/item/${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
           state: { fromCatalog: true },
         }}
       >
@@ -472,6 +467,28 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       <DrawerContent panelContent={selectedCatalogItemDisplay}>
         {selectedCatalogItem ? (<Backdrop />) : null}
         <DrawerContentBody>
+          { (catalogNamespace || catalogNamespaces.length > 1) ? (
+            <PageSection variant={PageSectionVariants.light} className="rhpds-project-select">
+              <Dropdown isPlain
+                isOpen={catalogNamespaceSelectIsOpen}
+                toggle={
+                  <DropdownToggle onToggle={() => setCatalogNamespaceSelectIsOpen(v => !v)}>
+                    Catalog: {catalogNamespace ? catalogNamespace.displayName : "all catalogs"}
+                  </DropdownToggle>
+                }
+                dropdownItems={[
+                    <DropdownItem key="*"
+                      onClick={() => { setCatalogNamespaceSelectIsOpen(false); history.push("/catalog"); }}
+                    >- all catalogs -</DropdownItem>
+                  ].concat(catalogNamespaces.map(namespace =>
+                    <DropdownItem key={namespace.name}
+                      onClick={() => { setCatalogNamespaceSelectIsOpen(false); history.push(`/catalog/ns/${namespace.name}`) }}
+                    >{namespace.displayName}</DropdownItem>
+                  ))
+                }
+              />
+            </PageSection>
+          ) : null }
           <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-header">
             <Title headingLevel="h1" size="2xl">RHPDS Catalog</Title>
             <div>Select an item to request a new service, demo, or lab.</div>
