@@ -1,4 +1,5 @@
 import {
+  createAction,
   createReducer,
 } from '@reduxjs/toolkit';
 
@@ -37,8 +38,14 @@ export const authReducer = createReducer({}, {
   "auth/startSession": reduce_startSession,
 });
 
-// FIXME - action creators
 
+// Action creators
+export const actionClearImpersonateUser = createAction("auth/clearImpersonateUser");
+export const actionSetImpersonateUser = createAction("auth/setImpersonateUser");
+export const actionStartSession = createAction("auth/startSession");
+
+
+// Selectors
 export const selectActiveUser = createSelector(
   state => state.auth,
   auth => auth.impersonateUser || auth.authUser,

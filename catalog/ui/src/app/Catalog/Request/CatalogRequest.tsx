@@ -31,7 +31,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 }) => {
   const history = useHistory();
 
-  const catalogRequestRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/:namespace/:name/request');
+  const catalogRequestRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/request/:namespace/:name');
   const catalogNamespace = catalogRequestRouteMatch.params.namespace;
   const catalogItemName = catalogRequestRouteMatch.params.name;
 
@@ -99,7 +99,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', requestResourceClaim
     );
 
-    history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
+    history.push(`/services/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
   }
 
   const submitRequestEnabled = termsOfServiceAgreed && requestNameValid;

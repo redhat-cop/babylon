@@ -9,14 +9,16 @@ import {
   getApiSession,
   getUserInfo,
   listClusterCustomObject,
-  clearImpersonateUser,
-  setAuthUser,
 } from '@app/api';
 
 import {
+  actionClearImpersonation,
+  actionSetImpersonation,
+  actionStartSession,
+  selectAuthIsAdmin,
   selectAuthUser,
-  selectImpersonateUser,
-} from '@app/store/authSlice';
+  selectImpersonationUser,
+} from '@app/store';
 
 import { NavLink, useLocation, useHistory } from 'react-router-dom';
 
@@ -55,7 +57,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = React.useState(false);
   const [isMobileView, setIsMobileView] = React.useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = React.useState(false);
-  const [sessionInfo, setSessionInfo] = React.useState({});
   const [users, setUsers] = React.useState([]);
   const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState({});
 
@@ -70,8 +71,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   };
 
   const dispatch = useDispatch();
+  const authIsAdmin = useSelector(selectAuthIsAdmin);
   const authUser = useSelector(selectAuthUser);
-  const impersonateUser = useSelector(selectImpersonateUser);
+  const impersonateUser = useSelector(selectImpersonationUser);
 
   async function getUsers() {
     const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users');
@@ -80,20 +82,15 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   async function waitForSession() {
     const session = await getApiSession();
-    dispatch({
-      type: "auth/startSession",
-      payload: {
+    dispatch(
+      actionStartSession({
         admin: session.admin || false,
         user: session.user,
-        userNamespace: session.userNamespace,
         catalogNamespaces: session.catalogNamespaces,
-      },
-    });
-
-    setSessionInfo({
-      admin: session.admin,
-      user: session.user,
-    })
+        serviceNamespaces: session.serviceNamespaces,
+        userNamespace: session.userNamespace,
+      })
+    );
     if (session.admin) {
       getUsers(session);
     }
@@ -102,15 +99,14 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   async function applyUserImpersonation() {
     const user = userImpersonationDialogState.value;
     const userInfo = await getUserInfo(user);
-    console.log(userInfo);
-    dispatch({
-      type: "auth/setImpersonateUser",
-      payload: {
+    dispatch(
+      actionSetImpersonation({
         user: user,
         catalogNamespaces: userInfo.catalogNamespaces,
+        serviceNamespaces: userInfo.serviceNamespaces,
         userNamespace: userInfo.userNamespace,
-      },
-    });
+      })
+    );
     setUserImpersonationDialogState({
       isOpen: false,
       matchCount: 0,
@@ -135,9 +131,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   }
 
   function clearUserImpersonation() {
-    dispatch({
-      type: "auth/clearImpersonateUser",
-    });
+    dispatch(actionClearImpersonation());
     setUserControlDropdownOpen(false);
   }
 
@@ -175,7 +169,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const UserControlDropdownItems = [
     <DropdownItem key="logout" href="/oauth/sign_in">Log out</DropdownItem>,
   ];
-  if (sessionInfo.admin) {
+  if (authIsAdmin) {
     UserControlDropdownItems.push(
       <DropdownItem key="impersonate" onClick={openUserImpersonationDialog}>Impersonate user</DropdownItem>
     )

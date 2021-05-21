@@ -204,6 +204,24 @@ def get_catalog_namespaces(api_client):
             })
     return namespaces
 
+def get_service_namespaces(api_client, user_namespace, user_is_admin):
+    namespaces = []
+
+    if user_is_admin:
+        for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid').items:
+            name = ns.metadata.name
+            requester = ns.metadata.annotations.get('openshift.io/requester')
+            display_name = ns.metadata.annotations.get('openshift.io/display-name', 'User ' + requester)
+            namespaces.append({
+                'name': name,
+                'displayName': display_name,
+                'requester': requester
+            })
+    elif user_namespace:
+        namespaces.append(user_namespace)
+
+    return namespaces
+
 def get_user_namespace(api_client, user):
     namespaces = []
 
@@ -213,7 +231,14 @@ def get_user_namespace(api_client, user):
     user_uid = user_resource['metadata']['uid']
 
     for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid=' + user_uid).items:
-        return { 'name': ns.metadata.name }
+        name = ns.metadata.name
+        requester = ns.metadata.annotations.get('openshift.io/requester')
+        display_name = ns.metadata.annotations.get('openshift.io/display-name', 'User ' + requester)
+        return {
+            'name': name,
+            'displayName': display_name,
+            'requester': requester
+        }
 
     return None
 
@@ -222,16 +247,18 @@ def get_auth_session():
     user = proxy_user()
     api_client, session, token = start_user_session(user)
     catalog_namespaces = get_catalog_namespaces(api_client)
+    user_is_admin = session.get('admin', False)
     user_namespace = get_user_namespace(api_client, user)
+    service_namespaces = get_service_namespaces(api_client, user_namespace, user_is_admin)
     ret = {
+        "admin": user_is_admin,
         "user": user,
         "token": token,
         "catalogNamespaces": catalog_namespaces,
         "lifetime": session_lifetime,
+        "serviceNamespaces": service_namespaces,
         "userNamespace": user_namespace,
     }
-    if session.get('admin'):
-        ret['admin'] = True
 
     return flask.jsonify(ret)
 
@@ -246,6 +273,7 @@ def get_auth_users_info(user_name):
 
     api_client.default_headers['Impersonate-User'] = user_name
     api_client.default_headers['Impersonate-Group'] = get_user_groups(user_name)
+    user_is_admin = check_admin_access(api_client)
 
     try:
         user = custom_objects_api.get_cluster_custom_object(
@@ -259,10 +287,13 @@ def get_auth_users_info(user_name):
 
     catalog_namespaces = get_catalog_namespaces(api_client)
     user_namespace = get_user_namespace(api_client, user_name)
+    service_namespaces = get_service_namespaces(api_client, user_namespace, user_is_admin)
 
     ret = {
+        "admin": user_is_admin,
         "user": user_name,
         "catalogNamespaces": catalog_namespaces,
+        "serviceNamespaces": service_namespaces,
         "userNamespace": user_namespace,
     }
     return flask.jsonify(ret)

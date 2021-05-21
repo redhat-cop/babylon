@@ -1,19 +1,20 @@
 import {
-  store
+  store,
+  apiActionDeleteResourceClaim,
 } from '@app/store';
 import {
-  selectImpersonateUser
-} from '@app/store/authSlice';
+  selectImpersonationUser
+} from '@app/store';
 
 async function apiFetch(path:string, opt?:object): any {
   const session = await getApiSession();
 
-  const options = opt ? JSON.parse(JSON.stringify(JSON.opt)) : {};
+  const options = opt ? JSON.parse(JSON.stringify(opt)) : {};
   options.method = options.method || 'GET';
   options.headers = options.headers || {};
   options.headers.Authentication = `Bearer ${session.token}`;
 
-  const impersonateUser = selectImpersonateUser(store.getState());
+  const impersonateUser = selectImpersonationUser(store.getState());
   if (impersonateUser) {
     options.headers['Impersonate-User'] = impersonateUser;
   }
@@ -57,6 +58,19 @@ export async function getUserInfo(user): object {
     }
   );
   return await resp.json();
+}
+
+export async function deleteResourceClaim(namespace, name): void {
+  await deleteNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1',
+    namespace,
+    'resourceclaims',
+    name
+  );
+  store.dispatch(apiActionDeleteResourceClaim({
+    namespace: namespace,
+    name: name,
+  }));
 }
 
 export async function createNamespacedCustomObject(group, version, namespace, plural, obj): any {

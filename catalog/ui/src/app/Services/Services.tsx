@@ -5,8 +5,10 @@ import {
 } from 'react-redux';
 
 import {
+  selectResourceClaims,
+  selectServiceNamespaces,
   selectUserNamespace,
-} from '@app/store/authSlice';
+} from '@app/store';
 
 import './services.css';
 const parseDuration = require('parse-duration');
@@ -29,6 +31,9 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
+  Dropdown,
+  DropdownItem,
+  DropdownToggle,
   Grid,
   GridItem,
   PageSection,
@@ -49,7 +54,7 @@ import {
 
 import {
   getApiSession,
-  deleteNamespacedCustomObject,
+  deleteResourceClaim,
   listNamespacedCustomObject,
   patchNamespacedCustomObject,
 } from '@app/api';
@@ -72,54 +77,34 @@ const Services: React.FunctionComponent<ServicesProps> = ({
 }) => {
   const history = useHistory();
 
-  const resourceClaimNamespaceRouteMatch = useRouteMatch<IHostsMatchParams>('/services/:namespace');
-  const resourceClaimRouteMatch = useRouteMatch<IHostsMatchParams>('/services/:namespace/:name');
+  // Route match when viewing services within a namespace with a specific service selected.
+  const serviceNamespaceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/services/ns/:namespace/item/:name');
+  // Route match when viewing services within a namespace.
+  const serviceNamespaceRouteMatch = useRouteMatch<IHostsMatchParams>('/services/ns/:namespace');
+  // Route match when viewing all services with specific service selected.
+  const serviceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/services/item/:namespace/:name');
 
-  const resourceClaimNamespace = (
-    resourceClaimRouteMatch ? resourceClaimRouteMatch.params.namespace :
-    resourceClaimNamespaceRouteMatch ? resourceClaimNamespaceRouteMatch.params.namespace : null
-  );
-  const resourceClaimName = (
-    resourceClaimRouteMatch ? resourceClaimRouteMatch.params.name : null
-  );
+  const resourceClaimNamespace = serviceNamespaceItemRouteMatch?.params.namespace || serviceItemRouteMatch?.params.namespace;
+  const resourceClaimName = serviceNamespaceItemRouteMatch?.params.name || serviceItemRouteMatch?.params.name;
+  const serviceNamespaceName = serviceNamespaceItemRouteMatch?.params.namespace || serviceNamespaceRouteMatch?.params.namespace;
+  const servicesPath = serviceNamespaceName ? `/services/ns/${serviceNamespaceName}` : '/services';
 
-  const [resourceClaims, setResourceClaims] = React.useState({});
-  const userNamespace = useSelector(selectUserNamespace);
+  const [serviceNamespaceSelectIsOpen, setServiceNamespaceSelectIsOpen] = React.useState(false);
+  const [userNamespace, setUserNamespace] = React.useState(null);
 
-  async function deleteResourceClaim(resourceClaim): void {
-    await deleteNamespacedCustomObject(
-      'poolboy.gpte.redhat.com', 'v1',
+  const resourceClaims = useSelector(selectResourceClaims);
+  const serviceNamespaces = useSelector(selectServiceNamespaces);
+  const serviceNamespace = serviceNamespaceName ? (serviceNamespaces.find(ns => ns.name == serviceNamespaceName) || {name: serviceNamespaceName, displayName: serviceNamespaceName, description: ""}) : null;
+
+  async function handleDeleteResourceClaim(resourceClaim): void {
+    await deleteResourceClaim(
       resourceClaim.metadata.namespace,
-      'resourceclaims',
-      resourceClaim.metadata.name
+      resourceClaim.metadata.name,
     );
-    await refreshResourceClaimsFromNamespace(resourceClaim.metadata.namespace);
-    history.push('/services');
-  }
-
-  async function refreshResourceClaimsFromNamespace(namespace): void {
-    const resp = await listNamespacedCustomObject('poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims');
-    setResourceClaims((state) => {
-      const copy = Object.assign({}, state);
-      return Object.assign(copy, { [namespace]: resp.items || [] })
-    });
-  }
-
-  async function refreshResourceClaims(): void {
-    if (userNamespace) {
-      refreshResourceClaimsFromNamespace(userNamespace.name);
+    if (resourceClaimName) {
+      history.push(servicesPath);
     }
   }
-
-  React.useEffect(() => {
-    refreshResourceClaims();
-
-    const refreshInterval = setInterval(refreshResourceClaims, 5000);
-
-    return function cleanup() {
-      clearInterval(refreshInterval);
-    };
-  }, []);
 
   function catalogItemDisplayName(item): string {
     if (item.metadata.annotations && item.metadata.annotations['babylon.gpte.redhat.com/catalogItemDisplayName']) {
@@ -133,12 +118,12 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     if (location.state) {
       history.goBack();
     } else {
-      history.push('/services');
+      history.push(servicesPath);
     }
   }
 
   const availableResourceClaims = (
-    resourceClaimNamespace ? (resourceClaims[resourceClaimNamespace] || []) : Object.values(resourceClaims).flat()
+    serviceNamespaceName ? [...(resourceClaims[serviceNamespaceName] || [])]  : Object.values(resourceClaims).flat()
   )
   .sort((a, b) => {
     const av = catalogItemDisplayName(a) + a.metadata.namespace + '/' + a.metadata.name;
@@ -254,7 +239,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
       resourceClaim.metadata.name,
       data,
     );
-    await refreshResourceClaimsFromNamespace(resourceClaim.metadata.namespace);
+    //await refreshResourceClaimsFromNamespace(resourceClaim.metadata.namespace);
   }
 
   async function setRuntimeStop(resourceClaim, idx, stopTime) {
@@ -270,7 +255,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
       resourceClaim.metadata.name,
       data,
     );
-    await refreshResourceClaimsFromNamespace(resourceClaim.metadata.namespace);
+    //await refreshResourceClaimsFromNamespace(resourceClaim.metadata.namespace);
   }
 
   async function requestStart(resourceClaim, idx, resourceState) {
@@ -290,7 +275,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
       resourceClaim.metadata.name,
       data,
     );
-    await refreshResourceClaimsFromNamespace(resourceClaim.metadata.namespace);
+    //await refreshResourceClaimsFromNamespace(resourceClaim.metadata.namespace);
   }
 
   async function requestStop(resourceClaim, idx) {
@@ -307,7 +292,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
       resourceClaim.metadata.name,
       data,
     );
-    await refreshResourceClaimsFromNamespace(resourceClaim.metadata.namespace);
+    //await refreshResourceClaimsFromNamespace(resourceClaim.metadata.namespace);
   }
 
   function resourceClaimListItem(resourceClaim) {
@@ -321,7 +306,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
       Math.min(endOfLifespanMaximum, endOfLifespanRelativeMaximum) :
       endOfLifespanMaximum ? endOfLifespanMaximum : endOfLifespanRelativeMaximum;
     const resourceClaimLinkTo = {
-      pathname: '/services/' + resourceClaim.metadata.namespace + '/' + resourceClaim.metadata.name,
+      pathname: serviceNamespace ? `${servicesPath}/item/${resourceClaim.metadata.name}` : `${servicesPath}/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`,
       state: { fromServices: true },
     };
 
@@ -342,7 +327,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
                     <Link to={resourceClaimLinkTo}>{resourceClaim.metadata.name}</Link>
                   </GridItem>
                   <GridItem span={2} rowSpan={2}>
-                   <DeleteButton onClick={() => {if (confirm('Delete service request ' + resourceClaim.metadata.name + '?')) { deleteResourceClaim(resourceClaim)}}} />
+                   <DeleteButton onClick={() => {if (confirm('Delete service request ' + resourceClaim.metadata.name + '?')) { handleDeleteResourceClaim(resourceClaim)}}} />
                   </GridItem>
                   <GridItem span={5}>
                     <DescriptionList isHorizontal>
@@ -490,7 +475,9 @@ const Services: React.FunctionComponent<ServicesProps> = ({
   const noServicesContent = (
     <Bullseye className="rhpds-no-services-message">
       <Card>
-        <CardTitle>No services.</CardTitle>
+        <CardTitle>
+          { serviceNamespace ? `No services in ${serviceNamespace.displayName}.` : "No services." }
+        </CardTitle>
         <CardBody>
           <p>Request services using the <Link to="/catalog">catalog</Link>.</p>
         </CardBody>
@@ -498,12 +485,34 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     </Bullseye>
   )
 
-  return (
+  return (<>
+    { (serviceNamespace || serviceNamespaces.length > 1) ? (
+      <PageSection variant={PageSectionVariants.light} className="rhpds-project-select">
+        <Dropdown isPlain
+          isOpen={serviceNamespaceSelectIsOpen}
+          toggle={
+            <DropdownToggle onToggle={() => setServiceNamespaceSelectIsOpen(v => !v)}>
+              Project: {serviceNamespace ? serviceNamespace.displayName : "all projects"}
+            </DropdownToggle>
+          }
+          dropdownItems={[
+              <DropdownItem key="*"
+                onClick={() => { setServiceNamespaceSelectIsOpen(false); history.push("/services"); }}
+              >- all projects -</DropdownItem>
+            ].concat(serviceNamespaces.map(namespace =>
+              <DropdownItem key={namespace.name}
+                onClick={() => { setServiceNamespaceSelectIsOpen(false); history.push(`/services/ns/${namespace.name}`) }}
+              >{namespace.displayName}</DropdownItem>
+            ))
+          }
+        />
+      </PageSection>
+    ) : null }
     <PageSection variant={availableResourceClaims.length > 0 ? PageSectionVariants.light : null} className="rhpds-services">
       <Title headingLevel="h1" size="xl">Services</Title>
       {availableResourceClaims.length > 0 ? resourceClaimList : noServicesContent}
     </PageSection>
-  );
+  </>);
 }
 
 export { Services };
