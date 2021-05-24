@@ -10,38 +10,7 @@ import re
 import redis
 import string
 
-from urllib3.connection import HTTPHeaderDict
-
-class PatchedKubeApiClient(kubernetes.client.ApiClient):
-    """
-    Kubernetes API client with fixed support for multiple Impersonate-Group header values.
-    """
-    def request(
-        self, method, url,
-        query_params=None,
-        headers=None,
-        post_params=None,
-        body=None,
-        _preload_content=True,
-        _request_timeout=None
-    ):
-        """
-        Override of request method to handle multiple Impersonate-Group header values.
-        """
-        if headers and 'Impersonate-Group' in headers:
-            groups = headers['Impersonate-Group'].split("\t")
-            headers = HTTPHeaderDict([(k, v) for k, v in headers.items() if k != 'Impersonate-Group'])
-            for group in groups:
-                headers.add('Impersonate-Group', group)
-        return kubernetes.client.ApiClient.request(
-            self, method, url,
-            query_params=query_params,
-            headers=headers,
-            post_params=post_params,
-            body=body,
-            _preload_content=_preload_content,
-            _request_timeout=_request_timeout
-        )
+from hotfix import HotfixKubeApiClient
 
 def random_string(length):
     return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(length)])
@@ -85,11 +54,12 @@ def proxy_user():
     return user
 
 def proxy_api_client(session):
-    api_client = PatchedKubeApiClient()
+    api_client = HotfixKubeApiClient()
     if os.environ.get('ENVIRONMENT') == 'development':
         return api_client
     api_client.default_headers['Impersonate-User'] = session['user']
-    api_client.default_headers['Impersonate-Group'] = session['groups']
+    for group in session['groups']:
+        api_client.default_headers.add('Impersonate-Group', group)
     return api_client
 
 def get_user_groups(user):
@@ -102,7 +72,6 @@ def get_user_groups(user):
     return user_groups
 
 def start_user_session(user):
-
     session = {
         'user': user,
         'groups': get_user_groups(user),
@@ -152,7 +121,6 @@ def check_admin_access(api_client):
         '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
         'POST',
         auth_settings = ['BearerToken'],
-        collection_formats = {'Impersonate-Group': 'tsv'},
         body = {
            "apiVersion": "authorization.k8s.io/v1",
            "kind": "SelfSubjectAccessReview",
@@ -178,7 +146,6 @@ def get_catalog_namespaces(api_client):
             '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
             'POST',
             auth_settings = ['BearerToken'],
-            collection_formats = {'Impersonate-Group': 'tsv'},
             body = {
                "apiVersion": "authorization.k8s.io/v1",
                "kind": "SelfSubjectAccessReview",
@@ -222,7 +189,7 @@ def get_service_namespaces(api_client, user_namespace, user_is_admin):
 
     return namespaces
 
-def get_user_namespace(api_client, user):
+def get_user_namespace(user):
     namespaces = []
 
     user_resource = custom_objects_api.get_cluster_custom_object(
@@ -248,7 +215,7 @@ def get_auth_session():
     api_client, session, token = start_user_session(user)
     catalog_namespaces = get_catalog_namespaces(api_client)
     user_is_admin = session.get('admin', False)
-    user_namespace = get_user_namespace(api_client, user)
+    user_namespace = get_user_namespace(user)
     service_namespaces = get_service_namespaces(api_client, user_namespace, user_is_admin)
     ret = {
         "admin": user_is_admin,
@@ -271,9 +238,11 @@ def get_auth_users_info(user_name):
     if not check_admin_access(api_client):
         flask.abort(403)
 
-    api_client.default_headers['Impersonate-User'] = user_name
-    api_client.default_headers['Impersonate-Group'] = get_user_groups(user_name)
-    user_is_admin = check_admin_access(api_client)
+    test_api_client = HotfixKubeApiClient()
+    test_api_client.default_headers['Impersonate-User'] = user_name
+    for group in get_user_groups(user_name):
+        test_api_client.default_headers.add('Impersonate-Group', group)
+    user_is_admin = check_admin_access(test_api_client)
 
     try:
         user = custom_objects_api.get_cluster_custom_object(
@@ -285,9 +254,9 @@ def get_auth_users_info(user_name):
         else:
             raise
 
-    catalog_namespaces = get_catalog_namespaces(api_client)
-    user_namespace = get_user_namespace(api_client, user_name)
-    service_namespaces = get_service_namespaces(api_client, user_namespace, user_is_admin)
+    catalog_namespaces = get_catalog_namespaces(test_api_client)
+    user_namespace = get_user_namespace(user_name)
+    service_namespaces = get_service_namespaces(test_api_client, user_namespace, user_is_admin)
 
     ret = {
         "admin": user_is_admin,
@@ -308,7 +277,9 @@ def apis_proxy(path):
     impersonate_user = flask.request.headers.get('Impersonate-User')
     if impersonate_user and check_admin_access(api_client):
         api_client.default_headers['Impersonate-User'] = impersonate_user
-        api_client.default_headers['Impersonate-Group'] = get_user_groups(impersonate_user)
+        api_client.default_headers.discard('Impersonate-Group')
+        for group in get_user_groups(impersonate_user):
+            api_client.default_headers.add('Impersonate-Group', group)
 
     header_params = {}
     if flask.request.headers.get('Accept'):
@@ -320,7 +291,6 @@ def apis_proxy(path):
             flask.request.path,
             flask.request.method,
             auth_settings = ['BearerToken'],
-            collection_formats = {'Impersonate-Group': 'tsv'},
             body = flask.request.json,
             header_params = header_params,
             query_params = [ (k, v) for k, v in flask.request.args.items() ],
