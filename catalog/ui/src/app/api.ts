@@ -107,19 +107,46 @@ export async function getNamespacedCustomObject(group, version, namespace, plura
   return await resp.json();
 }
 
-export async function listClusterCustomObject(group, version, plural): any {
+export async function listClusterCustomObject(
+  group: string,
+  version: string,
+  plural: string,
+  opt: object,
+): object {
   const session = await getApiSession();
-  const resp = await apiFetch(
-    `/apis/${group}/${version}/${plural}`,
-  );
+  const query_params = {};
+  if (opt?.continue) {
+    query_params['continue'] = opt.continue;
+  }
+  if (opt?.limit) {
+    query_params['limit'] = opt.limit;
+  }
+  const query_string = Object.keys(query_params).map(k => `${k}=${encodeURI(query_params[k])}`).join('&');
+  const base_url = `/apis/${group}/${version}/${plural}`;
+  const url = query_string ? `${base_url}?${query_string}` : base_url;
+  const resp = await apiFetch(url);
   return await resp.json();
 }
 
-export async function listNamespacedCustomObject(group, version, namespace, plural): any {
+export async function listNamespacedCustomObject(
+  group: string,
+  version: string,
+  namespace: string,
+  plural: string,
+  opt: object,
+): object {
   const session = await getApiSession();
-  const resp = await apiFetch(
-    `/apis/${group}/${version}/namespaces/${namespace}/${plural}`,
-  );
+  const query_params = {};
+  if (opt?.continue) {
+    query_params['continue'] = opt.continue;
+  }
+  if (opt?.limit) {
+    query_params['limit'] = opt.limit;
+  }
+  const query_string = Object.keys(query_params).map(k => `${k}=${encodeURI(query_params[k])}`).join('&');
+  const base_url = `/apis/${group}/${version}/namespaces/${namespace}/${plural}`;
+  const url = query_string ? `${base_url}?${query_string}` : base_url;
+  const resp = await apiFetch(url);
   return await resp.json();
 }
 

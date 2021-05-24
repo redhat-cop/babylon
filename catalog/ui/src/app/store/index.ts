@@ -9,83 +9,185 @@ import {
 } from 'reselect'
 
 import {
+  listClusterCustomObject,
   listNamespacedCustomObject,
 } from '@app/api';
 
-let watchResourceClaimsTimeout = null;
 let watchCatalogItemsTimeout = null;
+async function refreshCatalogItems(triggeredByTimeout: number): void {
+  const state = store.getState();
+  const namespaces = selectCatalogNamespaces(state).map(n => n.name);
+  const userIsAdmin = selectUserIsAdmin(state);
+  if (userIsAdmin) {
+    const catalogItems = {};
+    let _continue = null;
+    while (true) {
+      const resp = await listClusterCustomObject(
+        'babylon.gpte.redhat.com', 'v1', 'catalogitems',
+        {
+          continue: _continue,
+          limit: 100,
+        }
+      );
+      if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
+      if (!resp.items) { break }
+      for (let i=0; i < resp.items.length; ++i) {
+        const catalogItem = resp.items[i];
+        const namespace = catalogItem.metadata.namespace;
+        if (namespaces.includes(namespace)) {
+          if (namespace in catalogItems) {
+            catalogItems[namespace].push(catalogItem);
+          } else {
+            catalogItems[namespace] = [catalogItem];
+          }
+        }
+      }
+      if (resp.metadata.continue) {
+        _continue = resp.metadata.continue;
+      } else {
+        break;
+      }
+    }
+    store.dispatch(
+      __actionSetCatalogItems({
+        catalogItems: catalogItems,
+      })
+    );
 
-async function refreshCatalogItems(): number {
-  const namespaces = selectCatalogNamespaces(store.getState());
-  const catalogItems = [];
-  let count = 0;
-  for (let n=0; n < namespaces.length; ++n) {
-    const namespace = namespaces[n];
-    const resp = await listNamespacedCustomObject('babylon.gpte.redhat.com', 'v1', namespace.name, 'catalogitems');
-    if (resp.items) {
-      count += resp.items.length;
+  } else {
+    for (let n=0; n < namespaces.length; ++n) {
+      const namespace = namespaces[n];
+      const catalogItems = [];
+      let _continue = null;
+      while (true) {
+        const resp = await listNamespacedCustomObject(
+          'babylon.gpte.redhat.com', 'v1', namespace, 'catalogitems',
+          {
+            continue: _continue,
+            limit: 100,
+          }
+        );
+        if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
+        if (!resp.items) { break }
+        catalogItems.push(...resp.items);
+        if (resp.metadata.continue) {
+          _continue = resp.metadata.continue;
+        } else {
+          break;
+        }
+      }
       store.dispatch(
-        __actionSetCatalogItems({
-          namespace: namespace.name,
-          catalogItems: resp.items,
+        __actionSetCatalogItemsForNamespace({
+          namespace: namespace,
+          catalogItems: catalogItems,
         })
       );
     }
   }
-  return count;
 }
 
-async function refreshResourceClaims(): number {
-  const namespaces = selectServiceNamespaces(store.getState());
-  const resourceClaims = [];
-  let count = 0;
-  for (let n=0; n < namespaces.length; ++n) {
-    const namespace = namespaces[n];
-    const resp = await listNamespacedCustomObject('poolboy.gpte.redhat.com', 'v1', namespace.name, 'resourceclaims');
-    if (resp.items) {
-      count += resp.items.length;
-      store.dispatch(
-        __actionSetResourceClaims({
-          namespace: namespace.name,
-          resourceClaims: resp.items,
-        })
-      );
-    }
+async function watchCatalogItems(): void {
+  const triggeredByTimeout = watchCatalogItemsTimeout
+  await refreshCatalogItems(triggeredByTimeout);
+  if (triggeredByTimeout == watchCatalogItemsTimeout) {
+    watchCatalogItemsTimeout = setTimeout(watchCatalogItems, 30 * 1000);
   }
-  return count;
-}
-
-async function __startWatchCatalogItems(): void {
-  await refreshCatalogItems();
-  watchCatalogItemTimeout = setTimeout(
-    refreshCatalogItems,
-    // Refresh catalog items every two minutes
-    2 * 60 * 1000,
-  );
 }
 
 function startWatchCatalogItems(): void {
   if (watchCatalogItemsTimeout) {
     clearTimeout(watchCatalogItemsTimeout);
+    watchCatalogItemsTimeout = null;
   }
   watchCatalogItemsTimeout = setTimeout(watchCatalogItems, 1);
 }
 
-async function watchCatalogItems(): void {
-  await refreshCatalogItems();
-  watchCatalogItemsTimeout = setTimeout(watchCatalogItems, 60000);
+async function refreshResourceClaims(triggeredByTimeout): void {
+  const state = store.getState();
+  const namespaces = selectServiceNamespaces(state).map(n => n.name);
+  const userIsAdmin = selectUserIsAdmin(state);
+  if (userIsAdmin) {
+    const resourceClaims = {}
+    let _continue = null;
+    while (true) {
+      const resp = await listClusterCustomObject(
+        'poolboy.gpte.redhat.com', 'v1', 'resourceclaims',
+        {
+          continue: _continue,
+          limit: 100,
+        }
+      );
+      if (watchResourceClaimsTimeout != triggeredByTimeout) { return }
+      if (!resp.items) { break }
+      for (let i=0; i < resp.items.length; ++i) {
+        const resourceClaim = resp.items[i];
+        const namespace = resourceClaim.metadata.namespace;
+        if (namespaces.includes(namespace)) {
+          if (namespace in resourceClaims) {
+            resourceClaims[namespace].push(resourceClaim)
+          } else {
+            resourceClaims[namespace] = [resourceClaim]
+          }
+        }
+      }
+      if (resp.metadata.continue) {
+        _continue = resp.metadata.continue;
+      } else {
+        break;
+      }
+    }
+    store.dispatch(
+      __actionSetResourceClaims({
+        resourceClaims: resourceClaims,
+      })
+    );
+  } else {
+    for (let n=0; n < namespaces.length; ++n) {
+      const namespace = namespaces[n];
+      const resourceClaims = [];
+      let _continue = null;
+      while (true) {
+        const resp = await listNamespacedCustomObject(
+          'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims',
+          {
+            continue: _continue,
+            limit: 100,
+          }
+        );
+        if (watchResourceClaimsTimeout != triggeredByTimeout) { return }
+        if (!resp.items) { break }
+        resourceClaims.push(...resp.items);
+        if (resp.metadata.continue) {
+          _continue = resp.metadata.continue;
+        } else {
+          break;
+        }
+      }
+      store.dispatch(
+        __actionSetResourceClaimsForNamespace({
+          namespace: namespace,
+          resourceClaims: resp.items,
+        })
+      );
+    }
+  }
+}
+
+let watchResourceClaimsTimeout = null;
+async function watchResourceClaims(): void {
+  const triggeredByTimeout = watchResourceClaimsTimeout
+  await refreshResourceClaims(triggeredByTimeout);
+  if (triggeredByTimeout == watchCatalogItemsTimeout) {
+    watchResourceClaimsTimeout = setTimeout(watchResourceClaims, 10 * 1000);
+  }
 }
 
 function startWatchResourceClaims(): void {
   if (watchResourceClaimsTimeout) {
     clearTimeout(watchResourceClaimsTimeout);
+    watchResourceClaimsTimeout = null;
   }
   watchResourceClaimsTimeout = setTimeout(watchResourceClaims, 1);
-}
-
-async function watchResourceClaims(): void {
-  await refreshResourceClaims();
-  watchResourceClaimsTimeout = setTimeout(watchResourceClaims, 5000);
 }
 
 
@@ -108,8 +210,8 @@ function reduce_deleteResourceClaim(state, action) {
 function reduce_setImpersonation(state, action) {
   const {user, admin, catalogNamespaces, serviceNamespaces, userNamespace} = action.payload;
   state.impersonate = {
-    admin: admin,
     user: user,
+    admin: admin,
     catalogNamespaces: catalogNamespaces,
     serviceNamespaces: serviceNamespaces,
     userNamespace: userNamespace,
@@ -121,11 +223,21 @@ function reduce_setImpersonation(state, action) {
 }
 
 function reduce_setCatalogItems(state, action) {
+  const {catalogItems} = action.payload;
+  state.catalogItems = catalogItems;
+}
+
+function reduce_setCatalogItemsForNamespace(state, action) {
   const {namespace, catalogItems} = action.payload;
   state.catalogItems[namespace] = catalogItems;
 }
 
 function reduce_setResourceClaims(state, action) {
+  const {resourceClaims} = action.payload;
+  state.resourceClaims = resourceClaims;
+}
+
+function reduce_setResourceClaimsForNamespace(state, action) {
   const {namespace, resourceClaims} = action.payload;
   state.resourceClaims[namespace] = resourceClaims;
 }
@@ -154,7 +266,9 @@ export const apiActionDeleteResourceClaim = createAction("deleteResourceClaim")
 
 // Private actions
 export const __actionSetCatalogItems = createAction("setCatalogItems");
+export const __actionSetCatalogItemsForNamespace = createAction("setCatalogItemsForNamespace");
 export const __actionSetResourceClaims = createAction("setResourceClaims");
+export const __actionSetResourceClaimsForNamespace = createAction("setResourceClaimsForNamespace");
 
 
 // Selectors
@@ -172,12 +286,12 @@ export const selectAuthUser = createSelector(
 
 export const selectUser = createSelector(
   selectSelf,
-  state => state.impersonate?.user || state.auth.user,
+  state => state.impersonate ? state.impersonate.user : state.auth.user,
 )
 
 export const selectUserIsAdmin = createSelector(
   selectSelf,
-  state => state.impersonate?.admin || state.auth.admin,
+  state => state.impersonate ? state.impersonate.admin : state.auth.admin,
 )
 
 export const selectImpersonationUser = createSelector(
@@ -192,7 +306,7 @@ export const selectCatalogItems = createSelector(
 
 export const selectCatalogNamespaces = createSelector(
   selectSelf,
-  state => state.impersonate?.catalogNamespaces || state.auth.catalogNamespaces,
+  state => state.impersonate ? state.impersonate.catalogNamespaces : state.auth.catalogNamespaces,
 )
 
 export const selectResourceClaims = createSelector(
@@ -202,12 +316,12 @@ export const selectResourceClaims = createSelector(
 
 export const selectServiceNamespaces = createSelector(
   selectSelf,
-  state => state.impersonate?.serviceNamespaces || state.auth.serviceNamespaces,
+  state => state.impersonate ? state.impersonate.serviceNamespaces : state.auth.serviceNamespaces,
 )
 
 export const selectUserNamespace = createSelector(
   selectSelf,
-  state => state.impersonate?.userNamespace || state.auth.userNamespace,
+  state => state.impersonate ? state.impersonate.userNamespace : state.auth.userNamespace,
 )
 
 
@@ -228,8 +342,10 @@ export const store = configureStore({
     "clearImpersonation": reduce_clearImpersonation,
     "deleteResourceClaim": reduce_deleteResourceClaim,
     "setCatalogItems": reduce_setCatalogItems,
+    "setCatalogItemsForNamespace": reduce_setCatalogItemsForNamespace,
     "setImpersonation": reduce_setImpersonation,
     "setResourceClaims": reduce_setResourceClaims,
+    "setResourceClaimsForNamespace": reduce_setResourceClaimsForNamespace,
     "startSession": reduce_startSession,
   })
 });

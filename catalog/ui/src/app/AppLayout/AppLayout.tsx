@@ -102,6 +102,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     dispatch(
       actionSetImpersonation({
         user: user,
+        admin: userInfo.admin,
         catalogNamespaces: userInfo.catalogNamespaces,
         serviceNamespaces: userInfo.serviceNamespaces,
         userNamespace: userInfo.userNamespace,
