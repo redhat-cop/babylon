@@ -17,7 +17,7 @@ babylon_anarchy_roles: >-
   }}
 
 # Variables defaults for a variables without the "default_" prefix
-default_babylon_admin_image: "quay.io/redhat-cop/babylon-admin:v0.2.1"
+default_babylon_admin_image: "quay.io/redhat-cop/babylon-admin:v0.2.2"
 default_babylon_anarchy_include_crds: true
 default_babylon_anarchy_replicas: 1
 default_babylon_catalog_namespaces:
