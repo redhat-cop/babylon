@@ -72,7 +72,7 @@ import {
 import { CatalogItemIcon } from './CatalogItemIcon';
 import { CatalogItemHealthDisplay } from './CatalogItemHealthDisplay';
 import { CatalogItemRating } from './CatalogItemRating';
-import { LocalTimestamp } from '../LocalTimestamp';
+import { LocalTimestamp } from '@app/components/LocalTimestamp';
 
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 
@@ -313,7 +313,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   ) : null;
 
   const allCatalogItems = (
-    (catalogNamespaceName ? (catalogItems[catalogNamespaceName] || []) : Object.values(catalogItems).flat())
+    (catalogNamespaceName ? (catalogItems[catalogNamespaceName] || []) : Object.values(catalogItems || []).flat())
   );
 
   const availableCatalogItems = allCatalogItems.filter(ci => {

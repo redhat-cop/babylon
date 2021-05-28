@@ -1,0 +1,14 @@
+.rhpds-services-namespace-selector.pf-c-page__main-section {
+  padding: 5pt 10pt;
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+  display: flex;
+}
+
+.rhpds-services-namespace-selector.pf-c-page__main-section .pf-c-dropdown__toggle {
+  color: var(--pf-global--palette--black-900);
+}
+
+.rhpds-services-namespace-selector.pf-c-page__main-section .pf-c-dropdown__menu {
+  max-height: 500px;
+  overflow-y: scroll;
+}

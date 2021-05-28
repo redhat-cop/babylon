@@ -23,3 +23,41 @@ export function renderAsciiDoc(asciidoc: string, options?: object): string {
   }
   return dompurify.sanitize(asciidoctor.convert(asciidoc), sanitize_opt);
 }
+
+export function checkResourceClaimCanStart(resourceClaim) {
+  return !!(
+    (resourceClaim?.status?.resources || []).find((r, idx) => {
+      const state = r.state;
+      const template = resourceClaim.spec.resources[idx]?.template;
+      if (!state || !template) { return false }
+      const startTimestamp = template?.spec?.vars?.action_schedule?.start || state?.spec?.vars?.action_schedule?.start;
+      const stopTimestamp = template?.spec?.vars?.action_schedule?.stop || state?.spec?.vars?.action_schedule?.stop;
+      if (startTimestamp && stopTimestamp) {
+        const startTime = Date.parse(startTimestamp);
+        const stopTime = Date.parse(stopTimestamp);
+        return startTime > Date.now() || stopTime < Date.now();
+      } else {
+        return false;
+      }
+    })
+  );
+}
+
+export function checkResourceClaimCanStop(resourceClaim) {
+  return !!(
+    (resourceClaim?.status?.resources || []).find((r, idx) => {
+      const state = r.state;
+      const template = resourceClaim.spec.resources[idx]?.template;
+      if (!state || !template) { return false }
+      const startTimestamp = template?.spec?.vars?.action_schedule?.start || state?.spec?.vars?.action_schedule?.start;
+      const stopTimestamp = template?.spec?.vars?.action_schedule?.stop || state?.spec?.vars?.action_schedule?.stop;
+      if (startTimestamp && stopTimestamp) {
+        const startTime = Date.parse(startTimestamp);
+        const stopTime = Date.parse(stopTimestamp);
+        return startTime < Date.now() && stopTime > Date.now();
+      } else {
+        return false;
+      }
+    })
+  );
+}

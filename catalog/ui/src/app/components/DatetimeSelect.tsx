@@ -47,7 +47,7 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
     }
   })
 
-  for (var t=Math.floor(minimum / interval) * interval; t < maximum; t += interval) {
+  for (var t=Math.ceil(minimum / interval) * interval; t < maximum; t += interval) {
     const isCurrent = t == currentInterval ? "rhpds-datetime-select-current" : null;
     const date = new Date(t);
     const dropdownItem = (
@@ -93,7 +93,6 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
         >{toggleContent}</DropdownToggle>
       }
       isOpen={isOpen}
-      isPlain={true}
       dropdownItems={dropdownItems}
       autoFocus={false}
     />

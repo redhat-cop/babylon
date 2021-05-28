@@ -18,6 +18,7 @@ import {
 export interface ServiceStatusProps {
   currentState?: string,
   desiredState?: string,
+  creationTime?: number,
   startTime?: number,
   stopTime?: number,
 }
@@ -25,11 +26,16 @@ export interface ServiceStatusProps {
 const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
   currentState,
   desiredState,
+  creationTime,
   startTime,
   stopTime,
 }) => {
   if (!currentState) {
-    return (<span className="rhpds-status-unknown"><QuestionCircleIcon/> Unknown</span>);
+    if (creationTime && creationTime - Date.now() < 60 * 1000) {
+      return (<span className="rhpds-status-unknown"><Spinner isSVG size="md" /> Requested</span>);
+    } else {
+      return (<span className="rhpds-status-unknown"><QuestionCircleIcon/> Unknown</span>);
+    }
   } else if (currentState === 'new') {
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> New</span>);
   } else if (currentState === 'provision-failed') {

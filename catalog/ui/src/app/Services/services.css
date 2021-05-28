@@ -8,6 +8,18 @@
   padding: 10pt 15pt 8pt;
 }
 
+
+.rhpds-services.pf-c-page__main-section .pf-c-data-list__item:hover::before {
+    position: absolute;
+    top: var(--pf-c-data-list__item--before--Top);
+    bottom: 0;
+    left: 0;
+    width: 6pt;
+    content: "";
+    background-color: var(--pf-global--active-color--100);
+    transition: var(--pf-c-data-list__item--before--Transition);
+}
+
 .rhpds-services.pf-c-page__main-section .pf-c-data-list__cell a {
   color: var(--pf-global--palette--black-900);
 }
@@ -15,6 +27,19 @@
 .rhpds-services.pf-c-page__main-section .pf-c-data-list__cell a:hover {
   color: var(--pf-global--palette--black-900);
   text-decoration: none;
+}
+
+.rhpds-services.pf-c-page__main-section .pf-c-data-list__cell ul.pf-c-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.rhpds-services.pf-c-page__main-section .pf-c-data-list__cell ul.pf-c-list li .pf-c-button.pf-m-plain {
+  margin-top: calc(-1 * var(--pf-c-button--PaddingTop));
+  margin-bottom: calc(-1 * var(--pf-c-button--PaddingBottom));
+  margin-left: calc(-1 * var(--pf-c-button--PaddingLeft));
+  margin-right: calc(-1 * var(--pf-c-button--PaddingRight));
+  color: var(--pf-c-button--m-plain--focus--Color);
 }
 
 .rhpds-services .pf-c-data-list__item-action {
@@ -84,7 +109,6 @@
 .rhpds-project-select.pf-c-page__main-section .pf-c-dropdown__toggle {
   color: var(--pf-global--palette--black-900);
 }
-
 
 .rhpds-project-select.pf-c-page__main-section .pf-c-dropdown__menu {
   max-height: 500px;

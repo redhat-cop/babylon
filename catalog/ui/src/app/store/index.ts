@@ -53,7 +53,6 @@ async function refreshCatalogItems(triggeredByTimeout: number): void {
         catalogItems: catalogItems,
       })
     );
-
   } else {
     for (let n=0; n < namespaces.length; ++n) {
       const namespace = namespaces[n];
@@ -177,7 +176,7 @@ let watchResourceClaimsTimeout = null;
 async function watchResourceClaims(): void {
   const triggeredByTimeout = watchResourceClaimsTimeout
   await refreshResourceClaims(triggeredByTimeout);
-  if (triggeredByTimeout == watchCatalogItemsTimeout) {
+  if (triggeredByTimeout == watchResourceClaimsTimeout) {
     watchResourceClaimsTimeout = setTimeout(watchResourceClaims, 10 * 1000);
   }
 }
@@ -194,16 +193,26 @@ function startWatchResourceClaims(): void {
 // Reducer functions
 function reduce_clearImpersonation(state, action) {
   state.impersonate = null;
-  state.catalogItems = {};
-  state.resourceClaims = {};
+  state.catalogItems = null;
+  state.resourceClaims = null;
   startWatchCatalogItems();
   startWatchResourceClaims();
 }
 
 function reduce_deleteResourceClaim(state, action) {
   const {name, namespace} = action.payload;
-  if (state.resourceClaims[namespace]) {
-    state.resourceClaims[namespace] = state.resourceClaims[namespace].filter(rc => rc.name != name);
+  if (state.resourceClaims?.[namespace]) {
+    state.resourceClaims[namespace] = state.resourceClaims[namespace].filter(rc => rc.metadata.name != name);
+  }
+}
+
+function reduce_insertResourceClaim(state, action) {
+  const {resourceClaim} = action.payload;
+  const namespace = resourceClaim.metadata.namespace;
+  if (state.resourceClaims?.[namespace]) {
+    state.resourceClaims[namespace] = [resourceClaim];
+  } else {
+    state.resourceClaims[namespace].push(resourceClaim);
   }
 }
 
@@ -216,8 +225,8 @@ function reduce_setImpersonation(state, action) {
     serviceNamespaces: serviceNamespaces,
     userNamespace: userNamespace,
   };
-  state.catalogItems = {};
-  state.resourceClaims = {};
+  state.catalogItems = null;
+  state.resourceClaims = null;
   startWatchCatalogItems();
   startWatchResourceClaims();
 }
@@ -229,7 +238,11 @@ function reduce_setCatalogItems(state, action) {
 
 function reduce_setCatalogItemsForNamespace(state, action) {
   const {namespace, catalogItems} = action.payload;
-  state.catalogItems[namespace] = catalogItems;
+  if (state.catalogItems) {
+    state.catalogItems[namespace] = catalogItems;
+  } else {
+    state.catalogItems = { [namespace]: catalogItems };
+  }
 }
 
 function reduce_setResourceClaims(state, action) {
@@ -239,7 +252,11 @@ function reduce_setResourceClaims(state, action) {
 
 function reduce_setResourceClaimsForNamespace(state, action) {
   const {namespace, resourceClaims} = action.payload;
-  state.resourceClaims[namespace] = resourceClaims;
+  if (state.resourceClaims) {
+    state.resourceClaims[namespace] = resourceClaims;
+  } else {
+    state.resourceClaims = { [namespace]: resourceClaims };
+  }
 }
 
 function reduce_startSession(state, action) {
@@ -249,10 +266,23 @@ function reduce_startSession(state, action) {
   state.auth.catalogNamespaces = catalogNamespaces;
   state.auth.serviceNamespaces = serviceNamespaces;
   state.auth.userNamespace = userNamespace;
-  state.catalogItems = {};
-  state.resourceClaims = {};
+  state.catalogItems = null;
+  state.resourceClaims = null;
   startWatchCatalogItems();
   startWatchResourceClaims();
+}
+
+function reduce_updateResourceClaim(state, action) {
+  const {resourceClaim} = action.payload;
+  const resourceClaims = state.resourceClaims[resourceClaim.metadata.namespace]
+  if (resourceClaims) {
+    for (let i=0; i < resourceClaims.length; ++i) {
+      if (resourceClaims[i].metadata.name == resourceClaim.metadata.name) {
+        resourceClaims[i] = resourceClaim;
+        break;
+      }
+    }
+  }
 }
 
 
@@ -263,6 +293,8 @@ export const actionStartSession = createAction("startSession");
 
 // Actions reserved for api usage
 export const apiActionDeleteResourceClaim = createAction("deleteResourceClaim")
+export const apiActionInsertResourceClaim = createAction("insertResourceClaim")
+export const apiActionUpdateResourceClaim = createAction("updateResourceClaim")
 
 // Private actions
 export const __actionSetCatalogItems = createAction("setCatalogItems");
@@ -335,17 +367,19 @@ export const store = configureStore({
       serviceNamespaces: [],
       userNamespace: null,
     },
-    catalogItems: {},
+    catalogItems: null,
     impersonate: null,
-    resourceClaims: {},
+    resourceClaims: null,
   }, {
     "clearImpersonation": reduce_clearImpersonation,
     "deleteResourceClaim": reduce_deleteResourceClaim,
+    "insertResourceClaim": reduce_insertResourceClaim,
     "setCatalogItems": reduce_setCatalogItems,
     "setCatalogItemsForNamespace": reduce_setCatalogItemsForNamespace,
     "setImpersonation": reduce_setImpersonation,
     "setResourceClaims": reduce_setResourceClaims,
     "setResourceClaimsForNamespace": reduce_setResourceClaimsForNamespace,
     "startSession": reduce_startSession,
+    "updateResourceClaim": reduce_updateResourceClaim,
   })
 });

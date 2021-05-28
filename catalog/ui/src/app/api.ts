@@ -1,6 +1,10 @@
+const parseDuration = require('parse-duration');
+
 import {
   store,
   apiActionDeleteResourceClaim,
+  apiActionInsertResourceClaim,
+  apiActionUpdateResourceClaim,
 } from '@app/store';
 import {
   selectImpersonationUser
@@ -60,16 +64,119 @@ export async function getUserInfo(user): object {
   return await resp.json();
 }
 
-export async function deleteResourceClaim(namespace, name): void {
+export async function createResourceClaim(definition): void {
+  const resourceClaim = await createNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1', definition.metadata.namespace, 'resourceclaims', definition
+  );
+  store.dispatch(apiActionInsertResourceClaim({
+    resourceClaim: resourceClaim,
+  }));
+  return resourceClaim;
+}
+
+export async function deleteResourceClaim(resourceClaim): void {
   await deleteNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1',
-    namespace,
+    resourceClaim.metadata.namespace,
     'resourceclaims',
-    name
+    resourceClaim.metadata.name
   );
   store.dispatch(apiActionDeleteResourceClaim({
-    namespace: namespace,
-    name: name,
+    namespace: resourceClaim.metadata.namespace,
+    name: resourceClaim.metadata.name,
+  }));
+}
+
+export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim, time) {
+  const stopDate = new Date(time);
+  const data = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec))
+  }
+  for (let i=0; i < data.spec.resources.length; ++i) {
+    data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + "Z";
+  }
+
+  const resp = await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    data,
+  );
+  store.dispatch(apiActionUpdateResourceClaim({
+    resourceClaim: resp,
+  }));
+}
+
+export async function setLifespanEndForResourceClaim(resourceClaim, time) {
+  const end = new Date(time);
+  const endTimestamp = end.toISOString().split('.')[0] + "Z";
+  const data = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec))
+  }
+
+  if (data.spec.lifespan) {
+    data.spec.lifespan.end = endTimestamp;
+  } else {
+    data.spec.lifespan = { end: endTimestamp };
+  }
+
+  const resp = await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    data,
+  );
+  store.dispatch(apiActionUpdateResourceClaim({
+    resourceClaim: resp,
+  }));
+}
+
+export async function startAllResourcesInResourceClaim(resourceClaim) {
+  const defaultRuntime = Math.min(...resourceClaim.status.resources.map(r =>
+    parseDuration(r.state.spec.vars.action_schedule?.default_runtime || '4h')
+  ))
+  const startDate = new Date();
+  const stopDate = new Date(Date.now() + defaultRuntime);
+  const data = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec))
+  }
+  for (let i=0; i < data.spec.resources.length; ++i) {
+    data.spec.resources[i].template.spec.vars.action_schedule.start = startDate.toISOString().split('.')[0] + "Z";
+    data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + "Z";
+  }
+
+  const resp = await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    data,
+  );
+  store.dispatch(apiActionUpdateResourceClaim({
+    resourceClaim: resp,
+  }));
+}
+
+export async function stopAllResourcesInResourceClaim(resourceClaim) {
+  const stopDate = new Date();
+  const data = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec))
+  }
+  for (let i=0; i < data.spec.resources.length; ++i) {
+    data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + "Z";
+  }
+
+  const resp = await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    data,
+  );
+  store.dispatch(apiActionUpdateResourceClaim({
+    resourceClaim: resp,
   }));
 }
 

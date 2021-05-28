@@ -5,6 +5,7 @@ import { Dashboard } from '@app/Dashboard/Dashboard';
 import { Catalog } from '@app/Catalog/Catalog';
 import { CatalogRequest } from '@app/Catalog/Request/CatalogRequest';
 import { Services } from '@app/Services/Services';
+import { ServicesItem } from '@app/Services/Item/ServicesItem';
 import { Support } from '@app/Support/Support';
 import { NotFound } from '@app/NotFound/NotFound';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
@@ -58,6 +59,18 @@ const routes: AppRouteConfig[] = [
     component: Catalog,
     path: '/catalog',
     title: 'RHPDS | Catalog',
+  },
+  {
+    component: ServicesItem,
+    exact: true,
+    path: '/services/ns/:namespace/item/:name',
+    title: 'RHPDS | Services',
+  },
+  {
+    component: ServicesItem,
+    exact: true,
+    path: '/services/item/:namespace/:name',
+    title: 'RHPDS | Services',
   },
   {
     label: 'Services',

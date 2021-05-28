@@ -15,7 +15,7 @@ import {
   Title
 } from '@patternfly/react-core';
 import {
-  createNamespacedCustomObject,
+  createResourceClaim,
   getApiSession,
   getNamespacedCustomObject
 } from '@app/api';
@@ -83,7 +83,8 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
         labels: {
           'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
           'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
-        }
+        },
+        namespace: namespace,
       },
       spec: {
         resources: JSON.parse(JSON.stringify(catalogItem.spec.resources)),
@@ -95,9 +96,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       requestResourceClaim.metadata.generateName = catalogItem.metadata.name + '-';
     }
 
-    const resourceClaim = await createNamespacedCustomObject(
-      'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', requestResourceClaim
-    );
+    const resourceClaim = await createResourceClaim(requestResourceClaim);
 
     history.push(`/services/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
   }
