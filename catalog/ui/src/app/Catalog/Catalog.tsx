@@ -13,7 +13,6 @@ import './catalog.css';
 
 import {
   useHistory,
-  useLocation,
   useRouteMatch,
   Link
 } from 'react-router-dom';
@@ -66,7 +65,8 @@ import {
 } from '@app/api';
 
 import {
-  renderAsciiDoc
+  displayName,
+  renderAsciiDoc,
 } from '@app/util';
 
 import { CatalogItemIcon } from './CatalogItemIcon';
@@ -103,10 +103,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const [keywordSearchValue, setKeywordSearchValue] = React.useState('');
   const [selectedLabelFilters, setSelectedLabelFilters] = React.useState({});
 
-  const selectedCatalogItem = (
-    catalogItemName && catalogItems[catalogItemNamespace]
-    ? catalogItems[catalogItemNamespace].find(catalogItem => catalogItem.metadata.name === catalogItemName) : null
-  );
+  const selectedCatalogItem = catalogItemName ? (
+    catalogItems?.[catalogItemNamespace] || []
+  ).find(ci => ci.metadata.name == catalogItemName) : null;
 
   function badge(catalogItem): string {
     if (catalogItem.metadata.labels) {
@@ -139,14 +138,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       return catalogItem.metadata.annotations['babylon.gpte.redhat.com/description'];
     } else {
       return 'No description provided.';
-    }
-  }
-
-  function displayName(item): string {
-    if (item.metadata.annotations && item.metadata.annotations['babylon.gpte.redhat.com/displayName']) {
-      return item.metadata.annotations['babylon.gpte.redhat.com/displayName'];
-    } else {
-      return item.metadata.name;
     }
   }
 

@@ -1,7 +1,21 @@
 import * as React from 'react';
+
+import {
+  useSelector,
+} from 'react-redux';
+
+import {
+  selectCatalogItems,
+  selectUserNamespace,
+} from '@app/store';
+
 import './catalog-request.css';
 
-import { useHistory, useLocation, useRouteMatch, Link } from 'react-router-dom';
+import {
+  useHistory,
+  useRouteMatch,
+} from 'react-router-dom';
+
 import {
   ActionList,
   ActionListItem,
@@ -14,11 +28,16 @@ import {
   TextInput,
   Title
 } from '@patternfly/react-core';
+
 import {
   createResourceClaim,
   getApiSession,
   getNamespacedCustomObject
 } from '@app/api';
+
+import {
+  displayName,
+} from '@app/util';
 
 import { DefaultTermsOfService  } from './TermsOfService/Default.tsx';
 
@@ -35,28 +54,16 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   const catalogNamespace = catalogRequestRouteMatch.params.namespace;
   const catalogItemName = catalogRequestRouteMatch.params.name;
 
-  const [catalogItem, setCatalogItem] = React.useState(null);
+  const catalogItems = useSelector(selectCatalogItems);
+  const userNamespace = useSelector(selectUserNamespace);
+
   const [termsOfServiceAgreed, setTermsOfServiceAgreed] = React.useState(false);
   const [requestName, setRequestName] = React.useState('');
 
+  const catalogItem = (
+    catalogItems?.[catalogNamespace] || []
+  ).find(ci => ci.metadata.name === catalogItemName);
   const requestNameValid = requestName == '' || requestName.match(/^[a-z0-9][a-z0-9\-\.]*[a-z0-9]$/);
-
-  async function loadCatalogItem(): void {
-    const resp = await getNamespacedCustomObject('babylon.gpte.redhat.com', 'v1', catalogNamespace, 'catalogitems', catalogItemName);
-    setCatalogItem(resp);
-  }
-
-  React.useEffect(() => {
-    loadCatalogItem();
-  }, []);
-
-  function displayName(item): string {
-    if (item.metadata.annotations && item.metadata.annotations['babylon.gpte.redhat.com/displayName']) {
-      return item.metadata.annotations['babylon.gpte.redhat.com/displayName'];
-    } else {
-      return item.metadata.name;
-    }
-  }
 
   function cancelRequest(): void {
     if (location.state) {
@@ -72,7 +79,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 
   async function submitRequest(): void {
     const apiSession = await getApiSession();
-    const namespace = apiSession.userNamespace.name;
+    const namespace = userNamespace.name;
     const requestResourceClaim = {
       apiVersion: 'poolboy.gpte.redhat.com/v1',
       kind: 'ResourceClaim',

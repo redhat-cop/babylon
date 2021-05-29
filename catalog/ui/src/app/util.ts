@@ -12,6 +12,15 @@ dompurify.addHook('afterSanitizeAttributes', function(node) {
   }
 });
 
+export function displayName(item: object): string {
+  return (
+    item?.metadata?.annotations?.['babylon.gpte.redhat.com/displayName'] ||
+    item?.metadata?.annotations?.['babylon.gpte.redhat.com/display-name'] ||
+    item?.metadata?.annotations?.['openshift.io/display-name'] ||
+    item.metadata.name
+  );
+}
+
 export function renderAsciiDoc(asciidoc: string, options?: object): string {
   const sanitize_opt = {
     ADD_TAGS: [],
