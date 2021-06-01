@@ -113,7 +113,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
     history.push(`/services/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
   }
 
-  const submitRequestEnabled = termsOfServiceAgreed && requestNameValid;
+  const submitRequestEnabled = termsOfServiceAgreed && requestNameValid != 'error';
 
   const catalogRequestForm = catalogItem ? (
     <Form className="rhpds-catalog-request-form">

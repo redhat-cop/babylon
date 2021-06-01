@@ -210,9 +210,9 @@ function reduce_insertResourceClaim(state, action) {
   const {resourceClaim} = action.payload;
   const namespace = resourceClaim.metadata.namespace;
   if (state.resourceClaims?.[namespace]) {
-    state.resourceClaims[namespace] = [resourceClaim];
-  } else {
     state.resourceClaims[namespace].push(resourceClaim);
+  } else {
+    state.resourceClaims[namespace] = [resourceClaim];
   }
 }
 
