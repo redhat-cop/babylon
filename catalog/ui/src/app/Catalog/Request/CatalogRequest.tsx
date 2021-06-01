@@ -1,8 +1,17 @@
 import * as React from 'react';
 
 import {
+  useHistory,
+  useRouteMatch,
+} from 'react-router-dom';
+
+import {
   useSelector,
 } from 'react-redux';
+
+import {
+  ExclamationCircleIcon,
+} from '@patternfly/react-icons';
 
 import {
   selectCatalogItems,
@@ -12,17 +21,13 @@ import {
 import './catalog-request.css';
 
 import {
-  useHistory,
-  useRouteMatch,
-} from 'react-router-dom';
-
-import {
   ActionList,
   ActionListItem,
   Button,
   Checkbox,
   Form,
   FormGroup,
+  FormHelperText,
   PageSection,
   PageSectionVariants,
   TextInput,
@@ -39,7 +44,7 @@ import {
   displayName,
 } from '@app/util';
 
-import { DefaultTermsOfService  } from './TermsOfService/Default.tsx';
+import { TermsOfService  } from '@app/components/TermsOfService.tsx';
 
 export interface CatalogRequestProps {
   location?: any;
@@ -63,7 +68,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   const catalogItem = (
     catalogItems?.[catalogNamespace] || []
   ).find(ci => ci.metadata.name === catalogItemName);
-  const requestNameValid = requestName == '' || requestName.match(/^[a-z0-9][a-z0-9\-\.]*[a-z0-9]$/);
+  const requestNameValid = requestName == '' ? '' : requestName.match(/^[a-z0-9]([a-z0-9\-\.]{0,8}[a-z0-9])?$/) ? 'success' : 'error';
 
   function cancelRequest(): void {
     if (location.state) {
@@ -98,9 +103,9 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       }
     };
     if (requestName) {
-      requestResourceClaim.metadata.name = requestName;
+      requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${requestName}`;
     } else {
-      requestResourceClaim.metadata.generateName = catalogItem.metadata.name + '-';
+      requestResourceClaim.metadata.generateName = `${catalogItem.metadata.name}-`;
     }
 
     const resourceClaim = await createResourceClaim(requestResourceClaim);
@@ -112,16 +117,24 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 
   const catalogRequestForm = catalogItem ? (
     <Form className="rhpds-catalog-request-form">
-      <FormGroup label="Request Name">
+      <FormGroup label="Request Name"
+        helperText={
+          <FormHelperText icon={<ExclamationCircleIcon />} isHidden={requestNameValid != 'failed'}>...</FormHelperText>
+        }
+        helperTextInvalid="Name must start and end with a letter or number; contain only letters, numbers, hyphen, and period; and be ten characters or less."
+        helperTextInvalidIcon={<ExclamationCircleIcon />}
+        validated={requestNameValid}
+      >
         <TextInput type="text" id="name" name="name"
-          placeholder={catalogItem.metadata.name + '-*'}
+          placeholder="generate"
           onChange={(value) => setRequestName(value)}
-          validated={requestName == '' ? 'default' : requestNameValid ? 'success' : 'error'}
+          validated={requestNameValid}
         />
       </FormGroup>
-      <DefaultTermsOfService
+      <TermsOfService
         agreed={termsOfServiceAgreed}
         onChange={onTermsOfServiceChange}
+        text={catalogItem.spec.termsOfService}
       />
       <ActionList>
         <ActionListItem>

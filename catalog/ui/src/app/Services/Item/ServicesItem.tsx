@@ -282,11 +282,10 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                   <DescriptionListDescription>
                     <Button variant="plain"
                       onClick={() => {setScheduleActionKind("retirement"); setOpenModal("scheduleAction")}}
-                      style={{"margin-left": "calc(-1 * var(--pf-global--spacer--md))", color: "var(--pf-c-button--m-plain--focus--Color)"}}
                     >
                       <LocalTimestamp timestamp={resourceClaim.status.lifespan.end}/> (
                       <TimeInterval to={resourceClaim.status.lifespan.end}/>)
-                      { resourceClaim.spec?.lifespan?.end && resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? <> <Spinner size="md"/></> : null } <PencilAltIcon />
+                      { resourceClaim.spec?.lifespan?.end && resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? <> <Spinner size="md"/></> : null } <PencilAltIcon className="edit"/>
                     </Button>
                   </DescriptionListDescription>
                 ) : "..." }
@@ -344,9 +343,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                         <DescriptionListDescription>
                           <Button variant="plain"
                             onClick={() => {setScheduleActionKind("stop"); setOpenModal("scheduleAction")}}
-                            style={{"margin-left": "calc(-1 * var(--pf-global--spacer--md))", color: "var(--pf-c-button--m-plain--focus--Color)"}}
                           >
-                            <LocalTimestamp timestamp={stopTimestamp}/> (<TimeInterval to={stopTimestamp}/>) <PencilAltIcon />
+                            <LocalTimestamp timestamp={stopTimestamp}/> (<TimeInterval to={stopTimestamp}/>) <PencilAltIcon className="edit"/>
                           </Button>
                         </DescriptionListDescription>
                       </DescriptionListGroup>

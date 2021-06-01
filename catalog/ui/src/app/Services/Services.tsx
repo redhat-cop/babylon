@@ -13,6 +13,7 @@ import {
 import {
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
+  displayName,
 } from '@app/util';
 
 import './services.css';
@@ -113,6 +114,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
 
   const [serviceNamespaceSelectIsOpen, setServiceNamespaceSelectIsOpen] = React.useState(false);
   const [userNamespace, setUserNamespace] = React.useState(null);
+  const [hoverResourceClaimUid, setHoverResourceClaimUid] = React.useState(null);
   const [openModal, setOpenModal] = React.useState(null);
 
   const resourceClaims = useSelector(selectResourceClaims);
@@ -252,9 +254,9 @@ const Services: React.FunctionComponent<ServicesProps> = ({
       secondCellListContent.push(
         <ListItem key="retirement">
           <Button variant="plain"
-            onClick={(e) => {openScheduleActionModal(resourceClaim, "retirement"); e.stopPropagation();}}
+            onClick={(e) => {openScheduleActionModal(resourceClaim, "retirement"); e.preventDefault();}}
           >
-            <OutlinedClockIcon/> Retire in <TimeInterval timeOnly={true} to={resourceClaim.status.lifespan.end}/> <PencilAltIcon/>
+            <OutlinedClockIcon/> Retire in <TimeInterval timeOnly={true} to={resourceClaim.status.lifespan.end}/> <PencilAltIcon className="edit"/>
           </Button>
         </ListItem>
       );
@@ -290,9 +292,9 @@ const Services: React.FunctionComponent<ServicesProps> = ({
         secondCellListContent.push(
           <ListItem key={`${i}-start`}>
             <Button variant="plain"
-              onClick={(e) => {openScheduleActionModal(resourceClaim, "stop"); e.stopPropagation();}}
+              onClick={(e) => {openScheduleActionModal(resourceClaim, "stop"); e.preventDefault();}}
             >
-              <AsleepIcon/> Stop in <TimeInterval timeOnly={true} to={stopTimestamp} /> <PencilAltIcon/>
+              <AsleepIcon/> Stop in <TimeInterval timeOnly={true} to={stopTimestamp} /> <PencilAltIcon className="edit"/>
             </Button>
           </ListItem>
         );
@@ -303,17 +305,24 @@ const Services: React.FunctionComponent<ServicesProps> = ({
       <DataListItem
         aria-labelledby={`${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
         key={resourceClaim.metadata.uid}
+        onMouseOver={() => setHoverResourceClaimUid(resourceClaim.metadata.uid)}
+        onMouseOut={() => setHoverResourceClaimUid(null)}
       >
         <DataListItemRow>
           <DataListItemCells
             dataListCells={[
-              <DataListCell key="1" onClick={() => history.push(resourceClaimPath)}>
-                <h2>{catalogItemDisplayName(resourceClaim)}</h2>
-                <DescriptionList isHorizontal>{firstCellDescriptionListContent}</DescriptionList>
-              </DataListCell>,
-              <DataListCell key="2" onClick={() => history.push(resourceClaimPath)}>
-                <h2>{resourceClaim.metadata.name}</h2>
-                <List>{secondCellListContent}</List>
+              <DataListCell key="cell">
+                <Link to={resourceClaimPath}>
+                  <h3 className={hoverResourceClaimUid == resourceClaim.metadata.uid ? "rhpds-services-item-title-hover rhpds-services-item-title" : "rhpds-services-item-title"}>{displayName(resourceClaim)}</h3>
+                  <Grid>
+                    <GridItem span="6">
+                      <DescriptionList isHorizontal>{firstCellDescriptionListContent}</DescriptionList>
+                    </GridItem>
+                    <GridItem span="6">
+                      <List>{secondCellListContent}</List>
+                    </GridItem>
+                  </Grid>
+                </Link>
               </DataListCell>,
             ]}
           />
@@ -322,13 +331,13 @@ const Services: React.FunctionComponent<ServicesProps> = ({
             { canStop ? (
               <Button
                 variant="primary"
-                onClick={() => openStopModal(resourceClaim)}
+                onClick={(e) => openStopModal(resourceClaim)}
               >Stop <PowerOffIcon/></Button>
             ) : (
               <Button
                 variant="primary"
                 isDisabled={!canStart}
-                onClick={() => openStartModal(resourceClaim)}
+                onClick={(e) => openStartModal(resourceClaim)}
               >Start <PlayIcon/></Button>
             )}
           </DataListAction>
