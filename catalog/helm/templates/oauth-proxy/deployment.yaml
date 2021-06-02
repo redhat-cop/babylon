@@ -40,6 +40,7 @@ spec:
         - --cookie-secure=true
         - --https-address=:8443
         - --provider=openshift
+        - --skip-provider-button=true
         - --tls-cert=/etc/tls/private/tls.crt
         - --tls-key=/etc/tls/private/tls.key
         - {{ (printf "--cookie-secret=%s" (.Values.oauthProxy.cookieSecret | b64enc)) | quote }}

@@ -2,8 +2,30 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: babylon-cluster-reader
+  annotations:
+    description: >-
+      Add access to cluster-reader role for Babylon resources.
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
+rules:
+- apiGroups:
+  - babylon.gpte.redhat.com
+  - {{ .Values.anarchy.apiGroup }}
+  - {{ .Values.poolboy.apiGroup }}
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: poolboy:{{ .Values.anarchy.namespace }}:{{ .Values.anarchy.defaultRunnerServiceAccountName }}
-  metadata:
+  annotations:
     description: >-
       This cluster role is used to allow anarchy to manage poolboy claims and handles.
 rules:
