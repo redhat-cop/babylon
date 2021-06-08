@@ -1,0 +1,11 @@
+{{ if .Values.redis.volume }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "babylon-notifier.redisName" . }}
+  namespace: {{ include "babylon-notifier.namespaceName" . }}
+  labels:
+    {{- include "babylon-notifier.labels" . | nindent 4 }}
+spec:
+  {{- .Values.redis.volume | nindent 2 }}
+{{ end }}

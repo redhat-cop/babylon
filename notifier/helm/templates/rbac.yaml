@@ -1,0 +1,79 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "babylon-notifier.name" . }}
+  annotations:
+    description: >-
+      Add access to cluster-reader role for Babylon resources.
+  labels:
+    {{- include "babylon-notifier.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kopf.dev
+  resources:
+  - clusterkopfpeerings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.babylon.domain }}
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.poolboy.domain }}
+  resources:
+  - resourceclaims
+  - resourcehandles
+  - resourcepools
+  - resourceproviders
+  verbs:
+  - get
+  - list
+  - watch
+
+{{ if .Values.deploy }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "babylon-notifier.name" . }}
+  labels:
+    {{- include "babylon-notifier.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "babylon-notifier.name" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "babylon-notifier.serviceAccountName" . }}
+  namespace: {{ include "babylon-notifier.namespaceName" . }}
+{{ end }}

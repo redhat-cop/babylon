@@ -1,0 +1,82 @@
+{{ if .Values.deploy }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "babylon-notifier.name" . }}
+  namespace: {{ include "babylon-notifier.namespaceName" . }}
+  labels:
+    {{- include "babylon-notifier.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylon-notifier.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon-notifier.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: notifier
+        env:
+        - name: SMTP_FROM
+          value: {{ required ".Values.smtp.from is required!" .Values.smtp.from | quote }}
+        - name: SMTP_HOST
+          value: {{ required ".Values.smtp.host is required!" .Values.smtp.host | quote }}
+        - name: SMTP_PORT
+          value: {{ required ".Values.smtp.port is required!" .Values.smtp.port | quote }}
+        - name: SMTP_TLS_CERT_FILE
+          value: /smtp-tls/tls.crt
+        - name: SMTP_TLS_KEY_FILE
+          value: /smtp-tls/tls.key
+        - name: REDIS_HOST
+          value: {{ include "babylon-notifier.redisName" . | quote }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-password
+              name: {{ include "babylon-notifier.redisName" . | quote }}
+        {{- with .Values.onlySendTo }}
+        - name: ONLY_SEND_TO
+          value: {{ . | quote }}
+        {{- end }}
+        image: {{ include "babylon-notifier.image" . | quote }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        volumeMounts:
+        - name: smtp-tls
+          mountPath: /smtp-tls
+          readOnly: true
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: {{ include "babylon-notifier.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 30
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: smtp-tls
+        secret:
+          defaultMode: 0440
+          secretName: {{ include "babylon-notifier.name" . }}-tls
+{{ end }}
