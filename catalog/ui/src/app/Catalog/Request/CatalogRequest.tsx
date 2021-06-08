@@ -15,6 +15,7 @@ import {
 
 import {
   selectCatalogItems,
+  selectCatalogNamespaces,
   selectUserNamespace,
 } from '@app/store';
 
@@ -36,6 +37,7 @@ import {
 
 import {
   createResourceClaim,
+  patchResourceClaim,
   getApiSession,
   getNamespacedCustomObject
 } from '@app/api';
@@ -56,17 +58,20 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   const history = useHistory();
 
   const catalogRequestRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/request/:namespace/:name');
-  const catalogNamespace = catalogRequestRouteMatch.params.namespace;
+  const catalogNamespaceName = catalogRequestRouteMatch.params.namespace;
   const catalogItemName = catalogRequestRouteMatch.params.name;
 
   const catalogItems = useSelector(selectCatalogItems);
+  const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const userNamespace = useSelector(selectUserNamespace);
+
+  const catalogNamespace = catalogNamespaces.find(ns => ns.name == catalogNamespaceName)
 
   const [termsOfServiceAgreed, setTermsOfServiceAgreed] = React.useState(false);
   const [requestName, setRequestName] = React.useState('');
 
   const catalogItem = (
-    catalogItems?.[catalogNamespace] || []
+    catalogItems?.[catalogNamespaceName] || []
   ).find(ci => ci.metadata.name === catalogItemName);
   const requestNameValid = requestName == '' ? '' : requestName.match(/^[a-z0-9]([a-z0-9\-\.]{0,8}[a-z0-9])?$/) ? 'success' : 'error';
 
@@ -90,6 +95,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       kind: 'ResourceClaim',
       metadata: {
         annotations: {
+          'babylon.gpte.redhat.com/catalogDisplayName': catalogNamespace?.displayName || catalogNamespaceName,
           'babylon.gpte.redhat.com/catalogItemDisplayName': displayName(catalogItem),
         },
         labels: {
@@ -108,7 +114,22 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       requestResourceClaim.metadata.generateName = `${catalogItem.metadata.name}-`;
     }
 
-    const resourceClaim = await createResourceClaim(requestResourceClaim);
+    const resourceClaim = await createResourceClaim(requestResourceClaim, {
+      skipUpdateStore: true,
+    });
+
+    const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, "$1");
+    const name = resourceClaim.metadata.name;
+    const shortName = name.substring(catalogItem.metadata.name.length + 1);
+
+    await patchResourceClaim(namespace, name, {
+      metadata: {
+        annotations: {
+          'babylon.gpte.redhat.com/shortName': shortName,
+          'babylon.gpte.redhat.com/url': `${baseUrl}/services/item/${namespace}/${name}`,
+        }
+      }
+    });
 
     history.push(`/services/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
   }
