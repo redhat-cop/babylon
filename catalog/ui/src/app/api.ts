@@ -64,13 +64,18 @@ export async function getUserInfo(user): object {
   return await resp.json();
 }
 
-export async function createResourceClaim(definition): void {
+export async function createResourceClaim(definition, opt = {}): object {
+  const namespace = definition.metadata.namespace;
   const resourceClaim = await createNamespacedCustomObject(
-    'poolboy.gpte.redhat.com', 'v1', definition.metadata.namespace, 'resourceclaims', definition
+    'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', definition
   );
-  store.dispatch(apiActionInsertResourceClaim({
-    resourceClaim: resourceClaim,
-  }));
+  if (!opt.skipUpdateStore) {
+    store.dispatch(
+      apiActionInsertResourceClaim({
+        resourceClaim: resourceClaim,
+      })
+    );
+  }
   return resourceClaim;
 }
 
@@ -87,13 +92,32 @@ export async function deleteResourceClaim(resourceClaim): void {
   }));
 }
 
+export async function patchResourceClaim(
+  namespace: string,
+  name: string,
+  patch: object,
+  opt= {},
+): object {
+  const resourceClaim = await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', name, patch
+  );
+  if (!opt.skipUpdateStore) {
+    store.dispatch(
+      apiActionInsertResourceClaim({
+        resourceClaim: resourceClaim,
+      })
+    );
+  }
+  return resourceClaim;
+}
+
 export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim, time) {
   const stopDate = new Date(time);
-  const data = {
+  const patch = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec))
   }
-  for (let i=0; i < data.spec.resources.length; ++i) {
-    data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + "Z";
+  for (let i=0; i < patch.spec.resources.length; ++i) {
+    patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + "Z";
   }
 
   const resp = await patchNamespacedCustomObject(
@@ -101,7 +125,7 @@ export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim, 
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name,
-    data,
+    patch,
   );
   store.dispatch(apiActionUpdateResourceClaim({
     resourceClaim: resp,

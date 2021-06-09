@@ -16,7 +16,6 @@ export function displayName(item: object): string {
   if (item.kind === 'ResourceClaim') {
     const catalogItemName = item.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'];
     const catalogItemDisplayName = item.metadata.annotations?.['babylon.gpte.redhat.com/catalogItemDisplayName'];
-    console.log(catalogItemName);
     if (catalogItemName && catalogItemDisplayName && item.metadata.name.startsWith(catalogItemName)) {
       return `${catalogItemDisplayName} - ${item.metadata.name.substring(1 + catalogItemName.length)}`;
     } else {
