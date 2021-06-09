@@ -1,0 +1,30 @@
+= Babylon notifier
+
+Email notification component
+
+== Manual Deployment
+
+. Create `client.crt` and `client.key` with SMTP client auth cert and key.
+
+. Create `values.yaml`:
++
+---------------------------
+redis:
+  password: p4ssw0rd
+smtp:
+  from: noreply@opentlc.com
+  host: mx00.opentlc.com
+  port: 19587
+---------------------------
+
+. Deploy with helm template:
++
+---------------------------
+helm template helm \
+--values values.yaml \
+--set smtp.tls.crt="$(cat client.crt)" \
+--set smtp.tls.key="$(cat client.key)" \
+| oc apply -f -
+---------------------------
+```
+

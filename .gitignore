@@ -1,2 +1,5 @@
+notifier/values.yaml
+*.crt
+*.key
 *.swp
 __pycache__

@@ -60,7 +60,7 @@ anarchy:
   domain: anarchy.gpte.redhat.com
 
 image:
-  repository: quay.io/redhat-cop/babylon-notifier
+  repository: quay.io/redhat-gpte/babylon-notifier
   pullPolicy: Always
   tagOverride: ""
 
