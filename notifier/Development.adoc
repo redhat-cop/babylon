@@ -1,0 +1,161 @@
+# Babylon Notifier Development
+
+Development can be performed in the `odo` OpenShift developer CLI or building with OpenShift build configs.
+An OpenShift cluster with cluster-admin is required for `odo` development.
+https://developers.redhat.com/products/codeready-containers/overview[CodeReady Containers] is recommended for local development.
+An Ansible test suite is available for functional testing.
+
+## Development with `odo`
+
+Use of `odo` is recommended for fast iterative development.
+`odo` simplifies the build/deploy process and avoids creating unnecessary build artifacts during the development process.
+
+. Install the `odo` developer CLI as described in the OpenShift documentation:
+https://docs.openshift.com/container-platform/latest/cli_reference/developer_cli_odo/installing-odo.html[Installing odo]
+
+. Create Babylon notifier resources from the provided helm chart:
++
+-------------------------------
+helm template helm \
+--set deploy=false \
+--set namespace.name=$(oc project --short) \
+--set redis.deploy=true \
+--set redis.password=p4ssw0rd \
+| oc apply -f -
+-------------------------------
++
+NOTE: Password `p4ssw0rd` is the default redis password value in `devfile.yaml`.
+
+. Create a project for development using `odo`:
++
+---------------------------------------
+odo project create babylon-notifier-dev
+---------------------------------------
+
+. Grant privileges for cluster role `poolboy-dev` to default service account:
++
+------------------------------------------------------------------
+oc adm policy add-cluster-role-to-user babylon-notifier -z default
+------------------------------------------------------------------
+
+. Setup `odo` from the provided `devfile.yaml`:
++
+---------------------------------
+odo create --devfile devfile.yaml
+---------------------------------
+
+. Set SMTP values for `odo` deployment:
++
+Set `ONLY_SEND_TO` to your email to prevent other users from receiving emails from your tests:
++
+------
+odo config set --env ONLY_SEND_TO="you@example.com"
+------
++
+Configure SMTP variables:
++
+------
+odo config set --env SMTP_FROM="noreply@opentlc.com"
+odo config set --env SMTP_HOST="mx00.opentlc.com"
+odo config set --env SMTP_PORT="19587"
+------
++
+Set `SMTP_TLS_CERT` and `SMTP_TLS_KEY`:
++
+-----------------------------------
+sed -i devfile.yaml -e "/- name: SMTP_TLS_CERT/{n;s|value: .*|value: $(jq -Rs . < client.crt | sed 's/\\/\\\\/g')|}"
+sed -i devfile.yaml -e "/- name: SMTP_TLS_KEY/{n;s|value: .*|value: $(jq -Rs . < client.key | sed 's/\\/\\\\/g')|}"
+-----------------------------------
++
+NOTE: https://github.com/openshift/odo/issues/4783
+
+. Use `odo push` to push code into the odo container:
++
+--------
+odo push
+--------
+
+. Cleanup
++
+Remove `odo` component
++
+-----------------------------------
+odo delete --force babylon-notifier
+-----------------------------------
++
+Remove the cluster-reader cluster role binding
++
+----------------------------------------------------------------
+oc adm policy remove-cluster-role-from-user cluster-reader -z default
+----------------------------------------------------------------
++
+Remove resources created from the helm template
++
+-------------------------------
+helm template helm \
+--set deploy=false \
+--set namespace.name=$(oc project --short) \
+--set redis.deploy=true \
+--set redis.password=p4ssw0rd \
+| oc delete -f -
+-------------------------------
+
+
+## Development OpenShift Build
+
+The OpenShift build process is a bit slower for development but has the advantage of being a bit closer to a normal deployment of the babylon-notifier.
+It is often best to iterate development using `odo` and also test with an OpenShift build and deployment prior to opening a pull request.
+
+. Create a project for development using `oc`:
++
+--------------------------
+oc new-project babylon-notifier-dev
+--------------------------
+
+. Process OpenShift build template to create BuildConfig and ImageStream:
++
+---------------------------------------------------------
+oc process --local -f build-template.yaml | oc apply -f -
+---------------------------------------------------------
+
+. Build babylon-notifier image from local source:
++
+-----------------------------------------------------
+oc start-build babylon-notifier --from-dir=.. --follow
+-----------------------------------------------------
+
+. Deploy Poolboy from build image
++
+--------------------------------------------------------------------------------
+helm template helm \
+--set nameOverride=babylon-notifier-dev \
+--set namespace.create=false \
+--set onlySendTo=someone@example.com \
+--set redis.password=p4ssw0rd \
+--set smtp.from=noreply@opentlc.com \
+--set smtp.host=mx00.opentlc.com \
+--set smtp.port=19587 \
+--set smtp.tls.crt="$(cat client.crt)" \
+--set smtp.tls.key="$(cat client.key)" \
+--set=image.override="$(oc get imagestream babylon-notifier -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}')" \
+| oc apply -f -
+--------------------------------------------------------------------------------
+
+. Cleanup
++
+Remove resources created from the helm template:
++
+---------------------------------------------
+helm template helm \
+--set nameOverride=babylon-notifier-dev \
+--set namespace.create=false \
+--set smtp.from=- \
+--set smtp.host=- \
+| oc delete -f -
+---------------------------------------------
++
+Remove BuildConfig and ImageStream:
++
+----------------------------------------------------------
+oc process --local -f build-template.yaml | oc delete -f -
+----------------------------------------------------------
