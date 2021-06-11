@@ -40,6 +40,8 @@ import {
   Dropdown,
   DropdownItem,
   DropdownToggle,
+  EmptyState,
+  EmptyStateIcon,
   Form,
   FormGroup,
   PageSection,
@@ -72,6 +74,7 @@ import {
 import { CatalogItemIcon } from './CatalogItemIcon';
 import { CatalogItemHealthDisplay } from './CatalogItemHealthDisplay';
 import { CatalogItemRating } from './CatalogItemRating';
+import { LoadingIcon } from '@app/components/LoadingIcon';
 import { LocalTimestamp } from '@app/components/LocalTimestamp';
 
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
@@ -523,9 +526,19 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                         <div className="rhpds-catalog-filter__item-count">{filteredCatalogItems.length == 1 ? '1 item' : filteredCatalogItems.length + ' items'}</div>
                       </div>
                     </PageSection>
-                    <PageSection variant={PageSectionVariants.default}  className="rhpds-catalog-box-items">
-                      {catalogItemCards}
-                    </PageSection>
+                    { catalogItemCards.length > 0 ? (
+                      <PageSection variant={PageSectionVariants.default} className="rhpds-catalog-box-items">
+                        { catalogItemCards }
+                      </PageSection>
+                    ) : (
+                      <PageSection variant={PageSectionVariants.default} className="rhpds-catalog-box-empty">
+                        <EmptyState>
+                          { catalogItems ? "No catalog items match filters." : (
+                            <EmptyStateIcon icon={LoadingIcon} />
+                          ) }
+                        </EmptyState>
+                      </PageSection>
+                    )}
                   </SidebarContent>
                 </Sidebar>
               </CardBody>

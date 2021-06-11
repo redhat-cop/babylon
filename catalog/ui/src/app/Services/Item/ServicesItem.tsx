@@ -66,6 +66,10 @@ import {
 } from '@app/components/ActionDropdown';
 
 import {
+  LoadingIcon,
+} from '@app/components/LoadingIcon';
+
+import {
   LocalTimestamp,
 } from '@app/components/LocalTimestamp';
 
@@ -415,8 +419,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
           </EmptyState>
         ) : (
           <EmptyState>
-            <EmptyStateIcon icon={Spinner} />
-            <Title headingLevel="h4" size="lg">loading...</Title>
+            <EmptyStateIcon icon={LoadingIcon} />
           </EmptyState>
         ) }
       </PageSection>

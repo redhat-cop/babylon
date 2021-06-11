@@ -88,6 +88,11 @@
   box-sizing: border-box;
 }
 
+.rhpds-catalog-box-empty.pf-c-page__main-section {
+  background-color: var(--pf-global--palette--black-200);
+  min-height: 450px;
+}
+
 .rhpds-catalog-box-items.pf-c-page__main-section > a:hover {
   box-shadow: var(--pf-c-card--m-hoverable--hover--BoxShadow);
   text-decoration: none;
@@ -99,7 +104,7 @@
   gap: 25px 25px;
   grid-auto-flow: dense;
   grid-template-columns: repeat(auto-fill,280px);
-  min-height: 500px;
+  min-height: 450px;
 }
 
 .rhpds-catalog-box-items.pf-c-page__main-section > a {

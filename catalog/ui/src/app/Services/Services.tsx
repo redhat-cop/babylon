@@ -21,7 +21,6 @@ const parseDuration = require('parse-duration');
 
 import { useHistory, useLocation, useRouteMatch, Link } from 'react-router-dom';
 import {
-  Bullseye,
   Button,
   Card,
   CardBody,
@@ -37,6 +36,8 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
+  EmptyState,
+  EmptyStateIcon,
   Grid,
   GridItem,
   List,
@@ -69,6 +70,7 @@ import {
 } from '@app/Services/NamespaceSelector/ServicesNamespaceSelector';
 
 import { DatetimeSelect } from '@app/components/DatetimeSelect';
+import { LoadingIcon } from '@app/components/LoadingIcon';
 import { LocalTimestamp } from '@app/components/LocalTimestamp';
 import { TimeInterval } from '@app/components/TimeInterval';
 
@@ -352,8 +354,8 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     </DataList>
   );
 
-  const noServicesContent = (
-    <Bullseye className="rhpds-no-services-message">
+  const noServicesContent = resourceClaims ? (
+    <EmptyState>
       <Card>
         <CardTitle>
           { serviceNamespace ? `No services in ${serviceNamespace.displayName}.` : "No services." }
@@ -362,7 +364,11 @@ const Services: React.FunctionComponent<ServicesProps> = ({
           <p>Request services using the <Link to="/catalog">catalog</Link>.</p>
         </CardBody>
       </Card>
-    </Bullseye>
+    </EmptyState>
+  ) : (
+    <EmptyState>
+      <EmptyStateIcon icon={LoadingIcon} />
+    </EmptyState>
   )
 
   return (<>

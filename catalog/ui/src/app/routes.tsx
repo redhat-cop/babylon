@@ -32,20 +32,12 @@ export interface IAppRouteGroup {
 export type AppRouteConfig = IAppRoute | IAppRouteGroup;
 
 const routes: AppRouteConfig[] = [
-/* Dashboard not yet designed, but should include service status and alerts
   {
     component: Dashboard,
     exact: true,
-    label: 'Dashboard',
+    //label: 'Dashboard',
     path: '/',
     title: 'RHPDS | Dashboard',
-  },
-*/
-  {
-    component: Catalog,
-    exact: true,
-    path: '/',
-    title: 'RHPDS | Catalog',
   },
   {
     // Catalog item from specific namespace
