@@ -44,6 +44,7 @@ import {
 
 import {
   displayName,
+  randomString,
 } from '@app/util';
 
 import { TermsOfService  } from '@app/components/TermsOfService.tsx';
@@ -68,12 +69,12 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   const catalogNamespace = catalogNamespaces.find(ns => ns.name == catalogNamespaceName)
 
   const [termsOfServiceAgreed, setTermsOfServiceAgreed] = React.useState(false);
-  const [requestName, setRequestName] = React.useState('');
+  const [requestId, setRequestId] = React.useState(randomString(8));
 
   const catalogItem = (
     catalogItems?.[catalogNamespaceName] || []
   ).find(ci => ci.metadata.name === catalogItemName);
-  const requestNameValid = requestName == '' ? '' : requestName.match(/^[a-z0-9]([a-z0-9\-\.]{0,8}[a-z0-9])?$/) ? 'success' : 'error';
+  const requestIdValid = requestId.match(/^[a-z0-9]([a-z0-9\-\.]{0,8}[a-z0-9])?$/) ? 'success' : 'error';
 
   function cancelRequest(): void {
     if (location.state) {
@@ -102,17 +103,13 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
           'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
           'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
         },
+        name: `${catalogItem.metadata.name}-${requestId}`,
         namespace: namespace,
       },
       spec: {
         resources: JSON.parse(JSON.stringify(catalogItem.spec.resources)),
       }
     };
-    if (requestName) {
-      requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${requestName}`;
-    } else {
-      requestResourceClaim.metadata.generateName = `${catalogItem.metadata.name}-`;
-    }
 
     const resourceClaim = await createResourceClaim(requestResourceClaim, {
       skipUpdateStore: true,
@@ -134,22 +131,22 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
     history.push(`/services/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
   }
 
-  const submitRequestEnabled = termsOfServiceAgreed && requestNameValid != 'error';
+  const submitRequestEnabled = termsOfServiceAgreed && requestIdValid != 'error';
 
   const catalogRequestForm = catalogItem ? (
     <Form className="rhpds-catalog-request-form">
-      <FormGroup label="Request Name"
+      <FormGroup label="Request Identifier"
         helperText={
-          <FormHelperText icon={<ExclamationCircleIcon />} isHidden={requestNameValid != 'failed'}>...</FormHelperText>
+          <FormHelperText icon={<ExclamationCircleIcon />} isHidden={requestIdValid != 'failed'}>...</FormHelperText>
         }
-        helperTextInvalid="Name must start and end with a letter or number; contain only letters, numbers, hyphen, and period; and be ten characters or less."
+        helperTextInvalid="Identity must start and end with a letter or number; contain only letters, numbers, hyphen, and period; and be ten characters or less."
         helperTextInvalidIcon={<ExclamationCircleIcon />}
-        validated={requestNameValid}
+        validated={requestIdValid}
       >
-        <TextInput type="text" id="name" name="name"
-          placeholder="generate"
-          onChange={(value) => setRequestName(value)}
-          validated={requestNameValid}
+        <TextInput type="text" id="requestIdentity" name="requestIdentity"
+          onChange={(value) => setRequestId(value)}
+          value={requestId}
+          validated={requestIdValid}
         />
       </FormGroup>
       <TermsOfService

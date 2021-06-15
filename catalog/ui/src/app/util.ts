@@ -31,6 +31,10 @@ export function displayName(item: object): string {
   }
 }
 
+export function randomString(length: number): string {
+    return Math.floor(Math.random() * 36**length).toString(36).padStart(length,'0');
+}
+
 export function renderAsciiDoc(asciidoc: string, options?: object): string {
   const sanitize_opt = {
     ADD_TAGS: [],
