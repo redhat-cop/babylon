@@ -52,7 +52,13 @@ export function checkResourceClaimCanStart(resourceClaim) {
     (resourceClaim?.status?.resources || []).find((r, idx) => {
       const state = r.state;
       const template = resourceClaim.spec.resources[idx]?.template;
-      if (!state || !template) { return false }
+      if (!state || !template) {
+        return false;
+      }
+      const currentState = state?.spec?.vars?.current_state;
+      if (currentState && (currentState.endsWith('-failed') || currentState === 'provision-canceled')) {
+        return false;
+      }
       const startTimestamp = template?.spec?.vars?.action_schedule?.start || state?.spec?.vars?.action_schedule?.start;
       const stopTimestamp = template?.spec?.vars?.action_schedule?.stop || state?.spec?.vars?.action_schedule?.stop;
       if (startTimestamp && stopTimestamp) {
@@ -71,7 +77,13 @@ export function checkResourceClaimCanStop(resourceClaim) {
     (resourceClaim?.status?.resources || []).find((r, idx) => {
       const state = r.state;
       const template = resourceClaim.spec.resources[idx]?.template;
-      if (!state || !template) { return false }
+      if (!state || !template) {
+        return false;
+      }
+      const currentState = state?.spec?.vars?.current_state;
+      if (currentState && (currentState.endsWith('-failed') || currentState === 'provision-canceled')) {
+        return false;
+      }
       const startTimestamp = template?.spec?.vars?.action_schedule?.start || state?.spec?.vars?.action_schedule?.start;
       const stopTimestamp = template?.spec?.vars?.action_schedule?.stop || state?.spec?.vars?.action_schedule?.stop;
       if (startTimestamp && stopTimestamp) {
