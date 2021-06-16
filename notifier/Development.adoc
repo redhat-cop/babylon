@@ -32,7 +32,7 @@ NOTE: Password `p4ssw0rd` is the default redis password value in `devfile.yaml`.
 odo project create babylon-notifier-dev
 ---------------------------------------
 
-. Grant privileges for cluster role `poolboy-dev` to default service account:
+. Grant privileges for cluster role `babylon-notifier` to default service account:
 +
 ------------------------------------------------------------------
 oc adm policy add-cluster-role-to-user babylon-notifier -z default
