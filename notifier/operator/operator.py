@@ -8,10 +8,13 @@ import logging
 import os
 import re
 import redis
+import requests
 import smtplib
 
+from base64 import b64decode
 from datetime import datetime, timedelta, timezone
 from dateutil.parser import isoparse
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from html2text import html2text
@@ -87,8 +90,17 @@ stop_timers = {}
 
 @kopf.on.startup()
 def configure(settings: kopf.OperatorSettings, **_):
+    global ansible_tower_hostname, ansible_tower_password, ansible_tower_user
+
     # Disable scanning for CustomResourceDefinitions
     settings.scanning.disabled = True
+
+    # Get the tower secret. This may change in the future if there are
+    # multiple ansible tower deployments
+    ansible_tower_secret = core_v1_api.read_namespaced_secret('babylon-tower', 'anarchy-operator')
+    ansible_tower_hostname = b64decode(ansible_tower_secret.data['hostname']).decode('utf8')
+    ansible_tower_password = b64decode(ansible_tower_secret.data['password']).decode('utf8')
+    ansible_tower_user = b64decode(ansible_tower_secret.data['user']).decode('utf8')
 
 @kopf.on.event('namespaces')
 def namespace_event(event, logger, **_):
@@ -251,6 +263,7 @@ def notify_if_provision_failed(resource_claim, email_addresses, logger):
     if notified == creation_ts:
         return
     r.expire(rkey, timedelta(days=7))
+
     notify_provision_failed(resource_claim, failure_resource_state, email_addresses, logger)
 
 def notify_if_provision_started(resource_claim, email_addresses, logger):
@@ -453,6 +466,23 @@ def notify_deleted(resource_claim, email_addresses, logger):
 
 def notify_provision_failed(resource_claim, resource_state, email_addresses, logger):
     logger.info("sending provision-failed notification", extra=dict(to=email_addresses))
+
+    attachments = []
+    try:
+        job_id = resource_state['status']['towerJobs']['provision']['deployerJob']
+        resp = requests.get(
+            f"https://{ansible_tower_hostname}/api/v2/jobs/{job_id}/stdout/?format=txt",
+            auth=(ansible_tower_user, ansible_tower_password),
+            # We really need to fix the tower certs!
+            verify=False,
+        )
+        filename = f"ansible-log-{job_id}.txt"
+        mimeapp = MIMEApplication(resp.content, Name=filename)
+        mimeapp['Content-Disposition'] = f"attachment; filename=\"{filename}\""
+        attachments.append(mimeapp)
+    except Exception:
+        logging.exception("Exception when getting tower job.")
+
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
@@ -462,6 +492,7 @@ def notify_provision_failed(resource_claim, resource_state, email_addresses, log
         template_vars = dict(
             failure_details = '...',
         ),
+        attachments = attachments,
     )
 
 def notify_provision_started(resource_claim, email_addresses, logger):
@@ -574,6 +605,23 @@ def notify_start_complete(resource_claim, email_addresses, logger):
 
 def notify_start_failed(resource_claim, resource_state, email_addresses, logger):
     logger.info("sending start-failed notification", extra=dict(to=email_addresses))
+
+    attachments = []
+    try:
+        job_id = resource_state['status']['towerJobs']['start']['deployerJob']
+        resp = requests.get(
+            f"https://{ansible_tower_hostname}/api/v2/jobs/{job_id}/stdout/?format=txt",
+            auth=(ansible_tower_user, ansible_tower_password),
+            # We really need to fix the tower certs!
+            verify=False,
+        )
+        filename = f"ansible-log-{job_id}.txt",
+        mimeapp = MIMEApplication(resp.content, Name=filename)
+        mimeapp['Content-Disposition'] = f"attachment; filename=\"{filename}\""
+        attachments.append(mimeapp)
+    except Exception:
+        logging.exception("Exception when getting tower job.")
+
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
@@ -583,6 +631,7 @@ def notify_start_failed(resource_claim, resource_state, email_addresses, logger)
         template_vars = dict(
             failure_details = '...',
         ),
+        attachments = attachments,
     )
 
 def notify_stop_complete(resource_claim, email_addresses, logger):
@@ -597,6 +646,23 @@ def notify_stop_complete(resource_claim, email_addresses, logger):
 
 def notify_stop_failed(resource_claim, resource_state, email_addresses, logger):
     logger.info("sending stop-failed notification", extra=dict(to=email_addresses))
+
+    attachments = []
+    try:
+        job_id = resource_state['status']['towerJobs']['stop']['deployerJob']
+        resp = requests.get(
+            f"https://{ansible_tower_hostname}/api/v2/jobs/{job_id}/stdout/?format=txt",
+            auth=(ansible_tower_user, ansible_tower_password),
+            # We really need to fix the tower certs!
+            verify=False,
+        )
+        filename = f"ansible-log-{job_id}.txt",
+        mimeapp = MIMEApplication(resp.content, Name=filename)
+        mimeapp['Content-Disposition'] = f"attachment; filename=\"{filename}\""
+        attachments.append(mimeapp)
+    except Exception:
+        logging.exception("Exception when getting tower job.")
+
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
@@ -606,6 +672,7 @@ def notify_stop_failed(resource_claim, resource_state, email_addresses, logger):
         template_vars = dict(
             failure_details = '...',
         ),
+        attachments = attachments,
     )
 
 def get_template_vars(resource_claim, logger):
@@ -658,7 +725,7 @@ def get_template_vars(resource_claim, logger):
         survey_link = None,
     )
 
-def send_notification_email(resource_claim, subject, to, template, logger, template_vars={}):
+def send_notification_email(resource_claim, subject, to, template, logger, template_vars={}, attachments=[]):
     template_vars.update(
         get_template_vars(resource_claim, logger)
     )
@@ -672,6 +739,9 @@ def send_notification_email(resource_claim, subject, to, template, logger, templ
 
     msg.attach(MIMEText(html2text(email_body), 'plain'))
     msg.attach(MIMEText(email_body, 'html'))
+
+    for attachment in attachments:
+        msg.attach(attachment)
 
     with smtplib.SMTP(
         host = smtp_host,

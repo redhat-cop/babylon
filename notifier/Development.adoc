@@ -13,11 +13,18 @@ Use of `odo` is recommended for fast iterative development.
 . Install the `odo` developer CLI as described in the OpenShift documentation:
 https://docs.openshift.com/container-platform/latest/cli_reference/developer_cli_odo/installing-odo.html[Installing odo]
 
+. Create a project for development using `odo`:
++
+---------------------------------------
+odo project create babylon-notifier-dev
+---------------------------------------
+
 . Create Babylon notifier resources from the provided helm chart:
 +
 -------------------------------
 helm template helm \
 --set deploy=false \
+--set nameOverride=babylon-notifier-dev \
 --set namespace.name=$(oc project --short) \
 --set redis.deploy=true \
 --set redis.password=p4ssw0rd \
@@ -26,17 +33,11 @@ helm template helm \
 +
 NOTE: Password `p4ssw0rd` is the default redis password value in `devfile.yaml`.
 
-. Create a project for development using `odo`:
-+
----------------------------------------
-odo project create babylon-notifier-dev
----------------------------------------
-
 . Grant privileges for cluster role `babylon-notifier` to default service account:
 +
-------------------------------------------------------------------
-oc adm policy add-cluster-role-to-user babylon-notifier -z default
-------------------------------------------------------------------
+----------------------------------------------------------------------
+oc adm policy add-cluster-role-to-user babylon-notifier-dev -z default
+----------------------------------------------------------------------
 
 . Setup `odo` from the provided `devfile.yaml`:
 +
@@ -48,17 +49,17 @@ odo create --devfile devfile.yaml
 +
 Set `ONLY_SEND_TO` to your email to prevent other users from receiving emails from your tests:
 +
-------
+---------------------------------------------------
 odo config set --env ONLY_SEND_TO="you@example.com"
-------
+---------------------------------------------------
 +
 Configure SMTP variables:
 +
-------
+----------------------------------------------------
 odo config set --env SMTP_FROM="noreply@opentlc.com"
 odo config set --env SMTP_HOST="mx00.opentlc.com"
 odo config set --env SMTP_PORT="19587"
-------
+----------------------------------------------------
 +
 Set `SMTP_TLS_CERT` and `SMTP_TLS_KEY`:
 +
@@ -79,21 +80,22 @@ odo push
 +
 Remove `odo` component
 +
------------------------------------
-odo delete --force babylon-notifier
------------------------------------
+---------------------------------------
+odo delete --force babylon-notifier-dev
+---------------------------------------
 +
 Remove the cluster-reader cluster role binding
 +
-----------------------------------------------------------------
-oc adm policy remove-cluster-role-from-user cluster-reader -z default
-----------------------------------------------------------------
+---------------------------------------------------------------------------
+oc adm policy remove-cluster-role-from-user babylon-notifier-dev -z default
+---------------------------------------------------------------------------
 +
 Remove resources created from the helm template
 +
 -------------------------------
 helm template helm \
 --set deploy=false \
+--set nameOverride=babylon-notifier-dev \
 --set namespace.name=$(oc project --short) \
 --set redis.deploy=true \
 --set redis.password=p4ssw0rd \
@@ -108,9 +110,9 @@ It is often best to iterate development using `odo` and also test with an OpenSh
 
 . Create a project for development using `oc`:
 +
---------------------------
+-----------------------------------
 oc new-project babylon-notifier-dev
---------------------------
+-----------------------------------
 
 . Process OpenShift build template to create BuildConfig and ImageStream:
 +
