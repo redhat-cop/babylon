@@ -104,7 +104,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const [activeCategory, setActiveCategory] = React.useState('all');
   const [catalogNamespaceSelectIsOpen, setCatalogNamespaceSelectIsOpen] = React.useState(false);
   const [keywordSearchValue, setKeywordSearchValue] = React.useState('');
-  const [selectedLabelFilters, setSelectedLabelFilters] = React.useState({});
+  const [selectedAttributeFilters, setSelectedAttributeFilters] = React.useState({});
 
   const selectedCatalogItem = catalogItemName ? (
     catalogItems?.[catalogItemNamespace] || []
@@ -196,13 +196,17 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   }
 
   function onAttributeFilterChange(checked: boolean, event): void {
-    const attributeFilterIdParts = event.target.id.split('/');
-    setSelectedLabelFilters(value => {
+    const [attrKey, valueKey] = event.target.id.split('/');
+    setSelectedAttributeFilters(value => {
       const ret = JSON.parse(JSON.stringify(value));
-      if (ret[attributeFilterIdParts[0]]) {
-        ret[attributeFilterIdParts[0]][attributeFilterIdParts[1]] = ret[attributeFilterIdParts[0]][attributeFilterIdParts[1]] ? false : true;
+      if (ret[attrKey]) {
+        if (ret[attrKey][valueKey]) {
+          delete ret[attrKey][valueKey];
+        } else {
+          ret[attrKey][valueKey] = true;
+        }
       } else {
-        ret[attributeFilterIdParts[0]] = {[attributeFilterIdParts[1]]: true };
+        ret[attrKey] = {[valueKey]: true};
       }
       return ret;
     });
@@ -348,15 +352,22 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       }
     }
 
-    for (const attr in selectedLabelFilters) {
+    for (const [attrKey, valueFilters] of Object.entries(selectedAttributeFilters)) {
       let attrMatch = null;
-      for (const val in selectedLabelFilters[attr]) {
-        if(selectedLabelFilters[attr][val]) {
+      for (const [valueKey, selected] of Object.entries(valueFilters)) {
+        if (selected) {
           if (attrMatch === null) {
             attrMatch = false;
           }
-          if (ci.metadata.labels && val == ci.metadata.labels['babylon.gpte.redhat.com/' + attr]) {
-            attrMatch = true;
+          if (ci.metadata.labels) {
+            for (const [label, value] of Object.entries(ci.metadata.labels)) {
+              if (label.startsWith('babylon.gpte.redhat.com/')) {
+                const attr = label.substring(24);
+                if (attrKey == attr.toLowerCase() && valueKey == value.toLowerCase()) {
+                  attrMatch = true;
+                }
+              }
+            }
           }
         }
       }
@@ -384,34 +395,43 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     return av < bv ? -1 : av > bv ? 1 : 0;
   })
 
-  function extractLabelFilters (catalogItems) {
-    const ret = {};
+  function extractAttributeFilters (catalogItems) {
+    const attributeFilters = {};
     for (let i=0; i < catalogItems.length; ++i) {
       const ci = availableCatalogItems[i];
       if (!ci.metadata.labels) { continue; }
       for (const label in ci.metadata.labels) {
-        const value = ci.metadata.labels[label];
-        if (label === 'babylon.gpte.redhat.com/category' || !label.startsWith('babylon.gpte.redhat.com/')) {
+        if (!label.startsWith('babylon.gpte.redhat.com/')
+          || label.toLowerCase() === 'babylon.gpte.redhat.com/category'
+        ) {
           continue;
         }
         const attr = label.substring(24);
-        if (!ret[attr]) {
-          ret[attr] = {}
+        const attrKey = attr.toLowerCase();
+        const value = ci.metadata.labels[label];
+        const valueKey = value.toLowerCase();
+        if (!attributeFilters[attrKey]) {
+          attributeFilters[attrKey] = {
+            text: attr.replace('_', ' '),
+            values: {},
+          }
         }
-        if (ret[attr][value]) {
-          ret[attr][value].count++;
+        const labelValues = attributeFilters[attrKey].values;
+        if (labelValues[valueKey]) {
+          labelValues[valueKey].count++;
         } else {
-          ret[attr][value] = {
+          labelValues[valueKey] = {
             count: 1,
-            selected: selectedLabelFilters[attr] && selectedLabelFilters[attr][value],
+            selected: selectedAttributeFilters[attrKey]?.[valueKey],
+            text: value.replace('_', ' '),
           }
         }
       }
     }
-    return ret;
+    return attributeFilters;
   }
 
-  const labelFilters = extractLabelFilters(availableCatalogItems);
+  const attributeFilters = extractAttributeFilters(availableCatalogItems);
 
   const catalogItemCards = filteredCatalogItems.map(
     catalogItem => (
@@ -500,12 +520,12 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                       { categories.map(cat => renderCategoryTab(cat)) }
                     </Tabs>
                     <Form>
-                    { Object.keys(labelFilters).sort().map(attr => (
-                      <FormGroup key={attr} label={attr.replace('_', ' ')} fieldId={attr}>
-                      { Object.keys(labelFilters[attr]).sort().map(val => (
-                        <Checkbox id={attr + '/' + val} key={attr + '/' + val}
-                          label={val + ' (' + labelFilters[attr][val].count + ')'}
-                          isChecked={labelFilters[attr][val].selected}
+                    { Object.entries(attributeFilters).sort().map( ([attrKey, attr]) => (
+                      <FormGroup key={attrKey} label={attr.text} fieldId={attrKey}>
+                      { Object.entries(attr.values).sort().map( ([valueKey, value]) => (
+                        <Checkbox id={attrKey + '/' + valueKey} key={attrKey + '/' + valueKey}
+                          label={value.text + ' (' + value.count + ')'}
+                          isChecked={value.selected}
                           onChange={onAttributeFilterChange}
                         />
                       ))}
