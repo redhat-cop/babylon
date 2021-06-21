@@ -142,17 +142,24 @@
 
       - meta: end_play
 
-  - name: Update desired_state of the Anarchy Subject
+  - name: Update desired_state of the ResourceClaim
     k8s:
       kubeconfig: "{{ kubeconfig }}"
-      kind: AnarchySubject
-      name: "{{ subject_name }}"
-      namespace: "{{ subject_namespace }}"
-      api_version: anarchy.gpte.redhat.com/v1
+      kind: ResourceClaim
+      name: "{{ resource_claim.metadata.name }}"
+      namespace: "{{ resource_claim.metadata.namespace }}"
+      api_version: poolboy.gpte.redhat.com/v1
       definition:
         spec:
-          vars:
-            desired_state: "{{ desired_state }}"
+          resources:
+          - "{{ __resource | combine(__resource_patch, recursive=true) }}"
+    vars:
+      __resource: "{{ resource_claim.spec.resources[0] }}"
+      __resource_patch:
+        template:
+          spec:
+            vars:
+              desired_state: "{{ desired_state }}"
 
   - name: Get Tower credentials and access information
     k8s_info:
