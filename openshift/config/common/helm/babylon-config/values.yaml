@@ -12,9 +12,9 @@ admin:
 
 anarchy:
   apiGroup: anarchy.gpte.redhat.com
-  namespace: anarchy
-  serviceAccountName: anarchy
-  defaultRunnerServiceAccountName: anarchy-runner-default
+  operatorNamespace: openshift-operators
+  namespaces:
+  - name: anarchy-operator
 
 poolboy:
   apiGroup: poolboy.gpte.redhat.com

@@ -1,6 +1,6 @@
 # Component Versions
 agnosticv_operator_version: v0.9.3
-babylon_anarchy_version: v0.15.0
+babylon_anarchy_version: v0.16.5
 babylon_anarchy_governor_version: v0.8.3
 poolboy_version: v0.8.3
 
@@ -18,41 +18,38 @@ babylon_anarchy_roles: >-
 
 # Variables defaults for a variables without the "default_" prefix
 default_babylon_admin_image: "quay.io/redhat-cop/babylon-admin:v0.2.2"
-default_babylon_anarchy_include_crds: true
-default_babylon_anarchy_replicas: 1
-default_babylon_catalog_namespaces:
-- babylon
+default_babylon_admin_image: "quay.io/redhat-cop/babylon-admin:v0.2.2"
+default_babylon_anarchy_namespaces:
+- name: anarchy-operator
+  commune:
+    replicaCount: 1
+    runners:
+    - name: default
+      minReplicas: 1
+      resources:
+        limits:
+          cpu: "1"
+          memory: "512Mi"
+        requests:
+          cpu: "500m"
+          memory: "256Mi"
 default_babylon_cross_cluster_backup_enable: false
 default_babylon_cross_cluster_backup_kubeconfig: ''
-default_babylon_default_anarchy_runner_min_replicas: 1
 
 babylon_resources:
   # Anarchy install and anarchy-operator deployment
   - name: Anarchy install
-    helm_template:
-      git:
-        repo: https://github.com/redhat-cop/anarchy.git
-        version: "{{ babylon_anarchy_version }}"
-      dir: helm
-      include_crds: >-
-        {{ babylon_anarchy_include_crds | default(default_babylon_anarchy_include_crds) }}
-      values:
-        namespace:
-          name: anarchy-operator
-        replicaCount: >-
-          {{ babylon_anarchy_replicas | default(default_babylon_anarchy_replicas) }}
-        runners:
-        - name: default
-          minReplicas: >-
-            {{ babylon_default_anarchy_runner_min_replicas
-             | default(default_babylon_default_anarchy_runner_min_replicas) }}
-          resources:
-            limits:
-              cpu: "1"
-              memory: 512Mi
-            requests:
-              cpu: 500m
-              memory: 512Mi
+    template:
+      file: anarchy-install.yaml.j2
+  - name: Verify anarchycommunes.anarchy.gpte.redhat.com CRD
+    info:
+      api_version: apiextensions.k8s.io/v1
+      kind: CustomResourceDefinition
+      name: anarchycommunes.anarchy.gpte.redhat.com
+    register: r_anarchycommunes_crd
+    until: r_anarchycommunes_crd.resources | length > 0
+    delay: 10
+    retries: 30
 
   # Poolboy
   - name: Poolboy install
@@ -76,7 +73,8 @@ babylon_resources:
           image: "{{ babylon_admin_image | default(default_babylon_admin_image) }}"
           redisPassword: "{{ babylon_admin_redis_password | default('generate') }}"
         anarchy:
-          namespace: anarchy-operator
+          namespaces: "{{ babylon_anarchy_namespaces | default(default_babylon_anarchy_namespaces) }}"
+
         # Evaluation to preserve boolean type
         catalogNamespaces: "{{ babylon_catalog_namespaces | default(default_babylon_catalog_namespaces) }}"
         crossClusterBackup: >-

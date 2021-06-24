@@ -1,0 +1,54 @@
+{{ range $anarchyNamespace := .Values.anarchy.namespaces }}
+  {{- with $anarchyCommune := $anarchyNamespace.commune }}
+---
+apiVersion: {{ $.Values.anarchy.apiGroup }}/v1
+kind: AnarchyCommune
+metadata:
+  name: {{ $anarchyNamespace.name }}
+  namespace: {{ $.Values.operatorNamespace }}
+spec:
+  namespace:
+    name: {{ $anarchyNamespace.name }}
+  {{- $anarchyCommune | toYaml | nindent 2 }}
+  replicaCount: {{ $anarchyCommune.replicaCount | default 1 }}
+  runners:
+    {{- range $anarchyRunner := ($anarchyCommune.runners | default (list (dict "name" "default"))) }}
+  - name: default
+    minReplicas: {{ $anarchyRunner.minReplicas | default 1 }}
+    resources:
+      {{- with $anarchyRunnerResources := ($anarchyRunner.resources | default (dict "_" "_")) }}
+      limits:
+        {{- with $anarchyRunnerResourceLimits := ($anarchyRunnerResources.limits | default (dict "_" "_")) }}
+        cpu: "{{ $anarchyRunnerResourceLimits.cpu | default "1" }}"
+        memory: "{{ $anarchyRunnerResourceLimits.memory | default "512Mi" }}"
+        {{- end }}
+      requests:
+        {{- with $anarchyRunnerResourceRequests := ($anarchyRunnerResources.requests | default (dict "_" "_")) }}
+        cpu: "{{ $anarchyRunnerResourceRequests.cpu | default "500m" }}"
+        memory: "{{ $anarchyRunnerResourceRequests.memory | default "256Mi" }}"
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+
+  {{- range $runner := ($anarchyNamespace.runners | default (list (dict "name" "default"))) }}
+    {{- with $serviceAccountName := (hasKey $runner "serviceAccountName") | ternary $runner.serviceAccountName (printf "anarchy-runner-%s" $runner.name) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: poolboy:{{ $anarchyNamespace.name }}:{{ $serviceAccountName }}
+  annotations:
+    description: >-
+      This cluster role binding allows an anarchy runner to manage poolboy claims and handles.
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: babylon:anarchy:poolboy-access
+subjects:
+- kind: ServiceAccount
+  name: {{ $serviceAccountName }}
+  namespace: {{ $anarchyNamespace.name }}
+    {{ end }}
+  {{ end }}
+{{ end }}

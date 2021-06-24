@@ -1,0 +1,22 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: anarchy-operator
+  namespace: openshift-marketplace 
+spec:
+  displayName: Anarchy Operator
+  image: quay.io/redhat-cop/anarchy-operator:catalog-{{ babylon_anarchy_version }}
+  sourceType: grpc
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: anarchy-operator
+  namespace: openshift-operators
+spec:
+  channel: "stable"
+  installPlanApproval: Automatic
+  name: anarchy-operator
+  source: anarchy-operator
+  sourceNamespace: openshift-marketplace
