@@ -82,7 +82,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: babylon-catalog-access
+  name: babylon-user-catalog-access
   annotations:
     description: >-
       Access to Babylon catalog resources.
@@ -97,12 +97,20 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - template.openshift.io
+  resources:
+  - templates
+  verbs:
+  - get
+  - list
+  - watch
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: babylon-service-user
+  name: babylon-user-service-access
   annotations:
     description: >-
       Access to manage Babylon services.
@@ -182,3 +190,37 @@ rules:
   - list
   - patch
   - update
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon:anarchy:catalog-access
+  annotations:
+    description: >-
+      This cluster role is used to allow anarchy to access catalog items and secrets.
+rules:
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - template.openshift.io
+  resources:
+  - templates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch

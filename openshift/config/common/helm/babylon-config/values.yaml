@@ -12,7 +12,6 @@ admin:
 
 anarchy:
   apiGroup: anarchy.gpte.redhat.com
-  operatorNamespace: openshift-operators
   namespaces:
   - name: anarchy-operator
 
@@ -28,3 +27,5 @@ crossClusterBackup:
   namespace: babylon-cross-cluster-backup
   storageSize: 5Gi
   #kubeConfig: ...
+
+operatorNamespace: openshift-operators

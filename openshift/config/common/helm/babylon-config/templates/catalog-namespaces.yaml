@@ -1,44 +1,10 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: babylon-user-catalog-access
-rules:
-- apiGroups:
-  - template.openshift.io
-  resources:
-  - templates
-  verbs:
-  - get
-  - list
-  - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: babylon-anarchy-catalog-access
-rules:
-- apiGroups:
-  - template.openshift.io
-  resources:
-  - templates
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
 {{- range $ns := .Values.catalogNamespaces }}
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ $ns.name }}
+  {{- if or $ns.groups $ns.users }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -50,21 +16,41 @@ roleRef:
   kind: ClusterRole
   name: babylon-user-catalog-access
 subjects:
+    {{- range $group := $ns.groups }}
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: system:authenticated
+  name: {{ $group }}
+    {{- end }}
+    {{- range $user := $ns.users }}
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: {{ $user }}
+    {{- end }}
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: babylon-anarchy-catalog-access:anarchy-operator
   namespace: {{ $ns.name }}
+  annotations:
+    description: >-
+      Access for anarchy to catalog items and secrets.
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: babylon-anarchy-catalog-access
+  name: babylon:anarchy:catalog-access
 subjects:
+  {{- range $anarchyNamespace := $.Values.anarchy.namespaces }}
 - kind: ServiceAccount
-  name: {{ $.Values.anarchy.serviceAccountName }}
-  namespace: {{ $.Values.anarchy.namespace }}
+  name: anarchy
+  namespace: {{ $anarchyNamespace }}
+    {{- range $runner := ($anarchyNamespace.runners | default (list (dict "name" "default"))) }}
+      {{- with $serviceAccountName := (hasKey $runner "serviceAccountName") | ternary $runner.serviceAccountName (printf "anarchy-runner-%s" $runner.name) }}
+- kind: ServiceAccount
+  name: {{ $serviceAccountName }}
+  namespace: {{ $anarchyNamespace }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
 {{- end }}
