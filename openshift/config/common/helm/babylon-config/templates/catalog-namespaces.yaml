@@ -31,7 +31,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: babylon-anarchy-catalog-access:anarchy-operator
+  name: babylon:anarchy:catalog-access
   namespace: {{ $ns.name }}
   annotations:
     description: >-

@@ -31,6 +31,20 @@ spec:
     {{- end }}
   {{- end }}
 
+  {{- with $babylonTower := ($anarchyNamespace.babylonTower | default $.Values.babylonTower) }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: babylon-tower
+  namespace: {{ $anarchyNamespace.name }}
+type: Opaque
+stringData:
+  hostname: {{ $babylonTower.hostname | b64enc }}
+  password: {{ $babylonTower.password | b64enc }}
+  user: {{ $babylonTower.user | b64enc }}
+  {{- end }}
+
   {{- range $runner := ($anarchyNamespace.runners | default (list (dict "name" "default"))) }}
     {{- with $serviceAccountName := (hasKey $runner "serviceAccountName") | ternary $runner.serviceAccountName (printf "anarchy-runner-%s" $runner.name) }}
 ---

@@ -43,6 +43,8 @@
 
   - name: Set vars from catalog_item_params
     set_fact:
+      anarchy_namespace: >-
+        {{ vars.catalog_item_params.__meta__.anarchy.namespace | default('anarchy-operator') }}
       guid: >-
         {{ vars.catalog_item_params.guid }}
       uuid: >-
@@ -60,7 +62,7 @@
         kubeconfig: "{{ kubeconfig }}"
         api_version: anarchy.gpte.redhat.com/v1
         kind: AnarchyGovernor
-        namespace: anarchy-operator
+        namespace: "{{ anarchy_namespace }}"
         name: "{{ catalog_item_name }}"
       register: r_governor
       vars:
@@ -88,9 +90,9 @@
       fail:
         msg: |-
          {% if r_governor.resources | length == 0 %}
-         AnarchyGovernor {{ catalog_item_name }} not found in anarchy-operator namespace.
+         AnarchyGovernor {{ catalog_item_name }} not found in {{ anarchy_namespace }} namespace.
          {% else %}
-         AnarchyGovernor {{ catalog_item_name }} job_vars do not match agnosticv.
+         AnarchyGovernor {{ catalog_item_name }} in {{ anarchy_namespace }} job_vars do not match agnosticv.
          {% endif %}
          Check agnosticv-operator logs:
            oc logs -n agnosticv-operator deployment/agnosticv-operator
@@ -233,10 +235,10 @@
           {% if __anarchy_subject.status.runStatus | default('') != '' %}
           Run status {{ __anarchy_subject.status.runStatus }}: {{ __anarchy_subject.status.runStatusMessage | default("no message") }}
           {% else %}
-          Check anarchy-operator logs:
-            oc logs -n anarchy-operator deployment/anarchy | fgrep {{ anarchy_subject_name }}
+          Check anarchy logs:
+            oc logs -n {{ anarchy_namespace }} deployment/anarchy | fgrep {{ anarchy_subject_name }}
           Check for problems with AnarchyRun to process create of AnarchySubject:
-            oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+            oc get anarchyruns -n {{ anarchy_namespace }} -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
           {% endif %}
       vars:
         __anarchy_subject: "{{ r_claim.resources[0].status.resources[0].state | default({}) }}"
@@ -280,7 +282,7 @@
           Run status {{ __anarchy_subject.status.runStatus }}: {{ __anarchy_subject.status.runStatusMessage | default("no message") }}
           {% else %}
           Check AnarchyRuns to see if there was an issue starting the job:
-            oc get anarchyruns -n anarchy-operator -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
+            oc get anarchyruns -n {{ anarchy_namespace }} -l anarchy.gpte.redhat.com/subject={{ anarchy_subject_name }}
           {% endif %}
       vars:
         __anarchy_subject: "{{ r_claim.resources[0].status.resources[0].state | default({}) }}"
@@ -296,7 +298,7 @@
       kubeconfig: "{{ kubeconfig }}"
       api_version: v1
       kind: Secret
-      namespace: anarchy-operator
+      namespace: "{{ anarchy_namespace }}"
       name: babylon-tower
     register: r_babylon_tower_secret
 

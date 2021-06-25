@@ -41,6 +41,8 @@
 
   - name: Set vars from catalog_item_params
     set_fact:
+      anarchy_namespace: >-
+        {{ vars.catalog_item_params.__meta__.anarchy.namespace | default('anarchy-operator') }}
       guid: >-
         {{ vars.catalog_item_params.guid }}
       uuid: >-
@@ -181,7 +183,7 @@
       kubeconfig: "{{ kubeconfig }}"
       api_version: v1
       kind: Secret
-      namespace: anarchy-operator
+      namespace: "{{ anarchy_namespace }}"
       name: babylon-tower
     register: r_babylon_tower_secret
     failed_when: >-

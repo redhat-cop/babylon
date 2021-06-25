@@ -41,6 +41,8 @@
 
   - name: Set vars from catalog_item_params
     set_fact:
+      anarchy_namespace: >-
+        {{ vars.catalog_item_params.__meta__.anarchy.namespace | default('anarchy-operator') }}
       guid: >-
         {{ vars.catalog_item_params.guid }}
       uuid: >-
@@ -128,7 +130,7 @@
         kubeconfig: "{{ kubeconfig }}"
         api_version: anarchy.gpte.redhat.com/v1
         kind: AnarchySubject
-        namespace: anarchy-operator
+        namespace: "{{ anarchy_namespace }}"
       register: r_anarchy_subjects
 
     - name: Set subject_name and subject_namespace if anarchy subject found
@@ -169,7 +171,7 @@
             # https://github.com/ansible-collections/community.kubernetes/issues/186
             # Need to generate a name while keeping the total length <= 63
             name: "{{ (subject_name ~ '-destroy-')[:58] ~ lookup('password', '/dev/null chars=ascii_lowercase,digits length=5') }}"
-            namespace: anarchy-operator
+            namespace: "{{ subject_namespace }}"
           spec:
             action: destroy
             callbackToken: "{{ lookup('password', '/dev/null length=32 chars=hexdigits') }}"
@@ -205,7 +207,7 @@
       kubeconfig: "{{ kubeconfig }}"
       api_version: v1
       kind: Secret
-      namespace: anarchy-operator
+      namespace: "{{ anarchy_namespace }}"
       name: babylon-tower
     register: r_babylon_tower_secret
 
