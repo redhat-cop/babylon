@@ -68,6 +68,7 @@ babylon_resources:
   - name: Babylon Helm Template
     helm_template:
       dir: babylon-config
+      include_crds: true
       values:
         admin:
           image: "{{ babylon_admin_image | default(default_babylon_admin_image) }}"
