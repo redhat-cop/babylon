@@ -44,12 +44,12 @@ subjects:
   {{- range $anarchyNamespace := $.Values.anarchy.namespaces }}
 - kind: ServiceAccount
   name: anarchy
-  namespace: {{ $anarchyNamespace }}
+  namespace: {{ $anarchyNamespace.name }}
     {{- range $runner := ($anarchyNamespace.runners | default (list (dict "name" "default"))) }}
       {{- with $serviceAccountName := (hasKey $runner "serviceAccountName") | ternary $runner.serviceAccountName (printf "anarchy-runner-%s" $runner.name) }}
 - kind: ServiceAccount
   name: {{ $serviceAccountName }}
-  namespace: {{ $anarchyNamespace }}
+  namespace: {{ $anarchyNamespace.name }}
       {{- end }}
     {{- end }}
   {{- end }}
