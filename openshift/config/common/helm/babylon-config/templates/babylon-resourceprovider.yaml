@@ -22,7 +22,8 @@ spec:
   - /spec/vars/desired_state
   override:
     metadata:
-      namespace: {{ .Values.anarchy.namespace }}
+      # Future state will not use generic babylon ResourceProvider... force first namespace for now.
+      namespace: {{ (index .Values.anarchy.namespaces 0).name }}
     spec:
       vars:
         babylon_user_email: >-
