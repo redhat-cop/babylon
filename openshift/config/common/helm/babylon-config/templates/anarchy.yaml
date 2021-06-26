@@ -3,14 +3,14 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: anarchy-operator
+  name: {{ $anarchyNamespace.name }}
   {{- with $anarchyCommune := $anarchyNamespace.commune }}
   annotations:
     meta.helm.sh/release-name: {{ $anarchyNamespace.name }}
     meta.helm.sh/release-namespace: {{ $.Values.operatorNamespace }}
   labels:
-    app.kubernetes.io/instance: anarchy-operator
-    app.kubernetes.io/managed-by: {{ $anarchyNamespace.name }}
+    app.kubernetes.io/instance: {{ $anarchyNamespace.name }}
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: anarchy
 ---
 apiVersion: {{ $.Values.anarchy.apiGroup }}/v1
