@@ -1,5 +1,17 @@
 {{ range $anarchyNamespace := .Values.anarchy.namespaces }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: anarchy-operator
   {{- with $anarchyCommune := $anarchyNamespace.commune }}
+  annotations:
+    meta.helm.sh/release-name: {{ $anarchyNamespace.name }}
+    meta.helm.sh/release-namespace: {{ $.Values.operatorNamespace }}
+  labels:
+    app.kubernetes.io/instance: anarchy-operator
+    app.kubernetes.io/managed-by: {{ $anarchyNamespace.name }}
+    app.kubernetes.io/name: anarchy
 ---
 apiVersion: {{ $.Values.anarchy.apiGroup }}/v1
 kind: AnarchyCommune
