@@ -39,7 +39,7 @@ metadata:
   name: babylon-tower
   namespace: {{ $anarchyNamespace.name }}
 type: Opaque
-stringData:
+data:
   hostname: {{ $babylonTower.hostname | b64enc }}
   password: {{ $babylonTower.password | b64enc }}
   user: {{ $babylonTower.user | b64enc }}
