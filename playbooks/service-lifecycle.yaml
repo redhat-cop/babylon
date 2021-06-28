@@ -16,6 +16,10 @@
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
 
   tasks:
+  - name: Git minimal facts
+    ansible.builtin.setup:
+      gather_subset: min
+
   - name: Check that _action is defined
     fail:
       msg: _action must be defined
@@ -157,7 +161,30 @@
           - "{{ __resource | combine(__resource_patch, recursive=true) }}"
     vars:
       __resource: "{{ resource_claim.spec.resources[0] }}"
-      __resource_patch:
+      __resource_patch: >-
+        {%- if 'action_schedule' in __resource.template.spec -%}
+        {{ __resource_patch_action_schedule }}
+        {%- else -%}
+        {{ __resource_patch_desired_state }}
+        {%- endif -%}
+      __resource_patch_action_schedule:
+        template:
+          spec:
+            vars:
+              action_schedule:
+                start: >-
+                  {%- if desired_state == 'started' -%}
+                  {{ ansible_date_time.iso8601 }}
+                  {%- else -%}
+                  {{ __resource.template.spec.action_schedule.start }}
+                  {%- endif -%}
+                stop:
+                  {%- if desired_state == 'started' -%}
+                  {{ '%FT%TZ' | strftime(500 * 24 * 60 * 60 + ansible_date_time.epoch | int) }}
+                  {%- else -%}
+                  {{ ansible_date_time.iso8601 }}
+                  {%- endif -%}
+      __resource_patch_desired_state:
         template:
           spec:
             vars:

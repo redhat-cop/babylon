@@ -17,6 +17,10 @@
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
 
   tasks:
+  - name: Git minimal facts
+    ansible.builtin.setup:
+      gather_subset: min
+
   - name: Include vars
     include_vars:
       file: "{{ catalog_item_params_file }}"
@@ -114,6 +118,51 @@
     vars:
       __meta_catalog_parameter_names: >-
         {{ vars.catalog_item_params | json_query('__meta__.catalog.parameters[].name') }}
+      __job_vars_from_configured_parameters: >-
+        {{ vars.catalog_item_params | dict2items
+         | json_query("[?contains(`" ~ __meta_catalog_parameter_names | lower | to_json ~ "`, key)]")
+         | items2dict | combine({"cloud_tags": vars.cloud_tags} if 'cloud_tags' in __meta_catalog_parameter_names else {}) }}
+      __job_vars_all: >-
+        {{ vars.catalog_item_params | dict2items
+         | json_query("[?key!='guid' && key!='uuid' && key!='cloud_tags']")
+         | items2dict | combine({"cloud_tags": vars.cloud_tags}) }}
+      # Resource definition for common ResourceProvider
+      __babylon_provider_resource_item:
+        provider:
+          apiVersion: poolboy.gpte.redhat.com/v1
+          kind: ResourceProvider
+          name: babylon
+          namespace: poolboy
+        template:
+          apiVersion: anarchy.gpte.redhat.com/v1
+          kind: AnarchySubject
+          metadata:
+            annotations:
+              poolboy.gpte.redhat.com/resource-provider-name: babylon
+              poolboy.gpte.redhat.com/resource-provider-namespace: poolboy
+            generateName: "{{ catalog_item_name }}-"
+          spec:
+            governor: "{{ catalog_item_name }}"
+            vars:
+              # Indicate that environment should start if match to a stopped environment
+              desired_state: started
+              # Set job_vars, excluding "guid" and "uuid" and insert filtered "cloud_tags"
+              job_vars: >-
+                {% if __meta_catalog_parameter_names != '' -%}
+                {{ __job_vars_from_configured_parameters }}
+                {%- else -%}
+                {{ __job_vars_all }}
+                {%- endif %}
+      # Resource definition to use when ResourceProvider is specific to the AgnosticV item
+      __provider_specific_resource_item:
+        provider:
+          apiVersion: poolboy.gpte.redhat.com/v1
+          kind: ResourceProvider
+          name: "{{ catalog_item_name }}"
+          namespace: poolboy
+        template:
+          vars:
+            job_vars: "{{ __job_vars_from_configured_parameters }}"
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       definition:
@@ -122,39 +171,19 @@
         metadata:
           name: "{{ resource_claim_name }}"
           namespace: "{{ user_namespace }}"
+          annotations:
+            # Only CloudForms should notify regarding events from
+            babylon.gpte.redhat.com/notifier: disable
           labels:
             uuid: "{{ uuid }}"
         spec:
           resources:
-          - provider:
-              apiVersion: poolboy.gpte.redhat.com/v1
-              kind: ResourceProvider
-              name: babylon
-              namespace: poolboy
-            template:
-              apiVersion: anarchy.gpte.redhat.com/v1
-              kind: AnarchySubject
-              metadata:
-                annotations:
-                  poolboy.gpte.redhat.com/resource-provider-name: babylon
-                  poolboy.gpte.redhat.com/resource-provider-namespace: poolboy
-                generateName: "{{ catalog_item_name }}-"
-              spec:
-                governor: "{{ catalog_item_name }}"
-                vars:
-                  # Indicate that environment should start if match to a stopped environment
-                  desired_state: started
-                  # Set job_vars, excluding "guid" and "uuid" and insert filtered "cloud_tags"
-                  job_vars: >-
-                    {% if __meta_catalog_parameter_names == '' -%}
-                    {{ vars.catalog_item_params | dict2items
-                     | json_query("[?key!='guid' && key!='uuid' && key!='cloud_tags']")
-                     | items2dict | combine({"cloud_tags": vars.cloud_tags}) }}
-                    {%- else -%}
-                    {{ vars.catalog_item_params | dict2items
-                     | json_query("[?contains(`" ~ __meta_catalog_parameter_names | lower | to_json ~ "`, key)]")
-                     | items2dict | combine({"cloud_tags": vars.cloud_tags} if 'cloud_tags' in __meta_catalog_parameter_names else {}) }}
-                    {%- endif %}
+          - >-
+            {%- if vars.catalog_item_params.__meta__.anarchy.namespace is defined -%}
+            {{ __babylon_provider_resource_item }}
+            {%- else -%}
+            {{ __provider_specific_resource_item }}
+            {%- endif -%}
 
   - name: Report ResourceClaim
     debug:
@@ -181,9 +210,82 @@
          Check poolboy logs:
            oc logs -n poolboy deployment/poolboy | fgrep {{ resource_claim_name }}
 
+  - name: Set fact for ResourceHandle name
+    set_fact:
+      resource_handle_name: "{{ r_claim.resources[0].status.resourceHandle.name }}"
+
   - name: Report ResourceHandle
     debug:
-      msg: "babylon.resourceHandle: {{ r_claim.resources[0].status.resourceHandle.name }}"
+      msg: "babylon.resourceHandle: {{ resource_handle_name }}"
+
+  - name: Get ResourceHandle
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: poolboy.gpte.redhat.com/v1
+      kind: ResourceHandle
+      namespace: poolboy
+      name: "{{ resource_handle_name }}"
+    register: r_get_resource_handle
+    when: r_get_resource_handle.resources | length != 1
+
+  - name: Set fact for ResourceHandle
+    set_fact:
+      resource_handle: "{{ r_get_resource_handle.resources[0] }}"
+
+  - name: Override lifespan and stop configuration
+    when: >-
+      'lifespan' in resource_handle.spec
+    block:
+    - name: Override lifespan and runtime in ResourceHandle
+      vars:
+        __resource_item_patch:
+          template:
+            spec:
+              vars:
+                action_schedule:
+                  maximum_runtime: 1000d
+                  stop: "{{ '%FT%TZ' | strftime(500 * 24 * 60 * 60 + ansible_date_time.epoch | int) }}"
+      k8s:
+        kubeconfig: "{{ kubeconfig }}"
+        definition:
+          apiVersion: poolboy.gpte.redhat.com/v1
+          kind: ResourceHandle
+          metadata:
+            name: "{{ resource_handle_name }}"
+            namespace: poolboy
+          spec:
+            lifespan:
+              maximum: 500d
+              relativeMaximum: 500d
+            resourceClaim: "{{ resource_handle.spec.resourceClaim }}"
+            resources:
+            - >-
+              {{ resource_handle.spec.resources[0] | combine(__resource_item_patch) }}
+
+    - name: Override lifespan and runtime in ResourceClaim
+      vars:
+        __resource_item_patch:
+          template:
+            spec:
+              vars:
+                action_schedule:
+                  start: "{{ ansible_date_time.iso8601 }}"
+                  stop: "{{ '%FT%TZ' | strftime(500 * 24 * 60 * 60 + ansible_date_time.epoch | int) }}"
+      k8s:
+        kubeconfig: "{{ kubeconfig }}"
+        definition:
+          apiVersion: poolboy.gpte.redhat.com/v1
+          kind: ResourceClaim
+          metadata:
+            name: "{{ resource_claim_name }}"
+            namespace: "{{ user_namespace }}"
+          spec:
+            lifespan:
+              end: "{{ '%FT%TZ' | strftime(1000 * 24 * 60 * 60 + ansible_date_time.epoch | int) }}"
+            resourceClaim: "{{ resource_handle.spec.resourceClaim }}"
+            resources:
+            - >-
+              {{ resource_handle.spec.resources[0] | combine(__resource_item_patch) }}
 
   - block:
     - name: Wait for AnarchySubject to appear in ResourceClaim {{ resource_claim_name }} status
