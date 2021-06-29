@@ -180,9 +180,9 @@
           resources:
           - >-
             {%- if vars.catalog_item_params.__meta__.anarchy.namespace is defined -%}
-            {{ __babylon_provider_resource_item }}
-            {%- else -%}
             {{ __provider_specific_resource_item }}
+            {%- else -%}
+            {{ __babylon_provider_resource_item }}
             {%- endif -%}
 
   - name: Report ResourceClaim
