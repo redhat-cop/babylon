@@ -226,7 +226,7 @@
       namespace: poolboy
       name: "{{ resource_handle_name }}"
     register: r_get_resource_handle
-    when: r_get_resource_handle.resources | length != 1
+    failed_when: r_get_resource_handle.resources | length != 1
 
   - name: Set fact for ResourceHandle
     set_fact:
