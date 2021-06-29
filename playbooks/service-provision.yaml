@@ -161,8 +161,9 @@
           name: "{{ catalog_item_name }}"
           namespace: poolboy
         template:
-          vars:
-            job_vars: "{{ __job_vars_from_configured_parameters }}"
+          spec:
+            vars:
+              job_vars: "{{ __job_vars_from_configured_parameters }}"
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       definition:
