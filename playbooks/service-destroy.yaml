@@ -91,7 +91,8 @@
     block:
     - name: Set subject_name and subject_namespace from claim
       vars:
-        __subject: "{{ resource_claim.status.resources[0].state }}"
+        __subject: "{{ resource_claim.status.resources[0].state | default('') }}"
+      when: __subject != ''
       set_fact:
         subject_name: "{{ __subject.metadata.name }}"
         subject_namespace: "{{ __subject.metadata.namespace }}"
@@ -104,6 +105,20 @@
         kind: ResourceClaim
         namespace: "{{ resource_claim.metadata.namespace }}"
         name: "{{ resource_claim.metadata.name }}"
+
+    - name: Exit if not found
+      when: subject is not defined
+      block:
+      - debug:
+          msg: "No subject found for ResourceClaim."
+
+      - name: Write tower information to yaml file
+        copy:
+          dest: "{{ output_dir }}/results.rc"
+          content: |
+            export SKIP_TOWER_LOGS=yes
+
+      - meta: end_play
 
     - name: Wait for the Tower deployerJob to start in the AnarchySubject
       k8s_info:
