@@ -41,6 +41,8 @@
 
   - name: Set vars from catalog_item_params
     set_fact:
+      anarchy_namespace: >-
+        {{ vars.catalog_item_params.__meta__.anarchy.namespace | default('anarchy-operator') }}
       guid: >-
         {{ vars.catalog_item_params.guid }}
       uuid: >-
@@ -89,7 +91,8 @@
     block:
     - name: Set subject_name and subject_namespace from claim
       vars:
-        __subject: "{{ resource_claim.status.resources[0].state }}"
+        __subject: "{{ resource_claim.status.resources[0].state | default('') }}"
+      when: __subject != ''
       set_fact:
         subject_name: "{{ __subject.metadata.name }}"
         subject_namespace: "{{ __subject.metadata.namespace }}"
@@ -102,6 +105,20 @@
         kind: ResourceClaim
         namespace: "{{ resource_claim.metadata.namespace }}"
         name: "{{ resource_claim.metadata.name }}"
+
+    - name: Exit if not found
+      when: subject is not defined
+      block:
+      - debug:
+          msg: "No subject found for ResourceClaim."
+
+      - name: Write tower information to yaml file
+        copy:
+          dest: "{{ output_dir }}/results.rc"
+          content: |
+            export SKIP_TOWER_LOGS=yes
+
+      - meta: end_play
 
     - name: Wait for the Tower deployerJob to start in the AnarchySubject
       k8s_info:
@@ -128,7 +145,7 @@
         kubeconfig: "{{ kubeconfig }}"
         api_version: anarchy.gpte.redhat.com/v1
         kind: AnarchySubject
-        namespace: anarchy-operator
+        namespace: "{{ anarchy_namespace }}"
       register: r_anarchy_subjects
 
     - name: Set subject_name and subject_namespace if anarchy subject found
@@ -169,7 +186,7 @@
             # https://github.com/ansible-collections/community.kubernetes/issues/186
             # Need to generate a name while keeping the total length <= 63
             name: "{{ (subject_name ~ '-destroy-')[:58] ~ lookup('password', '/dev/null chars=ascii_lowercase,digits length=5') }}"
-            namespace: anarchy-operator
+            namespace: "{{ subject_namespace }}"
           spec:
             action: destroy
             callbackToken: "{{ lookup('password', '/dev/null length=32 chars=hexdigits') }}"
@@ -205,7 +222,7 @@
       kubeconfig: "{{ kubeconfig }}"
       api_version: v1
       kind: Secret
-      namespace: anarchy-operator
+      namespace: "{{ anarchy_namespace }}"
       name: babylon-tower
     register: r_babylon_tower_secret
 

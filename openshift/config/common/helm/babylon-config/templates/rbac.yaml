@@ -2,19 +2,77 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: babylon-cluster-admin
+  annotations:
+    description: >-
+      Cluster-wide admin access for Babylon resources.
+rules:
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.anarchy.apiGroup }}
+  resources:
+  - anarchyactions
+  - anarchycommunes
+  - anarchygovernors
+  - anarchyruns
+  - anarchyrunners
+  - anarchysubjects
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.poolboy.apiGroup }}
+  resources:
+  - resourceclaims
+  - resourcehandles
+  - resourcepools
+  - resourceproviders
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: babylon-cluster-reader
   annotations:
     description: >-
-      Add access to cluster-reader role for Babylon resources.
+      Cluster-wide read access for Babylon resources.
   labels:
     rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
 rules:
 - apiGroups:
   - babylon.gpte.redhat.com
-  - {{ .Values.anarchy.apiGroup }}
-  - {{ .Values.poolboy.apiGroup }}
   resources:
-  - '*'
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.anarchy.apiGroup }}
+  resources:
+  - anarchyactions
+  - anarchycommunes
+  - anarchygovernors
+  - anarchyruns
+  - anarchyrunners
+  - anarchysubjects
   verbs:
   - get
   - list
@@ -24,47 +82,60 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: poolboy:{{ .Values.anarchy.namespace }}:{{ .Values.anarchy.defaultRunnerServiceAccountName }}
+  name: babylon-user-catalog-access
   annotations:
     description: >-
-      This cluster role is used to allow anarchy to manage poolboy claims and handles.
+      Access to Babylon catalog resources.
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - template.openshift.io
+  resources:
+  - templates
+  verbs:
+  - get
+  - list
+  - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon-user-service-access
+  annotations:
+    description: >-
+      Access to manage Babylon services.
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
 rules:
 - apiGroups:
   - {{ .Values.poolboy.apiGroup }}
   resources:
   - resourceclaims
-  - resourcehandles
   verbs:
+  - create
   - delete
+  - deletecollection
   - get
   - list
   - patch
   - update
+  - watch
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: ClusterRole
 metadata:
-  name: poolboy:{{ .Values.anarchy.namespace }}:{{ .Values.anarchy.defaultRunnerServiceAccountName }}
-  annotations:
-    description: >-
-      This cluster role binding allows anarchy to manage poolboy claims and handles.
-rules:
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: poolboy:{{ .Values.anarchy.namespace }}:{{ .Values.anarchy.defaultRunnerServiceAccountName }}
-subjects:
-- kind: ServiceAccount
-  namespace: {{ .Values.anarchy.namespace }}
-  name: {{ .Values.anarchy.defaultRunnerServiceAccountName }}
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: poolboy
-  namespace: {{ .Values.anarchy.namespace }}
+  name: babylon:poolboy:anarchy-access
   annotations:
     description: >-
       This role is used to allow poolboy to manage anarchy resources.
@@ -84,18 +155,72 @@ rules:
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: poolboy
-  namespace: {{ .Values.anarchy.namespace }}
+  name: babylon:{{ .Values.poolboy.namespace }}:anarchy-access
   annotations:
     description: >-
       This rolebinding allows poolboy to manage anarchy resources.
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: poolboy
+  kind: ClusterRole
+  name: babylon:poolboy:anarchy-access
 subjects:
 - kind: ServiceAccount
   name: poolboy
   namespace: {{ .Values.poolboy.namespace }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon:anarchy:poolboy-access
+  annotations:
+    description: >-
+      This cluster role is used to allow anarchy to manage poolboy claims and handles.
+rules:
+- apiGroups:
+  - {{ .Values.poolboy.apiGroup }}
+  resources:
+  - resourceclaims
+  - resourcehandles
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon:anarchy:catalog-access
+  annotations:
+    description: >-
+      This cluster role is used to allow anarchy to access catalog items and secrets.
+rules:
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - template.openshift.io
+  resources:
+  - templates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch

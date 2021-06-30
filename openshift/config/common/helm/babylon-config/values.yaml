@@ -12,9 +12,8 @@ admin:
 
 anarchy:
   apiGroup: anarchy.gpte.redhat.com
-  namespace: anarchy
-  serviceAccountName: anarchy
-  defaultRunnerServiceAccountName: anarchy-runner-default
+  namespaces:
+  - name: anarchy-operator
 
 poolboy:
   apiGroup: poolboy.gpte.redhat.com
@@ -28,3 +27,5 @@ crossClusterBackup:
   namespace: babylon-cross-cluster-backup
   storageSize: 5Gi
   #kubeConfig: ...
+
+operatorNamespace: openshift-operators

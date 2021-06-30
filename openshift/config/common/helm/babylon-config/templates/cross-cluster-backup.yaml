@@ -141,8 +141,8 @@ spec:
               set -e
               rm -rf /backup/in-progress
               mkdir /backup/in-progress
-              oc --kubeconfig=/secret/kubeconfig.yaml get anarchysubjects -n anarchy-operator -o yaml > /backup/in-progress/anarchysubjects.yaml
-              oc --kubeconfig=/secret/kubeconfig.yaml get anarchyactions -n anarchy-operator -o yaml > /backup/in-progress/anarchyactions.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get anarchysubjects --all-namespaces -o yaml > /backup/in-progress/anarchysubjects.yaml
+              oc --kubeconfig=/secret/kubeconfig.yaml get anarchyactions --all-namespaces -o yaml > /backup/in-progress/anarchyactions.yaml
               oc --kubeconfig=/secret/kubeconfig.yaml get resourcepools -n poolboy -o yaml > /backup/in-progress/resourcepools.yaml
               oc --kubeconfig=/secret/kubeconfig.yaml get resourcehandles -n poolboy -o yaml > /backup/in-progress/resourcehandles.yaml
               oc --kubeconfig=/secret/kubeconfig.yaml get resourceclaims --all-namespaces -o yaml > /backup/in-progress/resourceclaims.yaml
