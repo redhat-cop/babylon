@@ -162,7 +162,7 @@
     vars:
       __resource: "{{ resource_claim.spec.resources[0] }}"
       __resource_patch: >-
-        {%- if 'action_schedule' in __resource.template.spec -%}
+        {%- if 'action_schedule' in __resource.template.spec.vars -%}
         {{ __resource_patch_action_schedule }}
         {%- else -%}
         {{ __resource_patch_desired_state }}
@@ -176,7 +176,7 @@
                   {%- if desired_state == 'started' -%}
                   {{ ansible_date_time.iso8601 }}
                   {%- else -%}
-                  {{ __resource.template.spec.action_schedule.start }}
+                  {{ __resource.template.spec.vars.action_schedule.start }}
                   {%- endif -%}
                 stop: >-
                   {%- if desired_state == 'started' -%}
