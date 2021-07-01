@@ -6,6 +6,7 @@ metadata:
   name: {{ $anarchyNamespace.name }}
   {{- with $anarchyCommune := $anarchyNamespace.commune }}
   annotations:
+    helm.sh/resource-policy: keep
     meta.helm.sh/release-name: {{ $anarchyNamespace.name }}
     meta.helm.sh/release-namespace: {{ $.Values.operatorNamespace }}
   labels:
