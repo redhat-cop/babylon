@@ -12,7 +12,8 @@ api:
     threads: 1
   image:
     #override:
-    repository: quay.io/redhat-cop/babylon-catalog-api
+    tag: v0.0.4
+    repository: quay.io/redhat-gpte/babylon-catalog-api
     pullPolicy: IfNotPresent
   imagePullSecrets: []
   replicaCount: 1
@@ -30,7 +31,8 @@ ui:
   name: # default use chart name + '-ui'
   image:
     #override:
-    repository: quay.io/redhat-cop/babylon-catalog-ui
+    tag: v0.0.15
+    repository: quay.io/redhat-gpte/babylon-catalog-ui
     pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
@@ -76,3 +78,10 @@ redis:
     limits:
       cpu: "1"
       memory: 256Mi
+route:
+  certManager:
+    enable: false
+  certUtilsOperator:
+    enable: false
+  create: true
+  host:

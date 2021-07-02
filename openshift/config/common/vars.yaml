@@ -87,7 +87,17 @@ babylon_resources:
               | default(default_babylon_cross_cluster_backup_kubeconfig)
           } }}
 
-  # Babylon notifier configuration
+  - name: Babylon catalog Helm Template
+    when: >-
+      babylon_catalog_deploy | default(false) | bool
+    helm_template:
+      dir: babylon-catalog
+      values:
+        api:
+          replicaCount: "{{ babylon_catalog_api_replica_count | default(1) }}"
+        redis: "{{ babylon_catalog_redis | default({}) }}"
+        route: "{{ babylon_catalog_route | default({}) }}"
+
   - name: Babylon notifier Helm Template
     when: >-
       babylon_notifier_deploy | default(false) | bool
