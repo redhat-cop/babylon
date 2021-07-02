@@ -132,12 +132,18 @@ def namespace_event(event, logger, **_):
         f"{babylon_domain}/catalogItemNamespace": kopf.PRESENT,
     }
 )
+
 def resourceclaim_event(event, logger, **_):
     resource_claim = event.get('object')
     if not resource_claim \
     or resource_claim.get('kind') != 'ResourceClaim':
         logger.warning(event)
         return
+
+    # Ignore resource claims marked with disable
+    if 'disable' == resource_claim.get('metadata', {}).get('annotations', {}).get(f"{babylon_domain}/notifier"):
+        return
+
     # Too early to notify if there is no status yet
     if not 'status' in resource_claim \
     or not 'resourceHandle' in resource_claim['status']:

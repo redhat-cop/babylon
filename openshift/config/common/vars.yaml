@@ -87,6 +87,18 @@ babylon_resources:
               | default(default_babylon_cross_cluster_backup_kubeconfig)
           } }}
 
+  # Babylon notifier configuration
+  - name: Babylon notifier Helm Template
+    when: >-
+      babylon_notifier_deploy | bool and
+      babylon_notifier_redis is defined
+      babylon_notifier_smtp is defined
+    helm_template:
+      dir: babylon-notifier
+      values:
+        redis: "{{ babylon_notifier_redis }}"
+        smtp: "{{ babylon_notifier_smtp }}"
+
   # agnosticv-operator
   - name: AgnosticV Operator Deploy
     helm_template:
