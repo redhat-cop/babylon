@@ -176,7 +176,7 @@
                   {%- if desired_state == 'started' -%}
                   {{ ansible_date_time.iso8601 }}
                   {%- else -%}
-                  {{ __resource.template.spec.vars.action_schedule.start }}
+                  {{ __resource.template.spec.vars.action_schedule.start | default(ansible_date_time.iso8601) }}
                   {%- endif -%}
                 stop: >-
                   {%- if desired_state == 'started' -%}
