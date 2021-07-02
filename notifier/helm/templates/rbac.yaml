@@ -82,6 +82,10 @@ rules:
   - anarchygovernors
   - anarchyruns
   - anarchysubjects
+  verbs:
+  - get
+  - list
+  - watch
 
 {{ if .Values.deploy }}
 ---
