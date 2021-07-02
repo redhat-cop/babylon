@@ -90,14 +90,12 @@ babylon_resources:
   # Babylon notifier configuration
   - name: Babylon notifier Helm Template
     when: >-
-      babylon_notifier_deploy | bool and
-      babylon_notifier_redis is defined and
-      babylon_notifier_smtp is defined
+      babylon_notifier_deploy | bool
     helm_template:
       dir: babylon-notifier
       values:
-        redis: "{{ babylon_notifier_redis }}"
-        smtp: "{{ babylon_notifier_smtp }}"
+        redis: "{{ babylon_notifier_redis | default({}) }}"
+        smtp: "{{ babylon_notifier_smtp | default({}) }}"
 
   # agnosticv-operator
   - name: AgnosticV Operator Deploy
