@@ -91,7 +91,7 @@ babylon_resources:
   - name: Babylon notifier Helm Template
     when: >-
       babylon_notifier_deploy | bool and
-      babylon_notifier_redis is defined
+      babylon_notifier_redis is defined and
       babylon_notifier_smtp is defined
     helm_template:
       dir: babylon-notifier
