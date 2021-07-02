@@ -94,6 +94,8 @@ babylon_resources:
     helm_template:
       dir: babylon-notifier
       values:
+        anarchy:
+          namespaces: "{{ babylon_anarchy_namespaces | default(default_babylon_anarchy_namespaces) }}"
         redis: "{{ babylon_notifier_redis | default({}) }}"
         smtp: "{{ babylon_notifier_smtp | default({}) }}"
 
