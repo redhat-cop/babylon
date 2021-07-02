@@ -58,6 +58,8 @@ poolboy:
 
 anarchy:
   domain: anarchy.gpte.redhat.com
+  namespaces:
+  - name: anarchy-operator
 
 image:
   repository: quay.io/redhat-gpte/babylon-notifier
