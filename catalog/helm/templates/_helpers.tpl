@@ -114,7 +114,7 @@ Image for the catalog api
   {{- if .Values.api.image.override }}
      {{- .Values.api.image.override }}
   {{- else }}
-     {{- .Values.api.image.repository }}:v{{ .Chart.AppVersion }}
+     {{- .Values.api.image.repository }}:{{ .Values.api.image.tag }}
   {{- end }}
 {{- end -}}
 
@@ -147,7 +147,7 @@ Image for the catalog ui
   {{- if .Values.ui.image.override }}
      {{- .Values.ui.image.override }}
   {{- else }}
-     {{- .Values.ui.image.repository }}:v{{ .Chart.AppVersion }}
+     {{- .Values.ui.image.repository }}:{{ .Values.ui.image.tag }}
   {{- end }}
 {{- end -}}
 
