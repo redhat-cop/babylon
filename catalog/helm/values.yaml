@@ -76,3 +76,10 @@ redis:
     limits:
       cpu: "1"
       memory: 256Mi
+route:
+  certManager:
+    enable: false
+  certUtilsOperator:
+    enable: false
+  create: true
+  host:

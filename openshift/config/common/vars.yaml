@@ -96,6 +96,7 @@ babylon_resources:
         api:
           replicaCount: "{{ babylon_catalog_api_replica_count | default(1) }}"
         redis: "{{ babylon_catalog_redis | default({}) }}"
+        route: "{{ babylon_catalog_route | default({}) }}"
 
   - name: Babylon notifier Helm Template
     when: >-
