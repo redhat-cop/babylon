@@ -90,7 +90,7 @@ babylon_resources:
   # Babylon notifier configuration
   - name: Babylon notifier Helm Template
     when: >-
-      babylon_notifier_deploy | bool
+      babylon_notifier_deploy | default(false) | bool
     helm_template:
       dir: babylon-notifier
       values:
