@@ -76,7 +76,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - {{ $.anarchy.domain }}
+  - {{ .Values.anarchy.domain }}
   resources:
   - anarchyactions
   - anarchygovernors
