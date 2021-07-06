@@ -5,10 +5,10 @@ kind: Namespace
 metadata:
   name: {{ $ns.name }}
   annotations:
-    openshift.io/description: {{ $ns.description | default '' | quote }}
+    openshift.io/description: {{ $ns.description | default "" | quote }}
     openshift.io/display-name: {{ $ns.displayName | default $ns.name | quote }}
   labels:
-    babylon.gpte.redhat.com/catalog: {{ $ns.catalog | default '' | quote }}
+    babylon.gpte.redhat.com/catalog: {{ $ns.catalog | default "" | quote }}
   {{- if or $ns.groups $ns.users }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
