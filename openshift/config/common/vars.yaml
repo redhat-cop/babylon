@@ -33,8 +33,6 @@ default_babylon_anarchy_namespaces:
         requests:
           cpu: "500m"
           memory: "256Mi"
-default_babylon_cross_cluster_backup_enable: false
-default_babylon_cross_cluster_backup_kubeconfig: ''
 
 babylon_resources:
   # Anarchy install and anarchy-operator deployment
@@ -79,13 +77,7 @@ babylon_resources:
 
         # Evaluation to preserve boolean type
         catalogNamespaces: "{{ babylon_catalog_namespaces | default(default_babylon_catalog_namespaces) }}"
-        crossClusterBackup: >-
-          {{ {
-            "enable": babylon_cross_cluster_backup_enable
-              | default(default_babylon_cross_cluster_backup_enable) | bool,
-            "kubeConfig": babylon_cross_cluster_backup_kubeconfig
-              | default(default_babylon_cross_cluster_backup_kubeconfig)
-          } }}
+        crossClusterBackup: "{{ babylon_cross_cluster_backup | default({}) }}"
 
   - name: Babylon catalog Helm Template
     when: >-
