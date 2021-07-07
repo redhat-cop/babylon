@@ -516,17 +516,20 @@ def notify_provision_started(resource_claim, email_addresses, logger):
 
 def notify_ready(resource_claim, email_addresses, logger):
     logger.info("sending service-ready notification", extra=dict(to=email_addresses))
+    message_body = []
     template_vars = dict(
         provision_messages = [],
         provision_data = {},
     )
     for status_resource in resource_claim['status']['resources']:
         anarchy_subject = status_resource['state']
+        message_body.extend(anarchy_subject['spec']['vars'].get('provision_message_body', []))
         template_vars['provision_messages'].extend(anarchy_subject['spec']['vars'].get('provision_messages', []))
         template_vars['provision_data'].update(anarchy_subject['spec']['vars'].get('provision_data', {}))
 
     send_notification_email(
         logger = logger,
+        message_body = message_body,
         resource_claim = resource_claim,
         subject = "{{catalog_display_name}} service, {{service_display_name}}, is ready",
         to = email_addresses,
@@ -731,12 +734,21 @@ def get_template_vars(resource_claim, logger):
         survey_link = None,
     )
 
-def send_notification_email(resource_claim, subject, to, template, logger, template_vars={}, attachments=[]):
+def send_notification_email(resource_claim, subject, to, template, logger, message_body=[], template_vars={}, attachments=[]):
+    metadata = resource_claim['metadata']
+    annotations = metadata.get('annotations', {})
+
     template_vars.update(
         get_template_vars(resource_claim, logger)
     )
     email_subject = j2env.from_string(subject).render(**template_vars)
-    email_body = j2env.get_template(template + '.html.j2').render(**template_vars)
+    template_string = annotations.get(f"{babylon_domain}/{template}-message-template")
+    if template_string:
+        email_body = j2env.from_string(template_string).render(**template_vars)
+    elif message_body:
+        email_body = "\n".join(message_body)
+    else:
+        email_body = j2env.get_template(template + '.html.j2').render(**template_vars)
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = email_subject

@@ -111,6 +111,12 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       }
     };
 
+    for (const [key, value] of Object.entries(catalogItem.metadata.annotations)) {
+      if (key.startsWith('babylon.gpte.redhat.com/') && key.endsWith('-message-template')) {
+        requestResourceClaim.metadata.annotations[key] = value;
+      }
+    }
+
     const resourceClaim = await createResourceClaim(requestResourceClaim, {
       skipUpdateStore: true,
     });
