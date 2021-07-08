@@ -12,6 +12,15 @@ dompurify.addHook('afterSanitizeAttributes', function(node) {
   }
 });
 
+export function checkCondition(condition: string, vars: object): boolean {
+  return window.Function(
+    Object.entries(vars).map(
+      ([k, v]) => "const " + k + " = " + JSON.stringify(v) + ";"
+    ).join("\n") +
+    "return Boolean(" + condition + ");"
+  )();
+}
+
 export function displayName(item: object): string {
   if (item.kind === 'ResourceClaim') {
     const catalogItemName = item.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'];
@@ -32,7 +41,17 @@ export function displayName(item: object): string {
 }
 
 export function randomString(length: number): string {
-    return Math.floor(Math.random() * 36**length).toString(36).padStart(length,'0');
+  return Math.floor(Math.random() * 36**length).toString(36).padStart(length,'0');
+}
+
+export function recursiveAssign(target: object, source: object): object {
+  for (const [k, v] of Object.entries(source)) {
+    if (v !== null && typeof v === 'object' && k in target && target[k] !== null && typeof target[k] === 'object') {
+      recursiveAssign(target[k], v);
+    } else {
+      target[k] = v;
+    }
+  }
 }
 
 export function renderAsciiDoc(asciidoc: string, options?: object): string {

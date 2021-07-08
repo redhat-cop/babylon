@@ -387,13 +387,19 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const categories = Array.from(new Set(
     allCatalogItems
     .map(ci => category(ci))
-    .filter(category => category !== null)
+    .filter(category => category)
   ));
   categories.sort((a, b) => {
     const av = a.toUpperCase();
     const bv = b.toUpperCase();
-    return av < bv ? -1 : av > bv ? 1 : 0;
-  })
+    if (av == 'OTHER') {
+      return 1;
+    } else if( bv == 'OTHER') {
+      return -1;
+    } else {
+      return av < bv ? -1 : av > bv ? 1 : 0;
+    }
+  });
 
   function extractAttributeFilters (catalogItems) {
     const attributeFilters = {};

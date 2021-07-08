@@ -29,6 +29,7 @@ import {
   Form,
   FormGroup,
   FormHelperText,
+  NumberInput,
   PageSection,
   PageSectionVariants,
   TextInput,
@@ -43,8 +44,10 @@ import {
 } from '@app/api';
 
 import {
+  checkCondition,
   displayName,
   randomString,
+  recursiveAssign,
 } from '@app/util';
 
 import { TermsOfService  } from '@app/components/TermsOfService.tsx';
@@ -70,11 +73,43 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 
   const [termsOfServiceAgreed, setTermsOfServiceAgreed] = React.useState(false);
   const [requestId, setRequestId] = React.useState(randomString(8));
+  const [parameterState, setParameterState] = React.useState(null);
 
   const catalogItem = (
     catalogItems?.[catalogNamespaceName] || []
   ).find(ci => ci.metadata.name === catalogItemName);
   const requestIdValid = requestId.match(/^[a-z0-9]([a-z0-9\-\.]{0,8}[a-z0-9])?$/) ? 'success' : 'error';
+
+  const submitRequestEnabled = termsOfServiceAgreed && requestIdValid != 'error';
+  const formGroups = [];
+  const parameters = catalogItem?.spec?.parameters || [];
+  const parameterDefaults = {};
+
+  for (const parameter of parameters) {
+    const formGroupLabel = parameter.formGroup;
+    parameterDefaults[parameter.name] = 'default' in parameter.openAPIV3Schema ? parameter.openAPIV3Schema.default : parameter.value;
+    if (formGroupLabel) {
+      const formGroup = formGroups.find(item => item.formGroupLabel === formGroupLabel);
+      if (formGroup) {
+        formGroup.parameters.push(parameter);
+      } else {
+        formGroups.push({
+          formGroupLabel: formGroupLabel,
+          key: formGroupLabel,
+          parameters: [parameter],
+        });
+      }
+    } else {
+      formGroups.push({
+        formGroupLabel: parameter.formLabel || parameter.name,
+        key: parameter.name,
+        parameters: [parameter]
+      });
+    }
+  }
+  if (catalogItem && !parameterState) {
+    setParameterState(parameterDefaults);
+  }
 
   function cancelRequest(): void {
     if (location.state) {
@@ -117,6 +152,17 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       }
     }
 
+    for (const parameter of parameters) {
+      const varName = parameter.variable || parameter.name;
+      for (const resourceIndex in requestResourceClaim.spec.resources) {
+        const resource = requestResourceClaim.spec.resources[resourceIndex];
+        if (parameter.resourceIndex != null && resourceIndex != parameter.resourceIndex) {
+          continue;
+        }
+        recursiveAssign(resource, {template: {spec: {vars: {job_vars: {[varName]: parameterState[parameter.name]}}}}})
+      }
+    }
+
     const resourceClaim = await createResourceClaim(requestResourceClaim, {
       skipUpdateStore: true,
     });
@@ -137,9 +183,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
     history.push(`/services/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
   }
 
-  const submitRequestEnabled = termsOfServiceAgreed && requestIdValid != 'error';
-
-  const catalogRequestForm = catalogItem ? (
+  const catalogRequestForm = (catalogItem && parameterState) ? (
     <Form className="rhpds-catalog-request-form">
       <FormGroup label="Request Identifier"
         helperText={
@@ -155,6 +199,46 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
           validated={requestIdValid}
         />
       </FormGroup>
+      { (formGroups).map(formGroup => (
+        <FormGroup
+          key={formGroup.key}
+          label={formGroup.formGroupLabel}
+        >
+        { formGroup.parameters.map(parameter => (
+          (parameter.openAPIV3Schema?.type === 'boolean') ? (
+            <Checkbox
+              key={parameter.name}
+              id={parameter.name}
+              name={parameter.name}
+              label={parameter.formLabel || parameter.name}
+              isChecked={parameterState[parameter.name]}
+              isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
+              onChange={(checked) => setParameterState(state => Object.assign({}, state, {[parameter.name]: checked}))}
+            />
+          ) : (parameter.openAPIV3Schema?.type === 'integer') ? (
+            <NumberInput
+              key={parameter.name}
+              id={parameter.name}
+              isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
+              min={parameter.openAPIV3Schema.minmum || 0}
+              max={parameter.openAPIV3Schema.maximum}
+              onChange={(event) => setParameterState(state => Object.assign({}, state, {[parameter.name]: isNaN(event.target.value) ? state[parameter.name] : Number(event.target.value)}))}
+              onMinus={() => setParameterState(state => Object.assign({}, state, {[parameter.name]: state[parameter.name] - 1}))}
+              onPlus={() => setParameterState(state => Object.assign({}, state, {[parameter.name]: state[parameter.name] + 1}))}
+              value={parameterState[parameter.name]}
+            />
+          ) : (
+            <TextInput type="text"
+              key={parameter.name}
+              id={parameter.name}
+              isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
+              onChange={(event) => setParameterState(state => Object.assign({}, state, {[parameter.name]: event.target.value}))}
+              value={parameterState[parameter.name]}
+            />
+          )
+        )) }
+        </FormGroup>
+      )) }
       <TermsOfService
         agreed={termsOfServiceAgreed}
         onChange={onTermsOfServiceChange}
