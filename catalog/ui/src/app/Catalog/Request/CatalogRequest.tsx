@@ -32,6 +32,9 @@ import {
   NumberInput,
   PageSection,
   PageSectionVariants,
+  Select,
+  SelectOption,
+  SelectVariant,
   TextInput,
   Title
 } from '@patternfly/react-core';
@@ -50,6 +53,7 @@ import {
   recursiveAssign,
 } from '@app/util';
 
+import { DynamicFormInput } from '@app/components/DynamicFormInput.tsx';
 import { TermsOfService  } from '@app/components/TermsOfService.tsx';
 
 export interface CatalogRequestProps {
@@ -74,13 +78,19 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   const [termsOfServiceAgreed, setTermsOfServiceAgreed] = React.useState(false);
   const [requestId, setRequestId] = React.useState(randomString(8));
   const [parameterState, setParameterState] = React.useState(null);
+  const [parameterValidationState, setParameterValidationState] = React.useState({});
 
   const catalogItem = (
     catalogItems?.[catalogNamespaceName] || []
   ).find(ci => ci.metadata.name === catalogItemName);
   const requestIdValid = requestId.match(/^[a-z0-9]([a-z0-9\-\.]{0,8}[a-z0-9])?$/) ? 'success' : 'error';
 
-  const submitRequestEnabled = termsOfServiceAgreed && requestIdValid != 'error';
+  // Enable submit if terms of service is agreed, the request id is valid, and no parameter vars are invalid
+  const submitRequestEnabled = (
+    termsOfServiceAgreed &&
+    requestIdValid != 'error' &&
+    Object.values(parameterValidationState).find(v => v === false) !== false
+  );
   const formGroups = [];
   const parameters = catalogItem?.spec?.parameters || [];
   const parameterDefaults = {};
@@ -199,46 +209,37 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
           validated={requestIdValid}
         />
       </FormGroup>
-      { (formGroups).map(formGroup => (
-        <FormGroup
-          key={formGroup.key}
-          label={formGroup.formGroupLabel}
-        >
-        { formGroup.parameters.map(parameter => (
-          (parameter.openAPIV3Schema?.type === 'boolean') ? (
-            <Checkbox
-              key={parameter.name}
-              id={parameter.name}
-              name={parameter.name}
-              label={parameter.formLabel || parameter.name}
-              isChecked={parameterState[parameter.name]}
-              isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
-              onChange={(checked) => setParameterState(state => Object.assign({}, state, {[parameter.name]: checked}))}
-            />
-          ) : (parameter.openAPIV3Schema?.type === 'integer') ? (
-            <NumberInput
-              key={parameter.name}
-              id={parameter.name}
-              isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
-              min={parameter.openAPIV3Schema.minmum || 0}
-              max={parameter.openAPIV3Schema.maximum}
-              onChange={(event) => setParameterState(state => Object.assign({}, state, {[parameter.name]: isNaN(event.target.value) ? state[parameter.name] : Number(event.target.value)}))}
-              onMinus={() => setParameterState(state => Object.assign({}, state, {[parameter.name]: state[parameter.name] - 1}))}
-              onPlus={() => setParameterState(state => Object.assign({}, state, {[parameter.name]: state[parameter.name] + 1}))}
-              value={parameterState[parameter.name]}
-            />
-          ) : (
-            <TextInput type="text"
-              key={parameter.name}
-              id={parameter.name}
-              isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
-              onChange={(event) => setParameterState(state => Object.assign({}, state, {[parameter.name]: event.target.value}))}
-              value={parameterState[parameter.name]}
-            />
-          )
-        )) }
-        </FormGroup>
-      )) }
+      { (formGroups).map(formGroup => {
+        const invalidParameter = formGroup.parameters.find(parameter => (parameterValidationState[parameter.name] === false));
+        const validated = invalidParameter ? false : (
+          formGroup.parameters.find(parameter => (parameterValidationState[parameter.name] === true))
+        ) ? true : null;
+        return (
+          <FormGroup
+            key={formGroup.key}
+            label={formGroup.formGroupLabel}
+            helperText={
+              <FormHelperText icon={<ExclamationCircleIcon />} isHidden={validated !== false} isError={validated === false}>{ invalidParameter?.description }</FormHelperText>
+            }
+            validated={validated}
+          >
+            { formGroup.parameters.map(parameter => (
+              <DynamicFormInput
+                key={parameter.name}
+                isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
+                parameter={parameter}
+                value={parameterState[parameter.name]}
+                onChange={(value, isValid=null) => {
+                  setParameterState(state => Object.assign({}, state, {[parameter.name]: value}));
+                  if (isValid !== null) {
+                    setParameterValidationState(state => Object.assign({}, state, {[parameter.name]: isValid}));
+                  }
+                }}
+              />
+            )) }
+          </FormGroup>
+        )
+      } ) }
       <TermsOfService
         agreed={termsOfServiceAgreed}
         onChange={onTermsOfServiceChange}
