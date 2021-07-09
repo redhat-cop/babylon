@@ -29,8 +29,12 @@ import {
   Form,
   FormGroup,
   FormHelperText,
+  NumberInput,
   PageSection,
   PageSectionVariants,
+  Select,
+  SelectOption,
+  SelectVariant,
   TextInput,
   Title
 } from '@patternfly/react-core';
@@ -43,10 +47,13 @@ import {
 } from '@app/api';
 
 import {
+  checkCondition,
   displayName,
   randomString,
+  recursiveAssign,
 } from '@app/util';
 
+import { DynamicFormInput } from '@app/components/DynamicFormInput.tsx';
 import { TermsOfService  } from '@app/components/TermsOfService.tsx';
 
 export interface CatalogRequestProps {
@@ -70,11 +77,49 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 
   const [termsOfServiceAgreed, setTermsOfServiceAgreed] = React.useState(false);
   const [requestId, setRequestId] = React.useState(randomString(8));
+  const [parameterState, setParameterState] = React.useState(null);
+  const [parameterValidationState, setParameterValidationState] = React.useState({});
 
   const catalogItem = (
     catalogItems?.[catalogNamespaceName] || []
   ).find(ci => ci.metadata.name === catalogItemName);
   const requestIdValid = requestId.match(/^[a-z0-9]([a-z0-9\-\.]{0,8}[a-z0-9])?$/) ? 'success' : 'error';
+
+  // Enable submit if terms of service is agreed, the request id is valid, and no parameter vars are invalid
+  const submitRequestEnabled = (
+    termsOfServiceAgreed &&
+    requestIdValid != 'error' &&
+    Object.values(parameterValidationState).find(v => v === false) !== false
+  );
+  const formGroups = [];
+  const parameters = catalogItem?.spec?.parameters || [];
+  const parameterDefaults = {};
+
+  for (const parameter of parameters) {
+    const formGroupLabel = parameter.formGroup;
+    parameterDefaults[parameter.name] = 'default' in parameter.openAPIV3Schema ? parameter.openAPIV3Schema.default : parameter.value;
+    if (formGroupLabel) {
+      const formGroup = formGroups.find(item => item.formGroupLabel === formGroupLabel);
+      if (formGroup) {
+        formGroup.parameters.push(parameter);
+      } else {
+        formGroups.push({
+          formGroupLabel: formGroupLabel,
+          key: formGroupLabel,
+          parameters: [parameter],
+        });
+      }
+    } else {
+      formGroups.push({
+        formGroupLabel: parameter.formLabel || parameter.name,
+        key: parameter.name,
+        parameters: [parameter]
+      });
+    }
+  }
+  if (catalogItem && !parameterState) {
+    setParameterState(parameterDefaults);
+  }
 
   function cancelRequest(): void {
     if (location.state) {
@@ -117,6 +162,17 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       }
     }
 
+    for (const parameter of parameters) {
+      const varName = parameter.variable || parameter.name;
+      for (const resourceIndex in requestResourceClaim.spec.resources) {
+        const resource = requestResourceClaim.spec.resources[resourceIndex];
+        if (parameter.resourceIndex != null && resourceIndex != parameter.resourceIndex) {
+          continue;
+        }
+        recursiveAssign(resource, {template: {spec: {vars: {job_vars: {[varName]: parameterState[parameter.name]}}}}})
+      }
+    }
+
     const resourceClaim = await createResourceClaim(requestResourceClaim, {
       skipUpdateStore: true,
     });
@@ -137,9 +193,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
     history.push(`/services/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
   }
 
-  const submitRequestEnabled = termsOfServiceAgreed && requestIdValid != 'error';
-
-  const catalogRequestForm = catalogItem ? (
+  const catalogRequestForm = (catalogItem && parameterState) ? (
     <Form className="rhpds-catalog-request-form">
       <FormGroup label="Request Identifier"
         helperText={
@@ -155,6 +209,37 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
           validated={requestIdValid}
         />
       </FormGroup>
+      { (formGroups).map(formGroup => {
+        const invalidParameter = formGroup.parameters.find(parameter => (parameterValidationState[parameter.name] === false));
+        const validated = invalidParameter ? false : (
+          formGroup.parameters.find(parameter => (parameterValidationState[parameter.name] === true))
+        ) ? true : null;
+        return (
+          <FormGroup
+            key={formGroup.key}
+            label={formGroup.formGroupLabel}
+            helperText={
+              <FormHelperText icon={<ExclamationCircleIcon />} isHidden={validated !== false} isError={validated === false}>{ invalidParameter?.description }</FormHelperText>
+            }
+            validated={validated}
+          >
+            { formGroup.parameters.map(parameter => (
+              <DynamicFormInput
+                key={parameter.name}
+                isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
+                parameter={parameter}
+                value={parameterState[parameter.name]}
+                onChange={(value, isValid=null) => {
+                  setParameterState(state => Object.assign({}, state, {[parameter.name]: value}));
+                  if (isValid !== null) {
+                    setParameterValidationState(state => Object.assign({}, state, {[parameter.name]: isValid}));
+                  }
+                }}
+              />
+            )) }
+          </FormGroup>
+        )
+      } ) }
       <TermsOfService
         agreed={termsOfServiceAgreed}
         onChange={onTermsOfServiceChange}
