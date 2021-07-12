@@ -49,7 +49,6 @@ import {
 import {
   checkCondition,
   displayName,
-  kebabCase,
   randomString,
   recursiveAssign,
 } from '@app/util';
@@ -162,11 +161,8 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
         // Save CatalogItem message templates in ResourceClaim annotation so
         // that the provisioned service does not depend upon the continued
         // existence of the CatalogItem.
-        //
-        // Standard template names used by the notifier use kebab-case.
-        // Ex: "service-ready", "start-complete", "provision-failed"
-        const annotation = `babylon.gpte.redhat.com/${kebabCase(key)}-message-template`;
-        requestResourceClaim.metadata.annotations[annotation] = value;
+        const annotation = `babylon.gpte.redhat.com/${key}MessageTemplate`;
+        requestResourceClaim.metadata.annotations[annotation] = JSON.stringify(value);
       }
     }
 

@@ -132,7 +132,6 @@ def namespace_event(event, logger, **_):
         f"{babylon_domain}/catalogItemNamespace": kopf.PRESENT,
     }
 )
-
 def resourceclaim_event(event, logger, **_):
     resource_claim = event.get('object')
     if not resource_claim \
@@ -241,6 +240,9 @@ def handle_resource_claim_event(resource_claim, email_addresses, logger):
     notify_if_stop_failed(resource_claim, email_addresses, logger)
     notify_if_start_complete(resource_claim, email_addresses, logger)
     notify_if_start_failed(resource_claim, email_addresses, logger)
+
+def kebabToCamelCase(kebab_string):
+    return ''.join([s if i == 0 else s.capitalize() for i, s in enumerate(kebab_string.split('-'))])
 
 def notify_if_provision_failed(resource_claim, email_addresses, logger):
     # If resource claim was created a while ago then notification should
@@ -465,7 +467,7 @@ def notify_deleted(resource_claim, email_addresses, logger):
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service, {{service_display_name}}, has been deleted",
+        subject = "{{catalog_display_name}} service {{service_display_name}} has been deleted",
         template = "service-deleted",
         to = email_addresses,
     )
@@ -492,7 +494,7 @@ def notify_provision_failed(resource_claim, resource_state, email_addresses, log
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
-        subject = "ERROR: {{catalog_display_name}} service, {{service_display_name}}, has failed to provision",
+        subject = "ERROR: {{catalog_display_name}} service {{service_display_name}} has failed to provision",
         to = email_addresses,
         template = "provision-failed",
         template_vars = dict(
@@ -506,7 +508,7 @@ def notify_provision_started(resource_claim, email_addresses, logger):
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service, {{service_display_name}}, has begun provisioning",
+        subject = "{{catalog_display_name}} service {{service_display_name}} has begun provisioning",
         to = email_addresses,
         template = "provision-started",
         template_vars = dict(
@@ -531,7 +533,7 @@ def notify_ready(resource_claim, email_addresses, logger):
         logger = logger,
         message_body = message_body,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service, {{service_display_name}}, is ready",
+        subject = "{{catalog_display_name}} service {{service_display_name}} is ready",
         to = email_addresses,
         template = "service-ready",
         template_vars = template_vars,
@@ -566,7 +568,7 @@ def notify_scheduled_retirement(resource_claim, retirement_datetime):
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service, {{service_display_name}} retirement in {{retirement_timedelta_humanized}}",
+        subject = "{{catalog_display_name}} service {{service_display_name}} retirement in {{retirement_timedelta_humanized}}",
         to = email_addresses,
         template = "retirement-scheduled",
     )
@@ -597,7 +599,7 @@ def notify_scheduled_stop(resource_claim, stop_datetime):
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service, {{service_display_name}} will stop in {{stop_timedelta_humanized}}",
+        subject = "{{catalog_display_name}} service {{service_display_name}} will stop in {{stop_timedelta_humanized}}",
         to = email_addresses,
         template = "stop-scheduled",
     )
@@ -607,7 +609,7 @@ def notify_start_complete(resource_claim, email_addresses, logger):
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service, {{service_display_name}}, has started",
+        subject = "{{catalog_display_name}} service {{service_display_name}} has started",
         template = "start-complete",
         to = email_addresses,
     )
@@ -634,7 +636,7 @@ def notify_start_failed(resource_claim, resource_state, email_addresses, logger)
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
-        subject = "ERROR: {{catalog_display_name}} service, {{service_display_name}}, failed to start",
+        subject = "ERROR: {{catalog_display_name}} service {{service_display_name}} failed to start",
         to = email_addresses,
         template = "start-failed",
         template_vars = dict(
@@ -648,7 +650,7 @@ def notify_stop_complete(resource_claim, email_addresses, logger):
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service, {{service_display_name}}, has stopped",
+        subject = "{{catalog_display_name}} service {{service_display_name}} has stopped",
         template = "stop-complete",
         to = email_addresses,
     )
@@ -675,7 +677,7 @@ def notify_stop_failed(resource_claim, resource_state, email_addresses, logger):
     send_notification_email(
         logger = logger,
         resource_claim = resource_claim,
-        subject = "ERROR: {{catalog_display_name}} service, {{service_display_name}}, failed to stop",
+        subject = "ERROR: {{catalog_display_name}} service {{service_display_name}} failed to stop",
         to = email_addresses,
         template = "stop-failed",
         template_vars = dict(
@@ -742,9 +744,11 @@ def send_notification_email(resource_claim, subject, to, template, logger, messa
         get_template_vars(resource_claim, logger)
     )
     email_subject = j2env.from_string(subject).render(**template_vars)
-    template_string = annotations.get(f"{babylon_domain}/{template}-message-template")
-    if template_string:
-        email_body = j2env.from_string(template_string).render(**template_vars)
+    message_template_annotation = annotations.get(f"{babylon_domain}/{kebabToCamelCase(template)}MessageTemplate")
+    if message_template_annotation:
+        message_template = json.loads(message_template_annotation);
+        # FIXME - future support for handling templateFormat and outputFormat in template annotation
+        email_body = j2env.from_string(message_template['template']).render(**template_vars)
     elif message_body:
         email_body = "\n".join(message_body)
     else:
