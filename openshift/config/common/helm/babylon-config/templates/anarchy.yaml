@@ -21,6 +21,7 @@ metadata:
   namespace: {{ $.Values.operatorNamespace }}
 spec:
   namespace:
+    create: false
     name: {{ $anarchyNamespace.name }}
   {{- $anarchyCommune | toYaml | nindent 2 }}
   replicaCount: {{ $anarchyCommune.replicaCount | default 1 }}
