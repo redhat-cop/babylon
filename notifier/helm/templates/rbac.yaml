@@ -4,7 +4,7 @@ metadata:
   name: {{ include "babylon-notifier.name" . }}
   annotations:
     description: >-
-      Add access to cluster-reader role for Babylon resources.
+      Access read cluster resources for babylon notifier
   labels:
     {{- include "babylon-notifier.labels" . | nindent 4 }}
 rules:
@@ -55,6 +55,15 @@ rules:
   - resourcehandles
   - resourcepools
   - resourceproviders
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - user.openshift.io
+  resources:
+  - identities
+  - users
   verbs:
   - get
   - list

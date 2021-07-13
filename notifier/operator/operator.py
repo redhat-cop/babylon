@@ -113,17 +113,33 @@ def namespace_event(event, logger, **_):
     namespace_annotations = namespace_metadata.get('annotations', {})
     namespace_name = namespace_metadata['name']
     contact_email = namespace_annotations.get(f"{babylon_domain}/contactEmail")
+    requester = namespace_annotations.get('openshift.io/requester')
+    emails = []
     if contact_email:
         emails = [a.strip() for a in contact_email.split(',')]
-        # If only_send_to is set then restrict delivery to that address.
-        if only_send_to:
-            if only_send_to in emails:
-                emails = [only_send_to]
-            else:
-                emails = []
-        namespace_email_addresses[namespace_name] = emails
-    else:
-        namespace_email_addresses[namespace_name] = []
+    elif contact_email != "" and requester and requester != 'system:admin':
+        try:
+            user = custom_objects_api.get_cluster_custom_object('user.openshift.io', 'v1', 'users', requester)
+            for identity_name in user.get('identities', []):
+                try:
+                    identity = custom_objects_api.get_cluster_custom_object('user.openshift.io', 'v1', 'identities', identity_name)
+                    email = identity.get('extra', {}).get('email')
+                    if email:
+                        emails.append(email)
+                        break
+                except kubernetes.client.rest.ApiException as e:
+                    if e.status != 404:
+                        raise
+        except kubernetes.client.rest.ApiException as e:
+            if e.status != 404:
+                raise
+    # If only_send_to is set then restrict delivery to that address.
+    if only_send_to:
+        if only_send_to in emails:
+            emails = [only_send_to]
+        else:
+            emails = []
+    namespace_email_addresses[namespace_name] = emails
 
 @kopf.on.event(
     poolboy_domain, poolboy_api_version, 'resourceclaims',

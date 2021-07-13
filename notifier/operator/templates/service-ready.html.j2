@@ -19,7 +19,7 @@ All data will be lost upon expiration.</p>
 <p>Here is some important information about your environment:</p>
 
 {%   if provision_messages %}
-<pre>{{ provision_messages }}</pre>
+<pre>{{ provision_messages | join("\n") }}</pre>
 {%   endif %}
 
 {%   if provision_data %}
