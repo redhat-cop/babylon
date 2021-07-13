@@ -40,10 +40,6 @@ export function displayName(item: object): string {
   }
 }
 
-export function kebabCase(str: string): string {
-  return str.replace('_', '-').replace(/[a-z][A-Z]/g, s => `${s.charAt(0)}-${s.charAt(1)}`).toLowerCase();
-}
-
 export function randomString(length: number): string {
   return Math.floor(Math.random() * 36**length).toString(36).padStart(length,'0');
 }
