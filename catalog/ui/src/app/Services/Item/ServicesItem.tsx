@@ -318,6 +318,10 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 <div key={idx} className="rhpds-services-item-body-resource">
                   <DescriptionList isHorizontal>
                     <DescriptionListGroup>
+                      <DescriptionListTerm>UUID</DescriptionListTerm>
+                      <DescriptionListDescription>{resourceState?.spec?.vars?.job_vars?.uuid || '...'}</DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
                       <DescriptionListTerm>Governor</DescriptionListTerm>
                       <DescriptionListDescription>{resourceState?.spec?.governor || '...'}</DescriptionListDescription>
                     </DescriptionListGroup>
