@@ -147,6 +147,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
         labels: {
           'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
           'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
+          'babylon.gpte.redhat.com/requester': apiSession.user,
         },
         name: `${catalogItem.metadata.name}-${requestId}`,
         namespace: namespace,
