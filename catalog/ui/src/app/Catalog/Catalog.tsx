@@ -246,15 +246,23 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-body">
         <div className="rhpds-catalog-item-details-body-sidebar">
           <DescriptionList>
-            <DescriptionListTerm>Rating</DescriptionListTerm>
-            <DescriptionListDescription>
-              <CatalogItemRating catalogItem={selectedCatalogItem} starDimension="20px" />
-            </DescriptionListDescription>
+            { selectedCatalogItem.status?.rating ? (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Rating</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <CatalogItemRating catalogItem={selectedCatalogItem} starDimension="20px" />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null }
 
-            <DescriptionListTerm>Health</DescriptionListTerm>
-            <DescriptionListDescription>
-              <CatalogItemHealthDisplay catalogItem={selectedCatalogItem} />
-            </DescriptionListDescription>
+            { selectedCatalogItem.status?.provisionHistory ? (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Health</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <CatalogItemHealthDisplay catalogItem={selectedCatalogItem} />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null }
 
             { Object.keys(selectedCatalogItem.metadata.labels)
               .filter(label => {
