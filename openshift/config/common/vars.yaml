@@ -106,6 +106,9 @@ babylon_resources:
               - apiVersion: poolboy.gpte.redhat.com/v1
                 kind: ResourceHandle
                 namespace: poolboy
+              - apiVersion: poolboy.gpte.redhat.com/v1
+                kind: ResourcePool
+                namespace: poolboy
           persistentVolume:
             spec:
               resources:
