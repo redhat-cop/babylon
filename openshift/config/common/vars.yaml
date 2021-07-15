@@ -80,6 +80,41 @@ babylon_resources:
         catalogNamespaces: "{{ babylon_catalog_namespaces | default(default_babylon_catalog_namespaces) }}"
         crossClusterBackup: "{{ babylon_cross_cluster_backup | default({}) }}"
 
+  - namespace: babylon-cross-cluster-backup
+    resources:
+    - name: Babylon cross-cluster-backup replik8s
+      when: >-
+        babylon_cross_cluster_backup.enable | default(false) | bool
+      helm_template:
+        dir: helm
+        git:
+          repo: https://github.com/redhat-gpte/replik8s.git
+        values:
+          kubeConfigs:
+            babylon: "{{ babylon_cross_cluster_backup.kubeconfig | default('') }}"
+          configs:
+            babylon:
+              kubeConfig:
+                secret: babylon
+              resources:
+              - apiVersion: anarchy.gpte.redhat.com/v1
+                kind: AnarchySubject
+              - apiVersion: anarchy.gpte.redhat.com/v1
+                kind: AnarchyAction
+              - apiVersion: poolboy.gpte.redhat.com/v1
+                kind: ResourceClaim
+              - apiVersion: poolboy.gpte.redhat.com/v1
+                kind: ResourceHandle
+                namespace: poolboy
+              - apiVersion: poolboy.gpte.redhat.com/v1
+                kind: ResourcePool
+                namespace: poolboy
+          persistentVolume:
+            spec:
+              resources:
+                requests:
+                  storage: "{{ babylon_cross_cluster_backup.storage_size | default('10Gi') }}"
+
   - name: Babylon catalog Helm Template
     when: >-
       babylon_catalog_deploy | default(false) | bool
