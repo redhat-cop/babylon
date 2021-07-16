@@ -39,6 +39,7 @@ spec:
         args:
         - --cookie-secure=true
         - --https-address=:8443
+        - --logout-url=/
         - --provider=openshift
         - --skip-provider-button=true
         - --tls-cert=/etc/tls/private/tls.crt

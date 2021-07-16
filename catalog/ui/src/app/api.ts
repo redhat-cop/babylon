@@ -37,6 +37,9 @@ function refreshApiSession(): void {
       window.apiSessionInterval = setInterval(refreshApiSession, (session.lifetime - 60) * 1000);
       resolve(session);
     })
+    .catch(error => {
+      window.location.href = '/?n=' + new Date().getTime();
+    })
   });
 }
 

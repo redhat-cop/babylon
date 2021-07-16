@@ -50,8 +50,8 @@ oauthProxy:
   image:
     #override:
     pullPolicy: Always
-    repository: openshift/oauth-proxy
-    tag: latest
+    repository: image-registry.openshift-image-registry.svc:5000/openshift/ose-oauth-proxy
+    tag: v4.6
   replicaCount: 1
   resources:
     requests:

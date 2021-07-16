@@ -168,7 +168,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   }
 
   const UserControlDropdownItems = [
-    <DropdownItem key="logout" href="/oauth/sign_in">Log out</DropdownItem>,
+    <DropdownItem key="logout" href="/oauth/sign_out">Log out</DropdownItem>,
   ];
   if (authIsAdmin) {
     UserControlDropdownItems.push(
