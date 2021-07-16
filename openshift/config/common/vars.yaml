@@ -3,6 +3,7 @@ agnosticv_operator_version: v0.11.3
 babylon_anarchy_version: v0.16.24
 babylon_anarchy_governor_version: v0.9.0
 poolboy_version: v0.8.5
+replik8s_version: v0.3.4
 user_namespace_operator_version: v0.3.1
 
 babylon_anarchy_governor_repository: https://github.com/redhat-gpte-devopsautomation/babylon_anarchy_governor.git
@@ -89,6 +90,7 @@ babylon_resources:
         dir: helm
         git:
           repo: https://github.com/redhat-gpte/replik8s.git
+          version: "{{ replik8s_version }}"
         values:
           kubeConfigs:
             babylon: "{{ babylon_cross_cluster_backup.kubeconfig | default('') }}"
