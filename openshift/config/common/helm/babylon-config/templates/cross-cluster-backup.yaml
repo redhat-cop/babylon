@@ -183,7 +183,7 @@ parameters:
   displayName: Image
   name: IMAGE
   required: true
-  value: quay.io/redhat-gpte/replik8s:{{ replik8s_version }}
+  value: quay.io/redhat-gpte/replik8s:{{ .Values.crossClusterBackup.replik8sVersion }}
 - description: Restore mode, can be "manual", "latest", or backup timestamp.
   displayName: RESTORE
   name: RESTORE
