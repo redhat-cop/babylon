@@ -75,6 +75,7 @@ babylon_resources:
           redisPassword: "{{ babylon_admin_redis_password | default('generate') }}"
         anarchy:
           namespaces: "{{ babylon_anarchy_namespaces | default(default_babylon_anarchy_namespaces) }}"
+          secrets: "{{ babylon_anarchy_secrets | default([]) }}"
         babylonTower: "{{ babylon_tower }}"
 
         # Evaluation to preserve boolean type

@@ -59,6 +59,20 @@ data:
   user: {{ $babylonTower.user | b64enc }}
   {{- end }}
 
+  {{- range $secret := (concat $.Values.anarchy.secrets ($anarchyNamespace.secrets | default list)) }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $secret.name }}
+  namespace: {{ $anarchyNamespace.name }}
+type: Opaque
+data:
+    {{- range $k, $v := $secret.data }}
+  {{ $k }}: {{ $v | b64enc }}
+    {{- end }}
+  {{- end }}
+
   {{- range $runner := ($anarchyNamespace.runners | default (list (dict "name" "default"))) }}
     {{- with $serviceAccountName := (hasKey $runner "serviceAccountName") | ternary $runner.serviceAccountName (printf "anarchy-runner-%s" $runner.name) }}
 ---
