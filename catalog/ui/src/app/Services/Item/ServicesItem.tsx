@@ -20,6 +20,7 @@ import {
 import {
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
+  renderAsciiDoc,
 } from '@app/util';
 
 import {
@@ -371,7 +372,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                       <DescriptionListGroup>
                         <DescriptionListTerm>User Info</DescriptionListTerm>
                         <DescriptionListDescription>
-                          <pre>{ provisionMessages.join("\n") }</pre>
+                          <div
+                            dangerouslySetInnerHTML={{ __html: renderAsciiDoc(provisionMessages.join(" +\n")) }}
+                          />
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     ) : null }
