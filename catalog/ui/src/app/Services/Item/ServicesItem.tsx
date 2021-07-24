@@ -157,6 +157,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const canStart = checkResourceClaimCanStart(resourceClaim);
   const canStop = checkResourceClaimCanStop(resourceClaim);
 
+  const labUrl = (resourceClaim?.status?.resources || []).map(r => r.state?.spec?.vars?.provision_data?.bookbag_url).find(u => u != null);
+
   function closeModal(): void {
     setOpenModal(null);
   }
@@ -275,6 +277,12 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 <DescriptionListTerm>Name</DescriptionListTerm>
                 <DescriptionListDescription>{resourceClaim.metadata.name}</DescriptionListDescription>
               </DescriptionListGroup>
+              { labUrl ? (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Lab Instructions</DescriptionListTerm>
+                  <DescriptionListDescription><a href={labUrl} target="_blank">{labUrl}</a></DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null }
               <DescriptionListGroup>
                 <DescriptionListTerm>Requested On</DescriptionListTerm>
                 <DescriptionListDescription>
@@ -309,6 +317,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               const desiredState = resourceState?.spec.vars.desired_state;
               const provisionMessages = resourceState?.spec.vars.provision_messages;
               const provisionData = resourceState?.spec.vars.provision_data;
+              const provisionDataEntries = provisionData ? Object.entries(provisionData).filter(([key, value]) => key != 'bookbag_url') : null;
               const stopTimestamp = resourceSpec.template?.spec.vars?.action_schedule?.stop || resourceState?.spec.vars.action_schedule?.stop;
               const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
               const stopDate = stopTime ? new Date(stopTime) : null;
@@ -378,16 +387,16 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     ) : null }
-                    { provisionData ? (
+                    { provisionDataEntries ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>User Data</DescriptionListTerm>
                         <DescriptionListDescription>
                           <DescriptionList isHorizontal className="rhpds-user-data">
-                            {Object.keys(provisionData).map(key => (
+                            {provisionDataEntries.map(([key, value]) => (
                               <DescriptionListGroup key={key}>
                                 <DescriptionListTerm>{key}</DescriptionListTerm>
                                 <DescriptionListDescription>
-                                  <pre>{provisionData[key]}</pre>
+                                  { value.startsWith('https://') ? <a href={value}><code>{value}</code></a> : <code>{value}</code> }
                                 </DescriptionListDescription>
                               </DescriptionListGroup>
                             ))}
