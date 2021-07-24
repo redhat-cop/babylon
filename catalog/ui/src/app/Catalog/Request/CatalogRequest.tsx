@@ -171,10 +171,26 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       const varName = parameter.variable || parameter.name;
       for (const resourceIndex in requestResourceClaim.spec.resources) {
         const resource = requestResourceClaim.spec.resources[resourceIndex];
-        if (parameter.resourceIndex != null && resourceIndex != parameter.resourceIndex) {
-          continue;
+        // Only set parameter if resource index is not set or matches
+        if (parameter.resourceIndex == null || resourceIndex == parameter.resourceIndex) {
+          // Only set if form parameter is not disabled
+          if (!parameter.formDisableCondition || !checkCondition(parameter.formDisableCondition, parameterState)) {
+            recursiveAssign(
+              resource,
+              {
+                template: {
+                  spec: {
+                    vars: {
+                      job_vars: {
+                        [varName]: parameterState[parameter.name]
+                      }
+                    }
+                  }
+                }
+              }
+            )
+          }
         }
-        recursiveAssign(resource, {template: {spec: {vars: {job_vars: {[varName]: parameterState[parameter.name]}}}}})
       }
     }
 
