@@ -179,6 +179,9 @@
             babylon.gpte.redhat.com/externalPlatformUrl: "{{ platform_url }}"
             # Only CloudForms should notify regarding events from
             babylon.gpte.redhat.com/notifier: disable
+            # Requester annotation directly on the ResourceClaim is more
+            # convenient than looking up from the namespace.
+            babylon.gpte.redhat.com/requester: "{{ cloudforms_username }}"
           labels:
             uuid: "{{ uuid }}"
         spec:
