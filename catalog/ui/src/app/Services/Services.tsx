@@ -236,6 +236,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
   function resourceClaimListItem(resourceClaim) {
     const canStart = checkResourceClaimCanStart(resourceClaim);
     const canStop = checkResourceClaimCanStop(resourceClaim);
+    const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
     const resourceClaimPath = {
       pathname: serviceNamespace ? `${servicesPath}/item/${resourceClaim.metadata.name}` : `${servicesPath}/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`,
       state: { fromServices: true },
@@ -328,21 +329,27 @@ const Services: React.FunctionComponent<ServicesProps> = ({
               </DataListCell>,
             ]}
           />
-          <DataListAction aria-label="Actions">
-            <DeleteButton onClick={() => openDeleteModal(resourceClaim)}/>
-            { canStop ? (
-              <Button
-                variant="primary"
-                onClick={(e) => openStopModal(resourceClaim)}
-              >Stop <PowerOffIcon/></Button>
-            ) : (
-              <Button
-                variant="primary"
-                isDisabled={!canStart}
-                onClick={(e) => openStartModal(resourceClaim)}
-              >Start <PlayIcon/></Button>
-            )}
-          </DataListAction>
+          { externalPlatformUrl ? (
+            <DataListAction aria-label="Actions">
+              <Button component="a" href={externalPlatformUrl} target="_blank" variant="secondary">{ externalPlatformUrl }</Button>
+            </DataListAction>
+          ) : (
+            <DataListAction aria-label="Actions">
+              <DeleteButton onClick={() => openDeleteModal(resourceClaim)}/>
+              { canStop ? (
+                <Button
+                  variant="primary"
+                  onClick={(e) => openStopModal(resourceClaim)}
+                >Stop <PowerOffIcon/></Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  isDisabled={!canStart}
+                  onClick={(e) => openStartModal(resourceClaim)}
+                >Start <PlayIcon/></Button>
+              )}
+            </DataListAction>
+          )}
         </DataListItemRow>
       </DataListItem>
     );

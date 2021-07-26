@@ -154,6 +154,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
 
   const hasMultipleResources = (resourceClaim?.spec?.resources || []).length > 1;
 
+  const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
   const canStart = checkResourceClaimCanStart(resourceClaim);
   const canStop = checkResourceClaimCanStop(resourceClaim);
 
@@ -214,11 +215,13 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
         onConfirm={handleStopAll}
         resourceClaim={resourceClaim}
       />
-      <ServicesNamespaceSelector
-        current={serviceNamespaceName}
-        namespaces={serviceNamespaces}
-        onSelect={(ns?: string) => history.push(ns ? `/services/ns/${ns}` : "/services")}
-      />
+      { serviceNamespaces.length > 1 ? (
+        <ServicesNamespaceSelector
+          current={serviceNamespaceName}
+          namespaces={serviceNamespaces}
+          onSelect={(ns?: string) => history.push(ns ? `/services/ns/${ns}` : "/services")}
+        />
+      ) : null }
       <PageSection key="header" variant={PageSectionVariants.light} className="rhpds-services-item-header">
         <Breadcrumb>
           <BreadcrumbItem
@@ -232,40 +235,44 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
             <Title headingLevel="h5" size="lg">{resourceClaim.metadata.name}</Title>
           </SplitItem>
           <SplitItem>
-            <ActionDropdown
-              position="right"
-              actionDropdownItems={[
-                <ActionDropdownItem
-                  key="lifetime"
-                  label="Adjust Lifetime"
-                  onSelect={() => {setScheduleActionKind("retirement"); setOpenModal("scheduleAction")}}
-                  isDisabled={!resourceClaim.status?.lifespan}
-                />,
-                <ActionDropdownItem
-                  key="runtime"
-                  label="Adjust Runtime"
-                  onSelect={() => {setScheduleActionKind("stop"); setOpenModal("scheduleAction")}}
-                  isDisabled={!canStop || !resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule}
-                />,
-                <ActionDropdownItem
-                  key="delete"
-                  label="Delete"
-                  onSelect={() => setOpenModal("delete")}
-                />,
-                <ActionDropdownItem
-                  key="start"
-                  label={hasMultipleResources ? "Start all" : "Start"}
-                  onSelect={() => setOpenModal("start")}
-                  isDisabled={!canStart}
-                />,
-                <ActionDropdownItem
-                  key="stop"
-                  label={hasMultipleResources ? "Stop all" : "Stop"}
-                  onSelect={() => setOpenModal("stop")}
-                  isDisabled={!canStop}
-                />,
-              ]}
-            />
+            { externalPlatformUrl ? (
+              <Button component="a" href={externalPlatformUrl} target="_blank" variant="tertiary">{ externalPlatformUrl }</Button>
+            ) : (
+              <ActionDropdown
+                position="right"
+                actionDropdownItems={[
+                  <ActionDropdownItem
+                    key="lifetime"
+                    label="Adjust Lifetime"
+                    onSelect={() => {setScheduleActionKind("retirement"); setOpenModal("scheduleAction")}}
+                    isDisabled={!resourceClaim.status?.lifespan}
+                  />,
+                  <ActionDropdownItem
+                    key="runtime"
+                    label="Adjust Runtime"
+                    onSelect={() => {setScheduleActionKind("stop"); setOpenModal("scheduleAction")}}
+                    isDisabled={!canStop || !resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule}
+                  />,
+                  <ActionDropdownItem
+                    key="delete"
+                    label="Delete"
+                    onSelect={() => setOpenModal("delete")}
+                  />,
+                  <ActionDropdownItem
+                    key="start"
+                    label={hasMultipleResources ? "Start all" : "Start"}
+                    onSelect={() => setOpenModal("start")}
+                    isDisabled={!canStart}
+                  />,
+                  <ActionDropdownItem
+                    key="stop"
+                    label={hasMultipleResources ? "Stop all" : "Stop"}
+                    onSelect={() => setOpenModal("stop")}
+                    isDisabled={!canStop}
+                  />,
+                ]}
+              />
+            ) }
           </SplitItem>
         </Split>
       </PageSection>
@@ -289,20 +296,22 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                   <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp}/>
                 </DescriptionListDescription>
               </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Retirement</DescriptionListTerm>
-                { resourceClaim.status?.lifespan?.end ? (
-                  <DescriptionListDescription>
-                    <Button variant="plain"
-                      onClick={() => {setScheduleActionKind("retirement"); setOpenModal("scheduleAction")}}
-                    >
-                      <LocalTimestamp timestamp={resourceClaim.status.lifespan.end}/> (
-                      <TimeInterval to={resourceClaim.status.lifespan.end}/>)
-                      { resourceClaim.spec?.lifespan?.end && resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? <> <Spinner size="md"/></> : null } <PencilAltIcon className="edit"/>
-                    </Button>
-                  </DescriptionListDescription>
-                ) : "..." }
-              </DescriptionListGroup>
+              { !externalPlatformUrl ? (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Retirement</DescriptionListTerm>
+                  { resourceClaim.status?.lifespan?.end ? (
+                    <DescriptionListDescription>
+                      <Button variant="plain"
+                        onClick={() => {setScheduleActionKind("retirement"); setOpenModal("scheduleAction")}}
+                      >
+                        <LocalTimestamp timestamp={resourceClaim.status.lifespan.end}/> (
+                        <TimeInterval to={resourceClaim.status.lifespan.end}/>)
+                        { resourceClaim.spec?.lifespan?.end && resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? <> <Spinner size="md"/></> : null } <PencilAltIcon className="edit"/>
+                      </Button>
+                    </DescriptionListDescription>
+                  ) : "..." }
+                </DescriptionListGroup>
+              ) : null }
               <DescriptionListGroup>
                 <DescriptionListTerm>GUID</DescriptionListTerm>
                 <DescriptionListDescription>
@@ -347,7 +356,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                         />
                       </DescriptionListDescription>
                     </DescriptionListGroup>
-                    { (startDate && startDate > Date.now()) ? (
+                    { externalPlatformUrl ? null :
+                      (startDate && startDate > Date.now()) ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
                         <DescriptionListDescription>
