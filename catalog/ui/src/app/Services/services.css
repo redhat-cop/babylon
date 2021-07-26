@@ -51,6 +51,11 @@
   color: var(--pf-c-button--m-plain--focus--Color);
 }
 
+.rhpds-services.pf-c-page__main-section .pf-c-data-list__cell .pf-c-button.pf-m-secondary {
+  color: var(--pf-global--link--Color);
+  text-decoration: none;
+}
+
 .rhpds-services.pf-c-page__main-section .pf-c-data-list__cell .pf-c-button.pf-m-plain:hover {
   text-decoration: underline;
 }

@@ -49,6 +49,7 @@ import {
 
 import {
   AsleepIcon,
+  ExternalLinkAltIcon,
   OutlinedClockIcon,
   PencilAltIcon,
   PlayIcon,
@@ -237,6 +238,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     const canStart = checkResourceClaimCanStart(resourceClaim);
     const canStop = checkResourceClaimCanStop(resourceClaim);
     const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
+    const labUrl = (resourceClaim?.status?.resources || []).map(r => r.state?.spec?.vars?.provision_data?.bookbag_url).find(u => u != null);
     const resourceClaimPath = {
       pathname: serviceNamespace ? `${servicesPath}/item/${resourceClaim.metadata.name}` : `${servicesPath}/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`,
       state: { fromServices: true },
@@ -318,11 +320,24 @@ const Services: React.FunctionComponent<ServicesProps> = ({
                 <Link to={resourceClaimPath}>
                   <h3 className={hoverResourceClaimUid == resourceClaim.metadata.uid ? "rhpds-services-item-title-hover rhpds-services-item-title" : "rhpds-services-item-title"}>{displayName(resourceClaim)}</h3>
                   <Grid>
-                    <GridItem span="6">
+                    <GridItem span="4">
                       <DescriptionList isHorizontal>{firstCellDescriptionListContent}</DescriptionList>
                     </GridItem>
-                    <GridItem span="6">
+                    <GridItem span="4">
                       <List>{secondCellListContent}</List>
+                    </GridItem>
+                    <GridItem span="4">
+                      { labUrl ? (
+                        <Button
+                          component="a"
+                          href={labUrl}
+                          onClick={() => window.open(labUrl)}
+                          target="_blank"
+                          variant="secondary"
+                          icon={<ExternalLinkAltIcon/>}
+                          iconPosition="right"
+                        >Lab</Button>
+                      ) : null }
                     </GridItem>
                   </Grid>
                 </Link>
