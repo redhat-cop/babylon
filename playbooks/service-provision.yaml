@@ -10,11 +10,13 @@
     catalog_stage: CHANGE ME dev|test|prod
     catalog_item_params_file: CHANGEME
     kubeconfig: CHANGEME
+    platform: CHANGEME
     cloudforms_username: CHANGEME
 
     # After that don't touch
     user_namespace: user-{{ cloudforms_username | replace('_', '-') | replace('.', '-') }}
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
+    platform_url: "{% if 'OPENTLC' in platform %}https://labs.opentlc.com/{% else %}https://rhpds.redhat.com/{% endif %}"
 
   tasks:
   - name: Git minimal facts
@@ -173,8 +175,13 @@
           name: "{{ resource_claim_name }}"
           namespace: "{{ user_namespace }}"
           annotations:
+            # Link which should be used from the catalog UI to CloudForms
+            babylon.gpte.redhat.com/externalPlatformUrl: "{{ platform_url }}"
             # Only CloudForms should notify regarding events from
             babylon.gpte.redhat.com/notifier: disable
+            # Requester annotation directly on the ResourceClaim is more
+            # convenient than looking up from the namespace.
+            babylon.gpte.redhat.com/requester: "{{ cloudforms_username }}"
           labels:
             uuid: "{{ uuid }}"
         spec:
