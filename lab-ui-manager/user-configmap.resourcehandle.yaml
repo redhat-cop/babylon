@@ -1,0 +1,19 @@
+apiVersion: poolboy.gpte.redhat.com/v1
+kind: ResourceHandle
+metadata:
+  name: guid-j8m2n-user1
+  namespace: poolboy
+spec:
+  resources:
+  - provider:
+      apiVersion: poolboy.gpte.redhat.com/v1
+      kind: ResourceProvider
+      name: babylon-user-configmap
+      namespace: poolboy
+    template:
+      metadata:
+        namespace: user-jkupfere-redhat-com
+        labels:
+          babylon.gpte.redhat.com/catalogItem: test-user
+      data:
+        foo: bar

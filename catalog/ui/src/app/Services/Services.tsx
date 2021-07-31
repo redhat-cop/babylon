@@ -238,7 +238,12 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     const canStart = checkResourceClaimCanStart(resourceClaim);
     const canStop = checkResourceClaimCanStop(resourceClaim);
     const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
-    const labUrl = (resourceClaim?.status?.resources || []).map(r => r.state?.spec?.vars?.provision_data?.bookbag_url).find(u => u != null);
+    const labUrl = (
+      resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrl'] ||
+      (resourceClaim?.status?.resources || []).map(
+        r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.bookbag_url : r.state?.data?.labUserInterfaceUrl
+      ).find(u => u != null)
+    );
     const resourceClaimPath = {
       pathname: serviceNamespace ? `${servicesPath}/item/${resourceClaim.metadata.name}` : `${servicesPath}/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`,
       state: { fromServices: true },
@@ -271,7 +276,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
       const resourceSpec = specResources[i];
       const resourceStatus = resourceClaim?.status?.resources[i];
       const resourceState = resourceStatus?.state;
-      const currentState = resourceState?.spec?.vars?.current_state;
+      const currentState = resourceState?.kind == 'AnarchySubject' ? resourceState?.spec?.vars?.current_state : 'available';
       const desiredState = resourceState?.spec?.vars?.desired_state;
       const startTimestamp = resourceSpec?.spec?.vars?.action_schedule?.start || resourceState?.spec?.vars?.action_schedule?.start;
       const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
@@ -351,18 +356,20 @@ const Services: React.FunctionComponent<ServicesProps> = ({
           ) : (
             <DataListAction aria-label="Actions">
               <DeleteButton onClick={() => openDeleteModal(resourceClaim)}/>
-              { canStop ? (
-                <Button
-                  variant="primary"
-                  onClick={(e) => openStopModal(resourceClaim)}
-                >Stop <PowerOffIcon/></Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  isDisabled={!canStart}
-                  onClick={(e) => openStartModal(resourceClaim)}
-                >Start <PlayIcon/></Button>
-              )}
+              { resourceState?.kind === 'AnarchySubject' ? (
+                canStop ? (
+                  <Button
+                    variant="primary"
+                    onClick={(e) => openStopModal(resourceClaim)}
+                  >Stop <PowerOffIcon/></Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    isDisabled={!canStart}
+                    onClick={(e) => openStartModal(resourceClaim)}
+                  >Start <PlayIcon/></Button>
+                )
+              ) : null}
             </DataListAction>
           )}
         </DataListItemRow>

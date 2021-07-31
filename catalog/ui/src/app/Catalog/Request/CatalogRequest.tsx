@@ -143,11 +143,11 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
         annotations: {
           'babylon.gpte.redhat.com/catalogDisplayName': catalogNamespace?.displayName || catalogNamespaceName,
           'babylon.gpte.redhat.com/catalogItemDisplayName': displayName(catalogItem),
+          'babylon.gpte.redhat.com/requester': apiSession.user,
         },
         labels: {
           'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
           'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
-          'babylon.gpte.redhat.com/requester': apiSession.user,
         },
         name: `${catalogItem.metadata.name}-${requestId}`,
         namespace: namespace,
@@ -156,6 +156,15 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
         resources: JSON.parse(JSON.stringify(catalogItem.spec.resources)),
       }
     };
+
+    if (catalogItem.metadata.labels?.['babylon.gpte.redhat.com/userCatalogItem']) {
+      requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'] = catalogItem.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'];
+    }
+
+    if (catalogItem.spec.bookbag) {
+      requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/labUserInterface'] = 'bookbag';
+      requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/bookbag'] = JSON.stringify(catalogItem.spec.bookbag);
+    }
 
     if (catalogItem.spec.messageTemplates) {
       for (const [key, value] of Object.entries(catalogItem.spec.messageTemplates)) {

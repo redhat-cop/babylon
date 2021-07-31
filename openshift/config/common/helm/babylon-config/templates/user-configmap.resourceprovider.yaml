@@ -1,0 +1,40 @@
+apiVersion: poolboy.gpte.redhat.com/v1
+kind: ResourceProvider
+metadata:
+  name: babylon-user-configmap
+  namespace: poolboy
+spec:
+  disableCreation: true
+  matchIgnore:
+  - /data(/.*)?
+  - /metadata/namespace
+  override:
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: user-{{ "{{ resource_handle.metadata.name[5:] }}" }}
+    data: {}
+  template:
+    enable: true
+  updateFilters: []
+  validation:
+    openAPIV3Schema:
+      type: object
+      additionalProperties: false
+      required:
+      - metadata
+      properties:
+        metadata:
+          type: object
+          additionalProperties: false
+          required:
+          - labels
+          properties:
+            labels:
+              type: object
+              additionalProperties: false
+              required:
+              - babylon.gpte.redhat.com/catalogItem
+              properties:
+                babylon.gpte.redhat.com/catalogItem:
+                  type: string

@@ -5,9 +5,6 @@
 deploy: true
 replicaCount: 1
 
-# Set onlySendTo for development to prevent accidental email delivery.
-#onlySendTo:
-
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -28,21 +25,13 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name:
 
-smtp:
-  from:
-  host:
-  port: 25
-  #tls:
-  #  crt:
-  #  key:
-
 resources:
   limits:
     cpu: "1"
-    memory: 512Mi
+    memory: 256Mi
   requests:
     cpu: 100m
-    memory: 512Mi
+    memory: 256Mi
 
 nodeSelector: {}
 
@@ -56,36 +45,7 @@ babylon:
 poolboy:
   domain: poolboy.gpte.redhat.com
 
-anarchy:
-  domain: anarchy.gpte.redhat.com
-  namespaces:
-  - name: anarchy-operator
-
 image:
-  repository: quay.io/redhat-gpte/babylon-notifier
+  repository: quay.io/redhat-gpte/babylon-lab-ui-manager
   pullPolicy: Always
   tagOverride: ""
-
-redis:
-  name: # default use chart name + '-redis'
-  deploy: true
-  password:
-  generatePassword: true
-  image:
-    #override:
-    pullPolicy: Always
-    repository: image-registry.openshift-image-registry.svc:5000/openshift/redis
-    tag: 5-el8
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: "1"
-      memory: 256Mi
-  #volume:
-  #  accessModes:
-  #  - ReadWriteOnce
-  #  resources:
-  #    requests:
-  #      storage: 1Gi

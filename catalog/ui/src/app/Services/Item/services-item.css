@@ -41,3 +41,9 @@
   font-size: 0.85em;
   vertical-align: 0.2em !important;
 }
+
+.rhpds-user-name-heading {
+  font-weight: bold;
+  margin-top: 1em;
+  border-bottom: 1px solid black;
+}

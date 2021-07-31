@@ -9,8 +9,11 @@ import random
 import re
 import redis
 import string
+import urllib3
 
 from hotfix import HotfixKubeApiClient
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def random_string(length):
     return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(length)])

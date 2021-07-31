@@ -1,0 +1,3 @@
+= Bookbag Deployer
+
+Component to deploy Bookbag lab user interfaces for services that request it in the ResourceClaim.

@@ -36,6 +36,8 @@ const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
     } else {
       return (<span className="rhpds-status-unknown"><QuestionCircleIcon/> Unknown</span>);
     }
+  } else if (currentState === 'available') {
+    return (<span className="rhpds-status-available"><CheckCircleIcon/> Available</span>);
   } else if (currentState === 'new') {
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> New</span>);
   } else if (currentState === 'provision-failed') {

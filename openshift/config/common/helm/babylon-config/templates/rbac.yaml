@@ -140,6 +140,19 @@ metadata:
     description: >-
       This role is used to allow poolboy to manage anarchy resources.
 rules:
+# ConfigMap access to create user configmaps
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update
 - apiGroups:
   - {{ .Values.anarchy.apiGroup }}
   resources:

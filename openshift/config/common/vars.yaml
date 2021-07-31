@@ -1,8 +1,8 @@
 # Component Versions
-agnosticv_operator_version: v0.12.0
+agnosticv_operator_version: v0.12.2
 babylon_anarchy_version: v0.16.24
 babylon_anarchy_governor_version: v0.9.0
-poolboy_version: v0.8.5
+poolboy_version: v0.9.0
 replik8s_version: v0.3.4
 user_namespace_operator_version: v0.3.1
 
@@ -128,6 +128,12 @@ babylon_resources:
           replicaCount: "{{ babylon_catalog_api_replica_count | default(1) }}"
         redis: "{{ babylon_catalog_redis | default({}) }}"
         route: "{{ babylon_catalog_route | default({}) }}"
+
+  - name: Babylon lab-ui-manager Helm Template
+    when: >-
+      babylon_lab_ui_manager_deploy | default(true) | bool
+    helm_template:
+      dir: babylon-lab-ui-manager
 
   - name: Babylon notifier Helm Template
     when: >-

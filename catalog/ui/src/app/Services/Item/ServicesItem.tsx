@@ -51,10 +51,8 @@ import {
 } from '@patternfly/react-core';
 
 import {
+  ExternalLinkAltIcon,
   PencilAltIcon,
-} from '@patternfly/react-icons';
-
-import {
   QuestionCircleIcon,
 } from '@patternfly/react-icons';
 
@@ -157,8 +155,21 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
   const canStart = checkResourceClaimCanStart(resourceClaim);
   const canStop = checkResourceClaimCanStop(resourceClaim);
+  const labUserInterfaceUrl = (
+    resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrl'] ||
+    (resourceClaim?.status?.resources || []).map(
+      r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.bookbag_url : r.state?.data?.labUserInterfaceUrl
+    ).find(u => u != null)
+  );
+  const labUserInterfaceUrls = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrls'] || '{}')
 
-  const labUrl = (resourceClaim?.status?.resources || []).map(r => r.state?.spec?.vars?.provision_data?.bookbag_url).find(u => u != null);
+  const users = {};
+  for (const status_resource of (resourceClaim?.status?.resources || [])) {
+    const resource_users = status_resource.state?.spec?.vars?.provision_data?.users;
+    if (resource_users) {
+      Object.assign(users, resource_users);
+    }
+  }
 
   function closeModal(): void {
     setOpenModal(null);
@@ -284,10 +295,10 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 <DescriptionListTerm>Name</DescriptionListTerm>
                 <DescriptionListDescription>{resourceClaim.metadata.name}</DescriptionListDescription>
               </DescriptionListGroup>
-              { labUrl ? (
+              { labUserInterfaceUrl ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Lab Instructions</DescriptionListTerm>
-                  <DescriptionListDescription><a href={labUrl} target="_blank">{labUrl}</a></DescriptionListDescription>
+                  <DescriptionListDescription><a href={labUserInterfaceUrl} target="_blank">{labUserInterfaceUrl} <ExternalLinkAltIcon/></a></DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null }
               <DescriptionListGroup>
@@ -296,7 +307,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                   <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp}/>
                 </DescriptionListDescription>
               </DescriptionListGroup>
-              { !externalPlatformUrl ? (
+              { (!externalPlatformUrl && resourceClaim?.status?.lifespan?.end) ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Retirement</DescriptionListTerm>
                   { resourceClaim.status?.lifespan?.end ? (
@@ -322,91 +333,95 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
             { resourceClaim.spec.resources.map((resourceSpec, idx) => {
               const resourceStatus = resourceClaim?.status?.resources[idx];
               const resourceState = resourceStatus?.state;
-              const currentState = resourceState?.spec.vars.current_state;
-              const desiredState = resourceState?.spec.vars.desired_state;
-              const provisionMessages = resourceState?.spec.vars.provision_messages;
-              const provisionData = resourceState?.spec.vars.provision_data;
-              const provisionDataEntries = provisionData ? Object.entries(provisionData).filter(([key, value]) => key != 'bookbag_url') : null;
-              const stopTimestamp = resourceSpec.template?.spec.vars?.action_schedule?.stop || resourceState?.spec.vars.action_schedule?.stop;
+              const currentState = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.current_state : 'available';
+              const desiredState = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.desired_state : null;
+              const provisionData = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.provision_data : JSON.parse(resourceState?.data?.userData || '{}');
+              const provisionMessages = resourceState?.kind === 'AnarchySubject' ? resourceState?.spec?.vars?.provision_messages : provisionData?.msg;
+              const provisionDataEntries = provisionData ? Object.entries(provisionData).filter(([key, value]) => !['bookbag_url', 'msg', 'users'].includes(key)) : null;
+              const stopTimestamp = resourceState?.kind === 'AnarchySubject' ? resourceSpec.template?.spec.vars?.action_schedule?.stop || resourceState?.spec.vars.action_schedule?.stop : null;
               const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
               const stopDate = stopTime ? new Date(stopTime) : null;
-              const startTimestamp = resourceSpec.template?.spec.vars?.action_schedule?.start || resourceState?.spec.vars.action_schedule?.start;
+              const startTimestamp = resourceState?.kind == 'AnarchySubject' ? resourceSpec.template?.spec.vars?.action_schedule?.start || resourceState?.spec.vars.action_schedule?.start: null;
               const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
               const startDate = startTime ? new Date(startTime) : null;
               return (
                 <div key={idx} className="rhpds-services-item-body-resource">
                   <DescriptionList isHorizontal>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>UUID</DescriptionListTerm>
-                      <DescriptionListDescription>{resourceState?.spec?.vars?.job_vars?.uuid || '...'}</DescriptionListDescription>
-                    </DescriptionListGroup>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Governor</DescriptionListTerm>
-                      <DescriptionListDescription>{resourceState?.spec?.governor || '...'}</DescriptionListDescription>
-                    </DescriptionListGroup>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Status</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <ServiceStatus
-                          currentState={currentState}
-                          desiredState={desiredState}
-                          creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                          stopTime={stopTime}
-                          startTime={startTime}
-                        />
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                    { externalPlatformUrl ? null :
-                      (startDate && startDate > Date.now()) ? (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          <LocalTimestamp timestamp={startTimestamp}/> (
-                          <TimeInterval to={startTimestamp}/>)
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ) : (stopDate && stopDate > Date.now()) ? (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          <Button variant="plain"
-                            onClick={() => {setScheduleActionKind("stop"); setOpenModal("scheduleAction")}}
-                          >
-                            <LocalTimestamp timestamp={stopTimestamp}/> (<TimeInterval to={stopTimestamp}/>) <PencilAltIcon className="edit"/>
-                          </Button>
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ) : currentState !== 'stopped' ? (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
-                        <DescriptionListDescription>Now</DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ) : (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
-                        <DescriptionListDescription>-</DescriptionListDescription>
-                      </DescriptionListGroup>
-                    )}
+                    { resourceState?.kind == 'AnarchySubject' ? (
+                      <React.Fragment>
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>UUID</DescriptionListTerm>
+                          <DescriptionListDescription>{resourceState?.spec?.vars?.job_vars?.uuid || '...'}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Governor</DescriptionListTerm>
+                          <DescriptionListDescription>{resourceState?.spec?.governor || '...'}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Status</DescriptionListTerm>
+                          <DescriptionListDescription>
+                            <ServiceStatus
+                              currentState={currentState}
+                              desiredState={desiredState}
+                              creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                              stopTime={stopTime}
+                              startTime={startTime}
+                            />
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                        { externalPlatformUrl ? null :
+                          (startDate && startDate > Date.now()) ? (
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
+                            <DescriptionListDescription>
+                              <LocalTimestamp timestamp={startTimestamp}/> (
+                              <TimeInterval to={startTimestamp}/>)
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                        ) : (stopDate && stopDate > Date.now()) ? (
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
+                            <DescriptionListDescription>
+                              <Button variant="plain"
+                                onClick={() => {setScheduleActionKind("stop"); setOpenModal("scheduleAction")}}
+                              >
+                                <LocalTimestamp timestamp={stopTimestamp}/> (<TimeInterval to={stopTimestamp}/>) <PencilAltIcon className="edit"/>
+                              </Button>
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                        ) : currentState !== 'stopped' ? (
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
+                            <DescriptionListDescription>Now</DescriptionListDescription>
+                          </DescriptionListGroup>
+                        ) : (
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
+                            <DescriptionListDescription>-</DescriptionListDescription>
+                          </DescriptionListGroup>
+                        )}
+                      </React.Fragment>
+                    ) : null }
                     { provisionMessages ? (
                       <DescriptionListGroup>
-                        <DescriptionListTerm>User Info</DescriptionListTerm>
+                        <DescriptionListTerm>Provision Messages</DescriptionListTerm>
                         <DescriptionListDescription>
                           <div
-                            dangerouslySetInnerHTML={{ __html: renderAsciiDoc(provisionMessages.join(" +\n")) }}
+                            dangerouslySetInnerHTML={{ __html: renderAsciiDoc(typeof provisionMessages === 'string' ? provisionMessages.replace("\n", " +\n") : provisionMessages.join(" +\n")) }}
                           />
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     ) : null }
-                    { provisionDataEntries ? (
+                    { (provisionDataEntries && provisionDataEntries.length > 0) ? (
                       <DescriptionListGroup>
-                        <DescriptionListTerm>User Data</DescriptionListTerm>
+                        <DescriptionListTerm>Provision Data</DescriptionListTerm>
                         <DescriptionListDescription>
                           <DescriptionList isHorizontal className="rhpds-user-data">
-                            {provisionDataEntries.map(([key, value]) => (
+                            {provisionDataEntries.sort((a, b) => a[0].localeCompare(b[0])).map(([key, value]) => (
                               <DescriptionListGroup key={key}>
                                 <DescriptionListTerm>{key}</DescriptionListTerm>
                                 <DescriptionListDescription>
-                                  { value.startsWith('https://') ? <a href={value}><code>{value}</code></a> : <code>{value}</code> }
+                                  { typeof value === 'string' ? (value.startsWith('https://') ? <a href={value}><code>{value}</code></a> : <code>{value}</code>) : <code>{JSON.stringify(value)}</code> }
                                 </DescriptionListDescription>
                               </DescriptionListGroup>
                             ))}
@@ -419,6 +434,55 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               );
             })}
           </Tab>
+          { Object.keys(users).length > 0 ? (
+            <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
+              { Object.entries(users).map(([userName, userData]) => {
+		const userLabUrl = labUserInterfaceUrls[userName] || userData.bookbag_url;
+                const userDataEntries = Object.entries(userData).filter(([key, value]) => !['bookbag_url', 'msg'].includes(key));
+                const userMessages = userData.msg;
+                return (
+                  <React.Fragment key={userName}>
+                    <h2 className="rhpds-user-name-heading">{userName}</h2>
+                    <DescriptionList isHorizontal>
+                    { userLabUrl ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Lab URL</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <a href={userLabUrl}>{userLabUrl}</a>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null }
+                    { userMessages ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>User Messages</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <div dangerouslySetInnerHTML={{ __html: renderAsciiDoc(userMessages.replace("\n", " +\n")) }}/>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null }
+                    { userDataEntries ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>User Data</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <DescriptionList isHorizontal className="rhpds-user-data">
+                            {userDataEntries.map(([key, value]) => (
+                              <DescriptionListGroup key={key}>
+                                <DescriptionListTerm>{key}</DescriptionListTerm>
+                                <DescriptionListDescription>
+                                  { typeof value === 'string' ? (value.startsWith('https://') ? <a href={value}><code>{value}</code></a> : <code>{value}</code>) : <code>{JSON.stringify(value)}</code> }
+                                </DescriptionListDescription>
+                              </DescriptionListGroup>
+                            ))}
+                          </DescriptionList>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null }
+                    </DescriptionList>
+                  </React.Fragment>
+                )
+              }) }
+            </Tab>
+          ) : null }
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor
               theme="vs-dark"
