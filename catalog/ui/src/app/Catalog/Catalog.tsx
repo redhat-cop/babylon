@@ -83,6 +83,8 @@ export interface CatalogProps {
   location?: any;
 }
 
+const HideLabels = ['babylon.gpte.redhat.com/userCatalogItem'];
+
 const Catalog: React.FunctionComponent<CatalogProps> = ({
   location,
 }) => {
@@ -266,7 +268,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
             { Object.keys(selectedCatalogItem.metadata.labels)
               .filter(label => {
-                if (!label.startsWith('babylon.gpte.redhat.com/')) {
+                if (!label.startsWith('babylon.gpte.redhat.com/')
+                  || HideLabels.includes(label)
+                ) {
                   return false;
                 }
                 const attr = label.substring(24);
@@ -418,6 +422,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       for (const label in ci.metadata.labels) {
         if (!label.startsWith('babylon.gpte.redhat.com/')
           || label.toLowerCase() === 'babylon.gpte.redhat.com/category'
+          || HideLabels.includes(label)
         ) {
           continue;
         }
