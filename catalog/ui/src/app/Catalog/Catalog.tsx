@@ -448,6 +448,12 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         }
       }
     }
+
+    // Hide stage if user only sees prod (single value)
+    if (attributeFilters.stage && Object.keys(attributeFilters.stage.values).length == 1) {
+      delete attributeFilters['stage'];
+    }
+
     return attributeFilters;
   }
 
