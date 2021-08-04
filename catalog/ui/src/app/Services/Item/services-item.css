@@ -47,3 +47,9 @@
   margin-top: 1em;
   border-bottom: 1px solid black;
 }
+
+h2.rhpds-component-display-name {
+  font-weight: bold;
+  margin-top: 1em;
+  border-bottom: 1px solid var(--pf-global--Color--400);
+}

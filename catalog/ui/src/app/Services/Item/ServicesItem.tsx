@@ -331,8 +331,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               </DescriptionListGroup>
             </DescriptionList>
             { resourceClaim.spec.resources.map((resourceSpec, idx) => {
-              const resourceStatus = resourceClaim?.status?.resources[idx];
+              const resourceStatus = resourceClaim.status?.resources[idx];
               const resourceState = resourceStatus?.state;
+              const componentDisplayName = resourceClaim.metadata.annotations?.[`babylon.gpte.redhat.com/displayNameComponent${idx}`] || resourceSpec.name || resourceSpec.provider?.name;
               const currentState = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.current_state : 'available';
               const desiredState = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.desired_state : null;
               const provisionData = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.provision_data : JSON.parse(resourceState?.data?.userData || '{}');
@@ -346,6 +347,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               const startDate = startTime ? new Date(startTime) : null;
               return (
                 <div key={idx} className="rhpds-services-item-body-resource">
+                  {resourceClaim.spec.resources.length > 1 ? (
+                    <h2 className="rhpds-component-display-name">{componentDisplayName}</h2>
+                  ) : null }
                   <DescriptionList isHorizontal>
                     { resourceState?.kind == 'AnarchySubject' ? (
                       <React.Fragment>

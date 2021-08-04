@@ -157,6 +157,12 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       }
     };
 
+    for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
+       if (key.startsWith('babylon.gpte.redhat.com/displayNameComponent')) {
+         requestResourceClaim.metadata.annotations[key] = value;
+       }
+    }
+
     if (catalogItem.metadata.labels?.['babylon.gpte.redhat.com/userCatalogItem']) {
       requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'] = catalogItem.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'];
     }
