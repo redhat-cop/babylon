@@ -25,7 +25,7 @@ import {
 
 import {
   useHistory,
-  useRouteMatch,
+  useLocation,
   Link
 } from 'react-router-dom';
 
@@ -77,6 +77,10 @@ import {
 } from '@app/components/TimeInterval';
 
 import {
+  OpenStackConsole
+} from '@app/Services/Item/OpenStackConsole';
+
+import {
   ServiceStatus
 } from '@app/Services/ServiceStatus';
 
@@ -110,14 +114,16 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   location,
 }) => {
   const history = useHistory();
+  const location = useLocation();
+  const nsLocationMatch = location.pathname.match(/^\/services\/ns\/([^\/]+)\/item\/([^\/]+)(?:\/([^\/]+))?/);
+  const itemLocationMatch = location.pathname.match(/^\/services\/item\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?/);
 
-  const serviceNamespaceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/services/ns/:namespace/item/:name');
-  const serviceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/services/item/:namespace/:name');
-
-  const resourceClaimNamespace = serviceNamespaceItemRouteMatch?.params.namespace || serviceItemRouteMatch?.params.namespace;
-  const resourceClaimName = serviceNamespaceItemRouteMatch?.params.name || serviceItemRouteMatch?.params.name;
-  const serviceNamespaceName = serviceNamespaceItemRouteMatch?.params.namespace;
+  const resourceClaimNamespace = nsLocationMatch?.[1] || itemLocationMatch?.[1];
+  const resourceClaimName = nsLocationMatch?.[2] || itemLocationMatch?.[2];
+  const serviceNamespaceName = nsLocationMatch?.[1];
   const servicesPath = serviceNamespaceName ? `/services/ns/${serviceNamespaceName}` : '/services';
+  const activeTabKey = nsLocationMatch?.[3] || itemLocationMatch?.[3] || 'details';
+  const serviceBasePath = serviceNamespaceName ? `/services/ns/${serviceNamespaceName}/item/${resourceClaimName}` : `/services/item/${resourceClaimNamespace}/${resourceClaimName}`;
 
   const serviceNamespaces = useSelector(selectServiceNamespaces);
   const resourceClaims = useSelector(selectResourceClaims);
@@ -140,7 +146,6 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     delete prunedResourceClaim.metadata.selfLink;
   }
 
-  const [activeTab, setActiveTab] = React.useState('details');
   const [openModal, setOpenModal] = React.useState(null);
   const [scheduleActionKind, setScheduleActionKind] = React.useState(null);
 
@@ -288,7 +293,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
         </Split>
       </PageSection>
       <PageSection key="body" variant={PageSectionVariants.light} className="rhpds-services-item-body">
-        <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => setActiveTab(tabIndex)}>
+        <Tabs activeKey={activeTabKey} onSelect={(e, tabIndex) => history.push(`${serviceBasePath}/${tabIndex}`)}>
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
@@ -438,10 +443,22 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               );
             })}
           </Tab>
+          { (resourceClaim.status?.resources || []).find(r => {
+            const provision_data = r.state?.spec?.vars?.provision_data;
+            if (provision_data?.osp_cluster_api || provision_data?.openstack_auth_url) {
+              return true;
+            } else {
+              return false;
+            }
+          }) ? (
+            <Tab eventKey="console" title={<TabTitleText>Console</TabTitleText>}>
+              { activeTabKey == 'console' ? <OpenStackConsole resourceClaim={resourceClaim}/> : null }
+            </Tab>
+          ) : null }
           { Object.keys(users).length > 0 ? (
             <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
               { Object.entries(users).map(([userName, userData]) => {
-		const userLabUrl = labUserInterfaceUrls[userName] || userData.bookbag_url;
+                const userLabUrl = labUserInterfaceUrls[userName] || userData.bookbag_url;
                 const userDataEntries = Object.entries(userData).filter(([key, value]) => !['bookbag_url', 'msg'].includes(key));
                 const userMessages = userData.msg;
                 return (

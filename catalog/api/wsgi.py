@@ -3,6 +3,7 @@
 import flask
 import json
 import kubernetes
+import openstack
 import os
 import pathlib
 import random
@@ -11,6 +12,7 @@ import redis
 import string
 import urllib3
 
+from base64 import b64decode
 from hotfix import HotfixKubeApiClient
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -174,6 +176,32 @@ def get_catalog_namespaces(api_client):
             })
     return namespaces
 
+def get_resource_claim_as_proxy_user(namespace, name):
+    user = proxy_user()
+    session = get_user_session(user)
+    api_client = proxy_api_client(session)
+
+    impersonate_user = flask.request.headers.get('Impersonate-User')
+    if impersonate_user and check_admin_access(api_client):
+        api_client.default_headers['Impersonate-User'] = impersonate_user
+        api_client.default_headers.discard('Impersonate-Group')
+        for group in get_user_groups(impersonate_user):
+            api_client.default_headers.add('Impersonate-Group', group)
+
+    user_custom_objects_api = kubernetes.client.CustomObjectsApi(api_client=api_client)
+
+    try:
+        return user_custom_objects_api.get_namespaced_custom_object(
+            'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', name
+        )
+    except kubernetes.client.rest.ApiException as e:
+        if e.body:
+            resp = flask.make_response(e.body, e.status)
+            resp.headers['Content-Type'] = 'application/json'
+            flask.abort(resp)
+        else:
+            flask.abort(flask.make_response(flask.jsonify({"reason": e.reason}), e.status))
+
 def get_service_namespaces(api_client, user_namespace, user_is_admin):
     namespaces = []
 
@@ -211,6 +239,79 @@ def get_user_namespace(user):
         }
 
     return None
+
+def openstack_connection_from_secret(secret):
+    osp_auth_password = json.loads(b64decode(secret.data['osp_auth_password']).decode('utf8'))
+    osp_auth_project_domain = json.loads(b64decode(secret.data['osp_auth_project_domain']).decode('utf8'))
+    osp_auth_url = json.loads(b64decode(secret.data['osp_auth_url']).decode('utf8'))
+    osp_auth_user_domain = json.loads(b64decode(secret.data['osp_auth_user_domain']).decode('utf8'))
+    osp_auth_username = json.loads(b64decode(secret.data['osp_auth_username']).decode('utf8'))
+
+    return openstack.connection.Connection(
+        auth=dict(
+            auth_url = osp_auth_url,
+            password = osp_auth_password,
+            username = osp_auth_username,
+            project_domain_name = osp_auth_project_domain,
+            user_domain_name = osp_auth_user_domain,
+        ),
+        identity_api_version = 3,
+    )
+
+def resolve_openstack_subjects(resource_claim):
+    openstack_apis = {}
+    subjects = []
+    for resource in resource_claim.get('status', {}).get('resources', []):
+        resource_name = resource.get('name')
+        resource_state = resource.get('state')
+        if not resource_state:
+            continue
+        if resource_state.get('kind') != 'AnarchySubject':
+            continue
+        subject_vars = resource_state.get('spec', {}).get('vars')
+        if not subject_vars:
+            continue
+        job_vars = subject_vars.get('job_vars')
+        if not job_vars:
+            continue
+        uuid = job_vars.get('uuid')
+        if not uuid:
+            continue
+        subject = {
+            "name": resource_state['metadata']['name'],
+            "uuid": uuid,
+        }
+        if resource_name:
+            subject['resourceName'] = resource_name
+        provision_data = subject_vars.get('provision_data')
+        openstack_auth_url = provision_data.get('openstack_auth_url') \
+            or provision_data.get('osp_auth_url') \
+            or provision_data.get('osp_cluster_api')
+        if not openstack_auth_url:
+            continue
+        api_url_match = re.match(r'^https://api\.([^.]+).*', openstack_auth_url)
+        if not api_url_match:
+            continue
+        openstack_cluster_name = api_url_match.group(1)
+        openstack_api = openstack_apis.get(openstack_cluster_name)
+        if not openstack_api:
+            cluster_secret_name = f"openstack-{api_url_match.group(1)}-secret"
+            try:
+                secret = core_v1_api.read_namespaced_secret(cluster_secret_name, 'gpte')
+            except kubernetes.client.rest.ApiException as e:
+                if e.status == 404:
+                    continue
+                else:
+                    raise
+            openstack_api = openstack_connection_from_secret(secret)
+            openstack_apis[openstack_cluster_name] = openstack_api
+        openstack_projects = openstack_api.identity.projects(tags=f"uuid={uuid}")
+        if not openstack_projects:
+            continue
+        subject['openstack_api'] = openstack_api
+        subject['openstack_projects'] = [p for p in openstack_projects]
+        subjects.append(subject)
+    return(subjects)
 
 @application.route("/auth/session")
 def get_auth_session():
@@ -269,6 +370,102 @@ def get_auth_users_info(user_name):
         "userNamespace": user_namespace,
     }
     return flask.jsonify(ret)
+
+@application.route("/api/service/<service_namespace>/<service_name>/openstack/servers", methods=['GET'])
+def service_openstack_servers(service_namespace, service_name):
+    resource_claim = get_resource_claim_as_proxy_user(service_namespace, service_name)
+    subjects = resolve_openstack_subjects(resource_claim)
+    for subject in subjects:
+        subject['openStackServers'] = []
+        openstack_api = subject.pop('openstack_api')
+        openstack_projects = subject.pop('openstack_projects')
+        for project in openstack_projects:
+            for server in openstack_api.compute.servers(all_tenants=1, project_id=project.id):
+                subject['openStackServers'].append(server.to_dict())
+    return flask.jsonify(subjects)
+
+@application.route("/api/service/<service_namespace>/<service_name>/openstack/server/<project_id>/<server_id>/console", methods=['POST'])
+def service_openstack_server_console(service_namespace, service_name, project_id, server_id):
+    resource_claim = get_resource_claim_as_proxy_user(service_namespace, service_name)
+    subjects = resolve_openstack_subjects(resource_claim)
+    for subject in subjects:
+        openstack_api = subject.pop('openstack_api')
+        openstack_projects = subject.pop('openstack_projects')
+        for project in openstack_projects:
+            if project.id == project_id:
+                server = openstack_api.compute.find_server(server_id)
+                if not server:
+                    flask.abort(404)
+                if server.project_id != project_id:
+                    flask.abort(403)
+                if server.status != 'ACTIVE':
+                    flask.abort(409)
+                resp = openstack_api.session.post(
+                    f"/servers/{server.id}/action",
+                    json = {'os-getVNCConsole': {'type': 'novnc'}},
+                    headers = {'Accept': 'application/json'},
+                    endpoint_filter = {'service_type': 'compute'}
+                )
+                return resp.content
+    flask.abort(404)
+
+@application.route("/api/service/<service_namespace>/<service_name>/openstack/server/<project_id>/<server_id>/reboot", methods=['POST'])
+def service_openstack_server_reboot(service_namespace, service_name, project_id, server_id):
+    request_data = flask.request.get_json()
+    resource_claim = get_resource_claim_as_proxy_user(service_namespace, service_name)
+    subjects = resolve_openstack_subjects(resource_claim)
+    for subject in subjects:
+        openstack_api = subject.pop('openstack_api')
+        openstack_projects = subject.pop('openstack_projects')
+        for project in openstack_projects:
+            if project.id == project_id:
+                server = openstack_api.compute.find_server(server_id)
+                if not server:
+                    flask.abort(404)
+                if server.project_id != project_id:
+                    flask.abort(403)
+                openstack_api.compute.reboot_server(
+                    server,
+                    reboot_type = request_data.get('rebootType', 'HARD'),
+                )
+                return flask.jsonify({"success": True})
+    flask.abort(404)
+
+@application.route("/api/service/<service_namespace>/<service_name>/openstack/server/<project_id>/<server_id>/start", methods=['POST'])
+def service_openstack_server_start(service_namespace, service_name, project_id, server_id):
+    resource_claim = get_resource_claim_as_proxy_user(service_namespace, service_name)
+    subjects = resolve_openstack_subjects(resource_claim)
+    for subject in subjects:
+        openstack_api = subject.pop('openstack_api')
+        openstack_projects = subject.pop('openstack_projects')
+        for project in openstack_projects:
+            if project.id == project_id:
+                server = openstack_api.compute.find_server(server_id)
+                if not server:
+                    flask.abort(404)
+                if server.project_id != project_id:
+                    flask.abort(403)
+                openstack_api.compute.start_server(server)
+                return flask.jsonify({"success": True})
+    flask.abort(404)
+
+@application.route("/api/service/<service_namespace>/<service_name>/openstack/server/<project_id>/<server_id>/stop", methods=['POST'])
+def service_openstack_server_stop(service_namespace, service_name, project_id, server_id):
+    resource_claim = get_resource_claim_as_proxy_user(service_namespace, service_name)
+    subjects = resolve_openstack_subjects(resource_claim)
+    for subject in subjects:
+        openstack_api = subject.pop('openstack_api')
+        openstack_projects = subject.pop('openstack_projects')
+        for project in openstack_projects:
+            if project.id == project_id:
+                server = openstack_api.compute.find_server(server_id)
+                if not server:
+                    flask.abort(404)
+                if server.project_id != project_id:
+                    flask.abort(403)
+                openstack_api.compute.stop_server(server)
+                return flask.jsonify({"success": True})
+    flask.abort(404)
 
 @application.route("/api/<path:path>", methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])
 @application.route("/apis/<path:path>", methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])

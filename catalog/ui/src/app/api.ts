@@ -298,3 +298,71 @@ export async function patchNamespacedCustomObject(group, version, namespace, plu
   );
   return await resp.json();
 }
+
+export async function getOpenStackServersForResourceClaim(resourceClaim): any {
+  const session = await getApiSession();
+  const resp = await apiFetch(
+    `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/servers`,
+  );
+  return await resp.json();
+}
+
+export async function rebootOpenStackServer(resourceClaim, projectId, serverId): any {
+  const session = await getApiSession();
+  const resp = await apiFetch(
+    `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/reboot`,
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }
+  );
+  return await resp.json();
+}
+
+export async function startOpenStackServer(resourceClaim, projectId, serverId): any {
+  const session = await getApiSession();
+  const resp = await apiFetch(
+    `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/start`,
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }
+  );
+  return await resp.json();
+}
+
+export async function stopOpenStackServer(resourceClaim, projectId, serverId): any {
+  const session = await getApiSession();
+  const resp = await apiFetch(
+    `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/stop`,
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }
+  );
+  return await resp.json();
+}
+
+export async function startOpenStackServerConsoleSession(resourceClaim, projectId, serverId): any {
+  const session = await getApiSession();
+  const resp = await apiFetch(
+    `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/console`,
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }
+  );
+  return await resp.json();
+}

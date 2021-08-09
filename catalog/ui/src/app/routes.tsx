@@ -54,13 +54,11 @@ const routes: AppRouteConfig[] = [
   },
   {
     component: ServicesItem,
-    exact: true,
     path: '/services/ns/:namespace/item/:name',
     title: 'RHPDS | Services',
   },
   {
     component: ServicesItem,
-    exact: true,
     path: '/services/item/:namespace/:name',
     title: 'RHPDS | Services',
   },

@@ -2,6 +2,8 @@
 
 import kubernetes
 import urllib3
+
+from six.moves.urllib.parse import quote
 from urllib3.connection import HTTPHeaderDict
 
 def urllib3_hotfix_request_encode_body(
