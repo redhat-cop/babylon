@@ -269,5 +269,17 @@
   display: inline-block;
   width: 10pt;
   height: 14pt;
+}
 
+.rhpds-product-badge.pf-c-badge {
+  color: var(--pf-c-badge--m-read--Color);
+  background-color: var(--pf-c-badge--m-read--BackgroundColor);
+}
+
+.rhpds-dev-badge.pf-c-badge {
+  background-color: var(--pf-global--danger-color--100);
+}
+
+.rhpds-test-badge.pf-c-badge {
+  background-color: var(--pf-global--danger-color--100);
 }

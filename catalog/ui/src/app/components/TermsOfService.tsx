@@ -6,7 +6,7 @@ import {
 } from '@patternfly/react-core';
 
 import {
-  renderAsciiDoc,
+  renderContent,
 } from '@app/util';
 
 export interface TermsOfServiceProps {
@@ -23,7 +23,7 @@ const TermsOfService: React.FunctionComponent<TermsOfServiceProps> = ({
   return (
     <FormGroup label="IMPORTANT PLEASE READ" className="rhpds-catalog__terms-of-service">
       { text ? (
-        <div dangerouslySetInnerHTML={{ __html: renderAsciiDoc(text) }}/>
+        <div dangerouslySetInnerHTML={{ __html: renderContent(text) }}/>
       ) : (
         <div>
           <p>Please pay close attention to the information provided in this page.</p>

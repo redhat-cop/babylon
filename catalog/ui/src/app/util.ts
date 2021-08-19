@@ -54,16 +54,20 @@ export function recursiveAssign(target: object, source: object): object {
   }
 }
 
-export function renderAsciiDoc(asciidoc: string, options?: object): string {
+export function renderContent(content: string, options={}): string {
   const sanitize_opt = {
     ADD_TAGS: [],
     ADD_ATTR: [],
   };
-  if (options && options.allowIFrame) {
+  if (options.allowIFrame) {
     sanitize_opt.ADD_TAGS.push('iframe');
     sanitize_opt.ADD_ATTR.push('allowfullscreen', 'frameborder');
   }
-  return dompurify.sanitize(asciidoctor.convert(asciidoc), sanitize_opt);
+  if (options.format === 'html') {
+    return dompurify.sanitize(content, sanitize_opt);
+  } else {
+    return dompurify.sanitize(asciidoctor.convert(content), sanitize_opt);
+  }
 }
 
 export function checkResourceClaimCanStart(resourceClaim) {

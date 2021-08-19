@@ -20,7 +20,7 @@ import {
 import {
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
-  renderAsciiDoc,
+  renderContent,
 } from '@app/util';
 
 import {
@@ -416,7 +416,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                         <DescriptionListTerm>Provision Messages</DescriptionListTerm>
                         <DescriptionListDescription>
                           <div
-                            dangerouslySetInnerHTML={{ __html: renderAsciiDoc(typeof provisionMessages === 'string' ? provisionMessages.replace("\n", " +\n") : provisionMessages.join(" +\n")) }}
+                            dangerouslySetInnerHTML={{ __html: renderContent(typeof provisionMessages === 'string' ? provisionMessages.replace("\n", " +\n") : provisionMessages.join(" +\n")) }}
                           />
                         </DescriptionListDescription>
                       </DescriptionListGroup>
@@ -477,7 +477,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                       <DescriptionListGroup>
                         <DescriptionListTerm>User Messages</DescriptionListTerm>
                         <DescriptionListDescription>
-                          <div dangerouslySetInnerHTML={{ __html: renderAsciiDoc(userMessages.replace("\n", " +\n")) }}/>
+                          <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replace("\n", " +\n")) }}/>
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     ) : null }

@@ -68,7 +68,7 @@ import {
 
 import {
   displayName,
-  renderAsciiDoc,
+  renderContent,
 } from '@app/util';
 
 import { CatalogItemIcon } from './CatalogItemIcon';
@@ -112,14 +112,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     catalogItems?.[catalogItemNamespace] || []
   ).find(ci => ci.metadata.name == catalogItemName) : null;
 
-  function badge(catalogItem): string {
-    if (catalogItem.metadata.labels) {
-      return catalogItem.metadata.labels['babylon.gpte.redhat.com/product'];
-    } else {
-      return 'environment';
-    }
-  }
-
   function category(catalogItem): string {
     if (catalogItem.metadata.labels) {
       return catalogItem.metadata.labels['babylon.gpte.redhat.com/category'];
@@ -138,9 +130,10 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
      return (<LocalTimestamp timestamp={ts}/>);
   }
 
-  function description(catalogItem): string {
-    if (catalogItem.metadata.annotations && catalogItem.metadata.annotations['babylon.gpte.redhat.com/description']) {
-      return catalogItem.metadata.annotations['babylon.gpte.redhat.com/description'];
+  function description(catalogItem, options={}): string {
+    if (catalogItem.metadata?.annotations?.['babylon.gpte.redhat.com/description']) {
+      options['format'] = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/descriptionFormat'] || 'asciidoc';
+      return renderContent(catalogItem.metadata.annotations['babylon.gpte.redhat.com/description'], options);
     } else {
       return 'No description provided.';
     }
@@ -218,7 +211,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     <div
       className="rhpds-catalog-item-details-description"
       dangerouslySetInnerHTML={{
-        __html: renderAsciiDoc(description(selectedCatalogItem), {allowIFrame: true})
+        __html: description(selectedCatalogItem, {allowIFrame: true})
       }}
     />
   ) : null;
@@ -473,7 +466,15 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           <CatalogItemIcon icon={icon(catalogItem)} />
           <div>
             <div>
-          <Badge isRead>{badge(catalogItem)}</Badge>
+              {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/product'] ? (
+                <Badge className="rhpds-product-badge">{catalogItem.metadata.labels['babylon.gpte.redhat.com/product']}</Badge>
+              ) : null }
+              {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'] === 'dev' ? (
+                <Badge className="rhpds-dev-badge">development</Badge>
+              ) : null }
+              {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'] === 'test' ? (
+                <Badge  className="rhpds-test-badge">test</Badge>
+              ) : null }
             </div>
             <div>
           { (catalogItem.status && catalogItem.status.rating) ? (
@@ -487,7 +488,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           <div className="rhpds-catalog-item-subtitle">provided by {provider(catalogItem)}</div>
           <div
             className="rhpds-catalog-item-description"
-            dangerouslySetInnerHTML={{__html: renderAsciiDoc(description(catalogItem))}}
+            dangerouslySetInnerHTML={{__html: description(catalogItem)}}
           />
         </CardBody>
       </Link>
