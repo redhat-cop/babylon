@@ -159,13 +159,5 @@ babylon_resources:
         agnosticvRepos: "{{ babylon_agnosticv_repositories | default([]) }}"
         babylonAnarchyRoles: "{{ babylon_anarchy_roles }}"
 
-  - name: User Namespace Operator
-    helm_template:
-      git:
-        repo: https://github.com/redhat-gpte/user-namespace-operator.git
-        version: "{{ user_namespace_operator_version }}"
-      dir: helm
-      include_crds: true
-
 # Cluster level resources
 k8s_resources: "{{ babylon_resources }}"
