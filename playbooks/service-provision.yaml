@@ -116,6 +116,24 @@
             openshift.io/requester: "{{ cloudforms_username }}"
           name: "{{ user_namespace }}"
 
+  - name: Grant babylon-user-service-access for {{ cloudforms_username }} in namespace
+    k8s:
+      kubeconfig: "{{ kubeconfig }}"
+      definition:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: RoleBinding
+        metadata:
+          name: babylon-user-service-access:{{ cloudforms_username }}
+          namespace: "{{ user_namespace }}"
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: babylon-user-service-access
+        subjects:
+        - apiGroup: rbac.authorization.k8s.io
+          kind: User
+          name: "{{ cloudforms_username }}"
+
   - name: Create ResourceClaim {{ resource_claim_name }}
     vars:
       __meta_catalog_parameter_names: >-
