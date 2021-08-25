@@ -65,6 +65,10 @@ import {
 } from '@app/components/ActionDropdown';
 
 import {
+  LabInterfaceLink
+} from '@app/components/LabInterfaceLink';
+
+import {
   LoadingIcon,
 } from '@app/components/LoadingIcon';
 
@@ -160,10 +164,23 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
   const canStart = checkResourceClaimCanStart(resourceClaim);
   const canStop = checkResourceClaimCanStop(resourceClaim);
+  const labUserInterfaceDataJSON = (
+    resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceData'] ||
+    (resourceClaim?.status?.resources || []).map(
+      r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.lab_ui_data : r.state?.data?.labUserInterfaceData
+    ).find(u => u != null)
+  );
+  const labUserInterfaceData = labUserInterfaceDataJSON ? typeof(labUserInterfaceDataJSON) === 'string' ? JSON.parse(labUserInterfaceDataJSON) : labUserInterfaceDataJSON : null;
+  const labUserInterfaceMethod = (
+    resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceMethod'] ||
+    (resourceClaim?.status?.resources || []).map(
+      r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.lab_ui_method : r.state?.data?.labUserInterfaceMethod
+    ).find(u => u != null)
+  );
   const labUserInterfaceUrl = (
     resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrl'] ||
     (resourceClaim?.status?.resources || []).map(
-      r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.bookbag_url : r.state?.data?.labUserInterfaceUrl
+      r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.bookbag_url || r.state.spec?.vars?.provision_data?.lab_ui_url : r.state?.data?.labUserInterfaceUrl
     ).find(u => u != null)
   );
   const labUserInterfaceUrls = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrls'] || '{}')
@@ -303,7 +320,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               { labUserInterfaceUrl ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Lab Instructions</DescriptionListTerm>
-                  <DescriptionListDescription><a href={labUserInterfaceUrl} target="_blank">{labUserInterfaceUrl} <ExternalLinkAltIcon/></a></DescriptionListDescription>
+                  <DescriptionListDescription>
+                    <LabInterfaceLink url={labUserInterfaceUrl} data={labUserInterfaceData} method={labUserInterfaceMethod}/>
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null }
               <DescriptionListGroup>

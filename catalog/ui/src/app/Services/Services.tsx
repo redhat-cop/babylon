@@ -71,6 +71,7 @@ import {
 } from '@app/Services/NamespaceSelector/ServicesNamespaceSelector';
 
 import { DatetimeSelect } from '@app/components/DatetimeSelect';
+import { LabInterfaceLink } from '@app/components/LabInterfaceLink';
 import { LoadingIcon } from '@app/components/LoadingIcon';
 import { LocalTimestamp } from '@app/components/LocalTimestamp';
 import { TimeInterval } from '@app/components/TimeInterval';
@@ -238,7 +239,20 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     const canStart = checkResourceClaimCanStart(resourceClaim);
     const canStop = checkResourceClaimCanStop(resourceClaim);
     const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
-    const labUrl = (
+    const labUserInterfaceDataJSON = (
+      resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceData'] ||
+      (resourceClaim?.status?.resources || []).map(
+        r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.lab_ui_data : r.state?.data?.labUserInterfaceData
+      ).find(u => u != null)
+    );
+    const labUserInterfaceData = labUserInterfaceDataJSON ? typeof(labUserInterfaceDataJSON) === 'string' ? JSON.parse(labUserInterfaceDataJSON) : labUserInterfaceDataJSON : null;
+    const labUserInterfaceMethod = (
+      resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceMethod'] ||
+      (resourceClaim?.status?.resources || []).map(
+        r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.lab_ui_method : r.state?.data?.labUserInterfaceMethod
+      ).find(u => u != null)
+    );
+    const labUserInterfaceUrl = (
       resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrl'] ||
       (resourceClaim?.status?.resources || []).map(
         r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.bookbag_url : r.state?.data?.labUserInterfaceUrl
@@ -332,16 +346,8 @@ const Services: React.FunctionComponent<ServicesProps> = ({
                       <List>{secondCellListContent}</List>
                     </GridItem>
                     <GridItem span="4">
-                      { labUrl ? (
-                        <Button
-                          component="a"
-                          href={labUrl}
-                          onClick={() => window.open(labUrl)}
-                          target="_blank"
-                          variant="secondary"
-                          icon={<ExternalLinkAltIcon/>}
-                          iconPosition="right"
-                        >Lab</Button>
+                      { labUserInterfaceUrl ? (
+                        <LabInterfaceLink url={labUserInterfaceUrl} data={labUserInterfaceData} method={labUserInterfaceMethod} variant="secondary"/>
                       ) : null }
                     </GridItem>
                   </Grid>
