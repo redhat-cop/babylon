@@ -50,13 +50,31 @@ def openshift_auth_user():
     return(user['metadata']['name'])
 
 def proxy_user():
+    email = flask.request.headers.get('X-Forwarded-Email')
     user = flask.request.headers.get('X-Forwarded-User')
     # In development get user from authentication
     if not user and os.environ.get('ENVIRONMENT') == 'development':
         user = openshift_auth_user()
     if not user:
         flask.abort(401, description="No X-Forwarded-User header")
-    return user
+
+    try:
+        return custom_objects_api.get_cluster_custom_object(
+            'user.openshift.io', 'v1', 'users', email
+        )
+    except kubernetes.client.rest.ApiException as e:
+        if e.status != 404:
+            raise
+
+    try:
+        return custom_objects_api.get_cluster_custom_object(
+            'user.openshift.io', 'v1', 'users', user
+        )
+    except kubernetes.client.rest.ApiException as e:
+        if e.status != 404:
+            raise
+
+    flask.abort(401, description=f"Unable to find user by name ({user}) or email ({email})")
 
 def proxy_api_client(session):
     api_client = HotfixKubeApiClient()
@@ -68,18 +86,19 @@ def proxy_api_client(session):
     return api_client
 
 def get_user_groups(user):
+    user_name = user['metadata']['name'] if isinstance(user, dict) else user
     user_groups = []
     for group in custom_objects_api.list_cluster_custom_object(
         'user.openshift.io', 'v1', 'groups'
     ).get('items', []):
-        if user in group.get('users', []):
+        if user_name in group.get('users', []):
             user_groups.append(group['metadata']['name'])
     return user_groups
 
-def start_user_session(user):
+def start_user_session(user, groups):
     session = {
-        'user': user,
-        'groups': get_user_groups(user),
+        'user': user['metadata']['name'],
+        'groups': groups,
     }
 
     api_client = proxy_api_client(session)
@@ -94,28 +113,27 @@ def start_user_session(user):
 
     return api_client, session, token
 
-def get_user_session(proxy_user):
+def get_user_session(user):
     authentication_header = flask.request.headers.get('Authentication')
     if not authentication_header:
         flask.abort(401, description='No Authentication header')
     if not authentication_header.startswith('Bearer '):
         flask.abort(401, description='Authentication header is not a bearer token')
     token = authentication_header[7:]
+
+    session = None
     if redis_connection:
         session_json = redis_connection.get(token)
-        if not session_json:
-            flask.abort(401, description='Invalid bearer token, not found')
-        session = json.loads(session_json)
-        if session.get('user') != proxy_user:
-            flask.abort(401, description='Invalid bearer token, user mismatch')
-        return session
+        if session_json:
+            session = json.loads(session_json)
     else:
         session = session_cache.get(token)
-        if not session:
-            flask.abort(401, description='Invalid bearer token, no session for token')
-        elif session.get('user') != proxy_user:
-            flask.abort(401, description='Invalid bearer token, user mismatch')
-        return session
+
+    if not session:
+        flask.abort(401, description='Invalid bearer token, no session for token')
+    elif session.get('user') != user['metadata']['name']:
+        flask.abort(401, description='Invalid bearer token, user mismatch')
+    return session
 
 def check_admin_access(api_client):
     """
@@ -221,12 +239,8 @@ def get_service_namespaces(api_client, user_namespace, user_is_admin):
     return namespaces
 
 def get_user_namespace(user):
+    user_uid = user['metadata']['uid']
     namespaces = []
-
-    user_resource = custom_objects_api.get_cluster_custom_object(
-        'user.openshift.io', 'v1', 'users', user 
-    )
-    user_uid = user_resource['metadata']['uid']
 
     for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid=' + user_uid).items:
         name = ns.metadata.name
@@ -316,14 +330,16 @@ def resolve_openstack_subjects(resource_claim):
 @application.route("/auth/session")
 def get_auth_session():
     user = proxy_user()
-    api_client, session, token = start_user_session(user)
+    groups = get_user_groups(user)
+    api_client, session, token = start_user_session(user, groups)
     catalog_namespaces = get_catalog_namespaces(api_client)
     user_is_admin = session.get('admin', False)
     user_namespace = get_user_namespace(user)
     service_namespaces = get_service_namespaces(api_client, user_namespace, user_is_admin)
     ret = {
         "admin": user_is_admin,
-        "user": user,
+        "groups": groups,
+        "user": user['metadata']['name'],
         "token": token,
         "catalogNamespaces": catalog_namespaces,
         "lifetime": session_lifetime,
@@ -335,8 +351,8 @@ def get_auth_session():
 
 @application.route("/auth/users/<user_name>")
 def get_auth_users_info(user_name):
-    user = proxy_user()
-    session = get_user_session(user)
+    puser = proxy_user()
+    session = get_user_session(puser)
     api_client = proxy_api_client(session)
 
     if not check_admin_access(api_client):
@@ -344,7 +360,8 @@ def get_auth_users_info(user_name):
 
     test_api_client = HotfixKubeApiClient()
     test_api_client.default_headers['Impersonate-User'] = user_name
-    for group in get_user_groups(user_name):
+    groups = get_user_groups(user_name)
+    for group in groups:
         test_api_client.default_headers.add('Impersonate-Group', group)
     user_is_admin = check_admin_access(test_api_client)
 
@@ -359,11 +376,12 @@ def get_auth_users_info(user_name):
             raise
 
     catalog_namespaces = get_catalog_namespaces(test_api_client)
-    user_namespace = get_user_namespace(user_name)
+    user_namespace = get_user_namespace(user)
     service_namespaces = get_service_namespaces(test_api_client, user_namespace, user_is_admin)
 
     ret = {
         "admin": user_is_admin,
+        "groups": groups,
         "user": user_name,
         "catalogNamespaces": catalog_namespaces,
         "serviceNamespaces": service_namespaces,
