@@ -257,6 +257,12 @@
   margin-bottom: 0.5em;
 }
 
+.rhpds-catalog-item-details-description pre {
+  background-color: #ddd;
+  padding: 0.6em 0.8em;
+  margin: 0.6em 0;
+}
+
 .rhpds-catalog-item-details-description ul {
   list-style: unset;
   margin-left: 18pt;
