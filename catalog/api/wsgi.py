@@ -58,13 +58,14 @@ def proxy_user():
     if not user:
         flask.abort(401, description="No X-Forwarded-User header")
 
-    try:
-        return custom_objects_api.get_cluster_custom_object(
-            'user.openshift.io', 'v1', 'users', email
-        )
-    except kubernetes.client.rest.ApiException as e:
-        if e.status != 404:
-            raise
+    if email:
+        try:
+            return custom_objects_api.get_cluster_custom_object(
+                'user.openshift.io', 'v1', 'users', email
+            )
+        except kubernetes.client.rest.ApiException as e:
+            if e.status != 404:
+                raise
 
     try:
         return custom_objects_api.get_cluster_custom_object(
