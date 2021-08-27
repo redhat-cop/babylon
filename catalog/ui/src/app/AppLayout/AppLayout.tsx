@@ -85,6 +85,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     dispatch(
       actionStartSession({
         admin: session.admin || false,
+        groups: session.groups || [],
         user: session.user,
         catalogNamespaces: session.catalogNamespaces,
         serviceNamespaces: session.serviceNamespaces,
@@ -101,8 +102,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     const userInfo = await getUserInfo(user);
     dispatch(
       actionSetImpersonation({
-        user: user,
         admin: userInfo.admin,
+        user: user,
+        groups: userInfo.groups || [],
         catalogNamespaces: userInfo.catalogNamespaces,
         serviceNamespaces: userInfo.serviceNamespaces,
         userNamespace: userInfo.userNamespace,

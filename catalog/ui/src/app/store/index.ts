@@ -217,10 +217,11 @@ function reduce_insertResourceClaim(state, action) {
 }
 
 function reduce_setImpersonation(state, action) {
-  const {user, admin, catalogNamespaces, serviceNamespaces, userNamespace} = action.payload;
+  const {admin, groups, user, catalogNamespaces, serviceNamespaces, userNamespace} = action.payload;
   state.impersonate = {
-    user: user,
     admin: admin,
+    groups: groups,
+    user: user,
     catalogNamespaces: catalogNamespaces,
     serviceNamespaces: serviceNamespaces,
     userNamespace: userNamespace,
@@ -260,8 +261,9 @@ function reduce_setResourceClaimsForNamespace(state, action) {
 }
 
 function reduce_startSession(state, action) {
-  const {admin, user, catalogNamespaces, serviceNamespaces, userNamespace} = action.payload;
+  const {admin, groups, user, catalogNamespaces, serviceNamespaces, userNamespace} = action.payload;
   state.auth.admin = admin;
+  state.auth.groups = groups;
   state.auth.user = user;
   state.auth.catalogNamespaces = catalogNamespaces;
   state.auth.serviceNamespaces = serviceNamespaces;
@@ -321,6 +323,11 @@ export const selectUser = createSelector(
   state => state.impersonate ? state.impersonate.user : state.auth.user,
 )
 
+export const selectUserGroups = createSelector(
+  selectSelf,
+  state => state.impersonate ? state.impersonate.groups : state.auth.groups,
+)
+
 export const selectUserIsAdmin = createSelector(
   selectSelf,
   state => state.impersonate ? state.impersonate.admin : state.auth.admin,
@@ -362,6 +369,7 @@ export const store = configureStore({
   reducer: createReducer({
     auth: {
       admin: false,
+      groups: [],
       user: null,
       catalogNamespaces: [],
       serviceNamespaces: [],

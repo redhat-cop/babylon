@@ -7,6 +7,8 @@ import {
 import {
   selectCatalogItems,
   selectCatalogNamespaces,
+  selectUserGroups,
+  selectUserIsAdmin,
 } from '@app/store';
 
 import './catalog.css';
@@ -99,6 +101,8 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const catalogNamespaceName = catalogNamespaceItemRouteMatch?.params.namespace || catalogNamespaceRouteMatch?.params.namespace;
   const catalogPath = catalogNamespaceName ? `/catalog/ns/${catalogNamespaceName}` : '/catalog';
 
+  const userGroups = useSelector(selectUserGroups);
+  const userIsAdmin = useSelector(selectUserIsAdmin);
   const catalogItems = useSelector(selectCatalogItems);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const catalogNamespace = catalogNamespaceName ? (catalogNamespaces.find(ns => ns.name == catalogNamespaceName) || {name: catalogNamespaceName, displayName: catalogNamespaceName, description: ""}) : null;
@@ -233,8 +237,11 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           <DrawerCloseButton onClick={unselectCatalogItem} />
         </DrawerActions>
       </DrawerHead>
-      <PageSection variant={PageSectionVariants.light} className="rhpds-catalo-item-details-actions">
-        <Button aria-label="Action" onClick={requestCatalogItem}>
+      <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
+        <Button
+          onClick={requestCatalogItem}
+          isDisabled={selectedCatalogItem.spec.allowUserGroups && selectedCatalogItem.spec.allowUserGroups.filter(group => userGroups.includes(group)).length == 0}
+        >
           Request
         </Button>
       </PageSection>
