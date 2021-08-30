@@ -9,6 +9,9 @@ metadata:
     openshift.io/display-name: {{ $ns.displayName | default $ns.name | quote }}
   labels:
     babylon.gpte.redhat.com/catalog: {{ $ns.catalog | default "" | quote }}
+  {{- with $ns.interface }}
+    babylon.gpte.redhat.com/interface: {{ . | quote }}
+  {{- end }}
   {{- if or $ns.groups $ns.users }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1

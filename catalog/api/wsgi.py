@@ -21,6 +21,7 @@ def random_string(length):
     return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(length)])
 
 application = flask.Flask('babylon-api', static_url_path='/ui')
+interface_name = os.environ.get('INTERFACE_NAME');
 redis_connection = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
@@ -165,7 +166,9 @@ def check_admin_access(api_client):
 
 def get_catalog_namespaces(api_client):
     namespaces = []
-    for ns in core_v1_api.list_namespace(label_selector='babylon.gpte.redhat.com/catalog').items:
+    for ns in core_v1_api.list_namespace(
+        label_selector = f"babylon.gpte.redhat.com/interface={interface_name}" if interface_name else 'babylon.gpte.redhat.com/catalog'
+    ).items:
         (data, status, headers) = api_client.call_api(
             '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
             'POST',
@@ -347,6 +350,8 @@ def get_auth_session():
         "serviceNamespaces": service_namespaces,
         "userNamespace": user_namespace,
     }
+    if interface_name:
+        ret['interface'] = interface_name
 
     return flask.jsonify(ret)
 
