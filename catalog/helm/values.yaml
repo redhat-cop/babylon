@@ -5,6 +5,9 @@ namespace:
   create: true
   name:
 
+# Interface name to filter which catalog namespaces to present to the user
+#interfaceName:
+
 api:
   name: # default use chart name + '-api'
   gunicorn:

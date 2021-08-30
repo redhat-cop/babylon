@@ -37,6 +37,10 @@ spec:
       containers:
       - name: api
         env:
+        {{- with .Values.interfaceName }}
+        - name: INTERFACE_NAME
+          value: {{ . | quote }}
+        {{- end }}
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
