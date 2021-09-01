@@ -281,8 +281,8 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                 const value = selectedCatalogItem.metadata.labels[label];
                 return (
                   <DescriptionListGroup key={attr}>
-                    <DescriptionListTerm>{attr.replace('_', ' ')}</DescriptionListTerm>
-                    <DescriptionListDescription>{value}</DescriptionListDescription>
+                    <DescriptionListTerm>{attr.replaceAll('_', ' ')}</DescriptionListTerm>
+                    <DescriptionListDescription>{value.replaceAll('_', ' ')}</DescriptionListDescription>
                   </DescriptionListGroup>
                 );
               })
@@ -432,7 +432,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         const valueKey = value.toLowerCase();
         if (!attributeFilters[attrKey]) {
           attributeFilters[attrKey] = {
-            text: attr.replace('_', ' '),
+            text: attr.replaceAll('_', ' '),
             values: {},
           }
         }
@@ -443,7 +443,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           labelValues[valueKey] = {
             count: 1,
             selected: selectedAttributeFilters[attrKey]?.[valueKey],
-            text: value.replace('_', ' '),
+            text: value.replaceAll('_', ' '),
           }
         }
       }
@@ -507,7 +507,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   };
 
   const renderCategoryTab = (category: string) => (
-    <Tab key={category} eventKey={category} title={<TabTitleText>{category.replace('_', ' ')}</TabTitleText>}></Tab>
+    <Tab key={category} eventKey={category} title={<TabTitleText>{category.replaceAll('_', ' ')}</TabTitleText>}></Tab>
   );
 
   return (
@@ -569,7 +569,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                   </SidebarPanel>
                   <SidebarContent>
                     <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-box-header">
-                      <div className="rhpds-catalog-title">{activeCategory == 'all' ? 'All Items' : activeCategory.replace('_', ' ')}</div>
+                      <div className="rhpds-catalog-title">{activeCategory == 'all' ? 'All Items' : activeCategory.replaceAll('_', ' ')}</div>
                       <div className="rhpds-catalog-filter">
                         <SearchInput className="rhpds-catalog-keyword-search"
                           value=""
