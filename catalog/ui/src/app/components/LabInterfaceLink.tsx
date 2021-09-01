@@ -36,9 +36,6 @@ const LabInterfaceLink: React.FunctionComponent<LabInterfaceLinkProps> = ({
 }) => {
   const user = useSelector(selectUser);
   const email = user.includes('@') ? user : user.includes('-') ? user.substring(0, user.lastIndexOf('-')) + '@' + user.substring(1 + user.lastIndexOf('-')) : `${user}@example.com`;
-  console.log(user);
-  console.log(email);
-
 
   if (method === 'POST') {
     return (
@@ -66,7 +63,7 @@ const LabInterfaceLink: React.FunctionComponent<LabInterfaceLinkProps> = ({
       <Button
         component="a"
         href={url}
-        onClick={window.open(url)}
+        onClick={() => window.open(url)}
         target="_blank"
         variant={variant}
         icon={<ExternalLinkAltIcon/>}
