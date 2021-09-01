@@ -261,14 +261,14 @@ function reduce_setResourceClaimsForNamespace(state, action) {
 }
 
 function reduce_startSession(state, action) {
-  const {admin, groups, user, catalogNamespaces, serviceNamespaces, userNamespace} = action.payload;
-  state.auth.admin = admin;
-  state.auth.groups = groups;
-  state.auth.user = user;
-  state.auth.catalogNamespaces = catalogNamespaces;
-  state.auth.serviceNamespaces = serviceNamespaces;
-  state.auth.userNamespace = userNamespace;
+  state.auth.admin = action.payload.admin;
+  state.auth.groups = action.payload.groups;
+  state.auth.user = action.payload.user;
+  state.auth.catalogNamespaces = action.payload.catalogNamespaces;
+  state.auth.serviceNamespaces = action.payload.serviceNamespaces;
+  state.auth.userNamespace = action.payload.userNamespace;
   state.catalogItems = null;
+  state.interface = action.payload.interface;
   state.resourceClaims = null;
   startWatchCatalogItems();
   startWatchResourceClaims();
@@ -316,6 +316,11 @@ export const selectAuthIsAdmin = createSelector(
 export const selectAuthUser = createSelector(
   selectSelf,
   state => state.auth.user,
+)
+
+export const selectInterface = createSelector(
+  selectSelf,
+  state => state.interface,
 )
 
 export const selectUser = createSelector(
@@ -377,6 +382,7 @@ export const store = configureStore({
     },
     catalogItems: null,
     impersonate: null,
+    interface: null,
     resourceClaims: null,
   }, {
     "clearImpersonation": reduce_clearImpersonation,

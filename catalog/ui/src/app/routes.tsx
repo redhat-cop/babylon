@@ -1,5 +1,9 @@
 import * as React from 'react';
 import { Route, RouteComponentProps, Switch } from 'react-router-dom';
+import { useSelector } from 'react-redux'
+import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
+
+import { selectInterface } from '@app/store';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
 import { Dashboard } from '@app/Dashboard/Dashboard';
 import { Catalog } from '@app/Catalog/Catalog';
@@ -9,7 +13,6 @@ import { ServicesItem } from '@app/Services/Item/ServicesItem';
 import { Support } from '@app/Support/Support';
 import { NotFound } from '@app/NotFound/NotFound';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
 
 let routeFocusTimer: number;
 export interface IAppRoute {
@@ -37,36 +40,36 @@ const routes: AppRouteConfig[] = [
     exact: true,
     //label: 'Dashboard',
     path: '/',
-    title: 'RHPDS | Dashboard',
+    title: 'Babylon | Dashboard',
   },
   {
     // Catalog item from specific namespace
     component: CatalogRequest,
     exact: true,
     path: '/catalog/request/:namespace/:name',
-    title: 'RHPDS | Catalog',
+    title: 'Babylon | Catalog',
   },
   {
     label: 'Catalog',
     component: Catalog,
     path: '/catalog',
-    title: 'RHPDS | Catalog',
+    title: 'Babylon | Catalog',
   },
   {
     component: ServicesItem,
     path: '/services/ns/:namespace/item/:name',
-    title: 'RHPDS | Services',
+    title: 'Babylon | Services',
   },
   {
     component: ServicesItem,
     path: '/services/item/:namespace/:name',
-    title: 'RHPDS | Services',
+    title: 'Babylon | Services',
   },
   {
     label: 'Services',
     component: Services,
     path: '/services',
-    title: 'RHPDS | Services',
+    title: 'Babylon | Services',
   },
 /*
   {
@@ -75,7 +78,7 @@ const routes: AppRouteConfig[] = [
     isAsync: true,
     label: 'Support',
     path: '/support',
-    title: 'RHPDS | Support Page',
+    title: 'Babylon | Support Page',
   },
 */
 ];
@@ -116,22 +119,31 @@ const flattenedRoutes: IAppRoute[] = routes.reduce(
   [] as IAppRoute[]
 );
 
-const AppRoutes = (): React.ReactElement => (
-  <LastLocationProvider>
-    <Switch>
-      {flattenedRoutes.map(({ path, exact, component, title, isAsync }, idx) => (
-        <RouteWithTitleUpdates
-          path={path}
-          exact={exact}
-          component={component}
-          key={idx}
-          title={title}
-          isAsync={isAsync}
-        />
-      ))}
-      <PageNotFound title="404 Page Not Found" />
-    </Switch>
-  </LastLocationProvider>
-);
+const AppRoutes = (): React.ReactElement => {
+  const userInterface = useSelector(selectInterface);
+  return (
+    <LastLocationProvider>
+      <Switch>
+        {flattenedRoutes.map(({ path, exact, component, title, isAsync }, idx) => {
+          const pageTitle = (
+            userInterface === 'summit' ? title.replace('Babylon', 'Red Hat Summit') :
+            userInterface === 'rhpds' ? title.replace('Babylon', 'RHPDS') : title
+          );
+          return (
+            <RouteWithTitleUpdates
+              path={path}
+              exact={exact}
+              component={component}
+              key={idx}
+              title={pageTitle}
+              isAsync={isAsync}
+            />
+          )
+        })}
+        <PageNotFound title="404 Page Not Found" />
+      </Switch>
+    </LastLocationProvider>
+  );
+}
 
 export { AppRoutes, routes };

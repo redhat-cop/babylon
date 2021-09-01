@@ -18,6 +18,7 @@ import {
   selectAuthIsAdmin,
   selectAuthUser,
   selectImpersonationUser,
+  selectInterface,
 } from '@app/store';
 
 import { NavLink, useLocation, useHistory } from 'react-router-dom';
@@ -46,7 +47,8 @@ import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon
 import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
 
 import { routes, IAppRoute, IAppRouteGroup } from '@app/routes';
-import logo from '@app/bgimages/RHPDS-Logo.svg';
+import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
+import summitLogo from '@app/bgimages/Summit-Logo.svg';
 
 interface IAppLayout {
   children: React.ReactNode;
@@ -74,6 +76,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const authIsAdmin = useSelector(selectAuthIsAdmin);
   const authUser = useSelector(selectAuthUser);
   const impersonateUser = useSelector(selectImpersonationUser);
+  const userInterface = useSelector(selectInterface);
 
   async function getUsers() {
     const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users');
@@ -86,6 +89,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       actionStartSession({
         admin: session.admin || false,
         groups: session.groups || [],
+        interface: session.interface,
         user: session.user,
         catalogNamespaces: session.catalogNamespaces,
         serviceNamespaces: session.serviceNamespaces,
@@ -164,9 +168,17 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     function handleClick() {
       history.push('/');
     }
-    return (
-      <img src={logo} onClick={handleClick} alt="Red Hat Product Demo System Logo" className="rhpds-logo" style={{height: "48px"}}/>
-    );
+    if (userInterface == 'summit') {
+      return (
+        <img src={summitLogo} onClick={handleClick} alt="Red Hat Summit" className="summit-logo" style={{height: "48px"}}/>
+      );
+    } else if(userInterface == 'rhpds') {
+      return (
+        <img src={rhpdsLogo} onClick={handleClick} alt="Red Hat Product Demo System Logo" className="rhpds-logo" style={{height: "48px"}}/>
+      );
+    } else {
+      return null;
+    }
   }
 
   const UserControlDropdownItems = [
