@@ -180,7 +180,7 @@ def resourceclaim_event(event, logger, **_):
                         }]
                     }
                 }
-                if lab_ui_urls[user]:
+                if lab_ui_urls.get(user):
                     user_resource_handle['spec']['resources'][0]['template']['data']['labUserInterfaceUrl'] = lab_ui_urls[user]
                 try:
                     custom_objects_api.create_namespaced_custom_object(
@@ -200,15 +200,16 @@ def resourceclaim_event(event, logger, **_):
                     }
                 })
 
-        lab_ui_urls = json.dumps(lab_ui_urls)
-        if lab_ui_urls != annotations.get(f"{babylon_domain}/labUserInterfaceUrls"):
-            deepmerge(resource_claim_patch, {
-                "metadata": {
-                    "annotations": {
-                        f"{babylon_domain}/labUserInterfaceUrls": lab_ui_urls,
+        if lab_ui_urls:
+            lab_ui_urls = json.dumps(lab_ui_urls)
+            if lab_ui_urls != annotations.get(f"{babylon_domain}/labUserInterfaceUrls"):
+                deepmerge(resource_claim_patch, {
+                    "metadata": {
+                        "annotations": {
+                            f"{babylon_domain}/labUserInterfaceUrls": lab_ui_urls,
+                        }
                     }
-                }
-            })
+                })
 
     elif bookbag_config:
         if provision_messages:
