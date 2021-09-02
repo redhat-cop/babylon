@@ -226,7 +226,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       }
     });
 
-    history.push(`/services/item/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
+    history.push(`/services/ns/${resourceClaim.metadata.namespace}/item/${resourceClaim.metadata.name}`);
   }
 
   const catalogRequestForm = (catalogItem && parameterState) ? (
