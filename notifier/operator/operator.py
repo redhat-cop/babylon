@@ -10,6 +10,7 @@ import re
 import redis
 import requests
 import smtplib
+import yaml
 
 from base64 import b64decode
 from datetime import datetime, timedelta, timezone
@@ -68,6 +69,25 @@ j2env = jinja2.Environment(
     ]),
     trim_blocks = True,
 )
+
+# Add to_yaml filter
+def to_yaml(input):
+    return yaml.safe_dump(
+        input,
+        default_flow_style=False,
+        explicit_start=False,
+        explicit_end=False,
+    )
+j2env.filters['to_yaml'] = to_yaml
+j2env.filters['to_nice_yaml'] = to_yaml
+
+# Force block quotes for multiline strings:
+def str_presenter(dumper, data):
+  if "\n" in data:
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+  return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+yaml.add_representer(str, str_presenter)
+yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
 
 r = redis.StrictRedis(
     host=redis_host,

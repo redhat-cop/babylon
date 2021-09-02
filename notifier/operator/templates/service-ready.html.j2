@@ -25,8 +25,12 @@ All data will be lost upon expiration.</p>
 {%   if provision_data %}
 <dl>
 {%     for k, v in provision_data.items() | sort %}
-<dt>{{ k | escape }}</dt>
-<dd>{{ v | escape }}</dd>
+<dt><code>{{ k | escape }}</code></dt>
+{%       if v is string or v is not iterable %}
+<dd><code>{{ v | escape }}</code></dd>
+{%       else %}
+<dd><pre>{{ v | to_yaml | escape }}</pre></dd>
+{%       endif %}
 {%     endfor %}
 </dl>
 {%   endif %}
