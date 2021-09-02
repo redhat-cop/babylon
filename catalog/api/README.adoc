@@ -2,6 +2,8 @@
 
 == Setup
 
+Initial setup to run once to prepare for running the API:
+
 -----------------------------------------------
 python3 -m venv ~/virtualenv/babylon-catalog-api/
 . ~/virtualenv/babylon-catalog-api/bin/activate
@@ -10,10 +12,15 @@ pip install -r requirements.txt
 
 === Running in Development
 
+Commands each time to start:
+
 Login with `oc`, then start the local development server.
 
 ---------------------------------
-ENVIRONMENT=development ./wsgi.py
+. ~/virtualenv/babylon-catalog-api/bin/activate
+export ENVIRONMENT=development
+export INTERFACE=summit
+python3 wsgi.py
 ---------------------------------
 
 The ReactJS user interface is configured to proxy requests to the server on port 5000.
