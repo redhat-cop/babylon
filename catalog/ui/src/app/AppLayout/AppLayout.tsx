@@ -19,6 +19,7 @@ import {
   selectAuthUser,
   selectImpersonationUser,
   selectInterface,
+  selectUserNamespace,
 } from '@app/store';
 
 import { NavLink, useLocation, useHistory } from 'react-router-dom';
@@ -77,6 +78,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const authUser = useSelector(selectAuthUser);
   const impersonateUser = useSelector(selectImpersonationUser);
   const userInterface = useSelector(selectInterface);
+  const userNamespace = useSelector(selectUserNamespace);
 
   async function getUsers() {
     const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users');
@@ -250,9 +252,15 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   const renderNavItem = (route: IAppRoute, index: number) => (
     <NavItem key={`${route.label}-${index}`} id={`${route.label}-${index}`}>
-      <NavLink exact={route.exact} to={route.path} activeClassName="pf-m-current">
-        {route.label}
-      </NavLink>
+      { route.path === '/services' && userNamespace ? (
+        <NavLink exact={route.exact} to={`/services/ns/${userNamespace.name}`} activeClassName="pf-m-current">
+          {route.label}
+        </NavLink>
+      ) : (
+        <NavLink exact={route.exact} to={route.path} activeClassName="pf-m-current">
+          {route.label}
+        </NavLink>
+      ) }
     </NavItem>
   );
 
