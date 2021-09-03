@@ -112,6 +112,9 @@ babylon_resources:
               - apiVersion: poolboy.gpte.redhat.com/v1
                 kind: ResourcePool
                 namespace: poolboy
+          envVars:
+            # Configure hourly recovery points
+            RECOVERY_POINT_INTERVAL: "{{ babylon_cross_cluster_backup_recovery_point_interval | default(3600) }}"
           persistentVolume:
             spec:
               resources:
