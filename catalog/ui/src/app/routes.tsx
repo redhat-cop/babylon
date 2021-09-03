@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Route, RouteComponentProps, Switch } from 'react-router-dom';
-import { useSelector } from 'react-redux'
+import { useLocation, Route, RouteComponentProps, Switch } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux'
 import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
 
-import { selectInterface } from '@app/store';
+import { selectInterface, actionSetActiveServiceNamespace } from '@app/store';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
 import { Dashboard } from '@app/Dashboard/Dashboard';
 import { Catalog } from '@app/Catalog/Catalog';
@@ -121,6 +121,17 @@ const flattenedRoutes: IAppRoute[] = routes.reduce(
 
 const AppRoutes = (): React.ReactElement => {
   const userInterface = useSelector(selectInterface);
+  const dispatch = useDispatch();
+  const location = useLocation();
+
+  if (location.pathname.startsWith('/services/ns/') || location.pathname.startsWith('/services/item/')) {
+    dispatch(actionSetActiveServiceNamespace(location.pathname.split('/')[3]));
+  } else if(location.pathname.startsWith('/services')) {
+    dispatch(actionSetActiveServiceNamespace('*'));
+  } else {
+    dispatch(actionSetActiveServiceNamespace(null));
+  }
+
   return (
     <LastLocationProvider>
       <Switch>
