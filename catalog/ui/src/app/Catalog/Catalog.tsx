@@ -8,6 +8,7 @@ import {
   selectCatalogItems,
   selectCatalogNamespaces,
   selectUserGroups,
+  selectInterface,
   selectUserIsAdmin,
 } from '@app/store';
 
@@ -102,6 +103,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const catalogPath = catalogNamespaceName ? `/catalog/ns/${catalogNamespaceName}` : '/catalog';
 
   const userGroups = useSelector(selectUserGroups);
+  const userInterface = useSelector(selectInterface);
   const userIsAdmin = useSelector(selectUserIsAdmin);
   const catalogItems = useSelector(selectCatalogItems);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
@@ -537,10 +539,22 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
               />
             </PageSection>
           ) : null }
-          <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-header">
-            <Title headingLevel="h1" size="2xl">RHPDS Catalog</Title>
-            <div>Select an item to request a new service, demo, or lab.</div>
-          </PageSection>
+          { userInterface === 'rhpds' ? (
+            <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-header">
+              <Title headingLevel="h1" size="2xl">Red Hat Product Demo System</Title>
+              <div>Select an item to request a new service, demo, or lab.</div>
+            </PageSection>
+          ) : userInterface === 'summit' ? (
+            <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-header">
+              <Title headingLevel="h1" size="2xl">Red Hat Summit Labs</Title>
+              <div>Please select the catalog item for your lab as instructed by a lab facilitator.</div>
+            </PageSection>
+          ) : (
+            <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-header">
+              <Title headingLevel="h1" size="2xl">Catalog</Title>
+              <div>Select an item to request a new service, demo, or lab.</div>
+            </PageSection>
+          ) }
           <PageSection variant={PageSectionVariants.light}>
             <Card className="rhpds-catalog-box">
               <CardBody>
