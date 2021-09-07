@@ -435,7 +435,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                         <DescriptionListTerm>Provision Messages</DescriptionListTerm>
                         <DescriptionListDescription>
                           <div
-                            dangerouslySetInnerHTML={{ __html: renderContent(typeof provisionMessages === 'string' ? provisionMessages.replace("\n", " +\n") : provisionMessages.join(" +\n")) }}
+                            dangerouslySetInnerHTML={{ __html: renderContent(
+                              typeof provisionMessages === 'string' ? provisionMessages.replaceAll("\n", " +\n") : provisionMessages.map(s => s.replaceAll("\n", " +\n")).join(" +\n")
+                            ) }}
                           />
                         </DescriptionListDescription>
                       </DescriptionListGroup>
