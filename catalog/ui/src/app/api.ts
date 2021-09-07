@@ -6,9 +6,16 @@ import {
   apiActionInsertResourceClaim,
   apiActionUpdateResourceClaim,
 } from '@app/store';
+
 import {
-  selectImpersonationUser
+  selectImpersonationUser,
+  selectUserNamespace,
 } from '@app/store';
+
+import {
+  displayName,
+  recursiveAssign,
+} from '@app/util';
 
 async function apiFetch(path:string, opt?:object): any {
   const session = await getApiSession();
@@ -24,6 +31,10 @@ async function apiFetch(path:string, opt?:object): any {
   }
 
   const resp = await fetch(path, options);
+  if (resp.status >= 400 && resp.status < 600) {
+    throw resp;
+  }
+
   // FIXME - Check response code
   return resp;
 }
@@ -80,6 +91,123 @@ export async function createResourceClaim(definition, opt = {}): object {
     );
   }
   return resourceClaim;
+}
+
+export interface ServiceRequestParameters {
+  catalogItem: object;
+  catalogNamespace: object;
+  parameters?: Array<object>;
+}
+
+export async function createServiceRequest({
+  catalogItem,
+  catalogNamespace,
+  parameters,
+}: ServiceRequestParameters): object {
+  const session = await getApiSession();
+  const namespace = session.userNamespace.name;
+
+  const requestResourceClaim = {
+    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    kind: 'ResourceClaim',
+    metadata: {
+      annotations: {
+        'babylon.gpte.redhat.com/catalogDisplayName': catalogNamespace?.displayName || catalogItem.metadata.namespace,
+        'babylon.gpte.redhat.com/catalogItemDisplayName': displayName(catalogItem),
+        'babylon.gpte.redhat.com/requester': session.user,
+      },
+      labels: {
+        'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
+        'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
+      },
+      name: catalogItem.metadata.name,
+      namespace: namespace,
+    },
+    spec: {
+      resources: JSON.parse(JSON.stringify(catalogItem.spec.resources)),
+    }
+  };
+
+  for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
+     if (key.startsWith('babylon.gpte.redhat.com/displayNameComponent')) {
+       requestResourceClaim.metadata.annotations[key] = value;
+     }
+  }
+
+  if (catalogItem.metadata.labels?.['babylon.gpte.redhat.com/userCatalogItem']) {
+    requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'] = catalogItem.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'];
+  }
+
+  if (catalogItem.spec.bookbag) {
+    requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/labUserInterface'] = 'bookbag';
+    requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/bookbag'] = JSON.stringify(catalogItem.spec.bookbag);
+  }
+
+  if (catalogItem.spec.messageTemplates) {
+    for (const [key, value] of Object.entries(catalogItem.spec.messageTemplates)) {
+      // Save CatalogItem message templates in ResourceClaim annotation so
+      // that the provisioned service does not depend upon the continued
+      // existence of the CatalogItem.
+      const annotation = `babylon.gpte.redhat.com/${key}MessageTemplate`;
+      requestResourceClaim.metadata.annotations[annotation] = JSON.stringify(value);
+    }
+  }
+
+  if (parameters) {
+    for (const parameter of parameters) {
+      const varName = parameter.variable || parameter.name;
+      for (const resourceIndex in requestResourceClaim.spec.resources) {
+        const resource = requestResourceClaim.spec.resources[resourceIndex];
+        // Only set parameter if resource index is not set or matches
+        if (parameter.resourceIndex == null || resourceIndex == parameter.resourceIndex) {
+          recursiveAssign(
+            resource,
+            {
+              template: {
+                spec: {
+                  vars: {
+                    job_vars: {
+                      [varName]: parameter.value,
+                    }
+                  }
+                }
+              }
+            }
+          )
+        }
+      }
+    }
+  }
+
+  let n = 0;
+  let resourceClaim = null;
+  while (!resourceClaim) {
+    try {
+      resourceClaim = await createResourceClaim(requestResourceClaim, {
+        skipUpdateStore: true,
+      });
+    } catch(error) {
+      if (error.status === 409) {
+	n++;
+        requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${n}`;
+      } else {
+	throw error;
+      }
+    }
+  }
+
+  const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, "$1");
+  const name = resourceClaim.metadata.name;
+  const shortName = name.substring(catalogItem.metadata.name.length + 1);
+
+  return await patchResourceClaim(namespace, name, {
+    metadata: {
+      annotations: {
+        'babylon.gpte.redhat.com/shortName': shortName,
+        'babylon.gpte.redhat.com/url': `${baseUrl}/services/item/${namespace}/${name}`,
+      }
+    }
+  });
 }
 
 export async function deleteResourceClaim(resourceClaim): void {

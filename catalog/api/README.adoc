@@ -19,7 +19,7 @@ Login with `oc`, then start the local development server.
 ---------------------------------
 . ~/virtualenv/babylon-catalog-api/bin/activate
 export ENVIRONMENT=development
-export INTERFACE=summit
+export INTERFACE_NAME=summit
 python3 wsgi.py
 ---------------------------------
 

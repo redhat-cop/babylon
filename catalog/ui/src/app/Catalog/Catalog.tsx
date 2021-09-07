@@ -65,8 +65,7 @@ import {
 
 
 import {
-  getApiSession,
-  listNamespacedCustomObject
+  createServiceRequest,
 } from '@app/api';
 
 import {
@@ -97,7 +96,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const catalogNamespaceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/ns/:namespace/item/:name');
   const catalogItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/item/:namespace/:name');
 
-  const catalogItemNamespace = catalogNamespaceItemRouteMatch?.params.namespace || catalogItemRouteMatch?.params.namespace;
+  const catalogItemNamespaceName = catalogNamespaceItemRouteMatch?.params.namespace || catalogItemRouteMatch?.params.namespace;
   const catalogItemName = catalogNamespaceItemRouteMatch?.params.name || catalogItemRouteMatch?.params.name;
   const catalogNamespaceName = catalogNamespaceItemRouteMatch?.params.namespace || catalogNamespaceRouteMatch?.params.namespace;
   const catalogPath = catalogNamespaceName ? `/catalog/ns/${catalogNamespaceName}` : '/catalog';
@@ -108,6 +107,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const catalogItems = useSelector(selectCatalogItems);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const catalogNamespace = catalogNamespaceName ? (catalogNamespaces.find(ns => ns.name == catalogNamespaceName) || {name: catalogNamespaceName, displayName: catalogNamespaceName, description: ""}) : null;
+  const catalogItemNamespace = catalogItemNamespaceName ? (catalogNamespaces.find(ns => ns.name == catalogItemNamespaceName) || {name: catalogItemNamespaceName, displayName: catalogItemNamespaceName, description: ""}) : null;
 
   const [activeCategory, setActiveCategory] = React.useState('all');
   const [catalogNamespaceSelectIsOpen, setCatalogNamespaceSelectIsOpen] = React.useState(false);
@@ -115,7 +115,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const [selectedAttributeFilters, setSelectedAttributeFilters] = React.useState({});
 
   const selectedCatalogItem = catalogItemName ? (
-    catalogItems?.[catalogItemNamespace] || []
+    catalogItems?.[catalogItemNamespaceName] || []
   ).find(ci => ci.metadata.name == catalogItemName) : null;
 
   function category(catalogItem): string {
@@ -177,11 +177,24 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     }
   }
 
-  function requestCatalogItem(): void {
-    history.push({
-      pathname: `/catalog/request/${catalogItemNamespace}/${catalogItemName}`,
-      state: { fromCatalog: true },
-    });
+  async function requestCatalogItem(): void {
+    // Either direct user to request form or immediately request if form would be empty.
+    if (
+      selectedCatalogItem.spec.termsOfService ||
+      (selectedCatalogItem.spec.parameters || []).length > 0
+    ) {
+      history.push({
+        pathname: `/catalog/request/${catalogItemNamespaceName}/${catalogItemName}`,
+        state: { fromCatalog: true },
+      });
+    } else {
+      return;
+      const resourceClaim = await createServiceRequest({
+        catalogItem: selectedCatalogItem,
+        catalogNamespace: catalogItemNamespace,
+      });
+      history.push(`/services/ns/${resourceClaim.metadata.namespace}/item/${resourceClaim.metadata.name}`);
+    }
   }
 
   function unselectCatalogItem(): void {
@@ -467,7 +480,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         className="rhpds-catalog-item-card-link"
         key={catalogItem.metadata.uid}
         to={{
-          pathname: catalogNamespace ? `${catalogPath}/item/${catalogItem.metadata.name}` :  `${catalogPath}/item/${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
+          pathname: catalogNamespaceName ? `${catalogPath}/item/${catalogItem.metadata.name}` :  `${catalogPath}/item/${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
           state: { fromCatalog: true },
         }}
       >

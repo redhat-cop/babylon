@@ -40,7 +40,7 @@ import {
 } from '@patternfly/react-core';
 
 import {
-  createResourceClaim,
+  createServiceRequest,
   patchResourceClaim,
   getApiSession,
   getNamespacedCustomObject
@@ -71,24 +71,19 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 
   const catalogItems = useSelector(selectCatalogItems);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
-  const userNamespace = useSelector(selectUserNamespace);
-
   const catalogNamespace = catalogNamespaces.find(ns => ns.name == catalogNamespaceName)
 
   const [termsOfServiceAgreed, setTermsOfServiceAgreed] = React.useState(false);
-  const [requestId, setRequestId] = React.useState(randomString(8));
   const [parameterState, setParameterState] = React.useState(null);
   const [parameterValidationState, setParameterValidationState] = React.useState({});
 
   const catalogItem = (
     catalogItems?.[catalogNamespaceName] || []
   ).find(ci => ci.metadata.name === catalogItemName);
-  const requestIdValid = requestId.match(/^[a-z0-9]([a-z0-9\-\.]{0,8}[a-z0-9])?$/) ? 'success' : 'error';
 
   // Enable submit if terms of service is agreed, the request id is valid, and no parameter vars are invalid
   const submitRequestEnabled = (
     (termsOfServiceAgreed || !catalogItem?.spec?.termsOfService) &&
-    requestIdValid != 'error' &&
     Object.values(parameterValidationState).find(v => v === false) !== false
   );
   const formGroups = [];
@@ -97,7 +92,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 
   for (const parameter of parameters) {
     const formGroupLabel = parameter.formGroup;
-    parameterDefaults[parameter.name] = 'default' in parameter.openAPIV3Schema ? parameter.openAPIV3Schema.default : parameter.value;
+    parameterDefaults[parameter.name] = 'default' in (parameter.openAPIV3Schema || {}) ? parameter.openAPIV3Schema.default : parameter.value;
     if (formGroupLabel) {
       const formGroup = formGroups.find(item => item.formGroupLabel === formGroupLabel);
       if (formGroup) {
@@ -134,96 +129,23 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   }
 
   async function submitRequest(): void {
-    const apiSession = await getApiSession();
-    const namespace = userNamespace.name;
-    const requestResourceClaim = {
-      apiVersion: 'poolboy.gpte.redhat.com/v1',
-      kind: 'ResourceClaim',
-      metadata: {
-        annotations: {
-          'babylon.gpte.redhat.com/catalogDisplayName': catalogNamespace?.displayName || catalogNamespaceName,
-          'babylon.gpte.redhat.com/catalogItemDisplayName': displayName(catalogItem),
-          'babylon.gpte.redhat.com/requester': apiSession.user,
-        },
-        labels: {
-          'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
-          'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
-        },
-        name: `${catalogItem.metadata.name}-${requestId}`,
-        namespace: namespace,
-      },
-      spec: {
-        resources: JSON.parse(JSON.stringify(catalogItem.spec.resources)),
-      }
-    };
-
-    for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
-       if (key.startsWith('babylon.gpte.redhat.com/displayNameComponent')) {
-         requestResourceClaim.metadata.annotations[key] = value;
-       }
-    }
-
-    if (catalogItem.metadata.labels?.['babylon.gpte.redhat.com/userCatalogItem']) {
-      requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'] = catalogItem.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'];
-    }
-
-    if (catalogItem.spec.bookbag) {
-      requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/labUserInterface'] = 'bookbag';
-      requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/bookbag'] = JSON.stringify(catalogItem.spec.bookbag);
-    }
-
-    if (catalogItem.spec.messageTemplates) {
-      for (const [key, value] of Object.entries(catalogItem.spec.messageTemplates)) {
-        // Save CatalogItem message templates in ResourceClaim annotation so
-        // that the provisioned service does not depend upon the continued
-        // existence of the CatalogItem.
-        const annotation = `babylon.gpte.redhat.com/${key}MessageTemplate`;
-        requestResourceClaim.metadata.annotations[annotation] = JSON.stringify(value);
-      }
-    }
-
+    const requestParameters = []
     for (const parameter of parameters) {
-      const varName = parameter.variable || parameter.name;
-      for (const resourceIndex in requestResourceClaim.spec.resources) {
-        const resource = requestResourceClaim.spec.resources[resourceIndex];
-        // Only set parameter if resource index is not set or matches
-        if (parameter.resourceIndex == null || resourceIndex == parameter.resourceIndex) {
-          // Only set if form parameter is not disabled
-          if (!parameter.formDisableCondition || !checkCondition(parameter.formDisableCondition, parameterState)) {
-            recursiveAssign(
-              resource,
-              {
-                template: {
-                  spec: {
-                    vars: {
-                      job_vars: {
-                        [varName]: parameterState[parameter.name]
-                      }
-                    }
-                  }
-                }
-              }
-            )
-          }
-        }
+      // Only pass parameter if form parameter is not disabled
+      if (!parameter.formDisableCondition || !checkCondition(parameter.formDisableCondition, parameterState)) {
+        requestParameters.push({
+          name: parameter.name,
+          resourceIndex: parameter.resourceIndex,
+          value: parameterState[parameter.name],
+          variable: parameter.variable,
+        })
       }
     }
 
-    const resourceClaim = await createResourceClaim(requestResourceClaim, {
-      skipUpdateStore: true,
-    });
-
-    const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, "$1");
-    const name = resourceClaim.metadata.name;
-    const shortName = name.substring(catalogItem.metadata.name.length + 1);
-
-    await patchResourceClaim(namespace, name, {
-      metadata: {
-        annotations: {
-          'babylon.gpte.redhat.com/shortName': shortName,
-          'babylon.gpte.redhat.com/url': `${baseUrl}/services/item/${namespace}/${name}`,
-        }
-      }
+    const resourceClaim = await createServiceRequest({
+      catalogItem: catalogItem,
+      catalogNamespace: catalogNamespace,
+      parameters: requestParameters,
     });
 
     history.push(`/services/ns/${resourceClaim.metadata.namespace}/item/${resourceClaim.metadata.name}`);
@@ -231,20 +153,6 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 
   const catalogRequestForm = (catalogItem && parameterState) ? (
     <Form className="rhpds-catalog-request-form">
-      <FormGroup label="Request Identifier"
-        helperText={
-          <FormHelperText icon={<ExclamationCircleIcon />} isHidden={requestIdValid != 'failed'}>...</FormHelperText>
-        }
-        helperTextInvalid="Identity must start and end with a letter or number; contain only letters, numbers, hyphen, and period; and be ten characters or less."
-        helperTextInvalidIcon={<ExclamationCircleIcon />}
-        validated={requestIdValid}
-      >
-        <TextInput type="text" id="requestIdentity" name="requestIdentity"
-          onChange={(value) => setRequestId(value)}
-          value={requestId}
-          validated={requestIdValid}
-        />
-      </FormGroup>
       { (formGroups).map(formGroup => {
         const invalidParameter = formGroup.parameters.find(parameter => (parameterValidationState[parameter.name] === false));
         const validated = invalidParameter ? false : (
@@ -304,7 +212,9 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   return (
     <PageSection variant={PageSectionVariants.light}>
       <Title headingLevel="h1" size="lg">Request {catalogItem && displayName(catalogItem)}</Title>
-      <p>Request by completing the form. Default values may be provided.</p>
+      { parameters.length > 0 ? (
+        <p>Request by completing the form. Default values may be provided.</p>
+      ) : null }
       {catalogRequestForm}
     </PageSection>
   );
