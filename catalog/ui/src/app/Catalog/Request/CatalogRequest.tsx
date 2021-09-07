@@ -87,7 +87,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 
   // Enable submit if terms of service is agreed, the request id is valid, and no parameter vars are invalid
   const submitRequestEnabled = (
-    termsOfServiceAgreed &&
+    (termsOfServiceAgreed || !catalogItem?.spec?.termsOfService) &&
     requestIdValid != 'error' &&
     Object.values(parameterValidationState).find(v => v === false) !== false
   );
@@ -276,11 +276,13 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
           </FormGroup>
         )
       } ) }
-      <TermsOfService
-        agreed={termsOfServiceAgreed}
-        onChange={onTermsOfServiceChange}
-        text={catalogItem.spec.termsOfService}
-      />
+      { catalogItem?.spec?.termsOfService ? (
+        <TermsOfService
+          agreed={termsOfServiceAgreed}
+          onChange={onTermsOfServiceChange}
+          text={catalogItem.spec.termsOfService}
+        />
+      ) : null }
       <ActionList>
         <ActionListItem>
           <Button
