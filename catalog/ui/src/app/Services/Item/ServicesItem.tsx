@@ -498,7 +498,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                       <DescriptionListGroup>
                         <DescriptionListTerm>User Messages</DescriptionListTerm>
                         <DescriptionListDescription>
-                          <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replace("\n", " +\n")) }}/>
+                          <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replaceAll("\n", " +\n")) }}/>
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     ) : null }
