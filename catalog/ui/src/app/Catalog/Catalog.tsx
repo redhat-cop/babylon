@@ -188,7 +188,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         state: { fromCatalog: true },
       });
     } else {
-      return;
       const resourceClaim = await createServiceRequest({
         catalogItem: selectedCatalogItem,
         catalogNamespace: catalogItemNamespace,
