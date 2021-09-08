@@ -104,8 +104,9 @@ export async function createServiceRequest({
   catalogNamespace,
   parameters,
 }: ServiceRequestParameters): object {
+  const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, "$1");
   const session = await getApiSession();
-  const namespace = session.userNamespace.name;
+  const userNamespace = selectUserNamespace(store.getState());
 
   const requestResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
@@ -115,13 +116,14 @@ export async function createServiceRequest({
         'babylon.gpte.redhat.com/catalogDisplayName': catalogNamespace?.displayName || catalogItem.metadata.namespace,
         'babylon.gpte.redhat.com/catalogItemDisplayName': displayName(catalogItem),
         'babylon.gpte.redhat.com/requester': session.user,
+        'babylon.gpte.redhat.com/url': `${baseUrl}/services/item/${userNamespace.name}/${catalogItem.metadata.name}`,
       },
       labels: {
         'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
         'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
       },
       name: catalogItem.metadata.name,
-      namespace: namespace,
+      namespace: userNamespace.name,
     },
     spec: {
       resources: JSON.parse(JSON.stringify(catalogItem.spec.resources)),
@@ -183,31 +185,17 @@ export async function createServiceRequest({
   let resourceClaim = null;
   while (!resourceClaim) {
     try {
-      resourceClaim = await createResourceClaim(requestResourceClaim, {
-        skipUpdateStore: true,
-      });
+      return await createResourceClaim(requestResourceClaim);
     } catch(error) {
       if (error.status === 409) {
 	n++;
         requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${n}`;
+        requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/url'] = `${baseUrl}/services/item/${userNamespace.name}/${catalogItem.metadata.name}-${n}`;
       } else {
 	throw error;
       }
     }
   }
-
-  const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, "$1");
-  const name = resourceClaim.metadata.name;
-  const shortName = name.substring(catalogItem.metadata.name.length + 1);
-
-  return await patchResourceClaim(namespace, name, {
-    metadata: {
-      annotations: {
-        'babylon.gpte.redhat.com/shortName': shortName,
-        'babylon.gpte.redhat.com/url': `${baseUrl}/services/item/${namespace}/${name}`,
-      }
-    }
-  });
 }
 
 export async function deleteResourceClaim(resourceClaim): void {

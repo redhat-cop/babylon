@@ -179,7 +179,7 @@ async function refreshResourceClaims(triggeredByTimeout): void {
       }
     }
   } else {
-    if (activeNamespace !== userNamespace?.name) {
+    if (activeNamespace && activeNamespace !== userNamespace?.name) {
       await refreshResourceClaimsFromNamespace(triggeredByTimeout, activeNamespace);
     }
     if (userNamespace) {
@@ -227,8 +227,12 @@ function reduce_insertResourceClaim(state, action) {
   const namespace = resourceClaim.metadata.namespace;
   if (state.resourceClaims?.[namespace]) {
     state.resourceClaims[namespace].push(resourceClaim);
-  } else {
+  } else if(state.resourceClaims) {
     state.resourceClaims[namespace] = [resourceClaim];
+  } else {
+    state.resourceClaims = {
+      [namespace]: [resourceClaim],
+    };
   }
 }
 
