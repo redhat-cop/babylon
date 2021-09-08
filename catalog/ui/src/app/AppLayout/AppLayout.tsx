@@ -62,6 +62,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [isNavOpenMobile, setIsNavOpenMobile] = React.useState(false);
   const [users, setUsers] = React.useState([]);
   const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState({});
+  const history = useHistory();
 
   const onNavToggleMobile = () => {
     setIsNavOpenMobile(!isNavOpenMobile);
@@ -121,6 +122,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       matchCount: 0,
       value: "",
     });
+    history.push('/');
   }
 
   function closeUserImpersonationDialog() {
@@ -166,7 +168,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   }, []);
 
   function LogoImg() {
-    const history = useHistory();
     function handleClick() {
       history.push('/');
     }
