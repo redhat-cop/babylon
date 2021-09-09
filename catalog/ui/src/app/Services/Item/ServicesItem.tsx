@@ -60,11 +60,6 @@ import Editor, { DiffEditor, useMonaco, loader } from "@monaco-editor/react";
 const yaml = require('js-yaml');
 
 import {
-  ActionDropdown,
-  ActionDropdownItem,
-} from '@app/components/ActionDropdown';
-
-import {
   LabInterfaceLink
 } from '@app/components/LabInterfaceLink';
 
@@ -84,9 +79,8 @@ import {
   OpenStackConsole
 } from '@app/Services/Item/OpenStackConsole';
 
-import {
-  ServiceStatus
-} from '@app/Services/ServiceStatus';
+import { ServiceActions } from '@app/Services/ServiceActions';
+import { ServiceStatus } from '@app/Services/ServiceStatus';
 
 import {
   ServicesNamespaceSelector,
@@ -271,39 +265,28 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
             { externalPlatformUrl ? (
               <Button component="a" href={externalPlatformUrl} target="_blank" variant="tertiary">{ externalPlatformUrl }</Button>
             ) : (
-              <ActionDropdown
+              <ServiceActions
                 position="right"
-                actionDropdownItems={[
-                  <ActionDropdownItem
-                    key="lifetime"
-                    label="Adjust Lifetime"
-                    onSelect={() => {setScheduleActionKind("retirement"); setOpenModal("scheduleAction")}}
-                    isDisabled={!resourceClaim.status?.lifespan}
-                  />,
-                  <ActionDropdownItem
-                    key="runtime"
-                    label="Adjust Runtime"
-                    onSelect={() => {setScheduleActionKind("stop"); setOpenModal("scheduleAction")}}
-                    isDisabled={!canStop || !resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule}
-                  />,
-                  <ActionDropdownItem
-                    key="delete"
-                    label="Delete"
-                    onSelect={() => setOpenModal("delete")}
-                  />,
-                  <ActionDropdownItem
-                    key="start"
-                    label={hasMultipleResources ? "Start all" : "Start"}
-                    onSelect={() => setOpenModal("start")}
-                    isDisabled={!canStart}
-                  />,
-                  <ActionDropdownItem
-                    key="stop"
-                    label={hasMultipleResources ? "Stop all" : "Stop"}
-                    onSelect={() => setOpenModal("stop")}
-                    isDisabled={!canStop}
-                  />,
-                ]}
+                resourceClaim={resourceClaim}
+                actionHandlers={{
+                  delete: () => {
+                    setOpenModal("delete");
+                  },
+                  lifespan: () => {
+                    setScheduleActionKind("retirement");
+                    setOpenModal("scheduleAction");
+                  },
+                  runtime: () => {
+                    setScheduleActionKind("stop");
+                    setOpenModal("scheduleAction");
+                  },
+                  start: () => {
+                    setOpenModal("start");
+                  },
+                  stop: () => {
+                    setOpenModal("stop");
+                  },
+                }}
               />
             ) }
           </SplitItem>
@@ -389,11 +372,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                           <DescriptionListTerm>Status</DescriptionListTerm>
                           <DescriptionListDescription>
                             <ServiceStatus
-                              currentState={currentState}
-                              desiredState={desiredState}
                               creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                              stopTime={stopTime}
-                              startTime={startTime}
+                              resource={resourceState}
+                              resourceTemplate={resourceSpec.template}
                             />
                           </DescriptionListDescription>
                         </DescriptionListGroup>

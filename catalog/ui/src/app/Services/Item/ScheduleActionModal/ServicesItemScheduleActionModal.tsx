@@ -58,6 +58,9 @@ const ServicesItemScheduleActionModal: React.FunctionComponent<ServicesItemSched
     Date.now()
   );
 
+  // Reset selected time to current when action changes
+  React.useEffect(() => setSelectedTime(current), [action]);
+
   const minimum = new Date(Date.now());
 
   const maximum = new Date(

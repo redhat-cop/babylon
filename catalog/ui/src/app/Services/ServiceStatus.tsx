@@ -16,20 +16,22 @@ import {
 } from '@patternfly/react-icons';
 
 export interface ServiceStatusProps {
-  currentState?: string,
-  desiredState?: string,
-  creationTime?: number,
-  startTime?: number,
-  stopTime?: number,
+  resource?: object;
+  resourceTemplate?: object;
 }
 
 const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
-  currentState,
-  desiredState,
   creationTime,
-  startTime,
-  stopTime,
+  resource,
+  resourceTemplate,
 }) => {
+  const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
+  const desiredState = resourceTemplate?.spec?.vars?.desired_state;
+  const startTimestamp = resourceTemplate?.spec?.vars?.action_schedule?.start || resource?.spec?.vars?.action_schedule?.start;
+  const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
+  const stopTimestamp = resourceTemplate?.spec?.vars?.action_schedule?.stop || resource?.spec?.vars?.action_schedule?.stop;
+  const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
       return (<span className="rhpds-status-unknown"><Spinner isSVG size="md" /> Requested</span>);

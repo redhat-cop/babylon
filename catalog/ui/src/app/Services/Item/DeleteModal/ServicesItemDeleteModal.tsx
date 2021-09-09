@@ -26,12 +26,11 @@ const ServicesItemDeleteModal: React.FunctionComponent<ServicesItemDeleteModalPr
 }) => {
 
   const catalogItemDisplayName = (
+    resourceClaim === 'selected' ? 'selected services' :
     resourceClaim.metadata?.annotations?.["babylon.gpte.redhat.com/catalogItemDisplayName"] ||
     resourceClaim.metadata?.labels?.["babylon.gpte.redhat.com/catalogItemName"] ||
     "Service"
   );
-
-  const hasMultipleResources = (resourceClaim?.spec?.resources || []).length > 1;
 
   return (
     <Modal
