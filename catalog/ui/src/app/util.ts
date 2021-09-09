@@ -25,17 +25,21 @@ export function displayName(item: object): string {
   if (item.kind === 'ResourceClaim') {
     const catalogItemName = item.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'];
     const catalogItemDisplayName = item.metadata.annotations?.['babylon.gpte.redhat.com/catalogItemDisplayName'];
-    if (catalogItemName && catalogItemDisplayName && item.metadata.name.startsWith(catalogItemName)) {
+    if (catalogItemName && catalogItemDisplayName && item.metadata.name === catalogItemName) {
+      return catalogItemDisplayName;
+    } else if (catalogItemName && catalogItemDisplayName && item.metadata.name.startsWith(catalogItemName)) {
       return `${catalogItemDisplayName} - ${item.metadata.name.substring(1 + catalogItemName.length)}`;
     } else {
       return item.metadata.name;
     }
   } else {
     return (
-      item?.metadata?.annotations?.['babylon.gpte.redhat.com/displayName'] ||
-      item?.metadata?.annotations?.['babylon.gpte.redhat.com/display-name'] ||
-      item?.metadata?.annotations?.['openshift.io/display-name'] ||
-      item.metadata.name
+      item.metadata?.annotations?.['babylon.gpte.redhat.com/displayName'] ||
+      item.metadata?.annotations?.['babylon.gpte.redhat.com/display-name'] ||
+      item.metadata?.annotations?.['openshift.io/display-name'] ||
+      item.displayName ||
+      item.metadata.name ||
+      item.name
     );
   }
 }

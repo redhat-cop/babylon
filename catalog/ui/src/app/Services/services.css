@@ -3,6 +3,24 @@
   padding: 0;
 }
 
+.rhpds-services.pf-c-page__main-section .rhpds-services-filter.pf-c-search-input {
+  display: inline-block;
+  float: right;
+  margin-top: 0.9em;
+  margin-right: 1em;
+}
+
+/* Fixes weird bug in display where highlight box shifts */
+.rhpds-services.pf-c-page__main-section .rhpds-services-filter.pf-c-search-input .pf-c-search-input__utilities {
+  display: none
+}
+
+.rhpds-services.pf-c-page__main-section .pf-c-dropdown.rhpds-all-selected-services-actions {
+  float: right;
+  margin-top: 1em;
+  margin-right: 2em;
+}
+
 .rhpds-services.pf-c-page__main-section .pf-c-title {
   background-color: white;
   padding: 10pt 15pt 8pt;
