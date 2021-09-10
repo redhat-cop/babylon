@@ -581,7 +581,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                     </Tabs>
                     <Form>
                     { Object.entries(attributeFilters).sort().map( ([attrKey, attr]) => (
-                      <FormGroup key={attrKey} label={attr.text} fieldId={attrKey}>
+                      <FormGroup key={attrKey} fieldId={attrKey}>
+                        <fieldset>
+                        <legend className="pf-c-form__label"><span className="pf-c-form__label-text">{attr.text}</span></legend>
                       { Object.entries(attr.values).sort().map( ([valueKey, value]) => (
                         <Checkbox id={attrKey + '/' + valueKey} key={attrKey + '/' + valueKey}
                           label={value.text + ' (' + value.count + ')'}
@@ -589,8 +591,16 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                           onChange={onAttributeFilterChange}
                         />
                       ))}
+                      </fieldset>
                       </FormGroup>
                     ))}
+                    <Button
+                      type="submit"
+                      className="visually-hidden"
+                      isDisabled
+                    >
+                      submit
+                    </Button>
                     </Form>
                   </SidebarPanel>
                   <SidebarContent>

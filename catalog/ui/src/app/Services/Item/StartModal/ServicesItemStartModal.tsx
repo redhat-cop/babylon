@@ -26,13 +26,14 @@ const ServicesItemStartModal: React.FunctionComponent<ServicesItemStartModalProp
 }) => {
 
   const catalogItemDisplayName = (
+    resourceClaim === 'selected' ? 'selected services' :
     resourceClaim.metadata?.annotations?.["babylon.gpte.redhat.com/catalogItemDisplayName"] ||
     resourceClaim.metadata?.labels?.["babylon.gpte.redhat.com/catalogItemName"] ||
     "Service"
   );
 
-  const hasMultipleResources = (resourceClaim.spec?.resources || []).length > 1;
-  const defaultRuntime = resourceClaim.status?.resources ? Math.min(
+  const hasMultipleResources = resourceClaim === 'selected' || (resourceClaim.spec?.resources || []).length > 1;
+  const defaultRuntime = (resourceClaim !== 'selected' && resourceClaim.status?.resources) ? Math.min(
     ...resourceClaim.status.resources.map(r => {
       const resourceDefaultRuntime = r?.state?.spec?.vars?.action_schedule?.default_runtime;
       if (resourceDefaultRuntime) {
@@ -59,9 +60,11 @@ const ServicesItemStartModal: React.FunctionComponent<ServicesItemStartModalProp
         >Cancel</Button>
       ]}
     >
-      { hasMultipleResources ? "Services" : "Service" } will stop in <TimeInterval
-        interval={defaultRuntime}
-      />.
+      { defaultRuntime ? (
+        <>
+          { hasMultipleResources ? "Services" : "Service" } will stop in <TimeInterval interval={defaultRuntime} />.
+        </>
+      ) : null }
     </Modal>
   );
 }

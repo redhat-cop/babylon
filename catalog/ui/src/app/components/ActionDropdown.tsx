@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as classNames from 'classnames';
 
 import {
   Dropdown,
@@ -10,10 +11,12 @@ import './action-dropdown.css';
 
 export interface ActionDropdownProps {
   actionDropdownItems: any;
+  className?: string;
   position: string;
 }
 
 export interface ActionDropdownItemProps {
+  className?: string;
   isDisabled?: boolean;
   label: string;
   onSelect: () => void;
@@ -21,15 +24,18 @@ export interface ActionDropdownItemProps {
 
 const ActionDropdown: React.FunctionComponent<ActionDropdownProps> = ({
   actionDropdownItems,
+  className,
+  isDisabled,
   position,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   return (
-    <Dropdown className="rhpds-action-dropdown"
+    <Dropdown
+      className={classNames('rhpds-action-dropdown', className)}
       isOpen={isOpen}
       onSelect={() => setIsOpen(false)}
       position={position}
-      toggle={<DropdownToggle onToggle={() => setIsOpen(v => !v)}>Actions</DropdownToggle>}
+      toggle={<DropdownToggle isDisabled={isDisabled} onToggle={() => setIsOpen(v => !v)}>Actions</DropdownToggle>}
       dropdownItems={actionDropdownItems}
     />
   );
@@ -41,7 +47,7 @@ const ActionDropdownItem: React.FunctionComponent<ActionDropdownItemProps> = ({
   onSelect,
 }) => {
   return (
-    <DropdownItem key={label} 
+    <DropdownItem key={label}
       isDisabled={isDisabled}
       onClick={() => onSelect()}
     >{label}</DropdownItem>
