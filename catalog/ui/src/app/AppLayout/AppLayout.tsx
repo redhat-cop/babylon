@@ -207,6 +207,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         dropdownItems={UserControlDropdownItems}
         toggle={
           <DropdownToggle
+            aria-label="user actions dropdown"
             onToggle={() => setUserControlDropdownOpen(isOpen => !isOpen)}
             toggleIndicator={CaretDownIcon}
           >
