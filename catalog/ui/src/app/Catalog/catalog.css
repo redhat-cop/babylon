@@ -68,6 +68,10 @@
   margin-left: 10px;
 }
 
+.rhpds-catalog-box.pf-c-card .pf-c-sidebar__panel .pf-c-form__group fieldset {
+  border: none;
+}
+
 .rhpds-catalog-box.pf-c-card .pf-c-sidebar__panel .pf-c-form__group-label {
   padding-bottom: 1px;
 }

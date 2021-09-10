@@ -582,6 +582,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                     <Form>
                     { Object.entries(attributeFilters).sort().map( ([attrKey, attr]) => (
                       <FormGroup key={attrKey} label={attr.text} fieldId={attrKey}>
+                        <fieldset>
                       { Object.entries(attr.values).sort().map( ([valueKey, value]) => (
                         <Checkbox id={attrKey + '/' + valueKey} key={attrKey + '/' + valueKey}
                           label={value.text + ' (' + value.count + ')'}
@@ -589,6 +590,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                           onChange={onAttributeFilterChange}
                         />
                       ))}
+                      </fieldset>
                       </FormGroup>
                     ))}
                     </Form>
