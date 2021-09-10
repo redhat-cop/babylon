@@ -131,7 +131,7 @@
 }
 
 .rhpds-catalog-item-subtitle {
-  color: var(--pf-global--palette--black-500);
+  color: var(--pf-global--palette--black-600);
   font-size: 11pt;
   display: -webkit-box;
   -webkit-line-clamp: 1;
