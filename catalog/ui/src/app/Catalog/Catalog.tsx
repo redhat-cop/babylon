@@ -594,6 +594,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                       </fieldset>
                       </FormGroup>
                     ))}
+                    <button type="submit" className="visually-hidden" disabled>submit</button>
                     </Form>
                   </SidebarPanel>
                   <SidebarContent>
