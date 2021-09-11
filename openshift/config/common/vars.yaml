@@ -119,7 +119,7 @@ babylon_resources:
             spec:
               resources:
                 requests:
-                  storage: "{{ babylon_cross_cluster_backup.storage_size | default('10Gi') }}"
+                  storage: "{{ babylon_cross_cluster_backup.storageSize | default('10Gi') }}"
 
   - name: Babylon catalog Helm Template
     when: >-
