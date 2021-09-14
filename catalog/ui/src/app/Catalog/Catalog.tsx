@@ -521,7 +521,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   };
 
   const renderCategoryTab = (category: string) => (
-    <Tab key={category} eventKey={category} title={<TabTitleText>{category.replaceAll('_', ' ')}</TabTitleText>}></Tab>
+    <Tab key={category} eventKey={category} title={<TabTitleText>{category.replaceAll('_', ' ')}</TabTitleText>} aria-controls=""></Tab>
   );
 
   return (
@@ -576,7 +576,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                       activeKey={activeCategory}
                       onSelect={selectActiveCategory}
                       inset={{default: 'insetNone', sm: 'insetNone', md: 'insetNone', lg: 'insetNone', xl: 'insetNone', '2xl': 'insetNone'}}>
-                      <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>}></Tab>
+                      <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
                       { categories.map(cat => renderCategoryTab(cat)) }
                     </Tabs>
                     <Form>
