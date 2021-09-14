@@ -66,19 +66,20 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
         onChange={(event) => onChange(isNaN(event.target.value) ? value : Number(event.target.value))}
         onMinus={() => onChange(value - 1)}
         onPlus={() => onChange(value + 1)}
-        value={value}
+        value={value || 0}
       />
     );
   } else {
     const validationRegExp = parameter.openAPIV3Schema?.pattern ? new RegExp(parameter.openAPIV3Schema.pattern) : null;
-    const validated = validationRegExp ? validationRegExp.test(value) : null;
+    const validationResult = validationRegExp ? validationRegExp.test(value) : null;
+    const validated = validationResult ? 'success' : validationResult === false ? 'error' : 'default';
     return (
       <TextInput type="text"
         key={parameter.name}
         id={parameter.name}
         isDisabled={isDisabled}
-        onChange={(v) => onChange(v, validationRegExp.test(v))}
-        value={value}
+        onChange={(v) => onChange(v, validationRegExp ? validationRegExp.test(v): null)}
+        value={value || ''}
         validated={validated}
       />
     );
