@@ -80,6 +80,10 @@
   text-transform: capitalize;
 }
 
+.rhpds-catalog-box.pf-c-card .pf-c-sidebar__panel .pf-c-form .pf-c-button.pf-m-disabled {
+  color: var(--pf-global--Color--100);
+}
+
 .rhpds-catalog-item-card-header.pf-c-card__header {
   display: flex;
   justify-content: space-between;
