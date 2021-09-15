@@ -98,7 +98,9 @@ def resourceclaim_event(event, logger, **_):
         return
     if not resource_claim['status']['resources']:
         return
-    for resource in resource_claim['status']['resources']:
+
+    for idx, resource in enumerate(resource_claim['status']['resources']):
+        resource_name = resource_claim['spec']['resources'][idx].get('name')
         resource_state = resource.get('state')
         if not resource_state:
             return
@@ -108,13 +110,20 @@ def resourceclaim_event(event, logger, **_):
         spec_vars = resource_state.get('spec', {}).get('vars', {})
         if spec_vars.get('current_state') not in ['started', 'stopped']:
             return
-        provision_data.update(spec_vars.get('provision_data', {}))
+        for k, v in spec_vars.get('provision_data', {}).items():
+            if k != 'users':
+                provision_data[k] = v
+                if resource_name:
+                    provision_data[f"{resource_name}_{k}"] = v
         provision_messages.extend(spec_vars.get('provision_messages', []))
         for user, user_data in provision_data.get('users', {}).items():
-            if user in users:
+            if not user in users:
                 users[user].update(user_data)
             else:
-                users[user] = user_data
+                users[user] = deepcopy(user_data)
+            if resource_name:
+                for k, v in user_data.items():
+                    users[user][f"{resource_name}_{k}"] = v
 
     image_stream = None
     if bookbag_config and bookbag_config.get('imageBuild'):
