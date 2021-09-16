@@ -53,21 +53,27 @@ def resourceclaim_event(event, logger, **_):
     if user_catalog_item \
     and user_catalog_item not in allow_user_catalog_items \
     and '*' not in allow_user_catalog_items:
-        logger.warn(f"{babylon_domain}/userCatalogItem annotation set, but not allowed in this namespace")
+        logger.warn(f"{babylon_domain}/userCatalogItem label set, but not allowed in this namespace")
         user_catalog_item = None
 
     bookbag_annotation = annotations.get(f"{babylon_domain}/bookbag")
 
     # Nothing to do if no configuration for bookbag or user catalog item
     if not bookbag_annotation and not user_catalog_item:
+        logger.info(f"Nothing to do, neither annotation {babylon_domain}/bookbag nor label {babylon_domain}/userCatalogItem is set")
         return
 
     bookbag_config = json.loads(bookbag_annotation) if bookbag_annotation else None
 
     requester = annotations.get(f"{babylon_domain}/requester")
 
-    resource_handle_ref = resource_claim.get('status', {}).get('resourceHandle')
+    resource_claim_status = resource_claim.get('status', {})
+    resource_handle_ref = resource_claim_status.get('resourceHandle')
     if not resource_handle_ref:
+        logger.info(f"Nothing to do, no resourceHandle")
+        return
+    if not resource_claim_status.get('resources'):
+        logger.info(f"Nothing to do, no resources in status")
         return
 
     resource_handle = custom_objects_api.get_namespaced_custom_object(
@@ -94,21 +100,19 @@ def resourceclaim_event(event, logger, **_):
     provision_messages = []
     users = {}
 
-    if not 'status' in resource_claim:
-        return
-    if not resource_claim['status']['resources']:
-        return
-
-    for idx, resource in enumerate(resource_claim['status']['resources']):
+    for idx, resource in enumerate(resource_claim_status['resources']):
         resource_name = resource_claim['spec']['resources'][idx].get('name')
         resource_state = resource.get('state')
         if not resource_state:
+            logger.info(f"Nothing to do, missing resource state")
             return
         if resource_state['apiVersion'] != f"{anarchy_domain}/{anarchy_api_version}" \
         or resource_state['kind'] != 'AnarchySubject':
             continue
         spec_vars = resource_state.get('spec', {}).get('vars', {})
-        if spec_vars.get('current_state') not in ['started', 'stopped']:
+        current_state = spec_vars.get('current_state')
+        if current_state not in ['started', 'stopped']:
+            logger.info(f"Nothing to do, resource current_state is {current_state}")
             return
         for k, v in spec_vars.get('provision_data', {}).items():
             if k != 'users':
@@ -116,8 +120,8 @@ def resourceclaim_event(event, logger, **_):
                 if resource_name:
                     provision_data[f"{resource_name}_{k}"] = v
         provision_messages.extend(spec_vars.get('provision_messages', []))
-        for user, user_data in provision_data.get('users', {}).items():
-            if not user in users:
+        for user, user_data in spec_vars.get('provision_data').get('users', {}).items():
+            if user in users:
                 users[user].update(user_data)
             else:
                 users[user] = deepcopy(user_data)
