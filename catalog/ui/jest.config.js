@@ -2,6 +2,16 @@
 // https://jestjs.io/docs/en/configuration.html
 
 module.exports = {
+  // Global vairable to be used in jest config
+  globals: {
+    'ts-jest': {
+      diagnostics: {
+        warnOnly: true, // TODO: supress all the ts-jest errors and executes the scripts with them errors as warning
+      }
+    }
+  },
+  verbose: true,
+  
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
 

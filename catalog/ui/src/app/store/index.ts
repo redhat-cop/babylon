@@ -318,14 +318,14 @@ function reduce_updateResourceClaim(state, action) {
 
 // Action creators
 export const actionClearImpersonation = createAction("clearImpersonation");
-export const actionSetImpersonation = createAction("setImpersonation");
-export const actionStartSession = createAction("startSession");
-export const actionSetActiveServiceNamespace = createAction("setActiveServiceNamespace");
+export const actionSetImpersonation = createAction<any>("setImpersonation");
+export const actionStartSession = createAction<any>("startSession");
+export const actionSetActiveServiceNamespace = createAction<any>("setActiveServiceNamespace");
 
 // Actions reserved for api usage
-export const apiActionDeleteResourceClaim = createAction("deleteResourceClaim")
-export const apiActionInsertResourceClaim = createAction("insertResourceClaim")
-export const apiActionUpdateResourceClaim = createAction("updateResourceClaim")
+export const apiActionDeleteResourceClaim = createAction<any>("deleteResourceClaim")
+export const apiActionInsertResourceClaim = createAction<any>("insertResourceClaim")
+export const apiActionUpdateResourceClaim = createAction<any>("updateResourceClaim")
 
 // Private actions
 export const __actionSetCatalogItems = createAction("setCatalogItems");

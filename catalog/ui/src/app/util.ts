@@ -1,6 +1,6 @@
 // Use asciidoctor to translate descriptions
-import * as AsciiDoctor from 'asciidoctor';
-const asciidoctor = AsciiDoctor();
+// import * as AsciiDoctor from 'asciidoctor';
+// const asciidoctor = AsciiDoctor();
 
 // Use dompurify to make asciidoctor output safe
 import dompurify from 'dompurify';
@@ -58,21 +58,21 @@ export function recursiveAssign(target: object, source: object): object {
   }
 }
 
-export function renderContent(content: string, options={}): string {
-  const sanitize_opt = {
-    ADD_TAGS: [],
-    ADD_ATTR: [],
-  };
-  if (options.allowIFrame) {
-    sanitize_opt.ADD_TAGS.push('iframe');
-    sanitize_opt.ADD_ATTR.push('allowfullscreen', 'frameborder');
-  }
-  if (options.format === 'html') {
-    return dompurify.sanitize(content, sanitize_opt);
-  } else {
-    return dompurify.sanitize(asciidoctor.convert(content), sanitize_opt);
-  }
-}
+// export function renderContent(content: string, options={}): string {
+//   const sanitize_opt = {
+//     ADD_TAGS: [],
+//     ADD_ATTR: [],
+//   };
+//   if (options.allowIFrame) {
+//     sanitize_opt.ADD_TAGS.push('iframe');
+//     sanitize_opt.ADD_ATTR.push('allowfullscreen', 'frameborder');
+//   }
+//   if (options.format === 'html') {
+//     return dompurify.sanitize(content, sanitize_opt);
+//   } else {
+//     return dompurify.sanitize(asciidoctor.convert(content), sanitize_opt);
+//   }
+// }
 
 export function checkResourceClaimCanStart(resourceClaim) {
   return !!(

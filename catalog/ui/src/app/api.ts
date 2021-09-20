@@ -17,7 +17,7 @@ import {
   recursiveAssign,
 } from '@app/util';
 
-async function apiFetch(path:string, opt?:object): any {
+async function apiFetch(path:string, opt?:object): Promise<any> {
   const session = await getApiSession();
 
   const options = opt ? JSON.parse(JSON.stringify(opt)) : {};
@@ -54,7 +54,7 @@ function refreshApiSession(): void {
   });
 }
 
-export async function getApiSession(): Promise {
+export async function getApiSession(): Promise<any> {
   if (!window.apiSessionPromise) {
     refreshApiSession();
   }
@@ -65,7 +65,7 @@ export async function getApiSession(): Promise {
   return session;
 }
 
-export async function getUserInfo(user): object {
+export async function getUserInfo(user): Promise<any> {
   const session = await getApiSession();
   const resp = await fetch(
     `/auth/users/${user}`,
@@ -78,7 +78,7 @@ export async function getUserInfo(user): object {
   return await resp.json();
 }
 
-export async function createResourceClaim(definition, opt = {}): object {
+export async function createResourceClaim(definition, opt: any = {}): Promise<any> {
   const namespace = definition.metadata.namespace;
   const resourceClaim = await createNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', definition
@@ -362,7 +362,7 @@ export async function listClusterCustomObject(
   version: string,
   plural: string,
   opt: object,
-): object {
+): Promise<any> {
   const session = await getApiSession();
   const query_params = {};
   if (opt?.continue) {
@@ -468,7 +468,7 @@ export async function stopOpenStackServer(resourceClaim, projectId, serverId): a
   return await resp.json();
 }
 
-export async function startOpenStackServerConsoleSession(resourceClaim, projectId, serverId): any {
+export async function startOpenStackServerConsoleSession(resourceClaim, projectId, serverId): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/console`,

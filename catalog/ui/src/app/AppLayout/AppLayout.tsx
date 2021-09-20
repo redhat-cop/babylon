@@ -61,7 +61,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [isMobileView, setIsMobileView] = React.useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = React.useState(false);
   const [users, setUsers] = React.useState([]);
-  const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState({});
+  const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState<any>({});
   const history = useHistory();
 
   const onNavToggleMobile = () => {
@@ -88,6 +88,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   async function waitForSession() {
     const session = await getApiSession();
+    console.log("session >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", session);
     dispatch(
       actionStartSession({
         admin: session.admin || false,
