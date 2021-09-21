@@ -117,6 +117,8 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const selectedCatalogItem = catalogItemName ? (
     catalogItems?.[catalogItemNamespaceName] || []
   ).find(ci => ci.metadata.name == catalogItemName) : null;
+  const selectedCatalogItemProvider = selectedCatalogItem?.metadata?.labels?.['babylon.gpte.redhat.com/provider']
+
 
   function category(catalogItem): string {
     if (catalogItem.metadata.labels) {
@@ -124,16 +126,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     } else {
       return null;
     }
-  }
-
-  function creationTimestamp(catalogItem): string {
-     const ts = catalogItem.status && catalogItem.status.creationTimestamp ? catalogItem.status.creationTimestamp : catalogItem.metadata.creationTimestamp;
-     return (<LocalTimestamp timestamp={ts}/>);
-  }
-
-  function updateTimestamp(catalogItem): string {
-     const ts = catalogItem.status && catalogItem.status.updateTimestamp ? catalogItem.status.updateTimestamp : catalogItem.metadata.creationTimestamp;
-     return (<LocalTimestamp timestamp={ts}/>);
   }
 
   function description(catalogItem, options={}): string {
@@ -150,30 +142,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       return ci.metadata.annotations['babylon.gpte.redhat.com/icon'];
     } else {
       return '';
-    }
-  }
-
-  function provider(catalogItem): string {
-    if (catalogItem.metadata.labels && catalogItem.metadata.labels['babylon.gpte.redhat.com/provider']) {
-      return catalogItem.metadata.labels['babylon.gpte.redhat.com/provider'];
-    } else {
-      return 'GPTE';
-    }
-  }
-
-  function runtime(catalogItem): string {
-    if (catalogItem.spec && catalogItem.spec.runtime) {
-      return catalogItem.spec.runtime;
-    } else {
-      return '8 hours';
-    }
-  }
-
-  function lifetime(catalogItem): string {
-    if (catalogItem.spec && catalogItem.spec.lifetime) {
-      return catalogItem.spec.lifetime;
-    } else {
-      return '3 days';
     }
   }
 
@@ -244,7 +212,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           <CatalogItemIcon icon={icon(selectedCatalogItem)} />
           <div className="rhpds-catalog-item-header-text">
             <div className="rhpds-catalog-item-title">{displayName(selectedCatalogItem)}</div>
-            <div className="rhpds-catalog-item-subtitle">provided by {provider(selectedCatalogItem)}</div>
+            { selectedCatalogItemProvider ? (
+              <div className="rhpds-catalog-item-subtitle">provided by {selectedCatalogItemProvider}</div>
+            ) : null }
           </div>
         </div>
         <DrawerActions>
@@ -292,6 +262,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
               })
               .map(label => {
                 const attr = label.substring(24);
+                if (attr === 'stage') {
+                    return null
+                }
                 const value = selectedCatalogItem.metadata.labels[label];
                 return (
                   <DescriptionListGroup key={attr}>
@@ -301,31 +274,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                 );
               })
             }
-
-            <DescriptionListTerm>Created At</DescriptionListTerm>
-            <DescriptionListDescription>
-              { creationTimestamp(selectedCatalogItem) }
-            </DescriptionListDescription>
-
-            <DescriptionListTerm>Last Updated At</DescriptionListTerm>
-            <DescriptionListDescription>
-              { updateTimestamp(selectedCatalogItem) }
-            </DescriptionListDescription>
-
-            <DescriptionListTerm>Runtime</DescriptionListTerm>
-            <DescriptionListDescription>
-              { runtime(selectedCatalogItem) }
-            </DescriptionListDescription>
-
-            <DescriptionListTerm>Lifetime</DescriptionListTerm>
-            <DescriptionListDescription>
-              { lifetime(selectedCatalogItem) }
-            </DescriptionListDescription>
-
-            <DescriptionListTerm>Support</DescriptionListTerm>
-            <DescriptionListDescription>
-              <a>Get Support <ExternalLinkAltIcon /></a>
-            </DescriptionListDescription>
           </DescriptionList>
         </div>
         <div className="rhpds-catalog-item-details-body-content">
@@ -474,46 +422,51 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const attributeFilters = extractAttributeFilters(availableCatalogItems);
 
   const catalogItemCards = filteredCatalogItems.map(
-    catalogItem => (
-      <Link
-        className="rhpds-catalog-item-card-link"
-        key={catalogItem.metadata.uid}
-        to={{
-          pathname: catalogNamespaceName ? `${catalogPath}/item/${catalogItem.metadata.name}` :  `${catalogPath}/item/${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
-          state: { fromCatalog: true },
-        }}
-      >
-        <CardHeader className="rhpds-catalog-item-card-header">
-          <CatalogItemIcon icon={icon(catalogItem)} />
-          <div>
+    catalogItem => {
+      const provider = catalogItem?.metadata?.labels?.['babylon.gpte.redhat.com/provider']
+      return (
+        <Link
+          className="rhpds-catalog-item-card-link"
+          key={catalogItem.metadata.uid}
+          to={{
+            pathname: catalogNamespaceName ? `${catalogPath}/item/${catalogItem.metadata.name}` :  `${catalogPath}/item/${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
+            state: { fromCatalog: true },
+          }}
+        >
+          <CardHeader className="rhpds-catalog-item-card-header">
+            <CatalogItemIcon icon={icon(catalogItem)} />
             <div>
-              {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/product'] ? (
-                <Badge className="rhpds-product-badge">{catalogItem.metadata.labels['babylon.gpte.redhat.com/product']}</Badge>
-              ) : null }
-              {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'] === 'dev' ? (
-                <Badge className="rhpds-dev-badge">development</Badge>
-              ) : null }
-              {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'] === 'test' ? (
-                <Badge  className="rhpds-test-badge">test</Badge>
-              ) : null }
+              <div>
+                {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/product'] ? (
+                  <Badge className="rhpds-product-badge">{catalogItem.metadata.labels['babylon.gpte.redhat.com/product']}</Badge>
+                ) : null }
+                {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'] === 'dev' ? (
+                  <Badge className="rhpds-dev-badge">development</Badge>
+                ) : null }
+                {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'] === 'test' ? (
+                  <Badge  className="rhpds-test-badge">test</Badge>
+                ) : null }
+              </div>
+              <div>
+            { (catalogItem.status && catalogItem.status.rating) ? (
+              <CatalogItemRating catalogItem={catalogItem} starDimension="14px" />
+            ) : null }
+              </div>
             </div>
-            <div>
-          { (catalogItem.status && catalogItem.status.rating) ? (
-            <CatalogItemRating catalogItem={catalogItem} starDimension="14px" />
-          ) : null }
-            </div>
-          </div>
-        </CardHeader>
-        <CardBody>
-          <div className="rhpds-catalog-item-title">{displayName(catalogItem)}</div>
-          <div className="rhpds-catalog-item-subtitle">provided by {provider(catalogItem)}</div>
-          <div
-            className="rhpds-catalog-item-description"
-            dangerouslySetInnerHTML={{__html: description(catalogItem)}}
-          />
-        </CardBody>
-      </Link>
-    )
+          </CardHeader>
+          <CardBody>
+            <div className="rhpds-catalog-item-title">{displayName(catalogItem)}</div>
+            { provider ? (
+              <div className="rhpds-catalog-item-subtitle">provided by {provider}</div>
+            ) : null }
+            <div
+              className="rhpds-catalog-item-description"
+              dangerouslySetInnerHTML={{__html: description(catalogItem)}}
+            />
+          </CardBody>
+        </Link>
+      );
+    }
   );
 
   const selectActiveCategory = (event, category) => {
