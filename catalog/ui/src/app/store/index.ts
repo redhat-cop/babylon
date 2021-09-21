@@ -137,8 +137,9 @@ async function refreshResourceClaims(triggeredByTimeout): void {
   const namespaces = selectServiceNamespaces(state).map(n => n.name);
   const userNamespace = selectUserNamespace(state);
   const userIsAdmin = selectUserIsAdmin(state);
+  const userRoles = selectUserRoles(state);
   if (activeNamespace === '*') {
-    if (userIsAdmin) {
+    if (userIsAdmin || userRoles.includes('userSupport')) {
       const resourceClaims = {}
       let _continue = null;
       while (true) {
@@ -244,10 +245,11 @@ function reduce_setActiveServiceNamespace(state, action) {
 }
 
 function reduce_setImpersonation(state, action) {
-  const {admin, groups, user, catalogNamespaces, serviceNamespaces, userNamespace} = action.payload;
+  const {admin, groups, roles, user, catalogNamespaces, serviceNamespaces, userNamespace} = action.payload;
   state.impersonate = {
     admin: admin,
     groups: groups,
+    roles: roles,
     user: user,
     catalogNamespaces: catalogNamespaces,
     serviceNamespaces: serviceNamespaces,
@@ -292,6 +294,7 @@ function reduce_startSession(state, action) {
   state.activeServiceNamespace = null;
   state.auth.admin = action.payload.admin;
   state.auth.groups = action.payload.groups;
+  state.auth.roles = action.payload.roles;
   state.auth.user = action.payload.user;
   state.auth.catalogNamespaces = action.payload.catalogNamespaces;
   state.auth.serviceNamespaces = action.payload.serviceNamespaces;
@@ -370,6 +373,11 @@ export const selectUserGroups = createSelector(
 export const selectUserIsAdmin = createSelector(
   selectSelf,
   state => state.impersonate ? state.impersonate.admin : state.auth.admin,
+)
+
+export const selectUserRoles = createSelector(
+  selectSelf,
+  state => state.impersonate ? state.impersonate.roles : state.auth.roles || [],
 )
 
 export const selectImpersonationUser = createSelector(
