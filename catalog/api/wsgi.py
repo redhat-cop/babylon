@@ -108,7 +108,7 @@ def start_user_session(user, groups):
     if check_admin_access(api_client):
         session['admin'] = True
     elif check_user_support_access(api_client):
-        session['roles'].push('userSupport')
+        session['roles'].append('userSupport')
 
     token = random_string(32)
     if redis_connection:
@@ -408,7 +408,7 @@ def get_auth_users_info(user_name):
     roles = []
     if not user_is_admin:
         if check_user_support_access(test_api_client):
-            roles.push('userSupport')
+            roles.append('userSupport')
 
     try:
         user = custom_objects_api.get_cluster_custom_object(
