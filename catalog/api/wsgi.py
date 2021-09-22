@@ -101,11 +101,14 @@ def start_user_session(user, groups):
     session = {
         'user': user['metadata']['name'],
         'groups': groups,
+        'roles': []
     }
 
     api_client = proxy_api_client(session)
     if check_admin_access(api_client):
         session['admin'] = True
+    elif check_user_support_access(api_client):
+        session['roles'].append('userSupport')
 
     token = random_string(32)
     if redis_connection:
@@ -153,6 +156,33 @@ def check_admin_access(api_client):
              "resourceAttributes": {
                "group": "anarchy.gpte.redhat.com",
                "resource": "anarchysubjects",
+               "verb": "patch",
+             }
+           },
+           "status": {
+             "allowed": False
+           }
+        },
+        response_type = 'object',
+    )
+    return data.get('status', {}).get('allowed', False)
+
+def check_user_support_access(api_client):
+    """
+    Check and return true if api_client is configured with babylon admin access.
+    Access is determined by whether the user can directly manage AnarchySubjects.
+    """
+    (data, status, headers) = api_client.call_api(
+        '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
+        'POST',
+        auth_settings = ['BearerToken'],
+        body = {
+           "apiVersion": "authorization.k8s.io/v1",
+           "kind": "SelfSubjectAccessReview",
+           "spec": {
+             "resourceAttributes": {
+               "group": "poolboy.gpte.redhat.com",
+               "resource": "resourceclaims",
                "verb": "patch",
              }
            },
@@ -224,10 +254,10 @@ def get_resource_claim_as_proxy_user(namespace, name):
         else:
             flask.abort(flask.make_response(flask.jsonify({"reason": e.reason}), e.status))
 
-def get_service_namespaces(api_client, user_namespace, user_is_admin):
+def get_service_namespaces(api_client, user_namespace, is_service_admin):
     namespaces = []
 
-    if user_is_admin:
+    if is_service_admin:
         for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid').items:
             name = ns.metadata.name
             requester = ns.metadata.annotations.get('openshift.io/requester')
@@ -338,8 +368,13 @@ def get_auth_session():
     api_client, session, token = start_user_session(user, groups)
     catalog_namespaces = get_catalog_namespaces(api_client)
     user_is_admin = session.get('admin', False)
+    roles = session.get('roles', [])
     user_namespace = get_user_namespace(user)
-    service_namespaces = get_service_namespaces(api_client, user_namespace, user_is_admin)
+    service_namespaces = get_service_namespaces(
+        api_client,
+        user_namespace,
+        user_is_admin or 'userSupport' in roles
+    )
     ret = {
         "admin": user_is_admin,
         "groups": groups,
@@ -370,6 +405,10 @@ def get_auth_users_info(user_name):
     for group in groups:
         test_api_client.default_headers.add('Impersonate-Group', group)
     user_is_admin = check_admin_access(test_api_client)
+    roles = []
+    if not user_is_admin:
+        if check_user_support_access(test_api_client):
+            roles.append('userSupport')
 
     try:
         user = custom_objects_api.get_cluster_custom_object(
@@ -383,11 +422,16 @@ def get_auth_users_info(user_name):
 
     catalog_namespaces = get_catalog_namespaces(test_api_client)
     user_namespace = get_user_namespace(user)
-    service_namespaces = get_service_namespaces(test_api_client, user_namespace, user_is_admin)
+    service_namespaces = get_service_namespaces(
+        test_api_client,
+        user_namespace,
+        user_is_admin or 'userSupport' in roles
+    )
 
     ret = {
         "admin": user_is_admin,
         "groups": groups,
+        "roles": roles,
         "user": user_name,
         "catalogNamespaces": catalog_namespaces,
         "serviceNamespaces": service_namespaces,
