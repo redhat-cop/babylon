@@ -20,7 +20,7 @@ export interface LabInterfaceLinkProps {
   data?: object;
   method: string;
   url: string;
-  variant: string,
+  variant?: string,
 }
 
 function submitFormFromLink(e) {

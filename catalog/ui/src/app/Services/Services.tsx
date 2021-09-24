@@ -45,9 +45,6 @@ import {
   PageSection,
   PageSectionVariants,
   SearchInput,
-  Table,
-  TableHeader,
-  TableBody,
   Title,
 } from '@patternfly/react-core';
 
@@ -111,11 +108,11 @@ const Services: React.FunctionComponent<ServicesProps> = ({
   const history = useHistory();
 
   // Route match when viewing services within a namespace with a specific service selected.
-  const serviceNamespaceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/services/ns/:namespace/item/:name');
+  const serviceNamespaceItemRouteMatch = useRouteMatch<any>('/services/ns/:namespace/item/:name');
   // Route match when viewing services within a namespace.
-  const serviceNamespaceRouteMatch = useRouteMatch<IHostsMatchParams>('/services/ns/:namespace');
+  const serviceNamespaceRouteMatch = useRouteMatch<any>('/services/ns/:namespace');
   // Route match when viewing all services with specific service selected.
-  const serviceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/services/item/:namespace/:name');
+  const serviceItemRouteMatch = useRouteMatch<any>('/services/item/:namespace/:name');
 
   const resourceClaimName = serviceNamespaceItemRouteMatch?.params.name || serviceItemRouteMatch?.params.name;
   const serviceNamespaceName = serviceNamespaceItemRouteMatch?.params.namespace || serviceNamespaceRouteMatch?.params.namespace;
@@ -124,8 +121,8 @@ const Services: React.FunctionComponent<ServicesProps> = ({
   const [serviceNamespaceSelectIsOpen, setServiceNamespaceSelectIsOpen] = React.useState(false);
   const [userNamespace, setUserNamespace] = React.useState(null);
   const [hoverResourceClaimUid, setHoverResourceClaimUid] = React.useState(null);
-  const [openModal, setOpenModal] = React.useState(null);
-  const [selectedResourceClaimUids, setSelectedResourceClaimUids] = React.useState([]);
+  const [openModal, setOpenModal] = React.useState<any>();
+  const [selectedResourceClaimUids, setSelectedResourceClaimUids] = React.useState([] as any);
   const [servicesFilter, setServicesFilter] = React.useState('');
 
   const resourceClaims = useSelector(selectResourceClaims);
@@ -200,14 +197,14 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     });
   }
 
-  function openStartModal(resourceClaim): void {
+  function openStartModal(resourceClaim, modal): void {
     setOpenModal({
       modal: 'start',
       resourceClaim: resourceClaim,
     });
   }
 
-  function openStopModal(resourceClaim): void {
+  function openStopModal(resourceClaim, modal): void {
     setOpenModal({
       modal: 'stop',
       resourceClaim: resourceClaim,
@@ -218,7 +215,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     setOpenModal(null);
   }
 
-  async function handleDelete(): void {
+  async function handleDelete(): Promise<any> {
     if (openModal.resourceClaim === 'selected') {
       for (const resourceClaim of availableResourceClaims) {
         if (selectedResourceClaimUids.includes(resourceClaim.metadata.uid)) {
@@ -231,7 +228,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     closeModal();
   }
 
-  async function handleScheduleAction(time): void {
+  async function handleScheduleAction(time): Promise<any> {
     if (openModal.action === "retirement") {
       await setLifespanEndForResourceClaim(openModal.resourceClaim, time);
     } else if (openModal.action === "stop") {
@@ -240,7 +237,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     closeModal();
   }
 
-  async function handleStart(): void {
+  async function handleStart(): Promise<any> {
     if (openModal.resourceClaim === 'selected') {
       for (const resourceClaim of availableResourceClaims) {
         if (selectedResourceClaimUids.includes(resourceClaim.metadata.uid)) {
@@ -253,7 +250,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     closeModal();
   }
 
-  async function handleStop(): void {
+  async function handleStop(): Promise<any> {
     if (openModal.resourceClaim === 'selected') {
       for (const resourceClaim of availableResourceClaims) {
         if (selectedResourceClaimUids.includes(resourceClaim.metadata.uid)) {
@@ -333,7 +330,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
       />
     ) : null }
     <PageSection
-      variant={availableResourceClaims.length > 0 ? PageSectionVariants.light : null}
+      variant={availableResourceClaims.length > 0 ? PageSectionVariants.light : undefined}
       className="rhpds-services"
     >
       <ServiceActions

@@ -129,16 +129,23 @@ def resourceclaim_event(event, logger, **_):
                 for k, v in user_data.items():
                     users[user][f"{resource_name}_{k}"] = v
 
+    image = None
     image_stream = None
-    if bookbag_config and bookbag_config.get('imageBuild'):
-        image_stream = 'bookbag-{0}'.format(guid)
-        manage_bookbag_image_build(
-            namespace,
-            image_stream,
-            bookbag_config,
-            resource_claim_ref,
-            logger,
-        )
+    if bookbag_config:
+        image = bookbag_config.get('image')
+        if not image:
+            if bookbag_config.get('imageBuild'):
+                image_stream = f"bookbag-{guid}"
+                manage_bookbag_image_build(
+                    namespace,
+                    image_stream,
+                    bookbag_config,
+                    resource_claim_ref,
+                    logger,
+                )
+            else:
+                logger.warning("Invalid bookbag config, no image or imageBuild");
+                bookbag_config = None
 
     resource_claim_patch = {}
 
@@ -154,6 +161,7 @@ def resourceclaim_event(event, logger, **_):
                     bookbag_config,
                     user_data,
                     resource_claim_ref,
+                    image,
                     image_stream,
                     logger,
                 )
@@ -229,10 +237,11 @@ def resourceclaim_event(event, logger, **_):
             provision_data['user_info_messages'] = "\n".join(provision_messages)
         bookbag_hostname = manage_bookbag_deployment(
             namespace,
-            'bookbag-{0}'.format(guid),
+            f"bookbag-{guid}",
             bookbag_config,
             provision_data,
             resource_claim_ref,
+            image,
             image_stream,
             logger,
         )
@@ -421,14 +430,13 @@ def manage_bookbag_image_build(namespace, name, bookbag_config, owner_ref, logge
             }
         )
 
-def manage_bookbag_deployment(namespace, name, bookbag_config, bookbag_vars, owner_ref, image_stream=None, logger=None):
+def manage_bookbag_deployment(namespace, name, bookbag_config, bookbag_vars, owner_ref, image=None, image_stream=None, logger=None):
     """
     Create Deployment, RoleBinding, Route, Service, ServiceAccount for bookbag.
     """
     auth = bookbag_config.get('auth', {})
     auth_user = auth.get('user', '*')
     auth_password = auth.get('password', '')
-    image = bookbag_config.get('image')
 
     service_account = get_service_account(namespace, name)
     if not service_account:
@@ -443,7 +451,6 @@ def manage_bookbag_deployment(namespace, name, bookbag_config, bookbag_vars, own
                 }
             }
         )
-
 
     role_binding = get_role_binding(namespace, name)
     if not role_binding:
@@ -527,9 +534,10 @@ def manage_bookbag_deployment(namespace, name, bookbag_config, bookbag_vars, own
             }
         }
     }
-    # If using image stream then image value is dynamic
-    if not image_stream:
-        deployment_spec['template']['spec']['containers']['image'] = image
+    # If image is set then use provided value.
+    if image:
+        deployment_spec['template']['spec']['containers'][0]['image'] = image
+
     if deployment:
         merged_spec = deepmerge(deepcopy(deployment['spec']), deployment_spec)
         if merged_spec != deployment['spec']:
@@ -554,7 +562,7 @@ def manage_bookbag_deployment(namespace, name, bookbag_config, bookbag_vars, own
             "ownerReferences": [owner_ref],
         }
 
-        if image_stream:
+        if not image:
             # Set image-change trigger on image stream
             deployment_meta['annotations'] = {
                 "image.openshift.io/triggers": json.dumps([{

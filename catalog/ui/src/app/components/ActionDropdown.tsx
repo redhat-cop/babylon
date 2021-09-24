@@ -12,6 +12,7 @@ import './action-dropdown.css';
 export interface ActionDropdownProps {
   actionDropdownItems: any;
   className?: string;
+  isDisabled?: boolean;
   position: string;
 }
 
