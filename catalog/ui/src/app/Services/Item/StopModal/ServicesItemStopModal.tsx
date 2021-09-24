@@ -15,6 +15,7 @@ import './services-item-stop-modal.css';
 export interface ServicesItemStopModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onConfirm: () => void;
   resourceClaim: any;
 }
 

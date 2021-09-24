@@ -13,10 +13,10 @@ import {
 
 export interface DatetimeSelectProps {
   idPrefix: string;
-  current: number;
+  current: Date;
   interval: number;
-  maximum: number;
-  minimum: number;
+  maximum: Date;
+  minimum: Date;
   onSelect: any;
   toggleContent: any;
 }

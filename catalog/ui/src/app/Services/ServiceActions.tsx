@@ -11,15 +11,15 @@ import {
 } from '@app/util';
 
 export interface ServiceActionsProps {
-  actionHandlers: object;
+  actionHandlers: any;
   className?: string;
   isDisabled?: boolean;
-  position?: string;
-  resourceClaim: object;
+  position: string;
+  resourceClaim?: any;
   serviceName?: string;
 }
 
-const ServiceActions: React.FunctionComponent<ServiceActionProps> = ({
+const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
   actionHandlers,
   className,
   isDisabled,
@@ -27,7 +27,7 @@ const ServiceActions: React.FunctionComponent<ServiceActionProps> = ({
   resourceClaim,
   serviceName,
 }) => {
-  const actionDropdownItems = []
+  const actionDropdownItems : any[] = []
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : true;
   const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : true;
 

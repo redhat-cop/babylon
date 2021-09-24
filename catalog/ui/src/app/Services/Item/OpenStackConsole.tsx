@@ -43,10 +43,10 @@ async function fetchOpenStackServers(resourceClaim, setOpenStackServers, setSele
 const OpenStackConsole: React.FunctionComponent<OpenStackConsoleProps> = ({
   resourceClaim,
 }) => {
-  const [openStackServers, setOpenStackServers] = React.useState(null);
-  const [serverConsoleUrl, setServerConsoleUrl] = React.useState(null);
+  const [openStackServers, setOpenStackServers] = React.useState([] as any);
+  const [serverConsoleUrl, setServerConsoleUrl] = React.useState<string | null>(null);
   const [serverSelectIsOpen, setServerSelectIsOpen] = React.useState(false);
-  const [selectedServer, setSelectedServer] = React.useState(null);
+  const [selectedServer, setSelectedServer] = React.useState<string | null>(null);
   const [projectId, serverId] = selectedServer ? selectedServer.split('.') : [null, null];
   const serverState = (
     openStackServers?.subjects || []
@@ -103,7 +103,7 @@ const OpenStackConsole: React.FunctionComponent<OpenStackConsoleProps> = ({
     );
   }
 
-  const serverDropdownItems = []
+  const serverDropdownItems : any[] = []
   for (const subject of (openStackServers?.subjects || [])) {
     for (const server of (subject.openStackServers || [])) {
       serverDropdownItems.push(

@@ -11,7 +11,6 @@ import {
   TimePicker,
 } from '@patternfly/react-core';
 
-import { DateTimePicker } from '@app/components/DateTimePicker.tsx';
 import { DatetimeSelect } from '@app/components/DatetimeSelect';
 import { LocalTimestamp } from '@app/components/LocalTimestamp';
 import { TimeInterval } from '@app/components/TimeInterval';
@@ -22,7 +21,7 @@ export interface ServicesItemScheduleActionModalProps {
   action
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (v:int) => void;
+  onConfirm: (v:Date) => void;
   resourceClaim: any;
 }
 
@@ -33,7 +32,7 @@ const ServicesItemScheduleActionModal: React.FunctionComponent<ServicesItemSched
   onConfirm,
   resourceClaim,
 }) => {
-  const [selectedTime, setSelectedTime] = React.useState();
+  const [selectedTime, setSelectedTime] = React.useState<Date | null>(null);
 
   const catalogItemDisplayName = (
     resourceClaim.metadata?.annotations?.["babylon.gpte.redhat.com/catalogItemDisplayName"] ||

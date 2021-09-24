@@ -3,9 +3,9 @@ import * as React from 'react';
 const parseDuration = require('parse-duration');
 
 export interface TimeIntervalProps {
-  interval: number;
+  interval?: number;
   timeOnly?: boolean;
-  to: string | number;
+  to?: Date;
 }
 
 const TimeInterval: React.FunctionComponent<TimeIntervalProps> = ({
