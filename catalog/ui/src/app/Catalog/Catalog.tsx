@@ -69,6 +69,7 @@ import {
 } from '@app/api';
 
 import {
+  checkAccessControl,
   displayName,
   renderContent,
 } from '@app/util';
@@ -224,7 +225,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
         <Button
           onClick={requestCatalogItem}
-          isDisabled={selectedCatalogItem.spec.allowUserGroups && selectedCatalogItem.spec.allowUserGroups.filter(group => userGroups.includes(group)).length == 0}
+          isDisabled={'allow' !== checkAccessControl(selectedCatalogItem.spec.accessControl, userGroups)}
         >
           Request
         </Button>
@@ -289,6 +290,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   );
 
   const availableCatalogItems = allCatalogItems.filter(ci => {
+    if ('deny' === checkAccessControl(ci.spec.accessControl, userGroups)) {
+      return false;
+    }
     if (activeCategory !== 'all' && activeCategory !== category(ci)) {
       return false;
     }
