@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 
 export interface DynamicFormInputProps {
-  parameter: object;
+  parameter: any;
   value?: any;
   isDisabled?: boolean;
   onChange: any;

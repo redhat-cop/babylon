@@ -8,9 +8,9 @@ import {
 } from '@patternfly/react-table';
 
 export interface SelectableTableProps {
-  columns: array;
+  columns: Array<any>;
   onSelectAll: any;
-  rows: array;
+  rows: Array<any>;
 }
 
 const SelectableTable: React.FunctionComponent<SelectableTableProps> = ({

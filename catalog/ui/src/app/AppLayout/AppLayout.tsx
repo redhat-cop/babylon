@@ -60,8 +60,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = React.useState(false);
   const [isMobileView, setIsMobileView] = React.useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = React.useState(false);
-  const [users, setUsers] = React.useState([]);
-  const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState({});
+  const [users, setUsers] = React.useState([] as any);
+  const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState({} as any);
   const history = useHistory();
 
   const onNavToggleMobile = () => {
@@ -81,8 +81,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const userInterface = useSelector(selectInterface);
   const userNamespace = useSelector(selectUserNamespace);
 
-  async function getUsers() {
-    const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users');
+  async function getUsers() : Promise<any> {
+    const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users', );
     setUsers(resp.items);
   }
 
