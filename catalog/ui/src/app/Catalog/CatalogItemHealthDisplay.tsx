@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 export interface CatalogItemHealthDisplayProps {
-  catalogItem: object;
+  catalogItem: any;
 }
 
 const CatalogItemHealthDisplay: React.FunctionComponent<CatalogItemHealthDisplayProps> = ({

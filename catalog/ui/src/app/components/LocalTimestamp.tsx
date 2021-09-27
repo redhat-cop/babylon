@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 export interface LocalTimestampProps {
-  time?: int;
-  timestamp?: string;
+  time?: number;
+  timestamp?: any;
 }
 
 const LocalTimestamp: React.FunctionComponent<LocalTimestampProps> = ({

@@ -190,7 +190,7 @@ const mockApiSession = {
         }
     ],
     "token": "tCoMA0e8RJf9tScKlqKAZuAhLl720FmL",
-    "user": "prabal.raghav-atlanticbt.com",
+    "user": "test.user-redhat.com",
     "userNamespace": {
         "displayName": "user-prabal-raghav-atlanticbt-com",
         "name": "user-prabal-raghav-atlanticbt-com",

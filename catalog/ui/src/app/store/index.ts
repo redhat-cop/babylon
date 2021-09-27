@@ -13,10 +13,10 @@ import {
   listNamespacedCustomObject,
 } from '@app/api';
 
-let watchCatalogItemsTimeout = null;
-let watchResourceClaimsTimeout = null;
+let watchCatalogItemsTimeout: any= null;
+let watchResourceClaimsTimeout: any = null;
 
-async function refreshCatalogItems(triggeredByTimeout: number): void {
+async function refreshCatalogItems(triggeredByTimeout: number): Promise<void> {
   const state = store.getState();
   const namespaces = selectCatalogNamespaces(state).map(n => n.name);
   const userIsAdmin = selectUserIsAdmin(state);
@@ -58,7 +58,7 @@ async function refreshCatalogItems(triggeredByTimeout: number): void {
   } else {
     for (let n=0; n < namespaces.length; ++n) {
       const namespace = namespaces[n];
-      const catalogItems = [];
+      const catalogItems : any[] = [];
       let _continue = null;
       while (true) {
         const resp = await listNamespacedCustomObject(
@@ -87,7 +87,7 @@ async function refreshCatalogItems(triggeredByTimeout: number): void {
   }
 }
 
-async function watchCatalogItems(): void {
+async function watchCatalogItems(): Promise<void> {
   const triggeredByTimeout = watchCatalogItemsTimeout
   await refreshCatalogItems(triggeredByTimeout);
   if (triggeredByTimeout == watchCatalogItemsTimeout) {
@@ -103,8 +103,8 @@ function startWatchCatalogItems(): void {
   watchCatalogItemsTimeout = setTimeout(watchCatalogItems, 1);
 }
 
-async function refreshResourceClaimsFromNamespace(triggeredByTimeout, namespace): void {
-  const resourceClaims = [];
+async function refreshResourceClaimsFromNamespace(triggeredByTimeout, namespace): Promise<void> {
+  const resourceClaims: any[] = [];
   let _continue = null;
   while (true) {
     const resp = await listNamespacedCustomObject(
@@ -131,7 +131,7 @@ async function refreshResourceClaimsFromNamespace(triggeredByTimeout, namespace)
   );
 }
 
-async function refreshResourceClaims(triggeredByTimeout): void {
+async function refreshResourceClaims(triggeredByTimeout): Promise<void> {
   const state = store.getState();
   const activeNamespace = selectActiveServiceNamespace(state);
   const namespaces = selectServiceNamespaces(state).map(n => n.name);
@@ -189,7 +189,7 @@ async function refreshResourceClaims(triggeredByTimeout): void {
   }
 }
 
-async function watchResourceClaims(): void {
+async function watchResourceClaims(): Promise<void> {
   const triggeredByTimeout = watchResourceClaimsTimeout;
   await refreshResourceClaims(triggeredByTimeout);
   if (triggeredByTimeout == watchResourceClaimsTimeout) {
@@ -338,7 +338,7 @@ export const __actionSetResourceClaimsForNamespace = createAction("setResourceCl
 
 
 // Selectors
-const selectSelf = (state: State) => state
+const selectSelf = (state: any) => state
 
 export const selectActiveServiceNamespace = createSelector(
   selectSelf,

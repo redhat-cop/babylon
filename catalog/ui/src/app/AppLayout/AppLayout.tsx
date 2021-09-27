@@ -81,14 +81,13 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const userInterface = useSelector(selectInterface);
   const userNamespace = useSelector(selectUserNamespace);
 
-  async function getUsers() {
-    const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users');
+  async function getUsers() : Promise<any> {
+    const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users', );
     setUsers(resp.items);
   }
 
   async function waitForSession() {
     const session = await getApiSession();
-    console.log("session >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", session);
     dispatch(
       actionStartSession({
         admin: session.admin || false,

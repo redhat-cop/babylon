@@ -12,7 +12,7 @@ import {
 export interface TermsOfServiceProps {
   agreed: boolean;
   onChange?: any;
-  text?: string;
+  text: string;
 }
 
 const TermsOfService: React.FunctionComponent<TermsOfServiceProps> = ({
