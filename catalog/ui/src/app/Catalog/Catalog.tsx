@@ -563,7 +563,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                       onSelect={selectActiveCategory}
                       inset={{default: 'insetNone', sm: 'insetNone', md: 'insetNone', lg: 'insetNone', xl: 'insetNone', '2xl': 'insetNone'}}>
                       <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
-                      { categories.map(cat => renderCategoryTab(cat)) }
+                      { categories.map(cat => renderCategoryTab(cat as string)) }
                     </Tabs>
                     <Form>
                     { Object.entries(attributeFilters).sort().map( ([attrKey, attr]: [any, any]) => (

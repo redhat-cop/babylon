@@ -48,7 +48,8 @@ const ServicesItemStopModal: React.FunctionComponent<ServicesItemStopModalProps>
           onClick={onClose}
         >Cancel</Button>
       ]}
-    />
+    >
+    </Modal>
   );
 }
 

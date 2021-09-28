@@ -17,6 +17,13 @@ import {
   recursiveAssign,
 } from '@app/util';
 
+declare var window: Window &
+   typeof globalThis & {
+    apiSessionPromise?: any,
+    apiSessionInterval?: any,
+    apiSessionImpersonateUser?: any,
+   }
+
 async function apiFetch(path:string, opt?:object): Promise<any> {
   const session = await getApiSession();
 
