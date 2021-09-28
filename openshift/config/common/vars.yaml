@@ -1,8 +1,8 @@
 # Component Versions
 agnosticv_operator_version: v0.14.4
 babylon_anarchy_version: v0.16.25
-babylon_anarchy_governor_version: v0.9.3
-poolboy_version: v0.10.2
+babylon_anarchy_governor_version: v0.9.4
+poolboy_version: v0.10.4
 replik8s_version: v0.3.5
 user_namespace_operator_version: v0.3.1
 
