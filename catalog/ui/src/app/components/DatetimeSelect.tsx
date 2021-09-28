@@ -32,7 +32,7 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [scrolledIntoView, setScrolledIntoView] = React.useState(false);
-  const currentInterval = interval * Math.round(current / interval);
+  const currentInterval = interval * Math.round(Number(current) / interval);
   const currentItemId = `${idPrefix}${currentInterval}`;
 
   const dropdownItems: any[] = [];
@@ -47,7 +47,7 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
     }
   })
 
-  for (var t=Math.ceil(minimum / interval) * interval; t < maximum; t += interval) {
+  for (var t=Math.ceil(Number(minimum) / interval) * interval; t < Number(maximum); t += interval) {
     const isCurrent = t == currentInterval ? "rhpds-datetime-select-current" : null;
     const date = new Date(t);
     const dropdownItem = (

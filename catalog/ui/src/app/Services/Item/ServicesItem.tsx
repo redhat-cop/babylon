@@ -379,7 +379,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                           </DescriptionListDescription>
                         </DescriptionListGroup>
                         { externalPlatformUrl ? null :
-                          (startDate && startDate > Date.now()) ? (
+                          (startDate && Number(startDate) > Date.now()) ? (
                           <DescriptionListGroup>
                             <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
                             <DescriptionListDescription>
@@ -387,7 +387,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                               <TimeInterval to={startTimestamp}/>)
                             </DescriptionListDescription>
                           </DescriptionListGroup>
-                        ) : (stopDate && stopDate > Date.now()) ? (
+                        ) : (stopDate && Number(stopDate) > Date.now()) ? (
                           <DescriptionListGroup>
                             <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
                             <DescriptionListDescription>

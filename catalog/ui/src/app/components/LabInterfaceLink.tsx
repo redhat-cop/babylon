@@ -10,6 +10,7 @@ import {
 
 import {
   Button,
+  ButtonVariant
 } from '@patternfly/react-core';
 
 import {
@@ -20,7 +21,7 @@ export interface LabInterfaceLinkProps {
   data?: object;
   method: string;
   url: string;
-  variant?: string,
+  variant?: ButtonVariant | 'primary' |'secondary';
 }
 
 function submitFormFromLink(e) {

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import classNames from 'classnames';
 import './app-layout.css';
 import {
   useDispatch,
@@ -81,8 +82,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const userInterface = useSelector(selectInterface);
   const userNamespace = useSelector(selectUserNamespace);
 
-  async function getUsers() : Promise<any> {
-    const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users', );
+  async function getUsers({session}) : Promise<any> {
+    const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users', '' );
     setUsers(resp.items);
   }
 
@@ -201,7 +202,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const HeaderTools = (
     <PageHeaderTools>
       <Dropdown
-        className={impersonateUser ? ['rhpds-user-controls', 'rhpds-warning'] : ['rhpds-user-controls']}
+        className={classNames(impersonateUser ? ['rhpds-user-controls', 'rhpds-warning'] : ['rhpds-user-controls'])}
         position={DropdownPosition.right}
         isOpen={isUserControlDropdownOpen}
         dropdownItems={UserControlDropdownItems}
