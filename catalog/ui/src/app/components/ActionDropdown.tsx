@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import {
   Dropdown,
   DropdownItem,
+  DropdownPosition,
   DropdownToggle,
 } from '@patternfly/react-core';
 
@@ -13,7 +14,7 @@ export interface ActionDropdownProps {
   actionDropdownItems: any;
   className?: string;
   isDisabled?: boolean;
-  position: string;
+  position?: DropdownPosition | 'right' | 'left';
 }
 
 export interface ActionDropdownItemProps {

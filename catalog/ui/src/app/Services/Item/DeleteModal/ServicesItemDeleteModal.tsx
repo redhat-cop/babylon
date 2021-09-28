@@ -48,7 +48,8 @@ const ServicesItemDeleteModal: React.FunctionComponent<ServicesItemDeleteModalPr
           onClick={onClose}
         >Cancel</Button>
       ]}
-    />
+    >
+    </Modal>
   );
 }
 

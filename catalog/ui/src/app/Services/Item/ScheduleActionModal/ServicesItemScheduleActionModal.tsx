@@ -32,7 +32,7 @@ const ServicesItemScheduleActionModal: React.FunctionComponent<ServicesItemSched
   onConfirm,
   resourceClaim,
 }) => {
-  const [selectedTime, setSelectedTime] = React.useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = React.useState<any | null>(null);
 
   const catalogItemDisplayName = (
     resourceClaim.metadata?.annotations?.["babylon.gpte.redhat.com/catalogItemDisplayName"] ||
@@ -115,7 +115,7 @@ const ServicesItemScheduleActionModal: React.FunctionComponent<ServicesItemSched
       ]}
     >
       <Form isHorizontal>
-        <FormGroup label={`${action} time`}>
+        <FormGroup fieldId="" label={`${action} time`}>
           <DatetimeSelect
             idPrefix={`${resourceClaim.metadata.namespace}:${resourceClaim.metadata.name}:lifespan:`}
             onSelect={time => setSelectedTime(time)}

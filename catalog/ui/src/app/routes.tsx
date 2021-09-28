@@ -114,9 +114,9 @@ const PageNotFound = ({ title }: { title: string }) => {
   return <Route component={NotFound} />;
 };
 
-const flattenedRoutes: IAppRoute[] = routes.reduce(
+const flattenedRoutes: AppRouteConfig[] = routes.reduce(
   (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
-  [] as IAppRoute[]
+  [] as AppRouteConfig[]
 );
 
 const AppRoutes = (): React.ReactElement => {
@@ -135,7 +135,7 @@ const AppRoutes = (): React.ReactElement => {
   return (
     <LastLocationProvider>
       <Switch>
-        {flattenedRoutes.map(({ path, exact, component, title, isAsync }, idx) => {
+        {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx: React.Key) => {
           const pageTitle = (
             userInterface === 'summit' ? title.replace('Babylon', 'Red Hat Summit') :
             userInterface === 'rhpds' ? title.replace('Babylon', 'RHPDS') : title

@@ -1,6 +1,10 @@
 import * as React from 'react';
 
 import {
+  DropdownPosition,
+} from '@patternfly/react-core';
+
+import {
   ActionDropdown,
   ActionDropdownItem,
 } from '@app/components/ActionDropdown';
@@ -14,7 +18,7 @@ export interface ServiceActionsProps {
   actionHandlers: any;
   className?: string;
   isDisabled?: boolean;
-  position: string;
+  position?: DropdownPosition | 'right' | 'left';
   resourceClaim?: any;
   serviceName?: string;
 }

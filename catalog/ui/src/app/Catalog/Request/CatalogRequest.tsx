@@ -155,12 +155,10 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   const catalogRequestForm = (catalogItem && parameterState) ? (
     <Form className="rhpds-catalog-request-form">
       { (formGroups).map(formGroup => {
-        {console.log("validated", formGroup);}
         const invalidParameter = formGroup.parameters.find(parameter => (parameterValidationState[parameter.name] === false));
         const validated = invalidParameter ? false : (
           formGroup.parameters.find(parameter => (parameterValidationState[parameter.name] === true))
         ) ? true : null;
-        console.log("validated", validated);
         return (
           <FormGroup
             key={formGroup.key}
