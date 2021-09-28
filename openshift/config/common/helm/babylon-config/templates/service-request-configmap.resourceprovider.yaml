@@ -1,0 +1,52 @@
+apiVersion: poolboy.gpte.redhat.com/v1
+kind: ResourceProvider
+metadata:
+  name: babylon-service-request-configmap
+  namespace: poolboy
+spec:
+  override:
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: service-request-{{ "{{ resource_handle.metadata.name[5:] }}" }}
+      namespace: "{{ "{{ resource_claim.metadata.namespace }}" }}"
+    labels:
+      babylon.gpte.redhat.com/serviceRequest: ''
+  resourceRequiresClaim: true
+  template:
+    enable: true
+  updateFilters: []
+  validation:
+    openAPIV3Schema:
+      type: object
+      additionalProperties: false
+      required:
+      - metadata
+      properties:
+        metadata:
+          type: object
+          additionalProperties: false
+          required:
+          - labels
+          properties:
+            labels:
+              type: object
+              additionalProperties: false
+              required:
+              - babylon.gpte.redhat.com/catalogItem
+              properties:
+                babylon.gpte.redhat.com/catalogItem:
+                  type: string
+        data:
+          type: object
+          additionalProperties: false
+          properties:
+            catalogItemName:
+              description: "CatalogItem name"
+              type: string
+            catalogItemNamespace:
+              description: "CatalogItem namespace"
+              type: string
+            parameters:
+              description: "JSON representation of parameter values."
+              type: string
