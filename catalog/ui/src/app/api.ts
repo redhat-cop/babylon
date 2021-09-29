@@ -17,7 +17,14 @@ import {
   recursiveAssign,
 } from '@app/util';
 
-async function apiFetch(path:string, opt?:object): any {
+declare var window: Window &
+   typeof globalThis & {
+    apiSessionPromise?: any,
+    apiSessionInterval?: any,
+    apiSessionImpersonateUser?: any,
+   }
+
+async function apiFetch(path:string, opt?:object): Promise<any> {
   const session = await getApiSession();
 
   const options = opt ? JSON.parse(JSON.stringify(opt)) : {};
@@ -54,7 +61,7 @@ function refreshApiSession(): void {
   });
 }
 
-export async function getApiSession(): Promise {
+export async function getApiSession(): Promise<any> {
   if (!window.apiSessionPromise) {
     refreshApiSession();
   }
@@ -65,7 +72,7 @@ export async function getApiSession(): Promise {
   return session;
 }
 
-export async function getUserInfo(user): object {
+export async function getUserInfo(user): Promise<any> {
   const session = await getApiSession();
   const resp = await fetch(
     `/auth/users/${user}`,
@@ -78,7 +85,7 @@ export async function getUserInfo(user): object {
   return await resp.json();
 }
 
-export async function createResourceClaim(definition, opt = {}): object {
+export async function createResourceClaim(definition, opt: any = {}): Promise<any> {
   const namespace = definition.metadata.namespace;
   const resourceClaim = await createNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', definition
@@ -94,16 +101,16 @@ export async function createResourceClaim(definition, opt = {}): object {
 }
 
 export interface ServiceRequestParameters {
-  catalogItem: object;
-  catalogNamespace: object;
-  parameters?: Array<object>;
+  catalogItem: any;
+  catalogNamespace: any;
+  parameters?: Array<any>;
 }
 
 export async function createServiceRequest({
   catalogItem,
   catalogNamespace,
   parameters,
-}: ServiceRequestParameters): object {
+}: ServiceRequestParameters): Promise<any> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, "$1");
   const session = await getApiSession();
   const userNamespace = selectUserNamespace(store.getState());
@@ -198,7 +205,7 @@ export async function createServiceRequest({
   }
 }
 
-export async function deleteResourceClaim(resourceClaim): void {
+export async function deleteResourceClaim(resourceClaim): Promise<void> {
   await deleteNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1',
     resourceClaim.metadata.namespace,
@@ -215,8 +222,8 @@ export async function patchResourceClaim(
   namespace: string,
   name: string,
   patch: object,
-  opt= {},
-): object {
+  opt: any= {},
+): Promise<object> {
   const resourceClaim = await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', name, patch
   );
@@ -323,7 +330,7 @@ export async function stopAllResourcesInResourceClaim(resourceClaim) {
   }));
 }
 
-export async function createNamespacedCustomObject(group, version, namespace, plural, obj): any {
+export async function createNamespacedCustomObject(group, version, namespace, plural, obj): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
@@ -338,7 +345,7 @@ export async function createNamespacedCustomObject(group, version, namespace, pl
   return await resp.json();
 }
 
-export async function deleteNamespacedCustomObject(group, version, namespace, plural, name): any {
+export async function deleteNamespacedCustomObject(group, version, namespace, plural, name): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
@@ -349,7 +356,7 @@ export async function deleteNamespacedCustomObject(group, version, namespace, pl
   return await resp.json();
 }
 
-export async function getNamespacedCustomObject(group, version, namespace, plural, name): any {
+export async function getNamespacedCustomObject(group, version, namespace, plural, name): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
@@ -361,8 +368,8 @@ export async function listClusterCustomObject(
   group: string,
   version: string,
   plural: string,
-  opt: object,
-): object {
+  opt: any,
+): Promise<any> {
   const session = await getApiSession();
   const query_params = {};
   if (opt?.continue) {
@@ -383,8 +390,8 @@ export async function listNamespacedCustomObject(
   version: string,
   namespace: string,
   plural: string,
-  opt: object,
-): object {
+  opt: any,
+): Promise<any> {
   const session = await getApiSession();
   const query_params = {};
   if (opt?.continue) {
@@ -400,7 +407,7 @@ export async function listNamespacedCustomObject(
   return await resp.json();
 }
 
-export async function patchNamespacedCustomObject(group, version, namespace, plural, name, patch, patchType='merge'): any {
+export async function patchNamespacedCustomObject(group, version, namespace, plural, name, patch, patchType='merge'): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
@@ -415,7 +422,7 @@ export async function patchNamespacedCustomObject(group, version, namespace, plu
   return await resp.json();
 }
 
-export async function getOpenStackServersForResourceClaim(resourceClaim): any {
+export async function getOpenStackServersForResourceClaim(resourceClaim): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/servers`,
@@ -423,7 +430,7 @@ export async function getOpenStackServersForResourceClaim(resourceClaim): any {
   return await resp.json();
 }
 
-export async function rebootOpenStackServer(resourceClaim, projectId, serverId): any {
+export async function rebootOpenStackServer(resourceClaim, projectId, serverId): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/reboot`,
@@ -438,7 +445,7 @@ export async function rebootOpenStackServer(resourceClaim, projectId, serverId):
   return await resp.json();
 }
 
-export async function startOpenStackServer(resourceClaim, projectId, serverId): any {
+export async function startOpenStackServer(resourceClaim, projectId, serverId): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/start`,
@@ -453,7 +460,7 @@ export async function startOpenStackServer(resourceClaim, projectId, serverId): 
   return await resp.json();
 }
 
-export async function stopOpenStackServer(resourceClaim, projectId, serverId): any {
+export async function stopOpenStackServer(resourceClaim, projectId, serverId): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/stop`,
@@ -468,7 +475,7 @@ export async function stopOpenStackServer(resourceClaim, projectId, serverId): a
   return await resp.json();
 }
 
-export async function startOpenStackServerConsoleSession(resourceClaim, projectId, serverId): any {
+export async function startOpenStackServerConsoleSession(resourceClaim, projectId, serverId): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/console`,
