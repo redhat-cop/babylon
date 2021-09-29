@@ -193,7 +193,7 @@ export async function createServiceRequest({
   while (!resourceClaim) {
     try {
       return await createResourceClaim(requestResourceClaim);
-    } catch(error) {
+    } catch(error: any) {
       if (error.status === 409) {
 	n++;
         requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${n}`;
