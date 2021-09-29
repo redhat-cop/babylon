@@ -13,7 +13,6 @@ dompurify.addHook('afterSanitizeAttributes', function(node) {
 });
 
 export function checkAccessControl(accessConfig: object, userGroups: array): boolean {
-  console.log(accessConfig, userGroups);
   if (!accessConfig) {
     return 'allow';
   }

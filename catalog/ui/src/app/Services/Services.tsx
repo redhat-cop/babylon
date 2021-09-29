@@ -143,6 +143,9 @@ const Services: React.FunctionComponent<ServicesProps> = ({
     // Hide anything with an external platform url
     if (externalPlatformUrl) { return false; }
 
+    // Hide service request configmaps
+    if (resourceClaim.spec.resources[0]?.provider?.name === 'babylon-service-request-configmap') { return false; }
+
     // Apply services filter
     if (servicesFilter) {
       for (const word of servicesFilter.split(/\s+/).map(w => w.toLowerCase())) {
