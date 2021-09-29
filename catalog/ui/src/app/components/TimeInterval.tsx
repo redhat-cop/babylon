@@ -14,7 +14,7 @@ const TimeInterval: React.FunctionComponent<TimeIntervalProps> = ({
   to,
 }) => {
   const seconds = (
-    to ? ("string" === typeof to ? Date.parse(to) : to) - Date.now() / 1000 :
+    to ? (("string" === typeof to ? Date.parse(to) : to) - Date.now()) / 1000 :
     typeof(interval) === 'number' ? interval :
     parseDuration(interval) / 1000
   );
