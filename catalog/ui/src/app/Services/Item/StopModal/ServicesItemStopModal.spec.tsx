@@ -4,9 +4,9 @@ import "@testing-library/jest-dom";
 import React from "react";
 import { render, waitFor, queryByAttribute, fireEvent, screen, cleanup } from "@testing-library/react";
 import { Provider } from 'react-redux';
-// import user from "@testing-library/user-event";
+import user from "@testing-library/user-event"
 
-import {ServicesItemDeleteModal} from "./ServicesItemDeleteModal"
+import {ServicesItemStopModal} from "./ServicesItemStopModal"
 import { BrowserRouter as Router } from 'react-router-dom';
 // import { getApiSession, listClusterCustomObject } from "@app/api";
 import { store } from '@app/store';
@@ -15,15 +15,15 @@ const getById = queryByAttribute.bind(null, 'id');
 
 // test.afterEach(cleanup)
 
-describe("ServicesItemDeleteModal", () => {
-    test("When ServicesItemDeleteModal layout renders, should display 'Confirm' option", async () => {
+describe("ServicesItemStopModal", () => {
+    test("When ServicesItemStopModal layout renders, should display 'Confirm' option", async () => {
         const closeModal = jest.fn();
-        const handleDelete = jest.fn();
+        const handleStop = jest.fn();
         const { getByText, debug } = 
-        render(<ServicesItemDeleteModal key="delete"
-        isOpen={"delete"}
+        render(<ServicesItemStopModal key="stop"
+        isOpen={true}
         onClose={closeModal}
-        onConfirm={handleDelete}
+        onConfirm={handleStop}
         resourceClaim= {"ServiceCatalogName"}/>
       );
 
@@ -31,14 +31,14 @@ describe("ServicesItemDeleteModal", () => {
       await waitFor(() => expect(testVar).toBeInTheDocument());
     });
 
-    test("When ServicesItemDeleteModal layout renders, should display 'Cancle' option", async () => {
+    test("When ServicesItemStopModal layout renders, should display 'Cancle' option", async () => {
         const closeModal = jest.fn();
-        const handleDelete = jest.fn();
+        const handleStop = jest.fn();
         const { getByText, debug } = 
-        render(<ServicesItemDeleteModal key="delete"
-        isOpen={"delete"}
+        render(<ServicesItemStopModal key="stop"
+        isOpen={true}
         onClose={closeModal}
-        onConfirm={handleDelete}
+        onConfirm={handleStop}
         resourceClaim= {"ServiceCatalogName"}/>
       );
 
@@ -46,49 +46,51 @@ describe("ServicesItemDeleteModal", () => {
       await waitFor(() => expect(testVar).toBeInTheDocument());
     });
 
-    test("When ServicesItemDeleteModal layout renders, should display 'Delete ServiceName?' option", async () => {
+    test("When ServicesItemStopModal layout renders, should display 'stop Service?' option", async () => {
         const closeModal = jest.fn();
-        const handleDelete = jest.fn();
+        const handleStop = jest.fn();
         const catalogItemDisplayName = "Service";
         const { getByText, debug } = 
-        render(<ServicesItemDeleteModal key="delete"
-        isOpen={"delete"}
+        render(<ServicesItemStopModal key="stop"
+        isOpen={true}
         onClose={closeModal}
-        onConfirm={handleDelete}
+        onConfirm={handleStop}
         resourceClaim= {"ServiceCatalogName"}/>
       );
 
-      const testVar = getByText(`Delete ${catalogItemDisplayName}?`);
+      const testVar = getByText(`Stop ${catalogItemDisplayName}?`);
       await waitFor(() => expect(testVar).toBeInTheDocument());
+      console.log(debug);
     });
 
-    test("When ServicesItemDeleteModal layout renders, should Confirm button click once", async () => {
+    test("When ServicesItemStopModal layout renders, should Confirm button click once", async () => {
         const closeModal = jest.fn();
-        const handleDelete = jest.fn();
+        const handleStop = jest.fn();
 
-        const { getByText, debug } = render(<ServicesItemDeleteModal key="delete"
-        isOpen={"delete"}
+        const { getByText, debug } = render(<ServicesItemStopModal key="stop"
+        isOpen={true}
         onClose={closeModal}
-        onConfirm={handleDelete}
+        onConfirm={handleStop}
         resourceClaim={"ServiceCatalogName"}/>
       );
       const button = screen.getByText("Confirm");
       fireEvent.click(button);
-        await waitFor(() => expect(handleDelete).toBeCalledTimes(1));
+        await waitFor(() => expect(handleStop).toBeCalledTimes(1));
     });
 
-    test("When ServicesItemDeleteModal layout renders, should Cancle button click once", async () => {
+    test("When ServicesItemStopModal layout renders, should Cancle button click once", async () => {
         const closeModal = jest.fn();
-        const handleDelete = jest.fn();
+        const handleStop = jest.fn();
 
-        const { getByText, debug } = render(<ServicesItemDeleteModal key="delete"
-        isOpen={"delete"}
+        const { getByText, debug } = render(<ServicesItemStopModal key="stop"
+        isOpen={true}
         onClose={closeModal}
-        onConfirm={handleDelete}
+        onConfirm={handleStop}
         resourceClaim={"ServiceCatalogName"}/>
       );
       const button = screen.getByText("Cancel");
       fireEvent.click(button);
         await waitFor(() => expect(closeModal).toBeCalledTimes(1));
     });
+
 })

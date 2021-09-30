@@ -21,7 +21,7 @@ describe("ServicesItemStartModal", () => {
         const handleStart = jest.fn();
         const { getByText, debug } = 
         render(<ServicesItemStartModal key="start"
-        isOpen={"true"}
+        isOpen={true}
         onClose={closeModal}
         onConfirm={handleStart}
         resourceClaim= {"ServiceCatalogName"}/>
@@ -36,7 +36,7 @@ describe("ServicesItemStartModal", () => {
         const handleStart = jest.fn();
         const { getByText, debug } = 
         render(<ServicesItemStartModal key="start"
-        isOpen={"true"}
+        isOpen={true}
         onClose={closeModal}
         onConfirm={handleStart}
         resourceClaim= {"ServiceCatalogName"}/>
@@ -52,7 +52,7 @@ describe("ServicesItemStartModal", () => {
         const catalogItemDisplayName = "Service";
         const { getByText, debug } = 
         render(<ServicesItemStartModal key="start"
-        isOpen={"true"}
+        isOpen={true}
         onClose={closeModal}
         onConfirm={handleStart}
         resourceClaim= {"ServiceCatalogName"}/>
@@ -60,7 +60,6 @@ describe("ServicesItemStartModal", () => {
 
       const testVar = getByText(`Start ${catalogItemDisplayName}?`);
       await waitFor(() => expect(testVar).toBeInTheDocument());
-      console.log(debug);
     });
 
     test("When ServicesItemStartModal layout renders, should Confirm button click once", async () => {
@@ -68,7 +67,7 @@ describe("ServicesItemStartModal", () => {
         const handleStart = jest.fn();
 
         const { getByText, debug } = render(<ServicesItemStartModal key="start"
-        isOpen={"true"}
+        isOpen={true}
         onClose={closeModal}
         onConfirm={handleStart}
         resourceClaim={"ServiceCatalogName"}/>
@@ -83,7 +82,7 @@ describe("ServicesItemStartModal", () => {
         const handleStart = jest.fn();
 
         const { getByText, debug } = render(<ServicesItemStartModal key="start"
-        isOpen={"true"}
+        isOpen={true}
         onClose={closeModal}
         onConfirm={handleStart}
         resourceClaim={"ServiceCatalogName"}/>

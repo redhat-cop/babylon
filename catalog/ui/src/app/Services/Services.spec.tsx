@@ -6,7 +6,7 @@ import { render, waitFor, queryByAttribute, fireEvent, screen, cleanup } from "@
 import { Provider } from 'react-redux';
 import user from "@testing-library/user-event"
 
-import {ServiceStatus} from "./ServiceStatus"
+import {Services} from "./Services"
 import { BrowserRouter as Router } from 'react-router-dom';
 // import { getApiSession, listClusterCustomObject } from "@app/api";
 import { store } from '@app/store';
@@ -15,18 +15,13 @@ const getById = queryByAttribute.bind(null, 'id');
 
 // test.afterEach(cleanup)
 
-describe("ServiceStatus", () => {
-    test("When ServiceStatus layout renders, should display ServiceStatus", async () => {
+describe("ServiceServicessItem", () => {
+    test("When Services layout renders, should display Services", async () => {
 
-        const { getByText, debug } = 
-        render(<ServiceStatus
-            creationTime={"01/10/2021, 18:29:08 (2 days from now)"}
-            resource={"Ansible Automation Controller Advanced"}
-            resourceTemplate={"specResources[0].template"}
-          />
-      );
+        const { getByText, debug } = render(<Services location={"any/a"}/>);
       console.log(debug);
       const testVar = getByText("Available");
       await waitFor(() => expect(testVar).toBeInTheDocument());
-    });
+})
+
 })
