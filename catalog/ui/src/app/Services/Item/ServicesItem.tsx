@@ -547,4 +547,4 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   }
 }
 
-export { ServicesItem };
+export default ServicesItem;

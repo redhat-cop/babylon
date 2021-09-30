@@ -487,4 +487,4 @@ const Services: React.FunctionComponent<ServicesProps> = ({
   </>);
 }
 
-export { Services };
+export default Services;
