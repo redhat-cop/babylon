@@ -9,28 +9,36 @@ import {
 } from 'reselect'
 
 import {
+  IListCustomerCustomObjectResp,
+  IItems,
+  IActionSetImpersonation,
+  IActionStartSession,
+} from "./entities";
+
+import {
   listClusterCustomObject,
   listNamespacedCustomObject,
 } from '@app/api';
 
-let watchCatalogItemsTimeout: any= null;
-let watchResourceClaimsTimeout: any = null;
+let watchCatalogItemsTimeout: null | ReturnType<typeof setTimeout> = null;
+let watchResourceClaimsTimeout: null | ReturnType<typeof setTimeout> = null;
 
-async function refreshCatalogItems(triggeredByTimeout: number): Promise<void> {
+async function refreshCatalogItems(triggeredByTimeout: null | ReturnType<typeof setTimeout>): Promise<void> {
   const state = store.getState();
   const namespaces = selectCatalogNamespaces(state).map(n => n.name);
   const userIsAdmin = selectUserIsAdmin(state);
   if (userIsAdmin) {
     const catalogItems = {};
-    let _continue = null;
+    let _continue: string = "";
     while (true) {
-      const resp = await listClusterCustomObject(
+      const resp: IListCustomerCustomObjectResp = await listClusterCustomObject(
         'babylon.gpte.redhat.com', 'v1', 'catalogitems',
         {
           continue: _continue,
           limit: 100,
         }
       );
+      console.log("resp", resp);
       if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
       if (!resp.items) { break }
       for (let i=0; i < resp.items.length; ++i) {
@@ -68,6 +76,7 @@ async function refreshCatalogItems(triggeredByTimeout: number): Promise<void> {
             limit: 100,
           }
         );
+        console.log("resp", resp);
         if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
         if (!resp.items) { break }
         catalogItems.push(...resp.items);
@@ -105,7 +114,7 @@ function startWatchCatalogItems(): void {
 
 async function refreshResourceClaimsFromNamespace(triggeredByTimeout, namespace): Promise<void> {
   const resourceClaims: any[] = [];
-  let _continue = null;
+  let _continue: string = "";
   while (true) {
     const resp = await listNamespacedCustomObject(
       'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims',
@@ -321,8 +330,8 @@ function reduce_updateResourceClaim(state, action) {
 
 // Action creators
 export const actionClearImpersonation = createAction("clearImpersonation");
-export const actionSetImpersonation = createAction<any>("setImpersonation");
-export const actionStartSession = createAction<any>("startSession");
+export const actionSetImpersonation = createAction<IActionSetImpersonation>("setImpersonation");
+export const actionStartSession = createAction<IActionStartSession>("startSession");
 export const actionSetActiveServiceNamespace = createAction<any>("setActiveServiceNamespace");
 
 // Actions reserved for api usage
