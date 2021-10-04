@@ -16,7 +16,7 @@ const getById = queryByAttribute.bind(null, 'id');
 // test.afterEach(cleanup)
 
 describe("ServicesItemScheduleActionModal", () => {
-    test.only("When ServicesItemScheduleActionModal layout renders, should display 'Confirm' option", async () => {
+    test("When ServicesItemScheduleActionModal layout renders, should display 'Confirm' option", async () => {
         const closeModal = jest.fn();
         const handleScheduleAction = jest.fn();
         const { getByText, debug } =
