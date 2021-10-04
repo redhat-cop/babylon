@@ -13,6 +13,7 @@ import {
   IItems,
   IActionSetImpersonation,
   IActionStartSession,
+  I__actionSetCatalogItemsForNamespace
 } from "./entities";
 
 import {
@@ -332,8 +333,9 @@ function reduce_updateResourceClaim(state, action) {
 export const actionClearImpersonation = createAction("clearImpersonation");
 export const actionSetImpersonation = createAction<IActionSetImpersonation>("setImpersonation");
 export const actionStartSession = createAction<IActionStartSession>("startSession");
-export const actionSetActiveServiceNamespace = createAction<any>("setActiveServiceNamespace");
+export const actionSetActiveServiceNamespace = createAction<string | null>("setActiveServiceNamespace");
 
+// TODO: udpate types:: visibilty of types not available
 // Actions reserved for api usage
 export const apiActionDeleteResourceClaim = createAction<any>("deleteResourceClaim")
 export const apiActionInsertResourceClaim = createAction<any>("insertResourceClaim")

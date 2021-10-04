@@ -50,31 +50,7 @@ interface IFieldsV1 {
 interface IManagedFields {
     "apiVersion": string,
     "fieldsType": string,
-    "fieldsV1": {
-        "f:metadata": {
-            "f:annotations": {
-                ".": {},
-                "f:babylon.gpte.redhat.com/description": {},
-                "f:babylon.gpte.redhat.com/descriptionFormat": {},
-                "f:babylon.gpte.redhat.com/displayName": {},
-                "f:babylon.gpte.redhat.com/icon": {},
-                "f:babylon.gpte.redhat.com/keywords": {}
-            },
-            "f:labels": {
-                ".": {},
-                "f:babylon.gpte.redhat.com/OpenShift_Version": {},
-                "f:babylon.gpte.redhat.com/Product": {},
-                "f:babylon.gpte.redhat.com/Provider": {},
-                "f:babylon.gpte.redhat.com/category": {},
-                "f:babylon.gpte.redhat.com/stage": {},
-                "f:generated_by": {}
-            }
-        },
-        "f:spec": {
-            ".": {},
-            "f:resources": {}
-        }
-    },
+    "fieldsV1": IFieldsV1,
     "manager": string,
     "operation": string,
     "time": string
@@ -106,8 +82,7 @@ interface IItemsMetadata {
 export interface IItems {
     "apiVersion": string,
     "kind": string,
-    "metadata": IItemsMetadata,
-    
+    "metadata": IItemsMetadata
 }
 
 interface IProvider {
@@ -131,5 +106,5 @@ export default interface IListCustomerCustomObjectResp {
     "items": [IItems],
     "kind": string,
     "metadata": IMetadata,
-    "spec": ISpec,
+    "spec": ISpec
 }

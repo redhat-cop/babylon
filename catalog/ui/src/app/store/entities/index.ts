@@ -4,5 +4,6 @@ export {
 } from "./IListCustomerCustomObjectResp";
 export {
     IActionSetImpersonation, 
-    IActionStartSession
+    IActionStartSession,
+    I__actionSetCatalogItemsForNamespace
 } from "./IActions";
