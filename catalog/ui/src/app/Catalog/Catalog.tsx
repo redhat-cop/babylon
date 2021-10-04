@@ -93,9 +93,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 }) => {
   const history = useHistory();
 
-  const catalogNamespaceRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/ns/:namespace');
-  const catalogNamespaceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/ns/:namespace/item/:name');
-  const catalogItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/item/:namespace/:name');
+  const catalogNamespaceRouteMatch = useRouteMatch<any>('/catalog/ns/:namespace');
+  const catalogNamespaceItemRouteMatch = useRouteMatch<any>('/catalog/ns/:namespace/item/:name');
+  const catalogItemRouteMatch = useRouteMatch<any>('/catalog/item/:namespace/:name');
 
   const catalogItemNamespaceName = catalogNamespaceItemRouteMatch?.params.namespace || catalogItemRouteMatch?.params.namespace;
   const catalogItemName = catalogNamespaceItemRouteMatch?.params.name || catalogItemRouteMatch?.params.name;
@@ -121,12 +121,22 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const selectedCatalogItemProvider = selectedCatalogItem?.metadata?.labels?.['babylon.gpte.redhat.com/provider']
 
 
-  function category(catalogItem): string {
+  function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
       return catalogItem.metadata.labels['babylon.gpte.redhat.com/category'];
     } else {
       return null;
     }
+  }
+
+  function creationTimestamp(catalogItem: { status: { creationTimestamp: any; }; metadata: { creationTimestamp: any; }; }) {
+     const ts = catalogItem.status && catalogItem.status.creationTimestamp ? catalogItem.status.creationTimestamp : catalogItem.metadata.creationTimestamp;
+     return (<LocalTimestamp timestamp={ts}/>);
+  }
+
+  function updateTimestamp(catalogItem: { status: { updateTimestamp: any; }; metadata: { creationTimestamp: any; }; }) {
+     const ts = catalogItem.status && catalogItem.status.updateTimestamp ? catalogItem.status.updateTimestamp : catalogItem.metadata.creationTimestamp;
+     return (<LocalTimestamp timestamp={ts}/>);
   }
 
   function description(catalogItem, options={}): string {
@@ -146,7 +156,31 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     }
   }
 
-  async function requestCatalogItem(): void {
+  function provider(catalogItem): string {
+    if (catalogItem.metadata.labels && catalogItem.metadata.labels['babylon.gpte.redhat.com/provider']) {
+      return catalogItem.metadata.labels['babylon.gpte.redhat.com/provider'];
+    } else {
+      return 'GPTE';
+    }
+  }
+
+  function runtime(catalogItem): string {
+    if (catalogItem.spec && catalogItem.spec.runtime) {
+      return catalogItem.spec.runtime;
+    } else {
+      return '8 hours';
+    }
+  }
+
+  function lifetime(catalogItem): string {
+    if (catalogItem.spec && catalogItem.spec.lifetime) {
+      return catalogItem.spec.lifetime;
+    } else {
+      return '3 days';
+    }
+  }
+
+  async function requestCatalogItem(): Promise<void> {
     // Either direct user to request form or immediately request if form would be empty.
     if (
       selectedCatalogItem.spec.termsOfService ||
@@ -203,7 +237,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     />
   ) : null;
 
-  const selectedCatalogItemAccess = checkAccessControl(selectedCatalogItem?.spec?.accessControl, userGroups);
   const selectedCatalogItemDisplay = selectedCatalogItem ? (
     <DrawerPanelContent
       className="rhpds-catalog-item-details"
@@ -226,10 +259,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
         <Button
           onClick={requestCatalogItem}
-          isDisabled={'deny' === selectedCatalogItemAccess}
-          variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary' }
+          isDisabled={selectedCatalogItem.spec.allowUserGroups && selectedCatalogItem.spec.allowUserGroups.filter(group => userGroups.includes(group)).length == 0}
         >
-          { selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information' }
+          Request
         </Button>
       </PageSection>
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-body">
@@ -292,9 +324,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   );
 
   const availableCatalogItems = allCatalogItems.filter(ci => {
-    if ('deny' === checkAccessControl(ci.spec.accessControl, userGroups)) {
-      return false;
-    }
     if (activeCategory !== 'all' && activeCategory !== category(ci)) {
       return false;
     }
@@ -305,7 +334,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     const ciCategory = category(ci);
     if (keywordSearchValue) {
       let keywordMatch = false;
-      const keywords = keywordSearchValue.trim().split();
+      const keywords = keywordSearchValue.trim().split("");
       for (let i=0; i < keywords.length; ++i) {
         const keyword = keywords[i].toLowerCase();
         if (ci.metadata.name.toLowerCase().includes(keyword)
@@ -334,17 +363,15 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     }
 
     for (const [attrKey, valueFilters] of Object.entries(selectedAttributeFilters)) {
-      let attrMatch = null;
-      for (const [valueKey, selected] of Object.entries(valueFilters)) {
+      let attrMatch;
+      for (const [valueKey, selected] of Object.entries(valueFilters as any)) {
         if (selected) {
-          if (attrMatch === null) {
-            attrMatch = false;
-          }
+          attrMatch = false;
           if (ci.metadata.labels) {
             for (const [label, value] of Object.entries(ci.metadata.labels)) {
               if (label.startsWith('babylon.gpte.redhat.com/')) {
                 const attr = label.substring(24);
-                if (attrKey == attr.toLowerCase() && valueKey == value.toLowerCase()) {
+                if (attrKey == attr.toLowerCase() && valueKey == (value as string).toLowerCase()) {
                   attrMatch = true;
                 }
               }
@@ -371,8 +398,8 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     .filter(category => category)
   ));
   categories.sort((a, b) => {
-    const av = a.toUpperCase();
-    const bv = b.toUpperCase();
+    const av = (a as string).toUpperCase();
+    const bv = (b as string).toUpperCase();
     if (av == 'OTHER') {
       return 1;
     } else if( bv == 'OTHER') {
@@ -383,7 +410,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   });
 
   function extractAttributeFilters (catalogItems) {
-    const attributeFilters = {};
+    const attributeFilters: any = {};
     for (let i=0; i < catalogItems.length; ++i) {
       const ci = availableCatalogItems[i];
       if (!ci.metadata.labels) { continue; }
@@ -536,14 +563,14 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                       onSelect={selectActiveCategory}
                       inset={{default: 'insetNone', sm: 'insetNone', md: 'insetNone', lg: 'insetNone', xl: 'insetNone', '2xl': 'insetNone'}}>
                       <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
-                      { categories.map(cat => renderCategoryTab(cat)) }
+                      { categories.map(cat => renderCategoryTab(cat as string)) }
                     </Tabs>
                     <Form>
-                    { Object.entries(attributeFilters).sort().map( ([attrKey, attr]) => (
+                    { Object.entries(attributeFilters).sort().map( ([attrKey, attr]: [any, any]) => (
                       <FormGroup key={attrKey} fieldId={attrKey}>
                         <fieldset>
                         <legend className="pf-c-form__label"><span className="pf-c-form__label-text">{attr.text}</span></legend>
-                      { Object.entries(attr.values).sort().map( ([valueKey, value]) => (
+                      { Object.entries(attr.values).sort().map( ([valueKey, value]: [any, any]) => (
                         <Checkbox id={attrKey + '/' + valueKey} key={attrKey + '/' + valueKey}
                           label={value.text + ' (' + value.count + ')'}
                           isChecked={value.selected}
