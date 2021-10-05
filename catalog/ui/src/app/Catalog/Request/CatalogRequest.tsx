@@ -220,4 +220,4 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   );
 }
 
-export { CatalogRequest };
+export default CatalogRequest;

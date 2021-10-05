@@ -12,4 +12,4 @@ const Dashboard: React.FunctionComponent = () => (
   <Redirect to="/catalog"/>
 )
 
-export { Dashboard };
+export default Dashboard;

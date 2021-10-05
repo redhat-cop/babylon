@@ -599,4 +599,4 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   );
 }
 
-export { Catalog };
+export default Catalog;
