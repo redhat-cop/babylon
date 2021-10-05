@@ -489,7 +489,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         {selectedCatalogItem ? (<Backdrop />) : null}
         <DrawerContentBody>
           { (catalogNamespace || catalogNamespaces.length > 1) ? (
-            <PageSection variant={PageSectionVariants.light} className="rhpds-project-select">
+            <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-project-select">
               <Dropdown isPlain
                 isOpen={catalogNamespaceSelectIsOpen}
                 toggle={
