@@ -1,5 +1,5 @@
 // Use asciidoctor to translate descriptions
-import * as AsciiDoctor from 'asciidoctor';
+import AsciiDoctor from 'asciidoctor';
 const asciidoctor = AsciiDoctor();
 
 // Use dompurify to make asciidoctor output safe
@@ -12,7 +12,7 @@ dompurify.addHook('afterSanitizeAttributes', function(node) {
   }
 });
 
-export function checkAccessControl(accessConfig: object, userGroups: array): boolean {
+export function checkAccessControl(accessConfig: object, userGroups: array): string | any {
   if (!accessConfig) {
     return 'allow';
   }
@@ -36,7 +36,7 @@ export function checkCondition(condition: string, vars: object): boolean {
   )();
 }
 
-export function displayName(item: object): string {
+export function displayName(item: any): string {
   if (item.kind === 'ResourceClaim') {
     const catalogItemName = item.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'];
     const catalogItemDisplayName = item.metadata.annotations?.['babylon.gpte.redhat.com/catalogItemDisplayName'];
@@ -63,7 +63,7 @@ export function randomString(length: number): string {
   return Math.floor(Math.random() * 36**length).toString(36).padStart(length,'0');
 }
 
-export function recursiveAssign(target: object, source: object): object {
+export function recursiveAssign(target: object, source: object): any {
   for (const [k, v] of Object.entries(source)) {
     if (v !== null && typeof v === 'object' && k in target && target[k] !== null && typeof target[k] === 'object') {
       recursiveAssign(target[k], v);
@@ -73,10 +73,10 @@ export function recursiveAssign(target: object, source: object): object {
   }
 }
 
-export function renderContent(content: string, options={}): string {
+export function renderContent(content: string, options: any={}): string {
   const sanitize_opt = {
-    ADD_TAGS: [],
-    ADD_ATTR: [],
+    ADD_TAGS: [] as any,
+    ADD_ATTR: [] as any,
   };
   if (options.allowIFrame) {
     sanitize_opt.ADD_TAGS.push('iframe');
