@@ -437,7 +437,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                           <DescriptionListDescription>
                             <div
                               dangerouslySetInnerHTML={{ __html: renderContent(
-                                (typeof provisionMessages === 'string' ? provisionMessages : provisionMessages.join("\n")).replaceAll(/^\s+|\s+$/g, '').replaceAll(/([^\n])\n(?!\n)/g, "$1 +\n")
+                                (typeof provisionMessages === 'string' ? provisionMessages : provisionMessages.join("\n")).replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, "$1 +\n")
                               ) }}
                             />
                           </DescriptionListDescription>
@@ -499,7 +499,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                         <DescriptionListGroup>
                           <DescriptionListTerm>User Messages</DescriptionListTerm>
                           <DescriptionListDescription>
-                            <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replaceAll(/^\s+|\s+$/g, '').replaceAll(/([^\n])\n(?!\n)/g, "$1 +\n")) }}/>
+                            <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, "$1 +\n")) }}/>
                           </DescriptionListDescription>
                         </DescriptionListGroup>
                       ) : null }
