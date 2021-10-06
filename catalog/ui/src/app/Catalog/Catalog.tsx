@@ -146,30 +146,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     }
   }
 
-  function provider(catalogItem): string {
-    if (catalogItem.metadata.labels && catalogItem.metadata.labels['babylon.gpte.redhat.com/provider']) {
-      return catalogItem.metadata.labels['babylon.gpte.redhat.com/provider'];
-    } else {
-      return 'GPTE';
-    }
-  }
-
-  function runtime(catalogItem): string {
-    if (catalogItem.spec && catalogItem.spec.runtime) {
-      return catalogItem.spec.runtime;
-    } else {
-      return '8 hours';
-    }
-  }
-
-  function lifetime(catalogItem): string {
-    if (catalogItem.spec && catalogItem.spec.lifetime) {
-      return catalogItem.spec.lifetime;
-    } else {
-      return '3 days';
-    }
-  }
-
   async function requestCatalogItem(): Promise<void> {
     // Either direct user to request form or immediately request if form would be empty.
     if (
