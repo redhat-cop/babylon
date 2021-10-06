@@ -37,4 +37,4 @@ const NotFound: React.FunctionComponent = () => {
   )
 };
 
-export { NotFound };
+export default NotFound;

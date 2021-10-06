@@ -126,6 +126,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const serviceNamespaces = useSelector(selectServiceNamespaces);
   const resourceClaims = useSelector(selectResourceClaims);
   const resourceClaim = resourceClaims?.[resourceClaimNamespace] ? resourceClaims[resourceClaimNamespace].find(rc => rc.metadata.name == resourceClaimName) : null;
+  const userData = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/userData'] || 'null');
 
   const prunedResourceClaim = resourceClaim ? JSON.parse(JSON.stringify(resourceClaim)) : null;
   if (prunedResourceClaim?.metadata.managedFields) {
@@ -351,7 +352,20 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 const desiredState = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.desired_state : null;
                 const provisionData = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.provision_data : JSON.parse(resourceState?.data?.userData || '{}');
                 const provisionMessages = resourceState?.kind === 'AnarchySubject' ? resourceState?.spec?.vars?.provision_messages : provisionData?.msg;
-                const provisionDataEntries = provisionData ? Object.entries(provisionData).filter(([key, value]) => !['bookbag_url', 'msg', 'users'].includes(key)) : null;
+                const provisionDataEntries = provisionData ? Object.entries(provisionData).filter(([key, value]) => {
+                  if (key === 'bookbag_url' || key === 'msg' || key === 'users') {
+                    return false;
+                  }
+                  if (userData) {
+                    if (userData[key]) {
+                      return true;
+                    } else {
+                      return false;
+                    }
+                  } else {
+                    return true;
+                  }
+                }) : null;
                 const stopTimestamp = resourceState?.kind === 'AnarchySubject' ? resourceSpec.template?.spec.vars?.action_schedule?.stop || resourceState?.spec.vars.action_schedule?.stop : null;
                 const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
                 const stopDate = stopTime ? new Date(stopTime) : null;
@@ -547,4 +561,4 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   }
 }
 
-export { ServicesItem };
+export default ServicesItem;
