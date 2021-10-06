@@ -45,6 +45,8 @@ import {
   SkipToContent
 } from '@patternfly/react-core';
 
+import { IUserImpersonationDialogState, IListClusterCustomObjectResp, IListClusterCustomObjectRespItems } from "./entities";
+
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
 
@@ -61,8 +63,17 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = React.useState(false);
   const [isMobileView, setIsMobileView] = React.useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = React.useState(false);
+<<<<<<< HEAD
   const [users, setUsers] = React.useState([]);
   const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState<any>({});
+=======
+  const [users, setUsers] = React.useState<[IListClusterCustomObjectRespItems] | []>([]);
+  const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState<IUserImpersonationDialogState>({
+    isOpen: false,
+    matchCount: 0,
+    value: "",
+  });
+>>>>>>> upstream/main
   const history = useHistory();
 
   const onNavToggleMobile = () => {
@@ -82,8 +93,13 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const userInterface = useSelector(selectInterface);
   const userNamespace = useSelector(selectUserNamespace);
 
+<<<<<<< HEAD
   async function getUsers({session}) : Promise<any> {
     const resp = await listClusterCustomObject('user.openshift.io', 'v1', 'users', '' );
+=======
+  async function getUsers({session}): Promise<void> {
+    const resp: IListClusterCustomObjectResp = await listClusterCustomObject('user.openshift.io', 'v1', 'users', '');
+>>>>>>> upstream/main
     setUsers(resp.items);
   }
 
@@ -148,11 +164,12 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   }
 
   function onUserImpersonationSearchInputChange(value: string) {
-    const filteredUsers = users.filter(user => user.metadata.name.startsWith(value));
+    const exactMatch = users.filter(user => user.metadata.name === value);
+    const filteredUsers = exactMatch.length === 1 ? exactMatch : users.filter(user => user.metadata.name.startsWith(value));
     setUserImpersonationDialogState({
       isOpen: true,
       matchCount: filteredUsers.length,
-      value: filteredUsers.length == 1 ? filteredUsers[0].metadata.name : value,
+      value: filteredUsers.length === 1 ? filteredUsers[0].metadata.name : value,
     });
   }
 

@@ -6,7 +6,11 @@ const parseDuration = require('parse-duration');
 export interface TimeIntervalProps {
   interval?: number;
   timeOnly?: boolean;
+<<<<<<< HEAD
   to?: Date;
+=======
+  to?: string | number;
+>>>>>>> upstream/main
 }
 
 const TimeInterval: React.FunctionComponent<TimeIntervalProps> = ({

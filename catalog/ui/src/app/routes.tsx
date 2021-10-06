@@ -3,15 +3,16 @@ import { useLocation, Route, RouteComponentProps, Switch } from 'react-router-do
 import { useDispatch, useSelector } from 'react-redux'
 import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
 
+import { Spinner } from "@patternfly/react-core";
+
 import { selectInterface, actionSetActiveServiceNamespace } from '@app/store';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
-import { Dashboard } from '@app/Dashboard/Dashboard';
-import { Catalog } from '@app/Catalog/Catalog';
-import { CatalogRequest } from '@app/Catalog/Request/CatalogRequest';
-import { Services } from '@app/Services/Services';
-import { ServicesItem } from '@app/Services/Item/ServicesItem';
-import { Support } from '@app/Support/Support';
-import { NotFound } from '@app/NotFound/NotFound';
+const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
+const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
+const CatalogRequest = React.lazy(() => import('@app/Catalog/Request/CatalogRequest'));
+const Services = React.lazy(() => import('@app/Services/Services'));
+const ServicesItem = React.lazy(() => import('@app/Services/Item/ServicesItem'));
+const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
 let routeFocusTimer: number;
@@ -134,6 +135,7 @@ const AppRoutes = (): React.ReactElement => {
 
   return (
     <LastLocationProvider>
+<<<<<<< HEAD
       <Switch>
         {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx: React.Key) => {
           const pageTitle = (
@@ -153,6 +155,29 @@ const AppRoutes = (): React.ReactElement => {
         })}
         <PageNotFound title="404 Page Not Found" />
       </Switch>
+=======
+      <React.Suspense fallback={<Spinner isSVG size="lg"/>}>
+        <Switch>
+          {flattenedRoutes.map(({ path, exact, component, title, isAsync }, idx) => {
+            const pageTitle = (
+              userInterface === 'summit' ? title.replace('Babylon', 'Red Hat Summit') :
+              userInterface === 'rhpds' ? title.replace('Babylon', 'RHPDS') : title
+            );
+            return (
+              <RouteWithTitleUpdates
+                path={path}
+                exact={exact}
+                component={component}
+                key={idx}
+                title={pageTitle}
+                isAsync={isAsync}
+              />
+            )
+          })}
+          <PageNotFound title="404 Page Not Found" />
+        </Switch>
+      </React.Suspense>
+>>>>>>> upstream/main
     </LastLocationProvider>
   );
 }

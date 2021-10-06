@@ -112,9 +112,15 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   location,
 }) => {
   const history = useHistory();
+<<<<<<< HEAD
   const location_info = useLocation();
   const nsLocationMatch = location_info.pathname.match(/^\/services\/ns\/([^\/]+)\/item\/([^\/]+)(?:\/([^\/]+))?/);
   const itemLocationMatch = location_info.pathname.match(/^\/services\/item\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?/);
+=======
+  // const location = useLocation();
+  const nsLocationMatch = location.pathname.match(/^\/services\/ns\/([^\/]+)\/item\/([^\/]+)(?:\/([^\/]+))?/);
+  const itemLocationMatch = location.pathname.match(/^\/services\/item\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?/);
+>>>>>>> upstream/main
 
   const resourceClaimNamespace: any = nsLocationMatch?.[1] || itemLocationMatch?.[1];
   const resourceClaimName = nsLocationMatch?.[2] || itemLocationMatch?.[2];
@@ -126,6 +132,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const serviceNamespaces = useSelector(selectServiceNamespaces);
   const resourceClaims = useSelector(selectResourceClaims);
   const resourceClaim = resourceClaims?.[resourceClaimNamespace] ? resourceClaims[resourceClaimNamespace].find(rc => rc.metadata.name == resourceClaimName) : null;
+  const userData = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/userData'] || 'null');
 
   const prunedResourceClaim = resourceClaim ? JSON.parse(JSON.stringify(resourceClaim)) : null;
   if (prunedResourceClaim?.metadata.managedFields) {
@@ -191,12 +198,20 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     setOpenModal("");
   }
 
+<<<<<<< HEAD
   async function handleDelete(): Promise<any> {
+=======
+  async function handleDelete(): Promise<void> {
+>>>>>>> upstream/main
     await deleteResourceClaim(resourceClaim);
     history.push(servicesPath);
   }
 
+<<<<<<< HEAD
   async function handleScheduleAction(time): Promise<any> {
+=======
+  async function handleScheduleAction(time): Promise<void> {
+>>>>>>> upstream/main
     if (scheduleActionKind === "retirement") {
       await setLifespanEndForResourceClaim(resourceClaim, time);
     } else if (scheduleActionKind === "stop") {
@@ -205,12 +220,20 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     closeModal();
   }
 
+<<<<<<< HEAD
   async function handleStartAll(): Promise<any> {
+=======
+  async function handleStartAll(): Promise<void> {
+>>>>>>> upstream/main
     await startAllResourcesInResourceClaim(resourceClaim);
     closeModal();
   }
 
+<<<<<<< HEAD
   async function handleStopAll(): Promise<any> {
+=======
+  async function handleStopAll(): Promise<void> {
+>>>>>>> upstream/main
     await stopAllResourcesInResourceClaim(resourceClaim);
     closeModal();
   }
@@ -351,7 +374,20 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 const desiredState = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.desired_state : null;
                 const provisionData = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.provision_data : JSON.parse(resourceState?.data?.userData || '{}');
                 const provisionMessages = resourceState?.kind === 'AnarchySubject' ? resourceState?.spec?.vars?.provision_messages : provisionData?.msg;
-                const provisionDataEntries = provisionData ? Object.entries(provisionData).filter(([key, value]) => !['bookbag_url', 'msg', 'users'].includes(key)) : null;
+                const provisionDataEntries = provisionData ? Object.entries(provisionData).filter(([key, value]) => {
+                  if (key === 'bookbag_url' || key === 'msg' || key === 'users') {
+                    return false;
+                  }
+                  if (userData) {
+                    if (userData[key]) {
+                      return true;
+                    } else {
+                      return false;
+                    }
+                  } else {
+                    return true;
+                  }
+                }) : null;
                 const stopTimestamp = resourceState?.kind === 'AnarchySubject' ? resourceSpec.template?.spec.vars?.action_schedule?.stop || resourceState?.spec.vars.action_schedule?.stop : null;
                 const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
                 const stopDate = stopTime ? new Date(stopTime) : null;
@@ -385,7 +421,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                             </DescriptionListDescription>
                           </DescriptionListGroup>
                           { externalPlatformUrl ? null :
-                            (startDate && startDate > Date.now()) ? (
+                            (startDate && Number(startDate) > Date.now()) ? (
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
                               <DescriptionListDescription>
@@ -393,7 +429,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                                 <TimeInterval to={startTimestamp}/>)
                               </DescriptionListDescription>
                             </DescriptionListGroup>
-                          ) : (stopDate && stopDate > Date.now()) ? (
+                          ) : (stopDate && Number(stopDate) > Date.now()) ? (
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
                               <DescriptionListDescription>
@@ -423,7 +459,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                           <DescriptionListDescription>
                             <div
                               dangerouslySetInnerHTML={{ __html: renderContent(
-                                (typeof provisionMessages === 'string' ? provisionMessages : provisionMessages.join("\n")).replaceAll(/^\s+|\s+$/g, '').replaceAll(/([^\n])\n(?!\n)/g, "$1 +\n")
+                                (typeof provisionMessages === 'string' ? provisionMessages : provisionMessages.join("\n")).replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, "$1 +\n")
                               ) }}
                             />
                           </DescriptionListDescription>
@@ -465,7 +501,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
             ) : null }
             { Object.keys(users).length > 0 ? (
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
-                { Object.entries(users).map(([userName, userData]) => {
+                { Object.entries(users).map(([userName, userData]: any) => {
                   const userLabUrl = labUserInterfaceUrls[userName] || userData.bookbag_url;
                   const userDataEntries = Object.entries(userData).filter(([key, value]) => !['bookbag_url', 'msg'].includes(key));
                   const userMessages = userData.msg;
@@ -485,7 +521,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                         <DescriptionListGroup>
                           <DescriptionListTerm>User Messages</DescriptionListTerm>
                           <DescriptionListDescription>
-                            <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replaceAll(/^\s+|\s+$/g, '').replaceAll(/([^\n])\n(?!\n)/g, "$1 +\n")) }}/>
+                            <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, "$1 +\n")) }}/>
                           </DescriptionListDescription>
                         </DescriptionListGroup>
                       ) : null }
@@ -547,4 +583,4 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   }
 }
 
-export { ServicesItem };
+export default ServicesItem;

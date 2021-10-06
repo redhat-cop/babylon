@@ -167,6 +167,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
             helperText={
               <FormHelperText icon={<ExclamationCircleIcon />} isHidden={validated !== false} isError={validated === false}>{ invalidParameter?.description }</FormHelperText>
             }
+            // TODO: string required but boolean is used.
             validated={validated}
           >
             { formGroup.parameters.map(parameter => (
@@ -222,4 +223,4 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
   );
 }
 
-export { CatalogRequest };
+export default CatalogRequest;

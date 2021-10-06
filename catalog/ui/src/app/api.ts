@@ -141,6 +141,10 @@ export async function createServiceRequest({
     }
   };
 
+  if (catalogItem.spec.userData) {
+    requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/userData'] = JSON.stringify(catalogItem.spec.userData);
+  }
+
   if (access === 'allow') {
     // Once created the ResourceClaim is completely independent of the catalog item.
     // This allows the catalog item to be changed or removed without impacting provisioned
@@ -235,7 +239,7 @@ export async function createServiceRequest({
   while (!resourceClaim) {
     try {
       return await createResourceClaim(requestResourceClaim);
-    } catch(error) {
+    } catch(error: any) {
       if (error.status === 409) {
 	n++;
         requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${n}`;

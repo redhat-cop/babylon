@@ -15,6 +15,7 @@
     "strictNullChecks": false,
     "noImplicitAny": false,
     "allowJs": true,
+    "strictNullChecks": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,

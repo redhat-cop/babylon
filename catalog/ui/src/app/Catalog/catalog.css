@@ -114,8 +114,8 @@
 }
 
 .rhpds-catalog-box.pf-c-card .rhpds-catalog-item-icon {
-  height: 50px;
-  width: 50px;
+  height: 60px;
+  width: 60px;
   box-sizing: border-box;
 }
 
@@ -330,4 +330,19 @@
 
 .rhpds-test-badge.pf-c-badge {
   background-color: var(--pf-global--danger-color--100);
+}
+
+.rhpds-catalog-project-select.pf-c-page__main-section {
+  padding: 5pt 15pt;
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+  display: flex;
+}
+
+.rhpds-catalog-project-select.pf-c-page__main-section .pf-c-dropdown__toggle {
+  color: var(--pf-global--palette--black-900);
+}
+
+.rhpds-catalog-project-select.pf-c-page__main-section .pf-c-dropdown__menu {
+  max-height: 500px;
+  overflow-y: scroll;
 }
