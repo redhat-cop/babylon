@@ -16,15 +16,16 @@ export function checkAccessControl(accessConfig: object, userGroups: array): str
   if (!accessConfig) {
     return 'allow';
   }
-  if((accessConfig?.denyGroups || []).filter(group => userGroups.includes(group)).length > 0) {
+  if((accessConfig.denyGroups || []).filter(group => userGroups.includes(group)).length > 0) {
     return 'deny';
   }
-  if((accessConfig?.allowGroups || []).filter(group => userGroups.includes(group)).length > 0) {
+  if((accessConfig.allowGroups || []).filter(group => userGroups.includes(group)).length > 0) {
     return 'allow';
   }
-  if((accessConfig?.viewOnlyGroups || []).filter(group => userGroups.includes(group)).length > 0) {
+  if((accessConfig.viewOnlyGroups || []).filter(group => userGroups.includes(group)).length > 0) {
     return 'viewOnly';
   }
+  return 'deny';
 }
 
 export function checkCondition(condition: string, vars: object): boolean {
