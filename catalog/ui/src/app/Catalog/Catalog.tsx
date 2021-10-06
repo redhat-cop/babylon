@@ -288,7 +288,11 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   ) : null;
 
   const allCatalogItems = (
-    (catalogNamespaceName ? (catalogItems[catalogNamespaceName] || []) : Object.values(catalogItems || []).flat())
+    catalogNamespaceName ? (
+      catalogItems[catalogNamespaceName] || []
+    ) : (
+      Object.values(catalogItems || []).reduce((a, v) => a.concat(v), [])
+    )
   );
 
   const availableCatalogItems = allCatalogItems.filter(ci => {
