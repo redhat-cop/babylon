@@ -11,11 +11,6 @@ module.exports = {
     }
   },
   verbose: true,
-<<<<<<< HEAD
-  
-=======
-
->>>>>>> upstream/main
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
 

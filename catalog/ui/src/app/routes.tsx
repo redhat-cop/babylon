@@ -135,27 +135,6 @@ const AppRoutes = (): React.ReactElement => {
 
   return (
     <LastLocationProvider>
-<<<<<<< HEAD
-      <Switch>
-        {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx: React.Key) => {
-          const pageTitle = (
-            userInterface === 'summit' ? title.replace('Babylon', 'Red Hat Summit') :
-            userInterface === 'rhpds' ? title.replace('Babylon', 'RHPDS') : title
-          );
-          return (
-            <RouteWithTitleUpdates
-              path={path}
-              exact={exact}
-              component={component}
-              key={idx}
-              title={pageTitle}
-              isAsync={isAsync}
-            />
-          )
-        })}
-        <PageNotFound title="404 Page Not Found" />
-      </Switch>
-=======
       <React.Suspense fallback={<Spinner isSVG size="lg"/>}>
         <Switch>
           {flattenedRoutes.map(({ path, exact, component, title, isAsync }, idx) => {
@@ -177,7 +156,6 @@ const AppRoutes = (): React.ReactElement => {
           <PageNotFound title="404 Page Not Found" />
         </Switch>
       </React.Suspense>
->>>>>>> upstream/main
     </LastLocationProvider>
   );
 }

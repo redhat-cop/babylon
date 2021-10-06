@@ -24,17 +24,10 @@ import {
   listNamespacedCustomObject,
 } from '@app/api';
 
-<<<<<<< HEAD
-let watchCatalogItemsTimeout: any= null;
-let watchResourceClaimsTimeout: any = null;
-
-async function refreshCatalogItems(triggeredByTimeout: number): Promise<void> {
-=======
 let watchCatalogItemsTimeout: null | ReturnType<typeof setTimeout> = null;
 let watchResourceClaimsTimeout: null | ReturnType<typeof setTimeout> = null;
 
 async function refreshCatalogItems(triggeredByTimeout: null | ReturnType<typeof setTimeout>): Promise<void> {
->>>>>>> upstream/main
   const state = store.getState();
   const namespaces = selectCatalogNamespaces(state).map(n => n.name);
   const userIsAdmin = selectUserIsAdmin(state);
@@ -75,13 +68,8 @@ async function refreshCatalogItems(triggeredByTimeout: null | ReturnType<typeof 
     );
   } else {
     for (let n=0; n < namespaces.length; ++n) {
-<<<<<<< HEAD
-      const namespace = namespaces[n];
-      const catalogItems : any[] = [];
-=======
       const namespace: string = namespaces[n];
       const catalogItems: ICatalogItem[] = [];
->>>>>>> upstream/main
       let _continue = null;
       while (true) {
         const resp = await listNamespacedCustomObject(
@@ -128,11 +116,7 @@ function startWatchCatalogItems(): void {
 
 async function refreshResourceClaimsFromNamespace(triggeredByTimeout, namespace): Promise<void> {
   const resourceClaims: any[] = [];
-<<<<<<< HEAD
-  let _continue = null;
-=======
   let _continue: string = "";
->>>>>>> upstream/main
   while (true) {
     const resp = await listNamespacedCustomObject(
       'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims',
@@ -348,15 +332,9 @@ function reduce_updateResourceClaim(state, action) {
 
 // Action creators
 export const actionClearImpersonation = createAction("clearImpersonation");
-<<<<<<< HEAD
-export const actionSetImpersonation = createAction<any>("setImpersonation");
-export const actionStartSession = createAction<any>("startSession");
-export const actionSetActiveServiceNamespace = createAction<any>("setActiveServiceNamespace");
-=======
 export const actionSetImpersonation = createAction<IActionSetImpersonation>("setImpersonation");
 export const actionStartSession = createAction<IActionStartSession>("startSession");
 export const actionSetActiveServiceNamespace = createAction<string | null>("setActiveServiceNamespace");
->>>>>>> upstream/main
 
 // TODO: udpate types:: visibilty of types not available
 // Actions reserved for api usage

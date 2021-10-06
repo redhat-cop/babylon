@@ -14,11 +14,7 @@ export interface ActionDropdownProps {
   actionDropdownItems: any;
   className?: string;
   isDisabled?: boolean;
-<<<<<<< HEAD
-  position?: DropdownPosition | 'right' | 'left';
-=======
   position: DropdownPosition | 'right' | 'left';
->>>>>>> upstream/main
 }
 
 export interface ActionDropdownItemProps {

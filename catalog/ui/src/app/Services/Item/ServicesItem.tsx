@@ -112,15 +112,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   location,
 }) => {
   const history = useHistory();
-<<<<<<< HEAD
-  const location_info = useLocation();
-  const nsLocationMatch = location_info.pathname.match(/^\/services\/ns\/([^\/]+)\/item\/([^\/]+)(?:\/([^\/]+))?/);
-  const itemLocationMatch = location_info.pathname.match(/^\/services\/item\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?/);
-=======
   // const location = useLocation();
   const nsLocationMatch = location.pathname.match(/^\/services\/ns\/([^\/]+)\/item\/([^\/]+)(?:\/([^\/]+))?/);
   const itemLocationMatch = location.pathname.match(/^\/services\/item\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?/);
->>>>>>> upstream/main
 
   const resourceClaimNamespace: any = nsLocationMatch?.[1] || itemLocationMatch?.[1];
   const resourceClaimName = nsLocationMatch?.[2] || itemLocationMatch?.[2];
@@ -198,20 +192,12 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     setOpenModal("");
   }
 
-<<<<<<< HEAD
-  async function handleDelete(): Promise<any> {
-=======
   async function handleDelete(): Promise<void> {
->>>>>>> upstream/main
     await deleteResourceClaim(resourceClaim);
     history.push(servicesPath);
   }
 
-<<<<<<< HEAD
-  async function handleScheduleAction(time): Promise<any> {
-=======
   async function handleScheduleAction(time): Promise<void> {
->>>>>>> upstream/main
     if (scheduleActionKind === "retirement") {
       await setLifespanEndForResourceClaim(resourceClaim, time);
     } else if (scheduleActionKind === "stop") {
@@ -220,20 +206,12 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     closeModal();
   }
 
-<<<<<<< HEAD
-  async function handleStartAll(): Promise<any> {
-=======
   async function handleStartAll(): Promise<void> {
->>>>>>> upstream/main
     await startAllResourcesInResourceClaim(resourceClaim);
     closeModal();
   }
 
-<<<<<<< HEAD
-  async function handleStopAll(): Promise<any> {
-=======
   async function handleStopAll(): Promise<void> {
->>>>>>> upstream/main
     await stopAllResourcesInResourceClaim(resourceClaim);
     closeModal();
   }
