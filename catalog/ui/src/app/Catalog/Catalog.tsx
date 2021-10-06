@@ -327,29 +327,36 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
             }
           }
         }
-        if (keywordMatch) {
-          break;
+
+        if (!keywordMatch) {
+          return false;
         }
-      }
-      if (!keywordMatch) {
-        return false;
       }
     }
 
     for (const [attrKey, valueFilters] of Object.entries(selectedAttributeFilters)) {
-      let attrMatch;
+      // Default to null, not matched or not matched, means no values were selected for this attribute.
+      let attrMatch = null;
       for (const [valueKey, selected] of Object.entries(valueFilters as any)) {
         if (selected) {
-          attrMatch = false;
+          // If any filter is selected then a match is required.
+          if (attrMatch === null) {
+            attrMatch = false;
+          }
+          // If any label matches a selected value then the attribute filter matches
           if (ci.metadata.labels) {
             for (const [label, value] of Object.entries(ci.metadata.labels)) {
               if (label.startsWith('babylon.gpte.redhat.com/')) {
                 const attr = label.substring(24);
                 if (attrKey == attr.toLowerCase() && valueKey == (value as string).toLowerCase()) {
                   attrMatch = true;
+                  break;
                 }
               }
             }
+          }
+          if (attrMatch) {
+            break;
           }
         }
       }
