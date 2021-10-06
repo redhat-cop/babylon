@@ -112,9 +112,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   location,
 }) => {
   const history = useHistory();
-  const location_info = useLocation();
-  const nsLocationMatch = location_info.pathname.match(/^\/services\/ns\/([^\/]+)\/item\/([^\/]+)(?:\/([^\/]+))?/);
-  const itemLocationMatch = location_info.pathname.match(/^\/services\/item\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?/);
+  // const location = useLocation();
+  const nsLocationMatch = location.pathname.match(/^\/services\/ns\/([^\/]+)\/item\/([^\/]+)(?:\/([^\/]+))?/);
+  const itemLocationMatch = location.pathname.match(/^\/services\/item\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?/);
 
   const resourceClaimNamespace: any = nsLocationMatch?.[1] || itemLocationMatch?.[1];
   const resourceClaimName = nsLocationMatch?.[2] || itemLocationMatch?.[2];

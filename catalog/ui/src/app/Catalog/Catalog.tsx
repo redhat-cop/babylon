@@ -129,16 +129,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     }
   }
 
-  function creationTimestamp(catalogItem: { status: { creationTimestamp: any; }; metadata: { creationTimestamp: any; }; }) {
-     const ts = catalogItem.status && catalogItem.status.creationTimestamp ? catalogItem.status.creationTimestamp : catalogItem.metadata.creationTimestamp;
-     return (<LocalTimestamp timestamp={ts}/>);
-  }
-
-  function updateTimestamp(catalogItem: { status: { updateTimestamp: any; }; metadata: { creationTimestamp: any; }; }) {
-     const ts = catalogItem.status && catalogItem.status.updateTimestamp ? catalogItem.status.updateTimestamp : catalogItem.metadata.creationTimestamp;
-     return (<LocalTimestamp timestamp={ts}/>);
-  }
-
   function description(catalogItem, options={}): string {
     if (catalogItem.metadata?.annotations?.['babylon.gpte.redhat.com/description']) {
       options['format'] = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/descriptionFormat'] || 'asciidoc';
