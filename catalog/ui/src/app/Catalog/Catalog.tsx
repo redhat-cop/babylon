@@ -307,10 +307,10 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const filteredCatalogItems = availableCatalogItems.filter(ci => {
     const ciCategory = category(ci);
     if (keywordSearchValue) {
-      let keywordMatch = false;
-      const keywords = keywordSearchValue.trim().split("");
+      const keywords = keywordSearchValue.trim().split(/ +/);
       for (let i=0; i < keywords.length; ++i) {
         const keyword = keywords[i].toLowerCase();
+        let keywordMatch = null;
         if (ci.metadata.name.toLowerCase().includes(keyword)
           || displayName(ci).toLowerCase().includes(keyword)
           || (ciCategory && ciCategory.toLowerCase().includes(keyword))
