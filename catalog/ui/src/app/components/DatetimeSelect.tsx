@@ -13,10 +13,10 @@ import {
 
 export interface DatetimeSelectProps {
   idPrefix: string;
-  current: number;
+  current: Date;
   interval: number;
-  maximum: number;
-  minimum: number;
+  maximum: Date;
+  minimum: Date;
   onSelect: any;
   toggleContent: any;
 }
@@ -32,10 +32,10 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [scrolledIntoView, setScrolledIntoView] = React.useState(false);
-  const currentInterval = interval * Math.round(current / interval);
+  const currentInterval = interval * Math.round(Number(current) / interval);
   const currentItemId = `${idPrefix}${currentInterval}`;
 
-  const dropdownItems = [];
+  const dropdownItems: any[] = [];
 
   React.useEffect(() => {
     if (isOpen) {
@@ -47,13 +47,13 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
     }
   })
 
-  for (var t=Math.ceil(minimum / interval) * interval; t < maximum; t += interval) {
+  for (var t=Math.ceil(Number(minimum) / interval) * interval; t < Number(maximum); t += interval) {
     const isCurrent = t == currentInterval ? "rhpds-datetime-select-current" : null;
     const date = new Date(t);
     const dropdownItem = (
       <DropdownItem
         id={`${idPrefix}${t}`}
-        className={isCurrent ? "rhpds-datetime-select-current" : null}
+        className={isCurrent ? "rhpds-datetime-select-current" : ""}
         isHovered={isCurrent}
         isPlainText={isCurrent}
         key={t}
