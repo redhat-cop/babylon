@@ -11,8 +11,6 @@ spec:
         desired_state: started
         healthy: true
   match:
-    apiVersion: {{ .Values.anarchy.apiGroup }}/v1
-    kind: AnarchySubject
     metadata:
       annotations:
         poolboy.gpte.redhat.com/resource-provider-name: babylon
@@ -21,6 +19,8 @@ spec:
   - /spec/vars/current_state
   - /spec/vars/desired_state
   override:
+    apiVersion: {{ .Values.anarchy.apiGroup }}/v1
+    kind: AnarchySubject
     metadata:
       # Future state will not use generic babylon ResourceProvider... force first namespace for now.
       namespace: {{ (index .Values.anarchy.namespaces 0).name }}

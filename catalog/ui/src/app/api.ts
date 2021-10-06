@@ -9,10 +9,12 @@ import {
 
 import {
   selectImpersonationUser,
+  selectUserGroups,
   selectUserNamespace,
 } from '@app/store';
 
 import {
+  checkAccessControl,
   displayName,
   recursiveAssign,
 } from '@app/util';
@@ -113,7 +115,9 @@ export async function createServiceRequest({
 }: ServiceRequestParameters): Promise<any> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, "$1");
   const session = await getApiSession();
+  const userGroups = selectUserGroups(store.getState());
   const userNamespace = selectUserNamespace(store.getState());
+  const access = checkAccessControl(catalogItem.spec.accessControl, userGroups);
 
   const requestResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
@@ -133,56 +137,94 @@ export async function createServiceRequest({
       namespace: userNamespace.name,
     },
     spec: {
-      resources: JSON.parse(JSON.stringify(catalogItem.spec.resources)),
+      resources: []
     }
   };
 
-  for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
-     if (key.startsWith('babylon.gpte.redhat.com/displayNameComponent')) {
-       requestResourceClaim.metadata.annotations[key] = value;
-     }
-  }
+  if (access === 'allow') {
+    // Once created the ResourceClaim is completely independent of the catalog item.
+    // This allows the catalog item to be changed or removed without impacting provisioned
+    // services. All relevant configuration from the CatalogItem needs to be copied into
+    // the ResourceClaim.
 
-  if (catalogItem.metadata.labels?.['babylon.gpte.redhat.com/userCatalogItem']) {
-    requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'] = catalogItem.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'];
-  }
+    // Copy resources from catalog item to ResourceClaim
+    requestResourceClaim.spec.resources = JSON.parse(JSON.stringify(catalogItem.spec.resources));
 
-  if (catalogItem.spec.bookbag) {
-    requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/labUserInterface'] = 'bookbag';
-    requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/bookbag'] = JSON.stringify(catalogItem.spec.bookbag);
-  }
-
-  if (catalogItem.spec.messageTemplates) {
-    for (const [key, value] of Object.entries(catalogItem.spec.messageTemplates)) {
-      // Save CatalogItem message templates in ResourceClaim annotation so
-      // that the provisioned service does not depend upon the continued
-      // existence of the CatalogItem.
-      const annotation = `babylon.gpte.redhat.com/${key}MessageTemplate`;
-      requestResourceClaim.metadata.annotations[annotation] = JSON.stringify(value);
+    // Add display name annotations for components
+    for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
+      if (key.startsWith('babylon.gpte.redhat.com/displayNameComponent')) {
+        requestResourceClaim.metadata.annotations[key] = value;
+      }
     }
-  }
 
-  if (parameters) {
-    for (const parameter of parameters) {
-      const varName = parameter.variable || parameter.name;
-      for (const resourceIndex in requestResourceClaim.spec.resources) {
-        const resource = requestResourceClaim.spec.resources[resourceIndex];
-        // Only set parameter if resource index is not set or matches
-        if (parameter.resourceIndex == null || resourceIndex == parameter.resourceIndex) {
-          recursiveAssign(
-            resource,
-            {
-              template: {
-                spec: {
-                  vars: {
-                    job_vars: {
-                      [varName]: parameter.value,
+    // Set user catalog item labels if this is a user catalog item
+    if (catalogItem.metadata.labels?.['babylon.gpte.redhat.com/userCatalogItem']) {
+      requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'] = catalogItem.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'];
+    }
+
+    // Add bookbag label and annotation if catalog item includes bookbag
+    if (catalogItem.spec.bookbag) {
+      requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/labUserInterface'] = 'bookbag';
+      requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/bookbag'] = JSON.stringify(catalogItem.spec.bookbag);
+    }
+
+    // Add message templates for notifications
+    if (catalogItem.spec.messageTemplates) {
+      for (const [key, value] of Object.entries(catalogItem.spec.messageTemplates)) {
+        // Save CatalogItem message templates in ResourceClaim annotation so
+        // that the provisioned service does not depend upon the continued
+        // existence of the CatalogItem.
+        const annotation = `babylon.gpte.redhat.com/${key}MessageTemplate`;
+        requestResourceClaim.metadata.annotations[annotation] = JSON.stringify(value);
+      }
+    }
+
+    // Copy all parameter values into the ResourceClaim
+    if (parameters) {
+      for (const parameter of parameters) {
+        const varName = parameter.variable || parameter.name;
+        for (const resourceIndex in requestResourceClaim.spec.resources) {
+          const resource = requestResourceClaim.spec.resources[resourceIndex];
+          // Only set parameter if resource index is not set or matches
+          if (parameter.resourceIndex == null || resourceIndex == parameter.resourceIndex) {
+            recursiveAssign(
+              resource,
+              {
+                template: {
+                  spec: {
+                    vars: {
+                      job_vars: {
+                        [varName]: parameter.value,
+                      }
                     }
                   }
                 }
               }
-            }
-          )
+            )
+          }
+        }
+      }
+    }
+  } else {
+    // No direct access to catalog item. Create the service-request to record
+    // the user interest in the catalog item.
+    requestResourceClaim.spec.resources[0] = {
+      provider: {
+        apiVersion: "poolboy.gpte.redhat.com/v1",
+        kind: "ResourceProvider",
+        name: "babylon-service-request-configmap",
+        namespace: "poolboy",
+      },
+      template: {
+        data: {
+          catalogItemName: catalogItem.metadata.name,
+          catalogItemNamespace: catalogItem.metadata.namespace,
+          parameters: JSON.stringify(parameters),
+        },
+        metadata: {
+          labels: {
+            "babylon.gpte.redhat.com/catalogItem": catalogItem.metadata.name,
+          }
         }
       }
     }

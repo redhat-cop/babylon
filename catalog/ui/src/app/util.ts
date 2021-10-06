@@ -12,6 +12,21 @@ dompurify.addHook('afterSanitizeAttributes', function(node) {
   }
 });
 
+export function checkAccessControl(accessConfig: object, userGroups: array): boolean {
+  if (!accessConfig) {
+    return 'allow';
+  }
+  if((accessConfig?.denyGroups || []).filter(group => userGroups.includes(group)).length > 0) {
+    return 'deny';
+  }
+  if((accessConfig?.allowGroups || []).filter(group => userGroups.includes(group)).length > 0) {
+    return 'allow';
+  }
+  if((accessConfig?.viewOnlyGroups || []).filter(group => userGroups.includes(group)).length > 0) {
+    return 'viewOnly';
+  }
+}
+
 export function checkCondition(condition: string, vars: object): boolean {
   return window.Function(
     Object.entries(vars).map(
