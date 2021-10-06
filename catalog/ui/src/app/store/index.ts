@@ -9,28 +9,37 @@ import {
 } from 'reselect'
 
 import {
+  IListCustomerCustomObjectResp,
+  IItems,
+  IActionSetImpersonation,
+  IActionStartSession,
+  I__actionSetCatalogItemsForNamespace
+} from "./entities";
+
+import {
   listClusterCustomObject,
   listNamespacedCustomObject,
 } from '@app/api';
 
-let watchCatalogItemsTimeout = null;
-let watchResourceClaimsTimeout = null;
+let watchCatalogItemsTimeout: null | ReturnType<typeof setTimeout> = null;
+let watchResourceClaimsTimeout: null | ReturnType<typeof setTimeout> = null;
 
-async function refreshCatalogItems(triggeredByTimeout: number): void {
+async function refreshCatalogItems(triggeredByTimeout: null | ReturnType<typeof setTimeout>): Promise<void> {
   const state = store.getState();
   const namespaces = selectCatalogNamespaces(state).map(n => n.name);
   const userIsAdmin = selectUserIsAdmin(state);
   if (userIsAdmin) {
     const catalogItems = {};
-    let _continue = null;
+    let _continue: string = "";
     while (true) {
-      const resp = await listClusterCustomObject(
+      const resp: IListCustomerCustomObjectResp = await listClusterCustomObject(
         'babylon.gpte.redhat.com', 'v1', 'catalogitems',
         {
           continue: _continue,
           limit: 100,
         }
       );
+      console.log("resp", resp);
       if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
       if (!resp.items) { break }
       for (let i=0; i < resp.items.length; ++i) {
@@ -58,7 +67,7 @@ async function refreshCatalogItems(triggeredByTimeout: number): void {
   } else {
     for (let n=0; n < namespaces.length; ++n) {
       const namespace = namespaces[n];
-      const catalogItems = [];
+      const catalogItems : any[] = [];
       let _continue = null;
       while (true) {
         const resp = await listNamespacedCustomObject(
@@ -68,6 +77,7 @@ async function refreshCatalogItems(triggeredByTimeout: number): void {
             limit: 100,
           }
         );
+        console.log("resp", resp);
         if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
         if (!resp.items) { break }
         catalogItems.push(...resp.items);
@@ -87,7 +97,7 @@ async function refreshCatalogItems(triggeredByTimeout: number): void {
   }
 }
 
-async function watchCatalogItems(): void {
+async function watchCatalogItems(): Promise<void> {
   const triggeredByTimeout = watchCatalogItemsTimeout
   await refreshCatalogItems(triggeredByTimeout);
   if (triggeredByTimeout == watchCatalogItemsTimeout) {
@@ -103,9 +113,9 @@ function startWatchCatalogItems(): void {
   watchCatalogItemsTimeout = setTimeout(watchCatalogItems, 1);
 }
 
-async function refreshResourceClaimsFromNamespace(triggeredByTimeout, namespace): void {
-  const resourceClaims = [];
-  let _continue = null;
+async function refreshResourceClaimsFromNamespace(triggeredByTimeout, namespace): Promise<void> {
+  const resourceClaims: any[] = [];
+  let _continue: string = "";
   while (true) {
     const resp = await listNamespacedCustomObject(
       'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims',
@@ -131,7 +141,7 @@ async function refreshResourceClaimsFromNamespace(triggeredByTimeout, namespace)
   );
 }
 
-async function refreshResourceClaims(triggeredByTimeout): void {
+async function refreshResourceClaims(triggeredByTimeout): Promise<void> {
   const state = store.getState();
   const activeNamespace = selectActiveServiceNamespace(state);
   const namespaces = selectServiceNamespaces(state).map(n => n.name);
@@ -189,7 +199,7 @@ async function refreshResourceClaims(triggeredByTimeout): void {
   }
 }
 
-async function watchResourceClaims(): void {
+async function watchResourceClaims(): Promise<void> {
   const triggeredByTimeout = watchResourceClaimsTimeout;
   await refreshResourceClaims(triggeredByTimeout);
   if (triggeredByTimeout == watchResourceClaimsTimeout) {
@@ -321,24 +331,25 @@ function reduce_updateResourceClaim(state, action) {
 
 // Action creators
 export const actionClearImpersonation = createAction("clearImpersonation");
-export const actionSetImpersonation = createAction("setImpersonation");
-export const actionStartSession = createAction("startSession");
-export const actionSetActiveServiceNamespace = createAction("setActiveServiceNamespace");
+export const actionSetImpersonation = createAction<IActionSetImpersonation>("setImpersonation");
+export const actionStartSession = createAction<IActionStartSession>("startSession");
+export const actionSetActiveServiceNamespace = createAction<string | null>("setActiveServiceNamespace");
 
+// TODO: udpate types:: visibilty of types not available
 // Actions reserved for api usage
-export const apiActionDeleteResourceClaim = createAction("deleteResourceClaim")
-export const apiActionInsertResourceClaim = createAction("insertResourceClaim")
-export const apiActionUpdateResourceClaim = createAction("updateResourceClaim")
+export const apiActionDeleteResourceClaim = createAction<any>("deleteResourceClaim")
+export const apiActionInsertResourceClaim = createAction<any>("insertResourceClaim")
+export const apiActionUpdateResourceClaim = createAction<any>("updateResourceClaim")
 
 // Private actions
-export const __actionSetCatalogItems = createAction("setCatalogItems");
-export const __actionSetCatalogItemsForNamespace = createAction("setCatalogItemsForNamespace");
-export const __actionSetResourceClaims = createAction("setResourceClaims");
-export const __actionSetResourceClaimsForNamespace = createAction("setResourceClaimsForNamespace");
+export const __actionSetCatalogItems = createAction<any>("setCatalogItems");
+export const __actionSetCatalogItemsForNamespace = createAction<any>("setCatalogItemsForNamespace");
+export const __actionSetResourceClaims = createAction<any>("setResourceClaims");
+export const __actionSetResourceClaimsForNamespace = createAction<any>("setResourceClaimsForNamespace");
 
 
 // Selectors
-const selectSelf = (state: State) => state
+const selectSelf = (state: any) => state
 
 export const selectActiveServiceNamespace = createSelector(
   selectSelf,
