@@ -15,6 +15,7 @@ import './services-item-start-modal.css';
 export interface ServicesItemStartModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onConfirm: () => void;
   resourceClaim: any;
 }
 

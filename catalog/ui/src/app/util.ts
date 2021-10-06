@@ -12,7 +12,7 @@ dompurify.addHook('afterSanitizeAttributes', function(node) {
   }
 });
 
-export function checkAccessControl(accessConfig: object, userGroups: array): string | any {
+export function checkAccessControl(accessConfig: any, userGroups: Array<any>): string | any {
   if (!accessConfig) {
     return 'allow';
   }
