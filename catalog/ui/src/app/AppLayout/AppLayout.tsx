@@ -289,7 +289,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     <Nav id="nav-primary-simple" theme="dark">
       <NavList id="nav-list-simple">
         {routes.map(
-          (route, idx) => route.label && (!route.routes ? renderNavItem(route, idx) : renderNavGroup(route, idx))
+          // TODO: not getting required type
+          (route, idx) => route.label && (!route.routes ? renderNavItem(route as any, idx) : renderNavGroup(route as any, idx))
         )}
       </NavList>
     </Nav>
