@@ -1,4 +1,4 @@
-interface IActionSetImpersonation {
+export interface IActionSetImpersonation {
     admin: string,
     user: string,
     groups: [string],

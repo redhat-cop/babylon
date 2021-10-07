@@ -15,6 +15,7 @@ import './services-item-delete-modal.css';
 export interface ServicesItemDeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onConfirm: () => void;
   resourceClaim: any;
 }
 
@@ -47,7 +48,8 @@ const ServicesItemDeleteModal: React.FunctionComponent<ServicesItemDeleteModalPr
           onClick={onClose}
         >Cancel</Button>
       ]}
-    />
+    >
+    </Modal>
   );
 }
 
