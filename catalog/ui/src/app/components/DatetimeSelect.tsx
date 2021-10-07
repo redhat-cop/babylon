@@ -48,13 +48,13 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
   })
 
   for (var t=Math.ceil(Number(minimum) / interval) * interval; t < Number(maximum); t += interval) {
-    const isCurrent = t == currentInterval ? "rhpds-datetime-select-current" : null;
+    //TODO: boolean required but string is used
+    const isCurrent : any = t == currentInterval ? "rhpds-datetime-select-current" : null;
     const date = new Date(t);
     const dropdownItem = (
       <DropdownItem
         id={`${idPrefix}${t}`}
         className={isCurrent ? "rhpds-datetime-select-current" : ""}
-        //TODO: boolean required but string is used
         isHovered={isCurrent}
         isPlainText={isCurrent}
         key={t}

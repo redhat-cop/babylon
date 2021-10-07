@@ -63,8 +63,8 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
         isDisabled={isDisabled}
         min={parameter.openAPIV3Schema.minmum || 0}
         max={parameter.openAPIV3Schema.maximum}
-        //TODO: value does not exist
-        onChange={(event) => onChange(isNaN(event.target.value) ? value : Number(event.target.value))}
+        // TODO: value does not exist
+        onChange={(event : any) => onChange(isNaN(event.target.value) ? value : Number(event.target.value))}
         onMinus={() => onChange(value - 1)}
         onPlus={() => onChange(value + 1)}
         value={value || 0}

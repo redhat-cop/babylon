@@ -115,9 +115,9 @@ const PageNotFound = ({ title }: { title: string }) => {
   return <Route component={NotFound} />;
 };
 
-const flattenedRoutes: AppRouteConfig[] = routes.reduce(
-  (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
-  [] as AppRouteConfig[]
+const flattenedRoutes: IAppRoute[] = routes.reduce(
+  (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])] as any,
+  [] as IAppRoute[]
 );
 
 const AppRoutes = (): React.ReactElement => {
