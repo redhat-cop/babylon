@@ -12,17 +12,18 @@ dompurify.addHook('afterSanitizeAttributes', function(node) {
   }
 });
 
-export function checkAccessControl(accessConfig: any, userGroups: Array<any>): string | any {
+export function checkAccessControl(accessConfig: any, userGroups: Array<string>): string {
+  const groups: Array<string> = userGroups.concat('system:authenticated');
   if (!accessConfig) {
     return 'allow';
   }
-  if((accessConfig.denyGroups || []).filter(group => userGroups.includes(group)).length > 0) {
+  if((accessConfig.denyGroups || []).filter(group => groups.includes(group)).length > 0) {
     return 'deny';
   }
-  if((accessConfig.allowGroups || []).filter(group => userGroups.includes(group)).length > 0) {
+  if((accessConfig.allowGroups || []).filter(group => groups.includes(group)).length > 0) {
     return 'allow';
   }
-  if((accessConfig.viewOnlyGroups || []).filter(group => userGroups.includes(group)).length > 0) {
+  if((accessConfig.viewOnlyGroups || []).filter(group => groups.includes(group)).length > 0) {
     return 'viewOnly';
   }
   return 'deny';
