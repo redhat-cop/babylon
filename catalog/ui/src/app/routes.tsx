@@ -137,7 +137,7 @@ const AppRoutes = (): React.ReactElement => {
     <LastLocationProvider>
       <React.Suspense fallback={<Spinner isSVG size="lg"/>}>
         <Switch>
-          {flattenedRoutes.map(({ path, exact, component, title, isAsync }, idx) => {
+          {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
             const pageTitle = (
               userInterface === 'summit' ? title.replace('Babylon', 'Red Hat Summit') :
               userInterface === 'rhpds' ? title.replace('Babylon', 'RHPDS') : title

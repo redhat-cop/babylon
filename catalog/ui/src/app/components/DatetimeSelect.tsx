@@ -54,6 +54,7 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
       <DropdownItem
         id={`${idPrefix}${t}`}
         className={isCurrent ? "rhpds-datetime-select-current" : ""}
+        //TODO: boolean required but string is used
         isHovered={isCurrent}
         isPlainText={isCurrent}
         key={t}
