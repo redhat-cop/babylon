@@ -13,7 +13,10 @@ import {
   IItems,
   IActionSetImpersonation,
   IActionStartSession,
-  I__actionSetCatalogItemsForNamespace
+  I__actionSetCatalogItemsForNamespace,
+  ICatalogItem,
+  ICatalogItemsObj,
+  ICatalogItemsNamespaceObj
 } from "./entities";
 
 import {
@@ -29,7 +32,7 @@ async function refreshCatalogItems(triggeredByTimeout: null | ReturnType<typeof 
   const namespaces = selectCatalogNamespaces(state).map(n => n.name);
   const userIsAdmin = selectUserIsAdmin(state);
   if (userIsAdmin) {
-    const catalogItems = {};
+    const catalogItems : ICatalogItem = {} as ICatalogItem;
     let _continue: string = "";
     while (true) {
       const resp: IListCustomerCustomObjectResp = await listClusterCustomObject(
@@ -39,7 +42,6 @@ async function refreshCatalogItems(triggeredByTimeout: null | ReturnType<typeof 
           limit: 100,
         }
       );
-      console.log("resp", resp);
       if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
       if (!resp.items) { break }
       for (let i=0; i < resp.items.length; ++i) {
@@ -66,8 +68,8 @@ async function refreshCatalogItems(triggeredByTimeout: null | ReturnType<typeof 
     );
   } else {
     for (let n=0; n < namespaces.length; ++n) {
-      const namespace = namespaces[n];
-      const catalogItems : any[] = [];
+      const namespace: string = namespaces[n];
+      const catalogItems: ICatalogItem[] = [];
       let _continue = null;
       while (true) {
         const resp = await listNamespacedCustomObject(
@@ -77,7 +79,6 @@ async function refreshCatalogItems(triggeredByTimeout: null | ReturnType<typeof 
             limit: 100,
           }
         );
-        console.log("resp", resp);
         if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
         if (!resp.items) { break }
         catalogItems.push(...resp.items);
@@ -342,8 +343,8 @@ export const apiActionInsertResourceClaim = createAction<any>("insertResourceCla
 export const apiActionUpdateResourceClaim = createAction<any>("updateResourceClaim")
 
 // Private actions
-export const __actionSetCatalogItems = createAction<any>("setCatalogItems");
-export const __actionSetCatalogItemsForNamespace = createAction<any>("setCatalogItemsForNamespace");
+export const __actionSetCatalogItems = createAction<ICatalogItemsObj>("setCatalogItems");
+export const __actionSetCatalogItemsForNamespace = createAction<ICatalogItemsNamespaceObj>("setCatalogItemsForNamespace");
 export const __actionSetResourceClaims = createAction<any>("setResourceClaims");
 export const __actionSetResourceClaimsForNamespace = createAction<any>("setResourceClaimsForNamespace");
 

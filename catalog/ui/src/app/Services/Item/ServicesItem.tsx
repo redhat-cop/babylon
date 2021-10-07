@@ -112,11 +112,11 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   location,
 }) => {
   const history = useHistory();
-  const location = useLocation();
+  // const location = useLocation();
   const nsLocationMatch = location.pathname.match(/^\/services\/ns\/([^\/]+)\/item\/([^\/]+)(?:\/([^\/]+))?/);
   const itemLocationMatch = location.pathname.match(/^\/services\/item\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?/);
 
-  const resourceClaimNamespace = nsLocationMatch?.[1] || itemLocationMatch?.[1];
+  const resourceClaimNamespace: any = nsLocationMatch?.[1] || itemLocationMatch?.[1];
   const resourceClaimName = nsLocationMatch?.[2] || itemLocationMatch?.[2];
   const serviceNamespaceName = nsLocationMatch?.[1];
   const servicesPath = serviceNamespaceName ? `/services/ns/${serviceNamespaceName}` : '/services';
@@ -145,8 +145,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     delete prunedResourceClaim.metadata.selfLink;
   }
 
-  const [openModal, setOpenModal] = React.useState(null);
-  const [scheduleActionKind, setScheduleActionKind] = React.useState(null);
+  const [openModal, setOpenModal] = React.useState("");
+  const [scheduleActionKind, setScheduleActionKind] = React.useState("");
 
   const catalogItemDisplayName = (
     resourceClaim?.metadata?.annotations?.["babylon.gpte.redhat.com/catalogItemDisplayName"] ||
@@ -189,15 +189,15 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   }
 
   function closeModal(): void {
-    setOpenModal(null);
+    setOpenModal("");
   }
 
-  async function handleDelete(): void {
+  async function handleDelete(): Promise<void> {
     await deleteResourceClaim(resourceClaim);
     history.push(servicesPath);
   }
 
-  async function handleScheduleAction(time): void {
+  async function handleScheduleAction(time): Promise<void> {
     if (scheduleActionKind === "retirement") {
       await setLifespanEndForResourceClaim(resourceClaim, time);
     } else if (scheduleActionKind === "stop") {
@@ -206,12 +206,12 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     closeModal();
   }
 
-  async function handleStartAll(): void {
+  async function handleStartAll(): Promise<void> {
     await startAllResourcesInResourceClaim(resourceClaim);
     closeModal();
   }
 
-  async function handleStopAll(): void {
+  async function handleStopAll(): Promise<void> {
     await stopAllResourcesInResourceClaim(resourceClaim);
     closeModal();
   }
@@ -399,7 +399,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                             </DescriptionListDescription>
                           </DescriptionListGroup>
                           { externalPlatformUrl ? null :
-                            (startDate && startDate > Date.now()) ? (
+                            (startDate && Number(startDate) > Date.now()) ? (
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
                               <DescriptionListDescription>
@@ -407,7 +407,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                                 <TimeInterval to={startTimestamp}/>)
                               </DescriptionListDescription>
                             </DescriptionListGroup>
-                          ) : (stopDate && stopDate > Date.now()) ? (
+                          ) : (stopDate && Number(stopDate) > Date.now()) ? (
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
                               <DescriptionListDescription>
@@ -437,7 +437,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                           <DescriptionListDescription>
                             <div
                               dangerouslySetInnerHTML={{ __html: renderContent(
-                                (typeof provisionMessages === 'string' ? provisionMessages : provisionMessages.join("\n")).replaceAll(/^\s+|\s+$/g, '').replaceAll(/([^\n])\n(?!\n)/g, "$1 +\n")
+                                (typeof provisionMessages === 'string' ? provisionMessages : provisionMessages.join("\n")).replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, "$1 +\n")
                               ) }}
                             />
                           </DescriptionListDescription>
@@ -479,7 +479,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
             ) : null }
             { Object.keys(users).length > 0 ? (
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
-                { Object.entries(users).map(([userName, userData]) => {
+                { Object.entries(users).map(([userName, userData]: any) => {
                   const userLabUrl = labUserInterfaceUrls[userName] || userData.bookbag_url;
                   const userDataEntries = Object.entries(userData).filter(([key, value]) => !['bookbag_url', 'msg'].includes(key));
                   const userMessages = userData.msg;
@@ -499,7 +499,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                         <DescriptionListGroup>
                           <DescriptionListTerm>User Messages</DescriptionListTerm>
                           <DescriptionListDescription>
-                            <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replaceAll(/^\s+|\s+$/g, '').replaceAll(/([^\n])\n(?!\n)/g, "$1 +\n")) }}/>
+                            <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, "$1 +\n")) }}/>
                           </DescriptionListDescription>
                         </DescriptionListGroup>
                       ) : null }

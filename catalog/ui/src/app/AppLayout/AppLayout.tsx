@@ -154,11 +154,12 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   }
 
   function onUserImpersonationSearchInputChange(value: string) {
-    const filteredUsers = users.filter(user => user.metadata.name.startsWith(value));
+    const exactMatch = users.filter(user => user.metadata.name === value);
+    const filteredUsers = exactMatch.length === 1 ? exactMatch : users.filter(user => user.metadata.name.startsWith(value));
     setUserImpersonationDialogState({
       isOpen: true,
       matchCount: filteredUsers.length,
-      value: filteredUsers.length == 1 ? filteredUsers[0].metadata.name : value,
+      value: filteredUsers.length === 1 ? filteredUsers[0].metadata.name : value,
     });
   }
 

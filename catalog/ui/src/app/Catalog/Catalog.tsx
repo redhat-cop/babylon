@@ -93,9 +93,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 }) => {
   const history = useHistory();
 
-  const catalogNamespaceRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/ns/:namespace');
-  const catalogNamespaceItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/ns/:namespace/item/:name');
-  const catalogItemRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/item/:namespace/:name');
+  const catalogNamespaceRouteMatch = useRouteMatch<any>('/catalog/ns/:namespace');
+  const catalogNamespaceItemRouteMatch = useRouteMatch<any>('/catalog/ns/:namespace/item/:name');
+  const catalogItemRouteMatch = useRouteMatch<any>('/catalog/item/:namespace/:name');
 
   const catalogItemNamespaceName = catalogNamespaceItemRouteMatch?.params.namespace || catalogItemRouteMatch?.params.namespace;
   const catalogItemName = catalogNamespaceItemRouteMatch?.params.name || catalogItemRouteMatch?.params.name;
@@ -121,7 +121,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const selectedCatalogItemProvider = selectedCatalogItem?.metadata?.labels?.['babylon.gpte.redhat.com/provider']
 
 
-  function category(catalogItem): string {
+  function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
       return catalogItem.metadata.labels['babylon.gpte.redhat.com/category'];
     } else {
@@ -146,7 +146,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     }
   }
 
-  async function requestCatalogItem(): void {
+  async function requestCatalogItem(): Promise<void> {
     // Either direct user to request form or immediately request if form would be empty.
     if (
       selectedCatalogItem.spec.termsOfService ||
@@ -202,7 +202,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       }}
     />
   ) : null;
-
   const selectedCatalogItemAccess = checkAccessControl(selectedCatalogItem?.spec?.accessControl, userGroups);
   const selectedCatalogItemDisplay = selectedCatalogItem ? (
     <DrawerPanelContent
@@ -271,8 +270,8 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                 const value = selectedCatalogItem.metadata.labels[label];
                 return (
                   <DescriptionListGroup key={attr}>
-                    <DescriptionListTerm>{attr.replaceAll('_', ' ')}</DescriptionListTerm>
-                    <DescriptionListDescription>{value.replaceAll('_', ' ')}</DescriptionListDescription>
+                    <DescriptionListTerm>{attr.replace(/_/g, ' ')}</DescriptionListTerm>
+                    <DescriptionListDescription>{value.replace(/_/g, ' ')}</DescriptionListDescription>
                   </DescriptionListGroup>
                 );
               })
@@ -288,7 +287,11 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   ) : null;
 
   const allCatalogItems = (
-    (catalogNamespaceName ? (catalogItems[catalogNamespaceName] || []) : Object.values(catalogItems || []).flat())
+    catalogNamespaceName ? (
+      catalogItems[catalogNamespaceName] || []
+    ) : (
+      Object.values(catalogItems || []).reduce((a, v) => a.concat(v), [])
+    )
   );
 
   const availableCatalogItems = allCatalogItems.filter(ci => {
@@ -304,10 +307,10 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const filteredCatalogItems = availableCatalogItems.filter(ci => {
     const ciCategory = category(ci);
     if (keywordSearchValue) {
-      let keywordMatch = false;
-      const keywords = keywordSearchValue.trim().split();
+      const keywords = keywordSearchValue.trim().split(/ +/);
       for (let i=0; i < keywords.length; ++i) {
         const keyword = keywords[i].toLowerCase();
+        let keywordMatch = null;
         if (ci.metadata.name.toLowerCase().includes(keyword)
           || displayName(ci).toLowerCase().includes(keyword)
           || (ciCategory && ciCategory.toLowerCase().includes(keyword))
@@ -324,31 +327,36 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
             }
           }
         }
-        if (keywordMatch) {
-          break;
+
+        if (!keywordMatch) {
+          return false;
         }
-      }
-      if (!keywordMatch) {
-        return false;
       }
     }
 
     for (const [attrKey, valueFilters] of Object.entries(selectedAttributeFilters)) {
+      // Default to null, not matched or not matched, means no values were selected for this attribute.
       let attrMatch = null;
-      for (const [valueKey, selected] of Object.entries(valueFilters)) {
+      for (const [valueKey, selected] of Object.entries(valueFilters as any)) {
         if (selected) {
+          // If any filter is selected then a match is required.
           if (attrMatch === null) {
             attrMatch = false;
           }
+          // If any label matches a selected value then the attribute filter matches
           if (ci.metadata.labels) {
             for (const [label, value] of Object.entries(ci.metadata.labels)) {
               if (label.startsWith('babylon.gpte.redhat.com/')) {
                 const attr = label.substring(24);
-                if (attrKey == attr.toLowerCase() && valueKey == value.toLowerCase()) {
+                if (attrKey == attr.toLowerCase() && valueKey == (value as string).toLowerCase()) {
                   attrMatch = true;
+                  break;
                 }
               }
             }
+          }
+          if (attrMatch) {
+            break;
           }
         }
       }
@@ -371,8 +379,8 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     .filter(category => category)
   ));
   categories.sort((a, b) => {
-    const av = a.toUpperCase();
-    const bv = b.toUpperCase();
+    const av = (a as string).toUpperCase();
+    const bv = (b as string).toUpperCase();
     if (av == 'OTHER') {
       return 1;
     } else if( bv == 'OTHER') {
@@ -383,7 +391,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   });
 
   function extractAttributeFilters (catalogItems) {
-    const attributeFilters = {};
+    const attributeFilters: any = {};
     for (let i=0; i < catalogItems.length; ++i) {
       const ci = availableCatalogItems[i];
       if (!ci.metadata.labels) { continue; }
@@ -400,7 +408,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         const valueKey = value.toLowerCase();
         if (!attributeFilters[attrKey]) {
           attributeFilters[attrKey] = {
-            text: attr.replaceAll('_', ' '),
+            text: attr.replace(/_/g, ' '),
             values: {},
           }
         }
@@ -411,7 +419,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           labelValues[valueKey] = {
             count: 1,
             selected: selectedAttributeFilters[attrKey]?.[valueKey],
-            text: value.replaceAll('_', ' '),
+            text: value.replace(/_/g, ' '),
           }
         }
       }
@@ -480,7 +488,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   };
 
   const renderCategoryTab = (category: string) => (
-    <Tab key={category} eventKey={category} title={<TabTitleText>{category.replaceAll('_', ' ')}</TabTitleText>} aria-controls=""></Tab>
+    <Tab key={category} eventKey={category} title={<TabTitleText>{category.replace(/_/g, ' ')}</TabTitleText>} aria-controls=""></Tab>
   );
 
   return (
@@ -536,14 +544,14 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                       onSelect={selectActiveCategory}
                       inset={{default: 'insetNone', sm: 'insetNone', md: 'insetNone', lg: 'insetNone', xl: 'insetNone', '2xl': 'insetNone'}}>
                       <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
-                      { categories.map(cat => renderCategoryTab(cat)) }
+                      { categories.map(cat => renderCategoryTab(cat as string)) }
                     </Tabs>
                     <Form>
-                    { Object.entries(attributeFilters).sort().map( ([attrKey, attr]) => (
+                    { Object.entries(attributeFilters).sort().map( ([attrKey, attr]: [any, any]) => (
                       <FormGroup key={attrKey} fieldId={attrKey}>
                         <fieldset>
                         <legend className="pf-c-form__label"><span className="pf-c-form__label-text">{attr.text}</span></legend>
-                      { Object.entries(attr.values).sort().map( ([valueKey, value]) => (
+                      { Object.entries(attr.values).sort().map( ([valueKey, value]: [any, any]) => (
                         <Checkbox id={attrKey + '/' + valueKey} key={attrKey + '/' + valueKey}
                           label={value.text + ' (' + value.count + ')'}
                           isChecked={value.selected}
@@ -564,7 +572,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
                   </SidebarPanel>
                   <SidebarContent>
                     <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-box-header">
-                      <div className="rhpds-catalog-title">{activeCategory == 'all' ? 'All Items' : activeCategory.replaceAll('_', ' ')}</div>
+                      <div className="rhpds-catalog-title">{activeCategory == 'all' ? 'All Items' : activeCategory.replace(/_/g, ' ')}</div>
                       <div className="rhpds-catalog-filter">
                         <SearchInput className="rhpds-catalog-keyword-search"
                           value=""

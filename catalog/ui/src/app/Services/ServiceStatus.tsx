@@ -11,13 +11,13 @@ import {
   PlayIcon,
   PowerOffIcon,
   QuestionCircleIcon,
-  ExclamationCircleIcon,
   TrashIcon,
 } from '@patternfly/react-icons';
 
 export interface ServiceStatusProps {
-  resource?: object;
-  resourceTemplate?: object;
+  creationTime: number;
+  resource?: any;
+  resourceTemplate?: any;
 }
 
 const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
@@ -28,9 +28,9 @@ const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
   const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
   const desiredState = resourceTemplate?.spec?.vars?.desired_state;
   const startTimestamp = resourceTemplate?.spec?.vars?.action_schedule?.start || resource?.spec?.vars?.action_schedule?.start;
-  const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
+  const startTime = startTimestamp || Date.parse(startTimestamp);
   const stopTimestamp = resourceTemplate?.spec?.vars?.action_schedule?.stop || resource?.spec?.vars?.action_schedule?.stop;
-  const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+  const stopTime = stopTimestamp || Date.parse(stopTimestamp);
 
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
