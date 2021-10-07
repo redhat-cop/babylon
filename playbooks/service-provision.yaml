@@ -308,7 +308,6 @@
           spec:
             lifespan:
               end: "{{ '%FT%TZ' | strftime(1000 * 24 * 60 * 60 + ansible_date_time.epoch | int) }}"
-            resourceClaim: "{{ resource_handle.spec.resourceClaim }}"
             resources:
             - >-
               {{ resource_handle.spec.resources[0] | combine(__resource_item_patch) }}
