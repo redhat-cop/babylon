@@ -13,7 +13,6 @@ import {
   IItems,
   IActionSetImpersonation,
   IActionStartSession,
-  I__actionSetCatalogItemsForNamespace,
   ICatalogItem,
   ICatalogItemsObj,
   ICatalogItemsNamespaceObj
