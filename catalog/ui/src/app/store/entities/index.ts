@@ -7,3 +7,8 @@ export {
     IActionStartSession,
     I__actionSetCatalogItemsForNamespace
 } from "./IActions";
+export {
+    ICatalogItem,
+    ICatalogItemsObj,
+    ICatalogItemsNamespaceObj
+} from "./ICatalogItemsObject";

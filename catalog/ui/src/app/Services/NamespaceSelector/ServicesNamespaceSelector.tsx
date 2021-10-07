@@ -8,12 +8,12 @@ import {
   PageSectionVariants,
 } from '@patternfly/react-core';
 
-import { ServiceNamespace } from '@/app/types';
+import { ServiceNamespace } from '../../../../src/app/types';
 
 import './services-namespace-selector.css';
 
 export interface ServicesNamespaceSelectorProps {
-  current: string;
+  current: string | undefined;
   namespaces: ServiceNamespace[];
   onSelect: (ns?: string) => void;
 }
