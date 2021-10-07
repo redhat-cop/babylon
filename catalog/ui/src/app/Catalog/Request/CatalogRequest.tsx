@@ -36,7 +36,8 @@ import {
   SelectOption,
   SelectVariant,
   TextInput,
-  Title
+  Title,
+  ValidatedOptions
 } from '@patternfly/react-core';
 
 import {
@@ -53,8 +54,8 @@ import {
   recursiveAssign,
 } from '@app/util';
 
-import { DynamicFormInput } from '@app/components/DynamicFormInput.tsx';
-import { TermsOfService  } from '@app/components/TermsOfService.tsx';
+import { DynamicFormInput } from '@app/components/DynamicFormInput';
+import { TermsOfService  } from '@app/components/TermsOfService';
 
 export interface CatalogRequestProps {
   location?: any;
@@ -65,16 +66,16 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
 }) => {
   const history = useHistory();
 
-  const catalogRequestRouteMatch = useRouteMatch<IHostsMatchParams>('/catalog/request/:namespace/:name');
-  const catalogNamespaceName = catalogRequestRouteMatch.params.namespace;
-  const catalogItemName = catalogRequestRouteMatch.params.name;
+  const catalogRequestRouteMatch = useRouteMatch<any>('/catalog/request/:namespace/:name');
+  const catalogNamespaceName = catalogRequestRouteMatch?.params.namespace;
+  const catalogItemName = catalogRequestRouteMatch?.params.name;
 
   const catalogItems = useSelector(selectCatalogItems);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const catalogNamespace = catalogNamespaces.find(ns => ns.name == catalogNamespaceName)
 
   const [termsOfServiceAgreed, setTermsOfServiceAgreed] = React.useState(false);
-  const [parameterState, setParameterState] = React.useState(null);
+  const [parameterState, setParameterState] = React.useState({});
   const [parameterValidationState, setParameterValidationState] = React.useState({});
 
   const catalogItem = (
@@ -86,7 +87,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
     (termsOfServiceAgreed || !catalogItem?.spec?.termsOfService) &&
     Object.values(parameterValidationState).find(v => v === false) !== false
   );
-  const formGroups = [];
+  const formGroups: { formGroupLabel: any; key: any; parameters: any[]; }[] = [];
   const parameters = catalogItem?.spec?.parameters || [];
   const parameterDefaults = {};
 
@@ -124,12 +125,12 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
     }
   }
 
-  async function onTermsOfServiceChange(): void {
+  async function onTermsOfServiceChange(): Promise<void> {
     setTermsOfServiceAgreed(value => !value);
   }
 
-  async function submitRequest(): void {
-    const requestParameters = []
+  async function submitRequest(): Promise<void> {
+    const requestParameters : any[] = [];
     for (const parameter of parameters) {
       // Only pass parameter if form parameter is not disabled
       if (!parameter.formDisableCondition || !checkCondition(parameter.formDisableCondition, parameterState)) {
@@ -161,10 +162,12 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
         return (
           <FormGroup
             key={formGroup.key}
+            fieldId={"ID"}
             label={formGroup.formGroupLabel}
             helperText={
               <FormHelperText icon={<ExclamationCircleIcon />} isHidden={validated !== false} isError={validated === false}>{ invalidParameter?.description }</FormHelperText>
             }
+            // TODO: string required but boolean is used.
             validated={validated}
           >
             { formGroup.parameters.map(parameter => (
@@ -173,7 +176,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
                 isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
                 parameter={parameter}
                 value={parameterState[parameter.name]}
-                onChange={(value, isValid=null) => {
+                onChange={(value: any, isValid=null) => {
                   setParameterState(state => Object.assign({}, state, {[parameter.name]: value}));
                   if (isValid !== null) {
                     setParameterValidationState(state => Object.assign({}, state, {[parameter.name]: isValid}));

@@ -3,7 +3,7 @@ import * as React from 'react';
 import StarRatings from 'react-star-ratings';
 
 export interface CatalogItemRatingProps {
-  catalogItem: object;
+  catalogItem: any;
   starDimension: string;
 }
 
