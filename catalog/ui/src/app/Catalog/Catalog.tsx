@@ -290,7 +290,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
     catalogNamespaceName ? (
       catalogItems[catalogNamespaceName] || []
     ) : (
-      Object.values(catalogItems || []).reduce((a, v) => a.concat(v), [])
+      Object.values(catalogItems || []).reduce((a : any, v) => a.concat(v), [])
     )
   );
 

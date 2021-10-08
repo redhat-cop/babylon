@@ -210,6 +210,7 @@
             {%- else -%}
             {{ __babylon_provider_resource_item }}
             {%- endif -%}
+    register: r_create_resource_claim
 
   - name: Report ResourceClaim
     debug:
@@ -236,8 +237,9 @@
          Check poolboy logs:
            oc logs -n poolboy deployment/poolboy | fgrep {{ resource_claim_name }}
 
-  - name: Set fact for ResourceHandle name
+  - name: Set fact for ResourceClaim and ResourceHandle name
     set_fact:
+      resource_claim: "{{ r_claim.resources[0] }}"
       resource_handle_name: "{{ r_claim.resources[0].status.resourceHandle.name }}"
 
   - name: Report ResourceHandle
@@ -286,7 +288,7 @@
             resourceClaim: "{{ resource_handle.spec.resourceClaim }}"
             resources:
             - >-
-              {{ resource_handle.spec.resources[0] | combine(__resource_item_patch) }}
+              {{ resource_claim.spec.resources[0] | combine(__resource_item_patch) }}
 
     - name: Override lifespan and runtime in ResourceClaim
       vars:
@@ -308,7 +310,6 @@
           spec:
             lifespan:
               end: "{{ '%FT%TZ' | strftime(1000 * 24 * 60 * 60 + ansible_date_time.epoch | int) }}"
-            resourceClaim: "{{ resource_handle.spec.resourceClaim }}"
             resources:
             - >-
               {{ resource_handle.spec.resources[0] | combine(__resource_item_patch) }}

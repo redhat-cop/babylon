@@ -5,7 +5,6 @@ export {
 export {
     IActionSetImpersonation, 
     IActionStartSession,
-    I__actionSetCatalogItemsForNamespace
 } from "./IActions";
 export {
     ICatalogItem,
