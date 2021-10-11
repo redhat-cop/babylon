@@ -156,7 +156,8 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
     <Form className="rhpds-catalog-request-form">
       { (formGroups).map(formGroup => {
         const invalidParameter = formGroup.parameters.find(parameter => (parameterValidationState[parameter.name] === false));
-        const validated = invalidParameter ? false : (
+        // TODO: string required but boolean is used. 
+        const validated : any= invalidParameter ? false : (
           formGroup.parameters.find(parameter => (parameterValidationState[parameter.name] === true))
         ) ? true : null;
         return (
@@ -167,7 +168,6 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
             helperText={
               <FormHelperText icon={<ExclamationCircleIcon />} isHidden={validated !== false} isError={validated === false}>{ invalidParameter?.description }</FormHelperText>
             }
-            // TODO: string required but boolean is used.
             validated={validated}
           >
             { formGroup.parameters.map(parameter => (
