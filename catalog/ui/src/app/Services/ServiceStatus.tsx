@@ -32,6 +32,9 @@ const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
   const stopTimestamp = resourceTemplate?.spec?.vars?.action_schedule?.stop || resource?.spec?.vars?.action_schedule?.stop;
   const stopTime = stopTimestamp || Date.parse(stopTimestamp);
 
+  if (resource === undefined) {
+    return (<span className="rhpds-status-unknown"><Spinner isSVG size="md" /> Requested</span>);
+  }
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
       return (<span className="rhpds-status-unknown"><Spinner isSVG size="md" /> Requested</span>);
