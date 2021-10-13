@@ -154,30 +154,36 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     "Service"
   );
 
-  const hasMultipleResources = (resourceClaim?.spec?.resources || []).length > 1;
-
   const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
   const canStart = checkResourceClaimCanStart(resourceClaim);
   const canStop = checkResourceClaimCanStop(resourceClaim);
-  const labUserInterfaceDataJSON = (
+
+  const resources = (resourceClaim?.status?.resources || []).map(r => r.state);
+
+  // Find lab user interface information either in the resource claim or inside resources
+  // associated with the provisioned service.
+  const labUserInterfaceData = (
     resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceData'] ||
-    (resourceClaim?.status?.resources || []).map(
-      r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.lab_ui_data : r.state?.data?.labUserInterfaceData
-    ).find(u => u != null)
+    resources.map(
+      r => r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
+    ).map(j => typeof(j) === 'string' ? JSON.parse(j) : j).find(u => u != null)
   );
-  const labUserInterfaceData = labUserInterfaceDataJSON ? typeof(labUserInterfaceDataJSON) === 'string' ? JSON.parse(labUserInterfaceDataJSON) : labUserInterfaceDataJSON : null;
+
   const labUserInterfaceMethod = (
     resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceMethod'] ||
-    (resourceClaim?.status?.resources || []).map(
-      r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.lab_ui_method : r.state?.data?.labUserInterfaceMethod
+    resources.map(
+      r => r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
     ).find(u => u != null)
   );
   const labUserInterfaceUrl = (
     resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrl'] ||
-    (resourceClaim?.status?.resources || []).map(
-      r => r.state?.kind === 'AnarchySubject' ? r.state.spec?.vars?.provision_data?.bookbag_url || r.state.spec?.vars?.provision_data?.lab_ui_url : r.state?.data?.labUserInterfaceUrl
-    ).find(u => u != null)
+    resources.map(r => {
+      const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
+      return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
+    }).find(u => u != null)
   );
+
+  // Multiple lab user interface urls for multiuser environments.
   const labUserInterfaceUrls = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrls'] || '{}')
 
   const users = {};
@@ -296,7 +302,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       { resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' ? (
         <PageSection key="body" variant={PageSectionVariants.light} className="rhpds-services-item-body" style={{"paddingTop": "1em"}}>
           <p>Thank you for your interest in {catalogItemDisplayName}!</p>
-          <p>This service is not available at this time. We will contact you soon.</p>
+          <p>Your request for information about this catalog item has been recorded.</p>
         </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="rhpds-services-item-body">
@@ -353,7 +359,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 const provisionData = resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.provision_data : JSON.parse(resourceState?.data?.userData || '{}');
                 const provisionMessages = resourceState?.kind === 'AnarchySubject' ? resourceState?.spec?.vars?.provision_messages : provisionData?.msg;
                 const provisionDataEntries = provisionData ? Object.entries(provisionData).filter(([key, value]) => {
-                  if (key === 'bookbag_url' || key === 'msg' || key === 'users') {
+                  if (key === 'bookbag_url' || key === 'lab_ui_url' || key === 'labUserInterfaceUrl' || key === 'msg' || key === 'users') {
                     return false;
                   }
                   if (userData) {
@@ -480,8 +486,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
             { Object.keys(users).length > 0 ? (
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
                 { Object.entries(users).map(([userName, userData]: any) => {
-                  const userLabUrl = labUserInterfaceUrls[userName] || userData.bookbag_url;
-                  const userDataEntries = Object.entries(userData).filter(([key, value]) => !['bookbag_url', 'msg'].includes(key));
+                  const userLabUrl = labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url;
+                  const userDataEntries = Object.entries(userData).filter(([key, value]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg');
                   const userMessages = userData.msg;
                   return (
                     <React.Fragment key={userName}>

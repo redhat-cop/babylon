@@ -385,6 +385,10 @@ def get_auth_session():
         "serviceNamespaces": service_namespaces,
         "userNamespace": user_namespace,
     }
+    if not user_is_admin:
+        ret['quota'] = {
+            "services": 3,
+        }
     if interface_name:
         ret['interface'] = interface_name
 
@@ -437,6 +441,10 @@ def get_auth_users_info(user_name):
         "serviceNamespaces": service_namespaces,
         "userNamespace": user_namespace,
     }
+    if not user_is_admin:
+        ret['quota'] = {
+            "services": 3,
+        }
     return flask.jsonify(ret)
 
 @application.route("/api/service/<service_namespace>/<service_name>/openstack/servers", methods=['GET'])
