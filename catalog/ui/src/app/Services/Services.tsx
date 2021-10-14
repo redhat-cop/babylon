@@ -392,9 +392,10 @@ const Services: React.FunctionComponent<ServicesProps> = ({
             );
             const labUserInterfaceUrl = (
               resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrl'] ||
-              resources.map(
-                r => r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.bookbag_url : r?.data?.labUserInterfaceUrl
-              ).find(u => u != null)
+              resources.map(r => {
+                const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
+                return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
+              }).find(u => u != null)
             );
 
             const resourceClaimNamespace = serviceNamespaces.find(ns => ns.name === resourceClaim.metadata.namespace);
