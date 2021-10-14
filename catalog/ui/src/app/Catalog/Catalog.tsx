@@ -349,7 +349,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           if (ci.metadata.labels) {
             for (const [label, value] of Object.entries(ci.metadata.labels)) {
               if (label.startsWith('babylon.gpte.redhat.com/')) {
-                const attr = label.substring(24);
+                const attr = label.substring(24).replace(/-[0-9]+$/, '');
                 if (attrKey == attr.toLowerCase() && valueKey == (value as string).toLowerCase()) {
                   attrMatch = true;
                   break;
@@ -404,7 +404,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         ) {
           continue;
         }
-        const attr = label.substring(24);
+        const attr = label.substring(24).replace(/-[0-9]+$/, '');
         const attrKey = attr.toLowerCase();
         const value = ci.metadata.labels[label];
         const valueKey = value.toLowerCase();
