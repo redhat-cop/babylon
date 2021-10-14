@@ -453,9 +453,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
             <CatalogItemIcon icon={icon(catalogItem)} />
             <div>
               <div>
-                {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/product'] ? (
-                  <Badge className="rhpds-product-badge">{catalogItem.metadata.labels['babylon.gpte.redhat.com/product']}</Badge>
-                ) : null }
                 {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'] === 'dev' ? (
                   <Badge className="rhpds-dev-badge">development</Badge>
                 ) : null }
