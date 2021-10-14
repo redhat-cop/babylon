@@ -374,7 +374,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   });
 
   const categories = Array.from(new Set(
-    allCatalogItems
+    availableCatalogItems
     .map(ci => category(ci))
     .filter(category => category)
   ));
