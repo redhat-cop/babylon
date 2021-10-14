@@ -222,6 +222,25 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     closeModal();
   }
 
+  const actionHandlers = {
+    delete: () => {
+      setOpenModal("delete");
+    },
+    lifespan: () => {
+      setScheduleActionKind("retirement");
+      setOpenModal("scheduleAction");
+    },
+  }
+
+  if (resources.find(r => r?.kind === 'AnarchySubject')) {
+    actionHandlers['runtime'] = () => {
+      setScheduleActionKind("stop");
+      setOpenModal("scheduleAction");
+    };
+    actionHandlers['start'] = () => setOpenModal("start");
+    actionHandlers['stop'] = () => setOpenModal("stop");
+  }
+
   if (resourceClaim) {
     return (<>
       <ServicesItemDeleteModal key="delete"
@@ -275,25 +294,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               <ServiceActions
                 position="right"
                 resourceClaim={resourceClaim}
-                actionHandlers={{
-                  delete: () => {
-                    setOpenModal("delete");
-                  },
-                  lifespan: () => {
-                    setScheduleActionKind("retirement");
-                    setOpenModal("scheduleAction");
-                  },
-                  runtime: () => {
-                    setScheduleActionKind("stop");
-                    setOpenModal("scheduleAction");
-                  },
-                  start: () => {
-                    setOpenModal("start");
-                  },
-                  stop: () => {
-                    setOpenModal("stop");
-                  },
-                }}
+                actionHandlers={actionHandlers}
               />
             ) }
           </SplitItem>
