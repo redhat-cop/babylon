@@ -376,6 +376,17 @@ const Services: React.FunctionComponent<ServicesProps> = ({
             const specResources = resourceClaim.spec.resources || [];
             const resources = (resourceClaim.status?.resources || []).map(r => r.state);
 
+            // Available actions depends on kind of service
+            const actionHandlers = {
+              delete: () => openDeleteModal(resourceClaim),
+              lifespan: () => openScheduleActionModal(resourceClaim, 'retirement'),
+            };
+            if (resources.find(r => r?.kind === 'AnarchySubject')) {
+              actionHandlers['runtime'] = () => openScheduleActionModal(resourceClaim, 'stop');
+              actionHandlers['start'] = () => openStartModal(resourceClaim, 'start');
+              actionHandlers['stop'] = () => openStopModal(resourceClaim, 'stop');
+            }
+
             // Find lab user interface information either in the resource claim or inside resources
             // associated with the provisioned service.
             const labUserInterfaceData = (
@@ -447,13 +458,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
                 <ServiceActions
                   position="right"
                   resourceClaim={resourceClaim}
-                  actionHandlers={{
-                    delete: () => openDeleteModal(resourceClaim),
-                    lifespan: () => openScheduleActionModal(resourceClaim, 'retirement'),
-                    runtime: () => openScheduleActionModal(resourceClaim, 'stop'),
-                    start: () => openStartModal(resourceClaim, 'start'),
-                    stop: () => openStopModal(resourceClaim, 'stop'),
-                  }}
+                  actionHandlers={actionHandlers}
                 />
               </div>),
             ];

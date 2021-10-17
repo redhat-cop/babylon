@@ -288,7 +288,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   const allCatalogItems = (
     catalogNamespaceName ? (
-      catalogItems[catalogNamespaceName] || []
+      catalogItems?.[catalogNamespaceName] || []
     ) : (
       Object.values(catalogItems || []).reduce((a : any, v) => a.concat(v), [])
     )
@@ -306,6 +306,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   const filteredCatalogItems = availableCatalogItems.filter(ci => {
     const ciCategory = category(ci);
+    const ciDescription = ci.metadata.annotations?.['babylon.gpte.redhat.com/description'];
     if (keywordSearchValue) {
       const keywords = keywordSearchValue.trim().split(/ +/);
       for (let i=0; i < keywords.length; ++i) {
@@ -314,6 +315,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         if (ci.metadata.name.toLowerCase().includes(keyword)
           || displayName(ci).toLowerCase().includes(keyword)
           || (ciCategory && ciCategory.toLowerCase().includes(keyword))
+          || (ciDescription && ciDescription.toLowerCase().includes(keyword))
         ) {
           keywordMatch = true;
         }
@@ -347,7 +349,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           if (ci.metadata.labels) {
             for (const [label, value] of Object.entries(ci.metadata.labels)) {
               if (label.startsWith('babylon.gpte.redhat.com/')) {
-                const attr = label.substring(24);
+                const attr = label.substring(24).replace(/-[0-9]+$/, '');
                 if (attrKey == attr.toLowerCase() && valueKey == (value as string).toLowerCase()) {
                   attrMatch = true;
                   break;
@@ -374,7 +376,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   });
 
   const categories = Array.from(new Set(
-    allCatalogItems
+    availableCatalogItems
     .map(ci => category(ci))
     .filter(category => category)
   ));
@@ -402,7 +404,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         ) {
           continue;
         }
-        const attr = label.substring(24);
+        const attr = label.substring(24).replace(/-[0-9]+$/, '');
         const attrKey = attr.toLowerCase();
         const value = ci.metadata.labels[label];
         const valueKey = value.toLowerCase();
@@ -451,9 +453,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
             <CatalogItemIcon icon={icon(catalogItem)} />
             <div>
               <div>
-                {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/product'] ? (
-                  <Badge className="rhpds-product-badge">{catalogItem.metadata.labels['babylon.gpte.redhat.com/product']}</Badge>
-                ) : null }
                 {catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'] === 'dev' ? (
                   <Badge className="rhpds-dev-badge">development</Badge>
                 ) : null }
