@@ -113,9 +113,13 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       });
     }
   }
-  if (catalogItem && !parameterState) {
-    setParameterState(parameterDefaults);
-  }
+
+  // Initialize value to defaults
+  React.useEffect(() => {
+    if (catalogItem) {
+      setParameterState(parameterDefaults);
+    }
+  }, [catalogItem?.metadata?.uid])
 
   function cancelRequest(): void {
     if (location.state) {
