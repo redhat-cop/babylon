@@ -6,6 +6,7 @@ import {
 
 import {
   selectCatalogItems,
+  selectResourceClaims,
   selectCatalogNamespaces,
   selectUserGroups,
   selectInterface,
@@ -105,6 +106,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const userGroups = useSelector(selectUserGroups);
   const userInterface = useSelector(selectInterface);
   const userIsAdmin = useSelector(selectUserIsAdmin);
+  const allResourceClaims = useSelector(selectResourceClaims);
   const catalogItems = useSelector(selectCatalogItems);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const catalogNamespace = catalogNamespaceName ? (catalogNamespaces.find(ns => ns.name == catalogNamespaceName) || {name: catalogNamespaceName, displayName: catalogNamespaceName, description: ""}) : null;
@@ -120,6 +122,15 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   ).find(ci => ci.metadata.name == catalogItemName) : null;
   const selectedCatalogItemProvider = selectedCatalogItem?.metadata?.labels?.['babylon.gpte.redhat.com/provider']
 
+  const pathname = window.location.pathname.split('/');
+  const currentService = pathname[pathname.length - 1];
+  const resourceClaim = Object.values(allResourceClaims !== null ? allResourceClaims : {});
+  const resources = [];
+  for (const r of resourceClaim){
+    for (const i of r as any){
+      resources.push(i.spec.resources[0].provider.name);
+    }
+  } 
 
   function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
@@ -225,7 +236,12 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
         <Button
           onClick={requestCatalogItem}
-          isDisabled={'deny' === selectedCatalogItemAccess}
+          isDisabled={
+            selectedCatalogItemAccess === 'deny' ? true : (
+              Boolean(resources.find(service => service === currentService))
+              || resources.length >= 3
+            )
+          }
           variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary' }
         >
           { selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information' }
