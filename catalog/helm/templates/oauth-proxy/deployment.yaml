@@ -50,6 +50,9 @@ spec:
         - {{ (printf "--upstream=http://%s:8080/apis/" (include "babylonCatalog.apiName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080/auth/" (include "babylonCatalog.apiName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080" (include "babylonCatalog.uiName" .)) | quote }}
+        {{- if .Values.oauthProxy.templates }}
+        - --custom-templates-dir=/templates
+        {{- end }}
         image: {{ include "babylonCatalog.oauthProxyImage" . }}
         imagePullPolicy: {{ .Values.oauthProxy.image.pullPolicy | quote }}
         ports:
@@ -58,10 +61,32 @@ spec:
           protocol: TCP
         resources: {}
         volumeMounts:
-        - mountPath: /etc/tls/private
-          name: proxy-tls
+        - name: proxy-tls
+          mountPath: /etc/tls/private
+        {{- if .Values.oauthProxy.templates }}
+        - name: templates
+          mountPath: /templates
+        {{- end }}
       volumes:
       - name: proxy-tls
         secret:
           defaultMode: 0644
           secretName: {{ printf "%s-tls" (include "babylonCatalog.oauthProxyName" .) }}
+      {{- if .Values.oauthProxy.templates }}
+      - name: templates
+        configMap:
+          defaultMode: 420
+          name: {{ include "babylonCatalog.oauthProxyName" . }}-templates
+      {{- end }}
+{{- with .Values.oauthProxy.templates }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "babylonCatalog.oauthProxyName" $ }}-templates
+  namespace: {{ include "babylonCatalog.namespaceName" $ }}
+  labels:
+    {{- include "babylonCatalog.labels" $ | nindent 4 }}
+data:
+  {{- . | toJson | nindent 2 }}
+{{- end }}
