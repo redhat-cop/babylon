@@ -118,8 +118,8 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const [selectedAttributeFilters, setSelectedAttributeFilters] = React.useState({});
   const [errorMessage, setErrorMessage] = React.useState('');
 
-  const generalServiceCountError = "You are running 3{c.to_s} applications and have exceeded your quota of (3{quota.to_s}) applications. You will not be able to request any new applications until you retire existing applications. If you feel this is an error, please contact rhpds-help@redhat.com.";
-  const alreadyRunningInstanceError = "You are already running 1{sc.to_s} instance(s) of the requested application. You will not be able to request another instance of this application until you retire the existing application. If you feel this is an error, please contact rhpds-help@redhat.com.";
+  const generalServiceCountError = "You are running 3 applications and have exceeded your quota of (3) applications. You will not be able to request any new applications until you retire existing applications. If you feel this is an error, please contact rhpds-help@redhat.com.";
+  const alreadyRunningInstanceError = "You are already running 1 instance(s) of the requested application. You will not be able to request another instance of this application until you retire the existing application. If you feel this is an error, please contact rhpds-help@redhat.com.";
   
   const selectedCatalogItem = catalogItemName ? (
     catalogItems?.[catalogItemNamespaceName] || []
