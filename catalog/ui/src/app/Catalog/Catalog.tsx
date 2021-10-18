@@ -116,7 +116,11 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const [catalogNamespaceSelectIsOpen, setCatalogNamespaceSelectIsOpen] = React.useState(false);
   const [keywordSearchValue, setKeywordSearchValue] = React.useState('');
   const [selectedAttributeFilters, setSelectedAttributeFilters] = React.useState({});
+  const [errorMessage, setErrorMessage] = React.useState('');
 
+  const generalServiceCountError = "You are running 3{c.to_s} applications and have exceeded your quota of (3{quota.to_s}) applications. You will not be able to request any new applications until you retire existing applications. If you feel this is an error, please contact rhpds-help@redhat.com.";
+  const alreadyRunningInstanceError = "You are already running 1{sc.to_s} instance(s) of the requested application. You will not be able to request another instance of this application until you retire the existing application. If you feel this is an error, please contact rhpds-help@redhat.com.";
+  
   const selectedCatalogItem = catalogItemName ? (
     catalogItems?.[catalogItemNamespaceName] || []
   ).find(ci => ci.metadata.name == catalogItemName) : null;
@@ -233,20 +237,35 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           <DrawerCloseButton onClick={unselectCatalogItem} />
         </DrawerActions>
       </DrawerHead>
-      <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
-        <Button
-          onClick={requestCatalogItem}
-          isDisabled={
-            selectedCatalogItemAccess === 'deny' ? true : (
-              Boolean(resources.find(service => service === currentService))
-              || resources.length >= 3
-            )
-          }
-          variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary' }
-        >
-          { selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information' }
-        </Button>
-      </PageSection>
+      { userIsAdmin ?
+        <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
+          <Button
+            onClick={requestCatalogItem}
+            isDisabled={'deny' === selectedCatalogItemAccess}
+            variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary'}
+          >
+            {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
+          </Button>
+        </PageSection>
+        :
+        <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
+          <Button
+            onClick={requestCatalogItem}
+            isDisabled={
+              selectedCatalogItemAccess === 'deny' ? true : (
+                Boolean(resources.find(service => service === currentService))
+                || resources.length >= 3
+              )
+            }
+            variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary'}
+          >
+            {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
+          </Button>
+          <p style={{ color: 'red' }}>
+            {Boolean(resources.find(service => service === currentService) && resources.length < 3) ? alreadyRunningInstanceError : null} </p>
+          <p style={{ color: 'red' }}> {resources.length >= 3 ? generalServiceCountError : null} </p>
+        </PageSection>
+      }
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-body">
         <div className="rhpds-catalog-item-details-body-sidebar">
           <DescriptionList>
