@@ -99,7 +99,7 @@ const getService = (allResourceClaims: any) => {
 };
 
 const isRequestAllowed = (resources: any[], currentService: string) => 
-  Boolean(resources.find(service => service === currentService)) || resources.length >= 3;
+  Boolean(resources.find(service => service === currentService));
 
 const HideLabels = ['babylon.gpte.redhat.com/userCatalogItem'];
 
@@ -245,30 +245,26 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           <DrawerCloseButton onClick={unselectCatalogItem} />
         </DrawerActions>
       </DrawerHead>
-      { userIsAdmin ?
         <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
+        {userIsAdmin ?
           <Button
             onClick={requestCatalogItem}
             isDisabled={'deny' === selectedCatalogItemAccess}
             variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary'}
           >
             {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
-          </Button>
-        </PageSection>
-        :
-        <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
+          </Button> :
           <Button
             onClick={requestCatalogItem}
-            isDisabled={selectedCatalogItemAccess === 'true' ? true : isRequestAllowed(resources, currentService)}
+            isDisabled={selectedCatalogItemAccess === 'true' ? true : isRequestAllowed(resources, currentService) || resources.length >= 3}
             variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary'}
           >
             {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
           </Button>
-          <p style={{ color: 'red' }}>
-            {Boolean(resources.find(service => service === currentService) && resources.length < 3) ? alreadyRunningInstanceError : null} </p>
-          <p style={{ color: 'red' }}> {resources.length >= 3 ? generalServiceCountError : null} </p>
+        }
+        {userIsAdmin ? null : isRequestAllowed(resources, currentService) && resources.length < 3 ? <p style={{ color: 'red' }}> {alreadyRunningInstanceError} </p> : null}
+        {userIsAdmin ? null : resources.length >= 3 ? <p style={{ color: 'red' }}> {generalServiceCountError} </p> : null}
         </PageSection>
-      }
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-body">
         <div className="rhpds-catalog-item-details-body-sidebar">
           <DescriptionList>
