@@ -87,7 +87,7 @@ export interface CatalogProps {
   location?: any;
 }
 
-const getService = (allResourceClaims: any) => {
+const getServices = (allResourceClaims: any) => {
   const services = [];
   const resourceClaims = Object.values(allResourceClaims !== null ? allResourceClaims : {});
   for (const resourceClaim of resourceClaims){
@@ -142,7 +142,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   const catalogURL = window.location.pathname;
   const currentService = catalogURL.substring(catalogURL.lastIndexOf('/') + 1);
-  const resources = getService(allResourceClaims);
+  const services = getServices(allResourceClaims);
 
   function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
@@ -256,14 +256,14 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           </Button> :
           <Button
             onClick={requestCatalogItem}
-            isDisabled={selectedCatalogItemAccess === 'true' ? true : isRequestAllowed(resources, currentService) || resources.length >= 3}
+            isDisabled={selectedCatalogItemAccess === 'true' ? true : isRequestAllowed(services, currentService) || services.length >= 3}
             variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary'}
           >
             {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
           </Button>
         }
-        {userIsAdmin ? null : isRequestAllowed(resources, currentService) && resources.length < 3 ? <p style={{ color: 'red' }}> {alreadyRunningInstanceError} </p> : null}
-        {userIsAdmin ? null : resources.length >= 3 ? <p style={{ color: 'red' }}> {generalServiceCountError} </p> : null}
+        {userIsAdmin ? null : isRequestAllowed(services, currentService) && services.length < 3 ? <p style={{ color: 'red' }}> {alreadyRunningInstanceError} </p> : null}
+        {userIsAdmin ? null : services.length >= 3 ? <p style={{ color: 'red' }}> {generalServiceCountError} </p> : null}
         </PageSection>
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-body">
         <div className="rhpds-catalog-item-details-body-sidebar">
