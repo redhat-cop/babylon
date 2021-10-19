@@ -87,6 +87,20 @@ export interface CatalogProps {
   location?: any;
 }
 
+const getService = (allResourceClaims: any) => {
+  const services = [];
+  const resourceClaims = Object.values(allResourceClaims !== null ? allResourceClaims : {});
+  for (const resourceClaim of resourceClaims){
+    for (const resource of resourceClaim as any){
+      services.push(resource.spec.resources[0].provider.name);
+    }
+  } 
+  return services;
+};
+
+const isRequestAllowed = (resources: any[], currentService: string) => 
+  Boolean(resources.find(service => service === currentService)) || resources.length >= 3;
+
 const HideLabels = ['babylon.gpte.redhat.com/userCatalogItem'];
 
 const Catalog: React.FunctionComponent<CatalogProps> = ({
@@ -126,15 +140,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   ).find(ci => ci.metadata.name == catalogItemName) : null;
   const selectedCatalogItemProvider = selectedCatalogItem?.metadata?.labels?.['babylon.gpte.redhat.com/provider']
 
-  const pathname = window.location.pathname.split('/');
-  const currentService = pathname[pathname.length - 1];
-  const resourceClaim = Object.values(allResourceClaims !== null ? allResourceClaims : {});
-  const resources = [];
-  for (const r of resourceClaim){
-    for (const i of r as any){
-      resources.push(i.spec.resources[0].provider.name);
-    }
-  } 
+  const catalogURL = window.location.pathname;
+  const currentService = catalogURL.substring(catalogURL.lastIndexOf('/') + 1);
+  const resources = getService(allResourceClaims);
 
   function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
@@ -251,12 +259,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
           <Button
             onClick={requestCatalogItem}
-            isDisabled={
-              selectedCatalogItemAccess === 'deny' ? true : (
-                Boolean(resources.find(service => service === currentService))
-                || resources.length >= 3
-              )
-            }
+            isDisabled={selectedCatalogItemAccess === 'true' ? true : isRequestAllowed(resources, currentService)}
             variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary'}
           >
             {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
