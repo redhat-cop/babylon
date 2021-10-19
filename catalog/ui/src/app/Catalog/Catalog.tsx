@@ -130,7 +130,6 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const [catalogNamespaceSelectIsOpen, setCatalogNamespaceSelectIsOpen] = React.useState(false);
   const [keywordSearchValue, setKeywordSearchValue] = React.useState('');
   const [selectedAttributeFilters, setSelectedAttributeFilters] = React.useState({});
-  const [errorMessage, setErrorMessage] = React.useState('');
 
   const generalServiceCountError = "You are running 3 applications and have exceeded your quota of (3) applications. You will not be able to request any new applications until you retire existing applications. If you feel this is an error, please contact rhpds-help@redhat.com.";
   const alreadyRunningInstanceError = "You are already running 1 instance(s) of the requested application. You will not be able to request another instance of this application until you retire the existing application. If you feel this is an error, please contact rhpds-help@redhat.com.";
@@ -262,9 +261,16 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
             {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
           </Button>
         }
-        {userIsAdmin ? null : isRequestAllowed(resources, currentService) && resources.length < 3 ? <p style={{ color: 'red' }}> {alreadyRunningInstanceError} </p> : null}
-        {userIsAdmin ? null : resources.length >= 3 ? <p style={{ color: 'red' }}> {generalServiceCountError} </p> : null}
-        </PageSection>
+        {(() => {
+          if (!userIsAdmin) {
+            if (isRequestAllowed(resources, currentService) && resources.length < 3) {
+              return (<p style={{ color: 'red' }}> {alreadyRunningInstanceError} </p>)
+            } else if (resources.length >= 3) {
+              return (<p style={{ color: 'red' }}> {generalServiceCountError} </p>)
+            }
+          }
+        })()}
+      </PageSection>
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-body">
         <div className="rhpds-catalog-item-details-body-sidebar">
           <DescriptionList>
