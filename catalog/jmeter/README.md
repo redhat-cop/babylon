@@ -17,7 +17,7 @@ Here is a list of the software that requires to record and perfom the test :
 
 2. Enter a test name in the top field, you can give any name to this field(In our case we use REDHAT_TEST_[date]).Start recording by clicking on the record          button, in the shape of a circle.
 
-3. Now enter the web application URL in any of the browser tabs and perform the web actions you want to record(in our exapmle we used :                              https://summit.apps-test.open.redhat.com).
+3. Now enter the web application URL in any of the browser tabs and perform the web actions you want to record(in our exapmle we used :                              https://summit.apps-dev.open.redhat.com).
 
 #### ~ Stop Recording :
 
@@ -69,7 +69,7 @@ After running our test, we want to see its results. This is done through Listene
 
 The View Results Tree is the most common Listener. To add the lsitener (Right-click your thread group, select “Add”, select “Listener”, then select “View Results Tree”).
 
-This is the basic script that created for hitting the https://summit.apps-test.open.redhat.com
+This is the basic script that created for hitting the https://summit.apps-dev.open.redhat.com
 
 ### 4. Execute the test using JMeter UI :
 
@@ -104,7 +104,7 @@ where,
 
 **In our case** :
 
-       jmeter -n -t REDHAT_TEST_10-13-2021.jmx -l TestLog.csv -e -o TestReport
+       jmeter -n -t REDHAT_TEST_10-08-2021.jmx -l TestLog.csv -e -o TestReport
 
 
 ### 6.Running the test on container :
@@ -147,6 +147,6 @@ where,
 
 ### 7. Test Metrics (Observe spike in the container) :
 
-#### ~ See the Memory, CPU , File System, Network in, Network out usage :
+#### ~ See the Memory,CPU,File System,Network In,Network Out usage :
 
             https://console-openshift-console.apps.babydev.dev.open.redhat.com/k8s/ns/babylon-summit-ui/pods/babylon-catalog-api-684745ff4-sjf9v
