@@ -25,9 +25,13 @@
             <stringProp name="Header.name">sec-ch-ua-platform</stringProp>
             <stringProp name="Header.value">&quot;Linux&quot;</stringProp>
           </elementProp>
+          <elementProp name="User-Agent" elementType="Header">
+            <stringProp name="Header.name">User-Agent</stringProp>
+            <stringProp name="Header.value">Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.71 Safari/537.36</stringProp>
+          </elementProp>
           <elementProp name="" elementType="Header">
             <stringProp name="Header.name">Cookie</stringProp>
-            <stringProp name="Header.value">rh_omni_tc=701f2000001Css5AAC; sat_prevInternalCampaign=; s_ecid=MCMID|07473796977636825724393272754977207508; scCidHist=701f2000001Css5AAC; _ga=GA1.2.1660839045.1632043296; notice_behavior=implied,eu; AMCVS_945D02BE532957400A490D4C@AdobeOrg=1; AMCV_945D02BE532957400A490D4C@AdobeOrg=870038026|MCIDTS|18914|MCMID|07473796977636825724393272754977207508|MCAAMLH-1634710964|12|MCAAMB-1634710964|6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y|MCOPTOUT-1634113364s|NONE|MCAID|NONE|MCSYNCSOP|411-18921|vVersion|5.0.0; __hstc=75573898.c6544f6ed1a6e00cacaa9e454a788a1e.1634106165573.1634106165573.1634106165573.1; hubspotutk=c6544f6ed1a6e00cacaa9e454a788a1e; __hssrc=1; _gcl_au=1.1.1838820718.1634106167; _hjid=e8895ab4-049f-413b-9b28-c694f5e5cbb0; dtm_prevURL=https://cloud.redhat.com/blog/openshift-and-the-nsa-cisa-kubernetes-hardening-guidance; sat_prevExtCmp=no value; sat_prevPage=RH|cloud|blog|openshift-and-the-nsa-cisa-kubernetes-hardening-guidance; s_cc=true; 5a0133db6c4235b82d5ab385e674a6b5=7600092307f7fd94c6175a0ae8f31d5d; _oauth_proxy=c3VtbWl0dXNlcjFAY2x1c3Rlci5sb2NhbA==|1634115154|nT3Ws2gp04h6edhqa9GPGNTh9jM=</stringProp>
+            <stringProp name="Header.value">s_ecid=MCMID|26574060770753288742291789574275384470; sat_prevInternalCampaign=; rh_omni_tc=701f2000001Css5AAC; scCidHist=701f2000001Css5AAC; _ga=GA1.2.1519099100.1632300949; _gcl_au=1.1.720221487.1633012488; notice_preferences=2:; notice_gdpr_prefs=0,1,2:; cmapi_gtm_bl=; cmapi_cookie_privacy=permit 1,2,3; _hjid=08917c7e-e578-4b73-81bc-2b4bb39cce0e; aam_did=30911240466445274701282103365035133586; rh_common_id=3873bf45-3fad-4b8e-9e4a-64a4ae5a8588; _uetvid=9087f50021fb11ec988bbf5eb6418f41; at_check=true; AMCVS_945D02BE532957400A490D4C@AdobeOrg=1; notice_behavior=implied,eu; sat_prevExtCmp=no value; s_cc=true; __hstc=75573898.3758eca46c44d38aedfd4a93795c2587.1633955166374.1633955166374.1633955166374.1; hubspotutk=3758eca46c44d38aedfd4a93795c2587; __hssrc=1; rh_elqCustomerGUID=e0ef8b1c-a3c1-411d-a878-3bfc0121fbdc; redhat_www_eu_cookie=true; s_sq=[[B]]; 5a0133db6c4235b82d5ab385e674a6b5=10f24a733d8cb456d8fb5647d3e60c8b; sat_ppv=91; AMCV_945D02BE532957400A490D4C@AdobeOrg=870038026|MCIDTS|18919|MCMID|26574060770753288742291789574275384470|MCAAMLH-1635248358|12|MCAAMB-1635248358|6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y|MCOPTOUT-1634650758s|NONE|MCAID|NONE|MCSYNCSOP|411-18926|vVersion|5.0.0; mbox=PC#caf693b96210428fab20f0745cf25145.31_0#1697888360|session#cab88b0358234323806a46438dc5ea84#1634645419; dtm_prevURL=https://catalog.redhat.com/software/containers/openshift4/ose-oauth-proxy/5cdb2133bed8bd5717d5ae64; sat_prevPage=RH|catalog|software|containers|openshift4|ose-oauth-proxy|5cdb2133bed8bd5717d5ae64; _abck=EB270C2018AD943E5FE516EE68D90A4F~0~YAAQH9ksMQawWoR8AQAAmURZmAZ6Cit3v08oMQkmz2VvMKIp/7KKxz7SH3Zhd3NtHYh46TCnjhKQTa0iqr+F2wXdnq+fIhHJ1PcDB0sfGFJsqPa3GKzEDtzfa+0koJw+hvyw43vCkl3tb8PQvTyuc01hqDmL+aG1O6sKY2369rIX0IKCOWiGMwNoZnwTm1xryuFfW6o6yGjEM9oQXrM1JDkTjtFYnM3LkxBw3mZpvmE4pdftKiuhmBME6gKbFBolWkQ7hDqfx2FBKn+Qfs+66VMKh/2zXkv318xLD4OOg9pwfBzO2cbkuICL4linmHNgtKVnzH7zdrrQsFKVdjZjykk/HPcirFyfK8DLuOl/j375GosoeXHEYBkL0MHr~-1~-1~-1; _oauth_proxy=c3VtbWl0dXNlcjFAY2x1c3Rlci5sb2NhbA==|1634723498|TUirHXw-3D1IaJBw1Z9OtSKqVwc= </stringProp>
           </elementProp>
         </collectionProp>
       </HeaderManager>
@@ -36,12 +40,12 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="BASE_URL_1" elementType="Argument">
             <stringProp name="Argument.name">BASE_URL_1</stringProp>
-            <stringProp name="Argument.value">summit.apps-test.open.redhat.com</stringProp>
+            <stringProp name="Argument.value">summit.apps-dev.open.redhat.com</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="BASE_URL_2" elementType="Argument">
             <stringProp name="Argument.name">BASE_URL_2</stringProp>
-            <stringProp name="Argument.value">oauth-openshift.apps.babytest.dev.open.redhat.com</stringProp>
+            <stringProp name="Argument.value">oauth-openshift.apps.babydev.dev.open.redhat.com</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -82,17 +86,17 @@
         <boolProp name="AuthManager.controlledByThreadGroup">false</boolProp>
       </AuthManager>
       <hashTree/>
-      <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager" enabled="true">
-        <collectionProp name="CookieManager.cookies"/>
-        <boolProp name="CookieManager.clearEachIteration">true</boolProp>
-        <boolProp name="CookieManager.controlledByThreadGroup">false</boolProp>
-      </CookieManager>
-      <hashTree/>
       <CacheManager guiclass="CacheManagerGui" testclass="CacheManager" testname="HTTP Cache Manager" enabled="false">
         <boolProp name="clearEachIteration">true</boolProp>
         <boolProp name="useExpires">false</boolProp>
         <boolProp name="CacheManager.controlledByThread">false</boolProp>
       </CacheManager>
+      <hashTree/>
+      <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager" enabled="true">
+        <collectionProp name="CookieManager.cookies"/>
+        <boolProp name="CookieManager.clearEachIteration">false</boolProp>
+        <boolProp name="CookieManager.controlledByThreadGroup">true</boolProp>
+      </CookieManager>
       <hashTree/>
       <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config" enabled="true">
         <stringProp name="delimiter">,</stringProp>
@@ -121,8 +125,8 @@
           <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">1</stringProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">5</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <stringProp name="ThreadGroup.num_threads">500</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">100</stringProp>
         <boolProp name="ThreadGroup.scheduler">false</boolProp>
         <stringProp name="ThreadGroup.duration">0</stringProp>
         <stringProp name="ThreadGroup.delay">0</stringProp>
@@ -134,7 +138,7 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="01_https://summit.apps-test.open.redhat.com/catalog" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="01_https://summit.apps-dev.open.redhat.com/catalog" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
@@ -174,7 +178,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">5000</stringProp>
@@ -191,7 +195,7 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="02_https://oauth-openshift.apps.babytest.dev.open.redhat.com/oauth/authorize?" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="02_https://oauth-openshift.apps.babydev.dev.open.redhat.com/oauth/authorize?" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="approval_prompt" elementType="HTTPArgument">
@@ -225,14 +229,14 @@
                 <elementProp name="redirect_uri" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">true</boolProp>
                   <stringProp name="Argument.name">redirect_uri</stringProp>
-                  <stringProp name="Argument.value">https://summit.apps-test.open.redhat.com/oauth/callback</stringProp>
+                  <stringProp name="Argument.value">https://summit.apps-dev.open.redhat.com/oauth/callback</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
                 </elementProp>
                 <elementProp name="state" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">true</boolProp>
                   <stringProp name="Argument.name">state</stringProp>
-                  <stringProp name="Argument.value">0dfdadacf4dabe184feb34d75c49badf:/</stringProp>
+                  <stringProp name="Argument.value">ec9d1c7848e3f1024805bd399ef07992:/catalog</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
                 </elementProp>
@@ -281,7 +285,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">5000</stringProp>
@@ -298,7 +302,7 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="03_https://oauth-openshift.apps.babytest.dev.open.redhat.com/login/summit" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="03_https://oauth-openshift.apps.babydev.dev.open.redhat.com/login/summit" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="password" elementType="HTTPArgument">
@@ -311,14 +315,14 @@
                 <elementProp name="csrf" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">true</boolProp>
                   <stringProp name="Argument.name">csrf</stringProp>
-                  <stringProp name="Argument.value">HERa2M-78m5zLDP6YQVLLEav7zB_yOIOFHIMrVxhwbU</stringProp>
+                  <stringProp name="Argument.value">AAzoo-sGG_nmMwPseFMRUh6qkttPuEXIb7IaKR-ABIE</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
                 </elementProp>
                 <elementProp name="then" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">true</boolProp>
                   <stringProp name="Argument.name">then</stringProp>
-                  <stringProp name="Argument.value">/oauth/authorize?approval_prompt=force&amp;client_id=system%3Aserviceaccount%3Ababylon-summit-ui%3Ababylon-catalog-oauth-proxy&amp;idp=summit&amp;redirect_uri=https%3A%2F%2Fsummit.apps-test.open.redhat.com%2Foauth%2Fcallback&amp;response_type=code&amp;scope=user%3Ainfo+user%3Acheck-access&amp;state=0dfdadacf4dabe184feb34d75c49badf%3A%2F</stringProp>
+                  <stringProp name="Argument.value">/oauth/authorize?approval_prompt=force&amp;client_id=system%3Aserviceaccount%3Ababylon-summit-ui%3Ababylon-catalog-oauth-proxy&amp;idp=summit&amp;redirect_uri=https%3A%2F%2Fsummit.apps-dev.open.redhat.com%2Foauth%2Fcallback&amp;response_type=code&amp;scope=user%3Ainfo+user%3Acheck-access&amp;state=ec9d1c7848e3f1024805bd399ef07992%3A%2Fcatalog</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
                 </elementProp>
@@ -370,7 +374,7 @@
             </UniformRandomTimer>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="04_https://summit.apps-test.open.redhat.com/auth/session" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="04_https://summit.apps-dev.open.redhat.com/auth/session" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
@@ -404,14 +408,8 @@
               <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
             </JSONPostProcessor>
             <hashTree/>
-            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON Extractor" enabled="true">
-              <stringProp name="JSONPostProcessor.referenceNames">user</stringProp>
-              <stringProp name="JSONPostProcessor.jsonPathExprs">$..user</stringProp>
-              <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
-            </JSONPostProcessor>
-            <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="05_https://summit.apps-test.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="05_https://summit.apps-dev.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -452,7 +450,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="06_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="06_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -494,7 +492,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">15000</stringProp>
@@ -511,7 +509,7 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="07_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="07_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -552,7 +550,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="08_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="08_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -593,7 +591,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="09_https://summit.apps-test.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="09_https://summit.apps-dev.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -635,7 +633,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">5000</stringProp>
@@ -652,13 +650,13 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="10_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims/" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="10_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims/" enabled="true">
             <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                  <stringProp name="Argument.value">{&quot;apiVersion&quot;:&quot;poolboy.gpte.redhat.com/v1&quot;,&quot;kind&quot;:&quot;ResourceClaim&quot;,&quot;metadata&quot;:{&quot;annotations&quot;:{&quot;babylon.gpte.redhat.com/catalogDisplayName&quot;:&quot;Red Hat Summit&quot;,&quot;babylon.gpte.redhat.com/catalogItemDisplayName&quot;:&quot;Summit Test Config&quot;,&quot;babylon.gpte.redhat.com/requester&quot;:&quot;summituser1&quot;,&quot;babylon.gpte.redhat.com/url&quot;:&quot;https://summit.apps-test.open.redhat.com/services/item/user-summituser1/tests.summit-test-config.prod&quot;,&quot;babylon.gpte.redhat.com/userData&quot;:&quot;{}&quot;},&quot;labels&quot;:{&quot;babylon.gpte.redhat.com/catalogItemName&quot;:&quot;tests.summit-test-config.prod&quot;,&quot;babylon.gpte.redhat.com/catalogItemNamespace&quot;:&quot;babylon-catalog-summit-prod&quot;},&quot;name&quot;:&quot;tests.summit-test-config.prod-jmeter-${counterValue}&quot;,&quot;namespace&quot;:&quot;user-summituser1&quot;},&quot;spec&quot;:{&quot;resources&quot;:[{&quot;name&quot;:&quot;summit-test-config&quot;,&quot;provider&quot;:{&quot;apiVersion&quot;:&quot;poolboy.gpte.redhat.com/v1&quot;,&quot;kind&quot;:&quot;ResourceProvider&quot;,&quot;name&quot;:&quot;tests.summit-test-config.prod&quot;,&quot;namespace&quot;:&quot;poolboy&quot;}}]}}</stringProp>
+                  <stringProp name="Argument.value">{&quot;apiVersion&quot;:&quot;poolboy.gpte.redhat.com/v1&quot;,&quot;kind&quot;:&quot;ResourceClaim&quot;,&quot;metadata&quot;:{&quot;annotations&quot;:{&quot;babylon.gpte.redhat.com/catalogDisplayName&quot;:&quot;Red Hat Summit&quot;,&quot;babylon.gpte.redhat.com/catalogItemDisplayName&quot;:&quot;Summit Test Config&quot;,&quot;babylon.gpte.redhat.com/requester&quot;:&quot;summituser1&quot;,&quot;babylon.gpte.redhat.com/url&quot;:&quot;https://summit.apps-dev.open.redhat.com/services/item/user-summituser1/tests.summit-test-config.prod&quot;},&quot;labels&quot;:{&quot;babylon.gpte.redhat.com/catalogItemName&quot;:&quot;tests.summit-test-config.prod&quot;,&quot;babylon.gpte.redhat.com/catalogItemNamespace&quot;:&quot;babylon-catalog-summit-prod&quot;},&quot;name&quot;:&quot;tests.summit-test-config.prod-jmeter-${counterValue}&quot;,&quot;namespace&quot;:&quot;user-summituser1&quot;},&quot;spec&quot;:{&quot;resources&quot;:[{&quot;name&quot;:&quot;summit-test-config&quot;,&quot;provider&quot;:{&quot;apiVersion&quot;:&quot;poolboy.gpte.redhat.com/v1&quot;,&quot;kind&quot;:&quot;ResourceProvider&quot;,&quot;name&quot;:&quot;tests.summit-test-config.prod&quot;,&quot;namespace&quot;:&quot;poolboy&quot;}}]}}</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                 </elementProp>
               </collectionProp>
@@ -702,7 +700,7 @@
             </JSONPostProcessor>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="13_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="13_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -743,7 +741,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="14_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="14_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -784,7 +782,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="15_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="15_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -826,10 +824,10 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
-          <stringProp name="ActionProcessor.duration">180000</stringProp>
+          <stringProp name="ActionProcessor.duration">5000</stringProp>
         </TestAction>
         <hashTree>
           <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="Pause" enabled="true">
@@ -843,7 +841,7 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="16_https://summit.apps-test.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="16_https://summit.apps-dev.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -884,7 +882,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="17_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="17_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -925,7 +923,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="18_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="18_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -967,7 +965,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">5000</stringProp>
@@ -984,7 +982,7 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="19_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="19_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -1026,7 +1024,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">5000</stringProp>
@@ -1043,7 +1041,7 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="20_https://summit.apps-test.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="20_https://summit.apps-dev.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -1084,7 +1082,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="21_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="21_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -1126,7 +1124,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">5000</stringProp>
@@ -1143,7 +1141,7 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="22_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims/tests.summit-test-config.prod-vipul" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="22_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims/tests.summit-test-config.prod-vipul" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
@@ -1177,7 +1175,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="23_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="23_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -1219,7 +1217,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">10000</stringProp>
@@ -1231,12 +1229,12 @@
           </UniformRandomTimer>
           <hashTree/>
         </hashTree>
-        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="ClickOnProfile" enabled="true">
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Profile" enabled="true">
           <boolProp name="TransactionController.includeTimers">false</boolProp>
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="24_https://summit.apps-test.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="24_https://summit.apps-dev.open.redhat.com/apis/poolboy.gpte.redhat.com/v1/namespaces/user-summituser1/resourceclaims?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -1244,7 +1242,6 @@
                   <stringProp name="Argument.name">limit</stringProp>
                   <stringProp name="Argument.value">100</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
-                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
                 </elementProp>
               </collectionProp>
             </elementProp>
@@ -1277,7 +1274,7 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="25_https://summit.apps-test.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="25_https://summit.apps-dev.open.redhat.com/apis/babylon.gpte.redhat.com/v1/namespaces/babylon-catalog-summit-prod/catalogitems?limit=100" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="limit" elementType="HTTPArgument">
@@ -1285,7 +1282,6 @@
                   <stringProp name="Argument.name">limit</stringProp>
                   <stringProp name="Argument.value">100</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
-                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
                 </elementProp>
               </collectionProp>
             </elementProp>
@@ -1319,7 +1315,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">15000</stringProp>
@@ -1336,7 +1332,7 @@
           <boolProp name="TransactionController.parent">true</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="26_https://summit.apps-test.open.redhat.com/oauth/sign_out" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="26_https://summit.apps-dev.open.redhat.com/oauth/sign_out" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
@@ -1376,7 +1372,7 @@
             <hashTree/>
           </hashTree>
         </hashTree>
-        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="true">
+        <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think Time" enabled="false">
           <intProp name="ActionProcessor.action">1</intProp>
           <intProp name="ActionProcessor.target">0</intProp>
           <stringProp name="ActionProcessor.duration">5000</stringProp>
@@ -1388,43 +1384,6 @@
           </UniformRandomTimer>
           <hashTree/>
         </hashTree>
-        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
-          <boolProp name="ResultCollector.error_logging">false</boolProp>
-          <objProp>
-            <name>saveConfig</name>
-            <value class="SampleSaveConfiguration">
-              <time>true</time>
-              <latency>true</latency>
-              <timestamp>true</timestamp>
-              <success>true</success>
-              <label>true</label>
-              <code>true</code>
-              <message>true</message>
-              <threadName>true</threadName>
-              <dataType>true</dataType>
-              <encoding>false</encoding>
-              <assertions>true</assertions>
-              <subresults>true</subresults>
-              <responseData>false</responseData>
-              <samplerData>false</samplerData>
-              <xml>false</xml>
-              <fieldNames>true</fieldNames>
-              <responseHeaders>false</responseHeaders>
-              <requestHeaders>false</requestHeaders>
-              <responseDataOnError>false</responseDataOnError>
-              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
-              <assertionsResultsToSave>0</assertionsResultsToSave>
-              <bytes>true</bytes>
-              <sentBytes>true</sentBytes>
-              <url>true</url>
-              <threadCounts>true</threadCounts>
-              <idleTime>true</idleTime>
-              <connectTime>true</connectTime>
-            </value>
-          </objProp>
-          <stringProp name="filename"></stringProp>
-        </ResultCollector>
-        <hashTree/>
       </hashTree>
     </hashTree>
   </hashTree>
