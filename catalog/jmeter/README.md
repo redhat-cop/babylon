@@ -11,7 +11,7 @@ Here is a list of the software that requires to record and perfom the test :
          
 ### 2. Recording a new test :
 
-#### ~ Start Recording :
+#### Start Recording :
 
 1. After adding  the extension in the chrome, you will get the red icon. Click on this icon and login into blazemeter. Now again open that icon you will get          your user name at the top.
 
@@ -19,13 +19,13 @@ Here is a list of the software that requires to record and perfom the test :
 
 3. Now enter the web application URL in any of the browser tabs and perform the web actions you want to record(in our exapmle we used :                              https://summit.apps-dev.open.redhat.com).
 
-#### ~ Stop Recording :
+####  Stop Recording :
 
 4. After you finish recording, click on the stop button, in the shape of a square. You can also pause your recording and then resume to continue the recording after some time.
 
 5. Again Click on the blazemeter icon and click on edit. All your requests will be captured and you can perform any given operation from edit-remove any request or duplicate it.
 
-#### ~ Download Recorded JMX file
+####  Download Recorded JMX file :
 
 6. Now you can download/save the recorded request in .jmx or JSON format, or in the cloud.You have to select the domain on which you have recorded the script .Export your recording – to run the test in JMeter, export to .jmx format by clicking on the .jmx button.
 
@@ -37,7 +37,7 @@ Open the .jmx file in JMeter. You will be able to see your test plan, which was 
 (Note that this plan has new elements, like Cookie Manager and Cache Manager. They are here because browsers keep cookies and cache, and they were captured in the recording. You can clear them up if you need to. These entirely optional elements are present to simulate web browser behavior more closely)
 
 
-#### ~ Configure the Thread Group :
+#### Configure the Thread Group :
 
 1. Name : Provide a custom name or, if you prefer, simply leave it named the default “Thread Group”.
 
@@ -47,7 +47,7 @@ Open the .jmx file in JMeter. You will be able to see your test plan, which was 
 
 4. Loop Count: How many times the test should repeat. Let’s say 1 time (no repeat).
 
-#### ~ Dynamic Data :
+#### Dynamic Data :
 
 What happens when you want to create a dynamic script, which chooses different parameters each time you test, like username,password,login information or search   criteria? This is what Dynamic Data through CSV files is for.
 
@@ -63,7 +63,7 @@ The data tested will now come from the CSV file, and we will be able to see the 
 
 After you build your test and check it for a low number of virtual users, it’s time to scale it up and check a large number of VUs. How many? That depends on  our needs (in our case 500).
 
-#### ~ Add Listeners :
+#### Add Listeners :
 
 After running our test, we want to see its results. This is done through Listeners, a recording mechanism that shows results, including logging and debugging information.
 
@@ -73,7 +73,7 @@ This is the basic script that created for hitting the https://summit.apps-dev.op
 
 ### 4. Execute the test using JMeter UI :
 
-#### ~ Run the JMX file :
+#### Run the JMX file :
 
 1. Now click on ‘Save’. Your test will be saved as a .jmx file.
 
@@ -83,7 +83,7 @@ This is the basic script that created for hitting the https://summit.apps-dev.op
 
 ### 5.  Execute the test using JMeter CLI :
 
-#### ~ To run the test with CLI mode :
+#### To run the test with CLI mode :
 
 Neviage to you jmeter bin folder and run the bellow command :
 
@@ -147,6 +147,6 @@ where,
 
 ### 7. Test Metrics (Observe spike in the container) :
 
-#### ~ See the Memory,CPU,File System,Network In,Network Out usage :
+#### See the Memory,CPU,File System,Network In,Network Out usage :
 
             https://console-openshift-console.apps.babydev.dev.open.redhat.com/k8s/ns/babylon-summit-ui/pods/babylon-catalog-api-684745ff4-sjf9v
