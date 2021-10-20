@@ -222,6 +222,25 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     closeModal();
   }
 
+  const actionHandlers = {
+    delete: () => {
+      setOpenModal("delete");
+    },
+    lifespan: () => {
+      setScheduleActionKind("retirement");
+      setOpenModal("scheduleAction");
+    },
+  }
+
+  if (resources.find(r => r?.kind === 'AnarchySubject')) {
+    actionHandlers['runtime'] = () => {
+      setScheduleActionKind("stop");
+      setOpenModal("scheduleAction");
+    };
+    actionHandlers['start'] = () => setOpenModal("start");
+    actionHandlers['stop'] = () => setOpenModal("stop");
+  }
+
   if (resourceClaim) {
     return (<>
       <ServicesItemDeleteModal key="delete"
@@ -275,25 +294,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               <ServiceActions
                 position="right"
                 resourceClaim={resourceClaim}
-                actionHandlers={{
-                  delete: () => {
-                    setOpenModal("delete");
-                  },
-                  lifespan: () => {
-                    setScheduleActionKind("retirement");
-                    setOpenModal("scheduleAction");
-                  },
-                  runtime: () => {
-                    setScheduleActionKind("stop");
-                    setOpenModal("scheduleAction");
-                  },
-                  start: () => {
-                    setOpenModal("start");
-                  },
-                  stop: () => {
-                    setOpenModal("stop");
-                  },
-                }}
+                actionHandlers={actionHandlers}
               />
             ) }
           </SplitItem>
@@ -302,7 +303,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       { resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' ? (
         <PageSection key="body" variant={PageSectionVariants.light} className="rhpds-services-item-body" style={{"paddingTop": "1em"}}>
           <p>Thank you for your interest in {catalogItemDisplayName}!</p>
-          <p>Your request for information about this catalog item has been recorded.</p>
+          <p>This item is not available for you during the event. Our team will reach out to offer an alternative time.</p>
         </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="rhpds-services-item-body">
