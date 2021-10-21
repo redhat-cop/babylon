@@ -2,20 +2,21 @@
 
 ### 1. Installation :
     
-Here is a list of the software that requires to record and perfom the test : 
+Here is a list of the tools that requires to record and perfom the test : 
 
 • Apache Jmeter : https://jmeter.apache.org/download_jmeter.cgi
    
 • Blazemeter Extension : https://chrome.google.com/webstore/detail/blazemeter-the-continuous/mbopgmdnpcbohhpnfglgohlbhfongabi?hl=en
-         
+
+<br/>
          
 ### 2. Recording a new test :
 
 #### Start Recording :
 
-1. After adding  the extension in the chrome, you will get the red icon. Click on this icon and login into blazemeter. Now again open that icon you will get          your user name at the top.
+1. After adding  the extension in Google chrome, click on blazemeter extention icon and login into blazemeter. Click on the icon again to get the name on the top.
 
-2. Enter a test name in the top field, you can give any name to this field(In our case we use REDHAT_TEST_[date]).Start recording by clicking on the record          button, in the shape of a circle.
+2. Enter a test name in the top field,(In our case we use REDHAT_TEST_[date]).Start recording by clicking on the record          button, in the shape of a circle.
 
 3. Now enter the web application URL in any of the browser tabs and perform the web actions you want to record(in our exapmle we used :                              https://summit.apps-dev.open.redhat.com).
 
@@ -28,6 +29,8 @@ Here is a list of the software that requires to record and perfom the test :
 ####  Download Recorded JMX file :
 
 6. Now you can download/save the recorded request in .jmx or JSON format, or in the cloud.You have to select the domain on which you have recorded the script .Export your recording – to run the test in JMeter, export to .jmx format by clicking on the .jmx button.
+
+<br/>
 
 ### 3. Configuring JMX file using Jmeter UI :
 
@@ -71,6 +74,8 @@ The View Results Tree is the most common Listener. To add the lsitener (Right-cl
 
 This is the basic script that created for hitting the https://summit.apps-dev.open.redhat.com
 
+<br/>
+
 ### 4. Execute the test using JMeter UI :
 
 #### Run the JMX file :
@@ -79,7 +84,7 @@ This is the basic script that created for hitting the https://summit.apps-dev.op
 
 2. To run the test, click the green arrow on top. After the test completes running, you can view the results on the Listener(we added view result tree as a          listener).
 
-
+<br/>
 
 ### 5.  Execute the test using JMeter CLI :
 
@@ -106,6 +111,7 @@ where,
 
        jmeter -n -t REDHAT_TEST_10-08-2021.jmx -l TestLog.csv -e -o TestReport
 
+<br/>
 
 ### 6.Running the test on container :
 
@@ -144,9 +150,18 @@ where,
  
  11.Delete once test executes: ./oc delete deployment [deployment name]
 
+<br/>
 
 ### 7. Test Metrics (Observe spike in the container) :
 
 #### See the Memory,CPU,File System,Network In,Network Out usage :
 
-            https://console-openshift-console.apps.babydev.dev.open.redhat.com/k8s/ns/babylon-summit-ui/pods/babylon-catalog-api-684745ff4-sjf9v
+        https://console-openshift-console.apps.babydev.dev.open.redhat.com/k8s/ns/babylon-summit-ui/pods/babylon-catalog-api-684745ff4-sjf9v
+
+<br/>
+
+### 8. Past load test reports and metrics : 
+           
+        https://drive.google.com/drive/u/0/folders/1RUvzjqWNFM668zE7qHFNs1xQ_XJd_cd_
+           
+(You can get access permission from dave.dekker@atlanticbt.com)
