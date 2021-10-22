@@ -88,6 +88,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const userInterface = useSelector(selectInterface);
   const userNamespace = useSelector(selectUserNamespace);
 
+  const impersonateUserName = sessionStorage.getItem('impersonateUser');
+
   async function getUsers({session}): Promise<void> {
     const resp: IListClusterCustomObjectResp = await listClusterCustomObject('user.openshift.io', 'v1', 'users', '');
     setUsers(resp.items);
@@ -95,20 +97,32 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
 
   async function waitForSession() {
     const session = await getApiSession();
-    dispatch(
-      actionStartSession({
-        admin: session.admin || false,
-        groups: session.groups || [],
-        interface: session.interface,
-        user: session.user,
-        catalogNamespaces: session.catalogNamespaces,
-        serviceNamespaces: session.serviceNamespaces,
-        userNamespace: session.userNamespace,
-      })
-    );
-    if (session.admin) {
-      getUsers(session);
+    if (impersonateUserName) {
+      const userInfo = await getUserInfo(impersonateUserName);
+      dispatch(
+        actionSetImpersonation({
+          admin: userInfo.admin,
+          user: impersonateUserName,
+          groups: userInfo.groups || [],
+          catalogNamespaces: userInfo.catalogNamespaces,
+          serviceNamespaces: userInfo.serviceNamespaces,
+          userNamespace: userInfo.userNamespace,
+        })
+      );
+    } else {
+      dispatch(
+        actionStartSession({
+          admin: session.admin || false,
+          groups: session.groups || [],
+          interface: session.interface,
+          user: session.user,
+          catalogNamespaces: session.catalogNamespaces,
+          serviceNamespaces: session.serviceNamespaces,
+          userNamespace: session.userNamespace,
+        })
+      );
     }
+    getUsers(session);
   }
 
   async function applyUserImpersonation() {
@@ -124,6 +138,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
         userNamespace: userInfo.userNamespace,
       })
     );
+    sessionStorage.setItem('impersonateUser', user );
     setUserImpersonationDialogState({
       isOpen: false,
       matchCount: 0,
@@ -193,9 +208,9 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   }
 
   const UserControlDropdownItems = [
-    <DropdownItem key="logout" href="/oauth/sign_out">Log out</DropdownItem>,
+    <DropdownItem key="logout" href="/oauth/sign_out" onClick={()=>{sessionStorage.removeItem('impersonateUser');}}>Log out</DropdownItem>,
   ];
-  if (authIsAdmin) {
+  if (authIsAdmin || impersonateUserName) {
     UserControlDropdownItems.push(
       <DropdownItem key="impersonate" onClick={openUserImpersonationDialog}>Impersonate user</DropdownItem>
     )

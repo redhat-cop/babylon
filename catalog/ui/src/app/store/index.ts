@@ -224,6 +224,7 @@ function reduce_clearImpersonation(state, action) {
   state.resourceClaims = null;
   startWatchCatalogItems();
   startWatchResourceClaims();
+  sessionStorage.removeItem('impersonateUser');
 }
 
 function reduce_deleteResourceClaim(state, action) {
