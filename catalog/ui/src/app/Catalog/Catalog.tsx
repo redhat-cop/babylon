@@ -87,17 +87,17 @@ export interface CatalogProps {
   location?: any;
 }
 
-const getServices = (allResourceClaims: any) => {
-  const services = [];
-  const allResourceClaimValues = Object.values(allResourceClaims !== null ? allResourceClaims : {});
-  for (const resourceClaims of allResourceClaimValues){
-    for (const resourceClaim of resourceClaims as any){
+const getCatalogItemsFromServices = (allResourceClaims: any) => {
+  const catalogItems = [];
+  const resourceClaimLists = Object.values(allResourceClaims !== null ? allResourceClaims : {});
+  for (const resourceClaimList of resourceClaimLists){
+    for (const resourceClaim of resourceClaimList as any){
       const catalogItemName = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemName'];
       const catalogItemNamespace = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemNamespace'];
-      services.push({catalogItemName, catalogItemNamespace});
+      catalogItems.push({catalogItemName, catalogItemNamespace});
     }
-  } 
-  return services;
+  }
+  return catalogItems;
 };
 
 const isRequestAllowed = (runningServices: any[], selectedCatalogItemName: string, selectedCatalogItemNamespace: string) => 
@@ -146,7 +146,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   const selectedCatalogItemName = selectedCatalogItem?.metadata?.name;
   const selectedCatalogItemNamespace = selectedCatalogItem?.metadata?.namespace;
-  const services = getServices(allResourceClaims);
+  const services = getCatalogItemsFromServices(allResourceClaims);
 
   function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
