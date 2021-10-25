@@ -87,19 +87,24 @@ export interface CatalogProps {
   location?: any;
 }
 
-const getService = (allResourceClaims: any) => {
-  const services = [];
-  const resourceClaims = Object.values(allResourceClaims !== null ? allResourceClaims : {});
-  for (const resourceClaim of resourceClaims){
-    for (const resource of resourceClaim as any){
-      services.push(resource.spec.resources[0].provider.name);
+const getCatalogItemsFromServices = (allResourceClaims: any) => {
+  const catalogItems = [];
+  const resourceClaimLists = Object.values(allResourceClaims !== null ? allResourceClaims : {});
+  for (const resourceClaimList of resourceClaimLists){
+    for (const resourceClaim of resourceClaimList as any){
+      const catalogItemName = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemName'];
+      const catalogItemNamespace = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemNamespace'];
+      catalogItems.push({catalogItemName, catalogItemNamespace});
     }
-  } 
-  return services;
+  }
+  return catalogItems;
 };
 
-const isRequestAllowed = (resources: any[], currentService: string) => 
-  Boolean(resources.find(service => service === currentService));
+const isRequestAllowed = (runningServices: any[], selectedCatalogItemName: string, selectedCatalogItemNamespace: string) => 
+  Boolean(runningServices.find(catalogItemList => 
+    catalogItemList.catalogItemName === selectedCatalogItemName &&
+    catalogItemList.catalogItemNamespace === selectedCatalogItemNamespace
+  ));
 
 const HideLabels = ['babylon.gpte.redhat.com/userCatalogItem'];
 
@@ -139,9 +144,9 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   ).find(ci => ci.metadata.name == catalogItemName) : null;
   const selectedCatalogItemProvider = selectedCatalogItem?.metadata?.labels?.['babylon.gpte.redhat.com/provider']
 
-  const catalogURL = window.location.pathname;
-  const currentService = catalogURL.substring(catalogURL.lastIndexOf('/') + 1);
-  const resources = getService(allResourceClaims);
+  const selectedCatalogItemName = selectedCatalogItem?.metadata?.name;
+  const selectedCatalogItemNamespace = selectedCatalogItem?.metadata?.namespace;
+  const catalogItemList = getCatalogItemsFromServices(allResourceClaims);
 
   function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
@@ -255,7 +260,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           </Button> :
           <Button
             onClick={requestCatalogItem}
-            isDisabled={selectedCatalogItemAccess === 'true' ? true : isRequestAllowed(resources, currentService) || resources.length >= 3}
+            isDisabled={selectedCatalogItemAccess === 'true' ? true : isRequestAllowed(catalogItemList, selectedCatalogItemName, selectedCatalogItemNamespace) || catalogItemList.length >= 3}
             variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary'}
           >
             {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
@@ -263,14 +268,15 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         }
         {(() => {
           if (!userIsAdmin) {
-            if (isRequestAllowed(resources, currentService) && resources.length < 3) {
+            if (isRequestAllowed(catalogItemList, selectedCatalogItemName, selectedCatalogItemNamespace) && catalogItemList.length < 3) {
               return (<p style={{ color: 'red' }}> {alreadyRunningInstanceError} </p>)
-            } else if (resources.length >= 3) {
+            } else if (catalogItemList.length >= 3) {
               return (<p style={{ color: 'red' }}> {generalServiceCountError} </p>)
             }
           }
+          return null;
         })()}
-      </PageSection>
+        </PageSection>
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-body">
         <div className="rhpds-catalog-item-details-body-sidebar">
           <DescriptionList>
