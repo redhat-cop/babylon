@@ -7,6 +7,7 @@ import {
 import {
   selectCatalogItems,
   selectResourceClaims,
+  selectUserNamespace,
   selectCatalogNamespaces,
   selectUserGroups,
   selectInterface,
@@ -87,16 +88,14 @@ export interface CatalogProps {
   location?: any;
 }
 
-const getCatalogItemsFromServices = (allResourceClaims: any) => {
+const getCatalogItemsFromServices = (allResourceClaims: any, currentUserNamespace: any) => {
   const catalogItems = [];
-  const resourceClaimLists = Object.values(allResourceClaims !== null ? allResourceClaims : {});
-  for (const resourceClaimList of resourceClaimLists){
-    for (const resourceClaim of resourceClaimList as any){
+  const resourceClaimList = allResourceClaims?.[currentUserNamespace.name] || {};
+  for (const resourceClaim of resourceClaimList){
       const catalogItemName = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemName'];
       const catalogItemNamespace = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemNamespace'];
       catalogItems.push({catalogItemName, catalogItemNamespace});
     }
-  }
   return catalogItems;
 };
 
@@ -126,6 +125,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const userInterface = useSelector(selectInterface);
   const userIsAdmin = useSelector(selectUserIsAdmin);
   const allResourceClaims = useSelector(selectResourceClaims);
+  const currentUserNamespace = useSelector(selectUserNamespace);
   const catalogItems = useSelector(selectCatalogItems);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const catalogNamespace = catalogNamespaceName ? (catalogNamespaces.find(ns => ns.name == catalogNamespaceName) || {name: catalogNamespaceName, displayName: catalogNamespaceName, description: ""}) : null;
@@ -146,7 +146,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   const selectedCatalogItemName = selectedCatalogItem?.metadata?.name;
   const selectedCatalogItemNamespace = selectedCatalogItem?.metadata?.namespace;
-  const catalogItemList = getCatalogItemsFromServices(allResourceClaims);
+  const catalogItemList = getCatalogItemsFromServices(allResourceClaims, currentUserNamespace);
 
   function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
