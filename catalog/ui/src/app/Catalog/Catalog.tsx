@@ -6,6 +6,8 @@ import {
 
 import {
   selectCatalogItems,
+  selectResourceClaims,
+  selectUserNamespace,
   selectCatalogNamespaces,
   selectUserGroups,
   selectInterface,
@@ -86,6 +88,23 @@ export interface CatalogProps {
   location?: any;
 }
 
+const getCatalogItemsFromServices = (allResourceClaims: any, currentUserNamespace: any) => {
+  const catalogItems = [];
+  const resourceClaimList = allResourceClaims?.[currentUserNamespace.name] || {};
+  for (const resourceClaim of resourceClaimList){
+      const catalogItemName = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemName'];
+      const catalogItemNamespace = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemNamespace'];
+      catalogItems.push({catalogItemName, catalogItemNamespace});
+    }
+  return catalogItems;
+};
+
+const isRequestAllowed = (runningServices: any[], selectedCatalogItemName: string, selectedCatalogItemNamespace: string) => 
+  Boolean(runningServices.find(catalogItemList => 
+    catalogItemList.catalogItemName === selectedCatalogItemName &&
+    catalogItemList.catalogItemNamespace === selectedCatalogItemNamespace
+  ));
+
 const HideLabels = ['babylon.gpte.redhat.com/userCatalogItem'];
 
 const Catalog: React.FunctionComponent<CatalogProps> = ({
@@ -105,6 +124,8 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const userGroups = useSelector(selectUserGroups);
   const userInterface = useSelector(selectInterface);
   const userIsAdmin = useSelector(selectUserIsAdmin);
+  const allResourceClaims = useSelector(selectResourceClaims);
+  const currentUserNamespace = useSelector(selectUserNamespace);
   const catalogItems = useSelector(selectCatalogItems);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const catalogNamespace = catalogNamespaceName ? (catalogNamespaces.find(ns => ns.name == catalogNamespaceName) || {name: catalogNamespaceName, displayName: catalogNamespaceName, description: ""}) : null;
@@ -115,11 +136,17 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const [keywordSearchValue, setKeywordSearchValue] = React.useState('');
   const [selectedAttributeFilters, setSelectedAttributeFilters] = React.useState({});
 
+  const generalServiceCountError = "You are running 3 applications and have exceeded your quota of (3) applications. You will not be able to request any new applications until you retire existing applications. If you feel this is an error, please contact rhpds-help@redhat.com.";
+  const alreadyRunningInstanceError = "You are already running 1 instance(s) of the requested application. You will not be able to request another instance of this application until you retire the existing application. If you feel this is an error, please contact rhpds-help@redhat.com.";
+  
   const selectedCatalogItem = catalogItemName ? (
     catalogItems?.[catalogItemNamespaceName] || []
   ).find(ci => ci.metadata.name == catalogItemName) : null;
   const selectedCatalogItemProvider = selectedCatalogItem?.metadata?.labels?.['babylon.gpte.redhat.com/provider']
 
+  const selectedCatalogItemName = selectedCatalogItem?.metadata?.name;
+  const selectedCatalogItemNamespace = selectedCatalogItem?.metadata?.namespace;
+  const catalogItemList = getCatalogItemsFromServices(allResourceClaims, currentUserNamespace);
 
   function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
@@ -222,15 +249,34 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
           <DrawerCloseButton onClick={unselectCatalogItem} />
         </DrawerActions>
       </DrawerHead>
-      <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
-        <Button
-          onClick={requestCatalogItem}
-          isDisabled={'deny' === selectedCatalogItemAccess}
-          variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary' }
-        >
-          { selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information' }
-        </Button>
-      </PageSection>
+        <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-actions">
+        {userIsAdmin ?
+          <Button
+            onClick={requestCatalogItem}
+            isDisabled={'deny' === selectedCatalogItemAccess}
+            variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary'}
+          >
+            {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
+          </Button> :
+          <Button
+            onClick={requestCatalogItem}
+            isDisabled={selectedCatalogItemAccess === 'true' ? true : isRequestAllowed(catalogItemList, selectedCatalogItemName, selectedCatalogItemNamespace) || catalogItemList.length >= 3}
+            variant={selectedCatalogItemAccess === 'allow' ? 'primary' : 'secondary'}
+          >
+            {selectedCatalogItemAccess === 'allow' ? 'Request Service' : 'Request Information'}
+          </Button>
+        }
+        {(() => {
+          if (!userIsAdmin) {
+            if (isRequestAllowed(catalogItemList, selectedCatalogItemName, selectedCatalogItemNamespace) && catalogItemList.length < 3) {
+              return (<p style={{ color: 'red' }}> {alreadyRunningInstanceError} </p>)
+            } else if (catalogItemList.length >= 3) {
+              return (<p style={{ color: 'red' }}> {generalServiceCountError} </p>)
+            }
+          }
+          return null;
+        })()}
+        </PageSection>
       <PageSection variant={PageSectionVariants.light} className="rhpds-catalog-item-details-body">
         <div className="rhpds-catalog-item-details-body-sidebar">
           <DescriptionList>
