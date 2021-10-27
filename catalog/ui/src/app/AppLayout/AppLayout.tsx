@@ -20,6 +20,7 @@ import {
   selectAuthUser,
   selectImpersonationUser,
   selectInterface,
+  selectUserIsAdmin,
   selectUserNamespace,
 } from '@app/store';
 
@@ -50,7 +51,7 @@ import { IUserImpersonationDialogState, IListClusterCustomObjectResp, IListClust
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
 
-import { routes, IAppRoute, IAppRouteGroup } from '@app/routes';
+import { routes, adminRoutes, IAppRoute, IAppRouteGroup } from '@app/routes';
 import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 
@@ -87,6 +88,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const impersonateUser = useSelector(selectImpersonationUser);
   const userInterface = useSelector(selectInterface);
   const userNamespace = useSelector(selectUserNamespace);
+  const userIsAdmin = useSelector(selectUserIsAdmin);
 
   const impersonateUserName = sessionStorage.getItem('impersonateUser');
 
@@ -307,6 +309,13 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
           // TODO: not getting required type
           (route, idx) => route.label && (!route.routes ? renderNavItem(route as any, idx) : renderNavGroup(route as any, idx))
         )}
+        {userIsAdmin ?
+          <NavExpandable title="Admin">
+            {adminRoutes.map(
+              (route, idx) => route.label && renderNavItem(route as any, idx)
+            )}
+          </NavExpandable>
+          : null}
       </NavList>
     </Nav>
   );

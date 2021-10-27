@@ -5,7 +5,7 @@ import { LastLocationProvider, useLastLocation } from 'react-router-last-locatio
 
 import { Spinner } from "@patternfly/react-core";
 
-import { selectInterface, actionSetActiveServiceNamespace } from '@app/store';
+import { selectInterface, actionSetActiveServiceNamespace, selectUserIsAdmin } from '@app/store';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
@@ -13,6 +13,14 @@ const CatalogRequest = React.lazy(() => import('@app/Catalog/Request/CatalogRequ
 const Services = React.lazy(() => import('@app/Services/Services'));
 const ServicesItem = React.lazy(() => import('@app/Services/Item/ServicesItem'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
+const AnarchyGovernors = React.lazy(()=> import('@app/Admin/AnarchyGovernors'));
+const AnarchySubjects = React.lazy(()=> import('@app/Admin/AnarchySubjects'));
+const AnarchyActions = React.lazy(()=> import('@app/Admin/AnarchyActions'));
+const AnarchyRuns = React.lazy(()=> import('@app/Admin/AnarchyRuns'));
+const ResourcePools = React.lazy(()=> import('@app/Admin/ResourcePools'));
+const ResourceClaims = React.lazy(()=> import('@app/Admin/ResourceClaims'));
+const ResourceHandles = React.lazy(()=> import('@app/Admin/ResourceHandles'));
+const ResourceProviders = React.lazy(()=> import('@app/Admin/ResourceProviders'));
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
 let routeFocusTimer: number;
@@ -26,11 +34,13 @@ export interface IAppRoute {
   title: string;
   isAsync?: boolean;
   routes?: undefined;
+  adminRoutes?: undefined;
 }
 
 export interface IAppRouteGroup {
   label: string;
   routes: IAppRoute[];
+  adminRoutes: IAppRoute[];
 }
 
 export type AppRouteConfig = IAppRoute | IAppRouteGroup;
@@ -84,6 +94,66 @@ const routes: AppRouteConfig[] = [
 */
 ];
 
+const adminRoutes: AppRouteConfig[] = [
+    {
+    label: 'AnarchyGovernors',
+    exact: true,
+    component: AnarchyGovernors,
+    path: '/r/anarchygovernors',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'AnarchySubjects',
+    exact: true,
+    component: AnarchySubjects,
+    path: '/r/anarchysubjects',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'AnarchyActions',
+    exact: true,
+    component: AnarchyActions,
+    path: '/r/anarchyactions',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'AnarchyRuns',
+    exact: true,
+    component: AnarchyRuns,
+    path: '/r/anarchyruns',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'ResourcePools',
+    exact: true,
+    component: ResourcePools,
+    path: '/r/resourcepools',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'ResourceClaims',
+    exact: true,
+    component: ResourceClaims,
+    path: '/r/resourceclaims',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'ResourceHandles',
+    exact: true,
+    component: ResourceHandles,
+    path: '/r/resourcehandles',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'ResourceProviders',
+    exact: true,
+    component: ResourceProviders,
+    path: '/r/resourceproviders',
+    title: 'Babylon | Admin',
+  },
+
+];
+
 // a custom hook for sending focus to the primary content container
 // after a view has loaded so that subsequent press of tab key
 // sends focus directly to relevant content
@@ -120,8 +190,15 @@ const flattenedRoutes: IAppRoute[] = routes.reduce(
   [] as IAppRoute[]
 );
 
+const adminFlattenedRoutes: IAppRoute[] = adminRoutes.reduce(
+  (adminFlattenedRoutes, route) => [...adminFlattenedRoutes, ...(route.adminRoutes ? route.adminRoutes : [route])] as any,
+  [] as IAppRoute[]
+);
+
 const AppRoutes = (): React.ReactElement => {
   const userInterface = useSelector(selectInterface);
+  const userIsAdmin = useSelector(selectUserIsAdmin);
+
   const dispatch = useDispatch();
   const location = useLocation();
 
@@ -153,6 +230,24 @@ const AppRoutes = (): React.ReactElement => {
               />
             )
           })}
+          {userIsAdmin ?
+            adminFlattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
+              const pageTitle = (
+                userInterface === 'summit' ? title.replace('Babylon', 'Red Hat Summit') :
+                  userInterface === 'rhpds' ? title.replace('Babylon', 'RHPDS') : title
+              );
+              return (
+                <RouteWithTitleUpdates
+                  path={path}
+                  exact={exact}
+                  component={component}
+                  key={idx}
+                  title={pageTitle}
+                  isAsync={isAsync}
+                />
+              )
+            })
+            : null}
           <PageNotFound title="404 Page Not Found" />
         </Switch>
       </React.Suspense>
@@ -160,4 +255,4 @@ const AppRoutes = (): React.ReactElement => {
   );
 }
 
-export { AppRoutes, routes };
+export { AppRoutes, routes, adminRoutes };
