@@ -13,14 +13,7 @@ const CatalogRequest = React.lazy(() => import('@app/Catalog/Request/CatalogRequ
 const Services = React.lazy(() => import('@app/Services/Services'));
 const ServicesItem = React.lazy(() => import('@app/Services/Item/ServicesItem'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
-const AnarchyGovernors = React.lazy(()=> import('@app/Admin/AnarchyGovernors'));
-const AnarchySubjects = React.lazy(()=> import('@app/Admin/AnarchySubjects'));
-const AnarchyActions = React.lazy(()=> import('@app/Admin/AnarchyActions'));
-const AnarchyRuns = React.lazy(()=> import('@app/Admin/AnarchyRuns'));
 const ResourcePools = React.lazy(()=> import('@app/Admin/ResourcePools'));
-const ResourceClaims = React.lazy(()=> import('@app/Admin/ResourceClaims'));
-const ResourceHandles = React.lazy(()=> import('@app/Admin/ResourceHandles'));
-const ResourceProviders = React.lazy(()=> import('@app/Admin/ResourceProviders'));
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
 let routeFocusTimer: number;
@@ -95,63 +88,13 @@ const routes: AppRouteConfig[] = [
 ];
 
 const adminRoutes: AppRouteConfig[] = [
-    {
-    label: 'AnarchyGovernors',
-    exact: true,
-    component: AnarchyGovernors,
-    path: '/r/anarchygovernors',
-    title: 'Babylon | Admin',
-  },
-  {
-    label: 'AnarchySubjects',
-    exact: true,
-    component: AnarchySubjects,
-    path: '/r/anarchysubjects',
-    title: 'Babylon | Admin',
-  },
-  {
-    label: 'AnarchyActions',
-    exact: true,
-    component: AnarchyActions,
-    path: '/r/anarchyactions',
-    title: 'Babylon | Admin',
-  },
-  {
-    label: 'AnarchyRuns',
-    exact: true,
-    component: AnarchyRuns,
-    path: '/r/anarchyruns',
-    title: 'Babylon | Admin',
-  },
   {
     label: 'ResourcePools',
     exact: true,
     component: ResourcePools,
     path: '/r/resourcepools',
     title: 'Babylon | Admin',
-  },
-  {
-    label: 'ResourceClaims',
-    exact: true,
-    component: ResourceClaims,
-    path: '/r/resourceclaims',
-    title: 'Babylon | Admin',
-  },
-  {
-    label: 'ResourceHandles',
-    exact: true,
-    component: ResourceHandles,
-    path: '/r/resourcehandles',
-    title: 'Babylon | Admin',
-  },
-  {
-    label: 'ResourceProviders',
-    exact: true,
-    component: ResourceProviders,
-    path: '/r/resourceproviders',
-    title: 'Babylon | Admin',
-  },
-
+  }
 ];
 
 // a custom hook for sending focus to the primary content container
