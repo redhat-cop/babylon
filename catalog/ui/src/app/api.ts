@@ -102,6 +102,46 @@ export async function createResourceClaim(definition, opt: any = {}): Promise<an
   return resourceClaim;
 }
 
+export async function getAnarchyActions(): Promise<any> {
+  const session = await getApiSession();
+  const resp = await fetch(`/apis/anarchy.gpte.redhat.com/v1/anarchyactions`,
+    {
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+      }
+    }
+  );
+  return await resp.json();
+}
+
+export async function deleteAnarchyAction(anarchyAction): Promise<any> {
+  const session = await getApiSession();
+  const resp = await apiFetch(
+    `/apis/anarchy.gpte.redhat.com/v1/anarchyactions/${anarchyAction}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+      }
+    }
+  )
+    .then(response => response.json())
+    .then(resp => {
+      if (resp.status === 200) {
+        refreshApiSession();
+      } else if (resp.status === 401) {
+        resp.error = 'Session expired, please refresh.'
+      } else if (resp.status === 403) {
+        resp.error = 'Sorry, it seems you do not have access.'
+      } else {
+        resp.error = resp.status
+      }
+    });
+  if (!window.apiSessionPromise) {
+    refreshApiSession();
+    getAnarchyActions();
+  }
+}
 export interface ServiceRequestParameters {
   catalogItem: any;
   catalogNamespace: any;
