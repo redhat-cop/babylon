@@ -20,11 +20,11 @@ import {
 } from '@app/util';
 
 declare var window: Window &
-   typeof globalThis & {
+  typeof globalThis & {
     apiSessionPromise?: any,
     apiSessionInterval?: any,
     apiSessionImpersonateUser?: any,
-   }
+  }
 
 async function apiFetch(path:string, opt?:object): Promise<any> {
   const session = await getApiSession();
@@ -51,15 +51,15 @@ async function apiFetch(path:string, opt?:object): Promise<any> {
 function refreshApiSession(): void {
   window.apiSessionPromise = new Promise((resolve) => {
     fetch('/auth/session')
-    .then(response => response.json())
-    .then(session => {
-      if (window.apiSessionInterval) { clearInterval(window.apiSessionInterval) }
-      window.apiSessionInterval = setInterval(refreshApiSession, (session.lifetime - 60) * 1000);
-      resolve(session);
-    })
-    .catch(error => {
-      window.location.href = '/?n=' + new Date().getTime();
-    })
+      .then(response => response.json())
+      .then(session => {
+        if (window.apiSessionInterval) { clearInterval(window.apiSessionInterval) }
+        window.apiSessionInterval = setInterval(refreshApiSession, (session.lifetime - 60) * 1000);
+        resolve(session);
+      })
+      .catch(error => {
+        window.location.href = '/?n=' + new Date().getTime();
+      })
   });
 }
 
@@ -97,6 +97,25 @@ export async function getResourcepools(): Promise<any> {
     }
   );
   return await resp.json();
+}
+
+export async function scalePool(resourcepool, minAvailable): Promise<any> {
+  try {
+    const session = await getApiSession();
+    const response = await fetch(`/apis/poolboy.gpte.redhat.com/v1/namespaces/${resourcepool.metadata.namespace}/resourcepools/${resourcepool.metadata.name}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ spec: { minAvailable: minAvailable } }),
+        headers: {
+          Authentication: `Bearer ${session.token}`,
+          'Content-Type': 'application/merge-patch+json'
+        }
+      }
+    )
+    return await response.json();
+  } catch (err) {
+    return err;
+  }
 }
 
 export async function createResourceClaim(definition, opt: any = {}): Promise<any> {
@@ -253,11 +272,11 @@ export async function createServiceRequest({
       return await createResourceClaim(requestResourceClaim);
     } catch(error: any) {
       if (error.status === 409) {
-	n++;
+        n++;
         requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${n}`;
         requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/url'] = `${baseUrl}/services/item/${userNamespace.name}/${catalogItem.metadata.name}-${n}`;
       } else {
-	throw error;
+        throw error;
       }
     }
   }

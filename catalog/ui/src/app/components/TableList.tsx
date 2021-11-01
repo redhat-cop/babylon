@@ -8,12 +8,12 @@ import {
 
 import { DeleteButton } from '@app/Services/DeleteButton';
 
-export interface SelectableTableProps {
+export interface TableListProps {
   columns: Array<any>;
   rows: Array<any>;
 }
 
-const TableList: React.FunctionComponent<SelectableTableProps> = ({
+const TableList: React.FunctionComponent<TableListProps> = ({
   columns,
   rows,
 }) =>{
