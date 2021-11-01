@@ -117,7 +117,7 @@ export async function getAnarchyActions(): Promise<any> {
 export async function deleteAnarchyAction(anarchyAction): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
-    `/apis/anarchy.gpte.redhat.com/v1/namespaces/anarchy-operator/anarchyactions/a`,
+    `/apis/anarchy.gpte.redhat.com/v1/namespaces/anarchy-operator/anarchyactions/${anarchyAction}`,
     {
       method: 'DELETE',
       headers: {
@@ -127,11 +127,11 @@ export async function deleteAnarchyAction(anarchyAction): Promise<any> {
   )
   if (resp.status === 200) {
     refreshApiSession();
-    getAnarchyActions();
+    await getAnarchyActions();
   }
   if (!window.apiSessionPromise) {
     refreshApiSession();
-    getAnarchyActions();
+    await getAnarchyActions();
   }
   return await resp.json();
 }
