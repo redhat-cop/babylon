@@ -3,57 +3,54 @@ import { useEffect, useState } from "react";
 import { getAnarchyActions, deleteAnarchyAction } from '@app/api';
 import { Link } from 'react-router-dom';
 
-import { DeleteButton } from '@app/Services/DeleteButton';
-import { TableComposable, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { TableList } from '@app/components/TableList';
-import { DatabaseIcon } from "@patternfly/react-icons";
-
-
+import { DeleteButton } from '@app/Services/DeleteButton';
 const AnarchyActions: React.ComponentType<any> = () => {
     const [data, setData] = useState([] as any);
-    let nameSpaceData = [];
-    let resp;
+    let resp: any;
     async function fetchAnarchyActions() {
         try {
             const rows = [];
             resp = await getAnarchyActions();
             const items = resp.items;
-            console.log("items", items);
             for (const item of items) {
-                const namespace = item.metadata.namespace;
-                const name = item.metadata.name;
-                const governor = item.metadata.labels['anarchy.gpte.redhat.com/governor'];
-                const subject = item.metadata.labels['anarchy.gpte.redhat.com/subject'];
-                const run = item.metadata.labels['anarchy.gpte.redhat.com/run'];
-                const age = item?.age;
-                rows.push([name, namespace, governor, subject, run]);
+                const namespace = <React.Fragment><Link to={``}>{item.metadata.namespace}</Link></React.Fragment>;
+                const name = <React.Fragment><Link to={``}>{item.metadata.name}</Link></React.Fragment>
+                const governor = <React.Fragment><Link to={``}>{item.metadata.labels['anarchy.gpte.redhat.com/governor']}</Link></React.Fragment>;
+                const subject = <React.Fragment><Link to={``}>{item.metadata.labels['anarchy.gpte.redhat.com/subject']}</Link></React.Fragment>;
+                const run = <React.Fragment><Link to={``}>{item.metadata.labels['anarchy.gpte.redhat.com/run']}</Link></React.Fragment>;
+                const age = "";
+                const deleteButton =
+                    <React.Fragment><DeleteButton onClick={() => { deleteAction(item.metadata.name) }}></DeleteButton></React.Fragment>;
+                rows.push([name, namespace, governor, subject, run, age, deleteButton]);
             }
             setData(rows);
-            console.log("data", data);
-
-            return rows;
         } catch (err) {
             return err;
         }
     }
 
-    const columns = ["Name", "Namespace", "AnarchyGovernor", "AnarchySubject", "AnarchyRun", "Age"];
+    const columns = ["Name", "Namespace", "AnarchyGovernor", "AnarchySubject", "AnarchyRun", "Age", ""];
 
     useEffect(() => {
         fetchAnarchyActions()
     }, []);
 
-    function deleteAction(action: any) {
-        deleteAnarchyAction(action);
+    function deleteAction(action: String) {
+        const DeleteConfirm = confirm(`Delete ${action} ?`);
+        if (DeleteConfirm === true) {
+            deleteAnarchyAction(action);
+        }
     }
-
 
     return (
         <div>
-            <h1 style={{ fontSize: "2rem", textAlign: "center", padding: "10px" }}>AnarchyActions</h1>
-            <TableList
-                columns={columns}
-                rows={data} />
+            <div>
+                <h1 style={{ fontSize: "2rem", textAlign: "center", padding: "10px" }}>AnarchyActions</h1>
+                <TableList
+                    columns={columns}
+                    rows={data} />
+            </div>
         </div>
     );
 }

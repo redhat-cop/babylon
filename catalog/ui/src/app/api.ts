@@ -117,7 +117,7 @@ export async function getAnarchyActions(): Promise<any> {
 export async function deleteAnarchyAction(anarchyAction): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
-    `/apis/anarchy.gpte.redhat.com/v1/anarchyactions/${anarchyAction}`,
+    `/apis/anarchy.gpte.redhat.com/v1/namespaces/anarchy-operator/anarchyactions/a`,
     {
       method: 'DELETE',
       headers: {
@@ -125,23 +125,17 @@ export async function deleteAnarchyAction(anarchyAction): Promise<any> {
       }
     }
   )
-    .then(response => response.json())
-    .then(resp => {
-      if (resp.status === 200) {
-        refreshApiSession();
-      } else if (resp.status === 401) {
-        resp.error = 'Session expired, please refresh.'
-      } else if (resp.status === 403) {
-        resp.error = 'Sorry, it seems you do not have access.'
-      } else {
-        resp.error = resp.status
-      }
-    });
+  if (resp.status === 200) {
+    refreshApiSession();
+    getAnarchyActions();
+  }
   if (!window.apiSessionPromise) {
     refreshApiSession();
     getAnarchyActions();
   }
+  return await resp.json();
 }
+
 export interface ServiceRequestParameters {
   catalogItem: any;
   catalogNamespace: any;
