@@ -63,6 +63,19 @@ oauthProxy:
     limits:
       cpu: "1"
       memory: "256Mi"
+  # Custom oauth-proxy templates.
+  # For built-in templates see https://github.com/openshift/oauth-proxy/blob/master/templates.go
+  #templates:
+  #  error.html: |
+  #    <!DOCTYPE html>
+  #    <html lang="en" charset="utf-8">
+  #    ...
+  #    </html>
+  #  sign_in.html: |
+  #    <!DOCTYPE html>
+  #    <html lang="en" charset="utf-8">
+  #    ...
+  #    </html>
 
 redis:
   name: # default use chart name + '-redis'

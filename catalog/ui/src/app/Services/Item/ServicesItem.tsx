@@ -302,8 +302,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       </PageSection>
       { resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' ? (
         <PageSection key="body" variant={PageSectionVariants.light} className="rhpds-services-item-body" style={{"paddingTop": "1em"}}>
-          <p>Thank you for your interest in {catalogItemDisplayName}!</p>
-          <p>This item is not available for you during the event. Our team will reach out to offer an alternative time.</p>
+          <p>Thank you for your interest in {catalogItemDisplayName}, this item is not available for you during the event.</p>
+          <p>Our team will reach out to offer an alternative time.</p>
         </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="rhpds-services-item-body">
