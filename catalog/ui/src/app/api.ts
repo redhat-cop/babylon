@@ -87,6 +87,18 @@ export async function getUserInfo(user): Promise<any> {
   return await resp.json();
 }
 
+export async function getResourceProviders(): Promise<any> {
+  const session = await getApiSession();
+  const resp = await fetch(`apis/poolboy.gpte.redhat.com/v1/resourceproviders`,
+    {
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+      }
+    }
+  );
+  return await resp.json();
+}
+
 export async function createResourceClaim(definition, opt: any = {}): Promise<any> {
   const namespace = definition.metadata.namespace;
   const resourceClaim = await createNamespacedCustomObject(
