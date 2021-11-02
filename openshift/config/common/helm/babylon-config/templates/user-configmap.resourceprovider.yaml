@@ -2,7 +2,7 @@ apiVersion: poolboy.gpte.redhat.com/v1
 kind: ResourceProvider
 metadata:
   name: babylon-user-configmap
-  namespace: poolboy
+  namespace: {{ .Values.poolboy.namespace }}
 spec:
   disableCreation: true
   matchIgnore:
