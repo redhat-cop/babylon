@@ -1,27 +1,45 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { getAnarchyActions, deleteAnarchyAction } from '@app/api';
+import { getAnarchyActionsTables, deleteAnarchyAction } from '@app/api';
 import { Link } from 'react-router-dom';
 
 import { TableList } from '@app/components/TableList';
 import { DeleteButton } from '@app/Services/DeleteButton';
+
+const getRowItems = (rowIndexes, rows) => {
+   const rowItems = rows.map((row) => ({
+        namespace: row.object.metadata.namespace,
+        name: row.cells[rowIndexes['Name']],
+        governor: row.cells[rowIndexes['Governor']],
+        subject: row.cells[rowIndexes['Subject']],
+        run: row.cells[rowIndexes['Run']],
+        age: row.cells[rowIndexes['Age']],
+    }));
+    return rowItems;
+}
+
 const AnarchyActions: React.ComponentType<any> = () => {
     const [data, setData] = useState([] as any);
+    const rows = [];
     let resp: any;
     async function fetchAnarchyActions() {
         try {
-            const rows = [];
-            resp = await getAnarchyActions();
-            const items = resp.items;
-            for (const item of items) {
-                const namespace = <React.Fragment><Link to={``}>{item.metadata.namespace}</Link></React.Fragment>;
-                const name = <React.Fragment><Link to={``}>{item.metadata.name}</Link></React.Fragment>
-                const governor = <React.Fragment><Link to={``}>{item.metadata.labels['anarchy.gpte.redhat.com/governor']}</Link></React.Fragment>;
-                const subject = <React.Fragment><Link to={``}>{item.metadata.labels['anarchy.gpte.redhat.com/subject']}</Link></React.Fragment>;
-                const run = <React.Fragment><Link to={``}>{item.metadata.labels['anarchy.gpte.redhat.com/run']}</Link></React.Fragment>;
-                const age = "";
+            resp = await getAnarchyActionsTables();
+            const { columnDefinitions, rows: rowResp } = resp;
+            const rowIndexes = {};
+            columnDefinitions.forEach((columnDefination, index) => {
+                rowIndexes[columnDefination.name] = index;
+            });
+            const rowItems = getRowItems(rowIndexes, rowResp);
+            for (const item of rowItems) {
+                const namespace = <><Link to={``}>{item.namespace}</Link></>;
+                const name = <><Link to={``}>{item.name}</Link></>
+                const governor = <><Link to={``}>{item.governor}</Link></>;
+                const subject = <><Link to={``}>{item.subject}</Link></>;
+                const run = <><Link to={``}>{item.run}</Link></>;
+                const age = item.age;
                 const deleteButton =
-                    <React.Fragment><DeleteButton onClick={() => { deleteAction(item.metadata.name) }}></DeleteButton></React.Fragment>;
+                    <React.Fragment><DeleteButton onClick={() => { deleteAction(item.name) }}></DeleteButton></React.Fragment>;
                 rows.push([name, namespace, governor, subject, run, age, deleteButton]);
             }
             setData(rows);

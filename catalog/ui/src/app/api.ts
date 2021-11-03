@@ -114,6 +114,19 @@ export async function getAnarchyActions(): Promise<any> {
   return await resp.json();
 }
 
+export async function getAnarchyActionsTables(): Promise<any> {
+  const session = await getApiSession();
+  const resp = await fetch(`/apis/anarchy.gpte.redhat.com/v1/anarchyactions`,
+    {
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+        Accept: 'application/json;as=Table;g=meta.k8s.io;v=v1beta1',
+      }
+    }
+  );
+  return await resp.json();
+}
+
 export async function deleteAnarchyAction(anarchyAction): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
