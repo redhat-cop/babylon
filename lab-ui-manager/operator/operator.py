@@ -4,7 +4,10 @@ import jinja2
 import json
 import kopf
 import kubernetes
+import logging
+import math
 import os
+import time
 
 from copy import deepcopy
 
@@ -25,8 +28,29 @@ core_v1_api = kubernetes.client.CoreV1Api()
 custom_objects_api = kubernetes.client.CustomObjectsApi()
 j2env = jinja2.Environment(trim_blocks = True)
 
+class InfiniteRelativeBackoff:
+    def __init__(self, n=2, maximum=60):
+        self.n = n
+        self.maximum = maximum
+
+    def __iter__(self):
+        prev_t = []
+        max_age = self.maximum * math.ceil(math.log(self.maximum) / math.log(self.n))
+        while True:
+            t = time.monotonic()
+            prev_t = [p for p in prev_t if t - p < max_age]
+            delay = self.n ** len(prev_t)
+            prev_t.append(t)
+            yield delay if delay < self.maximum else self.maximum
+
 @kopf.on.startup()
 def configure(settings: kopf.OperatorSettings, **_):
+    # Never give up from network errors
+    settings.networking.error_backoffs = InfiniteRelativeBackoff()
+
+    # Only create events for warnings and errors
+    settings.posting.level = logging.WARNING
+
     # Disable scanning for CustomResourceDefinitions
     settings.scanning.disabled = True
 
