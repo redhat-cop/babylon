@@ -108,9 +108,33 @@ namespace_email_addresses = {}
 retirement_timers = {}
 stop_timers = {}
 
+class InfiniteRelativeBackoff:
+    def __init__(self, initial_delay=0.1, n=2, maximum=60):
+        self.initial_delay = initial_delay
+        self.n = n
+        self.maximum = maximum
+
+    def __iter__(self):
+        c = 0
+        while True:
+            delay = self.initial_delay * self.n ** c
+            if delay > self.maximum:
+                break
+            yield delay
+            c += 1
+
+        while True:
+            yield self.maximum
+
 @kopf.on.startup()
 def configure(settings: kopf.OperatorSettings, **_):
     global ansible_tower_hostname, ansible_tower_password, ansible_tower_user
+
+    # Never give up from network errors
+    settings.networking.error_backoffs = InfiniteRelativeBackoff()
+
+    # Only create events for warnings and errors
+    settings.posting.level = logging.WARNING
 
     # Disable scanning for CustomResourceDefinitions
     settings.scanning.disabled = True
