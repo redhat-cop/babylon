@@ -161,7 +161,7 @@ def namespace_event(event, logger, **_):
     emails = []
     if contact_email:
         emails = [a.strip() for a in contact_email.split(',')]
-    elif contact_email != "" and requester and requester != 'system:admin':
+    elif contact_email != "" and requester and ':' not in requester:
         try:
             user = custom_objects_api.get_cluster_custom_object('user.openshift.io', 'v1', 'users', requester)
             for identity_name in user.get('identities', []):
