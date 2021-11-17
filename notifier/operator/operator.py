@@ -108,9 +108,30 @@ namespace_email_addresses = {}
 retirement_timers = {}
 stop_timers = {}
 
+class InfiniteRelativeBackoff:
+    def __init__(self, initial_delay=0.1, scaling_factor=2, maximum=60):
+        self.initial_delay = initial_delay
+        self.scaling_factor = scaling_factor
+        self.maximum = maximum
+
+    def __iter__(self):
+        delay = self.initial_delay
+        while True:
+            if delay > self.maximum:
+                yield self.maximum
+            else:
+                yield delay
+                delay *= self.scaling_factor
+
 @kopf.on.startup()
 def configure(settings: kopf.OperatorSettings, **_):
     global ansible_tower_hostname, ansible_tower_password, ansible_tower_user
+
+    # Never give up from network errors
+    settings.networking.error_backoffs = InfiniteRelativeBackoff()
+
+    # Only create events for warnings and errors
+    settings.posting.level = logging.WARNING
 
     # Disable scanning for CustomResourceDefinitions
     settings.scanning.disabled = True
@@ -137,7 +158,7 @@ def namespace_event(event, logger, **_):
     emails = []
     if contact_email:
         emails = [a.strip() for a in contact_email.split(',')]
-    elif contact_email != "" and requester and requester != 'system:admin':
+    elif contact_email != "" and requester and ':' not in requester:
         try:
             user = custom_objects_api.get_cluster_custom_object('user.openshift.io', 'v1', 'users', requester)
             for identity_name in user.get('identities', []):
