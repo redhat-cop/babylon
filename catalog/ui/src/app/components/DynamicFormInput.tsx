@@ -64,7 +64,14 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
         min={parameter.openAPIV3Schema.minmum || 0}
         max={parameter.openAPIV3Schema.maximum}
         // TODO: value does not exist
-        onChange={(event : any) => onChange(isNaN(event.target.value) ? value : Number(event.target.value))}
+        onChange={(event : any) => {
+          const n = isNaN(event.target.value) ? parameter.openAPIV3Schema.default : event.target.value;
+          onChange(
+            n < parameter.openAPIV3Schema.minimum ? parameter.openAPIV3Schema.minimum :
+            n > parameter.openAPIV3Schema.maximum ? parameter.openAPIV3Schema.maximum :
+            n
+          )
+        }}
         onMinus={() => onChange(value - 1)}
         onPlus={() => onChange(value + 1)}
         value={value || 0}
