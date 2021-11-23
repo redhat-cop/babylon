@@ -15,6 +15,7 @@ const ServicesItem = React.lazy(() => import('@app/Services/Item/ServicesItem'))
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 const ResourceHandles = React.lazy(()=> import('@app/Admin/ResourceHandles'));
 const ResourcePools = React.lazy(()=> import('@app/Admin/ResourcePools'));
+const ResourceProviders = React.lazy(()=> import('@app/Admin/ResourceProviders'));
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
 let routeFocusTimer: number;
@@ -102,7 +103,14 @@ const adminRoutes: AppRouteConfig[] = [
     component: ResourcePools,
     path: '/r/resourcepools',
     title: 'Babylon | Admin',
-  }
+  },
+  {
+    label: 'ResourceProviders',
+    exact: true,
+    component: ResourceProviders,
+    path: '/r/resourceproviders',
+    title: 'Babylon | Admin',
+  },
 ];
 
 // a custom hook for sending focus to the primary content container
