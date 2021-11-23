@@ -157,6 +157,53 @@ export async function createResourceClaim(definition, opt: any = {}): Promise<an
   return resourceClaim;
 }
 
+export async function getAnarchyActions(): Promise<any> {
+  const session = await getApiSession();
+  const resp = await fetch(`/apis/anarchy.gpte.redhat.com/v1/anarchyactions`,
+    {
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+      }
+    }
+  );
+  return await resp.json();
+}
+
+export async function getAnarchyActionsTables(): Promise<any> {
+  const session = await getApiSession();
+  const resp = await fetch(`/apis/anarchy.gpte.redhat.com/v1/anarchyactions`,
+    {
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+        Accept: 'application/json;as=Table;g=meta.k8s.io;v=v1beta1',
+      }
+    }
+  );
+  return await resp.json();
+}
+
+export async function deleteAnarchyAction(anarchyAction): Promise<any> {
+  const session = await getApiSession();
+  const resp = await apiFetch(
+    `/apis/anarchy.gpte.redhat.com/v1/namespaces/anarchy-operator/anarchyactions/${anarchyAction}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+      }
+    }
+  )
+  if (resp.status === 200) {
+    refreshApiSession();
+    await getAnarchyActions();
+  }
+  if (!window.apiSessionPromise) {
+    refreshApiSession();
+    await getAnarchyActions();
+  }
+  return await resp.json();
+}
+
 export interface ServiceRequestParameters {
   catalogItem: any;
   catalogNamespace: any;
