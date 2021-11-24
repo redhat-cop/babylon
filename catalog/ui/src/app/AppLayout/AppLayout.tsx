@@ -20,8 +20,8 @@ import {
   selectAuthUser,
   selectImpersonationUser,
   selectInterface,
-  selectUserNamespace,
   selectUserIsAdmin,
+  selectUserNamespace,
 } from '@app/store';
 
 import { NavLink, useLocation, useHistory } from 'react-router-dom';
