@@ -111,6 +111,18 @@ export async function getResourcePools(): Promise<any> {
   return await resp.json();
 }
 
+export async function getResourceProviders(): Promise<any> {
+  const session = await getApiSession();
+  const resp = await fetch(`apis/poolboy.gpte.redhat.com/v1/resourceproviders`,
+    {
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+      }
+    }
+  );
+  return await resp.json();
+}
+
 export async function scalePool(resourcepool, minAvailable): Promise<any> {
   try {
     const session = await getApiSession();
