@@ -6,8 +6,6 @@ import {
   TableBody,
 } from '@patternfly/react-table';
 
-import { DeleteButton } from '@app/Services/DeleteButton';
-
 export interface TableListProps {
   columns: Array<any>;
   rows: Array<any>;

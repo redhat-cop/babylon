@@ -13,6 +13,7 @@ const CatalogRequest = React.lazy(() => import('@app/Catalog/Request/CatalogRequ
 const Services = React.lazy(() => import('@app/Services/Services'));
 const ServicesItem = React.lazy(() => import('@app/Services/Item/ServicesItem'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
+const AnarchyActions = React.lazy(()=> import('@app/Admin/AnarchyActions'));
 const ResourceHandles = React.lazy(()=> import('@app/Admin/ResourceHandles'));
 const ResourcePools = React.lazy(()=> import('@app/Admin/ResourcePools'));
 const ResourceProviders = React.lazy(()=> import('@app/Admin/ResourceProviders'));
@@ -90,6 +91,13 @@ const routes: AppRouteConfig[] = [
 ];
 
 const adminRoutes: AppRouteConfig[] = [
+  {
+    label: 'AnarchyActions',
+    exact: true,
+    component: AnarchyActions,
+    path: '/r/anarchyactions',
+    title: 'Babylon | Admin',
+  },
   {
     label: 'ResourceHandles',
     exact: true,

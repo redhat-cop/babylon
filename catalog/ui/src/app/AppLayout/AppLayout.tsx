@@ -89,7 +89,6 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const userInterface = useSelector(selectInterface);
   const userNamespace = useSelector(selectUserNamespace);
   const userIsAdmin = useSelector(selectUserIsAdmin);
-
   const impersonateUserName = sessionStorage.getItem('impersonateUser');
 
   async function getUsers({session}): Promise<void> {
