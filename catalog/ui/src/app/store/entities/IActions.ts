@@ -18,6 +18,7 @@ interface INamespaces {
 }
 export interface IActionStartSession {
     admin: boolean,
+    consoleURL: string,
     user: string,
     groups: [string],
     interface: string,

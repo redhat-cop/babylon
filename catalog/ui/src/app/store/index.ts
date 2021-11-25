@@ -311,6 +311,7 @@ function reduce_startSession(state, action) {
   state.auth.serviceNamespaces = action.payload.serviceNamespaces;
   state.auth.userNamespace = action.payload.userNamespace;
   state.catalogItems = null;
+  state.consoleURL = action.payload.consoleURL;
   state.interface = action.payload.interface;
   state.resourceClaims = null;
   startWatchCatalogItems();
@@ -365,6 +366,11 @@ export const selectAuthIsAdmin = createSelector(
 export const selectAuthUser = createSelector(
   selectSelf,
   state => state.auth.user,
+)
+
+export const selectConsoleURL = createSelector(
+  selectSelf,
+  state => state.consoleURL,
 )
 
 export const selectInterface = createSelector(

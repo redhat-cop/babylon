@@ -44,6 +44,8 @@ else:
 core_v1_api = kubernetes.client.CoreV1Api()
 custom_objects_api = kubernetes.client.CustomObjectsApi()
 
+console_url = core_v1_api.read_namespaced_config_map('console-public', 'openshift-config-managed').data['consoleURL']
+
 def openshift_auth_user():
     user = custom_objects_api.get_cluster_custom_object(
         'user.openshift.io', 'v1', 'users', '~'
@@ -377,6 +379,7 @@ def get_auth_session():
     )
     ret = {
         "admin": user_is_admin,
+        "consoleURL": console_url,
         "groups": groups,
         "user": user['metadata']['name'],
         "token": token,

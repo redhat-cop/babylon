@@ -114,6 +114,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
       dispatch(
         actionStartSession({
           admin: session.admin || false,
+          consoleURL: session.consoleURL,
           groups: session.groups || [],
           interface: session.interface,
           user: session.user,
