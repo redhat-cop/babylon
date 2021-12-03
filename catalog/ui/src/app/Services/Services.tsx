@@ -63,6 +63,7 @@ import {
   setLifespanEndForResourceClaim,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
+  ResourceClaim,
 } from '@app/api';
 
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
@@ -125,14 +126,14 @@ const Services: React.FunctionComponent<ServicesProps> = ({
   const [selectedResourceClaimUids, setSelectedResourceClaimUids] = React.useState([] as any);
   const [servicesFilter, setServicesFilter] = React.useState('');
 
-  const resourceClaims = useSelector(selectResourceClaims);
+  const resourceClaims = useSelector<ResourceClaim[]>(selectResourceClaims);
   const serviceNamespaces = useSelector(selectServiceNamespaces);
   const serviceNamespace = serviceNamespaceName ? (serviceNamespaces.find(ns => ns.name == serviceNamespaceName) || {name: serviceNamespaceName, displayName: serviceNamespaceName, description: ""}) : null;
 
   const availableResourceClaims = (resourceClaims ? (
     serviceNamespaceName ? [...(resourceClaims[serviceNamespaceName] || [])]  : Object.values(resourceClaims).flat()
   )
-  .filter(resourceClaim => {
+  .filter((resourceClaim:ResourceClaim) => {
     const resourceHandleRef = resourceClaim.status?.resourceHandle;
     const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
     const guid = resourceHandleRef ? resourceHandleRef.name.startsWith('guid-') ? resourceHandleRef.name.substring(5) : resourceHandleRef.name : null;
@@ -366,7 +367,7 @@ const Services: React.FunctionComponent<ServicesProps> = ({
               setSelectedResourceClaimUids([]);
             }
           }}
-          rows={availableResourceClaims.map(resourceClaim => {
+          rows={availableResourceClaims.map((resourceClaim:ResourceClaim) => {
             const resourceHandleRef = resourceClaim.status?.resourceHandle;
             const uid = resourceClaim.metadata.uid;
             const guid = resourceHandleRef ? resourceHandleRef.name.startsWith('guid-') ? resourceHandleRef.name.substring(5) : resourceHandleRef.name : null;

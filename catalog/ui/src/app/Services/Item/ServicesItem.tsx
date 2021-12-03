@@ -56,7 +56,7 @@ import {
   QuestionCircleIcon,
 } from '@patternfly/react-icons';
 
-import Editor, { DiffEditor, useMonaco, loader } from "@monaco-editor/react";
+import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
 
 import {
@@ -535,10 +535,11 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
             ) : null }
             <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
               <Editor
-                theme="vs-dark"
-                value={yaml.dump(prunedResourceClaim)}
                 height="500px"
                 language="yaml"
+                options={{readOnly: true}}
+                theme="vs-dark"
+                value={yaml.dump(prunedResourceClaim)}
               />
             </Tab>
           </Tabs>

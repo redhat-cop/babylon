@@ -19,15 +19,16 @@ const TimeInterval: React.FunctionComponent<TimeIntervalProps> = ({
     parseDuration(interval) / 1000
   );
   const relativeText = to && !timeOnly ? ( seconds < 0 ? " ago" : " from now") : null;
+  const abs_seconds = Math.abs(seconds)
 
-  if (seconds > 49 * 60 * 60) {
-    return (<span>{ Math.round(Math.abs(seconds) / 24 / 60 / 60) } days{relativeText}</span>);
-  } else if(seconds > 120 * 60) {
-    return (<span>{ Math.round(Math.abs(seconds) / 60 / 60) } hours{relativeText}</span>);
-  } else if(seconds > 200) {
-    return (<span>{ Math.round(Math.abs(seconds) / 60) } minutes{relativeText}</span>);
+  if (abs_seconds > 49 * 60 * 60) {
+    return (<span>{ Math.round(abs_seconds / 24 / 60 / 60) } days{relativeText}</span>);
+  } else if(abs_seconds > 120 * 60) {
+    return (<span>{ Math.round(abs_seconds / 60 / 60) } hours{relativeText}</span>);
+  } else if(abs_seconds > 200) {
+    return (<span>{ Math.round(abs_seconds / 60) } minutes{relativeText}</span>);
   } else {
-    return (<span>{ Math.round(Math.abs(seconds)) } seconds{relativeText}</span>);
+    return (<span>{ Math.round(abs_seconds) } seconds{relativeText}</span>);
   }
 }
 

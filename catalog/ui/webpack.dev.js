@@ -16,6 +16,7 @@ module.exports = merge(common('development'), {
     inline: true,
     historyApiFallback: {
       rewrites: [
+        { from: /^\/admin\/.*/, to: '/index.html' },
         { from: /^\/catalog\/.*/, to: '/index.html' },
         { from: /^\/services\/.*/, to: '/index.html' },
       ],

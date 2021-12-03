@@ -1,10 +1,7 @@
 .rhpds-services-item-header.pf-c-page__main-section {
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
   padding-top: 8pt;
   padding-bottom: 8pt;
-}
-
-.rhpds-services-item-header.pf-c-page__main-section {
-  border-bottom: 1px solid var(--pf-global--palette--black-300);
 }
 
 .rhpds-services-item-body.pf-c-page__main-section {
