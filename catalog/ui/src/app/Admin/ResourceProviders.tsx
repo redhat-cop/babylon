@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { getResourceProviders } from '@app/api';
 import { selectConsoleURL } from '@app/store';
 import { TableList } from '@app/components/TableList';
-import { OpenshiftConsoleLink } from './OpenshiftConsoleLink';
+import OpenshiftConsoleLink from './OpenshiftConsoleLink';
 
 const ResourceProviders: React.ComponentType<any> = () => {
   const [resourceProvidersList, setResourceProviders] = useState([] as any);

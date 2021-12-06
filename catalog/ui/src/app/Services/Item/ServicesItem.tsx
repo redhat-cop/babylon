@@ -15,6 +15,7 @@ import {
 import {
   selectResourceClaims,
   selectServiceNamespaces,
+  selectUserIsAdmin,
 } from '@app/store';
 
 import {
@@ -102,6 +103,8 @@ import {
   ServicesItemStopModal,
 } from '@app/Services/Item/StopModal/ServicesItemStopModal';
 
+import OpenshiftConsoleLink from '../../Admin/OpenshiftConsoleLink';
+
 import './services-item.css';
 
 export interface ServicesItemProps {
@@ -125,6 +128,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
 
   const serviceNamespaces = useSelector(selectServiceNamespaces);
   const resourceClaims = useSelector(selectResourceClaims);
+  const userIsAdmin = useSelector(selectUserIsAdmin);
+
   const resourceClaim = resourceClaims?.[resourceClaimNamespace] ? resourceClaims[resourceClaimNamespace].find(rc => rc.metadata.name == resourceClaimName) : null;
   const userData = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/userData'] || 'null');
 
@@ -312,7 +317,12 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               <DescriptionList isHorizontal>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Name</DescriptionListTerm>
-                  <DescriptionListDescription>{resourceClaim.metadata.name}</DescriptionListDescription>
+                  <DescriptionListDescription>
+                    {resourceClaim.metadata.name}
+                    { userIsAdmin ? (
+                      <OpenshiftConsoleLink resource={resourceClaim}/>
+                    ) : null }
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
                 { labUserInterfaceUrl ? (
                   <DescriptionListGroup>
@@ -347,7 +357,16 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 <DescriptionListGroup>
                   <DescriptionListTerm>GUID</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <code>{resourceClaim?.status?.resourceHandle?.name.substring(5) || '...'}</code>
+                    { userIsAdmin && resourceClaim?.status?.resourceHandle ? (
+                      <>
+                        <Link key="admin" to={`/admin/resourcehandles/${resourceClaim.status.resourceHandle.name}`}>
+                          <code>{resourceClaim.status.resourceHandle.name.substring(5)}</code>
+                        </Link>
+                        <OpenshiftConsoleLink key="console" reference={resourceClaim.status.resourceHandle}/>
+                      </>
+                    ) : (
+                      <code>{resourceClaim?.status?.resourceHandle?.name.substring(5) || '...'}</code>
+                    ) }
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               </DescriptionList>

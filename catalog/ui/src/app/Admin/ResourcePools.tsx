@@ -5,7 +5,7 @@ import { getResourcePools, scalePool } from '@app/api';
 import { TableList } from '@app/components/TableList';
 import { DeleteButton } from '@app/Services/DeleteButton';
 import { Button } from '@patternfly/react-core';
-import { OpenshiftConsoleLink } from './OpenshiftConsoleLink';
+import OpenshiftConsoleLink from './OpenshiftConsoleLink';
 
 const ResourcePools: React.ComponentType<any> = () => {
   const [resourcePoolsList, setResourcePools] = useState([] as any);

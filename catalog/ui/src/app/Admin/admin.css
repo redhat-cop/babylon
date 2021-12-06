@@ -20,3 +20,12 @@
   padding-bottom: 8pt;
   border-bottom: 1px solid var(--pf-global--palette--black-300);
 }
+
+.admin-lifespan-select.pf-c-select.pf-m-expanded > .pf-c-select__menu {
+  max-height: 10em;
+  overflow-y: scroll;
+}
+
+textarea.admin-yaml-display.pf-c-form-control {
+  min-height: 8em;
+}

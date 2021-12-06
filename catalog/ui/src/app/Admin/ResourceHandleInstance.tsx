@@ -41,7 +41,7 @@ import { TableList } from '@app/components/TableList';
 import { TimeInterval } from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
 import CreateResourcePoolFromResourceHandleModal from './CreateResourcePoolFromResourceHandleModal';
-import { OpenshiftConsoleLink } from './OpenshiftConsoleLink';
+import OpenshiftConsoleLink from './OpenshiftConsoleLink';
 
 import './admin.css';
 

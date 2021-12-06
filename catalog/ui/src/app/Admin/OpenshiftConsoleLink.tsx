@@ -43,4 +43,4 @@ const OpenshiftConsoleLink: React.FunctionComponent<OpenshiftConsoleLinkProps> =
   );
 }
 
-export { OpenshiftConsoleLink };
+export default OpenshiftConsoleLink;

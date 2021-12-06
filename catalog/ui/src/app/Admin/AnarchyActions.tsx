@@ -26,7 +26,7 @@ import { SelectableTable } from '@app/components/SelectableTable';
 import { TimeInterval } from '@app/components/TimeInterval';
 import { AnarchyActionSelect } from './AnarchyActionSelect';
 import { AnarchyNamespaceSelect } from './AnarchyNamespaceSelect';
-import { OpenshiftConsoleLink } from './OpenshiftConsoleLink';
+import OpenshiftConsoleLink from './OpenshiftConsoleLink';
 
 import './admin.css';
 

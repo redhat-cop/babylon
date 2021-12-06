@@ -1,17 +1,26 @@
 import React from "react";
 import { FunctionComponent, useEffect, useState } from "react"
+import { useHistory } from 'react-router-dom';
 import {
   Button,
+  Checkbox,
   Form,
   FormGroup,
   Modal,
   ModalVariant,
+  NumberInput,
+  Select,
+  SelectOption,
+  TextArea,
   TextInput,
 } from '@patternfly/react-core';
 import {
   ResourceClaim,
   ResourceHandle,
+  createResourcePool,
+  getResourcePool,
 } from '@app/api';
+const yaml = require('js-yaml');
 
 export interface CreateResourcePoolFromResourceHandleModalProps {
   isOpen: any;
@@ -26,21 +35,78 @@ const CreateResourcePoolFromResourceHandleModal: React.FunctionComponent<CreateR
   resourceClaim,
   resourceHandle,
 }) => {
-  const [resourcePoolName, setResourcePoolName] = useState('');
+  const history = useHistory();
+  const [resourcePoolName, setResourcePoolName] = useState(
+    resourceClaim ? (
+      resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'] 
+      && resourceClaim.metadata.name.match(/-[0-9a-f]{4}$/) ?
+        resourceClaim.metadata.name.substring(0, resourceClaim.metadata.name.length - 5) :
+        resourceClaim.metadata.name.replace(/-[0-9]+$/, '')
+    ) : resourceHandle.spec.resources[0].provider.name
+  );
+  const [nameConflict, setNameConflict] = useState(null);
+  const [minAvailable, setMinAvailable] = useState(1);
+  const [stopAfterProvision, setStopAfterProvision] = useState(true);
+  const [defaultLifespan, setDefaultLifespan] = useState('7d');
+  const [defaultLifespanIsOpen, setDefaultLifespanIsOpen] = useState(false);
+  const [maximumLifespan, setMaximumLifespan] = useState('14d');
+  const [maximumLifespanIsOpen, setMaximumLifespanIsOpen] = useState(false);
+  const [relativeMaximumLifespan, setRelativeMaximumLifespan] = useState('7d');
+  const [relativeMaximumLifespanIsOpen, setRelativeMaximumLifespanIsOpen] = useState(false);
+  const [unclaimedLifespan, setUnclaimedLifespan] = useState('7d');
+
+  const poolNameValidated = resourcePoolName.match(/^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$/);
+
+  async function checkForNameConflict(checkName:string) {
+    const existingResourcePool = await getResourcePool(checkName);
+    console.log(existingResourcePool);
+    if (existingResourcePool) {
+      setNameConflict(true);
+    } else {
+      setNameConflict(false);
+    }
+  }
+
+  async function onConfirm() {
+    await createResourcePool({
+      apiVersion: "poolboy.gpte.redhat.com/v1",
+      kind: "ResourcePool",
+      metadata: {
+        name: resourcePoolName,
+        namespace: 'poolboy',
+      },
+      spec: {
+        lifespan: {
+          default: defaultLifespan,
+          maximum: maximumLifespan,
+          relativeMaximum: relativeMaximumLifespan,
+          unclaimed: unclaimedLifespan,
+        },
+        minAvailable: minAvailable,
+        resources: [
+          ...resourceHandle.spec.resources.map((resource) => {
+            return {
+              name: resource.name,
+              provider: resource.provider,
+              template: {
+                spec: {
+                  vars: {
+                    job_vars: resource.template.spec.vars?.job_vars
+                  }
+                }
+              }
+            }
+          })
+        ]
+      }
+    })
+    history.push(`/admin/resourcepools/${resourcePoolName}`);
+  }
 
   useEffect(() => {
-    if (resourceClaim) {
-      if (resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl']
-        && resourceClaim.metadata.name.match(/-[0-9a-f]{4}$/)
-      ) {
-        setResourcePoolName(resourceClaim.metadata.name.substring(0, resourceClaim.metadata.name.length - 5));
-      } else {
-        const nameMatch = resourceClaim.metadata.name.match(/^(.*?)(?:-[0-9]+)?$/);
-        setResourcePoolName(nameMatch[1]);
-      }
-    } else {
-      setResourcePoolName(resourceHandle.spec.resources[0].provider.name);
-    }
+    checkForNameConflict(resourcePoolName);
+    setMinAvailable(1);
+    setStopAfterProvision(true);
   }, [resourceHandle.metadata.uid, resourceClaim?.metadata.uid]);
   
   return (
@@ -51,27 +117,188 @@ const CreateResourcePoolFromResourceHandleModal: React.FunctionComponent<CreateR
       onClose={onClose}
       actions={[
         <Button key="confirm" variant="primary"
-          onClick={() => console.log("confirmed")}
+          isDisabled={nameConflict || !poolNameValidated}
+          onClick={onConfirm}
         >Confirm</Button>,
         <Button key="cancel" variant="link"
           onClick={onClose}
         >Cancel</Button>
       ]}
     >
-      <Form isHorizontal>
-        <FormGroup
+      <Form>
+        <FormGroup isRequired
           label="ResourcePool Name"
-          isRequired={true}
           fieldId="resourcePoolName"
         >
-          <TextInput
-            isRequired={true}
+          <TextInput isRequired
             id="resourcePoolName"
             name="resourcePoolName"
             value={resourcePoolName}
-            onChange={(value) => setResourcePoolName(value)}
+            onChange={(value) => {
+              setResourcePoolName(value);
+              checkForNameConflict(value);
+            }}
+            validated={!nameConflict && poolNameValidated ? 'success' : 'error'}
           />
         </FormGroup>
+        <FormGroup
+          label="Minimum Available"
+          fieldId="minAvailable"
+        >
+          <NumberInput
+            id="minAvailable"
+            max={99}
+            min={0}
+            name="minAvailable"
+            value={minAvailable}
+            onChange={(event : any) => {
+              const n = isNaN(event.target.value) ? 10 : event.target.value;
+              setMinAvailable(n < 0 ? 0 : n > 99 ? 99 : n);
+            }}
+            onMinus={() => setMinAvailable(minAvailable - 1)}
+            onPlus={() => setMinAvailable(minAvailable + 1)}
+          />
+        </FormGroup>
+        <FormGroup
+          label="Stop after provision"
+          fieldId="stopAfterProvision"
+        >
+          <Checkbox
+            id="stopAfterProvision"
+            label="enabled"
+            name="stopAfterProvision"
+            isChecked={stopAfterProvision}
+            onChange={(checked) => setStopAfterProvision(checked)}
+          />
+        </FormGroup>
+        <FormGroup
+          label="Default Lifespan"
+          fieldId="defaultLifespan"
+        >
+          <Select
+            className="admin-lifespan-select"
+            id="defaultLifespan"
+            isOpen={defaultLifespanIsOpen}
+            onSelect={(event, value) => {
+              setDefaultLifespan(value as string);
+              setDefaultLifespanIsOpen(false);
+            }}
+            onToggle={() => setDefaultLifespanIsOpen((v) => !v)}
+            selections={defaultLifespan}
+          >
+            <SelectOption value="2h"/>
+            <SelectOption value="3h"/>
+            <SelectOption value="4h"/>
+            <SelectOption value="6h"/>
+            <SelectOption value="8h"/>
+            <SelectOption value="12h"/>
+            <SelectOption value="18h"/>
+            <SelectOption value="1d"/>
+            <SelectOption value="2d"/>
+            <SelectOption value="3d"/>
+            <SelectOption value="4d"/>
+            <SelectOption value="5d"/>
+            <SelectOption value="6d"/>
+            <SelectOption value="7d"/>
+            <SelectOption value="8d"/>
+            <SelectOption value="9d"/>
+            <SelectOption value="10d"/>
+            <SelectOption value="12d"/>
+            <SelectOption value="14d"/>
+            <SelectOption value="1000d"/>
+          </Select>
+        </FormGroup>
+        <FormGroup
+          label="Maximum Lifespan"
+          fieldId="maximumLifespan"
+        >
+          <Select
+            className="admin-lifespan-select"
+            id="maximumLifespan"
+            isOpen={maximumLifespanIsOpen}
+            onSelect={(event, value) => {
+              setMaximumLifespan(value as string);
+              setMaximumLifespanIsOpen(false);
+            }}
+            onToggle={() => setMaximumLifespanIsOpen((v) => !v)}
+            selections={maximumLifespan}
+          >
+            <SelectOption value="2h"/>
+            <SelectOption value="3h"/>
+            <SelectOption value="4h"/>
+            <SelectOption value="6h"/>
+            <SelectOption value="8h"/>
+            <SelectOption value="12h"/>
+            <SelectOption value="18h"/>
+            <SelectOption value="1d"/>
+            <SelectOption value="2d"/>
+            <SelectOption value="3d"/>
+            <SelectOption value="4d"/>
+            <SelectOption value="5d"/>
+            <SelectOption value="6d"/>
+            <SelectOption value="7d"/>
+            <SelectOption value="8d"/>
+            <SelectOption value="9d"/>
+            <SelectOption value="10d"/>
+            <SelectOption value="12d"/>
+            <SelectOption value="14d"/>
+            <SelectOption value="1000d"/>
+          </Select>
+        </FormGroup>
+        <FormGroup
+          label="Relative Maximum Lifespan"
+          fieldId="relativeMaximumLifespan"
+        >
+          <Select
+            className="admin-lifespan-select"
+            id="relativeMaximumLifespan"
+            isOpen={relativeMaximumLifespanIsOpen}
+            onSelect={(event, value) => {
+              setRelativeMaximumLifespan(value as string);
+              setRelativeMaximumLifespanIsOpen(false);
+            }}
+            onToggle={() => setRelativeMaximumLifespanIsOpen((v) => !v)}
+            selections={relativeMaximumLifespan}
+          >
+            <SelectOption value="2h"/>
+            <SelectOption value="3h"/>
+            <SelectOption value="4h"/>
+            <SelectOption value="6h"/>
+            <SelectOption value="8h"/>
+            <SelectOption value="12h"/>
+            <SelectOption value="18h"/>
+            <SelectOption value="1d"/>
+            <SelectOption value="2d"/>
+            <SelectOption value="3d"/>
+            <SelectOption value="4d"/>
+            <SelectOption value="5d"/>
+            <SelectOption value="6d"/>
+            <SelectOption value="7d"/>
+            <SelectOption value="8d"/>
+            <SelectOption value="9d"/>
+            <SelectOption value="10d"/>
+            <SelectOption value="12d"/>
+            <SelectOption value="14d"/>
+            <SelectOption value="1000d"/>
+          </Select>
+        </FormGroup>
+        { resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => {
+          const resourceName = resourceHandleSpecResource.name || resourceHandleSpecResource.provider.name;
+          const resourceLabel = resourceName === 'babylon' ? 'Babylon Legacy CloudForms Integration' : `Resource ${resourceName}`;
+          return (
+            <FormGroup key={idx}
+              label={`${resourceLabel} job vars`}
+              fieldId={`resource${idx}`}
+            >
+              <TextArea
+                className="admin-yaml-display"
+                id={`resource${idx}`}
+                name={`resource${idx}`}
+                value={yaml.dump(resourceHandleSpecResource.template?.spec?.vars?.job_vars || {})}
+              />
+            </FormGroup>
+          );
+        }) }
       </Form>
     </Modal>
   );

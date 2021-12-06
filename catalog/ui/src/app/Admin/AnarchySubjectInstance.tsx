@@ -34,7 +34,7 @@ import { LoadingIcon } from '@app/components/LoadingIcon';
 import { LocalTimestamp } from '@app/components/LocalTimestamp';
 import { TimeInterval } from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-import { OpenshiftConsoleLink } from './OpenshiftConsoleLink';
+import OpenshiftConsoleLink from './OpenshiftConsoleLink';
   
 import './admin.css';
 

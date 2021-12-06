@@ -28,12 +28,12 @@ declare var window: Window &
 
 export interface K8sResourceMeta {
   annotations?: object;
-  creationTimestamp: string;
+  creationTimestamp?: string;
   deletionTimestamp?: string;
   labels?: object;
   name: string;
   namespace?: string;
-  uid: string;
+  uid?: string;
 }
 
 export interface K8sResourceObject {
@@ -101,6 +101,7 @@ export interface ResourceClaim {
 }
 
 export interface ResourceHandleSpecResource {
+  name?: string;
   provider: K8sResourceReference;
   reference?: K8sResourceReference;
   template: any;
@@ -460,6 +461,14 @@ export async function createResourceClaim(definition, opt: any = {}): Promise<an
     );
   }
   return resourceClaim;
+}
+
+export async function createResourcePool(definition:ResourcePool): Promise<ResourcePool> {
+  const namespace = definition.metadata.namespace;
+  const response = await createNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1', namespace, 'resourcepools', definition
+  );
+  return response;
 }
 
 export interface ServiceRequestParameters {
