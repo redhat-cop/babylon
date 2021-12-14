@@ -15,7 +15,10 @@ from pprint import pprint
 import urllib3
 
 
-pool_pattern = sys.argv[1]
+if len(sys.argv) == 2:
+    pool_pattern = str(sys.argv[1])
+else:
+    pool_pattern = ''
 
 urllib3.disable_warnings()
 
