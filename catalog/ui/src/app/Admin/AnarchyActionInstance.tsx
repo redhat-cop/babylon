@@ -1,6 +1,6 @@
 import React from "react";
-import { useEffect, useState } from "react";
-import { Link, useHistory } from 'react-router-dom';
+import { useEffect, useReducer, useState } from "react";
+import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
@@ -24,13 +24,28 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
-import {
-  AnarchyAction,
-} from '@app/types';
+
 import {
   deleteAnarchyAction,
+  deleteAnarchyRun,
   getAnarchyAction,
+  listAnarchyRuns,
 } from '@app/api';
+
+import {
+  cancelFetchState,
+  fetchStateReducer,
+  k8sObjectsReducer,
+  selectedUidsReducer,
+} from '@app/reducers';
+
+import {
+  AnarchyAction,
+  AnarchyRun,
+  AnarchyRunList,
+  FetchState,
+} from '@app/types';
+
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -38,77 +53,134 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
   
+import AnarchyRunsTable from './AnarchyRunsTable';
+
 import './admin.css';
 
-export interface AnarchyActionInstanceProps {
-  location?: any;
+interface RouteMatchParams {
+  name: string;
+  namespace: string;
+  tab?: string;
 }
 
-const AnarchyActionInstance: React.FunctionComponent<AnarchyActionInstanceProps> = ({
-  location,
-}) => {
-  const consoleURL = useSelector(selectConsoleURL);
+const AnarchyActionInstance: React.FunctionComponent = () => {
   const history = useHistory();
-  const locationMatch = location.pathname.match(/^(.*\/anarchyactions)\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?$/);
-  const basePath = locationMatch[1];
-  const anarchyActionName = locationMatch[3];
-  const anarchyActionNamespace = locationMatch[2];
-  const activeTab = locationMatch[4] || 'details';
+  const consoleURL = useSelector(selectConsoleURL);
+  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchyactions/:namespace/:name/:tab?');
+  const anarchyActionName = routeMatch.params.name;
+  const anarchyActionNamespace = routeMatch.params.namespace;
+  const activeTab = routeMatch.params.tab || 'details';
 
-  const [anarchyAction, setAnarchyAction] = useState(undefined);
+  const [anarchyAction, setAnarchyAction] = useState<AnarchyAction|null>(null);
+  const [anarchyActionFetchState, reduceAnarchyActionFetchState] = useReducer(fetchStateReducer, {});
+  const [anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
+  const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(fetchStateReducer, {});
+  const [selectedAnarchyRunUids, reduceAnarchyRunSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  async function confirmThenDelete() {
+  async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchyAction ${anarchyActionName}?`)) {
       await deleteAnarchyAction(anarchyAction);
-      history.push(`${basePath}/${anarchyActionNamespace}`);
+      history.push(`/admin/anarchyactions/${anarchyActionNamespace}`);
     }
   }
 
-  async function fetchAnarchyAction() {
+  async function confirmThenDeleteAnarchyRuns(): Promise<void> {
+    if (confirm(`Delete selected AnarchyRuns?`)) {
+      const removedAnarchyRuns:AnarchyRun[] = [];
+      for (const anarchyRun of anarchyRuns) {
+        if (selectedAnarchyRunUids.includes(anarchyRun.metadata.uid)) {
+          await deleteAnarchyRun(anarchyRun);
+          removedAnarchyRuns.push(anarchyRun);
+        }
+      }
+      reduceAnarchyRunSelectedUids({type: 'clear'});
+      reduceAnarchyRuns({type: 'remove', items: removedAnarchyRuns});
+    }
+  }
+
+  async function fetchAnarchyAction(): Promise<void> {
     try {
-      const result:AnarchyAction = await getAnarchyAction(anarchyActionNamespace, anarchyActionName);
-      setAnarchyAction(result);
-    } catch (err) {
-      setAnarchyAction(null);
+      const anarchyAction:AnarchyAction = await getAnarchyAction(anarchyActionNamespace, anarchyActionName);
+      if (anarchyActionFetchState.canceled) {
+        return;
+      } else {
+        setAnarchyAction(anarchyAction);
+      }
+    } catch(error) {
+      if (error instanceof Response && error.status === 404) {
+        setAnarchyAction(null);
+      } else {
+        throw error;
+      }
+    }
+    reduceAnarchyActionFetchState({
+      refreshTimeout: setTimeout(() => reduceAnarchyActionFetchState({type: 'refresh'}), 3000),
+      type: 'finish'
+    });
+  }
+
+  async function fetchAnarchyRuns(): Promise<void> {
+    const anarchyRunList:AnarchyRunList = await listAnarchyRuns({
+      labelSelector: `anarchy.gpte.redhat.com/action=${anarchyActionName}`,
+      namespace: anarchyActionNamespace,
+    });
+    if (!anarchyRunsFetchState.canceled) {
+      reduceAnarchyRuns({type: 'set', items: anarchyRunList.items});
+      reduceAnarchyRunsFetchState({
+        refreshTimeout: setTimeout(() => reduceAnarchyRunsFetchState({type: 'refresh'}), 3000),
+        type: 'finish',
+      });
     }
   }
 
   useEffect(() => {
-    fetchAnarchyAction()
-  }, [anarchyActionName]);
+    if (!anarchyActionFetchState.finished) {
+      fetchAnarchyAction();
+    }
+    return () => cancelFetchState(anarchyActionFetchState);
+  }, [anarchyActionFetchState])
 
-  if (anarchyAction === undefined) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    );
-  } else if (anarchyAction === null) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            AnarchyAction not found
-          </Title>
-          <EmptyStateBody>
-            AnarchyAction {anarchyActionName} was not found in namespace {anarchyActionNamespace}.
-          </EmptyStateBody>
-        </EmptyState>
-      </PageSection>
-    );
+  useEffect(() => {
+    if (!anarchyRunsFetchState.finished) {
+      fetchAnarchyRuns();
+    }
+    return () => cancelFetchState(anarchyRunsFetchState);
+  }, [anarchyRunsFetchState])
+
+  if (!anarchyAction) {
+    if (anarchyActionFetchState.finished || anarchyActionFetchState.isRefresh) {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              AnarchyAction not found
+            </Title>
+            <EmptyStateBody>
+              AnarchyAction {anarchyActionName} was not found in namespace {anarchyActionNamespace}.
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+      );
+    } else {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      );
+    }
   }
 
   return (<>
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
       <Breadcrumb>
         <BreadcrumbItem
-          render={({ className }) => <Link to={basePath} className={className}>AnarchyActions</Link>}
+          render={({ className }) => <Link to="/admin/anarchyactions" className={className}>AnarchyActions</Link>}
         />
         <BreadcrumbItem
-          render={({ className }) => <Link to={`${basePath}/${anarchyActionNamespace}`} className={className}>{anarchyActionNamespace}</Link>}
+          render={({ className }) => <Link to={`/admin/anarchyactions/${anarchyActionNamespace}`} className={className}>{anarchyActionNamespace}</Link>}
         />
         <BreadcrumbItem>{ anarchyAction.metadata.name }</BreadcrumbItem>
       </Breadcrumb>
@@ -141,7 +213,7 @@ const AnarchyActionInstance: React.FunctionComponent<AnarchyActionInstanceProps>
       </Split>
     </PageSection>
     <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`${basePath}/${anarchyActionNamespace}/${anarchyActionName}/${tabIndex}`)}>
+      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`/admin/anarchyactions/${anarchyActionNamespace}/${anarchyActionName}/${tabIndex}`)}>
         <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
           <DescriptionList isHorizontal>
             <DescriptionListGroup>
@@ -189,6 +261,14 @@ const AnarchyActionInstance: React.FunctionComponent<AnarchyActionInstanceProps>
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>
+        </Tab>
+        <Tab eventKey="anarchyruns" title={<TabTitleText>AnarchyRuns</TabTitleText>}>
+          <AnarchyRunsTable
+            anarchyRuns={anarchyRuns}
+            fetchState={anarchyRunsFetchState}
+            selectedUids={selectedAnarchyRunUids}
+            selectedUidsReducer={reduceAnarchyRunSelectedUids}
+          />
         </Tab>
         <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
           <Editor

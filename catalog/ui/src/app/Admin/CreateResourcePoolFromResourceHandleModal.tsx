@@ -1,5 +1,5 @@
 import React from "react";
-import { FunctionComponent, useEffect, useState } from "react"
+import { useEffect, useReducer, useState } from "react"
 import { useHistory } from 'react-router-dom';
 import {
   Button,
@@ -17,6 +17,7 @@ import {
 import {
   ResourceClaim,
   ResourceHandle,
+  ResourcePool,
 } from '@app/types';
 import {
   createResourcePool,
@@ -38,34 +39,39 @@ const CreateResourcePoolFromResourceHandleModal: React.FunctionComponent<CreateR
   resourceHandle,
 }) => {
   const history = useHistory();
-  const [resourcePoolName, setResourcePoolName] = useState(
+  const [resourcePoolName, setResourcePoolName] = useState<string>(
     resourceClaim ? (
-      resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'] 
+      resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl']
       && resourceClaim.metadata.name.match(/-[0-9a-f]{4}$/) ?
         resourceClaim.metadata.name.substring(0, resourceClaim.metadata.name.length - 5) :
         resourceClaim.metadata.name.replace(/-[0-9]+$/, '')
     ) : resourceHandle.spec.resources[0].provider.name
   );
-  const [nameConflict, setNameConflict] = useState(null);
-  const [minAvailable, setMinAvailable] = useState(1);
-  const [stopAfterProvision, setStopAfterProvision] = useState(true);
-  const [defaultLifespan, setDefaultLifespan] = useState('7d');
-  const [defaultLifespanIsOpen, setDefaultLifespanIsOpen] = useState(false);
-  const [maximumLifespan, setMaximumLifespan] = useState('14d');
-  const [maximumLifespanIsOpen, setMaximumLifespanIsOpen] = useState(false);
-  const [relativeMaximumLifespan, setRelativeMaximumLifespan] = useState('7d');
-  const [relativeMaximumLifespanIsOpen, setRelativeMaximumLifespanIsOpen] = useState(false);
-  const [unclaimedLifespan, setUnclaimedLifespan] = useState('7d');
+  const [nameConflict, setNameConflict] = useState<boolean|null>(null);
+  const [minAvailable, setMinAvailable] = useState<number>(1);
+  const [stopAfterProvision, setStopAfterProvision] = useState<boolean>(true);
+  const [defaultLifespan, setDefaultLifespan] = useState<string>('7d');
+  const [defaultLifespanIsOpen, setDefaultLifespanIsOpen] = useState<boolean>(false);
+  const [maximumLifespan, setMaximumLifespan] = useState<string>('14d');
+  const [maximumLifespanIsOpen, setMaximumLifespanIsOpen] = useState<boolean>(false);
+  const [relativeMaximumLifespan, setRelativeMaximumLifespan] = useState<string>('7d');
+  const [relativeMaximumLifespanIsOpen, setRelativeMaximumLifespanIsOpen] = useState<boolean>(false);
+  const [unclaimedLifespan, setUnclaimedLifespan] = useState<string>('7d');
 
-  const poolNameValidated = resourcePoolName.match(/^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$/);
+  const poolNameValidated:boolean = resourcePoolName.match(/^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$/) !== null;
 
   async function checkForNameConflict(checkName:string) {
-    const existingResourcePool = await getResourcePool(checkName);
-    console.log(existingResourcePool);
-    if (existingResourcePool) {
-      setNameConflict(true);
-    } else {
-      setNameConflict(false);
+    try {
+      const existingResourcePool = await getResourcePool(checkName);
+      if (existingResourcePool) {
+        setNameConflict(true);
+      }
+    } catch(error) {
+      if (error instanceof Response && error.status === 404) {
+        setNameConflict(false);
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -110,7 +116,12 @@ const CreateResourcePoolFromResourceHandleModal: React.FunctionComponent<CreateR
     setMinAvailable(1);
     setStopAfterProvision(true);
   }, [resourceHandle.metadata.uid, resourceClaim?.metadata.uid]);
-  
+
+  useEffect(() => {
+    console.log(resourcePoolName);
+    checkForNameConflict(resourcePoolName);
+  }, [resourcePoolName])
+
   return (
     <Modal
       variant={ModalVariant.medium}
@@ -138,7 +149,6 @@ const CreateResourcePoolFromResourceHandleModal: React.FunctionComponent<CreateR
             value={resourcePoolName}
             onChange={(value) => {
               setResourcePoolName(value);
-              checkForNameConflict(value);
             }}
             validated={!nameConflict && poolNameValidated ? 'success' : 'error'}
           />

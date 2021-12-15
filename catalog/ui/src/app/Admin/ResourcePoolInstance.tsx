@@ -77,18 +77,18 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
   const [minAvailableUpdating, setMinAvailableUpdating] = useState(false);
   const [resourceHandles, reduceResourceHandles] = useReducer(k8sObjectsReducer, []);
   const [resourceHandlesFetchState, reduceResourceHandlesFetchState] = useReducer(fetchStateReducer, {});
-  const [resourcePool, setResourcePool] = useState<ResourcePool|undefined>(undefined);
+  const [resourcePool, setResourcePool] = useState<ResourcePool|null>(null);
   const [resourcePoolFetchState, reduceResourcePoolFetchState] = useReducer(fetchStateReducer, {});
   const [selectedResourceHandleUids, reduceResourceHandleSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  async function confirmThenDelete() {
+  async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourcePool ${resourcePoolName}?`)) {
       await deleteResourcePool(resourcePool);
       history.push("/admin/resourcepools");
     }
   }
 
-  async function confirmThenDeleteSelectedHandles() {
+  async function confirmThenDeleteSelectedHandles(): Promise<void> {
     if (confirm("Delete selected ResourceHandles?")) {
       const removedResourceHandles:ResourceHandle[] = [];
       for (const resourceHandle of resourceHandles) {
@@ -102,7 +102,7 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
     }
   }
 
-  async function fetchResourceHandles() {
+  async function fetchResourceHandles(): Promise<void> {
     const resourceHandleList:ResourceHandleList = await listResourceHandles({
       labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`
     });
@@ -115,19 +115,29 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
     }
   }
 
-  async function fetchResourcePool() {
-    const resourcePool:ResourcePool = await getResourcePool(resourcePoolName);
-    if (!resourcePoolFetchState.canceled) {
-      setMinAvailable(resourcePool.spec.minAvailable);
-      setResourcePool(resourcePool);
-      reduceResourcePoolFetchState({
-        refreshTimeout: setTimeout(() => reduceResourcePoolFetchState({type: 'refresh'}), 3000),
-        type: 'finish'
-      });
+  async function fetchResourcePool(): Promise<void> {
+    try {
+      const resourcePool:ResourcePool = await getResourcePool(resourcePoolName);
+      if (resourcePoolFetchState.canceled) {
+        return;
+      } else {
+        setMinAvailable(resourcePool.spec.minAvailable);
+        setResourcePool(resourcePool);
+      }
+    } catch(error) {
+      if (error instanceof Response && error.status === 404) {
+        setResourcePool(null);
+      } else {
+        throw error;
+      }
     }
+    reduceResourcePoolFetchState({
+      refreshTimeout: setTimeout(() => reduceResourcePoolFetchState({type: 'refresh'}), 3000),
+      type: 'finish'
+    });
   }
 
-  function queueMinAvailableUpdate(n:number) {
+  function queueMinAvailableUpdate(n:number): void {
     setMinAvailable(n);
     if (minAvailableInputTimeout) {
       clearTimeout(minAvailableInputTimeout);
@@ -139,7 +149,7 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
     );
   }
 
-  async function updateMinAvailable(n:number) {
+  async function updateMinAvailable(n:number): Promise<void> {
     setMinAvailableUpdating(true);
     const result = await patchResourcePool(resourcePoolName, {spec: {minAvailable: n}});
     setMinAvailable(n);
@@ -161,28 +171,30 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
     return () => cancelFetchState(resourcePoolFetchState);
   }, [resourcePoolFetchState])
 
-  if (resourcePool === undefined) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    );
-  } else if (resourcePool === null) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            ResourcePool not found
-          </Title>
-          <EmptyStateBody>
-            ResourcePool {resourcePoolName} was not found.
-          </EmptyStateBody>
-        </EmptyState>
-      </PageSection>
-    );
+  if (!resourcePool) {
+    if (resourcePoolFetchState.finished || resourcePoolFetchState.isRefresh) {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              ResourcePool not found
+            </Title>
+            <EmptyStateBody>
+              ResourcePool {resourcePoolName} was not found.
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+      );
+    } else {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      );
+    }
   }
 
   return (<>

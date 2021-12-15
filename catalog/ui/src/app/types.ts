@@ -19,6 +19,11 @@ export interface AnarchyGovernor {
   status?: any;
 }
 
+export interface AnarchyGovernorList {
+  items: AnarchyGovernor[];
+  metadata: K8sObjectListMeta;
+}
+
 export interface AnarchyRun {
   apiVersion: string;
   kind: string;
@@ -40,12 +45,22 @@ export interface AnarchyRunner {
   status?: any;
 }
 
+export interface AnarchyRunnerList {
+  items: AnarchyRunner[];
+  metadata: K8sObjectListMeta;
+}
+
 export interface AnarchySubject {
   apiVersion: string;
   kind: string;
   metadata: K8sObjectMeta;
   spec: any;
   status?: any;
+}
+
+export interface AnarchySubjectList {
+  items: AnarchySubject[];
+  metadata: K8sObjectListMeta;
 }
 
 export interface CatalogItem {
@@ -68,6 +83,8 @@ export interface CatalogNamespace {
 
 export interface FetchState {
   canceled?: boolean;
+  continue?: string;
+  fetchedUids?: string[];
   finished?: boolean;
   isRefresh?: boolean;
   refreshTimeout?: any;
@@ -139,16 +156,16 @@ export interface ResourceHandle {
   spec: ResourceHandleSpec;
 }
 
+export interface ResourceHandleList {
+  items: ResourceHandle[];
+  metadata: K8sObjectListMeta;
+}
+
 export interface ResourceHandleSpec {
   lifespan?: ResourceHandleSpecLifespan;
   resourceClaim?: K8sObjectReference;
   resourcePool?: K8sObjectReference;
   resources: ResourceHandleSpecResource[];
-}
-
-export interface ResourceHandleList {
-  items: ResourceHandle[];
-  metadata: K8sObjectListMeta;
 }
 
 export interface ResourceHandleSpecLifespan {
@@ -162,7 +179,25 @@ export interface ResourceHandleSpecResource {
   name?: string;
   provider: K8sObjectReference;
   reference?: K8sObjectReference;
-  template: any;
+  template?: any;
+}
+
+export interface ResourcePool {
+  apiVersion: string;
+  kind: string;
+  metadata: K8sObjectMeta;
+  spec: ResourcePoolSpec;
+}
+
+export interface ResourcePoolList {
+  metadata: K8sObjectListMeta;
+  items: ResourcePool[];
+}
+
+export interface ResourcePoolSpec {
+  lifespan?: ResourcePoolSpecLifespan;
+  minAvailable: number;
+  resources: ResourcePoolSpecResource[];
 }
 
 export interface ResourcePoolSpecLifespan {
@@ -175,20 +210,30 @@ export interface ResourcePoolSpecLifespan {
 export interface ResourcePoolSpecResource {
   name?: string;
   provider: K8sObjectReference;
-  template: any;
+  template?: any;
 }
 
-export interface ResourcePoolSpec {
-  lifespan?: ResourcePoolSpecLifespan;
-  minAvailable: number;
-  resources: ResourcePoolSpecResource[];
-}
-
-export interface ResourcePool {
+export interface ResourceProvider {
   apiVersion: string;
   kind: string;
   metadata: K8sObjectMeta;
-  spec: ResourcePoolSpec;
+  spec: ResourceProviderSpec;
+}
+
+export interface ResourceProviderList {
+  items: ResourceProvider[];
+  metadata: K8sObjectListMeta;
+}
+
+export interface ResourceProviderSpec {
+  default?: any;
+  lifespan?: ResourceProviderSpecLifespan;
+  matchIgnore?: string[];
+  override?: any;
+  resourceRequiresClaim?: boolean;
+  template?: ResourceProviderSpecTemplate;
+  updateFilters?: ResourceProviderSpecUpdateFilter[];
+  validation?: ResourceProviderSpecValidation;
 }
 
 export interface ResourceProviderSpecLifespan {
@@ -208,24 +253,6 @@ export interface ResourceProviderSpecUpdateFilter {
 
 export interface ResourceProviderSpecValidation {
   openAPIV3Schema?: any;
-}
-
-export interface ResourceProviderSpec {
-  default?: any;
-  lifespan?: ResourceProviderSpecLifespan;
-  matchIgnore?: string[];
-  override?: any;
-  resourceRequiresClaim?: boolean;
-  template?: ResourceProviderSpecTemplate;
-  updateFilters?: ResourceProviderSpecUpdateFilter[];
-  validation?: ResourceProviderSpecValidation;
-}
-
-export interface ResourceProvider {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
-  spec: ResourceProviderSpec;
 }
 
 export interface ServiceNamespace {

@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
   EmptyState,
@@ -13,7 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteAnarchyGovernor, listAnarchyGovernors } from '@app/api';
-import { AnarchyGovernor } from '@app/types';
+import { cancelFetchState, fetchStateReducer, k8sObjectsReducer, selectedUidsReducer } from '@app/reducers';
+import { AnarchyGovernor, AnarchyGovernorList, FetchState } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -61,13 +62,6 @@ function pruneAnarchyGovernor(anarchyGovernor:AnarchyGovernor) {
   };
 }
 
-export interface FetchState {
-  aborted?: boolean;
-  continue?: string;
-  iteration?: number;
-  finished?: boolean;
-}
-
 const AnarchyGovernors: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
@@ -76,87 +70,74 @@ const AnarchyGovernors: React.FunctionComponent = () => {
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
 
-  const [firstRender, setFirstRender] = useState(true);
-  const [anarchyGovernors, setAnarchyGovernors] = useState<AnarchyGovernor[]>([]);
-  const [selectedUids, setSelectedUids] = React.useState([]);
-  const [fetchState, setFetchState] = useState<FetchState>({iteration: 0});
-  const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
+  const [anarchyGovernors, reduceAnarchyGovernors] = useReducer(k8sObjectsReducer, []);
+  const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
+  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, {});
+  const [fetchLimit, setFetchLimit] = useState<number>(FETCH_BATCH_LIMIT * 2);
+  const [firstRender, setFirstRender] = useState<boolean>(true);
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
     const scrollable = e.target as any;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= anarchyGovernors.length) {
+    if (scrollRemaining < 500 && fetchState.continue && fetchLimit <= anarchyGovernors.length) {
       setFetchLimit((limit) => limit + FETCH_BATCH_LIMIT);
     }
   }
 
-  async function confirmThenDelete() {
+  async function confirmThenDelete(): Promise<void> {
     if (confirm("Deleted selected AnarchyGovernors?")) {
+      const removedAnarchyGovernors:AnarchyGovernor[] = [];
       for (const anarchyGovernor of anarchyGovernors) {
         if (selectedUids.includes(anarchyGovernor.metadata.uid)) {
           await deleteAnarchyGovernor(anarchyGovernor);
+          removedAnarchyGovernors.push(anarchyGovernor);
         }
       }
-      await fetchAnarchyGovernors();
+      reduceSelectedUids({type: 'clear'});
+      reduceAnarchyGovernors({type: 'remove', items: removedAnarchyGovernors});
     }
   }
 
-  async function fetchAnarchyGovernors() {
-    const anarchyGovernorList = await listAnarchyGovernors({
+  async function fetchAnarchyGovernors(): Promise<void> {
+    const anarchyGovernorList:AnarchyGovernorList = await listAnarchyGovernors({
       continue: fetchState.continue,
       limit: FETCH_BATCH_LIMIT,
       namespace: anarchyNamespace,
     });
-    if (fetchState.aborted) { 
-      return
-    }
-    const anarchyGovernors = (anarchyGovernorList.items || [])
-      .filter((anarchyGovernor) => filterAnarchyGovernor(anarchyGovernor, keywordFilter))
-      .map(pruneAnarchyGovernor);
-    setAnarchyGovernors((current:AnarchyGovernor[]) => [...(current || []), ...anarchyGovernors]);
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly after fetch!");
-        return current;
-      }
-      return {
+    if (!fetchState.canceled) {
+      const anarchyGovernors:AnarchyGovernor[] = anarchyGovernorList.items
+        .filter((anarchyGovernor) => filterAnarchyGovernor(anarchyGovernor, keywordFilter))
+        .map(pruneAnarchyGovernor);
+      reduceAnarchyGovernors({
+        type: fetchState.isRefresh ? 'refresh' : 'append',
+        items: anarchyGovernors,
+        refreshComplete: fetchState.isRefresh && anarchyGovernorList.metadata.continue ? false : true,
+        refreshedUids: fetchState.isRefresh ? fetchState.fetchedUids : null,
+      });
+      reduceFetchState({
+        type: 'finish',
         continue: anarchyGovernorList.metadata.continue,
-        iteration: current.iteration + 1,
-        finished: !anarchyGovernorList.metadata.continue,
-      };
-    });
-  }
-
-  function reloadAnarchyGovernors() {
-    setAnarchyGovernors([]);
-    if(fetchState) {
-      fetchState.aborted = true;
+        items: anarchyGovernors,
+      });
     }
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly for reload!");
-        return current;
-      }
-      return {
-        iteration: current.iteration + 1,
-      };
-    });
-    setSelectedUids([]);
   }
 
+  function reloadAnarchyGovernors(): void {
+    reduceAnarchyGovernors({type: 'clear'});
+    reduceFetchState({type: 'start'});
+    reduceSelectedUids({type: 'clear'});
+  }
 
   // Fetch or continue fetching
   useEffect(() => {
     if (!fetchState.finished && anarchyGovernors.length < fetchLimit) {
       fetchAnarchyGovernors();
-      return () => {
-        fetchState.aborted = true;
-      }
+      return () => cancelFetchState(fetchState);
     } else {
       return null;
     }
-  }, [fetchState?.iteration, fetchLimit]);
+  }, [fetchState, fetchLimit]);
 
   // Reload on filter change
   useEffect(() => {
@@ -243,9 +224,9 @@ const AnarchyGovernors: React.FunctionComponent = () => {
           columns={['Namespace', 'Name', 'Created At']}
           onSelectAll={(isSelected) => {
             if (isSelected) {
-              setSelectedUids(anarchyGovernors.map(anarchyGovernor => anarchyGovernor.metadata.uid));
+              reduceSelectedUids({type: 'set', items: anarchyGovernors});
             } else {
-              setSelectedUids([]);
+              reduceSelectedUids({type: 'clear'});
             }
           }}
           rows={anarchyGovernors.map((anarchyGovernor:AnarchyGovernor) => {
@@ -265,16 +246,9 @@ const AnarchyGovernors: React.FunctionComponent = () => {
                   (<TimeInterval key="interval" toTimestamp={anarchyGovernor.metadata.creationTimestamp}/>)
                 </>,
               ],
-              onSelect: (isSelected) => setSelectedUids(uids => {
-                if (isSelected) {
-                  if (uids.includes(anarchyGovernor.metadata.uid)) {
-                    return uids;
-                  } else {
-                    return [...uids, anarchyGovernor.metadata.uid];
-                  }
-                } else {
-                  return uids.filter(uid => uid !== anarchyGovernor.metadata.uid);
-                }
+              onSelect: (isSelected) => reduceSelectedUids({
+                type: isSelected ? 'add' : 'remove',
+                items: [anarchyGovernor],
               }),
               selected: selectedUids.includes(anarchyGovernor.metadata.uid),
             };

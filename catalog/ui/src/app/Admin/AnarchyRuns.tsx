@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
   EmptyState,
@@ -13,7 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteAnarchyRun, listAnarchyRuns, listAnarchyRunners } from '@app/api';
-import { AnarchyRun, AnarchyRunner } from '@app/types';
+import { cancelFetchState, fetchStateReducer, k8sObjectsReducer, selectedUidsReducer } from '@app/reducers';
+import { AnarchyRun, AnarchyRunList, AnarchyRunner, AnarchyRunnerList, FetchState } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -87,6 +88,9 @@ function pruneAnarchyRun(anarchyRun:AnarchyRun) {
         name: anarchyRun.spec.governor?.name,
         namespace: anarchyRun.spec.governor?.namespace,
       },
+      handler: {
+        name: anarchyRun.spec.handler?.name,
+      },
       subject: {
         apiVersion: anarchyRun.spec.subject?.apiVersion,
         kind: anarchyRun.spec.subject?.kind,
@@ -107,13 +111,6 @@ function pruneAnarchyRun(anarchyRun:AnarchyRun) {
   };
 }
 
-export interface FetchState {
-  aborted?: boolean;
-  continue?: string;
-  iteration?: number;
-  finished?: boolean;
-}
-
 const AnarchyRuns: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
@@ -123,10 +120,11 @@ const AnarchyRuns: React.FunctionComponent = () => {
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
   const stateUrlParam = urlSearchParams.has('state') ? urlSearchParams.get('state') : null;
 
-  const [anarchyRuns, setAnarchyRuns] = useState<AnarchyRun[]>([]);
-  const [selectedUids, setSelectedUids] = React.useState([]);
-  const [fetchState, setFetchState] = useState<FetchState>({iteration: 0});
+  const [anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
+  const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
   const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
+  // fetchState starts null and waits for stateFilter to be defined to start fetching.
+  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, null);
   const [stateFilter, setStateFilter] = useState<string[]|undefined>(undefined);
 
   const primaryAppContainer = document.getElementById('primary-app-container');
@@ -138,18 +136,21 @@ const AnarchyRuns: React.FunctionComponent = () => {
     }
   }
 
-  async function confirmThenDelete() {
+  async function confirmThenDelete(): Promise<void> {
     if (confirm("Deleted selected AnarchyRuns?")) {
+      const removedAnarchyRuns:AnarchyRun[] = [];
       for (const anarchyRun of anarchyRuns) {
         if (selectedUids.includes(anarchyRun.metadata.uid)) {
           await deleteAnarchyRun(anarchyRun);
+          removedAnarchyRuns.push(anarchyRun);
         }
       }
-      await fetchAnarchyRuns();
+      reduceSelectedUids({type: 'clear'});
+      reduceAnarchyRuns({type: 'remove', items: removedAnarchyRuns});
     }
   }
 
-  async function fetchAnarchyRuns() {
+  async function fetchAnarchyRuns(): Promise<void> {
     const labelSelectors = [];
     if (stateFilter) {
       if (stateFilter.length === 1) {
@@ -158,52 +159,39 @@ const AnarchyRuns: React.FunctionComponent = () => {
         labelSelectors.push(`anarchy.gpte.redhat.com/runner in (${stateFilter.join(', ')})`);
       }
     }
-    const anarchyRunList = await listAnarchyRuns({
+    const anarchyRunList:AnarchyRunList = await listAnarchyRuns({
       continue: fetchState.continue,
       labelSelector: labelSelectors.length > 0 ? labelSelectors.join(',') : null,
       limit: FETCH_BATCH_LIMIT,
       namespace: anarchyNamespace,
     });
-    if (fetchState.aborted) { 
-      return
-    }
-    const anarchyRuns = (anarchyRunList.items || [])
-      .filter((anarchyRun) => filterAnarchyRun(anarchyRun, keywordFilter))
-      .map(pruneAnarchyRun);
-    setAnarchyRuns((current:AnarchyRun[]) => [...(current || []), ...anarchyRuns]);
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly after fetch!");
-        return current;
-      }
-      return {
+    if (!fetchState.canceled) {
+      const anarchyRuns:AnarchyRun[] = anarchyRunList.items
+        .filter((anarchyRun) => filterAnarchyRun(anarchyRun, keywordFilter))
+        .map(pruneAnarchyRun);
+      reduceAnarchyRuns({
+        type: fetchState.isRefresh ? 'refresh' : 'append',
+        items: anarchyRuns,
+        refreshComplete: fetchState.isRefresh && anarchyRunList.metadata.continue ? false : true,
+        refreshedUids: fetchState.isRefresh ? fetchState.fetchedUids : null,
+      });
+      reduceFetchState({
+        type: 'finish',
         continue: anarchyRunList.metadata.continue,
-        iteration: current.iteration + 1,
-        finished: !anarchyRunList.metadata.continue,
-      };
-    });
-  }
-
-  function reloadAnarchyRuns() {
-    setAnarchyRuns([]);
-    if(fetchState) {
-      fetchState.aborted = true;
+        items: anarchyRuns,
+      });
     }
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly for reload!");
-        return current;
-      }
-      return {
-        iteration: current.iteration + 1,
-      };
-    });
-    setSelectedUids([]);
   }
 
-  async function setStateFilterForRunning() {
-    const anarchyRunnerList = await listAnarchyRunners({namespace: anarchyNamespace});
-    const anarchyRunnerPodNames = [];
+  function reloadAnarchyRuns(): void {
+    reduceAnarchyRuns({type: 'clear'});
+    reduceFetchState({type: 'start'});
+    reduceSelectedUids({type: 'clear'});
+  }
+
+  async function setStateFilterForRunning(): Promise<void> {
+    const anarchyRunnerList:AnarchyRunnerList = await listAnarchyRunners({namespace: anarchyNamespace});
+    const anarchyRunnerPodNames:string[] = [];
     for (const anarchyRunner of anarchyRunnerList.items || []) {
       anarchyRunnerPodNames.push(...(anarchyRunner.status?.pods || []).map(p => p.name));
     }
@@ -223,15 +211,13 @@ const AnarchyRuns: React.FunctionComponent = () => {
 
   // Fetch or continue fetching
   useEffect(() => {
-    if (stateFilter !== undefined && !fetchState.finished && anarchyRuns.length < fetchLimit) {
+    if (fetchState && !fetchState.finished && anarchyRuns.length < fetchLimit) {
       fetchAnarchyRuns();
-      return () => {
-        fetchState.aborted = true;
-      }
+      return () => cancelFetchState(fetchState);
     } else {
       return null;
     }
-  }, [fetchState?.iteration, fetchLimit]);
+  }, [fetchState, fetchLimit]);
 
   // Reload on filter change
   useEffect(() => {
@@ -302,7 +288,7 @@ const AnarchyRuns: React.FunctionComponent = () => {
       </Split>
     </PageSection>
     { anarchyRuns.length === 0 ? (
-      fetchState.finished ? (
+      fetchState?.finished ? (
         <PageSection>
           <EmptyState variant="full">
             <EmptyStateIcon icon={ExclamationTriangleIcon} />
@@ -324,9 +310,9 @@ const AnarchyRuns: React.FunctionComponent = () => {
           columns={['Namespace', 'Name', 'Runner State', 'AnarchySubject', 'AnarchyAction', 'Created At']}
           onSelectAll={(isSelected) => {
             if (isSelected) {
-              setSelectedUids(anarchyRuns.map(anarchyRun => anarchyRun.metadata.uid));
+              reduceSelectedUids({type: 'set', items: anarchyRuns});
             } else {
-              setSelectedUids([]);
+              reduceSelectedUids({type: 'clear'});
             }
           }}
           rows={anarchyRuns.map((anarchyRun:AnarchyRun) => {
@@ -359,16 +345,9 @@ const AnarchyRuns: React.FunctionComponent = () => {
                   (<TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp}/>)
                 </>,
               ],
-              onSelect: (isSelected) => setSelectedUids(uids => {
-                if (isSelected) {
-                  if (uids.includes(anarchyRun.metadata.uid)) {
-                    return uids;
-                  } else {
-                    return [...uids, anarchyRun.metadata.uid];
-                  }
-                } else {
-                  return uids.filter(uid => uid !== anarchyRun.metadata.uid);
-                }
+              onSelect: (isSelected) => reduceSelectedUids({
+                type: isSelected ? 'add' : 'remove',
+                items: [anarchyRun],
               }),
               selected: selectedUids.includes(anarchyRun.metadata.uid),
             };

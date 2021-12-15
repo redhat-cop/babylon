@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { Link, useHistory, useLocation } from 'react-router-dom';
 import {
   EmptyState,
@@ -13,7 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteResourceProvider, listResourceProviders } from '@app/api';
-import { ResourceProvider } from '@app/types';
+import { cancelFetchState, fetchStateReducer, k8sObjectsReducer, selectedUidsReducer } from '@app/reducers';
+import { FetchState, ResourceProvider, ResourceProviderList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -62,24 +63,17 @@ function pruneResourceProvider(resourceProvider:ResourceProvider) {
   };
 }
 
-export interface FetchState {
-  aborted?: boolean;
-  continue?: string;
-  iteration?: number;
-  finished?: boolean;
-}
-
 const ResourceProviders: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
 
-  const [firstRender, setFirstRender] = useState(true);
-  const [resourceProviders, setResourceProviders] = useState<ResourceProvider[]>([]);
-  const [selectedUids, setSelectedUids] = React.useState([]);
-  const [fetchState, setFetchState] = useState<FetchState>({iteration: 0});
   const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
+  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, {});
+  const [firstRender, setFirstRender] = useState(true);
+  const [resourceProviders, reduceResourceProviders] = useReducer(k8sObjectsReducer, []);
+  const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
@@ -92,68 +86,56 @@ const ResourceProviders: React.FunctionComponent = () => {
 
   async function confirmThenDelete() {
     if (confirm("Deleted selected ResourceProviders?")) {
+      const removedResourceProviders:ResourceProvider[] = [];
       for (const resourceProvider of resourceProviders) {
         if (selectedUids.includes(resourceProvider.metadata.uid)) {
           await deleteResourceProvider(resourceProvider);
+          removedResourceProviders.push(resourceProvider);
         }
       }
-      reloadResourceProviders();
+      reduceSelectedUids({type: 'clear'});
+      reduceResourceProviders({type: 'remove', items: removedResourceProviders});
     }
   }
 
   async function fetchResourceProviders() {
-    const resourceProviderList = await listResourceProviders({
+    const resourceProviderList:ResourceProviderList = await listResourceProviders({
       continue: fetchState.continue,
       limit: FETCH_BATCH_LIMIT,
     });
-    if (fetchState.aborted) { 
-      return
-    }
-    const resourceProviders = (resourceProviderList.items || [])
-      .filter((resourceProvider) => filterResourceProvider(resourceProvider, keywordFilter))
-      .map(pruneResourceProvider);
-    setResourceProviders((current:ResourceProvider[]) => [...(current || []), ...resourceProviders]);
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly after fetch!");
-        return current;
-      }
-      return {
+    if (!fetchState.canceled) {
+      const resourceProviders:ResourceProvider[] = resourceProviderList.items
+        .filter((resourceProvider) => filterResourceProvider(resourceProvider, keywordFilter))
+        .map(pruneResourceProvider);
+      reduceResourceProviders({
+        type: fetchState.isRefresh ? 'refresh' : 'append',
+        items: resourceProviders,
+        refreshComplete: fetchState.isRefresh && resourceProviderList.metadata.continue ? false : true,
+        refreshedUids: fetchState.isRefresh ? fetchState.fetchedUids : null,
+      });
+      reduceFetchState({
+        type: 'finish',
         continue: resourceProviderList.metadata.continue,
-        iteration: current.iteration + 1,
-        finished: !resourceProviderList.metadata.continue,
-      };
-    });
+        items: resourceProviders,
+      });
+    }
   }
 
-  function reloadResourceProviders() {
-    setResourceProviders([]);
-    if(fetchState) {
-      fetchState.aborted = true;
-    }
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly for reload!");
-        return current;
-      }
-      return {
-        iteration: current.iteration + 1,
-      };
-    });
-    setSelectedUids([]);
+  function reloadResourceProviders(): void {
+    reduceResourceProviders({type: 'clear'});
+    reduceFetchState({type: 'start'});
+    reduceSelectedUids({type: 'clear'});
   }
 
   // Fetch or continue fetching
   useEffect(() => {
     if (!fetchState.finished && resourceProviders.length < fetchLimit) {
       fetchResourceProviders();
-      return () => {
-        fetchState.aborted = true;
-      }
+      return () => cancelFetchState(fetchState);
     } else {
       return null;
     }
-  }, [fetchState?.iteration, fetchLimit]);
+  }, [fetchState, fetchLimit]);
 
   // Reload on filter change
   useEffect(() => {
@@ -228,9 +210,9 @@ const ResourceProviders: React.FunctionComponent = () => {
           columns={['Name', 'Created At']}
           onSelectAll={(isSelected) => {
             if (isSelected) {
-              setSelectedUids(resourceProviders.map(resourceProvider => resourceProvider.metadata.uid));
+              reduceSelectedUids({type: 'set', items: resourceProviders});
             } else {
-              setSelectedUids([]);
+              reduceSelectedUids({type: 'clear'});
             }
           }}
           rows={resourceProviders.map((resourceProvider:ResourceProvider) => {
@@ -249,16 +231,9 @@ const ResourceProviders: React.FunctionComponent = () => {
                   (<TimeInterval key="interval" toTimestamp={resourceProvider.metadata.creationTimestamp}/>)
                 </>,
               ],
-              onSelect: (isSelected) => setSelectedUids(uids => {
-                if (isSelected) {
-                  if (uids.includes(resourceProvider.metadata.uid)) {
-                    return uids;
-                  } else {
-                    return [...uids, resourceProvider.metadata.uid];
-                  }
-                } else {
-                  return uids.filter(uid => uid !== resourceProvider.metadata.uid);
-                }
+              onSelect: (isSelected) => reduceSelectedUids({
+                type: isSelected ? 'add' : 'remove',
+                items: [resourceProvider],
               }),
               selected: selectedUids.includes(resourceProvider.metadata.uid),
             };

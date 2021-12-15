@@ -1,6 +1,6 @@
 import React from "react";
-import { useEffect, useState } from "react";
-import { Link, useHistory } from 'react-router-dom';
+import { useEffect, useReducer, useState } from "react";
+import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import {
@@ -24,87 +24,112 @@ import {
 } from '@patternfly/react-core';
 import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
-import {
-  ResourceProvider,
-} from '@app/types';
+
 import {
   deleteResourceProvider,
   getResourceProvider,
 } from '@app/api';
+
+import {
+  cancelFetchState,
+  fetchStateReducer,
+} from '@app/reducers';
+
+import {
+  ResourceProvider,
+  FetchState,
+} from '@app/types';
+
+import { selectConsoleURL } from '@app/store';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-import { selectConsoleURL } from '@app/store';
   
 import './admin.css';
 
-export interface ResourceProviderInstanceProps {
-  location?: any;
+interface RouteMatchParams {
+  name: string;
+  tab?: string;
 }
 
-const ResourceProviderInstance: React.FunctionComponent<ResourceProviderInstanceProps> = ({
-  location,
-}) => {
-  const consoleURL = useSelector(selectConsoleURL);
+const ResourceProviderInstance: React.FunctionComponent = () => {
   const history = useHistory();
-  const locationMatch = location.pathname.match(/^(.*\/resourceproviders)\/([^\/]+)(?:\/([^\/]+))?$/);
-  const basePath = locationMatch[1];
-  const resourceProviderName = locationMatch[2];
-  const activeTab = locationMatch[3] || 'details';
+  const consoleURL = useSelector(selectConsoleURL);
+  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/resourceproviders/:name/:tab?');
+  const resourceProviderName = routeMatch.params.name;
+  const activeTab = routeMatch.params.tab || 'details';
 
-  const [resourceProvider, setResourceProvider] = useState(undefined);
+  const [resourceProvider, setResourceProvider] = useState<ResourceProvider>(null);
+  const [resourceProviderFetchState, reduceResourceProviderFetchState] = useReducer(fetchStateReducer, {});
 
   async function confirmThenDelete() {
     if (confirm(`Delete ResourceProvider ${resourceProviderName}?`)) {
       await deleteResourceProvider(resourceProvider);
-      history.push(basePath);
+      history.push('/admin/resourceproviders');
     }
   }
 
-  async function fetchResourceProvider() {
+  async function fetchResourceProvider(): Promise<void> {
     try {
-      const result:ResourceProvider = await getResourceProvider(resourceProviderName);
-      setResourceProvider(result);
-    } catch (err) {
-      setResourceProvider(null);
+      const resourceProvider:ResourceProvider = await getResourceProvider(resourceProviderName);
+      if (resourceProviderFetchState.canceled) {
+        return;
+      } else {
+        setResourceProvider(resourceProvider);
+      }
+    } catch(error) {
+      if (error instanceof Response && error.status === 404) {
+        setResourceProvider(null);
+      } else {
+        throw error;
+      }
     }
+    reduceResourceProviderFetchState({
+      refreshTimeout: setTimeout(() => reduceResourceProviderFetchState({type: 'refresh'}), 3000),
+      type: 'finish'
+    });
   }
 
   useEffect(() => {
-    fetchResourceProvider()
-  }, [resourceProviderName]);
+    if (!resourceProviderFetchState.finished) {
+      fetchResourceProvider();
+    }
+    return () => cancelFetchState(resourceProviderFetchState);
+  }, [resourceProviderFetchState])
 
-  if (resourceProvider === undefined) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    );
-  } else if (resourceProvider === null) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            ResourceProvider not found
-          </Title>
-          <EmptyStateBody>
-            ResourceProvider {resourceProviderName} was not found.
-          </EmptyStateBody>
-        </EmptyState>
-      </PageSection>
-    );
+  if (!resourceProvider) {
+    if (resourceProviderFetchState.finished || resourceProviderFetchState.isRefresh) {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              ResourceProvider not found
+            </Title>
+            <EmptyStateBody>
+              ResourceProvider {resourceProviderName} was not found.
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+      );
+    } else {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      );
+    }
   }
 
   return (<>
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
       <Breadcrumb>
         <BreadcrumbItem
-          render={({ className }) => <Link to={basePath} className={className}>ResourceProviders</Link>}
+          render={({ className }) => <Link to="/admin/resourceproviders" className={className}>ResourceProviders</Link>}
         />
         <BreadcrumbItem>{ resourceProvider.metadata.name }</BreadcrumbItem>
       </Breadcrumb>
@@ -137,7 +162,7 @@ const ResourceProviderInstance: React.FunctionComponent<ResourceProviderInstance
       </Split>
     </PageSection>
     <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`${basePath}/${resourceProviderName}/${tabIndex}`)}>
+      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`/admin/resourceproviders/${resourceProviderName}/${tabIndex}`)}>
         <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
           <DescriptionList isHorizontal>
             <DescriptionListGroup>

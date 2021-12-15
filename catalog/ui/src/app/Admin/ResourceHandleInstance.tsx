@@ -1,8 +1,7 @@
 import React from "react";
-import { useEffect, useState } from "react";
-import { Link, useHistory } from 'react-router-dom';
+import { useEffect, useReducer, useState } from "react";
+import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -26,67 +25,108 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
-import {
-  ResourceHandle,
-} from '@app/types';
+
 import {
   deleteResourceHandle,
   getResourceClaim,
   getResourceHandle
 } from '@app/api';
+
+import {
+  cancelFetchState,
+  fetchStateReducer,
+  k8sObjectsReducer,
+  selectedUidsReducer,
+} from '@app/reducers';
+
+import {
+  FetchState,
+  ResourceClaim,
+  ResourceHandle,
+} from '@app/types';
+
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
+
 import CreateResourcePoolFromResourceHandleModal from './CreateResourcePoolFromResourceHandleModal';
 
 import './admin.css';
 
-export interface ResourceHandleInstanceProps {
-  location?: any;
+interface RouteMatchParams {
+  name: string;
+  tab?: string;
 }
 
-const ResourceHandleInstance: React.FunctionComponent<ResourceHandleInstanceProps> = ({
-  location,
-}) => {
-  const consoleURL = useSelector(selectConsoleURL);
+const ResourceHandleInstance: React.FunctionComponent = () => {
   const history = useHistory();
-  const locationMatch = location.pathname.match(/^(.*\/resourcehandles)\/([^\/]+)(?:\/([^\/]+))?$/);
-  const basePath = locationMatch[1];
-  const resourceHandleName = locationMatch[2];
-  const activeTab = locationMatch[3] || 'details';
+  const consoleURL = useSelector(selectConsoleURL);
+  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/resourcehandles/:name/:tab?');
+  const resourceHandleName = routeMatch.params.name;
+  const activeTab = routeMatch.params.tab || 'details';
 
-  const [resourceHandle, setResourceHandle] = useState(undefined);
-  const [resourceClaim, setResourceClaim] = useState(null);
   const [createResourcePoolFromResourceHandleModalIsOpen, setCreateResourcePoolFromResourceHandleModalIsOpen] = useState(false);
+  const [resourceClaim, setResourceClaim] = useState<ResourceClaim|undefined>(undefined);
+  const [resourceClaimFetchState, reduceResourceClaimFetchState] = useReducer(fetchStateReducer, null);
+  const [resourceHandle, setResourceHandle] = useState<ResourceHandle|undefined>(undefined);
+  const [resourceHandleFetchState, reduceResourceHandleFetchState] = useReducer(fetchStateReducer, {});
 
-  async function confirmThenDelete() {
+  async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourceHandle ${resourceHandleName}?`)) {
       await deleteResourceHandle(resourceHandle);
-      history.push(basePath);
+      history.push("/admin/resourcehandles");
     }
   }
 
-  async function fetchResourceHandle() {
-    try {
-      const handle = await getResourceHandle(resourceHandleName);
-      setResourceHandle(handle);
-      if (handle.spec.resourceClaim) {
-        const claim = await getResourceClaim(handle.spec.resourceClaim.namespace, handle.spec.resourceClaim.name);
-        setResourceClaim(claim);
+  async function fetchResourceClaim(): Promise<void> {
+    const resourceClaim:ResourceClaim = await getResourceClaim(
+      resourceHandle.spec.resourceClaim.namespace,
+      resourceHandle.spec.resourceClaim.name,
+    );
+    if (!resourceClaimFetchState.canceled) {
+      setResourceClaim(resourceClaim);
+      reduceResourceClaimFetchState({
+        refreshTimeout: setTimeout(() => reduceResourceClaimFetchState({type: 'refresh'}), 3000),
+        type: 'finish'
+      });
+    }
+  }
+
+  async function fetchResourceHandle(): Promise<void> {
+    const resourceHandle:ResourceHandle = await getResourceHandle(resourceHandleName);
+    if (!resourceHandleFetchState.canceled) {
+      setResourceHandle(resourceHandle);
+      reduceResourceHandleFetchState({
+        refreshTimeout: setTimeout(() => reduceResourceHandleFetchState({type: 'refresh'}), 3000),
+        type: 'finish'
+      });
+      if (!resourceClaimFetchState && resourceHandle.spec.resourceClaim) {
+        reduceResourceClaimFetchState({type: 'start'})
       }
-    } catch (err) {
-      setResourceHandle(null);
     }
   }
 
   useEffect(() => {
-    fetchResourceHandle()
-  }, [resourceHandleName]);
+    if (!resourceClaimFetchState) {
+      return null;
+    } else if (!resourceClaimFetchState.finished) {
+      fetchResourceClaim();
+    }
+    return () => cancelFetchState(resourceClaimFetchState);
+  }, [resourceClaimFetchState]);
+
+  useEffect(() => {
+    if (!resourceHandleFetchState.finished) {
+      fetchResourceHandle();
+    }
+    return () => cancelFetchState(resourceHandleFetchState);
+  }, [resourceHandleFetchState]);
 
   if (resourceHandle === undefined) {
     return (
@@ -113,16 +153,17 @@ const ResourceHandleInstance: React.FunctionComponent<ResourceHandleInstanceProp
   }
 
   return (<>
-    <CreateResourcePoolFromResourceHandleModal
-      isOpen={createResourcePoolFromResourceHandleModalIsOpen}
-      onClose={() => setCreateResourcePoolFromResourceHandleModalIsOpen(false)}
-      resourceClaim={resourceClaim}
-      resourceHandle={resourceHandle}
-    />
+    { createResourcePoolFromResourceHandleModalIsOpen ? (
+      <CreateResourcePoolFromResourceHandleModal key="createResourcePoolModal" isOpen
+        onClose={() => setCreateResourcePoolFromResourceHandleModalIsOpen(false)}
+        resourceClaim={resourceClaim}
+        resourceHandle={resourceHandle}
+      />
+    ) : null }
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
       <Breadcrumb>
         <BreadcrumbItem
-          render={({ className }) => <Link to={basePath} className={className}>ResourceHandles</Link>}
+          render={({ className }) => <Link to="/admin/resourcehandles" className={className}>ResourceHandles</Link>}
         />
         <BreadcrumbItem>{ resourceHandle.metadata.name }</BreadcrumbItem>
       </Breadcrumb>
@@ -165,7 +206,7 @@ const ResourceHandleInstance: React.FunctionComponent<ResourceHandleInstanceProp
       </Split>
     </PageSection>
     <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`${basePath}/${resourceHandleName}/${tabIndex}`)}>
+      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`/admin/resourcehandles/${resourceHandleName}/${tabIndex}`)}>
         <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
           <Stack hasGutter>
             <StackItem>

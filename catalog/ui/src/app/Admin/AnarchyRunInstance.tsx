@@ -64,7 +64,7 @@ const AnarchyRunInstance: React.FunctionComponent = () => {
   const anarchyRunNamespace = routeMatch.params.namespace;
   const activeTab = routeMatch.params.tab || 'details';
 
-  const [anarchyRun, setAnarchyRun] = useState(undefined);
+  const [anarchyRun, setAnarchyRun] = useState<AnarchyRun>(null);
   const [anarchyRunFetchState, reduceAnarchyRunFetchState] = useReducer(fetchStateReducer, {});
 
   async function confirmThenDelete() {
@@ -74,15 +74,25 @@ const AnarchyRunInstance: React.FunctionComponent = () => {
     }
   }
 
-  async function fetchAnarchyRun() {
-    const anarchyRun:AnarchyRun = await getAnarchyRun(anarchyRunNamespace, anarchyRunName);
-    if (!anarchyRunFetchState.canceled) {
-      setAnarchyRun(anarchyRun);
-      reduceAnarchyRunFetchState({
-        refreshTimeout: setTimeout(() => reduceAnarchyRunFetchState({type: 'refresh'}), 3000),
-        type: 'finish'
-      });
+  async function fetchAnarchyRun(): Promise<void> {
+    try {
+      const anarchyRun:AnarchyRun = await getAnarchyRun(anarchyRunNamespace, anarchyRunName);
+      if (anarchyRunFetchState.canceled) {
+        return;
+      } else {
+        setAnarchyRun(anarchyRun);
+      }
+    } catch(error) {
+      if (error instanceof Response && error.status === 404) {
+        setAnarchyRun(null);
+      } else {
+        throw error;
+      }
     }
+    reduceAnarchyRunFetchState({
+      refreshTimeout: setTimeout(() => reduceAnarchyRunFetchState({type: 'refresh'}), 3000),
+      type: 'finish'
+    });
   }
 
   useEffect(() => {
@@ -92,28 +102,30 @@ const AnarchyRunInstance: React.FunctionComponent = () => {
     return () => cancelFetchState(anarchyRunFetchState);
   }, [anarchyRunFetchState])
 
-  if (anarchyRun === undefined) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    );
-  } else if (anarchyRun === null) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            AnarchyRun not found
-          </Title>
-          <EmptyStateBody>
-            AnarchyRun {anarchyRunName} was not found in namespace {anarchyRunNamespace}.
-          </EmptyStateBody>
-        </EmptyState>
-      </PageSection>
-    );
+  if (!anarchyRun) {
+    if (anarchyRunFetchState.finished || anarchyRunFetchState.isRefresh) {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              AnarchyRun not found
+            </Title>
+            <EmptyStateBody>
+              AnarchyRun {anarchyRunName} was not found in namespace {anarchyRunNamespace}.
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+      );
+    } else {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      );
+    }
   }
 
   return (<>

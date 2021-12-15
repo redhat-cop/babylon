@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
   EmptyState,
@@ -13,7 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteAnarchyAction, listAnarchyActions } from '@app/api';
-import { AnarchyAction } from '@app/types';
+import { cancelFetchState, fetchStateReducer, k8sObjectsReducer, selectedUidsReducer } from '@app/reducers';
+import { AnarchyAction, AnarchyActionList, FetchState } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -77,13 +78,6 @@ function pruneAnarchyAction(anarchyAction:AnarchyAction) {
   };
 }
 
-export interface FetchState {
-  aborted?: boolean;
-  continue?: string;
-  iteration?: number;
-  finished?: boolean;
-}
-
 const AnarchyActions: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
@@ -93,11 +87,11 @@ const AnarchyActions: React.FunctionComponent = () => {
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
   const actionFilter = urlSearchParams.has('action') ? urlSearchParams.get('action') : null;
 
-  const [firstRender, setFirstRender] = useState(true);
-  const [anarchyActions, setAnarchyActions] = useState<AnarchyAction[]>([]);
-  const [selectedUids, setSelectedUids] = React.useState([]);
-  const [fetchState, setFetchState] = useState<FetchState>({iteration: 0});
+  const [anarchyActions, reduceAnarchyActions] = useReducer(k8sObjectsReducer, []);
+  const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
   const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
+  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, {});
+  const [firstRender, setFirstRender] = useState(true);
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
@@ -108,72 +102,60 @@ const AnarchyActions: React.FunctionComponent = () => {
     }
   }
 
-  async function confirmThenDelete() {
+  async function confirmThenDelete(): Promise<void> {
     if (confirm("Deleted selected AnarchyActions?")) {
+      const removedAnarchyActions:AnarchyAction[] = [];
       for (const anarchyAction of anarchyActions) {
         if (selectedUids.includes(anarchyAction.metadata.uid)) {
           await deleteAnarchyAction(anarchyAction);
+          removedAnarchyActions.push(anarchyAction);
         }
       }
-      await fetchAnarchyActions();
+      reduceSelectedUids({type: 'clear'});
+      reduceAnarchyActions({type: 'remove', items: removedAnarchyActions});
     }
   }
 
-  async function fetchAnarchyActions() {
-    const anarchyActionList = await listAnarchyActions({
+  async function fetchAnarchyActions(): Promise<void> {
+    const anarchyActionList:AnarchyActionList = await listAnarchyActions({
       continue: fetchState.continue,
       labelSelector: actionFilter ? `anarchy.gpte.redhat.com/action=${actionFilter}` : null,
       limit: FETCH_BATCH_LIMIT,
       namespace: anarchyNamespace,
     });
-    if (fetchState.aborted) { 
-      return
-    }
-    const anarchyActions = (anarchyActionList.items || [])
-      .filter((anarchyAction) => filterAnarchyAction(anarchyAction, keywordFilter))
-      .map(pruneAnarchyAction);
-    setAnarchyActions((current:AnarchyAction[]) => [...(current || []), ...anarchyActions]);
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly after fetch!");
-        return current;
-      }
-      return {
+    if (!fetchState.canceled) {
+      const anarchyActions:AnarchyAction[] = anarchyActionList.items
+        .filter((anarchyAction) => filterAnarchyAction(anarchyAction, keywordFilter))
+        .map(pruneAnarchyAction);
+      reduceAnarchyActions({
+        type: fetchState.isRefresh ? 'refresh' : 'append',
+        items: anarchyActions,
+        refreshComplete: fetchState.isRefresh && anarchyActionList.metadata.continue ? false : true,
+        refreshedUids: fetchState.isRefresh ? fetchState.fetchedUids : null,
+      });
+      reduceFetchState({
+        type: 'finish',
         continue: anarchyActionList.metadata.continue,
-        iteration: current.iteration + 1,
-        finished: !anarchyActionList.metadata.continue,
-      };
-    });
+        items: anarchyActions,
+      });
+    }
   }
 
-  function reloadAnarchyActions() {
-    setAnarchyActions([]);
-    if(fetchState) {
-      fetchState.aborted = true;
-    }
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly for reload!");
-        return current;
-      }
-      return {
-        iteration: current.iteration + 1,
-      };
-    });
-    setSelectedUids([]);
+  function reloadAnarchyActions(): void {
+    reduceAnarchyActions({type: 'clear'});
+    reduceFetchState({type: 'start'});
+    reduceSelectedUids({type: 'clear'});
   }
 
   // Fetch or continue fetching
   useEffect(() => {
     if (!fetchState.finished && anarchyActions.length < fetchLimit) {
       fetchAnarchyActions();
-      return () => {
-        fetchState.aborted = true;
-      }
+      return () => cancelFetchState(fetchState);
     } else {
       return null;
     }
-  }, [fetchState?.iteration, fetchLimit]);
+  }, [fetchState, fetchLimit]);
 
   // Reload on filter change
   useEffect(() => {
@@ -273,9 +255,9 @@ const AnarchyActions: React.FunctionComponent = () => {
           columns={['Namespace', 'Name', 'AnarchySubject', 'AnarchyGovernor', 'Created At', 'State', 'Finished At']}
           onSelectAll={(isSelected) => {
             if (isSelected) {
-              setSelectedUids(anarchyActions.map(anarchyAction => anarchyAction.metadata.uid));
+              reduceSelectedUids({type: 'set', items: anarchyActions});
             } else {
-              setSelectedUids([]);
+              reduceSelectedUids({type: 'clear'});
             }
           }}
           rows={anarchyActions.map((anarchyAction:AnarchyAction) => {
@@ -313,16 +295,9 @@ const AnarchyActions: React.FunctionComponent = () => {
                   </>
                 ) : '-',
               ],
-              onSelect: (isSelected) => setSelectedUids(uids => {
-                if (isSelected) {
-                  if (uids.includes(anarchyAction.metadata.uid)) {
-                    return uids;
-                  } else {
-                    return [...uids, anarchyAction.metadata.uid];
-                  }
-                } else {
-                  return uids.filter(uid => uid !== anarchyAction.metadata.uid);
-                }
+              onSelect: (isSelected) => reduceSelectedUids({
+                type: isSelected ? 'add' : 'remove',
+                items: [anarchyAction],
               }),
               selected: selectedUids.includes(anarchyAction.metadata.uid),
             };

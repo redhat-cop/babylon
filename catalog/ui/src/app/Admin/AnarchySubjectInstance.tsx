@@ -59,7 +59,7 @@ import { selectConsoleURL } from '@app/store';
 
 import AnarchyActionsTable from './AnarchyActionsTable';
 import AnarchyRunsTable from './AnarchyRunsTable';
-  
+
 import './admin.css';
 
 interface RouteMatchParams {
@@ -80,7 +80,7 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
   const [anarchyActionsFetchState, reduceAnarchyActionsFetchState] = useReducer(fetchStateReducer, {});
   const [anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
   const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(fetchStateReducer, {});
-  const [anarchySubject, setAnarchySubject] = useState<AnarchySubject|undefined>(undefined);
+  const [anarchySubject, setAnarchySubject] = useState<AnarchySubject|null>(null);
   const [anarchySubjectFetchState, reduceAnarchySubjectFetchState] = useReducer(fetchStateReducer, {});
   const [selectedAnarchyActionUids, reduceAnarchyActionSelectedUids] = useReducer(selectedUidsReducer, []);
   const [selectedAnarchyRunUids, reduceAnarchyRunSelectedUids] = useReducer(selectedUidsReducer, []);
@@ -149,14 +149,24 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
   }
 
   async function fetchAnarchySubject(): Promise<void> {
-    const anarchySubject:AnarchySubject = await getAnarchySubject(anarchySubjectNamespace, anarchySubjectName);
-    if (!anarchySubjectFetchState.canceled) {
-      setAnarchySubject(anarchySubject);
-      reduceAnarchySubjectFetchState({
-        refreshTimeout: setTimeout(() => reduceAnarchySubjectFetchState({type: 'refresh'}), 3000),
-        type: 'finish'
-      });
+    try {
+      const anarchySubject:AnarchySubject = await getAnarchySubject(anarchySubjectNamespace, anarchySubjectName);
+      if (anarchySubjectFetchState.canceled) {
+        return;
+      } else {
+        setAnarchySubject(anarchySubject);
+      }
+    } catch(error) {
+      if (error instanceof Response && error.status === 404) {
+        setAnarchySubject(null);
+      } else {
+        throw error;
+      }
     }
+    reduceAnarchySubjectFetchState({
+      refreshTimeout: setTimeout(() => reduceAnarchySubjectFetchState({type: 'refresh'}), 3000),
+      type: 'finish'
+    });
   }
 
   useEffect(() => {
@@ -164,44 +174,46 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
       fetchAnarchyActions();
     }
     return () => cancelFetchState(anarchyActionsFetchState);
-  }, [anarchyActionsFetchState])
+  }, [anarchyActionsFetchState]);
 
   useEffect(() => {
     if (!anarchyRunsFetchState.finished) {
       fetchAnarchyRuns();
     }
     return () => cancelFetchState(anarchyRunsFetchState);
-  }, [anarchyRunsFetchState])
+  }, [anarchyRunsFetchState]);
 
   useEffect(() => {
     if (!anarchySubjectFetchState.finished) {
       fetchAnarchySubject();
     }
     return () => cancelFetchState(anarchySubjectFetchState);
-  }, [anarchySubjectFetchState])
+  }, [anarchySubjectFetchState]);
 
-  if (anarchySubject === undefined) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    );
-  } else if (anarchySubject === null) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            AnarchySubject not found
-          </Title>
-          <EmptyStateBody>
-            AnarchySubject {anarchySubjectName} was not found in namespace {anarchySubjectNamespace}.
-          </EmptyStateBody>
-        </EmptyState>
-      </PageSection>
-    );
+  if (!anarchySubject) {
+    if (anarchySubjectFetchState.finished || anarchySubjectFetchState.isRefresh) {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              AnarchySubject not found
+            </Title>
+            <EmptyStateBody>
+              AnarchySubject {anarchySubjectName} was not found in namespace {anarchySubjectNamespace}.
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+      );
+    } else {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      );
+    }
   }
 
   return (<>

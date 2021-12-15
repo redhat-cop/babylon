@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { Link, useHistory, useLocation } from 'react-router-dom';
 import {
   EmptyState,
@@ -13,7 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteResourceHandle, listResourceHandles } from '@app/api';
-import { ResourceHandle } from '@app/types';
+import { cancelFetchState, fetchStateReducer, k8sObjectsReducer, selectedUidsReducer } from '@app/reducers';
+import { FetchState, ResourceHandle, ResourceHandleList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -59,7 +60,7 @@ function filterResourceHandle(resourceHandle:ResourceHandle, keywordFilter:strin
   return true;
 }
 
-function pruneResourceHandle(resourceHandle:ResourceHandle) {
+function pruneResourceHandle(resourceHandle:ResourceHandle): ResourceHandle {
   return {
     apiVersion: resourceHandle.apiVersion,
     kind: resourceHandle.kind,
@@ -86,24 +87,17 @@ function pruneResourceHandle(resourceHandle:ResourceHandle) {
   };
 }
 
-export interface FetchState {
-  aborted?: boolean;
-  continue?: string;
-  iteration?: number;
-  finished?: boolean;
-}
-
 const ResourceHandles: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
 
-  const [firstRender, setFirstRender] = useState(true);
-  const [resourceHandles, setResourceHandles] = useState<ResourceHandle[]>([]);
-  const [selectedUids, setSelectedUids] = React.useState([]);
-  const [fetchState, setFetchState] = useState<FetchState>({iteration: 0});
   const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
+  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, {});
+  const [firstRender, setFirstRender] = useState(true);
+  const [resourceHandles, reduceResourceHandles] = useReducer(k8sObjectsReducer, []);
+  const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
@@ -114,70 +108,58 @@ const ResourceHandles: React.FunctionComponent = () => {
     }
   }
 
-  async function confirmThenDelete() {
+  async function confirmThenDelete(): Promise<void> {
     if (confirm("Deleted selected ResourceHandles?")) {
+      const removedResourceHandles:ResourceHandle[] = [];
       for (const resourceHandle of resourceHandles) {
         if (selectedUids.includes(resourceHandle.metadata.uid)) {
           await deleteResourceHandle(resourceHandle);
+          removedResourceHandles.push(resourceHandle);
         }
       }
-      reloadResourceHandles();
+      reduceSelectedUids({type: 'clear'});
+      reduceResourceHandles({type: 'remove', items: removedResourceHandles});
     }
   }
 
-  async function fetchResourceHandles() {
-    const resourceHandleList = await listResourceHandles({
+  async function fetchResourceHandles(): Promise<void> {
+    const resourceHandleList:ResourceHandleList = await listResourceHandles({
       continue: fetchState.continue,
       limit: FETCH_BATCH_LIMIT,
     });
-    if (fetchState.aborted) { 
-      return
-    }
-    const resourceHandles = (resourceHandleList.items || [])
-      .filter((resourceHandle) => filterResourceHandle(resourceHandle, keywordFilter))
-      .map(pruneResourceHandle);
-    setResourceHandles((current:ResourceHandle[]) => [...(current || []), ...resourceHandles]);
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly after fetch!");
-        return current;
-      }
-      return {
+    if (!fetchState.canceled) {
+      const resourceHandles:ResourceHandle[] = resourceHandleList.items
+        .filter((resourceHandle) => filterResourceHandle(resourceHandle, keywordFilter))
+        .map(pruneResourceHandle);
+      reduceResourceHandles({
+        type: fetchState.isRefresh ? 'refresh' : 'append',
+        items: resourceHandles,
+        refreshComplete: fetchState.isRefresh && resourceHandleList.metadata.continue ? false : true,
+        refreshedUids: fetchState.isRefresh ? fetchState.fetchedUids : null,
+      });
+      reduceFetchState({
+        type: 'finish',
         continue: resourceHandleList.metadata.continue,
-        iteration: current.iteration + 1,
-        finished: !resourceHandleList.metadata.continue,
-      };
-    });
+        items: resourceHandles,
+      });
+    }
   }
 
-  function reloadResourceHandles() {
-    setResourceHandles([]);
-    if(fetchState) {
-      fetchState.aborted = true;
-    }
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly for reload!");
-        return current;
-      }
-      return {
-        iteration: current.iteration + 1,
-      };
-    });
-    setSelectedUids([]);
+  function reloadResourceHandles(): void {
+    reduceResourceHandles({type: 'clear'});
+    reduceFetchState({type: 'start'});
+    reduceSelectedUids({type: 'clear'});
   }
 
   // Fetch or continue fetching
   useEffect(() => {
     if (!fetchState.finished && resourceHandles.length < fetchLimit) {
       fetchResourceHandles();
-      return () => {
-        fetchState.aborted = true;
-      }
+      return () => cancelFetchState(fetchState);
     } else {
       return null;
     }
-  }, [fetchState?.iteration, fetchLimit]);
+  }, [fetchState, fetchLimit]);
 
   // Reload on filter change
   useEffect(() => {
@@ -252,9 +234,9 @@ const ResourceHandles: React.FunctionComponent = () => {
           columns={['Name', 'ResourcePool', 'Service Namespace', 'ResourceClaim', 'ResourceProvider(s)', 'Created At']}
           onSelectAll={(isSelected) => {
             if (isSelected) {
-              setSelectedUids(resourceHandles.map(resourceHandle => resourceHandle.metadata.uid));
+              reduceSelectedUids({type: 'set', items: resourceHandles});
             } else {
-              setSelectedUids([]);
+              reduceSelectedUids({type: 'clear'});
             }
           }}
           rows={resourceHandles.map((resourceHandle:ResourceHandle) => {
@@ -299,16 +281,9 @@ const ResourceHandles: React.FunctionComponent = () => {
                   (<TimeInterval key="interval" toTimestamp={resourceHandle.metadata.creationTimestamp}/>)
                 </>,
               ],
-              onSelect: (isSelected) => setSelectedUids(uids => {
-                if (isSelected) {
-                  if (uids.includes(resourceHandle.metadata.uid)) {
-                    return uids;
-                  } else {
-                    return [...uids, resourceHandle.metadata.uid];
-                  }
-                } else {
-                  return uids.filter(uid => uid !== resourceHandle.metadata.uid);
-                }
+              onSelect: (isSelected) => reduceSelectedUids({
+                type: isSelected ? 'add' : 'remove',
+                items: [resourceHandle],
               }),
               selected: selectedUids.includes(resourceHandle.metadata.uid),
             };

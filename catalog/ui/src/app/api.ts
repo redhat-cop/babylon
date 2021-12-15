@@ -14,6 +14,7 @@ import {
   ResourceClaim,
   ResourceClaimList,
   ResourceHandle,
+  ResourceHandleList,
   ResourcePool,
   ResourceProvider,
   User,
@@ -417,7 +418,7 @@ export async function listResourceClaims(opt?:K8sObjectListCommonOpt): Promise<R
   });
 }
 
-export async function listResourceHandles(opt?:K8sObjectListCommonOpt): Promise<any> {
+export async function listResourceHandles(opt?:K8sObjectListCommonOpt): Promise<ResourceHandleList> {
   return await listK8sObjects({
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     namespace: 'poolboy',
