@@ -11,7 +11,7 @@ import {
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { selectUser } from '@app/store';
-import { LoadingIcon } from '@app/components/LoadingIcon';
+import LoadingIcon from '@app/components/LoadingIcon';
 
 const NotFound: React.FunctionComponent = () => {
 

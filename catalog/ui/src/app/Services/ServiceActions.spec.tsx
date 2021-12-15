@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
 import React from "react";
 import { render, waitFor, queryByAttribute, fireEvent, screen, cleanup } from "@testing-library/react";
-import {ServiceActions} from "./ServiceActions";
+import ServiceActions from "./ServiceActions";
 
 describe("ServiceActions", () => {
     test("When ServiceActions layout renders, should display ServiceActions", async () => {

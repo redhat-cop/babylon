@@ -1,8 +1,7 @@
 import React from "react";
-import { useEffect, useState } from "react";
-import { Link, useHistory } from 'react-router-dom';
+import { useEffect, useReducer, useState } from "react";
+import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,58 +21,164 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
+
 import {
-  AnarchySubject,
+  deleteAnarchyAction,
+  deleteAnarchyRun,
   deleteAnarchySubject,
   getAnarchySubject,
+  listAnarchyActions,
+  listAnarchyRuns,
 } from '@app/api';
+
+import {
+  cancelFetchState,
+  fetchStateReducer,
+  k8sObjectsReducer,
+  selectedUidsReducer,
+} from '@app/reducers';
+
+import {
+  AnarchyAction,
+  AnarchyActionList,
+  AnarchyRun,
+  AnarchyRunList,
+  AnarchySubject,
+  FetchState,
+} from '@app/types';
+
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { LoadingIcon } from '@app/components/LoadingIcon';
-import { LocalTimestamp } from '@app/components/LocalTimestamp';
-import { TimeInterval } from '@app/components/TimeInterval';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-import OpenshiftConsoleLink from './OpenshiftConsoleLink';
+
+import AnarchyActionsTable from './AnarchyActionsTable';
+import AnarchyRunsTable from './AnarchyRunsTable';
   
 import './admin.css';
 
-export interface AnarchySubjectInstanceProps {
-  location?: any;
+interface RouteMatchParams {
+  name: string;
+  namespace: string;
+  tab?: string;
 }
 
-const AnarchySubjectInstance: React.FunctionComponent<AnarchySubjectInstanceProps> = ({
-  location,
-}) => {
-  const consoleURL = useSelector(selectConsoleURL);
+const AnarchySubjectInstance:React.FunctionComponent = () => {
   const history = useHistory();
-  const locationMatch = location.pathname.match(/^(.*\/anarchysubjects)\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?$/);
-  const basePath = locationMatch[1];
-  const anarchySubjectName = locationMatch[3];
-  const anarchySubjectNamespace = locationMatch[2];
-  const activeTab = locationMatch[4] || 'details';
+  const consoleURL = useSelector(selectConsoleURL);
+  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchysubjects/:namespace/:name/:tab?');
+  const anarchySubjectName = routeMatch.params.name;
+  const anarchySubjectNamespace = routeMatch.params.namespace;
+  const activeTab = routeMatch.params.tab || 'details';
 
-  const [anarchySubject, setAnarchySubject] = useState(undefined);
+  const [anarchyActions, reduceAnarchyActions] = useReducer(k8sObjectsReducer, []);
+  const [anarchyActionsFetchState, reduceAnarchyActionsFetchState] = useReducer(fetchStateReducer, {});
+  const [anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
+  const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(fetchStateReducer, {});
+  const [anarchySubject, setAnarchySubject] = useState<AnarchySubject|undefined>(undefined);
+  const [anarchySubjectFetchState, reduceAnarchySubjectFetchState] = useReducer(fetchStateReducer, {});
+  const [selectedAnarchyActionUids, reduceAnarchyActionSelectedUids] = useReducer(selectedUidsReducer, []);
+  const [selectedAnarchyRunUids, reduceAnarchyRunSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  async function confirmThenDelete() {
+  async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchySubject ${anarchySubjectName}?`)) {
       await deleteAnarchySubject(anarchySubject);
-      history.push(`${basePath}/${anarchySubjectNamespace}`);
+      history.push(`/admin/anarchysubjects/${anarchySubjectNamespace}`);
     }
   }
 
-  async function fetchAnarchySubject() {
-    try {
-      const result:AnarchySubject = await getAnarchySubject(anarchySubjectNamespace, anarchySubjectName);
-      setAnarchySubject(result);
-    } catch (err) {
-      setAnarchySubject(null);
+  async function confirmThenDeleteAnarchyActions(): Promise<void> {
+    if (confirm(`Delete selected AnarchyActions?`)) {
+      const removedAnarchyActions:AnarchyAction[] = [];
+      for (const anarchyAction of anarchyActions) {
+        if (selectedAnarchyActionUids.includes(anarchyAction.metadata.uid)) {
+          await deleteAnarchyAction(anarchyAction);
+          removedAnarchyActions.push(anarchyAction);
+        }
+      }
+      reduceAnarchyActionSelectedUids({type: 'clear'});
+      reduceAnarchyActions({type: 'remove', items: removedAnarchyActions});
+    }
+  }
+
+  async function confirmThenDeleteAnarchyRuns(): Promise<void> {
+    if (confirm(`Delete selected AnarchyRuns?`)) {
+      const removedAnarchyRuns:AnarchyRun[] = [];
+      for (const anarchyRun of anarchyRuns) {
+        if (selectedAnarchyRunUids.includes(anarchyRun.metadata.uid)) {
+          await deleteAnarchyRun(anarchyRun);
+          removedAnarchyRuns.push(anarchyRun);
+        }
+      }
+      reduceAnarchyRunSelectedUids({type: 'clear'});
+      reduceAnarchyRuns({type: 'remove', items: removedAnarchyRuns});
+    }
+  }
+
+  async function fetchAnarchyActions(): Promise<void> {
+    const anarchyActionList:AnarchyActionList = await listAnarchyActions({
+      labelSelector: `anarchy.gpte.redhat.com/subject=${anarchySubjectName}`,
+      namespace: anarchySubjectNamespace,
+    });
+    if (!anarchyActionsFetchState.canceled) {
+      reduceAnarchyActions({type: 'set', items: anarchyActionList.items});
+      reduceAnarchyActionsFetchState({
+        refreshTimeout: setTimeout(() => reduceAnarchyActionsFetchState({type: 'refresh'}), 3000),
+        type: 'finish'
+      });
+    }
+  }
+
+  async function fetchAnarchyRuns(): Promise<void> {
+    const anarchyRunList:AnarchyRunList = await listAnarchyRuns({
+      labelSelector: `anarchy.gpte.redhat.com/subject=${anarchySubjectName}`,
+      namespace: anarchySubjectNamespace,
+    });
+    if (!anarchyRunsFetchState.canceled) {
+      reduceAnarchyRuns({type: 'set', items: anarchyRunList.items});
+      reduceAnarchyRunsFetchState({
+        refreshTimeout: setTimeout(() => reduceAnarchyRunsFetchState({type: 'refresh'}), 3000),
+        type: 'finish',
+      });
+    }
+  }
+
+  async function fetchAnarchySubject(): Promise<void> {
+    const anarchySubject:AnarchySubject = await getAnarchySubject(anarchySubjectNamespace, anarchySubjectName);
+    if (!anarchySubjectFetchState.canceled) {
+      setAnarchySubject(anarchySubject);
+      reduceAnarchySubjectFetchState({
+        refreshTimeout: setTimeout(() => reduceAnarchySubjectFetchState({type: 'refresh'}), 3000),
+        type: 'finish'
+      });
     }
   }
 
   useEffect(() => {
-    fetchAnarchySubject()
-  }, [anarchySubjectName]);
+    if (!anarchyActionsFetchState.finished) {
+      fetchAnarchyActions();
+    }
+    return () => cancelFetchState(anarchyActionsFetchState);
+  }, [anarchyActionsFetchState])
+
+  useEffect(() => {
+    if (!anarchyRunsFetchState.finished) {
+      fetchAnarchyRuns();
+    }
+    return () => cancelFetchState(anarchyRunsFetchState);
+  }, [anarchyRunsFetchState])
+
+  useEffect(() => {
+    if (!anarchySubjectFetchState.finished) {
+      fetchAnarchySubject();
+    }
+    return () => cancelFetchState(anarchySubjectFetchState);
+  }, [anarchySubjectFetchState])
 
   if (anarchySubject === undefined) {
     return (
@@ -103,10 +208,10 @@ const AnarchySubjectInstance: React.FunctionComponent<AnarchySubjectInstanceProp
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
       <Breadcrumb>
         <BreadcrumbItem
-          render={({ className }) => <Link to={basePath} className={className}>AnarchySubjects</Link>}
+          render={({ className }) => <Link to="/admin/anarchysubjects" className={className}>AnarchySubjects</Link>}
         />
         <BreadcrumbItem
-          render={({ className }) => <Link to={`${basePath}/${anarchySubjectNamespace}`} className={className}>{anarchySubjectNamespace}</Link>}
+          render={({ className }) => <Link to={`/admin/anarchysubjects/${anarchySubjectNamespace}`} className={className}>{anarchySubjectNamespace}</Link>}
         />
         <BreadcrumbItem>{ anarchySubject.metadata.name }</BreadcrumbItem>
       </Breadcrumb>
@@ -124,6 +229,18 @@ const AnarchySubjectInstance: React.FunctionComponent<AnarchySubjectInstanceProp
                 onSelect={() => confirmThenDelete()}
               />,
               <ActionDropdownItem
+                key="deleteAnarchyActions"
+                label="Delete selected AnarchyActions"
+                isDisabled={selectedAnarchyActionUids.length < 1}
+                onSelect={() => confirmThenDeleteAnarchyActions()}
+              />,
+              <ActionDropdownItem
+                key="deleteAnarchyRuns"
+                label="Delete selected AnarchyRuns"
+                isDisabled={selectedAnarchyRunUids.length < 1}
+                onSelect={() => confirmThenDeleteAnarchyRuns()}
+              />,
+              <ActionDropdownItem
                 key="editInOpenShift"
                 label="Edit in OpenShift Console"
                 onSelect={() => window.open(`${consoleURL}/k8s/ns/${anarchySubject.metadata.namespace}/${anarchySubject.apiVersion.replace('/', '~')}~${anarchySubject.kind}/${anarchySubject.metadata.name}/yaml`)}
@@ -139,7 +256,7 @@ const AnarchySubjectInstance: React.FunctionComponent<AnarchySubjectInstanceProp
       </Split>
     </PageSection>
     <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`${basePath}/${anarchySubjectNamespace}/${anarchySubjectName}/${tabIndex}`)}>
+      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`/admin/anarchysubjects/${anarchySubjectNamespace}/${anarchySubjectName}/${tabIndex}`)}>
         <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
           <DescriptionList isHorizontal>
             <DescriptionListGroup>
@@ -154,10 +271,74 @@ const AnarchySubjectInstance: React.FunctionComponent<AnarchySubjectInstanceProp
               <DescriptionListDescription>
                 <LocalTimestamp timestamp={anarchySubject.metadata.creationTimestamp}/>
                 {' '}
-                (<TimeInterval to={anarchySubject.metadata.creationTimestamp}/>)
+                (<TimeInterval toTimestamp={anarchySubject.metadata.creationTimestamp}/>)
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>ResourceHandle</DescriptionListTerm>
+              <DescriptionListDescription>
+                { anarchySubject.metadata.annotations?.['poolboy.gpte.redhat.com/resource-handle-name'] ? (
+                  <>
+                    <Link key="admin" to={`/admin/resourcehandles/${anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-handle-name']}`}>{anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-handle-name']}</Link>
+                    <OpenshiftConsoleLink reference={{
+                      apiVersion: 'poolboy.gpte.redhat.com/v1',
+                      kind: 'ResourceHandle',
+                      name: anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-handle-name'],
+                      namespace: anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-handle-namespace'],
+                    }}/>
+                  </>
+                ) : '-' }
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>ResourceClaim</DescriptionListTerm>
+              <DescriptionListDescription>
+                { anarchySubject.metadata.annotations?.['poolboy.gpte.redhat.com/resource-claim-name'] ? (
+                  <>
+                    <Link key="admin" to={`/services/${anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-namespace']}/${anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-name']}`}>{anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-name']}</Link>
+                    <OpenshiftConsoleLink reference={{
+                      apiVersion: 'poolboy.gpte.redhat.com/v1',
+                      kind: 'ResourceClaim',
+                      name: anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-name'],
+                      namespace: anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-namespace'],
+                    }}/>
+                  </>
+                ) : '-' }
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Service Namespace</DescriptionListTerm>
+              <DescriptionListDescription>
+                { anarchySubject.metadata.annotations?.['poolboy.gpte.redhat.com/resource-claim-name'] ? (
+                  <>
+                    <Link key="admin" to={`/services/${anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-namespace']}`}>{anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-namespace']}</Link>
+                    <OpenshiftConsoleLink linkToNamespace reference={{
+                      apiVersion: 'poolboy.gpte.redhat.com/v1',
+                      kind: 'ResourceClaim',
+                      name: anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-name'],
+                      namespace: anarchySubject.metadata.annotations['poolboy.gpte.redhat.com/resource-claim-namespace'],
+                    }}/>
+                  </>
+                ) : '-' }
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>
+        </Tab>
+        <Tab eventKey="anarchyactions" title={<TabTitleText>AnarchyActions</TabTitleText>}>
+          <AnarchyActionsTable
+            anarchyActions={anarchyActions}
+            fetchState={anarchyActionsFetchState}
+            selectedUids={selectedAnarchyActionUids}
+            selectedUidsReducer={reduceAnarchyActionSelectedUids}
+          />
+        </Tab>
+        <Tab eventKey="anarchyruns" title={<TabTitleText>AnarchyRuns</TabTitleText>}>
+          <AnarchyRunsTable
+            anarchyRuns={anarchyRuns}
+            fetchState={anarchyRunsFetchState}
+            selectedUids={selectedAnarchyRunUids}
+            selectedUidsReducer={reduceAnarchyRunSelectedUids}
+          />
         </Tab>
         <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
           <Editor

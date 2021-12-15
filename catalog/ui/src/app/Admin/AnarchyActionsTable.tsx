@@ -1,0 +1,89 @@
+import React from "react";
+import { Link } from 'react-router-dom';
+
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  Title,
+} from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+
+import { AnarchyAction, FetchState } from '@app/types';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import SelectableTable from '@app/components/SelectableTable';
+import TimeInterval from '@app/components/TimeInterval';
+
+export interface AnarchyActionsTableProps {
+  anarchyActions: AnarchyAction[];
+  fetchState: FetchState;
+  selectedUids: string[];
+  selectedUidsReducer: any;
+}
+
+const AnarchyActionsTable: React.FunctionComponent<AnarchyActionsTableProps> = ({
+  anarchyActions,
+  fetchState,
+  selectedUids,
+  selectedUidsReducer,
+}) => {
+  if (anarchyActions.length === 0) {
+    if (fetchState.finished || fetchState.isRefresh) {
+      return (
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={ExclamationTriangleIcon} />
+          <Title headingLevel="h1" size="lg">
+            No AnarchyActions found.
+          </Title>
+        </EmptyState>
+      );
+    } else {
+      return (
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={LoadingIcon} />
+        </EmptyState>
+      );
+    }
+  }
+  return (
+    <SelectableTable
+      columns={['Name', 'Created At']}
+      onSelectAll={(isSelected) => {
+        if (isSelected) {
+          selectedUidsReducer({
+            type: 'set',
+            uids: anarchyActions.map((item) => item.metadata.uid),
+          });
+        } else {
+          selectedUidsReducer({
+            type: 'clear',
+          });
+        }
+      }}
+      rows={anarchyActions.map((anarchyAction:AnarchyAction) => {
+        return {
+          cells: [
+            <>
+              <Link key="admin" to={`/admin/anarchyactions/${anarchyAction.metadata.namespace}/${anarchyAction.metadata.name}`}>{anarchyAction.metadata.name}</Link>
+              <OpenshiftConsoleLink key="console" resource={anarchyAction}/>
+            </>,
+            <>
+              <LocalTimestamp key="timestamp" timestamp={anarchyAction.metadata.creationTimestamp}/>
+              {' '}
+              (<TimeInterval key="interval" toTimestamp={anarchyAction.metadata.creationTimestamp}/>)
+            </>,
+          ],
+          onSelect: (isSelected) => selectedUidsReducer({
+            type: isSelected ? 'add' : 'remove',
+            uids: [anarchyAction.metadata.uid],
+          }),
+          selected: selectedUids.includes(anarchyAction.metadata.uid),
+        };
+      })}
+    />
+  );
+}
+
+export default AnarchyActionsTable;

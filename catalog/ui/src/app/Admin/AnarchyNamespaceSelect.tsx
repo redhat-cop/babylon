@@ -58,4 +58,4 @@ const AnarchyNamespaceSelect: React.FunctionComponent<AnarchyNamespaceSelectProp
   );
 }
 
-export { AnarchyNamespaceSelect };
+export default AnarchyNamespaceSelect;

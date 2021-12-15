@@ -6,7 +6,7 @@ import {
 
 import {
   selectCatalogItems,
-  selectResourceClaims,
+  selectResourceClaimsInNamespace,
   selectUserNamespace,
   selectCatalogNamespaces,
   selectUserGroups,
@@ -79,8 +79,8 @@ import {
 import { CatalogItemIcon } from './CatalogItemIcon';
 import { CatalogItemHealthDisplay } from './CatalogItemHealthDisplay';
 import { CatalogItemRating } from './CatalogItemRating';
-import { LoadingIcon } from '@app/components/LoadingIcon';
-import { LocalTimestamp } from '@app/components/LocalTimestamp';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
 
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 
@@ -88,10 +88,9 @@ export interface CatalogProps {
   location?: any;
 }
 
-const getCatalogItemsFromServices = (allResourceClaims: any, currentUserNamespace: any) => {
+const getCatalogItemsFromServices = (userResourceClaims: any, currentUserNamespace: any) => {
   const catalogItems = [];
-  const resourceClaimList = allResourceClaims?.[currentUserNamespace.name] || {};
-  for (const resourceClaim of resourceClaimList){
+  for (const resourceClaim of userResourceClaims) {
       const catalogItemName = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemName'];
       const catalogItemNamespace = resourceClaim.metadata.labels['babylon.gpte.redhat.com/catalogItemNamespace'];
       catalogItems.push({catalogItemName, catalogItemNamespace});
@@ -124,8 +123,10 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
   const userGroups = useSelector(selectUserGroups);
   const userInterface = useSelector(selectInterface);
   const userIsAdmin = useSelector(selectUserIsAdmin);
-  const allResourceClaims = useSelector(selectResourceClaims);
   const currentUserNamespace = useSelector(selectUserNamespace);
+  const userResourceClaims = useSelector(
+    (state) => selectResourceClaimsInNamespace(state, currentUserNamespace.name)
+  );
   const catalogItems = useSelector(selectCatalogItems);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const catalogNamespace = catalogNamespaceName ? (catalogNamespaces.find(ns => ns.name == catalogNamespaceName) || {name: catalogNamespaceName, displayName: catalogNamespaceName, description: ""}) : null;
@@ -146,7 +147,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
 
   const selectedCatalogItemName = selectedCatalogItem?.metadata?.name;
   const selectedCatalogItemNamespace = selectedCatalogItem?.metadata?.namespace;
-  const catalogItemList = getCatalogItemsFromServices(allResourceClaims, currentUserNamespace);
+  const catalogItemList = getCatalogItemsFromServices(userResourceClaims, currentUserNamespace);
 
   function category(catalogItem: { metadata: { labels: { [x: string]: string | null; }; }; }): string | null {
     if (catalogItem.metadata.labels) {
@@ -188,7 +189,7 @@ const Catalog: React.FunctionComponent<CatalogProps> = ({
         catalogItem: selectedCatalogItem,
         catalogNamespace: catalogItemNamespace,
       });
-      history.push(`/services/ns/${resourceClaim.metadata.namespace}/item/${resourceClaim.metadata.name}`);
+      history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
   }
 

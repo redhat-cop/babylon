@@ -1,15 +1,15 @@
 import React from "react";
 import { useSelector } from 'react-redux';
 import { selectConsoleURL } from '@app/store';
-import { K8sResourceObject, K8sResourceReference } from '@app/api';
+import { K8sObject, K8sObjectReference } from '@app/types';
 
 import openshiftIconSVG from '@app/bgimages/openshift-icon.svg';
 import './openshift-console-link.css';
 
 export interface OpenshiftConsoleLinkProps {
   linkToNamespace?: boolean;
-  reference?: K8sResourceReference;
-  resource?: K8sResourceObject;
+  reference?: K8sObjectReference;
+  resource?: K8sObject;
 }
 
 const OpenshiftConsoleLink: React.FunctionComponent<OpenshiftConsoleLinkProps> = ({

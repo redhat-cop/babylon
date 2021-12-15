@@ -30,18 +30,19 @@ import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
 import {
   ResourceHandle,
+} from '@app/types';
+import {
   deleteResourceHandle,
   getResourceClaim,
   getResourceHandle
 } from '@app/api';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { LoadingIcon } from '@app/components/LoadingIcon';
-import { LocalTimestamp } from '@app/components/LocalTimestamp';
-import { TableList } from '@app/components/TableList';
-import { TimeInterval } from '@app/components/TimeInterval';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
 import CreateResourcePoolFromResourceHandleModal from './CreateResourcePoolFromResourceHandleModal';
-import OpenshiftConsoleLink from './OpenshiftConsoleLink';
 
 import './admin.css';
 
@@ -180,7 +181,7 @@ const ResourceHandleInstance: React.FunctionComponent<ResourceHandleInstanceProp
                   <DescriptionListDescription>
                     <LocalTimestamp timestamp={resourceHandle.metadata.creationTimestamp}/>
                     {' '}
-                    (<TimeInterval to={resourceHandle.metadata.creationTimestamp}/>)
+                    (<TimeInterval toTimestamp={resourceHandle.metadata.creationTimestamp}/>)
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               </DescriptionList>
@@ -192,7 +193,7 @@ const ResourceHandleInstance: React.FunctionComponent<ResourceHandleInstanceProp
                   <DescriptionListGroup key="name">
                     <DescriptionListTerm>Name</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <Link to={`/services/ns/${resourceHandle.spec.resourceClaim.namespace}/item/${resourceHandle.spec.resourceClaim.name}`}>{resourceHandle.spec.resourceClaim.name}</Link>
+                      <Link to={`/services/${resourceHandle.spec.resourceClaim.namespace}/${resourceHandle.spec.resourceClaim.name}`}>{resourceHandle.spec.resourceClaim.name}</Link>
                       <OpenshiftConsoleLink reference={resourceHandle.spec.resourceClaim}/>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
@@ -200,7 +201,7 @@ const ResourceHandleInstance: React.FunctionComponent<ResourceHandleInstanceProp
                     <DescriptionListTerm>Service Namespace</DescriptionListTerm>
                     <DescriptionListDescription>
                       { resourceHandle.spec.resourceClaim ? (<>
-                        <Link key="service" to={`/services/ns/${resourceHandle.spec.resourceClaim.namespace}`}>{resourceHandle.spec.resourceClaim.namespace}</Link>
+                        <Link key="service" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>{resourceHandle.spec.resourceClaim.namespace}</Link>
                         <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} linkToNamespace={true}/>
                       </>) : '-' }
                     </DescriptionListDescription>
@@ -211,7 +212,7 @@ const ResourceHandleInstance: React.FunctionComponent<ResourceHandleInstanceProp
                       { resourceClaim ? (<>
                         <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp}/>
                         {' '}
-                        (<TimeInterval to={resourceClaim.metadata.creationTimestamp}/>)
+                        (<TimeInterval toTimestamp={resourceClaim.metadata.creationTimestamp}/>)
                       </>) : '-' }
                     </DescriptionListDescription>
                   </DescriptionListGroup>

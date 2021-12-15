@@ -1,8 +1,7 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { Link, useHistory } from 'react-router-dom';
+import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
-  Button,
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
@@ -13,47 +12,101 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import {
-  AnarchySubject,
-  deleteAnarchySubject,
-  listAnarchySubjects,
-} from '@app/api';
-import { RedoIcon } from '@patternfly/react-icons';
+import { deleteAnarchySubject, listAnarchySubjects } from '@app/api';
+import { AnarchySubject } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { LoadingIcon } from '@app/components/LoadingIcon';
-import { LocalTimestamp } from '@app/components/LocalTimestamp';
-import { SelectableTable } from '@app/components/SelectableTable';
-import { TimeInterval } from '@app/components/TimeInterval';
-import { AnarchyNamespaceSelect } from './AnarchyNamespaceSelect';
-import { AnarchySubjectStateSelect } from './AnarchySubjectStateSelect';
-import OpenshiftConsoleLink from './OpenshiftConsoleLink';
+import KeywordSearchInput from '@app/components/KeywordSearchInput';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import SelectableTable from '@app/components/SelectableTable';
+import TimeInterval from '@app/components/TimeInterval';
+import RefreshButton from '@app/components/RefreshButton';
+import AnarchyNamespaceSelect from './AnarchyNamespaceSelect';
+import AnarchySubjectStateSelect from './AnarchySubjectStateSelect';
 
 import './admin.css';
 
-export interface AnarchySubjectsProps {
-  location?: any;
+const FETCH_BATCH_LIMIT = 50;
+
+function keywordMatch(anarchySubject:AnarchySubject, keyword:string): boolean {
+  if (anarchySubject.metadata.name.includes(keyword)) {
+    return true;
+  }
+  if (anarchySubject.spec.governor.name.includes(keyword)) {
+    return true;
+  }
+  return false;
 }
 
-const AnarchySubjects: React.FunctionComponent<AnarchySubjectsProps> = ({
-  location,
-}) => {
+function filterAnarchySubject(anarchySubject:AnarchySubject, keywordFilter:string[]): boolean {
+  if (!keywordFilter) {
+    return true;
+  }
+  for (const keyword of keywordFilter) {
+    if (!keywordMatch(anarchySubject, keyword)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function pruneAnarchySubject(anarchySubject:AnarchySubject) {
+  return {
+    apiVersion: anarchySubject.apiVersion,
+    kind: anarchySubject.kind,
+    metadata: {
+      creationTimestamp: anarchySubject.metadata.creationTimestamp,
+      deletionTimestamp: anarchySubject.metadata.deletionTimestamp,
+      name: anarchySubject.metadata.name,
+      namespace: anarchySubject.metadata.namespace,
+      uid: anarchySubject.metadata.uid,
+    },
+    spec: {
+      governor: anarchySubject.spec.governor,
+      vars: {
+        current_state: anarchySubject.spec.vars?.current_state,
+        desired_state: anarchySubject.spec.vars?.desired_state,
+      }
+    },
+  };
+}
+
+export interface FetchState {
+  aborted?: boolean;
+  continue?: string;
+  iteration?: number;
+  finished?: boolean;
+}
+
+const AnarchySubjects: React.FunctionComponent = () => {
   const history = useHistory();
-  const locationMatch = location.pathname.match(/^(.*\/anarchysubjects)(?:\/([^\/]+))?$/);
-  const urlParams = new URLSearchParams(location.search);
-  const stateFilter = urlParams.get('state');
+  const location = useLocation();
+  const routeMatch = useRouteMatch<any>('/admin/anarchysubjects/:namespace?');
+  const anarchyNamespace = routeMatch.params.namespace;
+  const urlSearchParams = new URLSearchParams(location.search);
+  const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
+  const stateFilter = urlSearchParams.has('state') ? urlSearchParams.get('state') : null;
 
-  const basePath = locationMatch[1];
-  const anarchyNamespace = locationMatch[2];
+  const [firstRender, setFirstRender] = useState(true);
+  const [anarchySubjects, setAnarchySubjects] = useState<AnarchySubject[]>([]);
+  const [selectedUids, setSelectedUids] = React.useState([]);
+  const [fetchState, setFetchState] = useState<FetchState>({iteration: 0});
+  const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
 
-  const [anarchySubjects, setAnarchySubjects] = useState(undefined);
-  const [selectedAnarchySubjectUids, setSelectedAnarchySubjectUids] = React.useState([]);
+  const primaryAppContainer = document.getElementById('primary-app-container');
+  primaryAppContainer.onscroll = (e) => {
+    const scrollable = e.target as any;
+    const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
+    if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= anarchySubjects.length) {
+      setFetchLimit((limit) => limit + FETCH_BATCH_LIMIT);
+    }
+  }
 
   async function confirmThenDelete() {
     if (confirm("Deleted selected AnarchySubjects?")) {
-      const anarchySubjectsToDelete = anarchySubjects.filter(anarchySubject => selectedAnarchySubjectUids.includes(anarchySubject.metadata.uid));
-      setAnarchySubjects(undefined);
-      for (const anarchySubject of anarchySubjectsToDelete) {
-        if (selectedAnarchySubjectUids.includes(anarchySubject.metadata.uid)) {
+      for (const anarchySubject of anarchySubjects) {
+        if (selectedUids.includes(anarchySubject.metadata.uid)) {
           await deleteAnarchySubject(anarchySubject);
         }
       }
@@ -62,59 +115,74 @@ const AnarchySubjects: React.FunctionComponent<AnarchySubjectsProps> = ({
   }
 
   async function fetchAnarchySubjects() {
-    const fetchedUids = [];
-    let listContinue:string = null;
-    let newFetchStarted = false;
-    setAnarchySubjects(undefined);
-    setSelectedAnarchySubjectUids([]);
-    while (true) {
-      const anarchySubjectList = await listAnarchySubjects({
-        continue: listContinue,
-        labelSelector: stateFilter ? `state=${stateFilter}` : null,
-        limit: 20,
-        namespace: anarchyNamespace,
-      });
-      const newAnarchySubjects = (anarchySubjectList.items || []).map(anarchySubject => {
-        return {
-          apiVersion: anarchySubject.apiVersion,
-          kind: anarchySubject.kind,
-          metadata: {
-            creationTimestamp: anarchySubject.metadata.creationTimestamp,
-            deletionTimestamp: anarchySubject.metadata.deletionTimestamp,
-            name: anarchySubject.metadata.name,
-            namespace: anarchySubject.metadata.namespace,
-            uid: anarchySubject.metadata.uid,
-          },
-          spec: {
-            governor: anarchySubject.spec.governor,
-          },
-        };
-      });
-      setAnarchySubjects((value) => {
-        const previousAnarchySubjects = value || [];
-        const previousUids = previousAnarchySubjects.map(a => a.metadata.uid);
-        if (fetchedUids.length == previousUids.length 
-        && fetchedUids.every((uid, idx) => uid === previousUids[idx])) {
-          fetchedUids.push(...newAnarchySubjects.map(a => a.metadata.uid));
-          return [...previousAnarchySubjects, ...newAnarchySubjects];
-        } else {
-          newFetchStarted = true;
-          return previousAnarchySubjects;
-        }
-      });
-      if (newFetchStarted) {
-        break;
-      }
-      listContinue = anarchySubjectList.metadata.continue as string;
-      if (!listContinue) {
-        break;
-      }
+    const anarchySubjectList = await listAnarchySubjects({
+      continue: fetchState.continue,
+      labelSelector: stateFilter ? `state=${stateFilter}` : null,
+      limit: FETCH_BATCH_LIMIT,
+      namespace: anarchyNamespace,
+    });
+    if (fetchState.aborted) { 
+      return
     }
+    const anarchySubjects = (anarchySubjectList.items || [])
+      .filter((anarchySubject) => filterAnarchySubject(anarchySubject, keywordFilter))
+      .map(pruneAnarchySubject);
+    setAnarchySubjects((current:AnarchySubject[]) => [...(current || []), ...anarchySubjects]);
+    setFetchState((current) => {
+      if (current.iteration != fetchState.iteration) {
+        console.warn("fetchState changed unexpectedly after fetch!");
+        return current;
+      }
+      return {
+        continue: anarchySubjectList.metadata.continue,
+        iteration: current.iteration + 1,
+        finished: !anarchySubjectList.metadata.continue,
+      };
+    });
   }
 
+  function reloadAnarchySubjects() {
+    setAnarchySubjects([]);
+    if(fetchState) {
+      fetchState.aborted = true;
+    }
+    setFetchState((current) => {
+      if (current.iteration != fetchState.iteration) {
+        console.warn("fetchState changed unexpectedly for reload!");
+        return current;
+      }
+      return {
+        iteration: current.iteration + 1,
+      };
+    });
+    setSelectedUids([]);
+  }
+
+  // Fetch or continue fetching
   useEffect(() => {
-    fetchAnarchySubjects();
-  }, [anarchyNamespace, stateFilter]);
+    if (!fetchState.finished && anarchySubjects.length < fetchLimit) {
+      fetchAnarchySubjects();
+      return () => {
+        fetchState.aborted = true;
+      }
+    } else {
+      return null;
+    }
+  }, [fetchState?.iteration, fetchLimit]);
+
+  // Reload on filter change
+  useEffect(() => {
+    if(!firstRender) {
+      reloadAnarchySubjects();
+    }
+  }, [anarchyNamespace, stateFilter, JSON.stringify(keywordFilter)]);
+
+  // Track first render
+  useEffect(() => {
+    if(firstRender) {
+      setFirstRender(false);
+    }
+  }, [firstRender]);
 
   return (<>
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
@@ -123,25 +191,31 @@ const AnarchySubjects: React.FunctionComponent<AnarchySubjectsProps> = ({
           <Title headingLevel="h4" size="xl">AnarchySubjects</Title>
         </SplitItem>
         <SplitItem>
-          <Button
-            icon={<RedoIcon/>}
-            onClick={() => {
-              setAnarchySubjects(undefined);
-              fetchAnarchySubjects();
+          <RefreshButton onClick={() => reloadAnarchySubjects()}/>
+        </SplitItem>
+        <SplitItem>
+          <KeywordSearchInput
+            initialValue={keywordFilter}
+            onSearch={(value) => {
+              if (value) {
+                urlSearchParams.set('search', value.join(' '));
+              } else if(urlSearchParams.has('search')) {
+                urlSearchParams.delete('searchs');
+              }
+              history.push(`${location.pathname}?${urlSearchParams.toString()}`);
             }}
-            variant="tertiary"
-          >Refresh</Button>
+          />
         </SplitItem>
         <SplitItem>
           <AnarchySubjectStateSelect
             state={stateFilter}
             onSelect={(state) => {
-              const qualifiedPath = anarchyNamespace ? `${basePath}/${anarchyNamespace}` : basePath;
               if (state) {
-                history.push(`${qualifiedPath}?state=${state}`);
-              } else {
-                history.push(`${qualifiedPath}`);
+                urlSearchParams.set('state', state);
+              } else if(urlSearchParams.has('state')) {
+                urlSearchParams.delete('state');
               }
+              history.push(`${location.pathname}?${urlSearchParams.toString()}`);
             }}
           />
         </SplitItem>
@@ -150,9 +224,9 @@ const AnarchySubjects: React.FunctionComponent<AnarchySubjectsProps> = ({
             namespace={anarchyNamespace}
             onSelect={(namespaceName) => {
               if (namespaceName) {
-                history.push(`${basePath}/${namespaceName}${location.search}`);
+                history.push(`/admin/anarchysubjects/${namespaceName}${location.search}`);
               } else {
-                history.push(`${basePath}${location.search}`);
+                history.push(`/admin/anarchysubjects${location.search}`);
               }
             }}
           />
@@ -171,30 +245,32 @@ const AnarchySubjects: React.FunctionComponent<AnarchySubjectsProps> = ({
         </SplitItem>
       </Split>
     </PageSection>
-    { anarchySubjects === undefined ? (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    ) : anarchySubjects.length === 0 ? (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            No AnarchySubjects found
-          </Title>
-        </EmptyState>
-      </PageSection>
+    { anarchySubjects.length === 0 ? (
+      fetchState.finished ? (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No AnarchySubjects found
+            </Title>
+          </EmptyState>
+        </PageSection>
+      ) : (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      )
     ) : (
       <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
         <SelectableTable
-          columns={['Namespace', 'Name', 'AnarchyGovernor', 'Created At', 'State', 'Deleted At']}
+          columns={['Namespace', 'Name', 'AnarchyGovernor', 'State', 'Created At', 'Deleted At']}
           onSelectAll={(isSelected) => {
             if (isSelected) {
-              setSelectedAnarchySubjectUids(anarchySubjects.map(anarchySubject => anarchySubject.metadata.uid));
+              setSelectedUids(anarchySubjects.map(anarchySubject => anarchySubject.metadata.uid));
             } else {
-              setSelectedAnarchySubjectUids([]);
+              setSelectedUids([]);
             }
           }}
           rows={anarchySubjects.map((anarchySubject:AnarchySubject) => {
@@ -205,7 +281,7 @@ const AnarchySubjects: React.FunctionComponent<AnarchySubjectsProps> = ({
                   <OpenshiftConsoleLink key="console" resource={anarchySubject} linkToNamespace={true}/>
                 </>,
                 <>
-                  <Link key="admin" to={`${basePath}/${anarchySubject.metadata.namespace}/${anarchySubject.metadata.name}`}>{anarchySubject.metadata.name}</Link>
+                  <Link key="admin" to={`/admin/anarchysubjects/${anarchySubject.metadata.namespace}/${anarchySubject.metadata.name}`}>{anarchySubject.metadata.name}</Link>
                   <OpenshiftConsoleLink key="console" resource={anarchySubject}/>
                 </>,
                 <>
@@ -217,35 +293,40 @@ const AnarchySubjects: React.FunctionComponent<AnarchySubjectsProps> = ({
                     namespace: anarchySubject.metadata.namespace,
                   }}/>
                 </>,
+                anarchySubject.spec.vars?.current_state || '-',
                 <>
                   <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.creationTimestamp}/>
                   {' '}
-                  (<TimeInterval key="interval" to={anarchySubject.metadata.creationTimestamp}/>)
+                  (<TimeInterval key="interval" toTimestamp={anarchySubject.metadata.creationTimestamp}/>)
                 </>,
-                anarchySubject.spec.vars?.currentState || '-',
                 anarchySubject.metadata.deletionTimestamp ? (
                   <>
                     <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.deletionTimestamp}/>
                     {' '}
-                    (<TimeInterval key="interval" to={anarchySubject.metadata.deletionTimestamp}/>)
+                    (<TimeInterval key="interval" toTimestamp={anarchySubject.metadata.deletionTimestamp}/>)
                   </>
                 ) : '-',
               ],
-              onSelect: (isSelected) => setSelectedAnarchySubjectUids(uids => {
+              onSelect: (isSelected) => setSelectedUids(uids => {
                 if (isSelected) {
-                  if (selectedAnarchySubjectUids.includes(anarchySubject.metadata.uid)) {
-                    return selectedAnarchySubjectUids;
+                  if (uids.includes(anarchySubject.metadata.uid)) {
+                    return uids;
                   } else {
-                    return [...selectedAnarchySubjectUids, anarchySubject.metadata.uid];
+                    return [...uids, anarchySubject.metadata.uid];
                   }
                 } else {
                   return uids.filter(uid => uid !== anarchySubject.metadata.uid);
                 }
               }),
-              selected: selectedAnarchySubjectUids.includes(anarchySubject.metadata.uid),
+              selected: selectedUids.includes(anarchySubject.metadata.uid),
             };
           })}
         />
+        { fetchState?.continue ? (
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        ) : null }
       </PageSection>
     )}
   </>);

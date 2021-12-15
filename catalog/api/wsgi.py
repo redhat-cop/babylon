@@ -256,21 +256,10 @@ def get_resource_claim_as_proxy_user(namespace, name):
         else:
             flask.abort(flask.make_response(flask.jsonify({"reason": e.reason}), e.status))
 
-def get_service_namespaces(api_client, user_namespace, is_service_admin):
-    namespaces = []
+def get_service_namespaces(api_client, user_namespace):
+    namespaces = [user_namespace]
 
-    if is_service_admin:
-        for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid').items:
-            name = ns.metadata.name
-            requester = ns.metadata.annotations.get('openshift.io/requester')
-            display_name = ns.metadata.annotations.get('openshift.io/display-name', 'User ' + requester)
-            namespaces.append({
-                'name': name,
-                'displayName': display_name,
-                'requester': requester
-            })
-    elif user_namespace:
-        namespaces.append(user_namespace)
+    # FIXME - Add logic for finding service namespaces for this user
 
     return namespaces
 
@@ -375,7 +364,6 @@ def get_auth_session():
     service_namespaces = get_service_namespaces(
         api_client,
         user_namespace,
-        user_is_admin or 'userSupport' in roles
     )
     ret = {
         "admin": user_is_admin,
@@ -432,7 +420,6 @@ def get_auth_users_info(user_name):
     service_namespaces = get_service_namespaces(
         test_api_client,
         user_namespace,
-        user_is_admin or 'userSupport' in roles
     )
 
     ret = {

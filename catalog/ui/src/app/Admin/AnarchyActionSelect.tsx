@@ -39,4 +39,4 @@ const AnarchyActionSelect: React.FunctionComponent<AnarchyActionSelectProps> = (
   );
 }
 
-export { AnarchyActionSelect };
+export default AnarchyActionSelect;

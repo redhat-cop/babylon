@@ -5,13 +5,12 @@ import { LastLocationProvider, useLastLocation } from 'react-router-last-locatio
 
 import { Spinner } from "@patternfly/react-core";
 
-import { selectInterface, actionSetActiveServiceNamespace, selectUserIsAdmin } from '@app/store';
+import { selectInterface, selectUserIsAdmin } from '@app/store';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const CatalogRequest = React.lazy(() => import('@app/Catalog/Request/CatalogRequest'));
 const Services = React.lazy(() => import('@app/Services/Services'));
-const ServicesItem = React.lazy(() => import('@app/Services/Item/ServicesItem'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 const AnarchyActionInstance = React.lazy(()=> import('@app/Admin/AnarchyActionInstance'));
 const AnarchyActions = React.lazy(()=> import('@app/Admin/AnarchyActions'));
@@ -71,16 +70,6 @@ const routes: AppRouteConfig[] = [
     component: Catalog,
     path: '/catalog',
     title: 'Babylon | Catalog',
-  },
-  {
-    component: ServicesItem,
-    path: '/services/ns/:namespace/item/:name',
-    title: 'Babylon | Services',
-  },
-  {
-    component: ServicesItem,
-    path: '/services/item/:namespace/:name',
-    title: 'Babylon | Services',
   },
   {
     label: 'Services',
@@ -164,7 +153,6 @@ const adminRoutes: AppRouteConfig[] = [
   },
   {
     label: 'AnarchySubjects',
-    exact: true,
     component: AnarchySubjects,
     path: '/admin/anarchysubjects',
     title: 'Babylon | Admin',
@@ -176,7 +164,6 @@ const adminRoutes: AppRouteConfig[] = [
   },
   {
     label: 'ResourceHandles',
-    exact: true,
     component: ResourceHandles,
     path: '/admin/resourcehandles',
     title: 'Babylon | Admin',
@@ -188,7 +175,6 @@ const adminRoutes: AppRouteConfig[] = [
   },
   {
     label: 'ResourcePools',
-    exact: true,
     component: ResourcePools,
     path: '/admin/resourcepools',
     title: 'Babylon | Admin',
@@ -200,7 +186,6 @@ const adminRoutes: AppRouteConfig[] = [
   },
   {
     label: 'ResourceProviders',
-    exact: true,
     component: ResourceProviders,
     path: '/admin/resourceproviders',
     title: 'Babylon | Admin',
@@ -253,14 +238,6 @@ const AppRoutes = (): React.ReactElement => {
   const userIsAdmin = useSelector(selectUserIsAdmin);
   const dispatch = useDispatch();
   const location = useLocation();
-
-  if (location.pathname.startsWith('/services/ns/') || location.pathname.startsWith('/services/item/')) {
-    dispatch(actionSetActiveServiceNamespace(location.pathname.split('/')[3]));
-  } else if(location.pathname.startsWith('/services')) {
-    dispatch(actionSetActiveServiceNamespace('*'));
-  } else {
-    dispatch(actionSetActiveServiceNamespace(null));
-  }
 
   return (
     <LastLocationProvider>

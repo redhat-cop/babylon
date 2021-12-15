@@ -17,6 +17,8 @@ import {
 import {
   ResourceClaim,
   ResourceHandle,
+} from '@app/types';
+import {
   createResourcePool,
   getResourcePool,
 } from '@app/api';

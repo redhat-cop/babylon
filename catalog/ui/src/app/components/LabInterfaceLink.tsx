@@ -78,4 +78,4 @@ const LabInterfaceLink: React.FunctionComponent<LabInterfaceLinkProps> = ({
   }
 }
 
-export { LabInterfaceLink };
+export default LabInterfaceLink;

@@ -26,15 +26,17 @@ import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
 import {
   AnarchyGovernor,
+} from '@app/types';
+import {
   deleteAnarchyGovernor,
   getAnarchyGovernor,
 } from '@app/api';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { LoadingIcon } from '@app/components/LoadingIcon';
-import { LocalTimestamp } from '@app/components/LocalTimestamp';
-import { TimeInterval } from '@app/components/TimeInterval';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-import OpenshiftConsoleLink from './OpenshiftConsoleLink';
   
 import './admin.css';
 
@@ -154,7 +156,7 @@ const AnarchyGovernorInstance: React.FunctionComponent<AnarchyGovernorInstancePr
               <DescriptionListDescription>
                 <LocalTimestamp timestamp={anarchyGovernor.metadata.creationTimestamp}/>
                 {' '}
-                (<TimeInterval to={anarchyGovernor.metadata.creationTimestamp}/>)
+                (<TimeInterval toTimestamp={anarchyGovernor.metadata.creationTimestamp}/>)
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>

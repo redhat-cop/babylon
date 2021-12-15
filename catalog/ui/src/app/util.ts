@@ -12,8 +12,10 @@ dompurify.addHook('afterSanitizeAttributes', function(node) {
   }
 });
 
-export function checkAccessControl(accessConfig: any, userGroups: Array<string>): string {
-  const groups: Array<string> = userGroups.concat('system:authenticated');
+import { ResourceClaim } from '@app/types';
+
+export function checkAccessControl(accessConfig: any, userGroups: string[]): string {
+  const groups: string[] = userGroups.concat('system:authenticated');
   if (!accessConfig) {
     return 'allow';
   }
@@ -42,12 +44,23 @@ export function displayName(item: any): string {
   if (item.kind === 'ResourceClaim') {
     const catalogItemName = item.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'];
     const catalogItemDisplayName = item.metadata.annotations?.['babylon.gpte.redhat.com/catalogItemDisplayName'];
-    if (catalogItemName && catalogItemDisplayName && item.metadata.name === catalogItemName) {
-      return catalogItemDisplayName;
-    } else if (catalogItemName && catalogItemDisplayName && item.metadata.name.startsWith(catalogItemName)) {
-      return `${catalogItemDisplayName} - ${item.metadata.name.substring(1 + catalogItemName.length)}`;
+
+    if (item.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+      if (catalogItemName && catalogItemDisplayName && item.metadata.name === catalogItemName) {
+        return `${catalogItemDisplayName} Service Request`;
+      } else if (catalogItemName && catalogItemDisplayName && item.metadata.name.startsWith(catalogItemName)) {
+        return `${catalogItemDisplayName} Service Request - ${item.metadata.name.substring(1 + catalogItemName.length)}`;
+      } else {
+        return `${item.metadata.name} Service Request`;
+      }
     } else {
-      return item.metadata.name;
+      if (catalogItemName && catalogItemDisplayName && item.metadata.name === catalogItemName) {
+        return catalogItemDisplayName;
+      } else if (catalogItemName && catalogItemDisplayName && item.metadata.name.startsWith(catalogItemName)) {
+        return `${catalogItemDisplayName} - ${item.metadata.name.substring(1 + catalogItemName.length)}`;
+      } else {
+        return item.metadata.name;
+      }
     }
   } else {
     return (
@@ -91,7 +104,7 @@ export function renderContent(content: string, options: any={}): string {
   }
 }
 
-export function checkResourceClaimCanStart(resourceClaim) {
+export function checkResourceClaimCanStart(resourceClaim:ResourceClaim): boolean {
   return !!(
     (resourceClaim?.status?.resources || []).find((r, idx) => {
       const state = r.state;
@@ -116,7 +129,7 @@ export function checkResourceClaimCanStart(resourceClaim) {
   );
 }
 
-export function checkResourceClaimCanStop(resourceClaim) {
+export function checkResourceClaimCanStop(resourceClaim:ResourceClaim): boolean {
   return !!(
     (resourceClaim?.status?.resources || []).find((r, idx) => {
       const state = r.state;

@@ -25,12 +25,12 @@ const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
   resource,
   resourceTemplate,
 }) => {
-  const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
-  const desiredState = resourceTemplate?.spec?.vars?.desired_state;
-  const startTimestamp = resourceTemplate?.spec?.vars?.action_schedule?.start || resource?.spec?.vars?.action_schedule?.start;
-  const startTime = startTimestamp || Date.parse(startTimestamp);
-  const stopTimestamp = resourceTemplate?.spec?.vars?.action_schedule?.stop || resource?.spec?.vars?.action_schedule?.stop;
-  const stopTime = stopTimestamp || Date.parse(stopTimestamp);
+  const currentState:string = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
+  const desiredState:string|null = resourceTemplate?.spec?.vars?.desired_state;
+  const startTimestamp:string|null = resourceTemplate?.spec?.vars?.action_schedule?.start || resource?.spec?.vars?.action_schedule?.start;
+  const startTime:number|null = startTimestamp ? Date.parse(startTimestamp) : null;
+  const stopTimestamp:string|null = resourceTemplate?.spec?.vars?.action_schedule?.stop || resource?.spec?.vars?.action_schedule?.stop;
+  const stopTime:number|null = stopTimestamp ? Date.parse(stopTimestamp) : null;
 
   if (resource === undefined) {
     return (<span className="rhpds-status-unknown"><Spinner isSVG size="md" /> Requested</span>);
@@ -55,7 +55,7 @@ const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> Start Pending</span>);
   } else if (currentState === 'started' && desiredState === 'stopped') {
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> Stop Requested</span>);
-  } else if (currentState === 'started' && (stopTime < Date.now() || startTime > Date.now())) {
+  } else if (currentState === 'started' && stopTime && startTime && (stopTime < Date.now() || startTime > Date.now())) {
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> Stop Scheduled</span>);
   } else if (currentState === 'started') {
     return (<span className="rhpds-status-running"><CheckCircleIcon/> Running</span>);
@@ -65,7 +65,7 @@ const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> Stop Pending</span>);
   } else if (currentState === 'stopped' && desiredState === 'started') {
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> Start Requested</span>);
-  } else if (currentState === 'stopped' && (stopTime > Date.now() && startTime <= Date.now())) {
+  } else if (currentState === 'stopped' && stopTime && startTime && stopTime > Date.now() && startTime <= Date.now()) {
     return (<span className="rhpds-status-in-progress"><Spinner isSVG size="md" /> Start Scheduled</span>);
   } else if (currentState === 'stopped') {
     return (<span className="rhpds-status-stopped"><PauseCircleIcon/> Stopped</span>);
@@ -78,4 +78,4 @@ const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({
   }
 }
 
-export { ServiceStatus };
+export default ServiceStatus;

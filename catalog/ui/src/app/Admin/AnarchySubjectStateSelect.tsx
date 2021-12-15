@@ -44,4 +44,4 @@ const AnarchySubjectStateSelect: React.FunctionComponent<AnarchySubjectStateSele
   );
 }
 
-export { AnarchySubjectStateSelect };
+export default AnarchySubjectStateSelect;

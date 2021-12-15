@@ -1,3 +1,110 @@
+.services-body.pf-c-page__main-section {
+  padding-top: 1em;
+}
+
+.services-body.pf-c-page__main-section table.pf-c-table thead th {
+  padding-top: 0;
+  padding-bottom: 1em;
+}
+
+.services-body.pf-c-page__main-section table.pf-c-table thead td {
+  padding-top: 0;
+  padding-bottom: 1em;
+}
+
+.services-body.pf-c-page__main-section table.pf-c-table tbody th {
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
+
+.services-body.pf-c-page__main-section table.pf-c-table tbody td {
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
+
+.services-head.pf-c-page__main-section {
+  padding-top: 1em;
+  padding-bottom: 1em;
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+}
+
+.services-head.pf-c-page__main-section .pf-c-breadcrumb__item {
+  font-size: 1.2em;
+  margin-top: 0.3em;
+}
+
+.services-item-body.pf-c-page__main-section {
+  padding-top: 0px;
+}
+
+.services-item-body.pf-c-page__main-section .pf-c-tabs {
+  margin-left: -100px;
+  padding-left: 100px;
+  margin-right: -100px;
+  padding-right: 100px;
+  margin-bottom: 10pt;
+}
+
+.services-item-body.pf-c-page__main-section .pf-c-description-list {
+  row-gap: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.services-item-body.pf-c-page__main-section .pf-c-button.pf-m-plain {
+  margin-top: calc(-1 * var(--pf-c-button--PaddingTop));
+  margin-bottom: calc(-1 * var(--pf-c-button--PaddingBottom));
+  margin-left: calc(-1 * var(--pf-c-button--PaddingLeft));
+  margin-right: calc(-1 * var(--pf-c-button--PaddingRight));
+  color: var(--pf-c-button--m-plain--focus--Color);
+}
+
+.services-item-body.pf-c-page__main-section .pf-c-button.pf-m-plain:hover {
+  text-decoration: underline;
+}
+
+.services-item-body.pf-c-page__main-section .pf-c-button.pf-m-plain svg.edit {
+  color: var(--pf-global--link--Color);
+  font-size: 0.85em;
+  vertical-align: 0.2em !important;
+}
+
+.services-item-head.pf-c-page__main-section .pf-l-split .pf-c-title {
+  margin-top: 0.5em;
+}
+
+.services-item-head.pf-c-page__main-section {
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
+
+.services-item-head.pf-c-page__main-section .pf-c-breadcrumb__item {
+  font-size: 1em;
+  margin-top: 0.3em;
+}
+
+.services-topbar.pf-c-page__main-section {
+  padding: 2pt 10pt;
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+}
+
+.services-topbar.pf-c-page__main-section .pf-c-dropdown__toggle {
+  color: var(--pf-global--palette--black-900);
+}
+
+.services-topbar.pf-c-page__main-section .pf-c-dropdown__menu {
+  max-height: 25em;
+  overflow-y: scroll;
+}
+
+.services-topbar.pf-c-page__main-section .pf-c-dropdown__menu .pf-c-dropdown__menu-item {
+  padding-bottom: 0.25em;
+  padding-top: 0.25em;
+}
+
+
+
+
 .rhpds-services.pf-c-page__main-section {
   margin: 0;
   padding: 0;
@@ -61,36 +168,8 @@
   list-style: none;
 }
 
-.rhpds-services.pf-c-page__main-section .pf-c-data-list__cell ul.pf-c-list li .pf-c-button.pf-m-plain {
-  margin-top: calc(-1 * var(--pf-c-button--PaddingTop));
-  margin-bottom: calc(-1 * var(--pf-c-button--PaddingBottom));
-  margin-left: calc(-1 * var(--pf-c-button--PaddingLeft));
-  margin-right: calc(-1 * var(--pf-c-button--PaddingRight));
-  color: var(--pf-c-button--m-plain--focus--Color);
-}
-
-.rhpds-services.pf-c-page__main-section .pf-c-data-list__cell .pf-c-button.pf-m-secondary {
-  color: var(--pf-global--link--Color);
-  text-decoration: none;
-}
-
-.rhpds-services.pf-c-page__main-section .pf-c-data-list__cell .pf-c-button.pf-m-plain:hover {
-  text-decoration: underline;
-}
-
-.rhpds-services.pf-c-page__main-section .pf-c-data-list__cell .pf-c-button.pf-m-plain svg.edit {
-  color: var(--pf-global--link--Color);
-  font-size: 0.85em;
-  vertical-align: 0.2em !important;
-}
-
 .rhpds-services .pf-c-data-list__item-action {
   display: grid;
-}
-
-.rhpds-services .pf-c-data-list__item-action > button {
-  margin: 3pt 0;
-  min-width: 100px;
 }
 
 .rhpds-services .pf-c-data-list__cell {
@@ -100,10 +179,6 @@
 .rhpds-services .pf-c-data-list__item-action {
   padding-top: 8pt;
   padding-bottom: 8pt;
-}
-
-.rhpds-services .pf-c-description-list {
-  row-gap: 2pt;
 }
 
 .rhpds-status-available {
@@ -145,3 +220,4 @@
 .rhpds-services .pf-c-description-list__group {
   margin-top: 2pt;
 }
+

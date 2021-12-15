@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import './datetime-select.css';
 
 import {
@@ -17,7 +17,7 @@ export interface DatetimeSelectProps {
   interval: number;
   maximum: Date;
   minimum: Date;
-  onSelect: any;
+  onSelect: (date: Date) => void;
   toggleContent: any;
 }
 
@@ -32,7 +32,7 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [scrolledIntoView, setScrolledIntoView] = React.useState(false);
-  const currentInterval = interval * Math.round(Number(current) / interval);
+  const currentInterval = interval * Math.round(current.getTime() / interval);
   const currentItemId = `${idPrefix}${currentInterval}`;
 
   const dropdownItems: any[] = [];
@@ -47,17 +47,21 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
     }
   })
 
-  for (var t=Math.ceil(Number(minimum) / interval) * interval; t < Number(maximum); t += interval) {
+  for (var t=Math.ceil(minimum.getTime() / interval) * interval; t < maximum.getTime(); t += interval) {
     //TODO: boolean required but string is used
-    const isCurrent : any = t == currentInterval ? "rhpds-datetime-select-current" : null;
+    const isCurrent : any = t == currentInterval ? "datetime-select-current" : null;
     const date = new Date(t);
     const dropdownItem = (
       <DropdownItem
         id={`${idPrefix}${t}`}
-        className={isCurrent ? "rhpds-datetime-select-current" : ""}
+        className={isCurrent ? "datetime-select-current" : ""}
         isHovered={isCurrent}
         isPlainText={isCurrent}
         key={t}
+        onClick={() => {
+          onSelect(date);
+          setIsOpen(false);
+        }}
       >{date.toLocaleString()}</DropdownItem>
     );
     dropdownItems.push(dropdownItem);
@@ -74,21 +78,12 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
     })
   }
 
-  function _onSelect(event): void {
-    const target = event.target;
-    const idParts = target.parentNode.id.split(":");
-    const time = parseInt(idParts[idParts.length - 1]);
-    onSelect(time);
-    setIsOpen(false);
-  }
-
   return (
     <Dropdown
-      className="rhpds-datetimeselect-dropdown"
-      onSelect={_onSelect}
+      className="datetimeselect-dropdown"
       toggle={
         <DropdownToggle
-          className="rhpds-datetimeselect-toggle"
+          className="datetimeselect-toggle"
           onToggle={toggleIsOpen}
           toggleIndicator={OutlinedClockIcon}
         >{toggleContent}</DropdownToggle>
@@ -100,4 +95,4 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
   );
 }
 
-export { DatetimeSelect };
+export default DatetimeSelect;

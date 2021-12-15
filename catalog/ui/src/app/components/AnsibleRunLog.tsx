@@ -6,7 +6,7 @@ import './ansible-run-log.css';
 export interface AnsibleRunTaskHost {
   args?: any;
   failed?: boolean;
-  items?: Array<any>;
+  items?: any[];
   ok?: boolean;
   result?: any;
   skipped?: boolean;
@@ -40,11 +40,11 @@ export interface AnsibleRunPlay {
   name?: string;
   start: string;
   stats: AnsibleRunPlayStats;
-  tasks?: Array<AnsibleRunTask>;
+  tasks?: AnsibleRunTask[];
 }
 
 export interface AnsibleRun {
-  plays: Array<AnsibleRunPlay>;
+  plays: AnsibleRunPlay[];
 }
 
 export interface AnsibleRunLogProps {
@@ -61,7 +61,7 @@ const AnsibleRunLog: React.FunctionComponent<AnsibleRunLogProps> = ({
           <div className="ansible-run-log-play-start">{play.start.substring(0,19)}Z</div>
           <div className="ansible-run-log-play-header">PLAY [{play.name}] *****</div>
           { (play.tasks || []).map((task, task_number) =>
-            <div className="ansible-run-log-task">
+            <div key={task_number} className="ansible-run-log-task">
               <div className="ansible-run-log-task-start">{task.start.substring(0,19)}Z</div>
               <div className="ansible-run-log-task-header">TASK [{task.name}] *****</div>
               { Object.entries(task.hosts || {}).map(([hostname, host]) =>
@@ -70,26 +70,26 @@ const AnsibleRunLog: React.FunctionComponent<AnsibleRunLogProps> = ({
                     <div className="ansible-run-log-task-host-items">
                       { host.items.map((item:any, item_number) =>
                         item.result?.changed ? (
-                          <div className="ansible-run-log-task-host-item-changed">
+                          <div key={item_number} className="ansible-run-log-task-host-item-changed">
                             changed: [{hostname}] (item={item.item})
                           </div>
                         ) : item.ok ? (
-                          <div className="ansible-run-log-task-host-item-ok">
+                          <div key={item_number} className="ansible-run-log-task-host-item-ok">
                             ok: [{hostname}] (item={item.item})
                           </div>
                         ) : item.skipped ? (
-                          <div className="ansible-run-log-task-host-item-skipped">
+                          <div key={item_number} className="ansible-run-log-task-host-item-skipped">
                             skipping: [{hostname}] (item={item.item})
                           </div>
                         ) : item.failed ? (
-                          <div className="ansible-run-log-task-host-item-failed">
+                          <div key={item_number} className="ansible-run-log-task-host-item-failed">
                             fatal: [{hostname}] (item={item.item}): FAILED! =&gt;
                             <div className="ansible-run-log-yaml-dump">{yaml.dump({args: host.args, result: item.result})}</div>
                           </div>
                         ) : (
-                            <div className="ansible-run-log-task-host-unknown">
+                          <div key={item_number} className="ansible-run-log-task-host-unknown">
                               ??: {hostname}
-                            </div>
+                          </div>
                         )
                       )}
                     </div>
@@ -140,4 +140,4 @@ const AnsibleRunLog: React.FunctionComponent<AnsibleRunLogProps> = ({
   );
 }
 
-export { AnsibleRunLog };
+export default AnsibleRunLog;

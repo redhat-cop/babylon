@@ -26,15 +26,17 @@ import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
 import {
   ResourceProvider,
+} from '@app/types';
+import {
   deleteResourceProvider,
   getResourceProvider,
 } from '@app/api';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { LoadingIcon } from '@app/components/LoadingIcon';
-import { LocalTimestamp } from '@app/components/LocalTimestamp';
-import { TimeInterval } from '@app/components/TimeInterval';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-import OpenshiftConsoleLink from './OpenshiftConsoleLink';
   
 import './admin.css';
 
@@ -149,7 +151,7 @@ const ResourceProviderInstance: React.FunctionComponent<ResourceProviderInstance
               <DescriptionListDescription>
                 <LocalTimestamp timestamp={resourceProvider.metadata.creationTimestamp}/>
                 {' '}
-                (<TimeInterval to={resourceProvider.metadata.creationTimestamp}/>)
+                (<TimeInterval toTimestamp={resourceProvider.metadata.creationTimestamp}/>)
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>

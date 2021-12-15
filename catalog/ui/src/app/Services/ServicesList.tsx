@@ -1,0 +1,676 @@
+import React from "react";
+import { useEffect, useState } from "react";
+import { useSelector } from 'react-redux';
+import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
+
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  DescriptionList,
+  DescriptionListTerm,
+  DescriptionListGroup,
+  DescriptionListDescription,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  PageSection,
+  PageSectionVariants,
+  Split,
+  SplitItem,
+  Title,
+} from '@patternfly/react-core';
+
+import {
+  ExclamationTriangleIcon
+} from '@patternfly/react-icons';
+
+import {
+  deleteResourceClaim,
+  listNamespaces,
+  listResourceClaims,
+  scheduleStopForAllResourcesInResourceClaim,
+  setLifespanEndForResourceClaim,
+  startAllResourcesInResourceClaim,
+  stopAllResourcesInResourceClaim,
+} from '@app/api';
+import { Namespace, NamespaceList, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
+import {
+  selectResourceClaims,
+  selectResourceClaimsInNamespace,
+  selectServiceNamespaces,
+  selectUserIsAdmin
+} from '@app/store';
+import KeywordSearchInput from '@app/components/KeywordSearchInput';
+import LabInterfaceLink from '@app/components/LabInterfaceLink';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import SelectableTable from '@app/components/SelectableTable';
+import TimeInterval from '@app/components/TimeInterval';
+
+import {
+  checkResourceClaimCanStart,
+  checkResourceClaimCanStop,
+  displayName,
+} from '@app/util';
+
+import ServiceActions from './ServiceActions';
+import ServiceNamespaceSelect from './ServiceNamespaceSelect';
+import ServiceStatus from './ServiceStatus';
+import ServicesActionModal from './ServicesActionModal';
+import ServicesScheduleActionModal from './ServicesScheduleActionModal';
+
+import './services.css';
+
+const FETCH_BATCH_LIMIT = 50;
+
+function keywordMatch(resourceClaim:ResourceClaim, keyword:string): boolean {
+  const keywordLowerCased = keyword.toLowerCase();
+  const resourceHandleName = resourceClaim.status?.resourceHandle?.name;
+  const guid = resourceHandleName ? resourceHandleName.replace(/^guid-/, '') : null;
+  if (resourceClaim.metadata.name.includes(keywordLowerCased)) {
+    return true;
+  }
+  if (displayName(resourceClaim).toLowerCase().includes(keywordLowerCased)) {
+    return true;
+  }
+  if (guid && guid.includes(keywordLowerCased)) {
+    return true;
+  }
+  return false;
+}
+
+function pruneResourceClaim(resourceClaim:ResourceClaim): ResourceClaim {
+  return {
+    apiVersion: resourceClaim.apiVersion,
+    kind: resourceClaim.kind,
+    metadata: {
+      annotations: {
+        'babylon.gpte.redhat.com/catalogDisplayName': resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/catalogDisplayName'],
+        'babylon.gpte.redhat.com/catalogItemDisplayName': resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/catalogItemDisplayName'],
+        'babylon.gpte.redhat.com/requester': resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/requester'],
+      },
+      labels: {
+        'babylon.gpte.redhat.com/catalogItemName': resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'],
+        'babylon.gpte.redhat.com/catalogItemNamespace': resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace'],
+      },
+      creationTimestamp: resourceClaim.metadata.creationTimestamp,
+      name: resourceClaim.metadata.name,
+      namespace: resourceClaim.metadata.namespace,
+      uid: resourceClaim.metadata.uid,
+    },
+    spec: resourceClaim.spec,
+    status: resourceClaim.status,
+  };
+}
+
+export interface FetchState {
+  canceled?: boolean;
+  continue?: string;
+  isRefresh?: boolean;
+  iteration?: number;
+  finished?: boolean;
+  namespaceQueue?: string[];
+  refreshedUids?: string[];
+  refreshTimeout?: any;
+}
+
+export interface ModalState {
+  action?: string;
+  modal?: string;
+  resourceClaim?: ResourceClaim;
+}
+
+export interface ServicesListProps {
+  serviceNamespaceName?: string;
+}
+
+const ServicesList: React.FunctionComponent<ServicesListProps> = ({
+  serviceNamespaceName,
+}) => {
+  const history = useHistory();
+  const location = useLocation();
+  const urlSearchParams = new URLSearchParams(location.search);
+  const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
+
+  const sessionServiceNamespaces = useSelector(selectServiceNamespaces);
+  const sessionServiceNamespace = serviceNamespaceName ? sessionServiceNamespaces.find((ns:ServiceNamespace) => ns.name == serviceNamespaceName): null;
+  const sessionResourceClaims = useSelector(selectResourceClaims);
+  const sessionResourceClaimsInNamespace = useSelector(
+    (state) => selectResourceClaimsInNamespace(state, serviceNamespaceName)
+  );
+  const userIsAdmin = useSelector(selectUserIsAdmin);
+
+  // Normally resource claims are automatically fetched as a background process
+  // by the store, but if the user is an admin and the services list isn't
+  // restricted to the admin's service namespaces then we need to use logic
+  // in this component to fetch the ResourceClaims.
+  const fetchEnabled:boolean = userIsAdmin && !sessionServiceNamespace;
+
+  const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
+  const [fetchState, setFetchState] = useState<FetchState>(null);
+  const [fetchedResourceClaims, setFetchedResourceClaims] = useState<ResourceClaim[]>([]);
+  const [modalState, setModalState] = React.useState<ModalState>({});
+  const [selectedUids, setSelectedUids] = React.useState([]);
+  const [serviceNamespaces, setServiceNamespaces] = useState<ServiceNamespace[]>(null);
+  const serviceNamespace = serviceNamespaceName && serviceNamespaces ?
+    serviceNamespaces.find((ns:ServiceNamespace) => ns.name === serviceNamespaceName) : null;
+
+  const resourceClaims:ResourceClaim[] = fetchEnabled ? fetchedResourceClaims : serviceNamespaceName ? sessionResourceClaimsInNamespace : sessionResourceClaims;
+
+  // Trigger continue fetching more resource claims on scroll.
+  if (fetchEnabled) {
+    const primaryAppContainer = document.getElementById('primary-app-container');
+    primaryAppContainer.onscroll = (e) => {
+      const scrollable = e.target as any;
+      const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
+      if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= fetchedResourceClaims.length) {
+        setFetchLimit((limit) => limit + FETCH_BATCH_LIMIT);
+      }
+    }
+  }
+
+  function cancelFetchState(fetchState:FetchState): void {
+    fetchState.canceled = true;
+    if (fetchState.refreshTimeout) {
+      clearTimeout(fetchState.refreshTimeout);
+    }
+  }
+
+  function filterResourceClaim(resourceClaim:ResourceClaim): boolean {
+    if (!keywordFilter) {
+      return true;
+    }
+    for (const keyword of keywordFilter) {
+      if (!keywordMatch(resourceClaim, keyword)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function refreshResourceClaims(): void {
+    setFetchState((current) => {
+      return {
+        isRefresh: true,
+        iteration: (current?.iteration || 0) + 1,
+        namespaceQueue: serviceNamespaceName ? [serviceNamespaceName] : null,
+        refreshedUids: [],
+      }
+    });
+  }
+
+  function reloadResourceClaims(): void {
+    if (fetchState) {
+      cancelFetchState(fetchState);
+    }
+    setFetchedResourceClaims([]);
+    setSelectedUids([]);
+    if (fetchEnabled) {
+      startFetch(serviceNamespaceName ? [serviceNamespaceName] : null);
+    }
+  }
+
+  function startFetch(namespaceQueue:string[]): void {
+    setFetchState((current) => {
+      return {
+        iteration: (current?.iteration || 0) + 1,
+        namespaceQueue: namespaceQueue,
+      }
+    });
+  }
+
+  function updateFetchedResourceClaims(resourceClaimUpdates:ResourceClaim[], pruneUids?:boolean, keepUids?:string[]): void {
+    setFetchedResourceClaims((resourceClaims:ResourceClaim[]) => {
+      return [
+        ...resourceClaims.map((resourceClaim) => {
+          for (const resourceClaimUpdate of resourceClaimUpdates) {
+            if (resourceClaim.metadata.uid === resourceClaimUpdate.metadata.uid) {
+              if (resourceClaimUpdate.metadata.deletionTimestamp) {
+                return null;
+              } else {
+                return pruneResourceClaim(resourceClaimUpdate);
+              }
+            }
+          }
+          return resourceClaim;
+        }).filter((resourceClaim) =>
+          resourceClaim !== null && (!pruneUids || keepUids.includes(resourceClaim.metadata.uid))
+        )
+      ]
+    });
+  }
+
+  async function fetchResourceClaims(): Promise<void> {
+    const resourceClaimList:ResourceClaimList = await listResourceClaims({
+      continue: fetchState.continue,
+      limit: FETCH_BATCH_LIMIT,
+      namespace: fetchState.namespaceQueue ? fetchState.namespaceQueue[0] : null,
+    });
+    if (fetchState.canceled) { 
+      return
+    }
+    const resourceClaims = (resourceClaimList.items || []).filter((resourceClaim) => filterResourceClaim(resourceClaim));
+    const namespaceQueue = fetchState.namespaceQueue ? (
+      resourceClaimList.metadata.continue ? fetchState.namespaceQueue :
+      fetchState.namespaceQueue.length > 1 ? fetchState.namespaceQueue.slice(1) : null
+    ) : null;
+    const finished:boolean = !resourceClaimList.metadata.continue && !namespaceQueue;
+    const refreshedUids = fetchState.isRefresh ? [
+      ...fetchState.refreshedUids,
+      ...resourceClaims.map((resourceClaim:ResourceClaim) => resourceClaim.metadata.uid)
+    ]: null;
+
+    if (fetchState.isRefresh) {
+      updateFetchedResourceClaims(resourceClaims, finished, refreshedUids);
+    } else {
+      setFetchedResourceClaims(
+        (current:ResourceClaim[]) => [...(current || []), ...resourceClaims.map(pruneResourceClaim)]
+      );
+    }
+
+    setFetchState((current) => {
+      if (current.iteration != fetchState.iteration) {
+        console.warn("fetchState changed unexpectedly after fetch!");
+        return current;
+      }
+      return {
+        continue: resourceClaimList.metadata.continue,
+        isRefresh: current.isRefresh,
+        iteration: current.iteration + 1,
+        namespaceQueue: namespaceQueue,
+        finished: finished,
+        refreshedUids: refreshedUids,
+        refreshTimeout: finished ? setTimeout(refreshResourceClaims, 5000) : null,
+      };
+    });
+  }
+
+  async function initServiceNamespaces(fetchState:FetchState): Promise<void> {
+    const userNamespaceList:NamespaceList = await listNamespaces({
+      labelSelector: 'usernamespace.gpte.redhat.com/user-uid'
+    })
+    if (fetchState.canceled) {
+      return;
+    }
+    const fetchServiceNamespaces = (userNamespaceList.items || []).map((ns:Namespace): ServiceNamespace => {
+      return {
+        name: ns.metadata.name,
+        displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
+      }
+    });
+    setServiceNamespaces(fetchServiceNamespaces);
+  }
+
+  async function onModalAction(): Promise<void> {
+    const resourceClaimUpdates:ResourceClaim[] = [];
+    if (modalState.resourceClaim) {
+      resourceClaimUpdates.push(await performModalActionForResourceClaim(modalState.resourceClaim));
+    } else {
+      for (const resourceClaim of resourceClaims) {
+        if (selectedUids.includes(resourceClaim.metadata.uid)) {
+          resourceClaimUpdates.push(await performModalActionForResourceClaim(resourceClaim));
+        }
+      }
+    }
+    if (fetchEnabled) {
+      updateFetchedResourceClaims(resourceClaimUpdates);
+    }
+    setModalState({});
+  }
+
+  async function onModalScheduleAction(date:Date): Promise<void> {
+    const resourceClaimUpdate:ResourceClaim = modalState.action === "retirement" ?
+      await setLifespanEndForResourceClaim(modalState.resourceClaim, date) :
+      await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
+    if (fetchEnabled) {
+      updateFetchedResourceClaims([resourceClaimUpdate]);
+    }
+    setModalState({});
+  }
+
+
+  async function performModalActionForResourceClaim(resourceClaim:ResourceClaim): Promise<ResourceClaim> {
+    if (modalState.action === 'delete') {
+      return await deleteResourceClaim(resourceClaim);
+    } else if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
+      return await startAllResourcesInResourceClaim(resourceClaim);
+    } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
+      return await stopAllResourcesInResourceClaim(resourceClaim);
+    } else {
+      console.warn(`Unkown action ${modalState.action}`);
+      return resourceClaim;
+    }
+  }
+
+  // Set service namespaces
+  useEffect(() => {
+    if (userIsAdmin) {
+      const fetchState:FetchState = {};
+      initServiceNamespaces(fetchState);
+      return () => {
+        cancelFetchState(fetchState)
+      };
+    } else if (userIsAdmin === false) {
+      setServiceNamespaces(sessionServiceNamespaces);
+    }
+    return null;
+  }, [userIsAdmin]);
+
+  // Fetch or continue fetching
+  useEffect(() => {
+    if (fetchState && !fetchState.finished && fetchedResourceClaims.length < fetchLimit) {
+      fetchResourceClaims();
+      return () => {
+        cancelFetchState(fetchState);
+      }
+    } else {
+      return null;
+    }
+  }, [fetchState?.iteration, fetchLimit]);
+
+  // Reload on filter change
+  useEffect(() => {
+    if(serviceNamespaces) {
+      reloadResourceClaims();
+    }
+  }, [serviceNamespaces, serviceNamespaceName, JSON.stringify(keywordFilter)]);
+
+  if (!serviceNamespaces) {
+    return (
+      <PageSection>
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={LoadingIcon} />
+        </EmptyState>
+      </PageSection>
+    );
+  }
+
+  if (serviceNamespaces.length === 0) {
+    return (
+      <PageSection>
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={ExclamationTriangleIcon} />
+          <Title headingLevel="h1" size="lg">
+            No Service Access
+          </Title>
+          <EmptyStateBody>
+            Your account has no access to services.
+          </EmptyStateBody>
+        </EmptyState>
+      </PageSection>
+    );
+  }
+
+  if (serviceNamespaces.length === 1 && !serviceNamespaceName) {
+    return (
+      <Redirect to={`/services/${serviceNamespaces[0].name}`}/>
+    );
+  }
+  
+  return (<>
+    { modalState.modal === 'action' ? (
+      <ServicesActionModal key="actionModal"
+        action={modalState.action}
+        isOpen={true}
+        onClose={() => setModalState({})}
+        onConfirm={onModalAction}
+        resourceClaim={modalState.resourceClaim}
+      />
+    ) : modalState.modal === 'scheduleAction' ? (
+      <ServicesScheduleActionModal key="scheduleActionModal"
+        action={modalState.action}
+        isOpen={true}
+        onClose={() => setModalState({})}
+        onConfirm={(date) => onModalScheduleAction(date)}
+        resourceClaim={modalState.resourceClaim}
+      />
+    ) : null }
+    { serviceNamespaces.length > 1 ? (
+      <PageSection key="topbar" className="services-topbar" variant={PageSectionVariants.light}>
+        <ServiceNamespaceSelect
+          currentNamespaceName={serviceNamespaceName}
+          serviceNamespaces={serviceNamespaces}
+          onSelect={(namespaceName) => {
+            if (namespaceName) {
+              history.push(`/services/${namespaceName}${location.search}`);
+            } else {
+              history.push(`/services${location.search}`);
+            }
+          }}
+        />
+      </PageSection>
+    ) : null}
+    <PageSection key="head" className="services-head" variant={PageSectionVariants.light}>
+      <Split hasGutter>
+        <SplitItem isFilled>
+          { serviceNamespaces.length > 1 && serviceNamespaceName ? (
+            <Breadcrumb>
+              <BreadcrumbItem render={({className}) => <Link to="/services" className={className}>Services</Link>}/>
+              <BreadcrumbItem>{serviceNamespace.displayName }</BreadcrumbItem>
+            </Breadcrumb>
+          ) : (
+            <Breadcrumb>
+              <BreadcrumbItem>Services</BreadcrumbItem>
+            </Breadcrumb>
+          ) }
+        </SplitItem>
+        <SplitItem>
+          <KeywordSearchInput
+            initialValue={keywordFilter}
+            placeholder="Search..."
+            onSearch={(value) => {
+              if (value) {
+                urlSearchParams.set('search', value.join(' '));
+              } else if(urlSearchParams.has('search')) {
+                urlSearchParams.delete('search');
+              }
+              history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+            }}
+          />
+        </SplitItem>
+        <SplitItem>
+          <ServiceActions
+            isDisabled={selectedUids.length === 0}
+            serviceName="Selected"
+            actionHandlers={{
+              delete: () => setModalState({modal: 'action', action: 'delete'}),
+              start: () => setModalState({modal: 'action', action: 'start'}),
+              stop: () => setModalState({modal: 'action', action: 'stop'}),
+            }}
+          />
+        </SplitItem>
+      </Split>
+    </PageSection>
+    { resourceClaims.length === 0 ? (
+      fetchEnabled && !fetchState?.finished ? (
+        <PageSection key="body-loading">
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      ) : (
+        <PageSection key="body-empty">
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No Services found
+            </Title>
+            { sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? (
+              <EmptyStateBody>
+                Request services using the <Link to="/catalog">catalog</Link>.
+              </EmptyStateBody>
+            ) : null }
+          </EmptyState>
+        </PageSection>
+      )
+    ) : (
+      <PageSection key="body" className="services-body" variant={PageSectionVariants.light}>
+        <SelectableTable
+          columns={
+            (serviceNamespaceName ? [] : ['Project']).concat(
+              ['Name', 'GUID', 'Status', 'Lab Interface', 'Created At', 'Actions']
+            )
+          }
+          onSelectAll={(isSelected) => {
+            if (isSelected) {
+              setSelectedUids(resourceClaims.map(resourceClaim => resourceClaim.metadata.uid));
+            } else {
+              setSelectedUids([]);
+            }
+          }}
+          rows={resourceClaims.map((resourceClaim:ResourceClaim) => {
+            const resourceHandle = resourceClaim.status?.resourceHandle;
+            const guid = resourceHandle.name ? resourceHandle.name.replace(/^guid-/, '') : null;
+            const rcServiceNamespace:ServiceNamespace = serviceNamespaces.find(
+              (ns:ServiceNamespace) => ns.name === resourceClaim.metadata.namespace
+            );
+            const specResources = resourceClaim.spec.resources || [];
+            const resources = (resourceClaim.status?.resources || []).map(r => r.state);
+
+            // Find lab user interface information either in the resource claim or inside resources
+            // associated with the provisioned service.
+            const labUserInterfaceData = (
+              resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceData'] ||
+              resources.map(
+                r => r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
+              ).map(j => typeof(j) === 'string' ? JSON.parse(j) : j).find(u => u != null)
+            );
+            const labUserInterfaceMethod = (
+              resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceMethod'] ||
+              resources.map(
+                r => r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
+              ).find(u => u != null)
+            );
+            const labUserInterfaceUrl = (
+              resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrl'] ||
+              resources.map(r => {
+                const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
+                return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
+              }).find(u => u != null)
+            );
+
+            // Available actions depends on kind of service
+            const actionHandlers = {
+              delete: () => setModalState({action: 'delete', modal: 'action', resourceClaim: resourceClaim}),
+              lifespan: () => setModalState({action: 'retirement', modal: 'scheduleAction', resourceClaim: resourceClaim}),
+            };
+            if (resources.find(r => r?.kind === 'AnarchySubject')) {
+              actionHandlers['runtime'] = () => setModalState({action: 'stop', modal: 'scheduleAction', resourceClaim: resourceClaim});
+              actionHandlers['start'] = () => setModalState({action: 'start', modal: 'action', resourceClaim: resourceClaim});
+              actionHandlers['stop'] = () => setModalState({action: 'stop', modal: 'action', resourceClaim: resourceClaim});
+            }
+
+            // Only include project/namespace column if namespace is not selected.
+            const cells:any[] = serviceNamespaceName ? [] : [
+              <>
+                <Link key="services" to={`/services/${resourceClaim.metadata.namespace}`}>
+                  { rcServiceNamespace?.displayName || resourceClaim.metadata.namespace }
+                </Link>
+                { userIsAdmin ? (
+                  <OpenshiftConsoleLink key="console" resource={resourceClaim} linkToNamespace={true}/>
+                ) : null }
+              </>
+            ];
+
+            // Add other columns
+            cells.push(
+              // Name
+              <>
+                <Link key="services" to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}>
+                  { displayName(resourceClaim) }
+                </Link>
+                { userIsAdmin ? (
+                  <OpenshiftConsoleLink key="console" resource={resourceClaim}/>
+                ) : null }
+              </>,
+              // GUID
+              <>
+                { guid ? (
+                  userIsAdmin ? [
+                    <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>{guid}</Link>,
+                    <OpenshiftConsoleLink key="console" reference={resourceHandle}/>
+                  ] : guid
+                ) : '-' }
+              </>,
+              // Status
+              specResources.length > 1 ? (
+                <div>
+                  <DescriptionList isHorizontal>
+                  {specResources.map((specResource, i) => {
+                    const componentDisplayName = resourceClaim.metadata.annotations?.[`babylon.gpte.redhat.com/displayNameComponent${i}`] || specResource.name || specResource.provider?.name;
+                    return (
+                      <DescriptionListGroup key={i}>
+                        <DescriptionListTerm key="term">{ componentDisplayName  }</DescriptionListTerm>
+
+                        <DescriptionListDescription key="description">
+                          <ServiceStatus
+                            creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                            resource={resources?.[i]}
+                            resourceTemplate={specResource.template}
+                          />
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    );
+                  })}
+                  </DescriptionList>
+                </div>
+              ) : specResources.length == 1 ? (
+                <div>
+                  <ServiceStatus
+                    creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                    resource={resources?.[0]}
+                    resourceTemplate={specResources[0].template}
+                  />
+                </div>
+              ) : '...',
+              // Lab Interface
+              labUserInterfaceUrl ? (
+                <div>
+                  <LabInterfaceLink url={labUserInterfaceUrl} data={labUserInterfaceData} method={labUserInterfaceMethod} variant="secondary"/>
+                </div>
+              ) : '-',
+              // Created At
+              <>
+                <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp}/>
+                <br key="break"/>
+                (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp}/>)
+              </>,
+              // Actions
+              <>
+                <ServiceActions
+                  position="right"
+                  resourceClaim={resourceClaim}
+                  actionHandlers={actionHandlers}
+                />
+              </>,
+            );
+
+            return {
+              cells: cells,
+              onSelect: (isSelected) => setSelectedUids(uids => {
+                if (isSelected) {
+                  if (uids.includes(resourceClaim.metadata.uid)) {
+                    return uids;
+                  } else {
+                    return [...uids, resourceClaim.metadata.uid];
+                  }
+                } else {
+                  return uids.filter(uid => uid !== resourceClaim.metadata.uid);
+                }
+              }),
+              selected: selectedUids.includes(resourceClaim.metadata.uid),
+            };
+          })}
+        />
+        { fetchEnabled && !fetchState?.finished ? (
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        ) : null }
+      </PageSection>
+    )}
+  </>);
+}
+
+export default ServicesList;

@@ -40,4 +40,4 @@ const AnarchyRunnerStateSelect: React.FunctionComponent<AnarchyRunnerStateSelect
   );
 }
 
-export { AnarchyRunnerStateSelect };
+export default AnarchyRunnerStateSelect;

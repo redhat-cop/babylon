@@ -1,6 +1,6 @@
 import React from "react";
-import { useEffect, useState } from "react";
-import { Link, useHistory } from 'react-router-dom';
+import { useEffect, useReducer, useState } from "react";
+import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
@@ -24,57 +24,73 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
+
 import {
-  AnarchyRun,
   deleteAnarchyRun,
   getAnarchyRun,
 } from '@app/api';
+
+import {
+  cancelFetchState,
+  fetchStateReducer,
+} from '@app/reducers';
+
+import {
+  AnarchyRun,
+  FetchState,
+} from '@app/types';
+
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { AnsibleRunLog } from '@app/components/AnsibleRunLog';
-import { LoadingIcon } from '@app/components/LoadingIcon';
-import { LocalTimestamp } from '@app/components/LocalTimestamp';
-import { TimeInterval } from '@app/components/TimeInterval';
+import AnsibleRunLog from '@app/components/AnsibleRunLog';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-import OpenshiftConsoleLink from './OpenshiftConsoleLink';
   
 import './admin.css';
 
-export interface AnarchyRunInstanceProps {
-  location?: any;
+interface RouteMatchParams {
+  name: string;
+  namespace: string;
+  tab?: string;
 }
 
-const AnarchyRunInstance: React.FunctionComponent<AnarchyRunInstanceProps> = ({
-  location,
-}) => {
-  const consoleURL = useSelector(selectConsoleURL);
+const AnarchyRunInstance: React.FunctionComponent = () => {
   const history = useHistory();
-  const locationMatch = location.pathname.match(/^(.*\/anarchyruns)\/([^\/]+)\/([^\/]+)(?:\/([^\/]+))?$/);
-  const basePath = locationMatch[1];
-  const anarchyRunName = locationMatch[3];
-  const anarchyRunNamespace = locationMatch[2];
-  const activeTab = locationMatch[4] || 'details';
+  const consoleURL = useSelector(selectConsoleURL);
+  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchyruns/:namespace/:name/:tab?');
+  const anarchyRunName = routeMatch.params.name;
+  const anarchyRunNamespace = routeMatch.params.namespace;
+  const activeTab = routeMatch.params.tab || 'details';
 
   const [anarchyRun, setAnarchyRun] = useState(undefined);
+  const [anarchyRunFetchState, reduceAnarchyRunFetchState] = useReducer(fetchStateReducer, {});
 
   async function confirmThenDelete() {
     if (confirm(`Delete AnarchyRun ${anarchyRunName}?`)) {
       await deleteAnarchyRun(anarchyRun);
-      history.push(`${basePath}/${anarchyRunNamespace}`);
+      history.push(`/admin/anarchyruns/${anarchyRunNamespace}`);
     }
   }
 
   async function fetchAnarchyRun() {
-    try {
-      const result:AnarchyRun = await getAnarchyRun(anarchyRunNamespace, anarchyRunName);
-      setAnarchyRun(result);
-    } catch (err) {
-      setAnarchyRun(null);
+    const anarchyRun:AnarchyRun = await getAnarchyRun(anarchyRunNamespace, anarchyRunName);
+    if (!anarchyRunFetchState.canceled) {
+      setAnarchyRun(anarchyRun);
+      reduceAnarchyRunFetchState({
+        refreshTimeout: setTimeout(() => reduceAnarchyRunFetchState({type: 'refresh'}), 3000),
+        type: 'finish'
+      });
     }
   }
 
   useEffect(() => {
-    fetchAnarchyRun()
-  }, [anarchyRunName]);
+    if (!anarchyRunFetchState.finished) {
+      fetchAnarchyRun();
+    }
+    return () => cancelFetchState(anarchyRunFetchState);
+  }, [anarchyRunFetchState])
 
   if (anarchyRun === undefined) {
     return (
@@ -104,10 +120,10 @@ const AnarchyRunInstance: React.FunctionComponent<AnarchyRunInstanceProps> = ({
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
       <Breadcrumb>
         <BreadcrumbItem
-          render={({ className }) => <Link to={basePath} className={className}>AnarchyRuns</Link>}
+          render={({ className }) => <Link to="/admin/anarchyruns" className={className}>AnarchyRuns</Link>}
         />
         <BreadcrumbItem
-          render={({ className }) => <Link to={`${basePath}/${anarchyRunNamespace}`} className={className}>{anarchyRunNamespace}</Link>}
+          render={({ className }) => <Link to={`/admin/anarchyruns/${anarchyRunNamespace}`} className={className}>{anarchyRunNamespace}</Link>}
         />
         <BreadcrumbItem>{ anarchyRun.metadata.name }</BreadcrumbItem>
       </Breadcrumb>
@@ -140,7 +156,7 @@ const AnarchyRunInstance: React.FunctionComponent<AnarchyRunInstanceProps> = ({
       </Split>
     </PageSection>
     <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`${basePath}/${anarchyRunNamespace}/${anarchyRunName}/${tabIndex}`)}>
+      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`/admin/anarchyruns/${anarchyRunNamespace}/${anarchyRunName}/${tabIndex}`)}>
         <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
           <DescriptionList isHorizontal>
             <DescriptionListGroup>
@@ -162,7 +178,7 @@ const AnarchyRunInstance: React.FunctionComponent<AnarchyRunInstanceProps> = ({
               <DescriptionListDescription>
                 <LocalTimestamp timestamp={anarchyRun.metadata.creationTimestamp}/>
                 {' '}
-                (<TimeInterval to={anarchyRun.metadata.creationTimestamp}/>)
+                (<TimeInterval toTimestamp={anarchyRun.metadata.creationTimestamp}/>)
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
