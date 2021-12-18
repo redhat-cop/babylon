@@ -118,7 +118,6 @@ const CreateResourcePoolFromResourceHandleModal: React.FunctionComponent<CreateR
   }, [resourceHandle.metadata.uid, resourceClaim?.metadata.uid]);
 
   useEffect(() => {
-    console.log(resourcePoolName);
     checkForNameConflict(resourcePoolName);
   }, [resourcePoolName])
 

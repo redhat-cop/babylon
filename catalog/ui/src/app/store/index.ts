@@ -388,8 +388,8 @@ export const selectUser = createSelector(
 )
 
 export const selectUserGroups = createSelector(
-  selectSelf,
-  state => state.impersonate ? state.impersonate.groups : state.auth.groups,
+  (state:any): any => state.impersonate ? state.impersonate : state.auth,
+  (state:any): string[] => (state.groups || []).concat('system:authenticated')
 )
 
 export const selectUserIsAdmin = createSelector(
@@ -410,6 +410,14 @@ export const selectImpersonationUser = createSelector(
 export const selectCatalogItems = createSelector(
   selectSelf,
   state => state.catalogItems,
+)
+
+export const selectCatalogNamespace = createSelector(
+  [
+    (state:any) => selectCatalogNamespaces(state),
+    (state:any, namespace:string): string => namespace,
+  ],
+  (catalogNamespaces:any, namespace:string): CatalogNamespace => (catalogNamespaces || []).find((catalogNamespace) => catalogNamespace.name === namespace),
 )
 
 export const selectCatalogNamespaces = createSelector(

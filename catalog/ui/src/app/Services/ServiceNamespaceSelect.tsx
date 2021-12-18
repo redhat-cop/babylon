@@ -28,7 +28,7 @@ const ServiceNamespaceSelect: React.FunctionComponent<ServiceNamespaceSelectProp
   onSelect,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const currentNamespace = currentNamespaceName ? serviceNamespaces.find(ns => ns.name == currentNamespaceName) : null;
+  const currentNamespace:ServiceNamespace|null = currentNamespaceName ? serviceNamespaces.find(ns => ns.name === currentNamespaceName) : null;
 
   return (
     <Dropdown isPlain

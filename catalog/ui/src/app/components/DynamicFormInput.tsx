@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 
 import {
   Checkbox,
@@ -94,4 +94,4 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
   }
 }
 
-export { DynamicFormInput };
+export default DynamicFormInput;

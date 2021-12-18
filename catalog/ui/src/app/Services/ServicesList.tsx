@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
 
@@ -47,6 +47,12 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
+
+import {
+  K8sFetchState,
+  cancelFetchState,
+  k8sFetchStateReducer
+} from '@app/K8sFetchState';
 
 import {
   checkResourceClaimCanStart,
@@ -104,17 +110,6 @@ function pruneResourceClaim(resourceClaim:ResourceClaim): ResourceClaim {
   };
 }
 
-export interface FetchState {
-  canceled?: boolean;
-  continue?: string;
-  isRefresh?: boolean;
-  iteration?: number;
-  finished?: boolean;
-  namespaceQueue?: string[];
-  refreshedUids?: string[];
-  refreshTimeout?: any;
-}
-
 export interface ModalState {
   action?: string;
   modal?: string;
@@ -148,15 +143,18 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
   const fetchEnabled:boolean = userIsAdmin && !sessionServiceNamespace;
 
   const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
-  const [fetchState, setFetchState] = useState<FetchState>(null);
-  const [fetchedResourceClaims, setFetchedResourceClaims] = useState<ResourceClaim[]>([]);
+  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
   const [modalState, setModalState] = React.useState<ModalState>({});
   const [selectedUids, setSelectedUids] = React.useState([]);
   const [serviceNamespaces, setServiceNamespaces] = useState<ServiceNamespace[]>(null);
   const serviceNamespace = serviceNamespaceName && serviceNamespaces ?
     serviceNamespaces.find((ns:ServiceNamespace) => ns.name === serviceNamespaceName) : null;
 
-  const resourceClaims:ResourceClaim[] = fetchEnabled ? fetchedResourceClaims : serviceNamespaceName ? sessionResourceClaimsInNamespace : sessionResourceClaims;
+  const resourceClaims:ResourceClaim[] = fetchEnabled ? (
+    fetchState?.filteredItems || []
+  ) : (
+    serviceNamespaceName ? sessionResourceClaimsInNamespace : sessionResourceClaims
+  ).filter(filterResourceClaim);
 
   // Trigger continue fetching more resource claims on scroll.
   if (fetchEnabled) {
@@ -164,20 +162,16 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
     primaryAppContainer.onscroll = (e) => {
       const scrollable = e.target as any;
       const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-      if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= fetchedResourceClaims.length) {
+      if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= fetchState.filteredItems.length) {
         setFetchLimit((limit) => limit + FETCH_BATCH_LIMIT);
       }
     }
   }
 
-  function cancelFetchState(fetchState:FetchState): void {
-    fetchState.canceled = true;
-    if (fetchState.refreshTimeout) {
-      clearTimeout(fetchState.refreshTimeout);
-    }
-  }
-
   function filterResourceClaim(resourceClaim:ResourceClaim): boolean {
+    if (!userIsAdmin && resourceClaim.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+      return false;
+    }
     if (!keywordFilter) {
       return true;
     }
@@ -190,54 +184,37 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
   }
 
   function refreshResourceClaims(): void {
-    setFetchState((current) => {
-      return {
-        isRefresh: true,
-        iteration: (current?.iteration || 0) + 1,
-        namespaceQueue: serviceNamespaceName ? [serviceNamespaceName] : null,
-        refreshedUids: [],
-      }
-    });
+    reduceFetchState({type: 'startRefresh'});
   }
 
   function reloadResourceClaims(): void {
-    if (fetchState) {
-      cancelFetchState(fetchState);
-    }
-    setFetchedResourceClaims([]);
     setSelectedUids([]);
     if (fetchEnabled) {
-      startFetch(serviceNamespaceName ? [serviceNamespaceName] : null);
+      const fetchNamespaces:string[] = serviceNamespaceName ? [serviceNamespaceName] : (
+        userIsAdmin ? null : serviceNamespaces.map((ns) => ns.name)
+      );
+      if (JSON.stringify(fetchNamespaces) !== JSON.stringify(fetchState?.namespaces)) {
+        reduceFetchState({
+          type: 'startFetch',
+          filter: filterResourceClaim,
+          namespaces: fetchNamespaces,
+          prune: pruneResourceClaim,
+        });
+      } else {
+        reduceFetchState({
+          type: 'setFilter',
+          filter: filterResourceClaim,
+        });
+      }
+    } else if(fetchState) {
+      cancelFetchState(fetchState);
     }
   }
 
-  function startFetch(namespaceQueue:string[]): void {
-    setFetchState((current) => {
-      return {
-        iteration: (current?.iteration || 0) + 1,
-        namespaceQueue: namespaceQueue,
-      }
-    });
-  }
-
-  function updateFetchedResourceClaims(resourceClaimUpdates:ResourceClaim[], pruneUids?:boolean, keepUids?:string[]): void {
-    setFetchedResourceClaims((resourceClaims:ResourceClaim[]) => {
-      return [
-        ...resourceClaims.map((resourceClaim) => {
-          for (const resourceClaimUpdate of resourceClaimUpdates) {
-            if (resourceClaim.metadata.uid === resourceClaimUpdate.metadata.uid) {
-              if (resourceClaimUpdate.metadata.deletionTimestamp) {
-                return null;
-              } else {
-                return pruneResourceClaim(resourceClaimUpdate);
-              }
-            }
-          }
-          return resourceClaim;
-        }).filter((resourceClaim) =>
-          resourceClaim !== null && (!pruneUids || keepUids.includes(resourceClaim.metadata.uid))
-        )
-      ]
+  function startFetch(): void {
+    reduceFetchState({
+      type: 'startFetch',
+      namespaces: serviceNamespaces ? serviceNamespaces.map((ns) => ns.name) : null,
     });
   }
 
@@ -245,48 +222,17 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
     const resourceClaimList:ResourceClaimList = await listResourceClaims({
       continue: fetchState.continue,
       limit: FETCH_BATCH_LIMIT,
-      namespace: fetchState.namespaceQueue ? fetchState.namespaceQueue[0] : null,
+      namespace: fetchState.namespace,
     });
-    if (fetchState.canceled) { 
-      return
+    if (!fetchState.canceled) { 
+      reduceFetchState({
+        type: 'post',
+        k8sObjectList: resourceClaimList,
+      });
     }
-    const resourceClaims = (resourceClaimList.items || []).filter((resourceClaim) => filterResourceClaim(resourceClaim));
-    const namespaceQueue = fetchState.namespaceQueue ? (
-      resourceClaimList.metadata.continue ? fetchState.namespaceQueue :
-      fetchState.namespaceQueue.length > 1 ? fetchState.namespaceQueue.slice(1) : null
-    ) : null;
-    const finished:boolean = !resourceClaimList.metadata.continue && !namespaceQueue;
-    const refreshedUids = fetchState.isRefresh ? [
-      ...fetchState.refreshedUids,
-      ...resourceClaims.map((resourceClaim:ResourceClaim) => resourceClaim.metadata.uid)
-    ]: null;
-
-    if (fetchState.isRefresh) {
-      updateFetchedResourceClaims(resourceClaims, finished, refreshedUids);
-    } else {
-      setFetchedResourceClaims(
-        (current:ResourceClaim[]) => [...(current || []), ...resourceClaims.map(pruneResourceClaim)]
-      );
-    }
-
-    setFetchState((current) => {
-      if (current.iteration != fetchState.iteration) {
-        console.warn("fetchState changed unexpectedly after fetch!");
-        return current;
-      }
-      return {
-        continue: resourceClaimList.metadata.continue,
-        isRefresh: current.isRefresh,
-        iteration: current.iteration + 1,
-        namespaceQueue: namespaceQueue,
-        finished: finished,
-        refreshedUids: refreshedUids,
-        refreshTimeout: finished ? setTimeout(refreshResourceClaims, 5000) : null,
-      };
-    });
   }
 
-  async function initServiceNamespaces(fetchState:FetchState): Promise<void> {
+  async function initServiceNamespaces(fetchState:K8sFetchState): Promise<void> {
     const userNamespaceList:NamespaceList = await listNamespaces({
       labelSelector: 'usernamespace.gpte.redhat.com/user-uid'
     })
@@ -299,6 +245,10 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
         displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
       }
     });
+    if (serviceNamespaceName && !fetchServiceNamespaces.find((ns) => ns.name === serviceNamespaceName)) {
+      fetchServiceNamespaces.push({name: serviceNamespaceName, displayName: serviceNamespaceName});
+      fetchServiceNamespaces.sort((a, b) => a.name < b.name ? -1 : a.name === b.name ? 0 : 1)
+    }
     setServiceNamespaces(fetchServiceNamespaces);
   }
 
@@ -314,7 +264,17 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
       }
     }
     if (fetchEnabled) {
-      updateFetchedResourceClaims(resourceClaimUpdates);
+      if (modalState.action === 'delete') {
+        reduceFetchState({
+          type: 'removeItems',
+          items: resourceClaimUpdates,
+        })
+      } else {
+        reduceFetchState({
+          type: 'updateItems',
+          items: resourceClaimUpdates,
+        })
+      }
     }
     setModalState({});
   }
@@ -324,7 +284,10 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
       await setLifespanEndForResourceClaim(modalState.resourceClaim, date) :
       await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
     if (fetchEnabled) {
-      updateFetchedResourceClaims([resourceClaimUpdate]);
+      reduceFetchState({
+        type: 'updateItems',
+        items: [resourceClaimUpdate],
+      })
     }
     setModalState({});
   }
@@ -346,7 +309,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
   // Set service namespaces
   useEffect(() => {
     if (userIsAdmin) {
-      const fetchState:FetchState = {};
+      const fetchState:K8sFetchState = {};
       initServiceNamespaces(fetchState);
       return () => {
         cancelFetchState(fetchState)
@@ -359,22 +322,20 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
 
   // Fetch or continue fetching
   useEffect(() => {
-    if (fetchState && !fetchState.finished && fetchedResourceClaims.length < fetchLimit) {
+    if (fetchState && !fetchState.finished && fetchState.filteredItems.length < fetchLimit) {
       fetchResourceClaims();
-      return () => {
-        cancelFetchState(fetchState);
-      }
+      return () => cancelFetchState(fetchState);
     } else {
       return null;
     }
-  }, [fetchState?.iteration, fetchLimit]);
+  }, [fetchState, fetchLimit]);
 
   // Reload on filter change
   useEffect(() => {
-    if(serviceNamespaces) {
+    if (serviceNamespaces) {
       reloadResourceClaims();
     }
-  }, [serviceNamespaces, serviceNamespaceName, JSON.stringify(keywordFilter)]);
+  }, [JSON.stringify(serviceNamespaces), serviceNamespaceName, JSON.stringify(keywordFilter)]);
 
   if (!serviceNamespaces) {
     return (
@@ -447,7 +408,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
           { serviceNamespaces.length > 1 && serviceNamespaceName ? (
             <Breadcrumb>
               <BreadcrumbItem render={({className}) => <Link to="/services" className={className}>Services</Link>}/>
-              <BreadcrumbItem>{serviceNamespace.displayName }</BreadcrumbItem>
+              <BreadcrumbItem>{serviceNamespace?.displayName || serviceNamespaceName}</BreadcrumbItem>
             </Breadcrumb>
           ) : (
             <Breadcrumb>
@@ -496,7 +457,11 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
             <Title headingLevel="h1" size="lg">
               No Services found
             </Title>
-            { sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? (
+            { keywordFilter ? (
+              <EmptyStateBody>
+                No services matched search.
+              </EmptyStateBody>
+            ) : sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? (
               <EmptyStateBody>
                 Request services using the <Link to="/catalog">catalog</Link>.
               </EmptyStateBody>
@@ -521,7 +486,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
           }}
           rows={resourceClaims.map((resourceClaim:ResourceClaim) => {
             const resourceHandle = resourceClaim.status?.resourceHandle;
-            const guid = resourceHandle.name ? resourceHandle.name.replace(/^guid-/, '') : null;
+            const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
             const rcServiceNamespace:ServiceNamespace = serviceNamespaces.find(
               (ns:ServiceNamespace) => ns.name === resourceClaim.metadata.namespace
             );

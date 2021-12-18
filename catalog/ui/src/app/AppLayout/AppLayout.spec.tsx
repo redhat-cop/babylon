@@ -24,7 +24,6 @@ describe("Catalog Page Layout Scenario", () => {
     test("When app layout renders, should display hamburger toggle", async () => {
         const { container } = render(<AppLayout>{"Test"}</AppLayout>);
         const testVar = container.querySelector("#nav-toggle");
-        console.log("testVar", testVar);
         await waitFor(() => expect(testVar).toBeTruthy());
     });
 })

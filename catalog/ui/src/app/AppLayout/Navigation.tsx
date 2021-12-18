@@ -36,22 +36,7 @@ const Navigation: React.FunctionComponent = () => {
 
   const catalogNavigation = (
     <NavItem>
-      <NavLink to="/catalog">Catalog</NavLink>
-    </NavItem>
-  );
-
-  const serviceNavigation = userIsAdmin || serviceNamespaces.length > 1 ? (
-    <NavExpandable title="Services" isExpanded={location.pathname.startsWith('/services')}>
-      <NavItem>
-        <NavLink to="/services">All Services</NavLink>
-      </NavItem>
-      <NavItem>
-        <NavLink to={`/services/${userNamespace.name}`}>My Services</NavLink>
-      </NavItem>
-    </NavExpandable>
-  ) : (
-    <NavItem>
-      <NavLink to="/services">Services</NavLink>
+      <NavLink activeClassName="pf-m-current" to="/catalog">Catalog</NavLink>
     </NavItem>
   );
 
@@ -67,6 +52,25 @@ const Navigation: React.FunctionComponent = () => {
         <NavLink activeClassName="pf-m-current" to="/admin/resourceproviders">ResourceProviders</NavLink>
       </NavItem>
     </NavExpandable>
+  );
+
+  const serviceNavigation = userIsAdmin || serviceNamespaces.length > 1 ? (
+    <NavExpandable title="Services" isExpanded={location.pathname.startsWith('/services')}>
+      <NavItem>
+        <NavLink activeClassName="pf-m-current" to="/services"
+          isActive={
+            (match, location): boolean => match && !location.pathname.startsWith(`/services/${userNamespace.name}`)
+          }
+        >All Services</NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink activeClassName="pf-m-current" to={`/services/${userNamespace.name}`}>My Services</NavLink>
+      </NavItem>
+    </NavExpandable>
+  ) : (
+    <NavItem>
+      <NavLink activeClassName="pf-m-current" to="/services">Services</NavLink>
+    </NavItem>
   );
 
   return (

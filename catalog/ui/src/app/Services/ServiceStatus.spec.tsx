@@ -13,7 +13,6 @@ describe("ServiceStatus", () => {
                 resourceTemplate={"specResources[0].template"}
             />
             );
-        console.log(debug);
         const testVar = getByText("Available");
         await waitFor(() => expect(testVar).toBeInTheDocument());
     });

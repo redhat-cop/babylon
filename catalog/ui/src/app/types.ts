@@ -68,6 +68,7 @@ export interface CatalogItem {
   kind: string;
   metadata: K8sObjectMeta;
   spec: any;
+  status?: any;
 }
 
 export interface CatalogItemList {
@@ -84,10 +85,10 @@ export interface CatalogNamespace {
 export interface FetchState {
   canceled?: boolean;
   continue?: string;
-  fetchedUids?: string[];
   finished?: boolean;
   isRefresh?: boolean;
   refreshTimeout?: any;
+  fetchedUids?: string[];
 }
 
 export interface K8sObject {

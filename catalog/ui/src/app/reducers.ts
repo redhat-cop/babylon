@@ -26,20 +26,19 @@ export function fetchStateReducer(state:FetchState, action:FetchStateAction): Fe
     case 'finish':
       return {
         continue: action.continue,
-        fetchedUids: [...(state.fetchedUids || []), ...(action.items || []).map((item) => item.metadata.uid)],
         finished: action.continue ? false : true,
         isRefresh: state.isRefresh,
         refreshTimeout: action.refreshTimeout,
+        fetchedUids: [...(state.fetchedUids || []), ...(action.items || []).map((item) => item.metadata.uid)],
       };
     case 'refresh':
       return {
-        fetchedUids: [],
         isRefresh: true,
+        fetchedUids: [],
       };
     case 'start':
       return {
         fetchedUids: [],
-        isRefresh: false,
       };
     default:
       throw new Error(`Invalid FetchStateAction type: ${action.type}`);

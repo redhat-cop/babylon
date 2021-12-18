@@ -12,10 +12,13 @@ dompurify.addHook('afterSanitizeAttributes', function(node) {
   }
 });
 
-import { ResourceClaim } from '@app/types';
+import { CatalogItem, ResourceClaim } from '@app/types';
 
-export function checkAccessControl(accessConfig: any, userGroups: string[]): string {
-  const groups: string[] = userGroups.concat('system:authenticated');
+export function category(catalogItem: CatalogItem): string | null {
+  return catalogItem.metadata.labels?.['babylon.gpte.redhat.com/category'];
+}
+
+export function checkAccessControl(accessConfig: any, groups: string[]): string {
   if (!accessConfig) {
     return 'allow';
   }
@@ -88,7 +91,12 @@ export function recursiveAssign(target: object, source: object): any {
   }
 }
 
-export function renderContent(content: string, options: any={}): string {
+interface RenderContentOpt {
+  allowIFrame?: boolean;
+  format?: "asciidoc" | "html";
+}
+
+export function renderContent(content: string, options: RenderContentOpt={}): string {
   const sanitize_opt = {
     ADD_TAGS: [] as any,
     ADD_ATTR: [] as any,

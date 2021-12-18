@@ -54,8 +54,8 @@ import {
   recursiveAssign,
 } from '@app/util';
 
-import { DynamicFormInput } from '@app/components/DynamicFormInput';
-import { TermsOfService  } from '@app/components/TermsOfService';
+import DynamicFormInput from '@app/components/DynamicFormInput';
+import TermsOfService from '@app/components/TermsOfService';
 
 export interface CatalogRequestProps {
   location?: any;

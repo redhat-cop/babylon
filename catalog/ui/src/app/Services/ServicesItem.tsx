@@ -126,7 +126,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const [fetchedResourceClaim, setFetchedResourceClaim] = useState<ResourceClaim|null>(null);
   const [modalState, setModalState] = React.useState<ModalState>({});
   const [serviceNamespaces, setServiceNamespaces] = useState<ServiceNamespace[]>(null);
-  const serviceNamespace:ServiceNamespace = (serviceNamespaces || []).find(ns => ns.name === serviceNamespaceName);
+  const serviceNamespace:ServiceNamespace = (serviceNamespaces || []).find(ns => ns.name === serviceNamespaceName) || {name: serviceNamespaceName, displayName: serviceNamespaceName};
 
   const resourceClaim = sessionServiceNamespace ? sessionResourceClaim : fetchedResourceClaim;
   const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
@@ -313,12 +313,12 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
         <Breadcrumb>
           <BreadcrumbItem render={({ className }) => <Link to="/services" className={className}>Services</Link>}/>
           <BreadcrumbItem render={({ className }) => <Link to={`/services/${serviceNamespaceName}`} className={className}>{displayName(serviceNamespace)}</Link>}/>
-          <BreadcrumbItem>{resourceClaim.metadata.name}</BreadcrumbItem>
+          <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
         </Breadcrumb>
       ) : (
         <Breadcrumb>
           <BreadcrumbItem render={({ className }) => <Link to={`/services/${serviceNamespaceName}`} className={className}>Services</Link>}/>
-          <BreadcrumbItem>{resourceClaim.metadata.name}</BreadcrumbItem>
+          <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
         </Breadcrumb>
       )}
           <Title headingLevel="h4" size="xl">{displayName(resourceClaim)}</Title>

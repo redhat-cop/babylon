@@ -7,10 +7,6 @@ export interface CatalogItemHealthDisplayProps {
 const CatalogItemHealthDisplay: React.FunctionComponent<CatalogItemHealthDisplayProps> = ({
   catalogItem,
 }) => {
-  if (!catalogItem.status || !catalogItem.status.provisionHistory) {
-    return (<div className="rhpds-no-data">no data</div>);
-  }
-  
   return (
    <div style={{
      display: "grid",
@@ -30,4 +26,4 @@ const CatalogItemHealthDisplay: React.FunctionComponent<CatalogItemHealthDisplay
   );
 }
 
-export { CatalogItemHealthDisplay };
+export default CatalogItemHealthDisplay;
