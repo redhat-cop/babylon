@@ -94,4 +94,4 @@ const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
   );
 }
 
-export { ServiceActions };
+export default ServiceActions;

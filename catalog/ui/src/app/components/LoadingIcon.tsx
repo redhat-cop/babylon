@@ -18,4 +18,4 @@ const LoadingIcon: React.FunctionComponent<LoadingIconProps> = ({ className }) =
   </div>
 );
 
-export { LoadingIcon };
+export default LoadingIcon;

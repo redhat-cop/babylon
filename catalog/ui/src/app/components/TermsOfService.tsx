@@ -33,4 +33,4 @@ const TermsOfService: React.FunctionComponent<TermsOfServiceProps> = ({
   );
 }
 
-export { TermsOfService };
+export default TermsOfService;

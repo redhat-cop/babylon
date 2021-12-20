@@ -1,18 +1,21 @@
 import * as React from 'react';
 
 export interface LocalTimestampProps {
+  date?: Date;
   time?: number;
-  timestamp?: any;
+  timestamp?: string;
 }
 
 const LocalTimestamp: React.FunctionComponent<LocalTimestampProps> = ({
+  date,
   time,
   timestamp,
 }) => {
-  const ts = new Date(time ? time : Date.parse(timestamp)).toLocaleString();
+
+  const ts = (date || new Date(time ? time : Date.parse(timestamp))).toLocaleString();
   return (
     <span>{ts}</span>
   );
 }
 
-export { LocalTimestamp };
+export default LocalTimestamp;

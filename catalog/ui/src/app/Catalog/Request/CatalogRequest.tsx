@@ -54,8 +54,8 @@ import {
   recursiveAssign,
 } from '@app/util';
 
-import { DynamicFormInput } from '@app/components/DynamicFormInput';
-import { TermsOfService  } from '@app/components/TermsOfService';
+import DynamicFormInput from '@app/components/DynamicFormInput';
+import TermsOfService from '@app/components/TermsOfService';
 
 export interface CatalogRequestProps {
   location?: any;
@@ -153,7 +153,7 @@ const CatalogRequest: React.FunctionComponent<CatalogRequestProps> = ({
       parameters: requestParameters,
     });
 
-    history.push(`/services/ns/${resourceClaim.metadata.namespace}/item/${resourceClaim.metadata.name}`);
+    history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
   }
 
   const catalogRequestForm = (catalogItem && parameterState) ? (

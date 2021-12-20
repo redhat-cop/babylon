@@ -1,9 +1,10 @@
 import * as React from 'react';
-import openshiftIcon from './icons/openshift.png';
 import { PackageIcon } from '@patternfly/react-icons';
+import { CatalogItem } from '@app/types';
+import openshiftIcon from './icons/openshift.png';
 
-export interface CatalogItemIconProps {
-  icon: string;
+interface CatalogItemIconProps {
+  catalogItem: CatalogItem;
 }
 
 const icons = {
@@ -17,27 +18,29 @@ interface IconConfig {
 }
 
 const CatalogItemIcon: React.FunctionComponent<CatalogItemIconProps> = ({
-  icon,
+  catalogItem,
 }) => {
-  if (icon.startsWith('{')) {
-    const iconConfig: IconConfig = JSON.parse(icon)
+  const iconValue = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/icon'];
+
+  if (iconValue.startsWith('{')) {
+    const iconConfig: IconConfig = JSON.parse(iconValue)
     return (
-      <img className="rhpds-catalog-item-icon"
+      <img className="catalog-item-icon"
         alt={iconConfig.alt}
         src={iconConfig.url}
         style={iconConfig.style}
       />
     );
-  } else if (icon in icons) {
+  } else if (iconValue in icons) {
     return (
-      <img className="rhpds-catalog-item-icon"
-        alt={icon}
-        src={icons[icon]}
+      <img className="catalog-item-icon"
+        alt={iconValue}
+        src={icons[iconValue]}
       />
     );
   } else {
-    return (<PackageIcon className="rhpds-catalog-item-icon" />);
+    return (<PackageIcon className="catalog-item-icon" />);
   }
 }
 
-export { CatalogItemIcon };
+export default CatalogItemIcon;

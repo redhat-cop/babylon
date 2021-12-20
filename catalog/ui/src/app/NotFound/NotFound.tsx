@@ -8,9 +8,15 @@ import {
   EmptyStateIcon,
   EmptyStateBody,
 } from '@patternfly/react-core';
+import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
+import { selectUser } from '@app/store';
+import LoadingIcon from '@app/components/LoadingIcon';
 
 const NotFound: React.FunctionComponent = () => {
+
+  const user = useSelector(selectUser);
+
   function GoHomeBtn() {
     const history = useHistory();
     function handleClick() {
@@ -21,20 +27,30 @@ const NotFound: React.FunctionComponent = () => {
     );
   }
 
-  return (
-    <PageSection>
-    <EmptyState variant="full">
-      <EmptyStateIcon icon={ExclamationTriangleIcon} />
-      <Title headingLevel="h1" size="lg">
-        404 Page not found
-      </Title>
-      <EmptyStateBody>
-        We didn&apos;t find a page that matches the address you navigated to.
-      </EmptyStateBody>
-      <GoHomeBtn />
-    </EmptyState>
-  </PageSection>
-  )
+  if (user) {
+    return (
+      <PageSection>
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={ExclamationTriangleIcon} />
+          <Title headingLevel="h1" size="lg">
+            404 Page not found
+          </Title>
+          <EmptyStateBody>
+            We didn&apos;t find a page that matches the address you navigated to.
+          </EmptyStateBody>
+          <GoHomeBtn />
+        </EmptyState>
+      </PageSection>
+    );
+  } else {
+    return (
+      <PageSection>
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={LoadingIcon} />
+        </EmptyState>
+      </PageSection>
+    );
+  }
 };
 
 export default NotFound;

@@ -1,6 +1,29 @@
 const parseDuration = require('parse-duration');
 
 import {
+  AnarchyAction,
+  AnarchyGovernor,
+  AnarchySubject,
+  AnarchyRun,
+  CatalogItem,
+  CatalogItemList,
+  K8sObject,
+  K8sObjectList,
+  Namespace,
+  NamespaceList,
+  ResourceClaim,
+  ResourceClaimList,
+  ResourceHandle,
+  ResourceHandleList,
+  ResourcePool,
+  ResourcePoolList,
+  ResourceProvider,
+  ResourceProviderList,
+  User,
+  UserList,
+} from '@app/types';
+
+import {
   store,
   apiActionDeleteResourceClaim,
   apiActionInsertResourceClaim,
@@ -26,6 +49,29 @@ declare var window: Window &
     apiSessionImpersonateUser?: any,
   }
 
+export interface createServiceRequestOpt {
+  catalogItem: any;
+  catalogNamespace: any;
+  parameters?: any[];
+}
+
+export interface K8sApiFetchOpt {
+  disableImpersonation?: boolean;
+}
+
+export interface K8sObjectListCommonOpt {
+  continue?: string;
+  disableImpersonation?: boolean;
+  labelSelector?: string;
+  limit?: number;
+  namespace?: string;
+}
+
+export interface K8sObjectListOpt extends K8sObjectListCommonOpt {
+  apiVersion: string;
+  plural: string;
+}
+
 async function apiFetch(path:string, opt?:object): Promise<any> {
   const session = await getApiSession();
 
@@ -34,9 +80,11 @@ async function apiFetch(path:string, opt?:object): Promise<any> {
   options.headers = options.headers || {};
   options.headers.Authentication = `Bearer ${session.token}`;
 
-  const impersonateUser = selectImpersonationUser(store.getState());
-  if (impersonateUser) {
-    options.headers['Impersonate-User'] = impersonateUser;
+  if (!options.disableImpersonation) {
+    const impersonateUser = selectImpersonationUser(store.getState());
+    if (impersonateUser) {
+      options.headers['Impersonate-User'] = impersonateUser;
+    }
   }
 
   const resp = await fetch(path, options);
@@ -48,98 +96,19 @@ async function apiFetch(path:string, opt?:object): Promise<any> {
   return resp;
 }
 
-function refreshApiSession(): void {
-  window.apiSessionPromise = new Promise((resolve) => {
-    fetch('/auth/session')
-      .then(response => response.json())
-      .then(session => {
-        if (window.apiSessionInterval) { clearInterval(window.apiSessionInterval) }
-        window.apiSessionInterval = setInterval(refreshApiSession, (session.lifetime - 60) * 1000);
-        resolve(session);
-      })
-      .catch(error => {
-        window.location.href = '/?n=' + new Date().getTime();
-      })
-  });
-}
-
-export async function getApiSession(): Promise<any> {
-  if (!window.apiSessionPromise) {
-    refreshApiSession();
-  }
-  const session = await window.apiSessionPromise;
-  if (window.apiSessionImpersonateUser) {
-    session.impersonateUser = window.apiSessionImpersonateUser;
-  }
-  return session;
-}
-
-export async function getUserInfo(user): Promise<any> {
+export async function createNamespacedCustomObject(group, version, namespace, plural, obj): Promise<any> {
   const session = await getApiSession();
-  const resp = await fetch(
-    `/auth/users/${user}`,
+  const resp = await apiFetch(
+    `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
     {
+      method: 'POST',
+      body: JSON.stringify(obj),
       headers: {
-        Authentication: `Bearer ${session.token}`,
+        'Content-Type': 'application/json',
       }
     }
   );
   return await resp.json();
-}
-
-export async function getResourceHandles(): Promise<any> {
-  const session = await getApiSession();
-  const resp = await fetch(`apis/poolboy.gpte.redhat.com/v1/resourcehandles`,
-    {
-      headers: {
-        Authentication: `Bearer ${session.token}`,
-      }
-    }
-  );
-  return await resp.json();
-}
-
-export async function getResourcePools(): Promise<any> {
-  const session = await getApiSession();
-  const resp = await fetch(`/apis/poolboy.gpte.redhat.com/v1/resourcepools`,
-    {
-      headers: {
-        Authentication: `Bearer ${session.token}`,
-      }
-    }
-  );
-  return await resp.json();
-}
-
-export async function getResourceProviders(): Promise<any> {
-  const session = await getApiSession();
-  const resp = await fetch(`apis/poolboy.gpte.redhat.com/v1/resourceproviders`,
-    {
-      headers: {
-        Authentication: `Bearer ${session.token}`,
-      }
-    }
-  );
-  return await resp.json();
-}
-
-export async function scalePool(resourcepool, minAvailable): Promise<any> {
-  try {
-    const session = await getApiSession();
-    const response = await fetch(`/apis/poolboy.gpte.redhat.com/v1/namespaces/${resourcepool.metadata.namespace}/resourcepools/${resourcepool.metadata.name}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ spec: { minAvailable: minAvailable } }),
-        headers: {
-          Authentication: `Bearer ${session.token}`,
-          'Content-Type': 'application/merge-patch+json'
-        }
-      }
-    )
-    return await response.json();
-  } catch (err) {
-    return err;
-  }
 }
 
 export async function createResourceClaim(definition, opt: any = {}): Promise<any> {
@@ -157,64 +126,19 @@ export async function createResourceClaim(definition, opt: any = {}): Promise<an
   return resourceClaim;
 }
 
-export async function getAnarchyActions(): Promise<any> {
-  const session = await getApiSession();
-  const resp = await fetch(`/apis/anarchy.gpte.redhat.com/v1/anarchyactions`,
-    {
-      headers: {
-        Authentication: `Bearer ${session.token}`,
-      }
-    }
+export async function createResourcePool(definition:ResourcePool): Promise<ResourcePool> {
+  const namespace = definition.metadata.namespace;
+  const response = await createNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1', namespace, 'resourcepools', definition
   );
-  return await resp.json();
-}
-
-export async function getAnarchyActionsTables(): Promise<any> {
-  const session = await getApiSession();
-  const resp = await fetch(`/apis/anarchy.gpte.redhat.com/v1/anarchyactions`,
-    {
-      headers: {
-        Authentication: `Bearer ${session.token}`,
-        Accept: 'application/json;as=Table;g=meta.k8s.io;v=v1beta1',
-      }
-    }
-  );
-  return await resp.json();
-}
-
-export async function deleteAnarchyAction(anarchyAction): Promise<any> {
-  const session = await getApiSession();
-  const resp = await apiFetch(
-    `/apis/anarchy.gpte.redhat.com/v1/namespaces/anarchy-operator/anarchyactions/${anarchyAction}`,
-    {
-      method: 'DELETE',
-      headers: {
-        Authentication: `Bearer ${session.token}`,
-      }
-    }
-  )
-  if (resp.status === 200) {
-    refreshApiSession();
-    await getAnarchyActions();
-  }
-  if (!window.apiSessionPromise) {
-    refreshApiSession();
-    await getAnarchyActions();
-  }
-  return await resp.json();
-}
-
-export interface ServiceRequestParameters {
-  catalogItem: any;
-  catalogNamespace: any;
-  parameters?: Array<any>;
+  return response;
 }
 
 export async function createServiceRequest({
   catalogItem,
   catalogNamespace,
   parameters,
-}: ServiceRequestParameters): Promise<any> {
+}: createServiceRequestOpt): Promise<any> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, "$1");
   const session = await getApiSession();
   const userGroups = selectUserGroups(store.getState());
@@ -229,7 +153,7 @@ export async function createServiceRequest({
         'babylon.gpte.redhat.com/catalogDisplayName': catalogNamespace?.displayName || catalogItem.metadata.namespace,
         'babylon.gpte.redhat.com/catalogItemDisplayName': displayName(catalogItem),
         'babylon.gpte.redhat.com/requester': session.user,
-        'babylon.gpte.redhat.com/url': `${baseUrl}/services/item/${userNamespace.name}/${catalogItem.metadata.name}`,
+        'babylon.gpte.redhat.com/url': `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}`,
       },
       labels: {
         'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
@@ -345,7 +269,7 @@ export async function createServiceRequest({
       if (error.status === 409) {
         n++;
         requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${n}`;
-        requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/url'] = `${baseUrl}/services/item/${userNamespace.name}/${catalogItem.metadata.name}-${n}`;
+        requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/url'] = `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}-${n}`;
       } else {
         throw error;
       }
@@ -353,17 +277,278 @@ export async function createServiceRequest({
   }
 }
 
-export async function deleteResourceClaim(resourceClaim): Promise<void> {
+export async function getAnarchyAction(namespace:string, name:string): Promise<AnarchyAction> {
+  return await getNamespacedCustomObject(
+    'anarchy.gpte.redhat.com', 'v1', namespace, 'anarchyactions', name
+  ) as AnarchyAction;
+}
+
+export async function getApiSession(): Promise<any> {
+  if (!window.apiSessionPromise) {
+    refreshApiSession();
+  }
+  const session = await window.apiSessionPromise;
+  if (window.apiSessionImpersonateUser) {
+    session.impersonateUser = window.apiSessionImpersonateUser;
+  }
+  return session;
+}
+
+export async function getAnarchyGovernor(namespace:string, name:string): Promise<AnarchyGovernor> {
+  return await getNamespacedCustomObject(
+    'anarchy.gpte.redhat.com', 'v1', namespace, 'anarchygovernors', name
+  ) as AnarchyGovernor;
+}
+
+export async function getAnarchyRun(namespace:string, name:string): Promise<AnarchyRun> {
+  return await getNamespacedCustomObject(
+    'anarchy.gpte.redhat.com', 'v1', namespace, 'anarchyruns', name
+  ) as AnarchyRun;
+}
+
+export async function getAnarchySubject(namespace:string, name:string): Promise<AnarchySubject> {
+  return await getNamespacedCustomObject(
+    'anarchy.gpte.redhat.com', 'v1', namespace, 'anarchysubjects', name
+  ) as AnarchySubject;
+}
+
+export async function getResourceClaim(namespace, name): Promise<ResourceClaim> {
+  return await getNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', name
+  ) as ResourceClaim;
+}
+
+export async function getResourceHandle(name:string): Promise<ResourceHandle> {
+  return await getNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1', 'poolboy', 'resourcehandles', name
+  ) as ResourceHandle;
+}
+
+export async function getResourcePool(name:string): Promise<ResourcePool> {
+  return await getNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1', 'poolboy', 'resourcepools', name
+  ) as ResourcePool;
+}
+
+export async function getResourceProvider(name:string): Promise<ResourceProvider> {
+  return await getNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1', 'poolboy', 'resourceproviders', name
+  ) as ResourceProvider;
+}
+
+export async function getUserInfo(user): Promise<any> {
+  const session = await getApiSession();
+  const resp = await fetch(
+    `/auth/users/${user}`,
+    {
+      headers: {
+        Authentication: `Bearer ${session.token}`,
+      }
+    }
+  );
+  return await resp.json();
+}
+
+function refreshApiSession(): void {
+  window.apiSessionPromise = new Promise((resolve) => {
+    fetch('/auth/session')
+      .then(response => response.json())
+      .then(session => {
+        if (window.apiSessionInterval) { clearInterval(window.apiSessionInterval) }
+        window.apiSessionInterval = setInterval(refreshApiSession, (session.lifetime - 60) * 1000);
+        resolve(session);
+      })
+      .catch(error => {
+        window.location.href = '/?n=' + new Date().getTime();
+      })
+  });
+}
+
+export async function listAnarchyActions(opt?:K8sObjectListCommonOpt): Promise<any> {
+  return await listK8sObjects({
+    apiVersion: 'anarchy.gpte.redhat.com/v1',
+    plural: 'anarchyactions',
+    ...opt
+  });
+}
+
+export async function listAnarchyGovernors(opt?:K8sObjectListCommonOpt): Promise<any> {
+  return await listK8sObjects({
+    apiVersion: 'anarchy.gpte.redhat.com/v1',
+    plural: 'anarchygovernors',
+    ...opt
+  });
+}
+
+export async function listAnarchyRuns(opt?:K8sObjectListCommonOpt): Promise<any> {
+  return await listK8sObjects({
+    apiVersion: 'anarchy.gpte.redhat.com/v1',
+    plural: 'anarchyruns',
+    ...opt
+  });
+}
+
+export async function listAnarchyRunners(opt?:K8sObjectListCommonOpt): Promise<any> {
+  return await listK8sObjects({
+    apiVersion: 'anarchy.gpte.redhat.com/v1',
+    plural: 'anarchyrunners',
+    ...opt
+  });
+}
+
+export async function listAnarchySubjects(opt?:K8sObjectListCommonOpt): Promise<any> {
+  return await listK8sObjects({
+    apiVersion: 'anarchy.gpte.redhat.com/v1',
+    plural: 'anarchysubjects',
+    ...opt
+  });
+}
+
+export async function listCatalogItems(opt?:K8sObjectListCommonOpt): Promise<CatalogItemList> {
+  return await listK8sObjects({
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    plural: 'catalogitems',
+    ...opt
+  }) as CatalogItemList;
+}
+
+export async function listResourceClaims(opt?:K8sObjectListCommonOpt): Promise<ResourceClaimList> {
+  return await listK8sObjects({
+    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    plural: 'resourceclaims',
+    ...opt
+  }) as ResourceClaimList;
+}
+
+export async function listResourceHandles(opt?:K8sObjectListCommonOpt): Promise<ResourceHandleList> {
+  return await listK8sObjects({
+    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    namespace: 'poolboy',
+    plural: 'resourcehandles',
+    ...opt
+  }) as ResourceHandleList;
+}
+
+export async function listResourcePools(opt?:K8sObjectListCommonOpt): Promise<ResourcePoolList> {
+  return await listK8sObjects({
+    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    namespace: 'poolboy',
+    plural: 'resourcepools',
+    ...opt
+  }) as ResourcePoolList;
+}
+
+export async function listResourceProviders(opt?:K8sObjectListCommonOpt): Promise<ResourceProviderList> {
+  return await listK8sObjects({
+    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    namespace: 'poolboy',
+    plural: 'resourceproviders',
+    ...opt
+  }) as ResourceProviderList;
+}
+
+export async function listUsers(opt?:K8sObjectListCommonOpt): Promise<UserList> {
+  return await listK8sObjects({
+    apiVersion: 'user.openshift.io/v1',
+    plural: 'users',
+    ...opt
+  }) as UserList;
+}
+
+export async function scalePool(resourcepool, minAvailable): Promise<any> {
+  try {
+    const session = await getApiSession();
+    const response = await fetch(`/apis/poolboy.gpte.redhat.com/v1/namespaces/${resourcepool.metadata.namespace}/resourcepools/${resourcepool.metadata.name}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ spec: { minAvailable: minAvailable } }),
+        headers: {
+          Authentication: `Bearer ${session.token}`,
+          'Content-Type': 'application/merge-patch+json'
+        }
+      }
+    )
+    return await response.json();
+  } catch (err) {
+    return err;
+  }
+}
+
+export async function deleteAnarchyAction(anarchyAction:AnarchyAction): Promise<void> {
   await deleteNamespacedCustomObject(
+    'anarchy.gpte.redhat.com', 'v1',
+    anarchyAction.metadata.namespace,
+    'anarchyactions',
+    anarchyAction.metadata.name
+  );
+}
+
+export async function deleteAnarchyGovernor(anarchyGovernor:AnarchyGovernor): Promise<void> {
+  await deleteNamespacedCustomObject(
+    'anarchy.gpte.redhat.com', 'v1',
+    anarchyGovernor.metadata.namespace,
+    'anarchygovernors',
+    anarchyGovernor.metadata.name
+  );
+}
+
+export async function deleteAnarchyRun(anarchyRun:AnarchyRun): Promise<void> {
+  await deleteNamespacedCustomObject(
+    'anarchy.gpte.redhat.com', 'v1',
+    anarchyRun.metadata.namespace,
+    'anarchyruns',
+    anarchyRun.metadata.name
+  );
+}
+
+export async function deleteAnarchySubject(anarchySubject:AnarchySubject): Promise<void> {
+  await deleteNamespacedCustomObject(
+    'anarchy.gpte.redhat.com', 'v1',
+    anarchySubject.metadata.namespace,
+    'anarchysubjects',
+    anarchySubject.metadata.name
+  );
+}
+
+export async function deleteResourceClaim(resourceClaim): Promise<ResourceClaim> {
+  const deletedResourceClaim = await deleteNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionDeleteResourceClaim({
     namespace: resourceClaim.metadata.namespace,
     name: resourceClaim.metadata.name,
   }));
+  return deletedResourceClaim;
+}
+
+export async function deleteResourceHandle(resourceHandle:ResourceHandle): Promise<void> {
+  await deleteNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1',
+    resourceHandle.metadata.namespace,
+    'resourcehandles',
+    resourceHandle.metadata.name
+  );
+}
+
+export async function deleteResourcePool(resourcePool:ResourcePool): Promise<void> {
+  await deleteNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1',
+    resourcePool.metadata.namespace,
+    'resourcehandles',
+    resourcePool.metadata.name
+  );
+}
+
+export async function deleteResourceProvider(resourceProvider:ResourceProvider): Promise<void> {
+  await deleteNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1',
+    resourceProvider.metadata.namespace,
+    'resourcehandles',
+    resourceProvider.metadata.name
+  );
 }
 
 export async function patchResourceClaim(
@@ -371,10 +556,10 @@ export async function patchResourceClaim(
   name: string,
   patch: object,
   opt: any= {},
-): Promise<object> {
+): Promise<ResourceClaim> {
   const resourceClaim = await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', name, patch
-  );
+  ) as ResourceClaim;
   if (!opt.skipUpdateStore) {
     store.dispatch(
       apiActionInsertResourceClaim({
@@ -385,30 +570,40 @@ export async function patchResourceClaim(
   return resourceClaim;
 }
 
-export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim, time) {
-  const stopDate = new Date(time);
+export async function patchResourcePool(
+  name: string,
+  patch: any,
+): Promise<ResourcePool> {
+  const resourcePool = await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1', 'poolboy', 'resourcepools', name, patch
+  ) as ResourcePool;
+  return resourcePool;
+}
+
+export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim:ResourceClaim, date:Date): Promise<ResourceClaim> {
+  const stopTimestamp = date.toISOString().split('.')[0] + "Z";
   const patch = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec))
   }
   for (let i=0; i < patch.spec.resources.length; ++i) {
-    patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + "Z";
+    patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
   }
 
-  const resp = await patchNamespacedCustomObject(
+  const updatedResourceClaim:ResourceClaim = await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name,
     patch,
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionUpdateResourceClaim({
-    resourceClaim: resp,
+    resourceClaim: updatedResourceClaim,
   }));
+  return updatedResourceClaim;
 }
 
-export async function setLifespanEndForResourceClaim(resourceClaim, time) {
-  const end = new Date(time);
-  const endTimestamp = end.toISOString().split('.')[0] + "Z";
+export async function setLifespanEndForResourceClaim(resourceClaim:ResourceClaim, date:Date): Promise<ResourceClaim> {
+  const endTimestamp = date.toISOString().split('.')[0] + "Z";
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec))
   }
@@ -419,19 +614,20 @@ export async function setLifespanEndForResourceClaim(resourceClaim, time) {
     data.spec.lifespan = { end: endTimestamp };
   }
 
-  const resp = await patchNamespacedCustomObject(
+  const updatedResourceClaim:ResourceClaim = await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name,
     data,
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionUpdateResourceClaim({
-    resourceClaim: resp,
+    resourceClaim: updatedResourceClaim,
   }));
+  return updatedResourceClaim;
 }
 
-export async function startAllResourcesInResourceClaim(resourceClaim) {
+export async function startAllResourcesInResourceClaim(resourceClaim:ResourceClaim): Promise<ResourceClaim> {
   const defaultRuntime = Math.min(...resourceClaim.status.resources.map(r =>
     parseDuration(r.state.spec.vars.action_schedule?.default_runtime || '4h')
   ))
@@ -445,19 +641,20 @@ export async function startAllResourcesInResourceClaim(resourceClaim) {
     data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + "Z";
   }
 
-  const resp = await patchNamespacedCustomObject(
+  const patchedResourceClaim = await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name,
     data,
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionUpdateResourceClaim({
-    resourceClaim: resp,
+    resourceClaim: patchedResourceClaim,
   }));
+  return patchedResourceClaim;
 }
 
-export async function stopAllResourcesInResourceClaim(resourceClaim) {
+export async function stopAllResourcesInResourceClaim(resourceClaim): Promise<ResourceClaim> {
   const stopDate = new Date();
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec))
@@ -466,34 +663,20 @@ export async function stopAllResourcesInResourceClaim(resourceClaim) {
     data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + "Z";
   }
 
-  const resp = await patchNamespacedCustomObject(
+  const patchedResourceClaim = await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name,
     data,
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionUpdateResourceClaim({
-    resourceClaim: resp,
+    resourceClaim: patchedResourceClaim,
   }));
+  return patchedResourceClaim;
 }
 
-export async function createNamespacedCustomObject(group, version, namespace, plural, obj): Promise<any> {
-  const session = await getApiSession();
-  const resp = await apiFetch(
-    `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
-    {
-      method: 'POST',
-      body: JSON.stringify(obj),
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    }
-  );
-  return await resp.json();
-}
-
-export async function deleteNamespacedCustomObject(group, version, namespace, plural, name): Promise<any> {
+export async function deleteNamespacedCustomObject(group, version, namespace, plural, name): Promise<K8sObject> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
@@ -504,7 +687,7 @@ export async function deleteNamespacedCustomObject(group, version, namespace, pl
   return await resp.json();
 }
 
-export async function getNamespacedCustomObject(group, version, namespace, plural, name): Promise<any> {
+export async function getNamespacedCustomObject(group, version, namespace, plural, name): Promise<K8sObject> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
@@ -512,50 +695,51 @@ export async function getNamespacedCustomObject(group, version, namespace, plura
   return await resp.json();
 }
 
-export async function listClusterCustomObject(
-  group: string,
-  version: string,
-  plural: string,
-  opt: any,
-): Promise<any> {
+export async function listK8sObjects(opt:K8sObjectListOpt): Promise<K8sObjectList> {
+  const {apiVersion, namespace, plural} = opt;
   const session = await getApiSession();
+  const urlSearchParams = new URLSearchParams();
+  if (opt.continue) {
+    urlSearchParams.set('continue', opt.continue);
+  }
+  if (opt.labelSelector) {
+    urlSearchParams.set('labelSelector', opt.labelSelector);
+  }
+  if (opt.limit) {
+    urlSearchParams.set('limit', opt.limit.toString());
+  }
+  const base_url = namespace ?
+    `/apis/${apiVersion}/namespaces/${namespace}/${plural}` :
+    `/apis/${apiVersion}/${plural}`;
+  const resp = await apiFetch(
+    `${base_url}?${urlSearchParams.toString()}`,
+    {
+      disableImpersonation: opt.disableImpersonation || false,
+    }
+  );
+  return await resp.json();
+}
+
+export async function listNamespaces(opt?: K8sObjectListCommonOpt): Promise<NamespaceList> {
+  const sessino = await getApiSession();
   const query_params = {};
   if (opt?.continue) {
     query_params['continue'] = opt.continue;
+  }
+  if (opt?.labelSelector) {
+    query_params['labelSelector'] = opt.labelSelector;
   }
   if (opt?.limit) {
     query_params['limit'] = opt.limit;
   }
   const query_string = Object.keys(query_params).map(k => `${k}=${encodeURI(query_params[k])}`).join('&');
-  const base_url = `/apis/${group}/${version}/${plural}`;
+  const base_url = `/api/v1/namespaces`;
   const url = query_string ? `${base_url}?${query_string}` : base_url;
   const resp = await apiFetch(url);
   return await resp.json();
 }
 
-export async function listNamespacedCustomObject(
-  group: string,
-  version: string,
-  namespace: string,
-  plural: string,
-  opt: any,
-): Promise<any> {
-  const session = await getApiSession();
-  const query_params = {};
-  if (opt?.continue) {
-    query_params['continue'] = opt.continue;
-  }
-  if (opt?.limit) {
-    query_params['limit'] = opt.limit;
-  }
-  const query_string = Object.keys(query_params).map(k => `${k}=${encodeURI(query_params[k])}`).join('&');
-  const base_url = `/apis/${group}/${version}/namespaces/${namespace}/${plural}`;
-  const url = query_string ? `${base_url}?${query_string}` : base_url;
-  const resp = await apiFetch(url);
-  return await resp.json();
-}
-
-export async function patchNamespacedCustomObject(group, version, namespace, plural, name, patch, patchType='merge'): Promise<any> {
+export async function patchNamespacedCustomObject(group, version, namespace, plural, name, patch, patchType='merge'): Promise<K8sObject> {
   const session = await getApiSession();
   const resp = await apiFetch(
     `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,

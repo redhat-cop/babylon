@@ -5,18 +5,27 @@ import { LastLocationProvider, useLastLocation } from 'react-router-last-locatio
 
 import { Spinner } from "@patternfly/react-core";
 
-import { selectInterface, actionSetActiveServiceNamespace, selectUserIsAdmin } from '@app/store';
+import { selectInterface, selectUserIsAdmin } from '@app/store';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const CatalogRequest = React.lazy(() => import('@app/Catalog/Request/CatalogRequest'));
 const Services = React.lazy(() => import('@app/Services/Services'));
-const ServicesItem = React.lazy(() => import('@app/Services/Item/ServicesItem'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
+const AnarchyActionInstance = React.lazy(()=> import('@app/Admin/AnarchyActionInstance'));
 const AnarchyActions = React.lazy(()=> import('@app/Admin/AnarchyActions'));
+const AnarchyGovernorInstance = React.lazy(()=> import('@app/Admin/AnarchyGovernorInstance'));
+const AnarchyGovernors = React.lazy(()=> import('@app/Admin/AnarchyGovernors'));
+const AnarchyRunInstance = React.lazy(()=> import('@app/Admin/AnarchyRunInstance'));
+const AnarchyRuns = React.lazy(()=> import('@app/Admin/AnarchyRuns'));
+const AnarchySubjectInstance = React.lazy(()=> import('@app/Admin/AnarchySubjectInstance'));
+const AnarchySubjects = React.lazy(()=> import('@app/Admin/AnarchySubjects'));
 const ResourceHandles = React.lazy(()=> import('@app/Admin/ResourceHandles'));
+const ResourceHandleInstance = React.lazy(()=> import('@app/Admin/ResourceHandleInstance'));
 const ResourcePools = React.lazy(()=> import('@app/Admin/ResourcePools'));
+const ResourcePoolInstance = React.lazy(()=> import('@app/Admin/ResourcePoolInstance'));
 const ResourceProviders = React.lazy(()=> import('@app/Admin/ResourceProviders'));
+const ResourceProviderInstance = React.lazy(()=> import('@app/Admin/ResourceProviderInstance'));
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
 let routeFocusTimer: number;
@@ -63,16 +72,6 @@ const routes: AppRouteConfig[] = [
     title: 'Babylon | Catalog',
   },
   {
-    component: ServicesItem,
-    path: '/services/ns/:namespace/item/:name',
-    title: 'Babylon | Services',
-  },
-  {
-    component: ServicesItem,
-    path: '/services/item/:namespace/:name',
-    title: 'Babylon | Services',
-  },
-  {
     label: 'Services',
     component: Services,
     path: '/services',
@@ -92,31 +91,103 @@ const routes: AppRouteConfig[] = [
 
 const adminRoutes: AppRouteConfig[] = [
   {
+    component: AnarchyActionInstance,
+    path: '/admin/anarchyactions/:namespace/:name',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: AnarchyActions,
+    path: '/admin/anarchyactions/:namespace',
+    title: 'Babylon | Admin',
+  },
+  {
     label: 'AnarchyActions',
     exact: true,
     component: AnarchyActions,
-    path: '/r/anarchyactions',
+    path: '/admin/anarchyactions',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: AnarchyGovernorInstance,
+    path: '/admin/anarchygovernors/:namespace/:name',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: AnarchyGovernors,
+    path: '/admin/anarchygovernors/:namespace',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'AnarchyGovernors',
+    exact: true,
+    component: AnarchyGovernors,
+    path: '/admin/anarchygovernors',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: AnarchyRunInstance,
+    path: '/admin/anarchyruns/:namespace/:name',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: AnarchyRuns,
+    path: '/admin/anarchyruns/:namespace',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'AnarchyRuns',
+    exact: true,
+    component: AnarchyRuns,
+    path: '/admin/anarchyruns',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: AnarchySubjectInstance,
+    path: '/admin/anarchysubjects/:namespace/:name',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: AnarchySubjects,
+    path: '/admin/anarchysubjects/:namespace',
+    title: 'Babylon | Admin',
+  },
+  {
+    label: 'AnarchySubjects',
+    component: AnarchySubjects,
+    path: '/admin/anarchysubjects',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: ResourceHandleInstance,
+    path: '/admin/resourcehandles/:name',
     title: 'Babylon | Admin',
   },
   {
     label: 'ResourceHandles',
-    exact: true,
     component: ResourceHandles,
-    path: '/r/resourcehandles',
+    path: '/admin/resourcehandles',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: ResourcePoolInstance,
+    path: '/admin/resourcepools/:name',
     title: 'Babylon | Admin',
   },
   {
     label: 'ResourcePools',
-    exact: true,
     component: ResourcePools,
-    path: '/r/resourcepools',
+    path: '/admin/resourcepools',
+    title: 'Babylon | Admin',
+  },
+  {
+    component: ResourceProviderInstance,
+    path: '/admin/resourceproviders/:name',
     title: 'Babylon | Admin',
   },
   {
     label: 'ResourceProviders',
-    exact: true,
     component: ResourceProviders,
-    path: '/r/resourceproviders',
+    path: '/admin/resourceproviders',
     title: 'Babylon | Admin',
   },
 ];
@@ -167,14 +238,6 @@ const AppRoutes = (): React.ReactElement => {
   const userIsAdmin = useSelector(selectUserIsAdmin);
   const dispatch = useDispatch();
   const location = useLocation();
-
-  if (location.pathname.startsWith('/services/ns/') || location.pathname.startsWith('/services/item/')) {
-    dispatch(actionSetActiveServiceNamespace(location.pathname.split('/')[3]));
-  } else if(location.pathname.startsWith('/services')) {
-    dispatch(actionSetActiveServiceNamespace('*'));
-  } else {
-    dispatch(actionSetActiveServiceNamespace(null));
-  }
 
   return (
     <LastLocationProvider>

@@ -1,17 +1,17 @@
-.rhpds-datetimeselect-toggle.pf-c-dropdown__toggle {
+.datetimeselect-toggle.pf-c-dropdown__toggle {
   color: var(--pf-global--palette--black-900);
 }
 
-.rhpds-datetimeselect-dropdown.pf-c-dropdown .pf-c-dropdown__menu {
+.datetimeselect-dropdown.pf-c-dropdown .pf-c-dropdown__menu {
   max-height: 500px;
   overflow-y: scroll;
 }
 
-.rhpds-datetime-select-current.pf-c-dropdown__menu-item {
+.datetime-select-current.pf-c-dropdown__menu-item {
   background-color: var(--pf-global--BackgroundColor--200);
 }
 
-.rhpds-datetimeselect-dropdown .pf-c-dropdown__menu-item {
+.datetimeselect-dropdown .pf-c-dropdown__menu-item {
   font-size: 10pt;
   padding-top: 3pt;
   padding-bottom: 3pt;

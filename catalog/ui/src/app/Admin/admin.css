@@ -1,0 +1,36 @@
+.admin-body.pf-c-page__main-section {
+  padding-top: 0px;
+}
+
+.admin-body.pf-c-page__main-section .pf-c-description-list {
+  margin-top: 5pt;
+  row-gap: 5pt;
+}
+
+.admin-body.pf-c-page__main-section .pf-c-tabs {
+  margin-left: -100px;
+  padding-left: 100px;
+  margin-right: -100px;
+  padding-right: 100px;
+  margin-bottom: 10pt;
+}
+
+.admin-header.pf-c-page__main-section {
+  padding-top: 8pt;
+  padding-bottom: 8pt;
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+}
+
+.admin-header.pf-c-page__main-section .pf-c-select.pf-m-expanded > .pf-c-select__menu {
+  max-height: 20em;
+  overflow-y: scroll;
+}
+
+.admin-lifespan-select.pf-c-select.pf-m-expanded > .pf-c-select__menu {
+  max-height: 10em;
+  overflow-y: scroll;
+}
+
+textarea.admin-yaml-display.pf-c-form-control {
+  min-height: 8em;
+}

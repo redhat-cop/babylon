@@ -1,0 +1,264 @@
+import React from "react";
+import { useEffect, useReducer, useState } from "react";
+import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  DescriptionList,
+  DescriptionListTerm,
+  DescriptionListGroup,
+  DescriptionListDescription,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  PageSection,
+  PageSectionVariants,
+  Split,
+  SplitItem,
+  Tabs,
+  Tab,
+  TabTitleText,
+  Title,
+} from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import Editor from "@monaco-editor/react";
+const yaml = require('js-yaml');
+
+import {
+  deleteAnarchyRun,
+  getAnarchyRun,
+} from '@app/api';
+
+import {
+  cancelFetchState,
+  fetchStateReducer,
+} from '@app/reducers';
+
+import {
+  AnarchyRun,
+  FetchState,
+} from '@app/types';
+
+import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
+import AnsibleRunLog from '@app/components/AnsibleRunLog';
+import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import TimeInterval from '@app/components/TimeInterval';
+import { selectConsoleURL } from '@app/store';
+  
+import './admin.css';
+
+interface RouteMatchParams {
+  name: string;
+  namespace: string;
+  tab?: string;
+}
+
+const AnarchyRunInstance: React.FunctionComponent = () => {
+  const history = useHistory();
+  const consoleURL = useSelector(selectConsoleURL);
+  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchyruns/:namespace/:name/:tab?');
+  const anarchyRunName = routeMatch.params.name;
+  const anarchyRunNamespace = routeMatch.params.namespace;
+  const activeTab = routeMatch.params.tab || 'details';
+
+  const [anarchyRun, setAnarchyRun] = useState<AnarchyRun>(null);
+  const [anarchyRunFetchState, reduceAnarchyRunFetchState] = useReducer(fetchStateReducer, {});
+
+  async function confirmThenDelete() {
+    if (confirm(`Delete AnarchyRun ${anarchyRunName}?`)) {
+      await deleteAnarchyRun(anarchyRun);
+      history.push(`/admin/anarchyruns/${anarchyRunNamespace}`);
+    }
+  }
+
+  async function fetchAnarchyRun(): Promise<void> {
+    try {
+      const anarchyRun:AnarchyRun = await getAnarchyRun(anarchyRunNamespace, anarchyRunName);
+      if (anarchyRunFetchState.canceled) {
+        return;
+      } else {
+        setAnarchyRun(anarchyRun);
+      }
+    } catch(error) {
+      if (error instanceof Response && error.status === 404) {
+        setAnarchyRun(null);
+      } else {
+        throw error;
+      }
+    }
+    reduceAnarchyRunFetchState({
+      refreshTimeout: setTimeout(() => reduceAnarchyRunFetchState({type: 'refresh'}), 3000),
+      type: 'finish'
+    });
+  }
+
+  useEffect(() => {
+    if (!anarchyRunFetchState.finished) {
+      fetchAnarchyRun();
+    }
+    return () => cancelFetchState(anarchyRunFetchState);
+  }, [anarchyRunFetchState])
+
+  if (!anarchyRun) {
+    if (anarchyRunFetchState.finished || anarchyRunFetchState.isRefresh) {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              AnarchyRun not found
+            </Title>
+            <EmptyStateBody>
+              AnarchyRun {anarchyRunName} was not found in namespace {anarchyRunNamespace}.
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+      );
+    } else {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      );
+    }
+  }
+
+  return (<>
+    <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <Breadcrumb>
+        <BreadcrumbItem
+          render={({ className }) => <Link to="/admin/anarchyruns" className={className}>AnarchyRuns</Link>}
+        />
+        <BreadcrumbItem
+          render={({ className }) => <Link to={`/admin/anarchyruns/${anarchyRunNamespace}`} className={className}>{anarchyRunNamespace}</Link>}
+        />
+        <BreadcrumbItem>{ anarchyRun.metadata.name }</BreadcrumbItem>
+      </Breadcrumb>
+      <Split>
+        <SplitItem isFilled>
+          <Title headingLevel="h4" size="xl">AnarchyRun {anarchyRun.metadata.name}</Title>
+        </SplitItem>
+        <SplitItem>
+          <ActionDropdown
+            position="right"
+            actionDropdownItems={[
+              <ActionDropdownItem
+                key="delete"
+                label="Delete"
+                onSelect={() => confirmThenDelete()}
+              />,
+              <ActionDropdownItem
+                key="editInOpenShift"
+                label="Edit in OpenShift Console"
+                onSelect={() => window.open(`${consoleURL}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace('/', '~')}~${anarchyRun.kind}/${anarchyRun.metadata.name}/yaml`)}
+              />,
+              <ActionDropdownItem
+                key="openInOpenShift"
+                label="Open in OpenShift Console"
+                onSelect={() => window.open(`${consoleURL}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace('/', '~')}~${anarchyRun.kind}/${anarchyRun.metadata.name}`)}
+              />
+            ]}
+          />
+        </SplitItem>
+      </Split>
+    </PageSection>
+    <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`/admin/anarchyruns/${anarchyRunNamespace}/${anarchyRunName}/${tabIndex}`)}>
+        <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
+          <DescriptionList isHorizontal>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Name</DescriptionListTerm>
+              <DescriptionListDescription>
+                {anarchyRun.metadata.name}
+                <OpenshiftConsoleLink resource={anarchyRun}/>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Namespace</DescriptionListTerm>
+              <DescriptionListDescription>
+                {anarchyRun.metadata.namespace}
+                <OpenshiftConsoleLink resource={anarchyRun} linkToNamespace={true}/>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Created At</DescriptionListTerm>
+              <DescriptionListDescription>
+                <LocalTimestamp timestamp={anarchyRun.metadata.creationTimestamp}/>
+                {' '}
+                (<TimeInterval toTimestamp={anarchyRun.metadata.creationTimestamp}/>)
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>AnarchyGovernor</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Link to={`/admin/anarchygovernors/${anarchyRun.spec.governor.namespace}/${anarchyRun.spec.governor.name}`}>{anarchyRun.spec.governor.name}</Link>
+                <OpenshiftConsoleLink reference={anarchyRun.spec.governor}/>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>AnarchySubject</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Link to={`/admin/anarchysubjects/${anarchyRun.spec.subject.namespace}/${anarchyRun.spec.subject.name}`}>{anarchyRun.spec.subject.name}</Link>
+                <OpenshiftConsoleLink reference={anarchyRun.spec.subject}/>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            { anarchyRun.spec.action ? (
+              <DescriptionListGroup>
+                <DescriptionListTerm>AnarchyAction</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <Link to={`/admin/anarchyactions/${anarchyRun.spec.action.namespace}/${anarchyRun.spec.action.name}`}>{anarchyRun.spec.action.name}</Link>
+                  <OpenshiftConsoleLink reference={anarchyRun.spec.action}/>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null }
+            <DescriptionListGroup>
+              <DescriptionListTerm>AnarchyRunner Pod</DescriptionListTerm>
+              <DescriptionListDescription>
+                { anarchyRun.status?.runnerPod ? (
+                  <>
+                    { anarchyRun.status.runnerPod.name }
+                    <OpenshiftConsoleLink reference={anarchyRun.status.runnerPod}/>
+                  </>
+                ) : '-' }
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Ansible Galaxy Requirements</DescriptionListTerm>
+              <DescriptionListDescription>
+                <pre>{yaml.dump(anarchyRun.spec.ansibleGalaxyRequirements)}</pre>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          </DescriptionList>
+        </Tab>
+        <Tab eventKey="log" title={<TabTitleText>Ansible Log</TabTitleText>}>
+          { anarchyRun.status?.result?.ansibleRun ? (
+            <AnsibleRunLog ansibleRun={anarchyRun.status.result.ansibleRun}/>
+          ) : (
+            <EmptyState variant="full">
+              <EmptyStateIcon icon={ExclamationTriangleIcon} />
+              <Title headingLevel="h1" size="lg">
+                AnarchyRun log not available.
+              </Title>
+            </EmptyState>
+          ) }
+        </Tab>
+        <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
+          <Editor
+            height="500px"
+            language="yaml"
+            options={{readOnly: true}}
+            theme="vs-dark"
+            value={yaml.dump(anarchyRun)}
+          />
+        </Tab>
+      </Tabs>
+    </PageSection>
+  </>);
+}
+
+export default AnarchyRunInstance;

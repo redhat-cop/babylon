@@ -6,11 +6,8 @@ import {
   useSelector,
 } from 'react-redux'
 
-import {
-  getApiSession,
-  getUserInfo,
-  listClusterCustomObject,
-} from '@app/api';
+import { getApiSession, getUserInfo, listUsers } from '@app/api';
+import { User, UserList } from '@app/types';
 
 import {
   actionClearImpersonation,
@@ -24,7 +21,7 @@ import {
   selectUserNamespace,
 } from '@app/store';
 
-import { NavLink, useLocation, useHistory } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 
 import {
   Button,
@@ -34,10 +31,6 @@ import {
   DropdownToggle,
   Modal,
   ModalVariant,
-  Nav,
-  NavList,
-  NavItem,
-  NavExpandable,
   Page,
   PageHeader,
   PageHeaderTools,
@@ -46,25 +39,26 @@ import {
   SkipToContent
 } from '@patternfly/react-core';
 
-import { IUserImpersonationDialogState, IListClusterCustomObjectResp, IListClusterCustomObjectRespItems } from "./entities";
-
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
 
-import { routes, adminRoutes, IAppRoute, IAppRouteGroup } from '@app/routes';
+import { IUserImpersonationDialogState } from "./entities";
+
+import Navigation from "./Navigation";
+
 import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 
-interface IAppLayout {
+interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
+const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   const [isNavOpen, setIsNavOpen] = React.useState(true);
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = React.useState(false);
   const [isMobileView, setIsMobileView] = React.useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = React.useState(false);
-  const [users, setUsers] = React.useState<[IListClusterCustomObjectRespItems] | []>([]);
+  const [users, setUsers] = React.useState<User[]>([]);
   const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState<IUserImpersonationDialogState>({
     isOpen: false,
     matchCount: 0,
@@ -92,7 +86,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const impersonateUserName = sessionStorage.getItem('impersonateUser');
 
   async function getUsers({session}): Promise<void> {
-    const resp: IListClusterCustomObjectResp = await listClusterCustomObject('user.openshift.io', 'v1', 'users', '');
+    const resp:UserList = await listUsers({disableImpersonation: true});
     setUsers(resp.items);
   }
 
@@ -275,55 +269,10 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     />
   );
 
-  const location = useLocation();
-
-  const renderNavItem = (route: IAppRoute, index: number) => (
-    <NavItem key={`${route.label}-${index}`} id={`${route.label}-${index}`}>
-      { route.path === '/services' && userNamespace ? (
-        <NavLink exact={route.exact} to={`/services/ns/${userNamespace.name}`} activeClassName="pf-m-current">
-          {route.label}
-        </NavLink>
-      ) : (
-        <NavLink exact={route.exact} to={route.path} activeClassName="pf-m-current">
-          {route.label}
-        </NavLink>
-      ) }
-    </NavItem>
-  );
-
-  const renderNavGroup = (group: IAppRouteGroup, groupIndex: number) => (
-    <NavExpandable
-      key={`${group.label}-${groupIndex}`}
-      id={`${group.label}-${groupIndex}`}
-      title={group.label}
-      isActive={group.routes.some((route) => route.path === location.pathname)}
-    >
-      {group.routes.map((route, idx) => route.label && renderNavItem(route, idx))}
-    </NavExpandable>
-  );
-
-  const Navigation = (
-    <Nav id="nav-primary-simple" theme="dark">
-      <NavList id="nav-list-simple">
-        {routes.map(
-          // TODO: not getting required type
-          (route, idx) => route.label && (!route.routes ? renderNavItem(route as any, idx) : renderNavGroup(route as any, idx))
-        )}
-        {userIsAdmin ?
-          <NavExpandable title="Admin">
-            {adminRoutes.map(
-              (route, idx) => route.label && renderNavItem(route as any, idx)
-            )}
-          </NavExpandable>
-        : null}
-      </NavList>
-    </Nav>
-  );
-
   const Sidebar = (
     <PageSidebar
       theme="dark"
-      nav={Navigation}
+      nav={<Navigation/>}
       isNavOpen={isMobileView ? isNavOpenMobile : isNavOpen} />
   );
 
