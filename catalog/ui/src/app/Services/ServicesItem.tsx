@@ -1,8 +1,8 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
-import { PencilAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
+import { ExclamationTriangleIcon, PencilAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 
 import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
@@ -48,6 +48,7 @@ import {
 
 import { Namespace, NamespaceList, ResourceClaim, ServiceNamespace } from '@app/types';
 import { displayName, renderContent } from '@app/util';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -64,15 +65,6 @@ import ServicesScheduleActionModal from './ServicesScheduleActionModal';
 
 import './services.css';
 
-export interface FetchState {
-  canceled?: boolean;
-  refreshTimeout?: any;
-}
-
-export interface FetchStateAction {
-  type?: string;
-}
-
 export interface ModalState {
   action?: string;
   modal?: string;
@@ -85,33 +77,12 @@ export interface ServicesItemProps {
   serviceNamespaceName: string;
 }
 
-function cancelFetchState(fetchState:FetchState): void {
-  if (fetchState) {
-    fetchState.canceled = true;
-    if (fetchState.refreshTimeout) {
-      clearTimeout(fetchState.refreshTimeout);
-    }
-  }
-}
-
-function fetchStateReducer(state:FetchState, action:FetchStateAction): FetchState {
-  // Any change in state cancels previous activity.
-  cancelFetchState(state);
-  switch (action.type) {
-    case 'cancel':
-      return null;
-    case 'start':
-      return {};
-    default:
-      throw new Error();
-  }
-}
-
 const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   activeTab, resourceClaimName, serviceNamespaceName
 }) => {
   const history = useHistory();
   const location = useLocation();
+  const componentWillUnmount = useRef(false);
   const sessionResourceClaim = useSelector(
     (state) => selectResourceClaim(state, serviceNamespaceName, resourceClaimName)
   );
@@ -120,15 +91,26 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     (ns:ServiceNamespace) => ns.name == serviceNamespaceName
   );
   const userIsAdmin:boolean = useSelector(selectUserIsAdmin);
-  const fetchEnabled:boolean = userIsAdmin && !sessionServiceNamespace ? true : false;
+  // Enable fetching resource claims if namespace is not background fetched by the redux store.
+  const resourceClaimFetchEnabled:boolean = userIsAdmin && !sessionServiceNamespace ? true : false;
 
-  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, null);
-  const [fetchedResourceClaim, setFetchedResourceClaim] = useState<ResourceClaim|null>(null);
+  const [resourceClaimFetchState, reduceResourceClaimFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [modalState, setModalState] = React.useState<ModalState>({});
-  const [serviceNamespaces, setServiceNamespaces] = useState<ServiceNamespace[]>(null);
-  const serviceNamespace:ServiceNamespace = (serviceNamespaces || []).find(ns => ns.name === serviceNamespaceName) || {name: serviceNamespaceName, displayName: serviceNamespaceName};
 
-  const resourceClaim = sessionServiceNamespace ? sessionResourceClaim : fetchedResourceClaim;
+  const serviceNamespaces:ServiceNamespace[] = userNamespacesFetchState?.items ? (
+    userNamespacesFetchState.items.map((ns:Namespace): ServiceNamespace => {
+      return {
+        name: ns.metadata.name,
+        displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
+      };
+    })
+  ) : sessionServiceNamespaces;
+  const serviceNamespace:ServiceNamespace = (serviceNamespaces || []).find(
+    (ns) => ns.name === serviceNamespaceName
+  ) || {name: serviceNamespaceName, displayName: serviceNamespaceName};
+
+  const resourceClaim:ResourceClaim|null = sessionServiceNamespace ? sessionResourceClaim : resourceClaimFetchState?.item as ResourceClaim;
   const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
   const resources = (resourceClaim?.status?.resources || []).map(r => r.state);
   const userData = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/userData'] || 'null');
@@ -174,10 +156,6 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   // Multiple lab user interface urls for multiuser environments.
   const labUserInterfaceUrls = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrls'] || '{}')
 
-  function startFetchResourceClaim(): void {
-    reduceFetchState({type: 'start'});
-  }
-
   const users = {};
   for (const status_resource of (resourceClaim?.status?.resources || [])) {
     const resource_users = status_resource.state?.spec?.vars?.provision_data?.users;
@@ -187,29 +165,37 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   }
 
   async function fetchResourceClaim(): Promise<void> {
-    const gotResourceClaim = await getResourceClaim(serviceNamespaceName, resourceClaimName)
-    if (fetchState.canceled) {
-      return;
+    let resourceClaim:ResourceClaim = null;
+    try {
+      resourceClaim = await getResourceClaim(serviceNamespaceName, resourceClaimName)
+    } catch(error) {
+      if (!(error instanceof Response && error.status === 404)) {
+        throw error;
+      }
     }
-    setFetchedResourceClaim(gotResourceClaim);
-    fetchState.refreshTimeout = setTimeout(startFetchResourceClaim, 1000);
+    if (!resourceClaimFetchState.activity.canceled) { 
+      reduceResourceClaimFetchState({
+        type: 'post',
+        item: resourceClaim,
+        refreshInterval: 2000,
+        refresh: (): void => {
+          reduceResourceClaimFetchState({type: 'startRefresh'});
+        }
+      });
+    }
+    //resourceClaimFetchState.refreshTimeout = setTimeout(startFetchResourceClaim, 1000);
   }
 
-  async function initServiceNamespaces(fetchState:FetchState): Promise<void> {
+  async function fetchUserNamespaces(): Promise<void> {
     const userNamespaceList:NamespaceList = await listNamespaces({
       labelSelector: 'usernamespace.gpte.redhat.com/user-uid'
     })
-    if (fetchState.canceled) {
-     return;
+    if (!userNamespacesFetchState.activity.canceled) {
+      reduceUserNamespacesFetchState({
+        type: 'post',
+        k8sObjectList: userNamespaceList,
+      });
     }
-    setServiceNamespaces(
-      (userNamespaceList.items || []).map((ns:Namespace): ServiceNamespace => {
-        return {
-          name: ns.metadata.name,
-          displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-        }
-      })
-    );
   }
 
   async function onModalAction(): Promise<void> {
@@ -220,8 +206,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       const resourceClaimUpdate:ResourceClaim = modalState.action === 'start' ?
         await startAllResourcesInResourceClaim(resourceClaim) :
         await stopAllResourcesInResourceClaim(resourceClaim);
-      if (fetchEnabled) {
-        setFetchedResourceClaim(resourceClaimUpdate);
+      if (resourceClaimFetchEnabled) {
+        reduceResourceClaimFetchState({type: 'updateItem', item: resourceClaimUpdate});
       }
     }
     setModalState({});
@@ -231,46 +217,91 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     const resourceClaimUpdate:ResourceClaim = modalState.action === "retirement" ?
       await setLifespanEndForResourceClaim(resourceClaim, date) :
       await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
-    if (fetchEnabled) {
-      setFetchedResourceClaim(resourceClaimUpdate);
+    if (resourceClaimFetchEnabled) {
+      reduceResourceClaimFetchState({type: 'updateItem', item: resourceClaimUpdate});
     }
     setModalState({});
   }
 
+  // Track unmount for other effect cleanups
+  useEffect(() => {
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
+  // Start fetch of user namespaces for admin users
   useEffect(() => {
     if (userIsAdmin) {
-      const fetchState:FetchState = {};
-      initServiceNamespaces(fetchState);
-      return () => cancelFetchState(fetchState);
-    } else if (userIsAdmin === false) {
-      setServiceNamespaces(sessionServiceNamespaces);
+      reduceUserNamespacesFetchState({type: 'startFetch'});
     }
-    return null;
   }, [userIsAdmin]);
 
+  // Start fetching resource claim
   useEffect(() => {
-    if (fetchEnabled) {
-      startFetchResourceClaim();
+    if (resourceClaimFetchEnabled) {
+      reduceResourceClaimFetchState({type: 'startFetch'});
     }
-  }, [fetchEnabled, resourceClaimName, serviceNamespaceName])
+  }, [resourceClaimFetchEnabled, resourceClaimName, serviceNamespaceName])
 
+  // Fetch user namespaces
   useEffect(() => {
-    if (fetchState) {
+    if (userNamespacesFetchState?.canContinue) {
+      fetchUserNamespaces();
+    }
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(userNamespacesFetchState);
+      }
+    }
+  }, [userNamespacesFetchState])
+
+  // Fetch ResourceClaim
+  useEffect(() => {
+    if (resourceClaimFetchState?.canContinue) {
       fetchResourceClaim();
-      return () => cancelFetchState(fetchState);
-    } else {
-      return null;
     }
-  }, [fetchState])
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(resourceClaimFetchState);
+      }
+    }
+  }, [resourceClaimFetchState])
 
-  if (!serviceNamespaces) {
+  // Show loading until whether the user is admin is determined.
+  if (userIsAdmin === null) {
     return (
       <PageSection>
         <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
+        <EmptyStateIcon icon={LoadingIcon} />
         </EmptyState>
       </PageSection>
     );
+  }
+
+  // Show loading or not found
+  if (!resourceClaim) {
+    if (resourceClaimFetchEnabled && (!resourceClaimFetchState || resourceClaimFetchState.item === undefined)) {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      );
+    } else {
+      return (
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={ExclamationTriangleIcon} />
+          <Title headingLevel="h1" size="lg">
+            Service not found
+          </Title>
+          <EmptyStateBody>
+            ResourceClaim {resourceClaimName} was not found in {serviceNamespaceName}.
+          </EmptyStateBody>
+        </EmptyState>
+      );
+    }
   }
 
   return (<>
@@ -291,7 +322,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
         resourceClaim={resourceClaim}
       />
     ) : null }
-    { serviceNamespaces.length > 1 ? (
+    { userIsAdmin || serviceNamespaces.length > 1 ? (
       <PageSection key="topbar" className="services-topbar" variant={PageSectionVariants.light}>
         <ServiceNamespaceSelect
           currentNamespaceName={serviceNamespaceName}
@@ -309,18 +340,18 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     <PageSection key="head" className="services-item-head" variant={PageSectionVariants.light}>
       <Split hasGutter>
         <SplitItem isFilled>
-      { serviceNamespaces.length > 1 ? (
-        <Breadcrumb>
-          <BreadcrumbItem render={({ className }) => <Link to="/services" className={className}>Services</Link>}/>
-          <BreadcrumbItem render={({ className }) => <Link to={`/services/${serviceNamespaceName}`} className={className}>{displayName(serviceNamespace)}</Link>}/>
-          <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
-        </Breadcrumb>
-      ) : (
-        <Breadcrumb>
-          <BreadcrumbItem render={({ className }) => <Link to={`/services/${serviceNamespaceName}`} className={className}>Services</Link>}/>
-          <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
-        </Breadcrumb>
-      )}
+          { userIsAdmin || serviceNamespaces.length > 1 ? (
+            <Breadcrumb>
+              <BreadcrumbItem render={({ className }) => <Link to="/services" className={className}>Services</Link>}/>
+              <BreadcrumbItem render={({ className }) => <Link to={`/services/${serviceNamespaceName}`} className={className}>{displayName(serviceNamespace)}</Link>}/>
+              <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
+            </Breadcrumb>
+          ) : (
+            <Breadcrumb>
+              <BreadcrumbItem render={({ className }) => <Link to={`/services/${serviceNamespaceName}`} className={className}>Services</Link>}/>
+              <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
+            </Breadcrumb>
+          )}
           <Title headingLevel="h4" size="xl">{displayName(resourceClaim)}</Title>
         </SplitItem>
         <SplitItem>

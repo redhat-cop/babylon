@@ -76,14 +76,17 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
   const anarchySubjectNamespace = routeMatch.params.namespace;
   const activeTab = routeMatch.params.tab || 'details';
 
-  const [anarchyActions, reduceAnarchyActions] = useReducer(k8sObjectsReducer, []);
+  const [_anarchyActions, reduceAnarchyActions] = useReducer(k8sObjectsReducer, []);
   const [anarchyActionsFetchState, reduceAnarchyActionsFetchState] = useReducer(fetchStateReducer, {});
-  const [anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
+  const [_anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
   const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(fetchStateReducer, {});
   const [anarchySubject, setAnarchySubject] = useState<AnarchySubject|null>(null);
   const [anarchySubjectFetchState, reduceAnarchySubjectFetchState] = useReducer(fetchStateReducer, {});
   const [selectedAnarchyActionUids, reduceAnarchyActionSelectedUids] = useReducer(selectedUidsReducer, []);
   const [selectedAnarchyRunUids, reduceAnarchyRunSelectedUids] = useReducer(selectedUidsReducer, []);
+
+  const anarchyActions = _anarchyActions as AnarchyAction[];
+  const anarchyRuns = _anarchyRuns as AnarchyRun[];
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchySubject ${anarchySubjectName}?`)) {

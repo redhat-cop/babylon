@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
 
@@ -48,11 +48,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 
-import {
-  K8sFetchState,
-  cancelFetchState,
-  k8sFetchStateReducer
-} from '@app/K8sFetchState';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import {
   checkResourceClaimCanStart,
@@ -68,7 +64,7 @@ import ServicesScheduleActionModal from './ServicesScheduleActionModal';
 
 import './services.css';
 
-const FETCH_BATCH_LIMIT = 50;
+const FETCH_BATCH_LIMIT = 30;
 
 function keywordMatch(resourceClaim:ResourceClaim, keyword:string): boolean {
   const keywordLowerCased = keyword.toLowerCase();
@@ -125,6 +121,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
 }) => {
   const history = useHistory();
   const location = useLocation();
+  const componentWillUnmount = useRef(false);
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
 
@@ -140,30 +137,55 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
   // by the store, but if the user is an admin and the services list isn't
   // restricted to the admin's service namespaces then we need to use logic
   // in this component to fetch the ResourceClaims.
-  const fetchEnabled:boolean = userIsAdmin && !sessionServiceNamespace;
+  const enableFetchResourceClaims:boolean = userIsAdmin && !sessionServiceNamespace;
 
-  const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
-  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
+  // As admin we need to fetch service namespaces for the service namespace dropdown
+  const enableFetchUserNamespaces:boolean = userIsAdmin;
+
+  const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [modalState, setModalState] = React.useState<ModalState>({});
   const [selectedUids, setSelectedUids] = React.useState([]);
-  const [serviceNamespaces, setServiceNamespaces] = useState<ServiceNamespace[]>(null);
-  const serviceNamespace = serviceNamespaceName && serviceNamespaces ?
-    serviceNamespaces.find((ns:ServiceNamespace) => ns.name === serviceNamespaceName) : null;
 
-  const resourceClaims:ResourceClaim[] = fetchEnabled ? (
-    fetchState?.filteredItems || []
+  const serviceNamespaces:ServiceNamespace[] = enableFetchUserNamespaces ? (
+    userNamespacesFetchState?.items ? (
+      userNamespacesFetchState.items.map((ns:Namespace): ServiceNamespace => {
+        return {
+          name: ns.metadata.name,
+          displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
+        };
+      })
+    ) : []
+  ): sessionServiceNamespaces;
+
+  const serviceNamespace:ServiceNamespace = serviceNamespaces.find(
+    (ns) => ns.name === serviceNamespaceName
+  ) || {name: serviceNamespaceName, displayName: serviceNamespaceName};
+
+  const fetchNamespaces:string[] = serviceNamespaceName ? [serviceNamespaceName] : (
+    userIsAdmin ? null : serviceNamespaces.map((ns) => ns.name)
+  );
+
+  const resourceClaims:ResourceClaim[] = enableFetchResourceClaims ? (
+    resourceClaimsFetchState?.filteredItems as ResourceClaim[] || []
   ) : (
     serviceNamespaceName ? sessionResourceClaimsInNamespace : sessionResourceClaims
   ).filter(filterResourceClaim);
 
   // Trigger continue fetching more resource claims on scroll.
-  if (fetchEnabled) {
+  if (enableFetchResourceClaims) {
     const primaryAppContainer = document.getElementById('primary-app-container');
     primaryAppContainer.onscroll = (e) => {
       const scrollable = e.target as any;
       const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-      if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= fetchState.filteredItems.length) {
-        setFetchLimit((limit) => limit + FETCH_BATCH_LIMIT);
+      if (scrollRemaining < 500
+        && !resourceClaimsFetchState?.finished
+        && resourceClaimsFetchState.limit <= resourceClaimsFetchState.filteredItems.length
+      ) {
+        reduceResourceClaimsFetchState({
+          type: 'modify',
+          limit: resourceClaimsFetchState.limit + FETCH_BATCH_LIMIT,
+        });
       }
     }
   }
@@ -183,73 +205,34 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
     return true;
   }
 
-  function refreshResourceClaims(): void {
-    reduceFetchState({type: 'startRefresh'});
-  }
-
-  function reloadResourceClaims(): void {
-    setSelectedUids([]);
-    if (fetchEnabled) {
-      const fetchNamespaces:string[] = serviceNamespaceName ? [serviceNamespaceName] : (
-        userIsAdmin ? null : serviceNamespaces.map((ns) => ns.name)
-      );
-      if (JSON.stringify(fetchNamespaces) !== JSON.stringify(fetchState?.namespaces)) {
-        reduceFetchState({
-          type: 'startFetch',
-          filter: filterResourceClaim,
-          namespaces: fetchNamespaces,
-          prune: pruneResourceClaim,
-        });
-      } else {
-        reduceFetchState({
-          type: 'setFilter',
-          filter: filterResourceClaim,
-        });
-      }
-    } else if(fetchState) {
-      cancelFetchState(fetchState);
-    }
-  }
-
-  function startFetch(): void {
-    reduceFetchState({
-      type: 'startFetch',
-      namespaces: serviceNamespaces ? serviceNamespaces.map((ns) => ns.name) : null,
-    });
-  }
-
   async function fetchResourceClaims(): Promise<void> {
     const resourceClaimList:ResourceClaimList = await listResourceClaims({
-      continue: fetchState.continue,
+      continue: resourceClaimsFetchState.continue,
       limit: FETCH_BATCH_LIMIT,
-      namespace: fetchState.namespace,
+      namespace: resourceClaimsFetchState.namespace,
     });
-    if (!fetchState.canceled) { 
-      reduceFetchState({
+    if (!resourceClaimsFetchState.activity.canceled) {
+      reduceResourceClaimsFetchState({
         type: 'post',
         k8sObjectList: resourceClaimList,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceResourceClaimsFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
-  async function initServiceNamespaces(fetchState:K8sFetchState): Promise<void> {
+  async function fetchUserNamespaces(): Promise<void> {
     const userNamespaceList:NamespaceList = await listNamespaces({
       labelSelector: 'usernamespace.gpte.redhat.com/user-uid'
     })
-    if (fetchState.canceled) {
-      return;
+    if (!userNamespacesFetchState.activity.canceled) {
+      reduceUserNamespacesFetchState({
+        type: 'post',
+        k8sObjectList: userNamespaceList,
+      });
     }
-    const fetchServiceNamespaces = (userNamespaceList.items || []).map((ns:Namespace): ServiceNamespace => {
-      return {
-        name: ns.metadata.name,
-        displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-      }
-    });
-    if (serviceNamespaceName && !fetchServiceNamespaces.find((ns) => ns.name === serviceNamespaceName)) {
-      fetchServiceNamespaces.push({name: serviceNamespaceName, displayName: serviceNamespaceName});
-      fetchServiceNamespaces.sort((a, b) => a.name < b.name ? -1 : a.name === b.name ? 0 : 1)
-    }
-    setServiceNamespaces(fetchServiceNamespaces);
   }
 
   async function onModalAction(): Promise<void> {
@@ -263,14 +246,14 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
         }
       }
     }
-    if (fetchEnabled) {
+    if (enableFetchResourceClaims) {
       if (modalState.action === 'delete') {
-        reduceFetchState({
+        reduceResourceClaimsFetchState({
           type: 'removeItems',
           items: resourceClaimUpdates,
         })
       } else {
-        reduceFetchState({
+        reduceResourceClaimsFetchState({
           type: 'updateItems',
           items: resourceClaimUpdates,
         })
@@ -283,8 +266,8 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
     const resourceClaimUpdate:ResourceClaim = modalState.action === "retirement" ?
       await setLifespanEndForResourceClaim(modalState.resourceClaim, date) :
       await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
-    if (fetchEnabled) {
-      reduceFetchState({
+    if (enableFetchResourceClaims) {
+      reduceResourceClaimsFetchState({
         type: 'updateItems',
         items: [resourceClaimUpdate],
       })
@@ -306,42 +289,78 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
     }
   }
 
-  // Set service namespaces
+  // Track unmount for other effect cleanups
+  useEffect(() => {
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
+  // Trigger user namespaces fetch for admin.
   useEffect(() => {
     if (userIsAdmin) {
-      const fetchState:K8sFetchState = {};
-      initServiceNamespaces(fetchState);
-      return () => {
-        cancelFetchState(fetchState)
-      };
-    } else if (userIsAdmin === false) {
-      setServiceNamespaces(sessionServiceNamespaces);
+      reduceUserNamespacesFetchState({type: 'startFetch'});
     }
-    return null;
   }, [userIsAdmin]);
 
-  // Fetch or continue fetching
+  // Fetch or continue fetching resource claims
   useEffect(() => {
-    if (fetchState && !fetchState.finished && fetchState.filteredItems.length < fetchLimit) {
+    if (resourceClaimsFetchState?.canContinue && (
+      resourceClaimsFetchState.refreshing ||
+      resourceClaimsFetchState.filteredItems.length < resourceClaimsFetchState.limit
+    )) {
       fetchResourceClaims();
-      return () => cancelFetchState(fetchState);
-    } else {
-      return null;
     }
-  }, [fetchState, fetchLimit]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(resourceClaimsFetchState);
+      }
+    }
+  }, [resourceClaimsFetchState]);
+
+  useEffect(() => {
+    if (userNamespacesFetchState?.canContinue) {
+      fetchUserNamespaces();
+    }
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(userNamespacesFetchState);
+      }
+    }
+  }, [userNamespacesFetchState])
 
   // Reload on filter change
   useEffect(() => {
-    if (serviceNamespaces) {
-      reloadResourceClaims();
+    if (enableFetchResourceClaims) {
+      if (!resourceClaimsFetchState ||
+        JSON.stringify(fetchNamespaces) !== JSON.stringify(resourceClaimsFetchState?.namespaces)
+      ) {
+        reduceResourceClaimsFetchState({
+          type: 'startFetch',
+          filter: filterResourceClaim,
+          limit: FETCH_BATCH_LIMIT,
+          namespaces: fetchNamespaces,
+          prune: pruneResourceClaim,
+        });
+      } else if(resourceClaimsFetchState) {
+        reduceResourceClaimsFetchState({
+          type: 'modify',
+          filter: filterResourceClaim,
+        });
+      }
+    } else if(resourceClaimsFetchState) {
+      cancelFetchActivity(resourceClaimsFetchState);
     }
-  }, [JSON.stringify(serviceNamespaces), serviceNamespaceName, JSON.stringify(keywordFilter)]);
+  }, [enableFetchResourceClaims, JSON.stringify(fetchNamespaces), JSON.stringify(keywordFilter)]);
 
-  if (!serviceNamespaces) {
+  // Show loading until whether the user is admin is determined.
+  if (userIsAdmin === null ||
+    (enableFetchUserNamespaces && !userNamespacesFetchState?.finished)
+  ) {
     return (
       <PageSection>
         <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
+        <EmptyStateIcon icon={LoadingIcon} />
         </EmptyState>
       </PageSection>
     );
@@ -368,7 +387,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
       <Redirect to={`/services/${serviceNamespaces[0].name}`}/>
     );
   }
-  
+
   return (<>
     { modalState.modal === 'action' ? (
       <ServicesActionModal key="actionModal"
@@ -444,7 +463,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
       </Split>
     </PageSection>
     { resourceClaims.length === 0 ? (
-      fetchEnabled && !fetchState?.finished ? (
+      enableFetchResourceClaims && !resourceClaimsFetchState?.finished ? (
         <PageSection key="body-loading">
           <EmptyState variant="full">
             <EmptyStateIcon icon={LoadingIcon} />
@@ -628,11 +647,11 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
             };
           })}
         />
-        { fetchEnabled && !fetchState?.finished ? (
+        { enableFetchResourceClaims && !resourceClaimsFetchState?.finished && !resourceClaimsFetchState?.refreshing ?
           <EmptyState variant="full">
             <EmptyStateIcon icon={LoadingIcon} />
           </EmptyState>
-        ) : null }
+        : null }
       </PageSection>
     )}
   </>);

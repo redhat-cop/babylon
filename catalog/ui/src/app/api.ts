@@ -16,7 +16,9 @@ import {
   ResourceHandle,
   ResourceHandleList,
   ResourcePool,
+  ResourcePoolList,
   ResourceProvider,
+  ResourceProviderList,
   User,
   UserList,
 } from '@app/types';
@@ -278,7 +280,7 @@ export async function createServiceRequest({
 export async function getAnarchyAction(namespace:string, name:string): Promise<AnarchyAction> {
   return await getNamespacedCustomObject(
     'anarchy.gpte.redhat.com', 'v1', namespace, 'anarchyactions', name
-  );
+  ) as AnarchyAction;
 }
 
 export async function getApiSession(): Promise<any> {
@@ -295,43 +297,43 @@ export async function getApiSession(): Promise<any> {
 export async function getAnarchyGovernor(namespace:string, name:string): Promise<AnarchyGovernor> {
   return await getNamespacedCustomObject(
     'anarchy.gpte.redhat.com', 'v1', namespace, 'anarchygovernors', name
-  );
+  ) as AnarchyGovernor;
 }
 
 export async function getAnarchyRun(namespace:string, name:string): Promise<AnarchyRun> {
   return await getNamespacedCustomObject(
     'anarchy.gpte.redhat.com', 'v1', namespace, 'anarchyruns', name
-  );
+  ) as AnarchyRun;
 }
 
 export async function getAnarchySubject(namespace:string, name:string): Promise<AnarchySubject> {
   return await getNamespacedCustomObject(
     'anarchy.gpte.redhat.com', 'v1', namespace, 'anarchysubjects', name
-  );
+  ) as AnarchySubject;
 }
 
 export async function getResourceClaim(namespace, name): Promise<ResourceClaim> {
   return await getNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', name
-  );
+  ) as ResourceClaim;
 }
 
 export async function getResourceHandle(name:string): Promise<ResourceHandle> {
   return await getNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', 'poolboy', 'resourcehandles', name
-  );
+  ) as ResourceHandle;
 }
 
 export async function getResourcePool(name:string): Promise<ResourcePool> {
   return await getNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', 'poolboy', 'resourcepools', name
-  )
+  ) as ResourcePool;
 }
 
 export async function getResourceProvider(name:string): Promise<ResourceProvider> {
   return await getNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', 'poolboy', 'resourceproviders', name
-  )
+  ) as ResourceProvider;
 }
 
 export async function getUserInfo(user): Promise<any> {
@@ -407,7 +409,7 @@ export async function listCatalogItems(opt?:K8sObjectListCommonOpt): Promise<Cat
     apiVersion: 'babylon.gpte.redhat.com/v1',
     plural: 'catalogitems',
     ...opt
-  });
+  }) as CatalogItemList;
 }
 
 export async function listResourceClaims(opt?:K8sObjectListCommonOpt): Promise<ResourceClaimList> {
@@ -415,7 +417,7 @@ export async function listResourceClaims(opt?:K8sObjectListCommonOpt): Promise<R
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     plural: 'resourceclaims',
     ...opt
-  });
+  }) as ResourceClaimList;
 }
 
 export async function listResourceHandles(opt?:K8sObjectListCommonOpt): Promise<ResourceHandleList> {
@@ -424,25 +426,25 @@ export async function listResourceHandles(opt?:K8sObjectListCommonOpt): Promise<
     namespace: 'poolboy',
     plural: 'resourcehandles',
     ...opt
-  });
+  }) as ResourceHandleList;
 }
 
-export async function listResourcePools(opt?:K8sObjectListCommonOpt): Promise<any> {
+export async function listResourcePools(opt?:K8sObjectListCommonOpt): Promise<ResourcePoolList> {
   return await listK8sObjects({
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     namespace: 'poolboy',
     plural: 'resourcepools',
     ...opt
-  });
+  }) as ResourcePoolList;
 }
 
-export async function listResourceProviders(opt?:K8sObjectListCommonOpt): Promise<any> {
+export async function listResourceProviders(opt?:K8sObjectListCommonOpt): Promise<ResourceProviderList> {
   return await listK8sObjects({
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     namespace: 'poolboy',
     plural: 'resourceproviders',
     ...opt
-  });
+  }) as ResourceProviderList;
 }
 
 export async function listUsers(opt?:K8sObjectListCommonOpt): Promise<UserList> {
@@ -450,7 +452,7 @@ export async function listUsers(opt?:K8sObjectListCommonOpt): Promise<UserList> 
     apiVersion: 'user.openshift.io/v1',
     plural: 'users',
     ...opt
-  });
+  }) as UserList;
 }
 
 export async function scalePool(resourcepool, minAvailable): Promise<any> {
@@ -514,7 +516,7 @@ export async function deleteResourceClaim(resourceClaim): Promise<ResourceClaim>
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionDeleteResourceClaim({
     namespace: resourceClaim.metadata.namespace,
     name: resourceClaim.metadata.name,
@@ -554,10 +556,10 @@ export async function patchResourceClaim(
   name: string,
   patch: object,
   opt: any= {},
-): Promise<object> {
+): Promise<ResourceClaim> {
   const resourceClaim = await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', name, patch
-  );
+  ) as ResourceClaim;
   if (!opt.skipUpdateStore) {
     store.dispatch(
       apiActionInsertResourceClaim({
@@ -574,7 +576,7 @@ export async function patchResourcePool(
 ): Promise<ResourcePool> {
   const resourcePool = await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', 'poolboy', 'resourcepools', name, patch
-  );
+  ) as ResourcePool;
   return resourcePool;
 }
 
@@ -593,7 +595,7 @@ export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim:R
     'resourceclaims',
     resourceClaim.metadata.name,
     patch,
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionUpdateResourceClaim({
     resourceClaim: updatedResourceClaim,
   }));
@@ -618,7 +620,7 @@ export async function setLifespanEndForResourceClaim(resourceClaim:ResourceClaim
     'resourceclaims',
     resourceClaim.metadata.name,
     data,
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionUpdateResourceClaim({
     resourceClaim: updatedResourceClaim,
   }));
@@ -645,7 +647,7 @@ export async function startAllResourcesInResourceClaim(resourceClaim:ResourceCla
     'resourceclaims',
     resourceClaim.metadata.name,
     data,
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionUpdateResourceClaim({
     resourceClaim: patchedResourceClaim,
   }));
@@ -667,7 +669,7 @@ export async function stopAllResourcesInResourceClaim(resourceClaim): Promise<Re
     'resourceclaims',
     resourceClaim.metadata.name,
     data,
-  );
+  ) as ResourceClaim;
   store.dispatch(apiActionUpdateResourceClaim({
     resourceClaim: patchedResourceClaim,
   }));

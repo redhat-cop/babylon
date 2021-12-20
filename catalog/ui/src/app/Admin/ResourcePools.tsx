@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useLocation } from 'react-router-dom';
 import {
   EmptyState,
@@ -13,8 +13,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteResourcePool, listResourcePools } from '@app/api';
-import { cancelFetchState, fetchStateReducer, k8sObjectsReducer, selectedUidsReducer } from '@app/reducers';
-import { FetchState, ResourcePool, ResourcePoolList } from '@app/types';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
+import { K8sObject, ResourcePool, ResourcePoolList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -81,21 +82,31 @@ function pruneResourcePool(resourcePool:ResourcePool): ResourcePool {
 const ResourcePools: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
+  const componentWillUnmount = useRef(false);
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
 
-  const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
-  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, {});
-  const [firstRender, setFirstRender] = useState(true);
-  const [resourcePools, reduceResourcePools] = useReducer(k8sObjectsReducer, []);
+  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
+
+  const resourcePools:ResourcePool[] = fetchState?.filteredItems as ResourcePool[] || [];
+
+  const filterFunction = keywordFilter ? (
+    (resourcePool:K8sObject):boolean => filterResourcePool(resourcePool as ResourcePool, keywordFilter)
+  ) : null;
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
     const scrollable = e.target as any;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= resourcePools.length) {
-      setFetchLimit((limit) => limit + FETCH_BATCH_LIMIT);
+    if (scrollRemaining < 500
+      && !fetchState?.finished
+      && fetchState.limit <= resourcePools.length
+    ) {
+      reduceFetchState({
+        type: 'modify',
+        limit: fetchState.limit + FETCH_BATCH_LIMIT,
+      });
     }
   }
 
@@ -109,7 +120,7 @@ const ResourcePools: React.FunctionComponent = () => {
         }
       }
       reduceSelectedUids({type: 'clear'});
-      reduceResourcePools({type: 'remove', items: removedResourcePools});
+      reduceFetchState({type: 'removeItems', items: removedResourcePools});
     }
   }
 
@@ -118,53 +129,67 @@ const ResourcePools: React.FunctionComponent = () => {
       continue: fetchState.continue,
       limit: FETCH_BATCH_LIMIT,
     });
-    if (!fetchState.canceled) {
-      const resourcePools:ResourcePool[] = resourcePoolList.items
-        .filter((resourcePool) => filterResourcePool(resourcePool, keywordFilter))
-        .map(pruneResourcePool);
-      reduceResourcePools({
-        type: fetchState.isRefresh ? 'refresh' : 'append',
-        items: resourcePools,
-        refreshComplete: fetchState.isRefresh && resourcePoolList.metadata.continue ? false : true,
-        refreshedUids: fetchState.isRefresh ? fetchState.fetchedUids : null,
-      });
+    if (!fetchState.activity.canceled) {
       reduceFetchState({
-        type: 'finish',
-        continue: resourcePoolList.metadata.continue,
-        items: resourcePools,
+        type: 'post',
+        k8sObjectList: resourcePoolList,
+        refreshInterval: 15000,
+        refresh: (): void => {
+          reduceFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
-  function reloadResourcePools() {
-    reduceResourcePools({type: 'clear'});
-    reduceFetchState({type: 'start'});
+  function onResourcePoolChange(resourcePool:ResourcePool): void {
+    reduceFetchState({
+      type: 'updateItems',
+      items: [resourcePool],
+    });
+  }
+
+  function reloadResourcePools(): void {
+    reduceFetchState({
+      type: 'startFetch',
+      filter: filterFunction,
+      limit: FETCH_BATCH_LIMIT,
+      prune: pruneResourcePool,
+    });
     reduceSelectedUids({type: 'clear'});
   }
 
+  // First render and detect unmount
+  useEffect(() => {
+    reloadResourcePools();
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
   // Fetch or continue fetching
   useEffect(() => {
-    if (!fetchState.finished && resourcePools.length < fetchLimit) {
+    if (fetchState?.canContinue && (
+      fetchState.refreshing ||
+      fetchState.filteredItems.length < fetchState.limit
+    )) {
       fetchResourcePools();
-      return () => cancelFetchState(fetchState);
-    } else {
-      return null;
     }
-  }, [fetchState, fetchLimit]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(fetchState);
+      }
+    }
+  }, [fetchState]);
 
-  // Reload on filter change
+  // Handle keyword filter change
   useEffect(() => {
-    if(!firstRender) {
-      reloadResourcePools();
+    if (fetchState) {
+      reduceFetchState({
+        type: 'modify',
+        filter: filterFunction,
+      });
     }
   }, [JSON.stringify(keywordFilter)]);
-
-  // Track first render
-  useEffect(() => {
-    if(firstRender) {
-      setFirstRender(false);
-    }
-  }, [firstRender]);
 
   return (<>
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
@@ -203,7 +228,7 @@ const ResourcePools: React.FunctionComponent = () => {
       </Split>
     </PageSection>
     { resourcePools.length === 0 ? (
-      fetchState.finished ? (
+      fetchState?.finished ? (
         <PageSection>
           <EmptyState variant="full">
             <EmptyStateIcon icon={ExclamationTriangleIcon} />
@@ -241,7 +266,7 @@ const ResourcePools: React.FunctionComponent = () => {
                   <OpenshiftConsoleLink key="console" resource={resourcePool}/>
                 </>,
                 <>
-                  <ResourcePoolMinAvailableInput resourcePool={resourcePool}/>
+                  <ResourcePoolMinAvailableInput onChange={onResourcePoolChange} resourcePool={resourcePool}/>
                 </>,
                 <>
                   { resourcePool.spec.resources.map((resourcePoolSpecResource, idx) =>
@@ -265,7 +290,7 @@ const ResourcePools: React.FunctionComponent = () => {
             };
           })}
         />
-        { fetchState?.continue ? (
+        { fetchState?.canContinue ? (
           <EmptyState variant="full">
             <EmptyStateIcon icon={LoadingIcon} />
           </EmptyState>

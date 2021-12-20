@@ -1,13 +1,13 @@
 import React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import {
   Select,
   SelectOption,
   SelectVariant,
 } from '@patternfly/react-core';
-import {
-  listNamespaces,
-} from '@app/api';
+import { listNamespaces } from '@app/api';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { Namespace, NamespaceList } from '@app/types';
 
 export interface AnarchyNamespaceSelectProps {
   namespace: string;
@@ -18,19 +18,42 @@ const AnarchyNamespaceSelect: React.FunctionComponent<AnarchyNamespaceSelectProp
   namespace,
   onSelect,
 }) => {
+  const componentWillUnmount = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [anarchyNamespaces, setAnarchyNamespaces] = useState([]);
+  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
+
+  const anarchyNamespaces:Namespace[] = fetchState?.items as Namespace[] || [];
 
   async function fetchAnarchyNamespaces() {
     const namespaceList = await listNamespaces({
       labelSelector: "app.kubernetes.io/name=anarchy",
     });
-    setAnarchyNamespaces(namespaceList.items || []);
+    if (!fetchState.activity.canceled) {
+      reduceFetchState({
+        type: 'post',
+        k8sObjectList: namespaceList,
+      });
+    }
   }
 
   useEffect(() => {
-    fetchAnarchyNamespaces();
+    return () => {
+      componentWillUnmount.current = true;
+    }
   }, []);
+
+  useEffect(() => {
+    if (!fetchState) {
+       reduceFetchState({type: 'startFetch'});
+    } else if (fetchState.canContinue) {
+      fetchAnarchyNamespaces();
+    }
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(fetchState);
+      }
+    }
+  }, [fetchState]);
 
   return (
     <Select

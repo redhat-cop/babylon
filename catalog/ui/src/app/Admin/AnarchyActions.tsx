@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
   EmptyState,
@@ -13,8 +13,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteAnarchyAction, listAnarchyActions } from '@app/api';
-import { cancelFetchState, fetchStateReducer, k8sObjectsReducer, selectedUidsReducer } from '@app/reducers';
-import { AnarchyAction, AnarchyActionList, FetchState } from '@app/types';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
+import { AnarchyAction, AnarchyActionList, K8sObject } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -28,16 +29,16 @@ import AnarchyNamespaceSelect from './AnarchyNamespaceSelect';
 
 import './admin.css';
 
-const FETCH_BATCH_LIMIT = 50;
+const FETCH_BATCH_LIMIT = 20;
 
 function keywordMatch(anarchyAction:AnarchyAction, keyword:string): boolean {
   if (anarchyAction.metadata.name.includes(keyword)) {
     return true;
   }
-  if (anarchyAction.spec.governorRef.name.includes(keyword)) {
+  if (anarchyAction.spec.governorRef?.name.includes(keyword)) {
     return true;
   }
-  if (anarchyAction.spec.subjectRef.name.includes(keyword)) {
+  if (anarchyAction.spec.subjectRef?.name.includes(keyword)) {
     return true;
   }
   return false;
@@ -56,7 +57,7 @@ function filterAnarchyAction(anarchyAction:AnarchyAction, keywordFilter:string[]
   return true;
 }
 
-function pruneAnarchyAction(anarchyAction:AnarchyAction) {
+function pruneAnarchyAction(anarchyAction:AnarchyAction): AnarchyAction {
   return {
     apiVersion: anarchyAction.apiVersion,
     kind: anarchyAction.kind,
@@ -81,24 +82,34 @@ function pruneAnarchyAction(anarchyAction:AnarchyAction) {
 const AnarchyActions: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
+  const componentWillUnmount = useRef(false);
   const routeMatch = useRouteMatch<any>('/admin/anarchyactions/:namespace?');
   const anarchyNamespace = routeMatch.params.namespace;
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
   const actionFilter = urlSearchParams.has('action') ? urlSearchParams.get('action') : null;
 
-  const [anarchyActions, reduceAnarchyActions] = useReducer(k8sObjectsReducer, []);
+  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
-  const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
-  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, {});
-  const [firstRender, setFirstRender] = useState(true);
+
+  const anarchyActions:AnarchyAction[] = fetchState?.filteredItems as AnarchyAction[] || [];
+
+  const filterFunction = keywordFilter ? (
+    (anarchyAction:K8sObject):boolean => filterAnarchyAction(anarchyAction as AnarchyAction, keywordFilter)
+  ) : null;
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
     const scrollable = e.target as any;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= anarchyActions.length) {
-      setFetchLimit((limit) => limit + FETCH_BATCH_LIMIT);
+    if (scrollRemaining < 500
+      && !fetchState?.finished
+      && fetchState.limit <= anarchyActions.length
+    ) {
+      reduceFetchState({
+        type: 'modify',
+        limit: fetchState.limit + FETCH_BATCH_LIMIT,
+      });
     }
   }
 
@@ -112,7 +123,7 @@ const AnarchyActions: React.FunctionComponent = () => {
         }
       }
       reduceSelectedUids({type: 'clear'});
-      reduceAnarchyActions({type: 'remove', items: removedAnarchyActions});
+      reduceFetchState({type: 'removeItems', items: removedAnarchyActions});
     }
   }
 
@@ -123,53 +134,62 @@ const AnarchyActions: React.FunctionComponent = () => {
       limit: FETCH_BATCH_LIMIT,
       namespace: anarchyNamespace,
     });
-    if (!fetchState.canceled) {
-      const anarchyActions:AnarchyAction[] = anarchyActionList.items
-        .filter((anarchyAction) => filterAnarchyAction(anarchyAction, keywordFilter))
-        .map(pruneAnarchyAction);
-      reduceAnarchyActions({
-        type: fetchState.isRefresh ? 'refresh' : 'append',
-        items: anarchyActions,
-        refreshComplete: fetchState.isRefresh && anarchyActionList.metadata.continue ? false : true,
-        refreshedUids: fetchState.isRefresh ? fetchState.fetchedUids : null,
-      });
+    if (!fetchState.activity.canceled) {
       reduceFetchState({
-        type: 'finish',
-        continue: anarchyActionList.metadata.continue,
-        items: anarchyActions,
+        type: 'post',
+        k8sObjectList: anarchyActionList,
+        refreshInterval: 15000,
+        refresh: (): void => {
+          reduceFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
   function reloadAnarchyActions(): void {
-    reduceAnarchyActions({type: 'clear'});
-    reduceFetchState({type: 'start'});
+    reduceFetchState({
+      type: 'startFetch',
+      filter: filterFunction,
+      limit: FETCH_BATCH_LIMIT,
+      prune: pruneAnarchyAction,
+    });
     reduceSelectedUids({type: 'clear'});
   }
 
+  useEffect(() => {
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
   // Fetch or continue fetching
   useEffect(() => {
-    if (!fetchState.finished && anarchyActions.length < fetchLimit) {
+    if (fetchState?.canContinue && (
+      fetchState.refreshing ||
+      fetchState.filteredItems.length < fetchState.limit
+    )) {
       fetchAnarchyActions();
-      return () => cancelFetchState(fetchState);
-    } else {
-      return null;
     }
-  }, [fetchState, fetchLimit]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(fetchState);
+      }
+    }
+  }, [fetchState]);
 
-  // Reload on filter change
+  // Start fetch and reload on k8s namespace or label filter
   useEffect(() => {
-    if(!firstRender) {
-      reloadAnarchyActions();
-    }
-  }, [anarchyNamespace, actionFilter, JSON.stringify(keywordFilter)]);
+    reloadAnarchyActions();
+  }, [anarchyNamespace, actionFilter]);
 
-  // Track first render
   useEffect(() => {
-    if(firstRender) {
-      setFirstRender(false);
+    if (fetchState) {
+      reduceFetchState({
+        type: 'modify',
+        filter: filterFunction,
+      });
     }
-  }, [firstRender]);
+  }, [JSON.stringify(keywordFilter)]);
 
   return (<>
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
@@ -233,7 +253,7 @@ const AnarchyActions: React.FunctionComponent = () => {
       </Split>
     </PageSection>
     { anarchyActions.length === 0 ? (
-      fetchState.finished ? (
+      fetchState?.finished ? (
         <PageSection>
           <EmptyState variant="full">
             <EmptyStateIcon icon={ExclamationTriangleIcon} />
@@ -275,10 +295,12 @@ const AnarchyActions: React.FunctionComponent = () => {
                   <Link key="admin" to={`/admin/anarchysubjects/${anarchyAction.spec.subjectRef.namespace}/${anarchyAction.spec.subjectRef.name}`}>{anarchyAction.spec.subjectRef.name}</Link>
                   <OpenshiftConsoleLink key="console" reference={anarchyAction.spec.subjectRef}/>
                 </>,
-                <>
+                anarchyAction.spec.governorRef ? (<>
                   <Link key="admin" to={`/admin/anarchygovernors/${anarchyAction.spec.governorRef.namespace}/${anarchyAction.spec.governorRef.name}`}>{anarchyAction.spec.governorRef.name}</Link>
                   <OpenshiftConsoleLink key="console" reference={anarchyAction.spec.governorRef}/>
-                </>,
+                </>) : (<>
+                  <p style={{color: "red", fontWeight: "bold"}}>NO GOVERNOR?!</p>
+                </>),
                 <>
                   <LocalTimestamp key="timestamp" timestamp={anarchyAction.metadata.creationTimestamp}/>
                   {' '}
@@ -303,7 +325,7 @@ const AnarchyActions: React.FunctionComponent = () => {
             };
           })}
         />
-        { fetchState?.continue ? (
+        { fetchState?.canContinue ? (
           <EmptyState variant="full">
             <EmptyStateIcon icon={LoadingIcon} />
           </EmptyState>

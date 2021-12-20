@@ -75,11 +75,13 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
   const [minAvailable, setMinAvailable] = useState(null);
   const [minAvailableInputTimeout, setMinAvailableInputTimeout] = useState(null);
   const [minAvailableUpdating, setMinAvailableUpdating] = useState(false);
-  const [resourceHandles, reduceResourceHandles] = useReducer(k8sObjectsReducer, []);
+  const [_resourceHandles, reduceResourceHandles] = useReducer(k8sObjectsReducer, []);
   const [resourceHandlesFetchState, reduceResourceHandlesFetchState] = useReducer(fetchStateReducer, {});
   const [resourcePool, setResourcePool] = useState<ResourcePool|null>(null);
   const [resourcePoolFetchState, reduceResourcePoolFetchState] = useReducer(fetchStateReducer, {});
   const [selectedResourceHandleUids, reduceResourceHandleSelectedUids] = useReducer(selectedUidsReducer, []);
+
+  const resourceHandles = _resourceHandles as ResourceHandle[];
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourcePool ${resourcePoolName}?`)) {

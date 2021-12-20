@@ -1,5 +1,5 @@
 import React from 'react';
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
@@ -27,7 +27,7 @@ import { selectCatalogNamespaces, selectUserGroups } from '@app/store';
 import { CatalogItem, CatalogItemList, CatalogNamespace } from '@app/types';
 import { category, checkAccessControl, displayName } from '@app/util';
 
-import { K8sFetchState, cancelFetchState, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -137,6 +137,7 @@ function filterCatalogItemByLabels(catalogItem:CatalogItem, labelFilter:{[attr:s
 const Catalog: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
+  const componentWillUnmount = useRef(false);
   const routeMatch = useRouteMatch<any>('/catalog/:namespace?');
   const catalogNamespaceName:string = routeMatch.params.namespace;
   const urlSearchParams = new URLSearchParams(location.search);
@@ -160,16 +161,21 @@ const Catalog: React.FunctionComponent = () => {
   const userGroups:string[] = useSelector(selectUserGroups);
 
   const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
-  const catalogItems:CatalogItem[] = (fetchState?.filteredItems || []).sort(compareCatalogItems);
-  const accessFilteredCatalogItems:CatalogItem[] = (fetchState?.items || []).filter(
-    (ci) => filterCatalogItemByAccessControl(ci, userGroups)
-  );
-  const displayFilteredCatalogItems:CatalogItem[] = selectedLabels ? catalogItems.filter(
-    (ci) => filterCatalogItemByLabels(ci, selectedLabels)
-  ) : catalogItems;
+  const catalogItems:CatalogItem[] = fetchState?.filteredItems as CatalogItem[] || []
+  catalogItems.sort(compareCatalogItems);
 
-  const openCatalogItem:CatalogItem = openCatalogItemName && openCatalogItemNamespaceName && fetchState?.items ? (
-    fetchState.items.find(
+  const categoryFilteredCatalogItems:CatalogItem[] = selectedCategory ? catalogItems.filter(
+    (catalogItem) =>filterCatalogItemByCategory(catalogItem, selectedCategory)
+  ) : catalogItems;
+  const searchFilteredCatalogItems:CatalogItem[] = keywordFilter ? categoryFilteredCatalogItems.filter(
+    (catalogItem) => filterCatalogItemByKeywords(catalogItem, keywordFilter)
+  ) : categoryFilteredCatalogItems;
+  const labelFilteredCatalogItems:CatalogItem[] = selectedLabels ? searchFilteredCatalogItems.filter(
+    (catalogItem) =>filterCatalogItemByLabels(catalogItem, selectedLabels)
+  ) : searchFilteredCatalogItems;
+
+  const openCatalogItem:CatalogItem = openCatalogItemName && openCatalogItemNamespaceName ? (
+    catalogItems.find(
       (item) => item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName 
     )
   ) : null;
@@ -220,7 +226,7 @@ const Catalog: React.FunctionComponent = () => {
       limit: FETCH_BATCH_LIMIT,
       namespace: fetchState.namespace,
     });
-    if (!fetchState.canceled) {
+    if (!fetchState.activity.canceled) {
       reduceFetchState({
         type: 'post',
         k8sObjectList: catalogItemList,
@@ -228,17 +234,18 @@ const Catalog: React.FunctionComponent = () => {
     }
   }
 
+  // Track unmount for other effect cleanups
+  useEffect(() => {
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
   // Trigger initial fetch and refresh on catalog namespace update
   useEffect(() => {
     if (catalogNamespaceNames.length > 0) {
       const setNamespaces = catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames;
-      const filterFunction = (item) => {
-        return (
-          filterCatalogItemByAccessControl(item, userGroups) &&
-          (!selectedCategory || filterCatalogItemByCategory(item, selectedCategory)) &&
-          (!keywordFilter || filterCatalogItemByKeywords(item, keywordFilter))
-        );
-      };
+      const filterFunction = (item) => filterCatalogItemByAccessControl(item, userGroups);
       if (JSON.stringify(setNamespaces) !== JSON.stringify(fetchState?.namespaces)) {
         reduceFetchState({
           type: 'startFetch',
@@ -247,7 +254,7 @@ const Catalog: React.FunctionComponent = () => {
         });
       } else {
         reduceFetchState({
-          type: 'setFilter',
+          type: 'modify',
           filter: filterFunction,
         });
       }
@@ -261,19 +268,20 @@ const Catalog: React.FunctionComponent = () => {
 
   useEffect(() => {
     if (fetchState) {
-      if (fetchState.finished) {
+      if (fetchState.canContinue) {
+        fetchCatalogItems();
+      } else {
         // Clear selected category if no catalog items match
-        if (selectedCategory && !fetchState.items.find((ci) => selectedCategory === category(ci))) {
+        if (selectedCategory && !catalogItems.find((ci) => selectedCategory === category(ci))) {
           urlSearchParams.delete('category');
           history.push(`${location.pathname}?${urlSearchParams.toString()}`);
         }
-        return null;
-      } else {
-        fetchCatalogItems();
-        return () => cancelFetchState(fetchState);
       }
-    } else {
-      return null;
+    }
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(fetchState);
+      }
     }
   }, [fetchState]);
 
@@ -294,13 +302,13 @@ const Catalog: React.FunctionComponent = () => {
                 <Sidebar>
                   <SidebarPanel className="catalog-body-sidebar-panel">
                     <CatalogCategorySelector
-                      catalogItems={accessFilteredCatalogItems}
+                      catalogItems={catalogItems}
                       onSelect={onSelectCategory}
                       selected={selectedCategory}
                     />
                     <CatalogLabelSelector
-                      catalogItems={accessFilteredCatalogItems}
-                      filteredCatalogItems={catalogItems}
+                      catalogItems={catalogItems}
+                      filteredCatalogItems={searchFilteredCatalogItems}
                       onSelect={onSelectLabels}
                       selected={selectedLabels}
                     />
@@ -319,16 +327,16 @@ const Catalog: React.FunctionComponent = () => {
                           />
                         </SplitItem>
                         <SplitItem className="catalog-item-count">
-                          { displayFilteredCatalogItems.length === 1 ?
+                          { labelFilteredCatalogItems.length === 1 ?
                             '1 item' :
-                            `${displayFilteredCatalogItems.length} items`
+                            `${labelFilteredCatalogItems.length} items`
                           }
                         </SplitItem>
                       </Split>
                     </PageSection>
                     { catalogItems.length > 0 ? (
                       <PageSection variant={PageSectionVariants.default} className="catalog-content-box">
-                        { displayFilteredCatalogItems.map((catalogItem) =>
+                        { labelFilteredCatalogItems.map((catalogItem) =>
                           <CatalogItemCard key={catalogItem.metadata.uid} catalogItem={catalogItem}/>
                         ) }
                       </PageSection>

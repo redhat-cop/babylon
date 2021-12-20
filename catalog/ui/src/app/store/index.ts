@@ -197,7 +197,7 @@ async function refreshResourceClaims(triggeredByTimeout: ReturnType<typeof setTi
   /**
    * Refresh all resource claims from service namespaces.
    *
-   * @param {Timeout} 
+   * @param {Timeout}
    */
   const state = store.getState();
   const serviceNamespaceNames:string[] = selectServiceNamespaces(state).map(n => n.name);
@@ -459,8 +459,8 @@ export const selectResourceClaimsInNamespace = createSelector(
 )
 
 export const selectServiceNamespaces = createSelector(
-  selectSelf,
-  state => state.impersonate ? state.impersonate.serviceNamespaces : state.auth.serviceNamespaces,
+  (state:any) => state.impersonate || state.auth,
+  (state:any) => state.serviceNamespaces || [],
 )
 
 export const selectUserNamespace = createSelector(

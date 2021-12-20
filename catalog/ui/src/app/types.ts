@@ -1,7 +1,4 @@
-export interface AnarchyAction {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface AnarchyAction extends K8sObject {
   spec: any;
   status?: any;
 }
@@ -11,10 +8,7 @@ export interface AnarchyActionList {
   metadata: K8sObjectListMeta;
 }
 
-export interface AnarchyGovernor {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface AnarchyGovernor extends K8sObject {
   spec: any;
   status?: any;
 }
@@ -24,10 +18,7 @@ export interface AnarchyGovernorList {
   metadata: K8sObjectListMeta;
 }
 
-export interface AnarchyRun {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface AnarchyRun extends K8sObject {
   spec: any;
   status?: any;
 }
@@ -37,10 +28,7 @@ export interface AnarchyRunList {
   metadata: K8sObjectListMeta;
 }
 
-export interface AnarchyRunner {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface AnarchyRunner extends K8sObject {
   spec: any;
   status?: any;
 }
@@ -50,10 +38,7 @@ export interface AnarchyRunnerList {
   metadata: K8sObjectListMeta;
 }
 
-export interface AnarchySubject {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface AnarchySubject extends K8sObject {
   spec: any;
   status?: any;
 }
@@ -63,10 +48,7 @@ export interface AnarchySubjectList {
   metadata: K8sObjectListMeta;
 }
 
-export interface CatalogItem {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface CatalogItem extends K8sObject {
   spec: any;
   status?: any;
 }
@@ -95,8 +77,6 @@ export interface K8sObject {
   apiVersion: string;
   kind: string;
   metadata: K8sObjectMeta;
-  spec: any;
-  status?: any;
 }
 
 export interface K8sObjectList {
@@ -126,10 +106,7 @@ export interface K8sObjectReference {
   uid?: string;
 }
 
-export interface Namespace {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface Namespace extends K8sObject {
 }
 
 export interface NamespaceList {
@@ -137,10 +114,7 @@ export interface NamespaceList {
   metadata: K8sObjectListMeta;
 }
 
-export interface ResourceClaim {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface ResourceClaim extends K8sObject {
   spec: any;
   status?: any;
 }
@@ -150,10 +124,7 @@ export interface ResourceClaimList {
   metadata: K8sObjectListMeta;
 }
 
-export interface ResourceHandle {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface ResourceHandle extends K8sObject{
   spec: ResourceHandleSpec;
 }
 
@@ -183,10 +154,7 @@ export interface ResourceHandleSpecResource {
   template?: any;
 }
 
-export interface ResourcePool {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface ResourcePool extends K8sObject {
   spec: ResourcePoolSpec;
 }
 
@@ -214,10 +182,7 @@ export interface ResourcePoolSpecResource {
   template?: any;
 }
 
-export interface ResourceProvider {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface ResourceProvider extends K8sObject {
   spec: ResourceProviderSpec;
 }
 
@@ -261,10 +226,7 @@ export interface ServiceNamespace {
   name: string;
 }
 
-export interface User {
-  apiVersion: string;
-  kind: string;
-  metadata: K8sObjectMeta;
+export interface User extends K8sObject {
 }
 
 export interface UserList {

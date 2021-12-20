@@ -8,10 +8,12 @@ import { ResourcePool } from '@app/types';
 import { patchResourcePool } from '@app/api';
 
 export interface ResourcePoolMinAvailableInputProps {
+  onChange?: (resourcePool:ResourcePool) => void;
   resourcePool: ResourcePool;
 }
 
 const ResourcePoolMinAvailableInput: React.FunctionComponent<ResourcePoolMinAvailableInputProps> = ({
+  onChange,
   resourcePool,
 }) => {
   const [minAvailable, setMinAvailable] = useState(resourcePool.spec.minAvailable);
@@ -36,6 +38,9 @@ const ResourcePoolMinAvailableInput: React.FunctionComponent<ResourcePoolMinAvai
     resourcePool.spec.minAvailable = n;
     setMinAvailable(n);
     setMinAvailableUpdating(false);
+    if (onChange) {
+      onChange(resourcePool);
+    }
   }
 
   return (<>

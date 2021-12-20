@@ -73,9 +73,11 @@ const AnarchyActionInstance: React.FunctionComponent = () => {
 
   const [anarchyAction, setAnarchyAction] = useState<AnarchyAction|null>(null);
   const [anarchyActionFetchState, reduceAnarchyActionFetchState] = useReducer(fetchStateReducer, {});
-  const [anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
+  const [_anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
   const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(fetchStateReducer, {});
   const [selectedAnarchyRunUids, reduceAnarchyRunSelectedUids] = useReducer(selectedUidsReducer, []);
+
+  const anarchyRuns = _anarchyRuns as AnarchyRun[];
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchyAction ${anarchyActionName}?`)) {

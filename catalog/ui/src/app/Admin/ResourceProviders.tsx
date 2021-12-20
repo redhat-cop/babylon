@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useLocation } from 'react-router-dom';
 import {
   EmptyState,
@@ -13,8 +13,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteResourceProvider, listResourceProviders } from '@app/api';
-import { cancelFetchState, fetchStateReducer, k8sObjectsReducer, selectedUidsReducer } from '@app/reducers';
-import { FetchState, ResourceProvider, ResourceProviderList } from '@app/types';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
+import { K8sObject, ResourceProvider, ResourceProviderList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -66,21 +67,31 @@ function pruneResourceProvider(resourceProvider:ResourceProvider) {
 const ResourceProviders: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
+  const componentWillUnmount = useRef(false);
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
 
-  const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
-  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, {});
-  const [firstRender, setFirstRender] = useState(true);
-  const [resourceProviders, reduceResourceProviders] = useReducer(k8sObjectsReducer, []);
+  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
+
+  const resourceProviders:ResourceProvider[] = fetchState?.filteredItems as ResourceProvider[] || [];
+
+  const filterFunction = keywordFilter ? (
+    (resourceProvider:K8sObject):boolean => filterResourceProvider(resourceProvider as ResourceProvider, keywordFilter)
+  ) : null;
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
     const scrollable = e.target as any;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= resourceProviders.length) {
-      setFetchLimit((limit) => limit + FETCH_BATCH_LIMIT);
+    if (scrollRemaining < 500
+      && !fetchState?.finished
+      && fetchState.limit <= resourceProviders.length
+    ) {
+      reduceFetchState({
+        type: 'modify',
+        limit: fetchState.limit + FETCH_BATCH_LIMIT,
+      });
     }
   }
 
@@ -94,62 +105,69 @@ const ResourceProviders: React.FunctionComponent = () => {
         }
       }
       reduceSelectedUids({type: 'clear'});
-      reduceResourceProviders({type: 'remove', items: removedResourceProviders});
+      reduceFetchState({type: 'removeItems', items: removedResourceProviders});
     }
   }
 
-  async function fetchResourceProviders() {
+  async function fetchResourceProviders(): Promise<void> {
     const resourceProviderList:ResourceProviderList = await listResourceProviders({
       continue: fetchState.continue,
       limit: FETCH_BATCH_LIMIT,
     });
-    if (!fetchState.canceled) {
-      const resourceProviders:ResourceProvider[] = resourceProviderList.items
-        .filter((resourceProvider) => filterResourceProvider(resourceProvider, keywordFilter))
-        .map(pruneResourceProvider);
-      reduceResourceProviders({
-        type: fetchState.isRefresh ? 'refresh' : 'append',
-        items: resourceProviders,
-        refreshComplete: fetchState.isRefresh && resourceProviderList.metadata.continue ? false : true,
-        refreshedUids: fetchState.isRefresh ? fetchState.fetchedUids : null,
-      });
+    if (!fetchState.activity.canceled) {
       reduceFetchState({
-        type: 'finish',
-        continue: resourceProviderList.metadata.continue,
-        items: resourceProviders,
+        type: 'post',
+        k8sObjectList: resourceProviderList,
+        refreshInterval: 60000,
+        refresh: (): void => {
+          reduceFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
   function reloadResourceProviders(): void {
-    reduceResourceProviders({type: 'clear'});
-    reduceFetchState({type: 'start'});
+    reduceFetchState({
+      type: 'startFetch',
+      filter: filterFunction,
+      limit: FETCH_BATCH_LIMIT,
+      prune: pruneResourceProvider,
+    });
     reduceSelectedUids({type: 'clear'});
   }
 
+  // First render and detect unmount
+  useEffect(() => {
+    reloadResourceProviders();
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
   // Fetch or continue fetching
   useEffect(() => {
-    if (!fetchState.finished && resourceProviders.length < fetchLimit) {
+    if (fetchState?.canContinue && (
+      fetchState.refreshing ||
+      fetchState.filteredItems.length < fetchState.limit
+    )) {
       fetchResourceProviders();
-      return () => cancelFetchState(fetchState);
-    } else {
-      return null;
     }
-  }, [fetchState, fetchLimit]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(fetchState);
+      }
+    }
+  }, [fetchState]);
 
-  // Reload on filter change
+  // Handle keyword filter change
   useEffect(() => {
-    if(!firstRender) {
-      reloadResourceProviders();
+    if (fetchState) {
+      reduceFetchState({
+        type: 'modify',
+        filter: filterFunction,
+      });
     }
   }, [JSON.stringify(keywordFilter)]);
-
-  // Track first render
-  useEffect(() => {
-    if(firstRender) {
-      setFirstRender(false);
-    }
-  }, [firstRender]);
 
   return (<>
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
@@ -188,7 +206,7 @@ const ResourceProviders: React.FunctionComponent = () => {
       </Split>
     </PageSection>
     { resourceProviders.length === 0 ? (
-      fetchState.finished ? (
+      fetchState?.finished ? (
         <PageSection>
           <EmptyState variant="full">
             <EmptyStateIcon icon={ExclamationTriangleIcon} />
@@ -239,7 +257,7 @@ const ResourceProviders: React.FunctionComponent = () => {
             };
           })}
         />
-        { fetchState?.continue ? (
+        { fetchState?.canContinue ? (
           <EmptyState variant="full">
             <EmptyStateIcon icon={LoadingIcon} />
           </EmptyState>

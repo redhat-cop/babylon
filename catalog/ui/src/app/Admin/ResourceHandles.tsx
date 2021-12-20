@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useLocation } from 'react-router-dom';
 import {
   EmptyState,
@@ -13,8 +13,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteResourceHandle, listResourceHandles } from '@app/api';
-import { cancelFetchState, fetchStateReducer, k8sObjectsReducer, selectedUidsReducer } from '@app/reducers';
-import { FetchState, ResourceHandle, ResourceHandleList } from '@app/types';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
+import { K8sObject, ResourceHandle, ResourceHandleList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -90,21 +91,31 @@ function pruneResourceHandle(resourceHandle:ResourceHandle): ResourceHandle {
 const ResourceHandles: React.FunctionComponent = () => {
   const history = useHistory();
   const location = useLocation();
+  const componentWillUnmount = useRef(false);
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
 
-  const [fetchLimit, setFetchLimit] = useState(FETCH_BATCH_LIMIT * 2);
-  const [fetchState, reduceFetchState] = useReducer(fetchStateReducer, {});
-  const [firstRender, setFirstRender] = useState(true);
-  const [resourceHandles, reduceResourceHandles] = useReducer(k8sObjectsReducer, []);
+  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
+
+  const resourceHandles:ResourceHandle[] = fetchState?.filteredItems as ResourceHandle[] || [];
+
+  const filterFunction = keywordFilter ? (
+    (resourceHandle:K8sObject):boolean => filterResourceHandle(resourceHandle as ResourceHandle, keywordFilter)
+  ) : null;
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
     const scrollable = e.target as any;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && fetchState?.continue && fetchLimit <= resourceHandles.length) {
-      setFetchLimit((limit) => limit + FETCH_BATCH_LIMIT);
+    if (scrollRemaining < 500
+      && !fetchState?.finished
+      && fetchState.limit <= resourceHandles.length
+    ) {
+      reduceFetchState({
+        type: 'modify',
+        limit: fetchState.limit + FETCH_BATCH_LIMIT,
+      });
     }
   }
 
@@ -118,7 +129,7 @@ const ResourceHandles: React.FunctionComponent = () => {
         }
       }
       reduceSelectedUids({type: 'clear'});
-      reduceResourceHandles({type: 'remove', items: removedResourceHandles});
+      reduceFetchState({type: 'removeItems', items: removedResourceHandles});
     }
   }
 
@@ -127,53 +138,60 @@ const ResourceHandles: React.FunctionComponent = () => {
       continue: fetchState.continue,
       limit: FETCH_BATCH_LIMIT,
     });
-    if (!fetchState.canceled) {
-      const resourceHandles:ResourceHandle[] = resourceHandleList.items
-        .filter((resourceHandle) => filterResourceHandle(resourceHandle, keywordFilter))
-        .map(pruneResourceHandle);
-      reduceResourceHandles({
-        type: fetchState.isRefresh ? 'refresh' : 'append',
-        items: resourceHandles,
-        refreshComplete: fetchState.isRefresh && resourceHandleList.metadata.continue ? false : true,
-        refreshedUids: fetchState.isRefresh ? fetchState.fetchedUids : null,
-      });
+    if (!fetchState.activity.canceled) {
       reduceFetchState({
-        type: 'finish',
-        continue: resourceHandleList.metadata.continue,
-        items: resourceHandles,
+        type: 'post',
+        k8sObjectList: resourceHandleList,
+        refreshInterval: 15000,
+        refresh: (): void => {
+          reduceFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
   function reloadResourceHandles(): void {
-    reduceResourceHandles({type: 'clear'});
-    reduceFetchState({type: 'start'});
+    reduceFetchState({
+      type: 'startFetch',
+      filter: filterFunction,
+      limit: FETCH_BATCH_LIMIT,
+      prune: pruneResourceHandle,
+    });
     reduceSelectedUids({type: 'clear'});
   }
 
+  // First render and detect unmount
+  useEffect(() => {
+    reloadResourceHandles();
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
   // Fetch or continue fetching
   useEffect(() => {
-    if (!fetchState.finished && resourceHandles.length < fetchLimit) {
+    if (fetchState?.canContinue && (
+      fetchState.refreshing ||
+      fetchState.filteredItems.length < fetchState.limit
+    )) {
       fetchResourceHandles();
-      return () => cancelFetchState(fetchState);
-    } else {
-      return null;
     }
-  }, [fetchState, fetchLimit]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(fetchState);
+      }
+    }
+  }, [fetchState]);
 
-  // Reload on filter change
+  // Handle keyword filter change
   useEffect(() => {
-    if(!firstRender) {
-      reloadResourceHandles();
+    if (fetchState) {
+      reduceFetchState({
+        type: 'modify',
+        filter: filterFunction,
+      });
     }
   }, [JSON.stringify(keywordFilter)]);
-
-  // Track first render
-  useEffect(() => {
-    if(firstRender) {
-      setFirstRender(false);
-    }
-  }, [firstRender]);
 
   return (<>
     <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
@@ -212,7 +230,7 @@ const ResourceHandles: React.FunctionComponent = () => {
       </Split>
     </PageSection>
     { resourceHandles.length === 0 ? (
-      fetchState.finished ? (
+      fetchState?.finished ? (
         <PageSection>
           <EmptyState variant="full">
             <EmptyStateIcon icon={ExclamationTriangleIcon} />
@@ -289,7 +307,7 @@ const ResourceHandles: React.FunctionComponent = () => {
             };
           })}
         />
-        { fetchState?.continue ? (
+        { fetchState?.canContinue ? (
           <EmptyState variant="full">
             <EmptyStateIcon icon={LoadingIcon} />
           </EmptyState>
