@@ -35,7 +35,7 @@ function keywordMatch(anarchySubject:AnarchySubject, keyword:string): boolean {
   if (anarchySubject.metadata.name.includes(keyword)) {
     return true;
   }
-  if (anarchySubject.spec.governor.name.includes(keyword)) {
+  if (anarchySubject.spec.governor.includes(keyword)) {
     return true;
   }
   return false;
