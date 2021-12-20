@@ -72,15 +72,6 @@ export interface CatalogNamespace {
   name: string;
 }
 
-export interface FetchState {
-  canceled?: boolean;
-  continue?: string;
-  finished?: boolean;
-  isRefresh?: boolean;
-  refreshTimeout?: any;
-  fetchedUids?: string[];
-}
-
 export interface K8sObject {
   apiVersion: string;
   kind: string;

@@ -1,8 +1,7 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,6 +21,7 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
 
@@ -30,17 +30,11 @@ import {
   getResourceProvider,
 } from '@app/api';
 
-import {
-  cancelFetchState,
-  fetchStateReducer,
-} from '@app/reducers';
-
-import {
-  ResourceProvider,
-  FetchState,
-} from '@app/types';
-
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
 import { selectConsoleURL } from '@app/store';
+import { ResourceProvider } from '@app/types';
+
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -57,12 +51,14 @@ interface RouteMatchParams {
 const ResourceProviderInstance: React.FunctionComponent = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
+  const componentWillUnmount = useRef(false);
   const routeMatch = useRouteMatch<RouteMatchParams>('/admin/resourceproviders/:name/:tab?');
   const resourceProviderName = routeMatch.params.name;
   const activeTab = routeMatch.params.tab || 'details';
 
-  const [resourceProvider, setResourceProvider] = useState<ResourceProvider>(null);
-  const [resourceProviderFetchState, reduceResourceProviderFetchState] = useReducer(fetchStateReducer, {});
+  const [resourceProviderFetchState, reduceResourceProviderFetchState] = useReducer(k8sFetchStateReducer, null);
+
+  const resourceProvider:ResourceProvider|null = resourceProviderFetchState?.item as ResourceProvider | null;
 
   async function confirmThenDelete() {
     if (confirm(`Delete ResourceProvider ${resourceProviderName}?`)) {
@@ -72,35 +68,47 @@ const ResourceProviderInstance: React.FunctionComponent = () => {
   }
 
   async function fetchResourceProvider(): Promise<void> {
+    let resourceProvider:ResourceProvider = null;
     try {
-      const resourceProvider:ResourceProvider = await getResourceProvider(resourceProviderName);
-      if (resourceProviderFetchState.canceled) {
-        return;
-      } else {
-        setResourceProvider(resourceProvider);
-      }
+      resourceProvider = await getResourceProvider(resourceProviderName);
     } catch(error) {
-      if (error instanceof Response && error.status === 404) {
-        setResourceProvider(null);
-      } else {
+      if (!(error instanceof Response) || error.status !== 404) {
         throw error;
       }
     }
-    reduceResourceProviderFetchState({
-      refreshTimeout: setTimeout(() => reduceResourceProviderFetchState({type: 'refresh'}), 3000),
-      type: 'finish'
-    });
+    if (!resourceProviderFetchState.activity.canceled) {
+      reduceResourceProviderFetchState({
+        type: 'post',
+        item: resourceProvider,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceResourceProviderFetchState({type: 'startRefresh'});
+        }
+      });
+    }
   }
 
+  // First render and detect unmount
   useEffect(() => {
-    if (!resourceProviderFetchState.finished) {
+    reduceResourceProviderFetchState({type: 'startFetch'});
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (resourceProviderFetchState?.canContinue) {
       fetchResourceProvider();
     }
-    return () => cancelFetchState(resourceProviderFetchState);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(resourceProviderFetchState);
+      }
+    }
   }, [resourceProviderFetchState])
 
   if (!resourceProvider) {
-    if (resourceProviderFetchState.finished || resourceProviderFetchState.isRefresh) {
+    if (resourceProviderFetchState?.finished) {
       return (
         <PageSection>
           <EmptyState variant="full">

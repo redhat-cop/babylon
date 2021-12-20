@@ -1,8 +1,7 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,6 +23,7 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from "@monaco-editor/react";
 const yaml = require('js-yaml');
 
@@ -35,21 +35,11 @@ import {
   patchResourcePool,
 } from '@app/api';
 
-import {
-  cancelFetchState,
-  fetchStateReducer,
-  k8sObjectsReducer,
-  selectedUidsReducer,
-} from '@app/reducers';
-
-import {
-  ResourceHandle,
-  ResourceHandleList,
-  ResourcePool,
-  FetchState,
-} from '@app/types';
-
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
 import { selectConsoleURL } from '@app/store';
+import { ResourceHandle, ResourceHandleList, ResourcePool } from '@app/types';
+
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -68,6 +58,7 @@ interface RouteMatchParams {
 const ResourcePoolInstance: React.FunctionComponent = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
+  const componentWillUnmount = useRef(false);
   const routeMatch = useRouteMatch<RouteMatchParams>('/admin/resourcepools/:name/:tab?');
   const resourcePoolName = routeMatch.params.name;
   const activeTab = routeMatch.params.tab || 'details';
@@ -75,13 +66,12 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
   const [minAvailable, setMinAvailable] = useState(null);
   const [minAvailableInputTimeout, setMinAvailableInputTimeout] = useState(null);
   const [minAvailableUpdating, setMinAvailableUpdating] = useState(false);
-  const [_resourceHandles, reduceResourceHandles] = useReducer(k8sObjectsReducer, []);
-  const [resourceHandlesFetchState, reduceResourceHandlesFetchState] = useReducer(fetchStateReducer, {});
-  const [resourcePool, setResourcePool] = useState<ResourcePool|null>(null);
-  const [resourcePoolFetchState, reduceResourcePoolFetchState] = useReducer(fetchStateReducer, {});
+  const [resourceHandlesFetchState, reduceResourceHandlesFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [resourcePoolFetchState, reduceResourcePoolFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedResourceHandleUids, reduceResourceHandleSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const resourceHandles = _resourceHandles as ResourceHandle[];
+  const resourceHandles = resourceHandlesFetchState?.items as ResourceHandle[] || [];
+  const resourcePool:ResourcePool|null = resourcePoolFetchState?.item as ResourcePool | null;
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourcePool ${resourcePoolName}?`)) {
@@ -100,7 +90,7 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
         }
       }
       reduceResourceHandleSelectedUids({type: 'clear'});
-      reduceResourceHandles({type: 'remove', items: removedResourceHandles});
+      reduceResourceHandlesFetchState({type: 'removeItems', items: removedResourceHandles});
     }
   }
 
@@ -108,35 +98,37 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
     const resourceHandleList:ResourceHandleList = await listResourceHandles({
       labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`
     });
-    if (!resourceHandlesFetchState.canceled) {
-      reduceResourceHandles({type: 'set', items: resourceHandleList.items});
+    if (!resourceHandlesFetchState.activity.canceled) {
       reduceResourceHandlesFetchState({
-        refreshTimeout: setTimeout(() => reduceResourceHandlesFetchState({type: 'refresh'}), 3000),
-        type: 'finish',
+        type: 'post',
+        k8sObjectList: resourceHandleList,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceResourceHandlesFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
   async function fetchResourcePool(): Promise<void> {
+    let resourcePool:ResourcePool = null;
     try {
-      const resourcePool:ResourcePool = await getResourcePool(resourcePoolName);
-      if (resourcePoolFetchState.canceled) {
-        return;
-      } else {
-        setMinAvailable(resourcePool.spec.minAvailable);
-        setResourcePool(resourcePool);
-      }
+      resourcePool = await getResourcePool(resourcePoolName);
     } catch(error) {
-      if (error instanceof Response && error.status === 404) {
-        setResourcePool(null);
-      } else {
+      if (!(error instanceof Response) || error.status !== 404) {
         throw error;
       }
     }
-    reduceResourcePoolFetchState({
-      refreshTimeout: setTimeout(() => reduceResourcePoolFetchState({type: 'refresh'}), 3000),
-      type: 'finish'
-    });
+    if (!resourcePoolFetchState.activity.canceled) {
+      reduceResourcePoolFetchState({
+        type: 'post',
+        item: resourcePool,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceResourcePoolFetchState({type: 'startRefresh'});
+        }
+      });
+    }
   }
 
   function queueMinAvailableUpdate(n:number): void {
@@ -155,26 +147,43 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
     setMinAvailableUpdating(true);
     const result = await patchResourcePool(resourcePoolName, {spec: {minAvailable: n}});
     setMinAvailable(n);
-    setResourcePool(result);
+    reduceResourcePoolFetchState({type: 'updateItem', item: result});
     setMinAvailableUpdating(false);
   }
 
+  // First render and detect unmount
   useEffect(() => {
-    if (!resourceHandlesFetchState.finished) {
+    reduceResourceHandlesFetchState({type: 'startFetch'});
+    reduceResourcePoolFetchState({type: 'startFetch'});
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (resourceHandlesFetchState?.canContinue) {
       fetchResourceHandles();
     }
-    return () => cancelFetchState(resourceHandlesFetchState);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(resourceHandlesFetchState);
+      }
+    }
   }, [resourceHandlesFetchState])
 
   useEffect(() => {
-    if (!resourcePoolFetchState.finished) {
+    if (resourcePoolFetchState?.canContinue) {
       fetchResourcePool();
     }
-    return () => cancelFetchState(resourcePoolFetchState);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(resourcePoolFetchState);
+      }
+    }
   }, [resourcePoolFetchState])
 
   if (!resourcePool) {
-    if (resourcePoolFetchState.finished || resourcePoolFetchState.isRefresh) {
+    if (resourcePoolFetchState?.finished) {
       return (
         <PageSection>
           <EmptyState variant="full">
@@ -304,7 +313,7 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
         </Tab>
         <Tab eventKey="resourcehandles" title={<TabTitleText>ResourceHandles</TabTitleText>}>
           { resourceHandles.length === 0 ? (
-            resourceHandlesFetchState.finished || resourceHandlesFetchState.isRefresh ? (
+            resourceHandlesFetchState?.finished ? (
               <EmptyState variant="full">
                 <EmptyStateIcon icon={ExclamationTriangleIcon} />
                 <Title headingLevel="h1" size="lg">

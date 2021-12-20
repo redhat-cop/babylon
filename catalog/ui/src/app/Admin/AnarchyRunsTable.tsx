@@ -9,7 +9,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
-import { AnarchyRun, FetchState } from '@app/types';
+import { K8sFetchState } from '@app/K8sFetchState';
+import { AnarchyRun } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
@@ -18,7 +19,7 @@ import TimeInterval from '@app/components/TimeInterval';
 
 export interface AnarchyRunsTableProps {
   anarchyRuns: AnarchyRun[];
-  fetchState: FetchState;
+  fetchState: K8sFetchState|null;
   selectedUids: string[];
   selectedUidsReducer: any;
 }
@@ -30,7 +31,7 @@ const AnarchyRunsTable: React.FunctionComponent<AnarchyRunsTableProps> = ({
   selectedUidsReducer,
 }) => {
   if (anarchyRuns.length === 0) {
-    if (fetchState.finished || fetchState.isRefresh) {
+    if (fetchState?.finished) {
       return (
         <EmptyState variant="full">
           <EmptyStateIcon icon={ExclamationTriangleIcon} />

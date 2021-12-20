@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -32,19 +32,9 @@ import {
   listAnarchySubjects,
 } from '@app/api';
 
-import {
-  cancelFetchState,
-  fetchStateReducer,
-  k8sObjectsReducer,
-  selectedUidsReducer,
-} from '@app/reducers';
-
-import {
-  AnarchyGovernor,
-  AnarchySubject,
-  AnarchySubjectList,
-  FetchState,
-} from '@app/types';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
+import { AnarchyGovernor, AnarchySubject, AnarchySubjectList } from '@app/types';
 
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -66,18 +56,18 @@ interface RouteMatchParams {
 const AnarchyGovernorInstance: React.FunctionComponent = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
+  const componentWillUnmount = useRef(false);
   const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchygovernors/:namespace/:name/:tab?');
   const anarchyGovernorName = routeMatch.params.name;
   const anarchyGovernorNamespace = routeMatch.params.namespace;
   const activeTab = routeMatch.params.tab || 'details';
 
-  const [anarchyGovernor, setAnarchyGovernor] = useState<AnarchyGovernor|null>(null);
-  const [anarchyGovernorFetchState, reduceAnarchyGovernorFetchState] = useReducer(fetchStateReducer, {});
-  const [_anarchySubjects, reduceAnarchySubjects] = useReducer(k8sObjectsReducer, []);
-  const [anarchySubjectsFetchState, reduceAnarchySubjectsFetchState] = useReducer(fetchStateReducer, {});
+  const [anarchyGovernorFetchState, reduceAnarchyGovernorFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [anarchySubjectsFetchState, reduceAnarchySubjectsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedAnarchySubjectUids, reduceAnarchySubjectSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const anarchySubjects = _anarchySubjects as AnarchySubject[];
+  const anarchyGovernor:AnarchyGovernor|null = anarchyGovernorFetchState?.item as AnarchyGovernor || null;
+  const anarchySubjects:AnarchySubject[] = anarchySubjectsFetchState?.items as AnarchySubject[] || [];
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchyGovernor ${anarchyGovernorName}?`)) {
@@ -96,29 +86,29 @@ const AnarchyGovernorInstance: React.FunctionComponent = () => {
         }
       }
       reduceAnarchySubjectSelectedUids({type: 'clear'});
-      reduceAnarchySubjects({type: 'remove', items: removedAnarchySubjects});
+      reduceAnarchySubjectsFetchState({type: 'removeItems', items: removedAnarchySubjects});
     }
   }
 
   async function fetchAnarchyGovernor(): Promise<void> {
+    let anarchyGovernor:AnarchyGovernor = null;
     try {
-      const anarchyGovernor:AnarchyGovernor = await getAnarchyGovernor(anarchyGovernorNamespace, anarchyGovernorName);
-      if (anarchyGovernorFetchState.canceled) {
-        return;
-      } else {
-        setAnarchyGovernor(anarchyGovernor);
-      }
+      anarchyGovernor = await getAnarchyGovernor(anarchyGovernorNamespace, anarchyGovernorName);
     } catch(error) {
-      if (error instanceof Response && error.status === 404) {
-        setAnarchyGovernor(null);
-      } else {
+      if (!(error instanceof Response) || error.status !== 404) {
         throw error;
       }
     }
-    reduceAnarchyGovernorFetchState({
-      refreshTimeout: setTimeout(() => reduceAnarchyGovernorFetchState({type: 'refresh'}), 3000),
-      type: 'finish'
-    });
+    if (!anarchyGovernorFetchState.activity.canceled) {
+      reduceAnarchyGovernorFetchState({
+        type: 'post',
+        item: anarchyGovernor,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceAnarchyGovernorFetchState({type: 'startRefresh'});
+        }
+      });
+    }
   }
 
   async function fetchAnarchySubjects(): Promise<void> {
@@ -126,31 +116,51 @@ const AnarchyGovernorInstance: React.FunctionComponent = () => {
       labelSelector: `anarchy.gpte.redhat.com/governor=${anarchyGovernorName}`,
       namespace: anarchyGovernorNamespace,
     });
-    if (!anarchySubjectsFetchState.canceled) {
-      reduceAnarchySubjects({type: 'set', items: anarchySubjectList.items});
+    if (!anarchySubjectsFetchState.activity.canceled) {
       reduceAnarchySubjectsFetchState({
-        refreshTimeout: setTimeout(() => reduceAnarchySubjectsFetchState({type: 'refresh'}), 3000),
-        type: 'finish',
+        type: 'post',
+        k8sObjectList: anarchySubjectList,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceAnarchySubjectsFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
+  // First render and detect unmount
   useEffect(() => {
-    if (!anarchyGovernorFetchState.finished) {
+    reduceAnarchyGovernorFetchState({type: 'startFetch'});
+    reduceAnarchySubjectsFetchState({type: 'startFetch'});
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (anarchyGovernorFetchState?.canContinue) {
       fetchAnarchyGovernor();
     }
-    return () => cancelFetchState(anarchyGovernorFetchState);
-  }, [anarchyGovernorFetchState]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(anarchyGovernorFetchState);
+      }
+    }
+  }, [anarchyGovernorFetchState])
 
   useEffect(() => {
-    if (!anarchySubjectsFetchState.finished) {
+    if (anarchySubjectsFetchState?.canContinue) {
       fetchAnarchySubjects();
     }
-    return () => cancelFetchState(anarchySubjectsFetchState);
-  }, [anarchySubjectsFetchState]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(anarchySubjectsFetchState);
+      }
+    }
+  }, [anarchySubjectsFetchState])
 
   if (!anarchyGovernor) {
-    if (anarchyGovernorFetchState.finished || anarchyGovernorFetchState.isRefresh) {
+    if (anarchyGovernorFetchState?.finished) {
       return (
         <PageSection>
           <EmptyState variant="full">

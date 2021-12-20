@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -35,25 +35,16 @@ import {
   getResourceHandle
 } from '@app/api';
 
-import {
-  cancelFetchState,
-  fetchStateReducer,
-  k8sObjectsReducer,
-  selectedUidsReducer,
-} from '@app/reducers';
-
-import {
-  FetchState,
-  ResourceClaim,
-  ResourceHandle,
-} from '@app/types';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
+import { selectConsoleURL } from '@app/store';
+import { ResourceClaim, ResourceHandle } from '@app/types';
 
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-import { selectConsoleURL } from '@app/store';
 
 import CreateResourcePoolFromResourceHandleModal from './CreateResourcePoolFromResourceHandleModal';
 
@@ -67,15 +58,17 @@ interface RouteMatchParams {
 const ResourceHandleInstance: React.FunctionComponent = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
+  const componentWillUnmount = useRef(false);
   const routeMatch = useRouteMatch<RouteMatchParams>('/admin/resourcehandles/:name/:tab?');
   const resourceHandleName = routeMatch.params.name;
   const activeTab = routeMatch.params.tab || 'details';
 
   const [createResourcePoolFromResourceHandleModalIsOpen, setCreateResourcePoolFromResourceHandleModalIsOpen] = useState(false);
-  const [resourceClaim, setResourceClaim] = useState<ResourceClaim|undefined>(undefined);
-  const [resourceClaimFetchState, reduceResourceClaimFetchState] = useReducer(fetchStateReducer, null);
-  const [resourceHandle, setResourceHandle] = useState<ResourceHandle|undefined>(undefined);
-  const [resourceHandleFetchState, reduceResourceHandleFetchState] = useReducer(fetchStateReducer, {});
+  const [resourceClaimFetchState, reduceResourceClaimFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [resourceHandleFetchState, reduceResourceHandleFetchState] = useReducer(k8sFetchStateReducer, null);
+
+  const resourceClaim:ResourceClaim|null = resourceClaimFetchState?.item as ResourceClaim | null;
+  const resourceHandle:ResourceHandle|null = resourceHandleFetchState?.item as ResourceHandle | null;
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourceHandle ${resourceHandleName}?`)) {
@@ -85,71 +78,111 @@ const ResourceHandleInstance: React.FunctionComponent = () => {
   }
 
   async function fetchResourceClaim(): Promise<void> {
-    const resourceClaim:ResourceClaim = await getResourceClaim(
-      resourceHandle.spec.resourceClaim.namespace,
-      resourceHandle.spec.resourceClaim.name,
-    );
-    if (!resourceClaimFetchState.canceled) {
-      setResourceClaim(resourceClaim);
+    let resourceClaim:ResourceClaim = null;
+    try {
+      resourceClaim = await getResourceClaim(
+        resourceHandle.spec.resourceClaim.namespace,
+        resourceHandle.spec.resourceClaim.name,
+      );
+    } catch(error) {
+      if (!(error instanceof Response) || error.status !== 404) {
+        throw error;
+      }
+    }
+    if (!resourceClaimFetchState.activity.canceled) {
       reduceResourceClaimFetchState({
-        refreshTimeout: setTimeout(() => reduceResourceClaimFetchState({type: 'refresh'}), 3000),
-        type: 'finish'
+        type: 'post',
+        item: resourceClaim,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceResourceClaimFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
   async function fetchResourceHandle(): Promise<void> {
-    const resourceHandle:ResourceHandle = await getResourceHandle(resourceHandleName);
-    if (!resourceHandleFetchState.canceled) {
-      setResourceHandle(resourceHandle);
-      reduceResourceHandleFetchState({
-        refreshTimeout: setTimeout(() => reduceResourceHandleFetchState({type: 'refresh'}), 3000),
-        type: 'finish'
-      });
-      if (!resourceClaimFetchState && resourceHandle.spec.resourceClaim) {
-        reduceResourceClaimFetchState({type: 'start'})
+    let resourceHandle:ResourceHandle = null;
+    try {
+      resourceHandle = await getResourceHandle(resourceHandleName);
+    } catch(error) {
+      if (!(error instanceof Response) || error.status !== 404) {
+        throw error;
       }
+    }
+    if (!resourceHandleFetchState.activity.canceled) {
+      reduceResourceHandleFetchState({
+        type: 'post',
+        item: resourceHandle,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceResourceHandleFetchState({type: 'startRefresh'});
+        }
+      });
     }
   }
 
+  // First render and detect unmount
   useEffect(() => {
-    if (!resourceClaimFetchState) {
-      return null;
-    } else if (!resourceClaimFetchState.finished) {
+    reduceResourceHandleFetchState({type: 'startFetch'});
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
+  // Start fetching ResourceClaim when it is defined
+  useEffect(() => {
+    if (resourceHandle?.spec.resourceClaim?.namespace && resourceHandle?.spec.resourceClaim?.name) {
+      reduceResourceClaimFetchState({type: 'startFetch'});
+    }
+  }, [resourceHandle?.spec.resourceClaim?.namespace, resourceHandle?.spec.resourceClaim?.name]);
+
+  useEffect(() => {
+    if (resourceClaimFetchState?.canContinue) {
       fetchResourceClaim();
     }
-    return () => cancelFetchState(resourceClaimFetchState);
-  }, [resourceClaimFetchState]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(resourceClaimFetchState);
+      }
+    }
+  }, [resourceClaimFetchState])
 
   useEffect(() => {
-    if (!resourceHandleFetchState.finished) {
+    if (resourceHandleFetchState?.canContinue) {
       fetchResourceHandle();
     }
-    return () => cancelFetchState(resourceHandleFetchState);
-  }, [resourceHandleFetchState]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(resourceHandleFetchState);
+      }
+    }
+  }, [resourceHandleFetchState])
 
-  if (resourceHandle === undefined) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    );
-  } else if (resourceHandle === null) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            ResourceHandle not found
-          </Title>
-          <EmptyStateBody>
-            ResourceHandle {resourceHandleName} was not found.
-          </EmptyStateBody>
-        </EmptyState>
-      </PageSection>
-    );
+  if (!resourceHandle) {
+    if (resourceHandleFetchState?.finished) {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              ResourceHandle not found
+            </Title>
+            <EmptyStateBody>
+              ResourceHandle {resourceHandleName} was not found.
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+      );
+    } else {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      );
+    }
   }
 
   return (<>

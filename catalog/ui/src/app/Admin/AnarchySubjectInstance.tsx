@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -34,21 +34,9 @@ import {
   listAnarchyRuns,
 } from '@app/api';
 
-import {
-  cancelFetchState,
-  fetchStateReducer,
-  k8sObjectsReducer,
-  selectedUidsReducer,
-} from '@app/reducers';
-
-import {
-  AnarchyAction,
-  AnarchyActionList,
-  AnarchyRun,
-  AnarchyRunList,
-  AnarchySubject,
-  FetchState,
-} from '@app/types';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
+import { AnarchyAction, AnarchyActionList, AnarchyRun, AnarchyRunList, AnarchySubject, K8sObject } from '@app/types';
 
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -71,22 +59,21 @@ interface RouteMatchParams {
 const AnarchySubjectInstance:React.FunctionComponent = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
+  const componentWillUnmount = useRef(false);
   const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchysubjects/:namespace/:name/:tab?');
   const anarchySubjectName = routeMatch.params.name;
   const anarchySubjectNamespace = routeMatch.params.namespace;
   const activeTab = routeMatch.params.tab || 'details';
 
-  const [_anarchyActions, reduceAnarchyActions] = useReducer(k8sObjectsReducer, []);
-  const [anarchyActionsFetchState, reduceAnarchyActionsFetchState] = useReducer(fetchStateReducer, {});
-  const [_anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
-  const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(fetchStateReducer, {});
-  const [anarchySubject, setAnarchySubject] = useState<AnarchySubject|null>(null);
-  const [anarchySubjectFetchState, reduceAnarchySubjectFetchState] = useReducer(fetchStateReducer, {});
+  const [anarchyActionsFetchState, reduceAnarchyActionsFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [anarchySubjectFetchState, reduceAnarchySubjectFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedAnarchyActionUids, reduceAnarchyActionSelectedUids] = useReducer(selectedUidsReducer, []);
   const [selectedAnarchyRunUids, reduceAnarchyRunSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const anarchyActions = _anarchyActions as AnarchyAction[];
-  const anarchyRuns = _anarchyRuns as AnarchyRun[];
+  const anarchyActions:AnarchyAction[] = anarchyActionsFetchState?.items as AnarchyAction[] || [];
+  const anarchyRuns:AnarchyRun[] = anarchyRunsFetchState?.items as AnarchyRun[] || [];
+  const anarchySubject:AnarchySubject|null = anarchySubjectFetchState?.item as AnarchySubject || null;
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchySubject ${anarchySubjectName}?`)) {
@@ -105,7 +92,7 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
         }
       }
       reduceAnarchyActionSelectedUids({type: 'clear'});
-      reduceAnarchyActions({type: 'remove', items: removedAnarchyActions});
+      reduceAnarchyActionsFetchState({type: 'removeItems', items: removedAnarchyActions});
     }
   }
 
@@ -119,7 +106,7 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
         }
       }
       reduceAnarchyRunSelectedUids({type: 'clear'});
-      reduceAnarchyRuns({type: 'remove', items: removedAnarchyRuns});
+      reduceAnarchyRunsFetchState({type: 'removeItems', items: removedAnarchyRuns});
     }
   }
 
@@ -128,11 +115,14 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
       labelSelector: `anarchy.gpte.redhat.com/subject=${anarchySubjectName}`,
       namespace: anarchySubjectNamespace,
     });
-    if (!anarchyActionsFetchState.canceled) {
-      reduceAnarchyActions({type: 'set', items: anarchyActionList.items});
+    if (!anarchyActionsFetchState.activity.canceled) {
       reduceAnarchyActionsFetchState({
-        refreshTimeout: setTimeout(() => reduceAnarchyActionsFetchState({type: 'refresh'}), 3000),
-        type: 'finish'
+        type: 'post',
+        k8sObjectList: anarchyActionList,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceAnarchyActionsFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
@@ -142,59 +132,84 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
       labelSelector: `anarchy.gpte.redhat.com/subject=${anarchySubjectName}`,
       namespace: anarchySubjectNamespace,
     });
-    if (!anarchyRunsFetchState.canceled) {
-      reduceAnarchyRuns({type: 'set', items: anarchyRunList.items});
+    if (!anarchyRunsFetchState.activity.canceled) {
       reduceAnarchyRunsFetchState({
-        refreshTimeout: setTimeout(() => reduceAnarchyRunsFetchState({type: 'refresh'}), 3000),
-        type: 'finish',
+        type: 'post',
+        k8sObjectList: anarchyRunList,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceAnarchyRunsFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
   async function fetchAnarchySubject(): Promise<void> {
+    let anarchySubject:AnarchySubject = null;
     try {
-      const anarchySubject:AnarchySubject = await getAnarchySubject(anarchySubjectNamespace, anarchySubjectName);
-      if (anarchySubjectFetchState.canceled) {
-        return;
-      } else {
-        setAnarchySubject(anarchySubject);
-      }
+      anarchySubject = await getAnarchySubject(anarchySubjectNamespace, anarchySubjectName);
     } catch(error) {
-      if (error instanceof Response && error.status === 404) {
-        setAnarchySubject(null);
-      } else {
+      if (!(error instanceof Response) || error.status !== 404) {
         throw error;
       }
     }
-    reduceAnarchySubjectFetchState({
-      refreshTimeout: setTimeout(() => reduceAnarchySubjectFetchState({type: 'refresh'}), 3000),
-      type: 'finish'
-    });
+    if (!anarchySubjectFetchState.activity.canceled) {
+      reduceAnarchySubjectFetchState({
+        type: 'post',
+        item: anarchySubject,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceAnarchySubjectFetchState({type: 'startRefresh'});
+        }
+      });
+    }
   }
 
+  // First render and detect unmount
   useEffect(() => {
-    if (!anarchyActionsFetchState.finished) {
+    reduceAnarchyActionsFetchState({type: 'startFetch'});
+    reduceAnarchyRunsFetchState({type: 'startFetch'});
+    reduceAnarchySubjectFetchState({type: 'startFetch'});
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (anarchyActionsFetchState?.canContinue) {
       fetchAnarchyActions();
     }
-    return () => cancelFetchState(anarchyActionsFetchState);
-  }, [anarchyActionsFetchState]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(anarchyActionsFetchState);
+      }
+    }
+  }, [anarchyActionsFetchState])
 
   useEffect(() => {
-    if (!anarchyRunsFetchState.finished) {
+    if (anarchyRunsFetchState?.canContinue) {
       fetchAnarchyRuns();
     }
-    return () => cancelFetchState(anarchyRunsFetchState);
-  }, [anarchyRunsFetchState]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(anarchyRunsFetchState);
+      }
+    }
+  }, [anarchyRunsFetchState])
 
   useEffect(() => {
-    if (!anarchySubjectFetchState.finished) {
+    if (anarchySubjectFetchState?.canContinue) {
       fetchAnarchySubject();
     }
-    return () => cancelFetchState(anarchySubjectFetchState);
-  }, [anarchySubjectFetchState]);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(anarchySubjectFetchState);
+      }
+    }
+  }, [anarchySubjectFetchState])
 
   if (!anarchySubject) {
-    if (anarchySubjectFetchState.finished || anarchySubjectFetchState.isRefresh) {
+    if (anarchySubjectFetchState?.finished) {
       return (
         <PageSection>
           <EmptyState variant="full">
