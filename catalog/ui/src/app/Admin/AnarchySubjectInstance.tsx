@@ -282,6 +282,18 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
+              <DescriptionListTerm>Current State</DescriptionListTerm>
+              <DescriptionListDescription>
+                { anarchySubject.spec.vars?.current_state || '-' }
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Desired State</DescriptionListTerm>
+              <DescriptionListDescription>
+                { anarchySubject.spec.vars?.desired_state || '-' }
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
               <DescriptionListTerm>Created At</DescriptionListTerm>
               <DescriptionListDescription>
                 <LocalTimestamp timestamp={anarchySubject.metadata.creationTimestamp}/>
@@ -338,6 +350,23 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>
+          { anarchySubject.status?.towerJobs ? (<>
+            <Title key="title" headingLevel="h5" size="lg">TowerJobs</Title>
+            <DescriptionList isHorizontal key="tower-jobs">
+              { Object.entries(anarchySubject.status.towerJobs).map(([jobName, jobDetails]) => {
+                const jobUrl = jobDetails.towerJobURL.startsWith('https://') ?
+                  jobDetails.towerJobURL : `https://${jobDetails.towerJobURL}`;
+                return (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>{jobName}</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <a href={jobUrl} target="_blank">{jobUrl}</a>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                );
+              })}
+            </DescriptionList>
+          </>) : null }
         </Tab>
         <Tab eventKey="anarchyactions" title={<TabTitleText>AnarchyActions</TabTitleText>}>
           <AnarchyActionsTable

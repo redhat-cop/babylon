@@ -40,12 +40,20 @@ export interface AnarchyRunnerList {
 
 export interface AnarchySubject extends K8sObject {
   spec: any;
-  status?: any;
+  status?: AnarchySubjectStatus;
 }
 
 export interface AnarchySubjectList {
   items: AnarchySubject[];
   metadata: K8sObjectListMeta;
+}
+
+export interface AnarchySubjectStatus {
+  towerJobs?: {[jobName:string]: AnarchySubjectStatusTowerJob};
+}
+
+export interface AnarchySubjectStatusTowerJob {
+  towerJobURL?: string;
 }
 
 export interface CatalogItem extends K8sObject {
