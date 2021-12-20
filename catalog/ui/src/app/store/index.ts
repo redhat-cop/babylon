@@ -9,20 +9,16 @@ import {
 } from 'reselect'
 
 import {
-  listCatalogItems,
   listResourceClaims,
 } from '@app/api';
 
 import {
-  CatalogItem,
-  CatalogItemList,
   CatalogNamespace,
   ResourceClaim,
   ResourceClaimList,
   ServiceNamespace,
 } from '@app/types';
 
-let watchCatalogItemsTimeout: null | ReturnType<typeof setTimeout> = null;
 let watchResourceClaimsTimeout: null | ReturnType<typeof setTimeout> = null;
 
 export interface ActionSetImpersonation {
@@ -45,15 +41,6 @@ export interface ActionStartSession {
   userNamespace: ServiceNamespace,
 }
 
-export interface ActionSetCatalogItems {
-  catalogItems: CatalogItemsByNamespace;
-}
-
-export interface ActionSetCatalogItemsForNamespace {
-  namespace: string;
-  catalogItems: CatalogItem[];
-}
-
 export interface ActionSetResourceClaims {
   resourceClaims: ResourceClaimsByNamespace;
 }
@@ -63,106 +50,8 @@ export interface ActionSetResourceClaimsForNamespace {
   resourceClaims: ResourceClaim[];
 }
 
-interface CatalogItemsByNamespace {
-  [key:string]: CatalogItem[];
-}
-
 interface ResourceClaimsByNamespace {
   [key:string]: ResourceClaim[];
-}
-
-async function refreshCatalogItems(triggeredByTimeout: null | ReturnType<typeof setTimeout>): Promise<void> {
-  const state = store.getState();
-  const catalogNamespaceNames = selectCatalogNamespaces(state).map(n => n.name);
-  const userIsAdmin = selectUserIsAdmin(state);
-  if (userIsAdmin) {
-    const catalogItems:CatalogItemsByNamespace = {};
-    let _continue: string = "";
-    while (true) {
-      const resp:CatalogItemList = await listCatalogItems({
-        continue: _continue,
-        limit: 50,
-      });
-      if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
-      if (!resp.items) { break }
-      let lastNamespace:string = null;
-      for (let i=0; i < resp.items.length; ++i) {
-        const catalogItem = resp.items[i];
-        const namespace = catalogItem.metadata.namespace;
-        if (catalogNamespaceNames.includes(namespace)) {
-          if (!lastNamespace) {
-            lastNamespace = namespace;
-          } else if (namespace !== lastNamespace) {
-            store.dispatch(
-              __actionSetCatalogItemsForNamespace({
-                namespace: lastNamespace,
-                catalogItems: catalogItems[lastNamespace],
-              })
-            );
-            lastNamespace = namespace;
-          }
-          if (namespace in catalogItems) {
-            catalogItems[namespace].push(catalogItem);
-          } else {
-            catalogItems[namespace] = [catalogItem];
-          }
-        }
-      }
-      if (resp.metadata.continue) {
-        _continue = resp.metadata.continue;
-      } else {
-        break;
-      }
-    }
-    store.dispatch(
-      __actionSetCatalogItems({
-        catalogItems: catalogItems,
-      })
-    );
-  } else {
-    for (let n=0; n < catalogNamespaceNames.length; ++n) {
-      const namespace: string = catalogNamespaceNames[n];
-      const catalogItems:CatalogItem[] = [];
-      let _continue = null;
-      while (true) {
-        const resp = await listCatalogItems({
-          continue: _continue,
-          limit: 100,
-          namespace: namespace,
-        });
-        if (watchCatalogItemsTimeout != triggeredByTimeout) { return }
-        if (!resp.items) { break }
-        catalogItems.push(...resp.items);
-        if (resp.metadata.continue) {
-          _continue = resp.metadata.continue;
-        } else {
-          break;
-        }
-      }
-      store.dispatch(
-        __actionSetCatalogItemsForNamespace({
-          namespace: namespace,
-          catalogItems: catalogItems,
-        })
-      );
-    }
-  }
-}
-
-async function watchCatalogItems(): Promise<void> {
-  const triggeredByTimeout = watchCatalogItemsTimeout
-  await refreshCatalogItems(triggeredByTimeout);
-  if (triggeredByTimeout == watchCatalogItemsTimeout) {
-    watchCatalogItemsTimeout = setTimeout(watchCatalogItems, 120 * 1000);
-  }
-}
-
-function startWatchCatalogItems(): void {
-  if (watchCatalogItemsTimeout) {
-    clearTimeout(watchCatalogItemsTimeout);
-    watchCatalogItemsTimeout = null;
-  }
-  watchCatalogItemsTimeout = setTimeout(watchCatalogItems, 1);
 }
 
 async function refreshResourceClaimsFromNamespace(namespace:string, triggeredByTimeout:ReturnType<typeof setTimeout>): Promise<void> {
@@ -239,7 +128,6 @@ function reduce_clearImpersonation(state, action) {
   state.impersonate = null;
   state.catalogItems = null;
   state.resourceClaims = null;
-  startWatchCatalogItems();
   startWatchResourceClaims();
   sessionStorage.removeItem('impersonateUser');
 }
@@ -278,22 +166,7 @@ function reduce_setImpersonation(state, action) {
   };
   state.catalogItems = null;
   state.resourceClaims = null;
-  startWatchCatalogItems();
   startWatchResourceClaims();
-}
-
-function reduce_setCatalogItems(state, action) {
-  const {catalogItems} = action.payload;
-  state.catalogItems = catalogItems;
-}
-
-function reduce_setCatalogItemsForNamespace(state, action) {
-  const {namespace, catalogItems} = action.payload;
-  if (state.catalogItems) {
-    state.catalogItems[namespace] = catalogItems;
-  } else {
-    state.catalogItems = { [namespace]: catalogItems };
-  }
 }
 
 function reduce_setResourceClaims(state, action) {
@@ -322,7 +195,6 @@ function reduce_startSession(state, action) {
   state.consoleURL = action.payload.consoleURL;
   state.interface = action.payload.interface;
   state.resourceClaims = null;
-  startWatchCatalogItems();
   startWatchResourceClaims();
 }
 
@@ -353,8 +225,6 @@ export const apiActionInsertResourceClaim = createAction<any>("insertResourceCla
 export const apiActionUpdateResourceClaim = createAction<any>("updateResourceClaim")
 
 // Private actions
-export const __actionSetCatalogItems = createAction<ActionSetCatalogItems>("setCatalogItems");
-export const __actionSetCatalogItemsForNamespace = createAction<ActionSetCatalogItemsForNamespace>("setCatalogItemsForNamespace");
 export const __actionSetResourceClaims = createAction<ActionSetResourceClaims>("setResourceClaims");
 export const __actionSetResourceClaimsForNamespace = createAction<ActionSetResourceClaimsForNamespace>("setResourceClaimsForNamespace");
 
@@ -407,11 +277,6 @@ export const selectImpersonationUser = createSelector(
   state => state.impersonate?.user,
 )
 
-export const selectCatalogItems = createSelector(
-  selectSelf,
-  state => state.catalogItems,
-)
-
 export const selectCatalogNamespace = createSelector(
   [
     (state:any) => selectCatalogNamespaces(state),
@@ -421,8 +286,8 @@ export const selectCatalogNamespace = createSelector(
 )
 
 export const selectCatalogNamespaces = createSelector(
-  selectSelf,
-  state => state.impersonate ? state.impersonate.catalogNamespaces : state.auth.catalogNamespaces,
+  (state:any): any => state.impersonate || state.auth,
+  (state:any): CatalogNamespace[] => state.catalogNamespaces || [],
 )
 
 export const selectResourceClaim = createSelector(
@@ -488,8 +353,6 @@ export const store = configureStore({
     "clearImpersonation": reduce_clearImpersonation,
     "deleteResourceClaim": reduce_deleteResourceClaim,
     "insertResourceClaim": reduce_insertResourceClaim,
-    "setCatalogItems": reduce_setCatalogItems,
-    "setCatalogItemsForNamespace": reduce_setCatalogItemsForNamespace,
     "setImpersonation": reduce_setImpersonation,
     "setResourceClaims": reduce_setResourceClaims,
     "setResourceClaimsForNamespace": reduce_setResourceClaimsForNamespace,

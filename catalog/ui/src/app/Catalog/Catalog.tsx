@@ -11,6 +11,7 @@ import {
   DrawerContent,
   DrawerContentBody,
   EmptyState,
+  EmptyStateBody,
   EmptyStateIcon,
   PageSection,
   PageSectionVariants,
@@ -21,6 +22,7 @@ import {
   SplitItem,
   Title,
 } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import { listCatalogItems } from '@app/api';
 import { selectCatalogNamespaces, selectUserGroups } from '@app/store';
@@ -36,6 +38,7 @@ import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
 import CatalogItemCard from './CatalogItemCard';
 import CatalogItemDetails from './CatalogItemDetails';
+import CatalogItemRequestForm from './CatalogItemRequestForm';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 
@@ -148,9 +151,10 @@ const Catalog: React.FunctionComponent = () => {
   const openCatalogItemName:string|null = openCatalogItemParam ? (
     openCatalogItemParam.includes('/') ? openCatalogItemParam.split('/')[1] : openCatalogItemParam
   ) : null;
-  const keywordFilter: string[]|null = urlSearchParams.has('search') ? (
+  const keywordFilter:string[]|null = urlSearchParams.has('search') ? (
     urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '')
   ) : null;
+  const showRequestForm:boolean = urlSearchParams.has('request');
   const selectedCategory = urlSearchParams.has('category') ? urlSearchParams.get('category') : null;
   const selectedLabels:{[label:string]: string[]} = urlSearchParams.has('labels') ? (
     JSON.parse(urlSearchParams.get('labels'))
@@ -191,6 +195,11 @@ const Catalog: React.FunctionComponent = () => {
     } else if(urlSearchParams.has('search')) {
       urlSearchParams.delete('search');
     }
+    history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+  }
+
+  function onRequestCancel(): void {
+    urlSearchParams.delete('request');
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
@@ -284,6 +293,39 @@ const Catalog: React.FunctionComponent = () => {
       }
     }
   }, [fetchState]);
+
+  if (showRequestForm) {
+    if (openCatalogItem) {
+      return (
+        <CatalogItemRequestForm
+          catalogItem={openCatalogItem}
+          onCancel={onRequestCancel}
+        />
+      );
+    } else if(fetchState?.finished) {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              Catalog item not found.
+            </Title>
+            <EmptyStateBody>
+              CatalogItem {openCatalogItemName} was not found in {openCatalogItemNamespaceName}
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+      );
+    } else {
+      return (
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      );
+    }
+  }
 
   return (
     <Drawer isExpanded={openCatalogItem ? true : false}>

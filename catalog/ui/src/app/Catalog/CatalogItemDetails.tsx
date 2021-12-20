@@ -1,7 +1,7 @@
 import React from 'react';
 import { useEffect, useState } from "react";
 import { useSelector } from 'react-redux';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 
 import {
   Bullseye,
@@ -58,6 +58,9 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({
   onClose,
 }) => {
   const history = useHistory();
+  const location = useLocation();
+  const urlSearchParams = new URLSearchParams(location.search);
+
   const provider:string = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/provider'] || 'Red Hat';
   const description = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/description'];
   const descriptionFormat = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/descriptionFormat'] || 'asciidoc';
@@ -75,7 +78,6 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({
     catalogItem.metadata.namespace === rc.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace'] &&
     catalogItem.metadata.name === rc.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName']
   ) ? true : false;
-
 
   const accessCheckResult:string = checkAccessControl(catalogItem.spec.accessControl, userGroups);
 
@@ -115,10 +117,8 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({
       catalogItem.spec.termsOfService ||
       (catalogItem.spec.parameters || []).length > 0
     ) {
-      history.push({
-        pathname: `/catalog/request/${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
-        state: { fromCatalog: true },
-      });
+      urlSearchParams.set('request', 't');
+      history.push(`${location.pathname}?${urlSearchParams.toString()}`);
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem: catalogItem,
