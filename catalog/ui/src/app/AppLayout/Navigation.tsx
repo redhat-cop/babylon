@@ -17,41 +17,10 @@ const Navigation: React.FunctionComponent = () => {
   const userNamespace = useSelector(selectUserNamespace);
   const userIsAdmin = useSelector(selectUserIsAdmin);
 
-  const anarchyNavigation = (
-    <NavExpandable title="Anarchy Admin" isExpanded={location.pathname.startsWith('/admin/anarchy')}>
-      <NavItem>
-        <NavLink activeClassName="pf-m-current" to="/admin/anarchyactions">AnarchyActions</NavLink>
-      </NavItem>
-      <NavItem>
-        <NavLink activeClassName="pf-m-current" to="/admin/anarchygovernors">AnarchyGovernors</NavLink>
-      </NavItem>
-      <NavItem>
-        <NavLink activeClassName="pf-m-current" to="/admin/anarchyruns">AnarchyRuns</NavLink>
-      </NavItem>
-      <NavItem>
-        <NavLink activeClassName="pf-m-current" to="/admin/anarchysubjects">AnarchySubjects</NavLink>
-      </NavItem>
-    </NavExpandable>
-  );
-
   const catalogNavigation = (
     <NavItem>
       <NavLink activeClassName="pf-m-current" to="/catalog">Catalog</NavLink>
     </NavItem>
-  );
-
-  const poolboyNavigation = (
-    <NavExpandable title="Poolboy Admin" isExpanded={location.pathname.startsWith('/admin/resource')}>
-      <NavItem>
-        <NavLink activeClassName="pf-m-current" to="/admin/resourcehandles">ResourceHandles</NavLink>
-      </NavItem>
-      <NavItem>
-        <NavLink activeClassName="pf-m-current" to="/admin/resourcepools">ResourcePools</NavLink>
-      </NavItem>
-      <NavItem>
-        <NavLink activeClassName="pf-m-current" to="/admin/resourceproviders">ResourceProviders</NavLink>
-      </NavItem>
-    </NavExpandable>
   );
 
   const serviceNavigation = userIsAdmin || serviceNamespaces.length > 1 ? (
@@ -73,13 +42,38 @@ const Navigation: React.FunctionComponent = () => {
     </NavItem>
   );
 
+  const adminNavigation = (
+    <NavExpandable title="Admin" isExpanded={location.pathname.startsWith('/admin/')}>
+      <NavItem>
+        <NavLink activeClassName="pf-m-current" to="/admin/anarchyactions">AnarchyActions</NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink activeClassName="pf-m-current" to="/admin/anarchygovernors">AnarchyGovernors</NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink activeClassName="pf-m-current" to="/admin/anarchyruns">AnarchyRuns</NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink activeClassName="pf-m-current" to="/admin/anarchysubjects">AnarchySubjects</NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink activeClassName="pf-m-current" to="/admin/resourcehandles">ResourceHandles</NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink activeClassName="pf-m-current" to="/admin/resourcepools">ResourcePools</NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink activeClassName="pf-m-current" to="/admin/resourceproviders">ResourceProviders</NavLink>
+      </NavItem>
+    </NavExpandable>
+  );
+
   return (
     <Nav id="nav-primary-simple" theme="dark">
       <NavList id="nav-list-simple">
         { catalogNavigation }
         { serviceNavigation }
-        { userIsAdmin ? anarchyNavigation : null }
-        { userIsAdmin ? poolboyNavigation : null }
+        { userIsAdmin ? adminNavigation : null }
       </NavList>
     </Nav>
   );
