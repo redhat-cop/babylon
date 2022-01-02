@@ -57,13 +57,35 @@ export interface AnarchySubjectStatusTowerJob {
 }
 
 export interface CatalogItem extends K8sObject {
-  spec: any;
+  spec: CatalogItemSpec;
   status?: any;
 }
 
 export interface CatalogItemList {
   items: CatalogItem[];
   metadata: K8sObjectListMeta;
+}
+
+export interface CatalogItemSpec {
+  accessControl?: any;
+  bookbag?: any;
+  messageTemplates?: any;
+  parameters?: CatalogItemSpecParameter[];
+  resources?: any[];
+  termsOfService?: string;
+  userData?: any;
+}
+
+export interface CatalogItemSpecParameter {
+  description?: string;
+  formLabel?: string;
+  formGroup?: string;
+  formDisableCondition?: string;
+  name: string;
+  required?: boolean;
+  resourceIndex?: number;
+  value?: string;
+  openAPIV3Schema?: any;
 }
 
 export interface CatalogNamespace {

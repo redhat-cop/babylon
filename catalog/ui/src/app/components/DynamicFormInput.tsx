@@ -32,6 +32,7 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
         isOpen={isOpen}
         onSelect={(event, value) => {onChange(value); setIsOpen(false)}}
         onToggle={() => setIsOpen((v) => !v)}
+        placeholderText={parameter.placeholderText || `- Select ${parameter.formLabel || parameter.name} -`}
         selections={value}
         variant={SelectVariant.single}
       >

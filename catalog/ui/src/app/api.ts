@@ -212,7 +212,6 @@ export async function createServiceRequest({
     // Copy all parameter values into the ResourceClaim
     if (parameters) {
       for (const parameter of parameters) {
-        const varName = parameter.variable || parameter.name;
         for (const resourceIndex in requestResourceClaim.spec.resources) {
           const resource = requestResourceClaim.spec.resources[resourceIndex];
           // Only set parameter if resource index is not set or matches
@@ -224,7 +223,7 @@ export async function createServiceRequest({
                   spec: {
                     vars: {
                       job_vars: {
-                        [varName]: parameter.value,
+                        [parameter.name]: parameter.value,
                       }
                     }
                   }
