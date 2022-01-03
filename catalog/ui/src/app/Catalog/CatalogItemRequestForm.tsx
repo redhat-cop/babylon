@@ -78,13 +78,16 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
     const requestParameters : any[] = [];
     for (const parameter of parameters) {
       // Only pass parameter if form parameter is not disabled
-      if (!parameter.formDisableCondition || !checkCondition(parameter.formDisableCondition, parameterState)) {
-        requestParameters.push({
-          name: parameter.name,
-          resourceIndex: parameter.resourceIndex,
-          value: parameterState[parameter.name],
-        })
+      if (parameter.formDisableCondition) {
+        if (checkCondition(parameter.formDisableCondition, parameterState)) {
+          continue;
+        }
       }
+      requestParameters.push({
+        name: parameter.name,
+        resourceIndex: parameter.resourceIndex,
+        value: parameterState[parameter.name],
+      });
     }
 
     const resourceClaim = await createServiceRequest({
@@ -176,7 +179,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
               { formGroup.parameters.map(parameter => (
                 <DynamicFormInput
                   key={parameter.name}
-                  isDisabled={parameter.formDisableCondition && checkCondition(parameter.formDisableCondition, parameterState)}
+                  isDisabled={parameter.formDisableCondition ? checkCondition(parameter.formDisableCondition, parameterState) : false}
                   parameter={parameter}
                   value={parameterState[parameter.name]}
                   onChange={(value: any, isValid=null) => {
