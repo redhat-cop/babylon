@@ -11,7 +11,7 @@ import {
 
 export interface TermsOfServiceProps {
   agreed: boolean;
-  onChange?: any;
+  onChange: (checked: boolean, event: React.FormEvent<HTMLInputElement>) => void;
   text?: string;
 }
 
@@ -21,7 +21,7 @@ const TermsOfService: React.FunctionComponent<TermsOfServiceProps> = ({
   text,
 }) => {
   return (
-    <FormGroup fieldId="" label="IMPORTANT PLEASE READ" className="rhpds-catalog__terms-of-service">
+    <FormGroup fieldId="" label="IMPORTANT PLEASE READ" className="catalog-terms-of-service">
       <div dangerouslySetInnerHTML={{ __html: renderContent(text) }}/>
       <Checkbox
         label="I confirm that I understand the above warnings."

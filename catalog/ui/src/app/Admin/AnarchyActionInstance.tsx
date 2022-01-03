@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -32,19 +32,9 @@ import {
   listAnarchyRuns,
 } from '@app/api';
 
-import {
-  cancelFetchState,
-  fetchStateReducer,
-  k8sObjectsReducer,
-  selectedUidsReducer,
-} from '@app/reducers';
-
-import {
-  AnarchyAction,
-  AnarchyRun,
-  AnarchyRunList,
-  FetchState,
-} from '@app/types';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { selectedUidsReducer } from '@app/reducers';
+import { AnarchyAction, AnarchyRun, AnarchyRunList, K8sObject } from '@app/types';
 
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -52,7 +42,7 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-  
+
 import AnarchyRunsTable from './AnarchyRunsTable';
 
 import './admin.css';
@@ -66,18 +56,18 @@ interface RouteMatchParams {
 const AnarchyActionInstance: React.FunctionComponent = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
+  const componentWillUnmount = useRef(false);
   const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchyactions/:namespace/:name/:tab?');
   const anarchyActionName = routeMatch.params.name;
   const anarchyActionNamespace = routeMatch.params.namespace;
   const activeTab = routeMatch.params.tab || 'details';
 
-  const [anarchyAction, setAnarchyAction] = useState<AnarchyAction|null>(null);
-  const [anarchyActionFetchState, reduceAnarchyActionFetchState] = useReducer(fetchStateReducer, {});
-  const [_anarchyRuns, reduceAnarchyRuns] = useReducer(k8sObjectsReducer, []);
-  const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(fetchStateReducer, {});
+  const [anarchyActionFetchState, reduceAnarchyActionFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedAnarchyRunUids, reduceAnarchyRunSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const anarchyRuns = _anarchyRuns as AnarchyRun[];
+  const anarchyAction:AnarchyAction|null = anarchyActionFetchState?.item as AnarchyRun || null;
+  const anarchyRuns:AnarchyRun[] = anarchyRunsFetchState?.items as AnarchyRun[] || [];
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchyAction ${anarchyActionName}?`)) {
@@ -96,29 +86,29 @@ const AnarchyActionInstance: React.FunctionComponent = () => {
         }
       }
       reduceAnarchyRunSelectedUids({type: 'clear'});
-      reduceAnarchyRuns({type: 'remove', items: removedAnarchyRuns});
+      reduceAnarchyRunsFetchState({type: 'removeItems', items: removedAnarchyRuns});
     }
   }
 
   async function fetchAnarchyAction(): Promise<void> {
+    let anarchyAction:AnarchyAction = null;
     try {
-      const anarchyAction:AnarchyAction = await getAnarchyAction(anarchyActionNamespace, anarchyActionName);
-      if (anarchyActionFetchState.canceled) {
-        return;
-      } else {
-        setAnarchyAction(anarchyAction);
-      }
+      anarchyAction = await getAnarchyAction(anarchyActionNamespace, anarchyActionName);
     } catch(error) {
-      if (error instanceof Response && error.status === 404) {
-        setAnarchyAction(null);
-      } else {
+      if (!(error instanceof Response) || error.status !== 404) {
         throw error;
       }
     }
-    reduceAnarchyActionFetchState({
-      refreshTimeout: setTimeout(() => reduceAnarchyActionFetchState({type: 'refresh'}), 3000),
-      type: 'finish'
-    });
+    if (!anarchyActionFetchState.activity.canceled) {
+      reduceAnarchyActionFetchState({
+        type: 'post',
+        item: anarchyAction,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceAnarchyActionFetchState({type: 'startRefresh'});
+        }
+      });
+    }
   }
 
   async function fetchAnarchyRuns(): Promise<void> {
@@ -126,31 +116,51 @@ const AnarchyActionInstance: React.FunctionComponent = () => {
       labelSelector: `anarchy.gpte.redhat.com/action=${anarchyActionName}`,
       namespace: anarchyActionNamespace,
     });
-    if (!anarchyRunsFetchState.canceled) {
-      reduceAnarchyRuns({type: 'set', items: anarchyRunList.items});
+    if (!anarchyRunsFetchState.activity.canceled) {
       reduceAnarchyRunsFetchState({
-        refreshTimeout: setTimeout(() => reduceAnarchyRunsFetchState({type: 'refresh'}), 3000),
-        type: 'finish',
+        type: 'post',
+        k8sObjectList: anarchyRunList,
+        refreshInterval: 5000,
+        refresh: (): void => {
+          reduceAnarchyRunsFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
 
+  // First render and detect unmount
   useEffect(() => {
-    if (!anarchyActionFetchState.finished) {
+    reduceAnarchyActionFetchState({type: 'startFetch'});
+    reduceAnarchyRunsFetchState({type: 'startFetch'});
+    return () => {
+      componentWillUnmount.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (anarchyActionFetchState?.canContinue) {
       fetchAnarchyAction();
     }
-    return () => cancelFetchState(anarchyActionFetchState);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(anarchyActionFetchState);
+      }
+    }
   }, [anarchyActionFetchState])
 
   useEffect(() => {
-    if (!anarchyRunsFetchState.finished) {
+    if (anarchyRunsFetchState?.canContinue) {
       fetchAnarchyRuns();
     }
-    return () => cancelFetchState(anarchyRunsFetchState);
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(anarchyRunsFetchState);
+      }
+    }
   }, [anarchyRunsFetchState])
 
   if (!anarchyAction) {
-    if (anarchyActionFetchState.finished || anarchyActionFetchState.isRefresh) {
+    if (anarchyActionFetchState?.finished) {
       return (
         <PageSection>
           <EmptyState variant="full">

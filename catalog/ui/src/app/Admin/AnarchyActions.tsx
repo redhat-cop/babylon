@@ -156,6 +156,7 @@ const AnarchyActions: React.FunctionComponent = () => {
     reduceSelectedUids({type: 'clear'});
   }
 
+  // First render and detect unmount
   useEffect(() => {
     return () => {
       componentWillUnmount.current = true;

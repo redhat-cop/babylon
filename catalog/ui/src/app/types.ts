@@ -40,7 +40,7 @@ export interface AnarchyRunnerList {
 
 export interface AnarchySubject extends K8sObject {
   spec: any;
-  status?: any;
+  status?: AnarchySubjectStatus;
 }
 
 export interface AnarchySubjectList {
@@ -48,8 +48,16 @@ export interface AnarchySubjectList {
   metadata: K8sObjectListMeta;
 }
 
+export interface AnarchySubjectStatus {
+  towerJobs?: {[jobName:string]: AnarchySubjectStatusTowerJob};
+}
+
+export interface AnarchySubjectStatusTowerJob {
+  towerJobURL?: string;
+}
+
 export interface CatalogItem extends K8sObject {
-  spec: any;
+  spec: CatalogItemSpec;
   status?: any;
 }
 
@@ -58,19 +66,32 @@ export interface CatalogItemList {
   metadata: K8sObjectListMeta;
 }
 
+export interface CatalogItemSpec {
+  accessControl?: any;
+  bookbag?: any;
+  messageTemplates?: any;
+  parameters?: CatalogItemSpecParameter[];
+  resources?: any[];
+  termsOfService?: string;
+  userData?: any;
+}
+
+export interface CatalogItemSpecParameter {
+  description?: string;
+  formLabel?: string;
+  formGroup?: string;
+  formDisableCondition?: string;
+  name: string;
+  required?: boolean;
+  resourceIndex?: number;
+  value?: string;
+  openAPIV3Schema?: any;
+}
+
 export interface CatalogNamespace {
   description: string;
   displayName: string;
   name: string;
-}
-
-export interface FetchState {
-  canceled?: boolean;
-  continue?: string;
-  finished?: boolean;
-  isRefresh?: boolean;
-  refreshTimeout?: any;
-  fetchedUids?: string[];
 }
 
 export interface K8sObject {

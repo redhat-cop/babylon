@@ -15,6 +15,10 @@
   margin-bottom: 10pt;
 }
 
+.admin-body.pf-c-page__main-section .pf-c-tab-content .pf-c-title {
+  margin-top: 1em;
+}
+
 .admin-header.pf-c-page__main-section {
   padding-top: 8pt;
   padding-bottom: 8pt;

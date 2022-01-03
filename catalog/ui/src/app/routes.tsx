@@ -9,7 +9,6 @@ import { selectInterface, selectUserIsAdmin } from '@app/store';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
-const CatalogRequest = React.lazy(() => import('@app/Catalog/Request/CatalogRequest'));
 const Services = React.lazy(() => import('@app/Services/Services'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 const AnarchyActionInstance = React.lazy(()=> import('@app/Admin/AnarchyActionInstance'));
@@ -57,13 +56,6 @@ const routes: AppRouteConfig[] = [
     //label: 'Dashboard',
     path: '/',
     title: 'Babylon | Dashboard',
-  },
-  {
-    // Catalog item from specific namespace
-    component: CatalogRequest,
-    exact: true,
-    path: '/catalog/request/:namespace/:name',
-    title: 'Babylon | Catalog',
   },
   {
     label: 'Catalog',
