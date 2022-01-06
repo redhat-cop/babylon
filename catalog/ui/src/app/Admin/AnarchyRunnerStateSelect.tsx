@@ -32,6 +32,7 @@ const AnarchyRunnerStateSelect: React.FunctionComponent<AnarchyRunnerStateSelect
     >
       <SelectOption key="-" value="-">All Runner States</SelectOption>
       <SelectOption key="failed" value="failed">Failed</SelectOption>
+      <SelectOption key="incomplete" value="incomplete">Incomplete</SelectOption>
       <SelectOption key="pending" value="pending">Pending</SelectOption>
       <SelectOption key="queued" value="queued">Queued</SelectOption>
       <SelectOption key="running" value="running">Running</SelectOption>

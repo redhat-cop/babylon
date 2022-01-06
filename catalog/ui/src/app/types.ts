@@ -113,6 +113,7 @@ export interface K8sObjectMeta {
   annotations?: object;
   creationTimestamp?: string;
   deletionTimestamp?: string;
+  finalizers?: string[];
   labels?: object;
   name: string;
   namespace?: string;
