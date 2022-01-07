@@ -29,6 +29,7 @@ import {
   deleteAnarchyAction,
   deleteAnarchyRun,
   deleteAnarchySubject,
+  forceDeleteAnarchySubject,
   getAnarchySubject,
   listAnarchyActions,
   listAnarchyRuns,
@@ -78,6 +79,13 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchySubject ${anarchySubjectName}?`)) {
       await deleteAnarchySubject(anarchySubject);
+      history.push(`/admin/anarchysubjects/${anarchySubjectNamespace}`);
+    }
+  }
+
+  async function confirmThenForceDelete(): Promise<void> {
+    if (confirm(`Force delete AnarchySubject ${anarchySubjectName}? Forcing delete may orphan provisioned cloud resources!`)) {
+      await forceDeleteAnarchySubject(anarchySubject);
       history.push(`/admin/anarchysubjects/${anarchySubjectNamespace}`);
     }
   }
@@ -259,6 +267,11 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
                 onSelect={() => confirmThenDelete()}
               />,
               <ActionDropdownItem
+                key="force-delete"
+                label="Force Delete"
+                onSelect={() => confirmThenForceDelete()}
+              />,
+              <ActionDropdownItem
                 key="deleteAnarchyActions"
                 label="Delete selected AnarchyActions"
                 isDisabled={selectedAnarchyActionUids.length < 1}
@@ -372,7 +385,7 @@ const AnarchySubjectInstance:React.FunctionComponent = () => {
                 const jobUrl = jobDetails.towerJobURL.startsWith('https://') ?
                   jobDetails.towerJobURL : `https://${jobDetails.towerJobURL}`;
                 return (
-                  <DescriptionListGroup>
+                  <DescriptionListGroup key={jobName}>
                     <DescriptionListTerm>{jobName}</DescriptionListTerm>
                     <DescriptionListDescription>
                       <a href={jobUrl} target="_blank">{jobUrl}</a>

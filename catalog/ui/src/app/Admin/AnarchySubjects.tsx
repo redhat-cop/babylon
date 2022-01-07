@@ -12,7 +12,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { deleteAnarchySubject, listAnarchySubjects } from '@app/api';
+import { deleteAnarchySubject, forceDeleteAnarchySubject, listAnarchySubjects } from '@app/api';
 import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchySubject, AnarchySubjectList, K8sObject } from '@app/types';
@@ -109,11 +109,24 @@ const AnarchySubjects: React.FunctionComponent = () => {
   }
 
   async function confirmThenDelete(): Promise<void> {
-    if (confirm("Deleted selected AnarchySubjects?")) {
+    if (confirm("Delete selected AnarchySubjects?")) {
       const removedAnarchySubjects:AnarchySubject[] = [];
       for (const anarchySubject of anarchySubjects) {
         if (selectedUids.includes(anarchySubject.metadata.uid)) {
           await deleteAnarchySubject(anarchySubject);
+          removedAnarchySubjects.push(anarchySubject);
+        }
+      }
+      reduceSelectedUids({type: 'clear'});
+    }
+  }
+
+  async function confirmThenForceDelete(): Promise<void> {
+    if (confirm("Force delete selected AnarchySubjects? Forcing delete may orphan provisioned cloud resources!")) {
+      const removedAnarchySubjects:AnarchySubject[] = [];
+      for (const anarchySubject of anarchySubjects) {
+        if (selectedUids.includes(anarchySubject.metadata.uid)) {
+          await forceDeleteAnarchySubject(anarchySubject);
           removedAnarchySubjects.push(anarchySubject);
         }
       }
@@ -242,6 +255,11 @@ const AnarchySubjects: React.FunctionComponent = () => {
                 key="delete"
                 label="Delete Selected"
                 onSelect={() => confirmThenDelete()}
+              />,
+              <ActionDropdownItem
+                key="force-delete"
+                label="Force Delete Selected"
+                onSelect={() => confirmThenForceDelete()}
               />,
             ]}
           />

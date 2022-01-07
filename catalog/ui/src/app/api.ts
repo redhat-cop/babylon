@@ -550,6 +550,19 @@ export async function deleteResourceProvider(resourceProvider:ResourceProvider):
   );
 }
 
+export async function forceDeleteAnarchySubject(anarchySubject:AnarchySubject): Promise<void> {
+  if ((anarchySubject.metadata.finalizers || []).length > 0) {
+    await patchNamespacedCustomObject(
+      'anarchy.gpte.redhat.com', 'v1',
+      anarchySubject.metadata.namespace, 'anarchysubjects', anarchySubject.metadata.name,
+      { metadata: { finalizers: null } }
+    )
+  }
+  if (!anarchySubject.metadata.deletionTimestamp) {
+    await deleteAnarchySubject(anarchySubject);
+  }
+}
+
 export async function patchResourceClaim(
   namespace: string,
   name: string,

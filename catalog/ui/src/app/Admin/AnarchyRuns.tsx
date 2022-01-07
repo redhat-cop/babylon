@@ -166,7 +166,11 @@ const AnarchyRuns: React.FunctionComponent = () => {
     const labelSelectors = [];
     if (stateFilter) {
       if (stateFilter.length === 1) {
-        labelSelectors.push(`anarchy.gpte.redhat.com/runner=${stateFilter[0]}`);
+        if (stateFilter[0] === 'incomplete') {
+          labelSelectors.push(`anarchy.gpte.redhat.com/runner!=successful`);
+        } else {
+          labelSelectors.push(`anarchy.gpte.redhat.com/runner=${stateFilter[0]}`);
+        }
       } else {
         labelSelectors.push(`anarchy.gpte.redhat.com/runner in (${stateFilter.join(', ')})`);
       }
