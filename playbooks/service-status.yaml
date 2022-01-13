@@ -15,6 +15,10 @@
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
 
   tasks:
+  - name: Get minimal ansible_facts
+    ansible.builtin.gather_facts:
+      gather_subset: min
+
   - name: Include vars
     include_vars:
       file: "{{ catalog_item_params_file }}"
@@ -158,7 +162,7 @@
       definition:
         spec:
           vars:
-            check_status_state: "pending"
+            check_status_request_timestamp: "{{ ansible_facts.date_time.iso8601 }}"
 
   - name: Wait for the Tower deployerJob to complete
     k8s_info:
