@@ -67,7 +67,7 @@ const AnarchyRunsTable: React.FunctionComponent<AnarchyRunsTableProps> = ({
         return {
           cells: [
             <>
-              <Link key="admin" to={`/admin/anarchyactions/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}>{anarchyRun.metadata.name}</Link>
+              <Link key="admin" to={`/admin/anarchyruns/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}>{anarchyRun.metadata.name}</Link>
               <OpenshiftConsoleLink key="console" resource={anarchyRun}/>
             </>,
             <>
