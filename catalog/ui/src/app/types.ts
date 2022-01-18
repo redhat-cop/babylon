@@ -117,6 +117,7 @@ export interface K8sObjectMeta {
   labels?: object;
   name: string;
   namespace?: string;
+  resourceVersion?: number;
   uid?: string;
 }
 
