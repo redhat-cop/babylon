@@ -252,7 +252,14 @@ function reduceUpdateItem(state:K8sFetchState, action:K8sFetchStateAction): K8sF
 function reduceUpdateItems(state:K8sFetchState, action:K8sFetchStateAction): K8sFetchState {
   const updatedItems = action.items;
   const items = [...state.items.map(
-    (item) => updatedItems.find((update) => update.metadata.uid === item.metadata.uid) || item
+    (item) => {
+      const updatedItem = updatedItems.find((update) => update.metadata.uid === item.metadata.uid);
+      if (updatedItem && updatedItem.metadata.resourceVersion > (item.metadata.resourceVersion || 0)) {
+        return updatedItem;
+      } else {
+        return item;
+      }
+    }
   )];
   const filteredItems = state.filter ? items.filter(state.filter) : items;
   return {

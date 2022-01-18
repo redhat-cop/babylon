@@ -99,6 +99,7 @@ function pruneResourceClaim(resourceClaim:ResourceClaim): ResourceClaim {
       creationTimestamp: resourceClaim.metadata.creationTimestamp,
       name: resourceClaim.metadata.name,
       namespace: resourceClaim.metadata.namespace,
+      resourceVersion: resourceClaim.metadata.resourceVersion,
       uid: resourceClaim.metadata.uid,
     },
     spec: resourceClaim.spec,

@@ -34,6 +34,7 @@ import {
   deleteResourceClaim,
   getResourceClaim,
   listNamespaces,
+  requestStatusForAllResourcesInResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
   setLifespanEndForResourceClaim,
   startAllResourcesInResourceClaim,
@@ -57,6 +58,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 
 import ServiceActions from './ServiceActions';
+import ServiceItemStatus from './ServiceItemStatus';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
@@ -114,6 +116,12 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const externalPlatformUrl = resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'];
   const resources = (resourceClaim?.status?.resources || []).map(r => r.state);
   const userData = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/userData'] || 'null');
+  const statusEnabled = resources.find(
+    resource => (
+      resource?.status?.supportedActions?.status &&
+      resource?.status?.towerJobs?.provision?.completeTimestamp
+    )
+  ) ? true : false;
 
   const catalogItemDisplayName = (
     resourceClaim?.metadata?.annotations?.["babylon.gpte.redhat.com/catalogItemDisplayName"] ||
@@ -221,6 +229,13 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       reduceResourceClaimFetchState({type: 'updateItem', item: resourceClaimUpdate});
     }
     setModalState({});
+  }
+
+  async function onCheckStatusRequest(): Promise<void> {
+    const resourceClaimUpdate:ResourceClaim = await requestStatusForAllResourcesInResourceClaim(resourceClaim);
+    if (resourceClaimFetchEnabled) {
+      reduceResourceClaimFetchState({type: 'updateItem', item: resourceClaimUpdate});
+    }
   }
 
   // Track unmount for other effect cleanups
@@ -464,7 +479,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
               const startDate = startTime ? new Date(startTime) : null;
               return (
-                <div key={idx} className="rhpds-services-item-body-resource">
+                <div key={idx} className="services-item-body-resource">
                   {resourceClaim.spec.resources.length > 1 ? (
                     <h2 className="rhpds-component-display-name">{componentDisplayName}</h2>
                   ) : null }
@@ -586,6 +601,14 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               );
             })}
           </Tab>
+          { statusEnabled ? (
+            <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
+              <ServiceItemStatus
+                onCheckStatusRequest={onCheckStatusRequest}
+                resourceClaim={resourceClaim}
+              />
+            </Tab>
+          ) : null }
           { (resourceClaim.status?.resources || []).find(r => {
             const provision_data = r.state?.spec?.vars?.provision_data;
             if (provision_data?.osp_cluster_api || provision_data?.openstack_auth_url) {

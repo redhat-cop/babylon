@@ -592,6 +592,30 @@ export async function patchResourcePool(
   return resourcePool;
 }
 
+export async function requestStatusForAllResourcesInResourceClaim(resourceClaim): Promise<ResourceClaim> {
+  const requestDate = new Date();
+  const requestTimestamp:string = requestDate.toISOString().split('.')[0] + "Z";
+  const data = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec))
+  }
+  for (let i=0; i < data.spec.resources.length; ++i) {
+    if (resourceClaim.status?.resources?.[i]?.state?.status?.supportedActions?.status) {
+      data.spec.resources[i].template.spec.vars.check_status_request_timestamp = requestTimestamp;
+    }
+  }
+  const patchedResourceClaim = await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com', 'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    data,
+  ) as ResourceClaim;
+  store.dispatch(apiActionUpdateResourceClaim({
+    resourceClaim: patchedResourceClaim,
+  }));
+  return patchedResourceClaim;
+}
+
 export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim:ResourceClaim, date:Date): Promise<ResourceClaim> {
   const stopTimestamp = date.toISOString().split('.')[0] + "Z";
   const patch = {

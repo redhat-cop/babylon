@@ -204,8 +204,10 @@ function reduce_updateResourceClaim(state, action) {
     const resourceClaims = state.resourceClaims[resourceClaim.metadata.namespace]
     if (resourceClaims) {
       for (let i=0; i < resourceClaims.length; ++i) {
-        if (resourceClaims[i].metadata.name == resourceClaim.metadata.name) {
-          resourceClaims[i] = resourceClaim;
+        if (resourceClaim.metadata.name === resourceClaims[i].metadata.name) {
+          if (resourceClaim.metadata.resourceVersion > (resourceClaims[i].metadata.resourceVersion || 0)) {
+            resourceClaims[i] = resourceClaim;
+          }
           break;
         }
       }
