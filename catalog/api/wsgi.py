@@ -14,6 +14,9 @@ import urllib3
 
 from base64 import b64decode
 from hotfix import HotfixKubeApiClient
+from retrying import retry
+from simple_salesforce import Salesforce
+import requests
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -574,6 +577,51 @@ def apis_proxy(path):
             flask.abort(resp)
         else:
             flask.abort(flask.make_response(flask.jsonify({"reason": e.reason}), e.status))
+
+
+@retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
+def salesforce_connection_from_secret(secret):
+    sfdc_instance = json.loads(b64decode(secret.data['sf_host']).decode('utf8'))
+    sfdc_consumer_key = json.loads(b64decode(secret.data['sf_consumer_key']).decode('utf8'))
+    sfdc_privatekey = json.loads(b64decode(secret.data['sf_cert_key']).decode('utf8'))
+    sfdc_username = json.loads(b64decode(secret.data['sf_username']).decode('utf8'))
+    try:
+        session = requests.Session()
+        sf = Salesforce(instance=sfdc_instance,
+                        consumer_key=sfdc_consumer_key,
+                        privatekey=sfdc_privatekey,
+                        username=sfdc_username,
+                        client_id="PFE Babylon API", session=session)
+        return sf
+    except Exception as e:
+        raise Exception(f"Failed to connect {e}")
+
+
+@retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
+def get_salesforce_opportunity(opportunity_id):
+    # TODO: Store the opportunity_id on redis and check if exists before execute the query
+    try:
+        secret = core_v1_api.read_namespaced_secret("salesforce", 'gpte')
+    except kubernetes.client.rest.ApiException as e:
+        raise
+
+    salesforce_api = salesforce_connection_from_secret(secret)
+
+    opportunity_query = f"SELECT Id, Name, OpportunityNumber__c FROM Opportunity " \
+                        f"WHERE OpportunityNumber__c =  '{opportunity_id}'"
+
+    opportunity_info = salesforce_api.query(opportunity_query)
+    if opportunity_info == -1:
+        return False
+    else:
+        return True
+
+@application.route("/api/salesforce/opportunity/<opportunity_id>", methods=['GET'])
+def salesforce_opportunity(opportunity_id):
+    if get_salesforce_opportunity(opportunity_id):
+        return flask.jsonify({"success": True})
+    return flask.abort(404)
+
 
 @application.route('/')
 def root_path():
