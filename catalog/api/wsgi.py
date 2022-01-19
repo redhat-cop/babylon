@@ -368,11 +368,14 @@ def salesforce_connection():
     sfdc_instance = sfdc_consumer_key = sfdc_privatekey = sfdc_username = None
 
     try:
-        sfdc_secret = core_v1_api.read_namespaced_secret("salesforce", babylon_namespace)
-        sfdc_instance = b64decode(sfdc_secret.data['sfdc_instance']).decode('utf8')
-        sfdc_consumer_key = b64decode(sfdc_secret.data['sfdc_consumer_key']).decode('utf8')
-        sfdc_privatekey = b64decode(sfdc_secret.data['sfdc_privatekey']).decode('utf8')
-        sfdc_username = b64decode(sfdc_secret.data['sfdc_username']).decode('utf8')
+        sfdc_secret = core_v1_api.read_namespaced_secret(
+            os.environ.get('SALESFORCE_SECRET', 'salesforce'),
+            babylon_namespace
+        )
+        sfdc_consumer_key = b64decode(sfdc_secret.data['consumer_key']).decode('utf8')
+        sfdc_instance = b64decode(sfdc_secret.data['instance']).decode('utf8')
+        sfdc_privatekey = b64decode(sfdc_secret.data['privatekey']).decode('utf8')
+        sfdc_username = b64decode(sfdc_secret.data['username']).decode('utf8')
     except kubernetes.client.rest.ApiException as e:
         if e.status != 404:
             return flask.abort(400)

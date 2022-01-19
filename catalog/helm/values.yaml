@@ -101,3 +101,13 @@ route:
     enable: false
   create: true
   host:
+
+# Optional Salesforce configuration for API integration
+#salesforce:
+#  instance: ...
+#  consumer_key: ...
+#  privatekey: |
+#    -----BEGIN PRIVATE KEY-----
+#    ...
+#    -----END PRIVATE KEY-----
+#  username: ...
