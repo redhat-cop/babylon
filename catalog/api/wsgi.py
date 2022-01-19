@@ -14,6 +14,10 @@ import urllib3
 
 from base64 import b64decode
 from hotfix import HotfixKubeApiClient
+from retrying import retry
+from simple_salesforce import Salesforce, format_soql
+from simple_salesforce.exceptions import SalesforceMalformedRequest
+import requests
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -352,6 +356,72 @@ def resolve_openstack_subjects(resource_claim):
         subjects.append(subject)
     return(subjects)
 
+
+@retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
+def salesforce_connection():
+
+    babylon_namespace = os.environ.get('BABYLON_NAMESPACE')
+    if not babylon_namespace:
+        with os.path.exists('/run/secrets/kubernetes.io/serviceaccount/namespace') as f:
+            babylon_namespace = f.read()
+
+    sfdc_instance = sfdc_consumer_key = sfdc_privatekey = sfdc_username = None
+
+    try:
+        sfdc_secret = core_v1_api.read_namespaced_secret(
+            os.environ.get('SALESFORCE_SECRET', 'salesforce'),
+            babylon_namespace
+        )
+        sfdc_consumer_key = b64decode(sfdc_secret.data['consumer_key']).decode('utf8')
+        sfdc_instance = b64decode(sfdc_secret.data['instance']).decode('utf8')
+        sfdc_privatekey = b64decode(sfdc_secret.data['privatekey']).decode('utf8')
+        sfdc_username = b64decode(sfdc_secret.data['username']).decode('utf8')
+    except kubernetes.client.rest.ApiException as e:
+        if e.status != 404:
+            return flask.abort(400)
+
+    try:
+        session = requests.Session()
+        sf = Salesforce(instance=sfdc_instance,
+                        consumer_key=sfdc_consumer_key,
+                        privatekey=sfdc_privatekey,
+                        username=sfdc_username,
+                        client_id="PFE Babylon API", session=session)
+        return sf
+    except Exception as e:
+        return flask.abort(400)
+
+
+@retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
+def get_salesforce_opportunity(opportunity_id):
+    opportunity_info = None
+    if redis_connection:
+        opportunity_json = redis_connection.get(opportunity_id)
+        if opportunity_json:
+            opportunity_info = json.loads(opportunity_json)
+
+    if not opportunity_info:
+        salesforce_api = salesforce_connection()
+
+        opportunity_query = format_soql("SELECT Id, Name, OpportunityNumber__c FROM Opportunity "
+                                        "WHERE OpportunityNumber__c = {}", str(opportunity_id).strip())
+        try:
+            opportunity_info = salesforce_api.query(opportunity_query)
+
+        except SalesforceMalformedRequest:
+            flask.abort(404,  description='Invalid SalesForce Request')
+
+    opportunity_valid = opportunity_info.get('totalSize', 0)
+
+    if redis_connection:
+        redis_connection.setex(opportunity_id, session_lifetime, {'totalSize': opportunity_valid})
+
+    if opportunity_valid == 0:
+        return False
+    else:
+        return True
+
+
 @application.route("/auth/session")
 def get_auth_session():
     user = proxy_user()
@@ -574,6 +644,14 @@ def apis_proxy(path):
             flask.abort(resp)
         else:
             flask.abort(flask.make_response(flask.jsonify({"reason": e.reason}), e.status))
+
+
+@application.route("/api/salesforce/opportunity/<opportunity_id>", methods=['GET'])
+def salesforce_opportunity(opportunity_id):
+    if get_salesforce_opportunity(opportunity_id):
+        return flask.jsonify({"success": True})
+    return flask.abort(404)
+
 
 @application.route('/')
 def root_path():
