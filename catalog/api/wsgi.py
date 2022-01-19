@@ -15,7 +15,8 @@ import urllib3
 from base64 import b64decode
 from hotfix import HotfixKubeApiClient
 from retrying import retry
-from simple_salesforce import Salesforce
+from simple_salesforce import Salesforce, format_soql
+from simple_salesforce.exceptions import SalesforceMalformedRequest
 import requests
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -393,15 +394,17 @@ def get_salesforce_opportunity(opportunity_id):
     # TODO: Store the opportunity_id on redis and check if exists before execute the query
     salesforce_api = salesforce_connection()
 
-    # TODO: Fix query parameter
-    opportunity_query = "SELECT Id, Name, OpportunityNumber__c FROM Opportunity " \
-                        "WHERE OpportunityNumber__c =  '%s'".format(opportunity_id)
+    opportunity_query = format_soql("SELECT Id, Name, OpportunityNumber__c FROM Opportunity "
+                                    "WHERE OpportunityNumber__c = {}", str(opportunity_id).strip())
+    try:
+        opportunity_info = salesforce_api.query(opportunity_query)
+        if opportunity_info['totalSize'] == 0:
+            return False
+        else:
+            return True
+    except SalesforceMalformedRequest:
+        flask.abort(404)
 
-    opportunity_info = salesforce_api.query(opportunity_query)
-    if opportunity_info == -1:
-        return False
-    else:
-        return True
 
 @application.route("/auth/session")
 def get_auth_session():
