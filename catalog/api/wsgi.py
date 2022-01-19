@@ -391,19 +391,32 @@ def salesforce_connection():
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
 def get_salesforce_opportunity(opportunity_id):
-    # TODO: Store the opportunity_id on redis and check if exists before execute the query
-    salesforce_api = salesforce_connection()
+    opportunity_info = None
+    if redis_connection:
+        opportunity_json = redis_connection.get(opportunity_id)
+        if opportunity_json:
+            opportunity_info = json.loads(opportunity_json)
 
-    opportunity_query = format_soql("SELECT Id, Name, OpportunityNumber__c FROM Opportunity "
-                                    "WHERE OpportunityNumber__c = {}", str(opportunity_id).strip())
-    try:
-        opportunity_info = salesforce_api.query(opportunity_query)
-        if opportunity_info['totalSize'] == 0:
-            return False
-        else:
-            return True
-    except SalesforceMalformedRequest:
-        flask.abort(404)
+    if not opportunity_info:
+        salesforce_api = salesforce_connection()
+
+        opportunity_query = format_soql("SELECT Id, Name, OpportunityNumber__c FROM Opportunity "
+                                        "WHERE OpportunityNumber__c = {}", str(opportunity_id).strip())
+        try:
+            opportunity_info = salesforce_api.query(opportunity_query)
+
+        except SalesforceMalformedRequest:
+            flask.abort(404,  description='Invalid SalesForce Request')
+
+    opportunity_valid = opportunity_info.get('totalSize', 0)
+
+    if redis_connection:
+        redis_connection.setex(opportunity_id, session_lifetime, {'totalSize': opportunity_valid})
+
+    if opportunity_valid == 0:
+        return False
+    else:
+        return True
 
 
 @application.route("/auth/session")
