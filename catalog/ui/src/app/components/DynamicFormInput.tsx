@@ -10,17 +10,21 @@ import {
 } from '@patternfly/react-core';
 
 export interface DynamicFormInputProps {
-  parameter: any;
-  value?: any;
+  id?: string;
   isDisabled?: boolean;
   onChange: any;
+  parameter: any;
+  validationResult?: boolean;
+  value?: any;
 }
 
 const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
-  parameter,
-  value,
+  id,
   isDisabled,
   onChange,
+  parameter,
+  validationResult,
+  value,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -28,6 +32,7 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
     return (
       <Select
         aria-label={parameter.description}
+
         isDisabled={isDisabled}
         isOpen={isOpen}
         onSelect={(event, value) => {onChange(value); setIsOpen(false)}}
@@ -80,12 +85,16 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
     );
   } else {
     const validationRegExp = parameter.openAPIV3Schema?.pattern ? new RegExp(parameter.openAPIV3Schema.pattern) : null;
-    const validationResult = validationRegExp ? validationRegExp.test(value) : null;
-    const validated = validationResult ? 'success' : validationResult === false ? 'error' : 'default';
+    const textValidationResult = validationResult !== undefined ? validationResult : validationRegExp ? validationRegExp.test(value) : null;
+    const validated = (
+      (value === undefined || (!parameter.required && value === '')) ? 'default' :
+      textValidationResult ? 'success' :
+      textValidationResult === false ? 'error' : 'default'
+    );
     return (
       <TextInput type="text"
         key={parameter.name}
-        id={parameter.name}
+        id={id}
         isDisabled={isDisabled}
         onChange={(v) => onChange(v, validationRegExp ? validationRegExp.test(v): null)}
         value={value || ''}

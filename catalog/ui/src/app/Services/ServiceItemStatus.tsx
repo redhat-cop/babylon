@@ -46,7 +46,7 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
   resourceClaim,
 }) => {
   // Extract the last status check request timestamp
-  const lastRequestTimestamp:string|undefined = resourceClaim.spec.resources.reduce(
+  const lastRequestTimestamp:string|undefined = resourceClaim.spec.resources.reduce<string|undefined>(
     (lastTimestamp, resourceSpec) => {
       const ts = resourceSpec?.template?.spec?.vars?.check_status_request_timestamp;
       if (ts) {
@@ -87,7 +87,7 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
   // - requested
   // - pending
   // - running
-  const checkStatusState:string|undefined = resourceClaim.spec.resources.reduce(
+  const checkStatusState:string|undefined = resourceClaim.spec.resources.reduce<string|undefined>(
     (reducedCheckState, resourceSpec, idx) => {
       const resourceState = resourceClaim.status.resources[idx].state;
       const resourceCheckState = getCheckStatusStateFromResource(resourceState, resourceSpec.template);

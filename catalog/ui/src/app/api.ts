@@ -13,6 +13,7 @@ import {
   NamespaceList,
   ResourceClaim,
   ResourceClaimList,
+  ResourceClaimSpecResource,
   ResourceHandle,
   ResourceHandleList,
   ResourcePool,
@@ -49,10 +50,14 @@ declare var window: Window &
     apiSessionImpersonateUser?: any,
   }
 
-export interface createServiceRequestOpt {
+export interface CreateServiceRequestOpt {
   catalogItem: any;
   catalogNamespace: any;
-  parameters?: any[];
+  parameterValues?: CreateServiceRequestParameterValues;
+}
+
+export interface CreateServiceRequestParameterValues {
+  [name: string]: boolean|number|string;
 }
 
 export interface K8sApiFetchOpt {
@@ -96,6 +101,18 @@ async function apiFetch(path:string, opt?:object): Promise<any> {
   return resp;
 }
 
+export async function checkSalesforceId(id:string): Promise<boolean> {
+  if (!id || !id.match(/^\d{7,}$/)) {
+    return false;
+  }
+  try {
+    await apiFetch(`/api/salesforce/opportunity/${id}`);
+  } catch(error) {
+    return false;
+  }
+  return true;
+}
+
 export async function createNamespacedCustomObject(group, version, namespace, plural, obj): Promise<any> {
   const session = await getApiSession();
   const resp = await apiFetch(
@@ -137,15 +154,15 @@ export async function createResourcePool(definition:ResourcePool): Promise<Resou
 export async function createServiceRequest({
   catalogItem,
   catalogNamespace,
-  parameters,
-}: createServiceRequestOpt): Promise<any> {
+  parameterValues,
+}: CreateServiceRequestOpt): Promise<any> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, "$1");
   const session = await getApiSession();
   const userGroups = selectUserGroups(store.getState());
   const userNamespace = selectUserNamespace(store.getState());
   const access = checkAccessControl(catalogItem.spec.accessControl, userGroups);
 
-  const requestResourceClaim = {
+  const requestResourceClaim:ResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     kind: 'ResourceClaim',
     metadata: {
@@ -210,28 +227,39 @@ export async function createServiceRequest({
     }
 
     // Copy all parameter values into the ResourceClaim
-    if (parameters) {
-      for (const parameter of parameters) {
-        for (const resourceIndex in requestResourceClaim.spec.resources) {
-          const resource = requestResourceClaim.spec.resources[resourceIndex];
-          // Only set parameter if resource index is not set or matches
-          if (parameter.resourceIndex == null || resourceIndex == parameter.resourceIndex) {
-            recursiveAssign(
-              resource,
-              {
-                template: {
-                  spec: {
-                    vars: {
-                      job_vars: {
-                        [parameter.name]: parameter.value,
-                      }
-                    }
-                  }
-                }
-              }
-            )
-          }
-        }
+    for (const parameter of catalogItem.spec.parameters || []) {
+      // passed parameter value or default
+      const value:boolean|number|string = (
+	parameterValues?.[parameter.name] !== undefined ? parameterValues[parameter.name] : (
+          parameter.openAPIV3Schema?.default !== undefined ? parameter.openAPIV3Schema.default : parameter.value
+	)
+      );
+
+      // Set annotation for parameter
+      if (parameter.annotation && value !== undefined) {
+        requestResourceClaim.metadata.annotations[parameter.annotation] = String(value);
+      }
+
+      // Job variable name is either explicitly set or defaults to the parameter name unless an annotation is given.
+      const jobVarName:string = parameter.variable || (parameter.annotation ? null : parameter.name);
+      if (!jobVarName) { continue }
+
+      // Determine to which resources in the resource claim the parameters apply
+      const resourceIndexes:number[] = parameter.resourceIndexes ? (
+	parameter.resourceIndexes.map(
+          i => i === '@' ? requestResourceClaim.spec.resources.length - 1 : i
+        )
+      ) : [requestResourceClaim.spec.resources.length - 1];
+
+      for (const resourceIndex in requestResourceClaim.spec.resources) {
+	// Skip this resource if resource index does not match
+        if (!resourceIndexes.includes(parseInt(resourceIndex))) { continue }
+
+        const resource:ResourceClaimSpecResource = requestResourceClaim.spec.resources[resourceIndex];
+        recursiveAssign(
+          resource,
+          { template: { spec: { vars: { job_vars: { [jobVarName]: value } } } } }
+        )
       }
     }
   } else {
@@ -248,7 +276,7 @@ export async function createServiceRequest({
         data: {
           catalogItemName: catalogItem.metadata.name,
           catalogItemNamespace: catalogItem.metadata.namespace,
-          parameters: JSON.stringify(parameters),
+          parameters: JSON.stringify(parameterValues),
         },
         metadata: {
           labels: {

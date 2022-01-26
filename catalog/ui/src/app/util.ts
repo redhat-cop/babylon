@@ -34,13 +34,28 @@ export function checkAccessControl(accessConfig: any, groups: string[]): string 
   return 'deny';
 }
 
-export function checkCondition(condition: string, vars: object): boolean {
-  return window.Function(
-    Object.entries(vars).map(
-      ([k, v]) => "const " + k + " = " + JSON.stringify(v) + ";"
-    ).join("\n") +
-    "return Boolean(" + condition + ");"
-  )();
+export interface ConditionValues {
+  [name: string]: boolean|number|string|undefined;
+}
+
+export function checkCondition(condition: string, vars: ConditionValues): boolean {
+  console.log(condition, vars);
+  try {
+    const checkFunction:Function = new Function(
+      Object.entries(vars).map(
+        ([k, v]) => "const " + k + " = " + JSON.stringify(v) + ";"
+      ).join("\n") +
+      "return (" + condition + ");"
+    );
+    const ret:boolean|Error = checkFunction();
+    if (ret instanceof Error) {
+      throw ret;
+    } else {
+      return Boolean(ret);
+    }
+  } catch(error) {
+    throw new Error(`Failed to evaluate condition: ${error}`);
+  }
 }
 
 export function displayName(item: any): string {
