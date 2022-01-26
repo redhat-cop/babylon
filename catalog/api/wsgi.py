@@ -18,6 +18,7 @@ from retrying import retry
 from simple_salesforce import Salesforce, format_soql
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 import requests
+from datetime import datetime
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -394,7 +395,7 @@ def salesforce_connection():
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
 def get_salesforce_opportunity(opportunity_id):
-    opportunity_info = None
+    opportunity_info = {}
     if redis_connection:
         opportunity_json = redis_connection.get(opportunity_id)
         if opportunity_json:
@@ -403,10 +404,21 @@ def get_salesforce_opportunity(opportunity_id):
     if not opportunity_info:
         salesforce_api = salesforce_connection()
 
-        opportunity_query = format_soql("SELECT Id, Name, OpportunityNumber__c FROM Opportunity "
+        opportunity_query = format_soql("SELECT "
+                                        "  Id, Name, AccountId, IsClosed, "
+                                        "  CloseDate, StageName, OpportunityNumber__c "
+                                        "FROM Opportunity "
                                         "WHERE OpportunityNumber__c = {}", str(opportunity_id).strip())
+
         try:
-            opportunity_info = salesforce_api.query(opportunity_query)
+            opp_results = salesforce_api.query(opportunity_query)
+            opportunity_info['totalSize'] = opp_results.get('totalSize', 0)
+            for i in opp_results['records']:
+                if 'attributes' in i:
+                    del i['attributes']
+                opportunity_info.update(i)
+                # Rename custom field to be readable
+                opportunity_info['Number'] = opportunity_info.pop('OpportunityNumber__c')
 
         except SalesforceMalformedRequest:
             flask.abort(404,  description='Invalid SalesForce Request')
@@ -414,11 +426,24 @@ def get_salesforce_opportunity(opportunity_id):
     opportunity_valid = opportunity_info.get('totalSize', 0)
 
     if redis_connection:
-        redis_connection.setex(opportunity_id, session_lifetime, {'totalSize': opportunity_valid})
+        redis_connection.setex(opportunity_id, session_lifetime, opportunity_info)
 
+    # If the opportunity not found in SFDC that means its invalid opportunity number
     if opportunity_valid == 0:
         return False
     else:
+        # Business rules for invalid opportunity:
+        # If the opportunity is Closed
+        # If the current date is more than the CloseDate
+        # If opportunity's stage in Closed Booked, Closed Lost or Closed On
+        current_date = datetime.utcnow().strftime("%Y-%m-%d")
+        is_closed = opportunity_info.get('IsClosed', False)
+        close_date = opportunity_info.get('CloseDate')
+        stage_name = opportunity_info.get('StageName')
+        if is_closed or current_date > close_date or \
+                stage_name in ('Closed Booked', 'Closed Lost', 'Closed Won'):
+            return False
+
         return True
 
 
