@@ -77,15 +77,20 @@ export interface CatalogItemSpec {
 }
 
 export interface CatalogItemSpecParameter {
+  annotation?: string;
   description?: string;
   formLabel?: string;
   formGroup?: string;
   formDisableCondition?: string;
+  formHideCondition?: string;
+  formRequireCondition?: string;
   name: string;
-  required?: boolean;
-  resourceIndex?: number;
-  value?: string;
   openAPIV3Schema?: any;
+  required?: boolean;
+  resourceIndexes?: (number|'@')[];
+  validation?: string;
+  value?: string;
+  variable?: string
 }
 
 export interface CatalogNamespace {
@@ -138,13 +143,28 @@ export interface NamespaceList {
 }
 
 export interface ResourceClaim extends K8sObject {
-  spec: any;
+  spec: ResourceClaimSpec;
   status?: any;
 }
 
 export interface ResourceClaimList {
   items: ResourceClaim[];
   metadata: K8sObjectListMeta;
+}
+
+export interface ResourceClaimSpec {
+  lifespan?: ResourceClaimSpecLifespan;
+  resources: ResourceClaimSpecResource[];
+}
+
+export interface ResourceClaimSpecLifespan {
+  end?: string;
+}
+
+export interface ResourceClaimSpecResource {
+  name?: string;
+  provider?: K8sObjectReference;
+  template: any;
 }
 
 export interface ResourceHandle extends K8sObject{

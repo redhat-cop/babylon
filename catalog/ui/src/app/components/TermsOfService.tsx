@@ -22,7 +22,7 @@ const TermsOfService: React.FunctionComponent<TermsOfServiceProps> = ({
 }) => {
   return (
     <FormGroup fieldId="" label="IMPORTANT PLEASE READ" className="catalog-terms-of-service">
-      <div dangerouslySetInnerHTML={{ __html: renderContent(text) }}/>
+      <div dangerouslySetInnerHTML={{ __html: renderContent(text, {format: 'html'}) }}/>
       <Checkbox
         label="I confirm that I understand the above warnings."
         id="terms-of-service"
