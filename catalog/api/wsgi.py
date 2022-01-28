@@ -428,7 +428,7 @@ def get_salesforce_opportunity(opportunity_id):
     opportunity_valid = opportunity_info.get('totalSize', 0)
 
     if redis_connection:
-        redis_connection.setex(opportunity_id, session_lifetime, opportunity_info)
+        redis_connection.setex(opportunity_id, session_lifetime, json.dumps(opportunity_info))
 
     # If the opportunity not found in SFDC that means its invalid opportunity number
     if opportunity_valid == 0:
