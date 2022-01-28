@@ -26,6 +26,7 @@ def random_string(length):
     return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(length)])
 
 application = flask.Flask('babylon-api', static_url_path='/ui')
+babylon_namespace = os.environ.get('BABYLON_NAMESPACE')
 interface_name = os.environ.get('INTERFACE_NAME');
 redis_connection = None
 session_cache = {}
@@ -43,6 +44,9 @@ if 'REDIS_PASSWORD' in os.environ:
 
 if os.path.exists('/var/run/secrets/kubernetes.io/serviceaccount/namespace'):
     kubernetes.config.load_incluster_config()
+    if not babylon_namespace:
+        with open('/run/secrets/kubernetes.io/serviceaccount/namespace') as f:
+            babylon_namespace = f.read()
 else:
     kubernetes.config.load_kube_config()
 
@@ -360,11 +364,9 @@ def resolve_openstack_subjects(resource_claim):
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
 def salesforce_connection():
-
-    babylon_namespace = os.environ.get('BABYLON_NAMESPACE')
+    # Cannot read salesforce secret without babylon namespace value
     if not babylon_namespace:
-        with os.path.exists('/run/secrets/kubernetes.io/serviceaccount/namespace') as f:
-            babylon_namespace = f.read()
+        flask.abort(400)
 
     sfdc_instance = sfdc_consumer_key = sfdc_privatekey = sfdc_username = None
 
@@ -379,7 +381,7 @@ def salesforce_connection():
         sfdc_username = b64decode(sfdc_secret.data['username']).decode('utf8')
     except kubernetes.client.rest.ApiException as e:
         if e.status != 404:
-            return flask.abort(400)
+            flask.abort(400)
 
     try:
         session = requests.Session()
@@ -390,7 +392,7 @@ def salesforce_connection():
                         client_id="PFE Babylon API", session=session)
         return sf
     except Exception as e:
-        return flask.abort(400)
+        flask.abort(400)
 
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
@@ -675,7 +677,7 @@ def apis_proxy(path):
 def salesforce_opportunity(opportunity_id):
     if get_salesforce_opportunity(opportunity_id):
         return flask.jsonify({"success": True})
-    return flask.abort(404)
+    flask.abort(404)
 
 
 @application.route('/')
