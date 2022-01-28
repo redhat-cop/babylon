@@ -43,7 +43,7 @@ spec:
         {{- end }}
         {{- if .Values.salesforce }}
         - name: SALESFORCE_SECRET
-          value: {{ include "babylonCatalog.apiName" . }}-salesforce
+          value: {{ include "babylonCatalog.salesforceSecretName" . }}
         {{- end }}
         - name: REDIS_PASSWORD
           valueFrom:

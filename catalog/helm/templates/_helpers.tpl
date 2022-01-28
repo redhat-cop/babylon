@@ -28,6 +28,13 @@ Create the name for the redis component
 {{- end -}}
 
 {{/*
+Name applied to Salesforce Secret
+*/}}
+{{- define "babylonCatalog.salesforceSecretName" -}}
+  {{- default (printf "%s-salesforce-api" (include "babylonCatalog.name" .)) .Values.salesforce.secretName -}}
+{{- end -}}
+
+{{/*
 Name applied to UI resources.
 */}}
 {{- define "babylonCatalog.uiName" -}}
