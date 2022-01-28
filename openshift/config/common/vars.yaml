@@ -77,7 +77,6 @@ babylon_resources:
           namespaces: "{{ babylon_anarchy_namespaces | default(default_babylon_anarchy_namespaces) }}"
           secrets: "{{ babylon_anarchy_secrets | default([]) }}"
         babylonTower: "{{ babylon_tower }}"
-        salesforce: "{{ babylon_salesforce | default({}) }}"
 
         # Evaluation to preserve boolean type
         catalogNamespaces: "{{ babylon_catalog_namespaces | default(default_babylon_catalog_namespaces) }}"
@@ -133,6 +132,7 @@ babylon_resources:
         interfaceName: "{{ babylon_catalog_interface | default('rhpds') }}"
         redis: "{{ babylon_catalog_redis | default({}) }}"
         route: "{{ babylon_catalog_route | default({}) }}"
+        salesforce: "{{ babylon_salesforce | default({}) }}"
 
   - name: Babylon lab-ui-manager Helm Template
     when: >-
