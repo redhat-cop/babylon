@@ -77,6 +77,7 @@ babylon_resources:
           namespaces: "{{ babylon_anarchy_namespaces | default(default_babylon_anarchy_namespaces) }}"
           secrets: "{{ babylon_anarchy_secrets | default([]) }}"
         babylonTower: "{{ babylon_tower }}"
+        salesforce: "{{ babylon_salesforce | default({}) }}"
 
         # Evaluation to preserve boolean type
         catalogNamespaces: "{{ babylon_catalog_namespaces | default(default_babylon_catalog_namespaces) }}"

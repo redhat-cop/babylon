@@ -104,6 +104,8 @@ route:
 
 # Optional Salesforce configuration for API integration
 #salesforce:
+#  secretName: babylon-salesforce-api
+#  create: true
 #  instance: ...
 #  consumer_key: ...
 #  privatekey: |
