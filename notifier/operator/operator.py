@@ -10,6 +10,7 @@ import re
 import redis
 import requests
 import smtplib
+import subprocess
 import yaml
 
 from base64 import b64decode
@@ -576,15 +577,30 @@ def notify_provision_started(resource_claim, email_addresses, logger):
 def notify_ready(resource_claim, email_addresses, logger):
     logger.info("sending service-ready notification", extra=dict(to=email_addresses))
     message_body = []
-    template_vars = dict(
-        provision_messages = [],
-        provision_data = {},
-    )
+    provision_messages = []
+    provision_data = {}
     for status_resource in resource_claim['status']['resources']:
         anarchy_subject = status_resource['state']
         message_body.extend(anarchy_subject['spec']['vars'].get('provision_message_body', []))
-        template_vars['provision_messages'].extend(anarchy_subject['spec']['vars'].get('provision_messages', []))
-        template_vars['provision_data'].update(anarchy_subject['spec']['vars'].get('provision_data', {}))
+        provision_messages.extend(anarchy_subject['spec']['vars'].get('provision_messages', []))
+        provision_data.update(anarchy_subject['spec']['vars'].get('provision_data', {}))
+
+    template_vars = {}
+    if provision_messages:
+        template_vars['provision_messages'] = provision_messages
+        asciidoctor_process = subprocess.Popen(
+            ['asciidoctor', '-sb', 'html5', '-'],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = asciidoctor_process.communicate(
+            input = "\n".join([m + ' +' if m else m for m in provision_messages]).encode('utf8')
+        )
+        template_vars['provision_messages_html'] = stdout.decode('utf8')
+
+    if provision_data:
+        template_vars['provision_data'] = provision_data
 
     send_notification_email(
         logger = logger,
