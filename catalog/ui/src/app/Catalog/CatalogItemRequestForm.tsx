@@ -25,7 +25,12 @@ import {
   createServiceRequest,
   CreateServiceRequestParameterValues,
 } from '@app/api';
-import { selectCatalogNamespace, selectUserIsAdmin } from '@app/store';
+import {
+  selectCatalogNamespace,
+  selectUserGroups,
+  selectUserIsAdmin,
+  selectUserRoles,
+} from '@app/store';
 import {
   CatalogItem,
   CatalogItemSpecParameter,
@@ -116,10 +121,20 @@ async function _checkCondition(condition: string, vars: ConditionValues): Promis
   )
 }
 
-async function checkConditionsInFormState(state:FormState): Promise<void> {
+async function checkConditionsInFormState(
+  state:FormState,
+  userGroups:string[],
+  userIsAdmin:boolean,
+  userRoles:string[],
+): Promise<void> {
   state.conditionChecks.running = true;
 
-  const conditionValues:ConditionValues = {};
+  const conditionValues:ConditionValues = {
+    user_groups: userGroups,
+    user_is_admin: userIsAdmin,
+    user_roles: userRoles,
+  };
+
   for (const [name, parameterState] of Object.entries(state.parameters)) {
     conditionValues[name] = parameterState.value;
   }
@@ -319,6 +334,10 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
   const catalogNamespace:CatalogNamespace = useSelector(
     (state) => selectCatalogNamespace(state, catalogItem.metadata.namespace)
   );
+  const userGroups:string[] = useSelector(selectUserGroups);
+  const userIsAdmin:boolean = useSelector(selectUserIsAdmin);
+  const userRoles:string[] = useSelector(selectUserRoles);
+
   const submitRequestEnabled:boolean = checkEnableSubmit(formState);
 
   async function submitRequest(): Promise<void> {
@@ -344,7 +363,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
 
   async function checkConditions(): Promise<void> {
     try {
-      await checkConditionsInFormState(formState);
+      await checkConditionsInFormState(formState, userGroups, userIsAdmin, userRoles);
       dispatchFormState({
         type: "checkConditionsComplete",
       });
