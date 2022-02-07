@@ -35,11 +35,10 @@ export function checkAccessControl(accessConfig: any, groups: string[]): string 
 }
 
 export interface ConditionValues {
-  [name: string]: boolean|number|string|undefined;
+  [name: string]: boolean|number|string|string[]|undefined;
 }
 
 export function checkCondition(condition: string, vars: ConditionValues): boolean {
-  console.log(condition, vars);
   try {
     const checkFunction:Function = new Function(
       Object.entries(vars).map(
