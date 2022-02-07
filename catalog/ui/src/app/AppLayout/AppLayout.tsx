@@ -42,7 +42,11 @@ import {
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
 
-import { IUserImpersonationDialogState } from "./entities";
+interface IUserImpersonationDialogState {
+    isOpen: boolean,
+    matchCount: number,
+    value: string,
+}
 
 import Navigation from "./Navigation";
 
