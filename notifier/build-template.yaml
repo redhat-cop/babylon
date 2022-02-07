@@ -43,8 +43,8 @@ objects:
         uri: ${GIT_REPO}
         ref: ${GIT_REF}
     strategy:
-      type: Source
-      sourceStrategy:
+      type: Docker
+      dockerStrategy:
         from:
           kind: DockerImage
           name: ${KOPF_S2I_IMAGE}
