@@ -232,51 +232,52 @@ export const __actionSetResourceClaimsForNamespace = createAction<ActionSetResou
 
 
 // Selectors
-const selectSelf = (state: any) => state
+const selectSelf = (state: any) => state;
+const selectAuth = (state: any) => state.impersonate !== null ? state.impersonate : state.auth;
 
 export const selectAuthIsAdmin = createSelector(
   selectSelf,
-  state => state.auth.admin,
+  (state:any): boolean => state.auth.admin,
 )
 
 export const selectAuthUser = createSelector(
   selectSelf,
-  state => state.auth.user,
+  (state:any): string => state.auth.user,
 )
 
 export const selectConsoleURL = createSelector(
   selectSelf,
-  state => state.consoleURL,
+  (state:any): string => state.consoleURL,
 )
 
 export const selectInterface = createSelector(
   selectSelf,
-  state => state.interface,
+  (state:any): string => state.interface,
 )
 
 export const selectUser = createSelector(
-  selectSelf,
-  state => state.impersonate ? state.impersonate.user : state.auth.user,
+  selectAuth,
+  (state:any): string => state.user
 )
 
 export const selectUserGroups = createSelector(
-  (state:any): any => state.impersonate ? state.impersonate : state.auth,
+  selectAuth,
   (state:any): string[] => (state.groups || []).concat('system:authenticated')
 )
 
 export const selectUserIsAdmin = createSelector(
-  selectSelf,
-  state => state.impersonate ? state.impersonate.admin : state.auth.admin,
+  selectAuth,
+  (state:any): boolean => state.admin
 )
 
 export const selectUserRoles = createSelector(
-  selectSelf,
-  state => state.impersonate ? state.impersonate.roles : state.auth.roles || [],
+  selectAuth,
+  (state:any): string[] => state.roles || [],
 )
 
 export const selectImpersonationUser = createSelector(
   selectSelf,
-  state => state.impersonate?.user,
+  (state:any): string => state.impersonate?.user,
 )
 
 export const selectCatalogNamespace = createSelector(
@@ -288,7 +289,7 @@ export const selectCatalogNamespace = createSelector(
 )
 
 export const selectCatalogNamespaces = createSelector(
-  (state:any): any => state.impersonate || state.auth,
+  selectAuth,
   (state:any): CatalogNamespace[] => state.catalogNamespaces || [],
 )
 
@@ -331,8 +332,8 @@ export const selectServiceNamespaces = createSelector(
 )
 
 export const selectUserNamespace = createSelector(
-  selectSelf,
-  state => state.impersonate ? state.impersonate.userNamespace : state.auth.userNamespace,
+  selectAuth,
+  state => state.userNamespace
 )
 
 
