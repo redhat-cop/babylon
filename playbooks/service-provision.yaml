@@ -55,10 +55,6 @@
         {{ vars.catalog_item_params.guid }}
       uuid: >-
         {{ vars.catalog_item_params.uuid }}
-      # Take cloud_tags, but drop values to ignore, guid and uuid
-      cloud_tags: >-
-        {{ vars.catalog_item_params.cloud_tags | default('{}') | from_yaml
-         | dict2items | json_query("[?key!='guid' && key!='uuid']") | items2dict }}
       resource_claim_name: >-
         {{ catalog_item_name }}-{{ vars.catalog_item_params.guid }}
 
@@ -112,7 +108,7 @@
         metadata:
           annotations:
             openshift.io/description: User Namespace for {{ cloudforms_username }}
-            openshift.io/display-name: "{{ user_namespace }}"
+            openshift.io/display-name: "User {{ cloudforms_username }}"
             openshift.io/requester: "{{ cloudforms_username }}"
           name: "{{ user_namespace }}"
 
@@ -136,16 +132,6 @@
 
   - name: Create ResourceClaim {{ resource_claim_name }}
     vars:
-      __meta_catalog_parameter_names: >-
-        {{ vars.catalog_item_params | json_query('__meta__.catalog.parameters[].name') }}
-      __job_vars_from_configured_parameters: >-
-        {{ vars.catalog_item_params | dict2items
-         | json_query("[?contains(`" ~ __meta_catalog_parameter_names | to_json ~ "`, key)]")
-         | items2dict | combine({"cloud_tags": vars.cloud_tags} if 'cloud_tags' in __meta_catalog_parameter_names else {}) }}
-      __job_vars_all: >-
-        {{ vars.catalog_item_params | dict2items
-         | json_query("[?key!='guid' && key!='uuid' && key!='cloud_tags']")
-         | items2dict | combine({"cloud_tags": vars.cloud_tags}) }}
       # Resource definition for common ResourceProvider
       __babylon_provider_resource_item:
         provider:
@@ -166,13 +152,7 @@
             vars:
               # Indicate that environment should start if match to a stopped environment
               desired_state: started
-              # Set job_vars, excluding "guid" and "uuid" and insert filtered "cloud_tags"
-              job_vars: >-
-                {% if __meta_catalog_parameter_names != '' -%}
-                {{ __job_vars_from_configured_parameters }}
-                {%- else -%}
-                {{ __job_vars_all }}
-                {%- endif %}
+              job_vars: "{{ vars.catalog_item_params | babylon_extract_parameter_vars }}"
       # Resource definition to use when ResourceProvider is specific to the AgnosticV item
       __provider_specific_resource_item:
         provider:
@@ -183,7 +163,7 @@
         template:
           spec:
             vars:
-              job_vars: "{{ __job_vars_from_configured_parameters }}"
+              job_vars: "{{ vars.catalog_item_params | babylon_extract_parameter_vars }}"
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       definition:
