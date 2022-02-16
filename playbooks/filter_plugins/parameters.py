@@ -6,7 +6,9 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
+from ansible.errors import AnsibleFilterError
 from ansible.module_utils.six import string_types
+from ansible.plugins.filter.core import to_bool
 
 import yaml
 
@@ -35,16 +37,21 @@ def babylon_extract_parameter_vars(vars_dict):
             vartype = parameter.get('openAPIV3Schema', {}).get('type')
             if varname and varname in vars_dict:
                 raw_value = vars_dict[varname]
-                if vartype == 'boolean':
-                    parameter_vars[varname] = raw_value.lower() in ('1', 'true', 'yes')
-                elif vartype == 'integer':
-                    parameter_vars[varname] = int(raw_value)
-                elif vartype == 'number':
-                    parameter_vars[varname] = float(raw_value)
-                elif vartype == 'string':
-                    parameter_vars[varname] = str(raw_value)
-                else:
-                    parameter_vars[varname] = raw_value
+                try:
+                    if vartype == 'boolean':
+                        parameter_vars[varname] = to_bool(raw_value)
+                    elif vartype == 'integer':
+                        parameter_vars[varname] = int(raw_value)
+                    elif vartype == 'number':
+                        parameter_vars[varname] = float(raw_value)
+                    elif vartype == 'string':
+                        parameter_vars[varname] = str(raw_value)
+                    else:
+                        parameter_vars[varname] = raw_value
+                except ValueError:
+                    raise AnsibleFilterError(
+                        'Invalid value for {}: "{}" is cannot be parsed as {}'.format(varname, raw_value, vartype)
+                    )
 
 
     return parameter_vars
