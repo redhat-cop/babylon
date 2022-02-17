@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
-from parameters import babylon_extract_parameter_vars
+from filter_plugins.parameters import babylon_extract_parameter_vars
 
 class TestParametersFilter(unittest.TestCase):
     def test_00(self):
