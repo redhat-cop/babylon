@@ -94,6 +94,7 @@
         __subject: "{{ resource_claim.status.resources[0].state | default('') }}"
       when: __subject != ''
       set_fact:
+        subject: "{{ __subject }}"
         subject_name: "{{ __subject.metadata.name }}"
         subject_namespace: "{{ __subject.metadata.namespace }}"
 
