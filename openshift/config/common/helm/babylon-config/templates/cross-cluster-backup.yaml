@@ -38,6 +38,7 @@ rules:
   - {{ .Values.anarchy.apiGroup }}
   resources:
   - anarchyactions
+  - anarchyruns
   - anarchysubjects
   verbs:
   - get
@@ -86,88 +87,6 @@ subjects:
   name: restore
   namespace: {{ .Values.crossClusterBackup.namespace }}
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: cross-cluster-backup
-  namespace: {{ .Values.crossClusterBackup.namespace }}
-  annotations:
-    openshift.io/description: >-
-      Storage for Babylon backup YAML data.
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ .Values.crossClusterBackup.storageSize }}
-{{ if .Values.crossClusterBackup.kubeConfig }}
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: cross-cluster-backup
-  namespace: {{ .Values.crossClusterBackup.namespace }}
-  annotations:
-    openshift.io/description: >-
-      Secret containing kubeconfig.yaml for cross-cluster access
-data:
-  kubeconfig.yaml: {{ .Values.crossClusterBackup.kubeConfig | b64enc }}
-{{ end }}
----
-apiVersion: batch/v1beta1
-kind: CronJob
-metadata:
-  name: cross-cluster-backup
-  namespace: {{ .Values.crossClusterBackup.namespace }}
-spec:
-  schedule: '*/20 * * * *'
-  failedJobsHistoryLimit: 1
-  successfulJobsHistoryLimit: 1
-  suspend: false
-  jobTemplate:
-    spec:
-      # Retry twice on failure
-      backoffLimit: 2
-      template:
-        spec:
-          serviceAccountName: default
-          restartPolicy: Never
-          containers:
-          - name: oc-cli
-            command:
-            - /bin/bash
-            - -xc
-            - |
-              set -e
-              rm -rf /backup/in-progress
-              mkdir /backup/in-progress
-              oc --kubeconfig=/secret/kubeconfig.yaml get anarchysubjects --all-namespaces -o yaml > /backup/in-progress/anarchysubjects.yaml
-              oc --kubeconfig=/secret/kubeconfig.yaml get anarchyactions --all-namespaces -o yaml > /backup/in-progress/anarchyactions.yaml
-              oc --kubeconfig=/secret/kubeconfig.yaml get resourcepools -n poolboy -o yaml > /backup/in-progress/resourcepools.yaml
-              oc --kubeconfig=/secret/kubeconfig.yaml get resourcehandles -n poolboy -o yaml > /backup/in-progress/resourcehandles.yaml
-              oc --kubeconfig=/secret/kubeconfig.yaml get resourceclaims --all-namespaces -o yaml > /backup/in-progress/resourceclaims.yaml
-              TIMESTAMP="$(date -u +%FT%TZ)"
-              mv /backup/in-progress "/backup/${TIMESTAMP}"
-              rm -f /backup/latest
-              ln -s "${TIMESTAMP}" /backup/latest
-              # Remove backup dirs older than 3 days
-              find /backup/ -maxdepth 1 -type d -regextype posix-egrep -regex '.*/[0-9]{4}-[0-9]{2}-[0-9]{2}T.*' -mmin +$((3 * 24 * 60)) -exec rm -rf {} \; || :
-            image: image-registry.openshift-image-registry.svc:5000/openshift/cli
-            imagePullPolicy: Always
-            volumeMounts:
-            - mountPath: /backup/
-              name: backup
-            - mountPath: /secret/
-              name: secret
-              readOnly: true
-          volumes:
-          - name: backup
-            persistentVolumeClaim:
-              claimName: cross-cluster-backup
-          - name: secret
-            secret:
-              secretName: cross-cluster-backup
----
 apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -183,7 +102,7 @@ parameters:
   displayName: Image
   name: IMAGE
   required: true
-  value: quay.io/redhat-gpte/replik8s:{{ .Values.crossClusterBackup.replik8sVersion }}
+  value: quay.io/redhat-pfe/replik8s:{{ .Values.crossClusterBackup.replik8sVersion }}
 - description: Restore mode, can be "manual", "latest", or backup timestamp.
   displayName: RESTORE
   name: RESTORE
@@ -198,7 +117,7 @@ objects:
     labels:
       cross-cluster-restore: ''
   spec:
-    backoffLimit: 1
+    backoffLimit: 0
     completions: 1
     parallelism: 1
     template:
@@ -219,13 +138,11 @@ objects:
                 exit 1
             fi
             /opt/app-root/bin/replik8s-restore "\${1}" \\
-              --restore-status-on \\
-                anarchysubjects.anarchy.gpte.redhat.com \\
-                anarchyactions.anarchy.gpte.redhat.com \\
-                resourceclaims.poolboy.gpte.redhat.com \\
-              --stop-operators \\
-                anarchy-operator/anarchy \\
-                poolboy/poolboy
+              --create-namespaces \\
+              --restore-status-on='*' \\
+              --stop-operator-selectors \\
+                app.kubernetes.io/name=anarchy \\
+                app.kubernetes.io/name=poolboy
             echo "Restore Complete"
             rm -f /tmp/restore-running
             EOF
@@ -235,8 +152,10 @@ objects:
                 touch /tmp/restore-running
                 while [ -e /tmp/restore-running ]; do sleep 1; done
                 exit 0
+            elif [ "${RESTORE}" == "latest" ]; then
+                /opt/app-root/bin/babylon-restore "/data/babylon-cross-cluster-backup/babylon/latest"
             else
-                /opt/app-root/bin/babylon-restore "/backup/${RESTORE}"
+                /opt/app-root/bin/babylon-restore "/data/babylon-cross-cluster-backup/babylon/recovery-points/${RESTORE}"
             fi
           env:
           - name: RESTORE
@@ -244,16 +163,10 @@ objects:
           image: ${IMAGE}
           imagePullPolicy: Always
           volumeMounts:
-          - mountPath: /backup/
-            name: backup
-          - mountPath: /secret/
-            name: secret
-            readOnly: true
+          - mountPath: /data/
+            name: data
         volumes:
-        - name: backup
+        - name: data
           persistentVolumeClaim:
             claimName: cross-cluster-backup
-        - name: secret
-          secret:
-            secretName: cross-cluster-backup
 {{- end }}
