@@ -86,7 +86,7 @@ babylon_resources:
     resources:
     - name: Babylon cross-cluster-backup replik8s
       when: >-
-        babylon_cross_cluster_backup.enable | default(false) | bool
+        babylon_cross_cluster_backup_enable | default(false) | bool
       helm_template:
         dir: helm
         git:
@@ -94,7 +94,7 @@ babylon_resources:
           version: "{{ replik8s_version }}"
         values:
           kubeConfigs:
-            babylon: "{{ babylon_cross_cluster_backup.kubeconfig | default('') }}"
+            babylon: "{{ babylon_cross_cluster_backup_kubeconfig | default('') }}"
           configs:
             babylon:
               kubeConfig:
@@ -123,7 +123,7 @@ babylon_resources:
             spec:
               resources:
                 requests:
-                  storage: "{{ babylon_cross_cluster_backup.storageSize | default('20Gi') }}"
+                  storage: "{{ babylon_cross_cluster_backup_storage_size | default('50Gi') }}"
 
   - name: Babylon catalog Helm Template
     when: >-
