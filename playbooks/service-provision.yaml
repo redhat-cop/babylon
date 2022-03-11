@@ -12,6 +12,9 @@
     kubeconfig: CHANGEME
     platform: CHANGEME
     cloudforms_username: CHANGEME
+    babylon_tower_secret: >-
+      {{ vars.catalog_item_params.__meta__.ansible_control_plane.secret
+      | default('babylon-tower') }}
 
     # After that don't touch
     user_namespace: user-{{ cloudforms_username | replace('_', '-') | replace('.', '-') }}
@@ -28,29 +31,7 @@
       file: "{{ catalog_item_params_file }}"
       name: catalog_item_params
 
-  # RHPDS virtualenvs -> EE  automatic creation
-  - name: Override EE with default_execution_environment if not defined
-    vars:
-      ansible_control_plane: >-
-        {{ vars.catalog_item_params.__meta__.ansible_control_plane.type | default('tower') }}
-
-      execution_environment: >-
-        {{ vars.catalog_item_params.__meta__.deployer.execution_environment | default({}) }}
-
-      default_execution_environment:
-        image: image-registry.apps-dev.open.redhat.com/agnosticd/ee-{{ vars.catalog_item_params.__meta__.deployer.virtualenv | default('ansible2.9-python3.6-2021-11-30') }}
-        private: true
-
-      to_merge:
-        __meta__:
-          deployer:
-            execution_environment: "{{ default_execution_environment }}"
-    when: >-
-      ansible_control_plane == 'controller'
-      and execution_environment | default('', true) == ''
-
-    set_fact:
-      catalog_item_params: "{{ vars.catalog_item_params | combine(to_merge, recursive=True) }}"
+  - include_tasks: override_ee.yaml
 
   - name: Show catalog_item_params
     debug:
@@ -432,12 +413,12 @@
       api_version: v1
       kind: Secret
       namespace: "{{ anarchy_namespace }}"
-      name: babylon-tower
+      name: "{{ babylon_tower_secret }}"
     register: r_babylon_tower_secret
 
   - name: Fail if babylon-tower secret not found
     fail:
-      msg: "babylon-tower secret not found"
+      msg: "{{ babylon_tower_secret }} secret not found"
     when: r_babylon_tower_secret.resources | length == 0
 
   - name: Create output_dir/secrets
