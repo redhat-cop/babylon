@@ -81,8 +81,8 @@ babylon_resources:
         # Sets up cross-cluster backup service accounts and restore job
         crossClusterBackup: >-
           {{ {
-            "enable": {{ babylon_cross_cluster_backup_enable | default(false) | bool }},
-            "replik8sVersion": {{ replik8s_version }},
+            "enable": babylon_cross_cluster_backup_enable | default(false) | bool,
+            "replik8sVersion": replik8s_version,
           } }}
 
   - namespace: babylon-cross-cluster-backup
