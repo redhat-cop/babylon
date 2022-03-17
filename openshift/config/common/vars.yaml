@@ -77,10 +77,13 @@ babylon_resources:
           namespaces: "{{ babylon_anarchy_namespaces | default(default_babylon_anarchy_namespaces) }}"
           secrets: "{{ babylon_anarchy_secrets | default([]) }}"
         babylonTower: "{{ babylon_tower }}"
-
-        # Evaluation to preserve boolean type
         catalogNamespaces: "{{ babylon_catalog_namespaces | default(default_babylon_catalog_namespaces) }}"
-        crossClusterBackup: "{{ babylon_cross_cluster_backup | default({}) }}"
+        # Sets up cross-cluster backup service accounts and restore job
+        crossClusterBackup: >-
+          {{ {
+            "enable": {{ babylon_cross_cluster_backup_enable | default(false) | bool }},
+            "replik8sVersion": {{ replik8s_version }},
+          } }}
 
   - namespace: babylon-cross-cluster-backup
     resources:

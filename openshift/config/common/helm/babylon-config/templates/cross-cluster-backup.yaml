@@ -168,5 +168,5 @@ objects:
         volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: cross-cluster-backup
+            claimName: replik8s
 {{- end }}
