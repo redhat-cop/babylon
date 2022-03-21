@@ -14,10 +14,16 @@ Name applied to API resources.
 {{- end -}}
 
 {{/*
-Create the name for the oauth-proxy component
+Create names for the oauth-proxy component
 */}}
 {{- define "babylonCatalog.oauthProxyName" -}}
   {{- default (printf "%s-oauth-proxy" (include "babylonCatalog.name" .)) .Values.oauthProxy.name -}}
+{{- end -}}
+{{- define "babylonCatalog.oauthProxyClientSecretName" -}}
+  {{- printf "%s-client" (include "babylonCatalog.oauthProxyName" .) -}}
+{{- end -}}
+{{- define "babylonCatalog.oauthProxyCookieSecretName" -}}
+  {{- printf "%s-cookie" (include "babylonCatalog.oauthProxyName" .) -}}
 {{- end -}}
 
 {{/*

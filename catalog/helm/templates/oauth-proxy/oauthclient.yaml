@@ -1,0 +1,10 @@
+{{- if (and .Values.oauthProxy.clientSecret .Values.route.host) }}
+apiVersion: oauth.openshift.io/v1
+kind: OAuthClient
+metadata:
+  name: {{ include "babylonCatalog.namespaceName" . }}
+grantMethod: auto
+redirectURIs:
+- https://{{ .Values.route.host }}/oauth/callback
+secret: {{ .Values.oauthProxy.clientSecret }}
+{{- end }}
