@@ -137,6 +137,10 @@ babylon_resources:
         api:
           replicaCount: "{{ babylon_catalog_api_replica_count | default(1) }}"
         interfaceName: "{{ babylon_catalog_interface | default('rhpds') }}"
+        oauthProxy:
+          clientId: "{{ babylon_catalog_oauth_client_id | default('') }}"
+          clientSecret: "{{ babylon_catalog_oauth_client_secret | default('') }}"
+          cookieSecret: "{{ babylon_catalog_oauth_cookie_secret | default('') }}"
         redis: "{{ babylon_catalog_redis | default({}) }}"
         route: "{{ babylon_catalog_route | default({}) }}"
         salesforce: "{{ babylon_salesforce | default({}) }}"
