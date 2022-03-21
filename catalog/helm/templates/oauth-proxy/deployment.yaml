@@ -44,7 +44,6 @@ spec:
         - --skip-provider-button=true
         - --tls-cert=/etc/tls/private/tls.crt
         - --tls-key=/etc/tls/private/tls.key
-        - {{ (printf "--cookie-secret=%s" (.Values.oauthProxy.cookieSecret | b64enc)) | quote }}
         - {{ (printf "--openshift-service-account=%s" (include "babylonCatalog.oauthProxyName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080/api/" (include "babylonCatalog.apiName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080/apis/" (include "babylonCatalog.apiName" .)) | quote }}
@@ -52,6 +51,21 @@ spec:
         - {{ (printf "--upstream=http://%s:8080" (include "babylonCatalog.uiName" .)) | quote }}
         {{- if .Values.oauthProxy.templates }}
         - --custom-templates-dir=/templates
+        {{- end }}
+        env:
+        - name: OAUTH2_PROXY_COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylonCatalog.oauthProxyCookieSecretName" . }}
+              key: cookieSecret
+        {{- if .Values.oauthProxy.clientId }}
+        - name: OAUTH2_PROXY_CLIENT_ID
+          value: {{ .Values.oauthProxy.clientId }}
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylonCatalog.oauthProxyClientSecretName" . }}
+              key: clientSecret
         {{- end }}
         image: {{ include "babylonCatalog.oauthProxyImage" . }}
         imagePullPolicy: {{ .Values.oauthProxy.image.pullPolicy | quote }}

@@ -48,8 +48,11 @@ ui:
 
 oauthProxy:
   name: # default use chart name + '-oauth-proxy'
-  # Cookie secret should be 32 bits long
-  cookieSecret: abcdefghijklmnopqrstuvwxyz012345
+  # OAuth client id and secret, if not defined then will attempt to use service account for oauth
+  #clientId: ...
+  #clientSecret: ...
+  # Cookie secret should be 32 bytes long
+  #cookieSecret: abcdefghijklmnopqrstuvwxyz012345
   image:
     #override:
     pullPolicy: Always
