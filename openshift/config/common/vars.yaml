@@ -19,8 +19,6 @@ babylon_anarchy_roles: >-
   }}
 
 # Variables defaults for a variables without the "default_" prefix
-default_babylon_admin_image: "quay.io/redhat-cop/babylon-admin:v0.2.2"
-default_babylon_admin_image: "quay.io/redhat-cop/babylon-admin:v0.2.2"
 default_babylon_anarchy_namespaces:
 - name: anarchy-operator
   commune:
@@ -70,9 +68,6 @@ babylon_resources:
       dir: babylon-config
       include_crds: true
       values:
-        admin:
-          image: "{{ babylon_admin_image | default(default_babylon_admin_image) }}"
-          redisPassword: "{{ babylon_admin_redis_password | default('generate') }}"
         anarchy:
           namespaces: "{{ babylon_anarchy_namespaces | default(default_babylon_anarchy_namespaces) }}"
           secrets: "{{ babylon_anarchy_secrets | default([]) }}"
