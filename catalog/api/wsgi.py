@@ -181,7 +181,7 @@ def check_admin_access(api_client):
 def check_user_support_access(api_client):
     """
     Check and return true if api_client is configured with babylon admin access.
-    Access is determined by whether the user can directly manage AnarchySubjects.
+    Access is determined by whether the user can manage ResourceClaims in any namespace.
     """
     (data, status, headers) = api_client.call_api(
         '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
@@ -195,6 +195,30 @@ def check_user_support_access(api_client):
                "group": "poolboy.gpte.redhat.com",
                "resource": "resourceclaims",
                "verb": "patch",
+             }
+           },
+           "status": {
+             "allowed": False
+           }
+        },
+        response_type = 'object',
+    )
+    return data.get('status', {}).get('allowed', False)
+
+def check_namespace_workshop_access(namespace, api_client):
+    (data, status, headers) = api_client.call_api(
+        '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
+        'POST',
+        auth_settings = ['BearerToken'],
+        body = {
+           "apiVersion": "authorization.k8s.io/v1",
+           "kind": "SelfSubjectAccessReview",
+           "spec": {
+             "resourceAttributes": {
+               "group": "babylon.gpte.redhat.com",
+               "resource": "workshops",
+               "verb": "list",
+               "namespace": namespace
              }
            },
            "status": {
@@ -272,7 +296,7 @@ def get_service_namespaces(api_client, user_namespace):
 
     return namespaces
 
-def get_user_namespace(user):
+def get_user_namespace(user, api_client):
     user_uid = user['metadata']['uid']
     namespaces = []
 
@@ -280,10 +304,13 @@ def get_user_namespace(user):
         name = ns.metadata.name
         requester = ns.metadata.annotations.get('openshift.io/requester')
         display_name = ns.metadata.annotations.get('openshift.io/display-name', 'User ' + requester)
+        workshop_access = check_namespace_workshop_access(name, api_client)
+
         return {
             'name': name,
             'displayName': display_name,
-            'requester': requester
+            'requester': requester,
+            'workshopAccess': workshop_access,
         }
 
     return None
@@ -406,11 +433,14 @@ def get_salesforce_opportunity(opportunity_id):
     if not opportunity_info:
         salesforce_api = salesforce_connection()
 
-        opportunity_query = format_soql("SELECT "
-                                        "  Id, Name, AccountId, IsClosed, "
-                                        "  CloseDate, StageName, OpportunityNumber__c "
-                                        "FROM Opportunity "
-                                        "WHERE OpportunityNumber__c = {}", str(opportunity_id).strip())
+        opportunity_query = format_soql(
+            "SELECT "
+            "  Id, Name, AccountId, IsClosed, "
+            "  CloseDate, StageName, OpportunityNumber__c "
+            "FROM Opportunity "
+            "WHERE OpportunityNumber__c = {}",
+            str(opportunity_id).strip()
+        )
 
         try:
             opp_results = salesforce_api.query(opportunity_query)
@@ -457,7 +487,7 @@ def get_auth_session():
     catalog_namespaces = get_catalog_namespaces(api_client)
     user_is_admin = session.get('admin', False)
     roles = session.get('roles', [])
-    user_namespace = get_user_namespace(user)
+    user_namespace = get_user_namespace(user, api_client)
     service_namespaces = get_service_namespaces(
         api_client,
         user_namespace,
@@ -513,7 +543,7 @@ def get_auth_users_info(user_name):
             raise
 
     catalog_namespaces = get_catalog_namespaces(test_api_client)
-    user_namespace = get_user_namespace(user)
+    user_namespace = get_user_namespace(user, test_api_client)
     service_namespaces = get_service_namespaces(
         test_api_client,
         user_namespace,
