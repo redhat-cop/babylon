@@ -1,0 +1,275 @@
+import re
+
+class DeployerJob:
+    def __init__(self, definition, namespace):
+        self.definition = definition
+        self.namespace = namespace
+
+    @property
+    def host(self):
+        return self.definition.get('towerHost')
+
+    @property
+    def completion_timestamp(self):
+        return self.definition.get('completeTimestamp')
+
+    @property
+    def job_id(self):
+        return self.definition.get('deployerJob')
+
+    @property
+    def start_timestamp(self):
+        return self.definition.get('startTimestamp')
+
+class ResourceClaim:
+    def __init__(self, definition):
+        self.definition = definition
+
+    @property
+    def catalog_item_name(self):
+        return self.definition['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemName')
+
+    @property
+    def catalog_item_namespace(self):
+        return self.definition['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemNamespace')
+
+    @property
+    def creation_timestamp(self):
+        return self.definition['metadata']['creationTimestamp']
+
+    @property
+    def guid(self):
+        resourceHandleName = self.definition.get('status', {}).get('resourceHandle', {}).get('name')
+        return re.sub(r'^guid-', '', resourceHandleName) if resourceHandleName else None
+
+    @property
+    def has_status(self):
+        return 'status' in self.definition
+
+    @property
+    def is_stopped(self):
+        if not 'status' in self.definition \
+        or not 'resources' in self.definition['status']:
+            return False
+        stopped = False
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return False
+            if state['kind'] == 'AnarchySubject':
+                if state['spec'].get('vars', {}).get('current_state') == 'stopped':
+                    stopped = True
+                else:
+                    return False
+        return stopped
+
+    @property
+    def last_started_timestamp(self):
+        if not 'status' in self.definition \
+        or not 'resources' in self.definition['status']:
+            return False
+        timestamp = None
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return None
+            if state['kind'] == 'AnarchySubject':
+                if state['spec'].get('vars', {}).get('current_state') == 'started' \
+                and 'start' in state['status']['towerJobs']:
+                    timestamp = state['status']['towerJobs']['start']['completeTimestamp']
+                else:
+                    return None
+        return timestamp
+
+    @property
+    def last_stopped_timestamp(self):
+        if not 'status' in self.definition \
+        or not 'resources' in self.definition['status']:
+            return False
+        timestamp = None
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return None
+            if state['kind'] == 'AnarchySubject':
+                if state['spec'].get('vars', {}).get('current_state') == 'stopped':
+                    timestamp = state['status']['towerJobs']['stop']['completeTimestamp']
+                else:
+                    return None
+        return timestamp
+
+    @property
+    def name(self):
+        return self.definition['metadata']['name']
+
+    @property
+    def namespace(self):
+        return self.definition['metadata']['namespace']
+
+    @property
+    def notifier_disable(self):
+        return 'disable' == self.definition['metadata'].get('annotations', {}).get(f"babylon.gpte.redhat.com/notifier")
+
+    @property
+    def provision_complete(self):
+        if not 'status' in self.definition \
+        or not 'resources' in self.definition['status']:
+            return False
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return False
+            if state['kind'] == 'AnarchySubject':
+                if not state.get('status', {}).get('towerJobs', {}).get('provision', {}).get('completeTimestamp'):
+                    return False
+        return True
+
+    @property
+    def provision_data(self):
+        data = {}
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if state and state['kind'] == 'AnarchySubject':
+                data.update(state['spec'].get('vars', {}).get('provision_data', {}))
+        return data
+
+    @property
+    def provision_deployer_jobs(self):
+        deployer_jobs = []
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if state and state['kind'] == 'AnarchySubject':
+                job_definition = state.get('status', {}).get('towerJobs', {}).get('provision')
+                if job_definition:
+                    deployer_jobs.append(
+                        DeployerJob(
+                            definition = job_definition,
+                            namespace = state['metadata']['namespace'],
+                        )
+                    )
+        return deployer_jobs
+
+    @property
+    def provision_failed(self):
+        if not 'status' in self.definition \
+        or not 'resources' in self.definition['status']:
+            return False
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return False
+            if state['kind'] == 'AnarchySubject':
+                if state['spec'].get('vars', {}).get('current_state') == 'provision-failed':
+                    return True
+        return False
+
+    @property
+    def provision_message_body(self):
+        message_body = []
+        for status_resource in self.definition['status']['resources']:
+            resource_state = status_resource['state']
+            if resource_state['kind'] == 'AnarchySubject':
+                message_body.extend(resource_state['spec'].get('vars', {}).get('provision_message_body', []))
+        return message_body
+
+    @property
+    def provision_messages(self):
+        messages = []
+        for status_resource in self.definition['status']['resources']:
+            resource_state = status_resource['state']
+            if resource_state['kind'] == 'AnarchySubject':
+                messages.extend(resource_state['spec'].get('vars', {}).get('provision_messages', []))
+        return messages
+
+    @property
+    def provision_started(self):
+        if not 'status' in self.definition \
+        or not 'resources' in self.definition['status']:
+            return False
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return False
+            if state['kind'] == 'AnarchySubject':
+                if not state.get('status', {}).get('towerJobs', {}).get('provision', {}):
+                    return False
+        return True
+
+    @property
+    def retirement_timestamp(self):
+        return self.definition['status'].get('lifespan', {}).get('end')
+
+    @property
+    def service_url(self):
+        return self.definition['metadata'].get('annotations', {}).get('babylon.gpte.redhat.com/url')
+
+    @property
+    def start_deployer_jobs(self):
+        deployer_jobs = []
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if state and state['kind'] == 'AnarchySubject':
+                job_definition = state.get('status', {}).get('towerJobs', {}).get('start')
+                if job_definition:
+                    deployer_jobs.append(
+                        DeployerJob(
+                            definition = job_definition,
+                            namespace = state['metadata']['namespace'],
+                        )
+                    )
+        return deployer_jobs
+
+    @property
+    def start_failed(self):
+        if not 'status' in self.definition \
+        or not 'resources' in self.definition['status']:
+            return False
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return False
+            if state['kind'] == 'AnarchySubject':
+                if state['spec'].get('vars', {}).get('current_state') == 'start-failed':
+                    return True
+        return False
+
+    @property
+    def stop_deployer_jobs(self):
+        deployer_jobs = []
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if state and state['kind'] == 'AnarchySubject':
+                job_definition = state.get('status', {}).get('towerJobs', {}).get('stop')
+                if job_definition:
+                    deployer_jobs.append(
+                        DeployerJob(
+                            definition = job_definition,
+                            namespace = state['metadata']['namespace'],
+                        )
+                    )
+        return deployer_jobs
+
+    @property
+    def stop_failed(self):
+        if not 'status' in self.definition \
+        or not 'resources' in self.definition['status']:
+            return False
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return False
+            if state['kind'] == 'AnarchySubject':
+                if state['spec'].get('vars', {}).get('current_state') == 'stop-failed':
+                    return True
+        return False
+
+    @property
+    def stop_timestamp(self):
+        try:
+            return self.definition['status']['resources'][0]['state']['spec']['vars']['action_schedule']['stop']
+        except Exception as e:
+            return None
+
+    @property
+    def uid(self):
+        return self.definition['metadata']['uid']

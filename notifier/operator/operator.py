@@ -14,6 +14,7 @@ import subprocess
 import yaml
 
 from base64 import b64decode
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from dateutil.parser import isoparse
 from email.mime.application import MIMEApplication
@@ -21,6 +22,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from html2text import html2text
 from humanize import naturaldelta
+from catalog_item import CatalogItem
+from catalog_namespace import CatalogNamespace
+from infinite_relative_backoff import InfiniteRelativeBackoff
+from resource_claim import ResourceClaim
+from service_namespace import ServiceNamespace
 from tempfile import mkstemp
 from threading import Timer
 
@@ -105,29 +111,11 @@ else:
 
 core_v1_api = kubernetes.client.CoreV1Api()
 custom_objects_api = kubernetes.client.CustomObjectsApi()
-namespace_email_addresses = {}
 retirement_timers = {}
 stop_timers = {}
 
-class InfiniteRelativeBackoff:
-    def __init__(self, initial_delay=0.1, scaling_factor=2, maximum=60):
-        self.initial_delay = initial_delay
-        self.scaling_factor = scaling_factor
-        self.maximum = maximum
-
-    def __iter__(self):
-        delay = self.initial_delay
-        while True:
-            if delay > self.maximum:
-                yield self.maximum
-            else:
-                yield delay
-                delay *= self.scaling_factor
-
 @kopf.on.startup()
 def configure(settings: kopf.OperatorSettings, **_):
-    global ansible_tower_hostname, ansible_tower_password, ansible_tower_user
-
     # Never give up from network errors
     settings.networking.error_backoffs = InfiniteRelativeBackoff()
 
@@ -137,52 +125,6 @@ def configure(settings: kopf.OperatorSettings, **_):
     # Disable scanning for CustomResourceDefinitions
     settings.scanning.disabled = True
 
-    # Get the tower secret. This may change in the future if there are
-    # multiple ansible tower deployments
-    ansible_tower_secret = core_v1_api.read_namespaced_secret('babylon-tower', 'anarchy-operator')
-    ansible_tower_hostname = b64decode(ansible_tower_secret.data['hostname']).decode('utf8')
-    ansible_tower_password = b64decode(ansible_tower_secret.data['password']).decode('utf8')
-    ansible_tower_user = b64decode(ansible_tower_secret.data['user']).decode('utf8')
-
-@kopf.on.event('namespaces')
-def namespace_event(event, logger, **_):
-    namespace = event.get('object')
-    if not namespace \
-    or namespace.get('kind') != 'Namespace':
-        logger.warning(event)
-        return
-    namespace_metadata = namespace['metadata']
-    namespace_annotations = namespace_metadata.get('annotations', {})
-    namespace_name = namespace_metadata['name']
-    contact_email = namespace_annotations.get(f"{babylon_domain}/contactEmail")
-    requester = namespace_annotations.get('openshift.io/requester')
-    emails = []
-    if contact_email:
-        emails = [a.strip() for a in contact_email.split(',')]
-    elif contact_email != "" and requester and ':' not in requester:
-        try:
-            user = custom_objects_api.get_cluster_custom_object('user.openshift.io', 'v1', 'users', requester)
-            for identity_name in user.get('identities', []):
-                try:
-                    identity = custom_objects_api.get_cluster_custom_object('user.openshift.io', 'v1', 'identities', identity_name)
-                    email = identity.get('extra', {}).get('email')
-                    if email:
-                        emails.append(email)
-                        break
-                except kubernetes.client.rest.ApiException as e:
-                    if e.status != 404:
-                        raise
-        except kubernetes.client.rest.ApiException as e:
-            if e.status != 404:
-                raise
-    # If only_send_to is set then restrict delivery to that address.
-    if only_send_to:
-        if only_send_to in emails:
-            emails = [only_send_to]
-        else:
-            emails = []
-    namespace_email_addresses[namespace_name] = emails
-
 @kopf.on.event(
     poolboy_domain, poolboy_api_version, 'resourceclaims',
     labels={
@@ -191,41 +133,65 @@ def namespace_event(event, logger, **_):
     }
 )
 def resourceclaim_event(event, logger, **_):
-    resource_claim = event.get('object')
-    if not resource_claim \
-    or resource_claim.get('kind') != 'ResourceClaim':
+    resource_claim_definition = event.get('object')
+    if not resource_claim_definition \
+    or resource_claim_definition.get('kind') != 'ResourceClaim':
         logger.warning(event)
         return
 
+    resource_claim = ResourceClaim(definition=resource_claim_definition)
+
+    # Only notify for ResourceClaims with corresponding CatalogItems
+    if not resource_claim.catalog_item_name \
+    or not resource_claim.catalog_item_namespace:
+        logger.debug("No catalog item name or namespace")
+        return
+
     # Ignore resource claims marked with disable
-    if 'disable' == resource_claim.get('metadata', {}).get('annotations', {}).get(f"{babylon_domain}/notifier"):
+    if resource_claim.notifier_disable:
+        logger.debug("Notifier disabled")
         return
 
     # Too early to notify if there is no status yet
-    if not 'status' in resource_claim \
-    or not 'resourceHandle' in resource_claim['status']:
+    if not resource_claim.has_status:
+        logger.debug("No status")
         return
 
     # Cancel any pending timers
     cancel_timers(resource_claim, logger)
 
-    email_addresses = namespace_email_addresses.get(resource_claim['metadata']['namespace'])
-    if email_addresses is None:
-        raise kopf.TemporaryError("Namespace unknown", delay=15)
-    elif not email_addresses:
+    catalog_item = get_catalog_item(resource_claim.catalog_item_namespace, resource_claim.catalog_item_name)
+    catalog_namespace = get_catalog_namespace(resource_claim.catalog_item_namespace)
+    service_namespace = get_service_namespace(resource_claim.namespace)
+    email_addresses = service_namespace.contact_email_addresses
+    if only_send_to:
+        if only_send_to in email_addresses:
+            email_addresses = [only_send_to]
+        else:
+            email_addresses = []
+
+    if not email_addresses:
         # Nobody to notify, so just skip
-        logger.info("No contact email")
+        logger.debug("No contact email")
         return
 
+    kwargs = dict(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        email_addresses = email_addresses,
+        logger = logger,
+        resource_claim = resource_claim,
+    )
+
     if event['type'] == 'DELETED':
-        handle_resource_claim_delete(resource_claim, email_addresses, logger)
+        handle_resource_claim_delete(**kwargs)
     elif event['type'] in ['ADDED', 'MODIFIED', None]:
-        handle_resource_claim_event(resource_claim, email_addresses, logger)
+        handle_resource_claim_event(**kwargs)
     else:
         logger.warning(event)
 
 def cancel_timers(resource_claim, logger):
-    uid = resource_claim['metadata']['uid']
+    uid = resource_claim.uid
     retirement_timer = retirement_timers.pop(uid, None)
     if retirement_timer:
         retirement_timer.cancel()
@@ -233,17 +199,10 @@ def cancel_timers(resource_claim, logger):
     if stop_timer:
         stop_timer.cancel()
 
-def create_retirement_timer(resource_claim, logger):
-    metadata = resource_claim['metadata']
-    name = metadata['name']
-    namespace = metadata['namespace']
-    uid = metadata['uid']
-
-    try:
-        retirement_timestamp = resource_claim['status']['lifespan']['end']
-    except KeyError:
+def create_retirement_timer(logger, resource_claim, **kwargs):
+    retirement_timestamp = resource_claim.retirement_timestamp
+    if not retirement_timestamp:
         return
-
     retirement_datetime = isoparse(retirement_timestamp)
     notification_timedelta = retirement_datetime - datetime.now(timezone.utc) - timedelta(days=1, seconds=30)
     notification_interval = notification_timedelta.total_seconds()
@@ -251,322 +210,316 @@ def create_retirement_timer(resource_claim, logger):
         logger.info("scheduled retirement notification in " + naturaldelta(notification_timedelta))
         timer = Timer(
             notification_interval, notify_scheduled_retirement,
-            [resource_claim, retirement_datetime]
+            kwargs = {
+                "logger": kopf.LocalObjectLogger(body=resource_claim.definition, settings=kopf.OperatorSettings()),
+                "resource_claim": resource_claim,
+                **kwargs
+            }
         )
-        retirement_timers[uid] = timer
+        retirement_timers[resource_claim.uid] = timer
         timer.start()
 
-def create_stop_timer(resource_claim, logger):
-    metadata = resource_claim['metadata']
-    name = metadata['name']
-    namespace = metadata['namespace']
-    uid = metadata['uid']
-    stop_datetime = None
-    for status_resource in resource_claim['status'].get('resources', []):
-        try:
-            stop_ts = status_resource['state']['spec']['vars']['action_schedule']['stop']
-        except KeyError:
-            return
-        stop_dt = isoparse(stop_ts)
-        if not stop_datetime or stop_dt < stop_datetime:
-            stop_datetime = stop_dt
-
-    if not stop_datetime:
+def create_stop_timer(logger, resource_claim, **kwargs):
+    stop_timestamp = resource_claim.stop_timestamp
+    if not stop_timestamp:
         return
-
+    stop_datetime = isoparse(stop_timestamp)
     notification_timedelta = stop_datetime - datetime.now(timezone.utc) - timedelta(minutes=30, seconds=30)
     notification_interval = notification_timedelta.total_seconds()
     if notification_interval > 0:
         logger.info("scheduled stop notification in " + naturaldelta(notification_timedelta))
         timer = Timer(
             notification_interval, notify_scheduled_stop,
-            [resource_claim, stop_datetime]
+            kwargs = {
+                "logger": kopf.LocalObjectLogger(body=resource_claim.definition, settings=kopf.OperatorSettings()),
+                "resource_claim": resource_claim,
+                **kwargs
+            }
         )
-        stop_timers[uid] = timer
+        stop_timers[resource_claim.uid] = timer
         timer.start()
 
-def handle_resource_claim_delete(resource_claim, email_addresses, logger):
-    notify_deleted(resource_claim, email_addresses, logger)
+def get_catalog_item(namespace, name):
+    definition = custom_objects_api.get_namespaced_custom_object(
+        babylon_domain, babylon_api_version, namespace, 'catalogitems', name
+    )
+    return CatalogItem(definition=definition)
 
-def handle_resource_claim_event(resource_claim, email_addresses, logger):
-    create_retirement_timer(resource_claim, logger)
-    create_stop_timer(resource_claim, logger)
-    notify_if_provision_failed(resource_claim, email_addresses, logger)
-    notify_if_provision_started(resource_claim, email_addresses, logger)
-    notify_if_ready(resource_claim, email_addresses, logger)
-    notify_if_stop_complete(resource_claim, email_addresses, logger)
-    notify_if_stop_failed(resource_claim, email_addresses, logger)
-    notify_if_start_complete(resource_claim, email_addresses, logger)
-    notify_if_start_failed(resource_claim, email_addresses, logger)
+def get_catalog_namespace(name):
+    namespace = core_v1_api.read_namespace(name)
+    return CatalogNamespace(namespace=namespace)
+
+def get_deployer_log(deployer_job, logger):
+    secret_list = core_v1_api.list_namespaced_secret(
+        deployer_job.namespace,
+        label_selector=f"babylon.gpte.redhat.com/ansible-control-plane={deployer_job.host}"
+    )
+    if not secret_list.items or len(secret_list.items) == 0:
+        logger.warning(f"Unable to find secret for {deployer_job.host}")
+        return None
+    secret = secret_list.items[0]
+    hostname = b64decode(secret.data['hostname']).decode('utf8')
+    password = b64decode(secret.data['password']).decode('utf8')
+    user = b64decode(secret.data['user']).decode('utf8')
+
+    resp = requests.get(
+        f"https://{hostname}/api/v2/jobs/{deployer_job.job_id}/stdout/?format=txt",
+        auth=(user, password),
+        # FIXME - We really need to fix the tower certs!
+        verify=False,
+    )
+    return resp.content
+
+def get_service_namespace(name):
+    namespace = core_v1_api.read_namespace(name)
+    return ServiceNamespace(namespace=namespace)
+
+def handle_resource_claim_delete(**kwargs):
+    notify_deleted(**kwargs)
+
+def handle_resource_claim_event(**kwargs):
+    create_retirement_timer(**kwargs)
+    create_stop_timer(**kwargs)
+    notify_if_provision_failed(**kwargs)
+    notify_if_provision_started(**kwargs)
+    notify_if_ready(**kwargs)
+    notify_if_start_complete(**kwargs)
+    notify_if_start_failed(**kwargs)
+    notify_if_stop_complete(**kwargs)
+    notify_if_stop_failed(**kwargs)
 
 def kebabToCamelCase(kebab_string):
     return ''.join([s if i == 0 else s.capitalize() for i, s in enumerate(kebab_string.split('-'))])
 
-def notify_if_provision_failed(resource_claim, email_addresses, logger):
-    # If resource claim was created a while ago then notification should
-    # definitely already have been delivered.
-    creation_ts = resource_claim['metadata']['creationTimestamp']
+def notify_if_provision_failed(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    creation_ts = resource_claim.creation_timestamp
     creation_dt = isoparse(creation_ts)
-    if creation_dt < datetime.now(timezone.utc) - timedelta(days=5):
+
+    if creation_dt < datetime.now(timezone.utc) - timedelta(days=1):
+        logger.debug("Too old to notify provision failed")
         return
 
-    status = resource_claim.get('status')
-    if not status or not 'resources' in status:
+    if not resource_claim.provision_failed:
+        logger.debug("Provision not failed")
         return
 
-    failure_resource_state = None
-    for status_resource in status['resources']:
-        resource_state = status_resource.get('state')
-        if resource_state \
-        and 'provision-failed' == resource_state.get('spec', {}).get('vars', {}).get('current_state'):
-            failure_resource_state = resource_state
-
-    if not failure_resource_state:
-        return
-
-    rkey = f"{resource_claim['metadata']['uid']}/provision-failed"
+    rkey = f"{resource_claim.uid}/provision-failed"
     notified = r.getset(rkey, creation_ts)
     if notified == creation_ts:
         return
     r.expire(rkey, timedelta(days=7))
 
-    notify_provision_failed(resource_claim, failure_resource_state, email_addresses, logger)
-
-def notify_if_provision_started(resource_claim, email_addresses, logger):
-    creation_ts = resource_claim['metadata']['creationTimestamp']
-    creation_dt = isoparse(creation_ts)
-    if creation_dt < datetime.now(timezone.utc) - timedelta(days=5):
-        return
-
-    status = resource_claim.get('status')
-    if not status or not 'resources' in status:
-        return
-
-    have_running_provision = False
-    for status_resource in status['resources']:
-        resource_state = status_resource.get('state')
-        if resource_state \
-        and 'provisioning' == resource_state.get('spec', {}).get('vars', {}).get('current_state'):
-            have_running_provision = True
-
-    if not have_running_provision:
-        return
-
-    rkey = f"{resource_claim['metadata']['uid']}/provision-started"
-    notified = r.getset(rkey, creation_ts)
-    if notified == creation_ts:
-        return
-    r.expire(rkey, timedelta(days=7))
-    notify_provision_started(resource_claim, email_addresses, logger)
-
-def notify_if_ready(resource_claim, email_addresses, logger):
-    # If resource claim was created a while ago then notification should
-    # definitely already have been delivered.
-    creation_ts = resource_claim['metadata']['creationTimestamp']
-    creation_dt = isoparse(creation_ts)
-    if creation_dt < datetime.now(timezone.utc) - timedelta(days=5):
-        return
-
-    # If no status is set then provision must not be complete.
-    status = resource_claim.get('status')
-    if not status or not 'resources' in status:
-        return
-
-    for status_resource in status['resources']:
-        resource_state = status_resource.get('state')
-        # To be ready all environments must be started.
-        if not resource_state \
-        or 'started' != resource_state.get('spec', {}).get('vars', {}).get('current_state'):
-            return
-
-    rkey = f"{resource_claim['metadata']['uid']}/ready"
-    notified = r.getset(rkey, creation_ts)
-    if notified == creation_ts:
-        return
-    r.expire(rkey, timedelta(days=7))
-    notify_ready(resource_claim, email_addresses, logger)
-
-def notify_if_start_complete(resource_claim, email_addresses, logger):
-    creation_ts = resource_claim['metadata']['creationTimestamp']
-    creation_dt = isoparse(creation_ts)
-
-    status = resource_claim.get('status')
-    if not status or not 'resources' in status:
-        return
-
-    recent_dt = None
-    recent_ts = None
-    for status_resource in status['resources']:
-        resource_state = status_resource.get('state')
-        # To notify for start all resources must be started
-        if not resource_state \
-        or 'started' != resource_state.get('spec', {}).get('vars', {}).get('current_state'):
-            return
-        complete_ts = resource_state.get('status', {}).get('towerJobs', {}).get('start', {}).get('completeTimestamp')
-        if not complete_ts:
-            return
-        complete_dt = isoparse(complete_ts)
-        if complete_dt > creation_dt \
-        and complete_dt > datetime.now(timezone.utc) - timedelta(minutes=30) \
-        and (not recent_dt or complete_dt > recent_dt):
-            recent_dt = complete_dt
-            recent_ts = complete_ts
-
-    if not recent_ts:
-        return
-
-    rkey = f"{resource_claim['metadata']['uid']}/start-complete"
-    notified = r.getset(rkey, recent_ts)
-    if notified == recent_ts:
-        return
-    r.expire(rkey, timedelta(days=7))
-    notify_start_complete(resource_claim, email_addresses, logger)
-
-def notify_if_start_failed(resource_claim, email_addresses, logger):
-    status = resource_claim.get('status')
-    if not status or not 'resources' in status:
-        return
-
-    failure_dt = None
-    failure_ts = None
-    failure_resource_state = None
-    for status_resource in status['resources']:
-        resource_state = status_resource.get('state')
-        # Notify failure if any resource start failed
-        if resource_state \
-        and 'start-failed' == resource_state.get('spec', {}).get('vars', {}).get('current_state'):
-            start_ts = resource_state.get('status', {}).get('towerJobs', {}).get('start', {}).get('startTimestamp')
-            start_dt = isoparse(start_ts)
-            if start_dt > datetime.now(timezone.utc) - timedelta(hours=2) \
-            and (not failure_dt or start_dt < failure_dt):
-                failure_dt = start_dt
-                failure_ts = start_ts
-                failure_resource_state = resource_state
-
-    if not failure_ts:
-        return
-
-    rkey = f"{resource_claim['metadata']['uid']}/start-failed"
-    notified = r.getset(rkey, failure_ts)
-    if notified == failure_ts:
-        return
-    r.expire(rkey, timedelta(days=1))
-    notify_start_failed(resource_claim, failure_resource_state, email_addresses, logger)
-
-def notify_if_stop_complete(resource_claim, email_addresses, logger):
-    creation_ts = resource_claim['metadata']['creationTimestamp']
-    creation_dt = isoparse(creation_ts)
-
-    status = resource_claim.get('status')
-    if not status or not 'resources' in status:
-        return
-
-    recent_dt = None
-    recent_ts = None
-    for status_resource in status['resources']:
-        resource_state = status_resource.get('state')
-        # To notify for stop all resources must be stopped
-        if not resource_state \
-        or 'stopped' != resource_state.get('spec', {}).get('vars', {}).get('current_state'):
-            return
-        complete_ts = resource_state.get('status', {}).get('towerJobs', {}).get('stop', {}).get('completeTimestamp')
-        if not complete_ts:
-            return
-        complete_dt = isoparse(complete_ts)
-        if complete_dt > creation_dt \
-        and complete_dt > datetime.now(timezone.utc) - timedelta(minutes=30) \
-        and (not recent_dt or complete_dt > recent_dt):
-            recent_dt = complete_dt
-            recent_ts = complete_ts
-
-    if not recent_ts:
-        return
-
-    rkey = f"{resource_claim['metadata']['uid']}/stop-complete"
-    notified = r.getset(rkey, recent_ts)
-    if notified == recent_ts:
-        return
-    r.expire(rkey, timedelta(days=7))
-    notify_stop_complete(resource_claim, email_addresses, logger)
-
-def notify_if_stop_failed(resource_claim, email_addresses, logger):
-    status = resource_claim.get('status')
-    if not status or not 'resources' in status:
-        return
-
-    failure_dt = None
-    failure_ts = None
-    failure_resource_state = None
-    for status_resource in status['resources']:
-        resource_state = status_resource.get('state')
-        # Notify failure if any resource stop failed
-        if resource_state \
-        and 'stop-failed' == resource_state.get('spec', {}).get('vars', {}).get('current_state'):
-            start_ts = resource_state.get('status', {}).get('towerJobs', {}).get('stop', {}).get('startTimestamp')
-            start_dt = isoparse(start_ts)
-            if start_dt > datetime.now(timezone.utc) - timedelta(hours=2) \
-            and (not failure_dt or start_dt < failure_dt):
-                failure_dt = start_dt
-                failure_ts = start_ts
-                failure_resource_state = resource_state
-
-    if not failure_ts:
-        return
-
-    rkey = f"{resource_claim['metadata']['uid']}/stop-failed"
-    notified = r.getset(rkey, failure_ts)
-    if notified == failure_ts:
-        return
-    r.expire(rkey, timedelta(days=1))
-    notify_stop_failed(resource_claim, failure_resource_state, email_addresses, logger)
-
-def notify_deleted(resource_claim, email_addresses, logger):
-    logger.info("sending service-deleted notification", extra=dict(to=email_addresses))
-    send_notification_email(
+    notify_provision_failed(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        email_addresses = email_addresses,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service {{service_display_name}} has been deleted",
+    )
+
+def notify_if_provision_started(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    creation_ts = resource_claim.creation_timestamp
+    creation_dt = isoparse(creation_ts)
+
+    if creation_dt < datetime.now(timezone.utc) - timedelta(hours=2):
+        logger.debug("Too old to notify provision started")
+        return
+
+    if not resource_claim.provision_started:
+        logger.debug("Provision not started")
+        return
+
+    rkey = f"{resource_claim.uid}/provision-started"
+    notified = r.getset(rkey, creation_ts)
+    if notified == creation_ts:
+        logger.debug(f"Already notified provision started")
+        return
+    r.expire(rkey, timedelta(days=1))
+
+    notify_provision_started(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        email_addresses = email_addresses,
+        logger = logger,
+        resource_claim = resource_claim,
+    )
+
+def notify_if_ready(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    creation_ts = resource_claim.creation_timestamp
+    creation_dt = isoparse(creation_ts)
+
+    if creation_dt < datetime.now(timezone.utc) - timedelta(days=1):
+        logger.debug("Too old to notify ready")
+        return
+
+    if not resource_claim.provision_complete:
+        logger.debug("Provision not complete")
+        return
+
+    rkey = f"{resource_claim.uid}/ready"
+    notified = r.getset(rkey, creation_ts)
+    if notified == creation_ts:
+        logger.debug(f"Already notified provision complete")
+        return
+    r.expire(rkey, timedelta(days=7))
+
+    notify_ready(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        email_addresses = email_addresses,
+        logger = logger,
+        resource_claim = resource_claim,
+    )
+
+def notify_if_start_complete(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    started_ts = resource_claim.last_started_timestamp
+    if not started_ts:
+        logger.debug("Not started")
+        return
+
+    started_dt = isoparse(started_ts)
+
+    if started_dt < datetime.now(timezone.utc) - timedelta(hours=1):
+        logger.debug("Too long ago to notify started")
+        return
+
+    rkey = f"{resource_claim.uid}/start-complete"
+    notified = r.getset(rkey, started_ts)
+    if notified == started_ts:
+        return
+    r.expire(rkey, timedelta(days=1))
+
+    notify_start_complete(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        email_addresses = email_addresses,
+        logger = logger,
+        resource_claim = resource_claim,
+    )
+
+def notify_if_start_failed(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    if not resource_claim.start_failed:
+        return
+
+    deployer_jobs = resource_claim.start_deployer_jobs
+    if not deployer_jobs:
+        logger.warning("Stop failed but there are no start deployer jobs?")
+
+    start_ts = deployer_jobs[0].start_timestamp
+    start_dt = isoparse(start_ts)
+
+    if start_dt < datetime.now(timezone.utc) - timedelta(hours=2):
+        return
+
+    rkey = f"{resource_claim.uid}/start-failed"
+    notified = r.getset(rkey, start_ts)
+    if notified == start_ts:
+        return
+    r.expire(rkey, timedelta(days=1))
+    notify_start_failed(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        email_addresses = email_addresses,
+        logger = logger,
+        resource_claim = resource_claim,
+    )
+
+def notify_if_stop_complete(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    stopped_ts = resource_claim.last_stopped_timestamp
+    if not stopped_ts:
+        logger.debug("Not stopped")
+        return
+
+    stopped_dt = isoparse(stopped_ts)
+
+    if stopped_dt < datetime.now(timezone.utc) - timedelta(hours=1):
+        logger.debug("Too long ago to notify stopped")
+        return
+
+    rkey = f"{resource_claim.uid}/stop-complete"
+    notified = r.getset(rkey, stopped_ts)
+    if notified == stopped_ts:
+        return
+    r.expire(rkey, timedelta(days=1))
+
+    notify_stop_complete(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        email_addresses = email_addresses,
+        logger = logger,
+        resource_claim = resource_claim,
+    )
+
+def notify_if_stop_failed(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    if not resource_claim.stop_failed:
+        return
+
+    deployer_jobs = resource_claim.stop_deployer_jobs
+    if not deployer_jobs:
+        logger.warning("Stop failed but there are no stop deployer jobs?")
+
+    stop_ts = deployer_jobs[0].start_timestamp
+    stop_dt = isoparse(stop_ts)
+
+    if stop_dt < datetime.now(timezone.utc) - timedelta(hours=2):
+        return
+
+    rkey = f"{resource_claim.uid}/stop-failed"
+    notified = r.getset(rkey, stop_ts)
+    if notified == stop_ts:
+        return
+    r.expire(rkey, timedelta(days=1))
+    notify_stop_failed(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        email_addresses = email_addresses,
+        logger = logger,
+        resource_claim = resource_claim,
+    )
+
+def notify_deleted(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    logger.info("sending service-deleted notification", extra=dict(to=email_addresses))
+    send_notification_email(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        logger = logger,
+        resource_claim = resource_claim,
+        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} has been deleted",
         template = "service-deleted",
         to = email_addresses,
     )
 
-def notify_provision_failed(resource_claim, resource_state, email_addresses, logger):
+def notify_provision_failed(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
     logger.info("sending provision-failed notification", extra=dict(to=email_addresses))
 
     attachments = []
-    try:
-        job_id = resource_state['status']['towerJobs']['provision']['deployerJob']
-        resp = requests.get(
-            f"https://{ansible_tower_hostname}/api/v2/jobs/{job_id}/stdout/?format=txt",
-            auth=(ansible_tower_user, ansible_tower_password),
-            # We really need to fix the tower certs!
-            verify=False,
-        )
-        filename = f"ansible-log-{job_id}.txt"
-        mimeapp = MIMEApplication(resp.content, Name=filename)
-        mimeapp['Content-Disposition'] = f"attachment; filename=\"{filename}\""
-        attachments.append(mimeapp)
-    except Exception:
-        logging.exception("Exception when getting tower job.")
+    for deployer_job in resource_claim.provision_deployer_jobs:
+        deployer_log = get_deployer_log(deployer_job, logger)
+        if deployer_log:
+            filename = f"ansible-log-{deployer_job.job_id}.txt"
+            mimeapp = MIMEApplication(deployer_log, Name=filename)
+            mimeapp['Content-Disposition'] = f"attachment; filename=\"{filename}\""
+            attachments.append(mimeapp)
 
     send_notification_email(
+        attachments = attachments,
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "ERROR: {{catalog_display_name}} service {{service_display_name}} has failed to provision",
+        subject = "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} has failed to provision",
         to = email_addresses,
         template = "provision-failed",
-        template_vars = dict(
-            failure_details = '...',
-        ),
-        attachments = attachments,
     )
 
-def notify_provision_started(resource_claim, email_addresses, logger):
+def notify_provision_started(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
     logger.info("sending provision-started notification", extra=dict(to=email_addresses))
     send_notification_email(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service {{service_display_name}} has begun provisioning",
+        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} has begun provisioning",
         to = email_addresses,
         template = "provision-started",
         template_vars = dict(
@@ -574,16 +527,11 @@ def notify_provision_started(resource_claim, email_addresses, logger):
         ),
     )
 
-def notify_ready(resource_claim, email_addresses, logger):
+def notify_ready(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
     logger.info("sending service-ready notification", extra=dict(to=email_addresses))
-    message_body = []
-    provision_messages = []
-    provision_data = {}
-    for status_resource in resource_claim['status']['resources']:
-        anarchy_subject = status_resource['state']
-        message_body.extend(anarchy_subject['spec']['vars'].get('provision_message_body', []))
-        provision_messages.extend(anarchy_subject['spec']['vars'].get('provision_messages', []))
-        provision_data.update(anarchy_subject['spec']['vars'].get('provision_data', {}))
+    provision_message_body = resource_claim.provision_message_body
+    provision_messages = resource_claim.provision_messages
+    provision_data = resource_claim.provision_data
 
     template_vars = {}
     if provision_messages:
@@ -603,233 +551,180 @@ def notify_ready(resource_claim, email_addresses, logger):
         template_vars['provision_data'] = provision_data
 
     send_notification_email(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
         logger = logger,
-        message_body = message_body,
+        message_body = provision_message_body,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service {{service_display_name}} is ready",
-        to = email_addresses,
+        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} is ready",
         template = "service-ready",
         template_vars = template_vars,
+        to = email_addresses,
     )
 
-def notify_scheduled_retirement(resource_claim, retirement_datetime):
-    logger = logging.getLogger('scheduled-retirement')
-    metadata = resource_claim['metadata']
-    name = metadata['name']
-    namespace = metadata['namespace']
-    uid = metadata['uid']
-    retirement_timers.pop(uid, None)
-
-    # FIXME? - Schedule subsequent reminder?
-
-    email_addresses = namespace_email_addresses.get(namespace)
-    if not email_addresses:
-        return
-
-    logger.info("sending retirement schedule notification", extra=dict(
-        at = retirement_datetime.strftime('%FT%TZ'),
-        object = dict(
-            apiVersion = resource_claim['apiVersion'],
-            kind = resource_claim['kind'],
-            name = name,
-            namespace = namespace,
-            uid = uid,
-        ),
-        to = email_addresses,
-    ))
+def notify_scheduled_retirement(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    logger.info("sending retirement schedule notification")
+    retirement_timers.pop(resource_claim.uid, None)
 
     send_notification_email(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service {{service_display_name}} retirement in {{retirement_timedelta_humanized}}",
+        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} retirement in {{retirement_timedelta_humanized}}",
         to = email_addresses,
         template = "retirement-scheduled",
     )
 
-def notify_scheduled_stop(resource_claim, stop_datetime):
-    logger = logging.getLogger('scheduled-stop')
-    metadata = resource_claim['metadata']
-    namespace = metadata['namespace']
-    uid = metadata['uid']
-    stop_timers.pop(uid, None)
-
-    email_addresses = namespace_email_addresses.get(namespace)
-    if not email_addresses:
-        return
-
-    logger.info("sending stop schedule notification", extra=dict(
-        at = stop_datetime.strftime('%FT%TZ'),
-        object = dict(
-            apiVersion = resource_claim['apiVersion'],
-            kind = resource_claim['kind'],
-            name = name,
-            namespace = namespace,
-            uid = uid,
-        ),
-        to = email_addresses,
-    ))
+def notify_scheduled_stop(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    logger.info("sending stop schedule notification")
+    stop_timers.pop(resource_claim.uid, None)
 
     send_notification_email(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service {{service_display_name}} will stop in {{stop_timedelta_humanized}}",
+        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} will stop in {{stop_timedelta_humanized}}",
         to = email_addresses,
         template = "stop-scheduled",
     )
 
-def notify_start_complete(resource_claim, email_addresses, logger):
+def notify_start_complete(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
     logger.info("sending start-complete notification", extra=dict(to=email_addresses))
     send_notification_email(
+       catalog_item = catalog_item,
+       catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service {{service_display_name}} has started",
+        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} has started",
         template = "start-complete",
         to = email_addresses,
     )
 
-def notify_start_failed(resource_claim, resource_state, email_addresses, logger):
+def notify_start_failed(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
     logger.info("sending start-failed notification", extra=dict(to=email_addresses))
 
     attachments = []
-    try:
-        job_id = resource_state['status']['towerJobs']['start']['deployerJob']
-        resp = requests.get(
-            f"https://{ansible_tower_hostname}/api/v2/jobs/{job_id}/stdout/?format=txt",
-            auth=(ansible_tower_user, ansible_tower_password),
-            # We really need to fix the tower certs!
-            verify=False,
-        )
-        filename = f"ansible-log-{job_id}.txt",
-        mimeapp = MIMEApplication(resp.content, Name=filename)
-        mimeapp['Content-Disposition'] = f"attachment; filename=\"{filename}\""
-        attachments.append(mimeapp)
-    except Exception:
-        logging.exception("Exception when getting tower job.")
+    for deployer_job in resource_claim.start_deployer_jobs:
+        deployer_log = get_deployer_log(deployer_job, logger)
+        if deployer_log:
+            filename = f"ansible-log-{deployer_job.job_id}.txt"
+            mimeapp = MIMEApplication(deployer_log, Name=filename)
+            mimeapp['Content-Disposition'] = f"attachment; filename=\"{filename}\""
+            attachments.append(mimeapp)
 
     send_notification_email(
+        attachments = attachments,
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "ERROR: {{catalog_display_name}} service {{service_display_name}} failed to start",
+        subject = "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} failed to start",
         to = email_addresses,
         template = "start-failed",
-        template_vars = dict(
-            failure_details = '...',
-        ),
-        attachments = attachments,
     )
 
-def notify_stop_complete(resource_claim, email_addresses, logger):
+def notify_stop_complete(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
     logger.info("sending stop-complete notification", extra=dict(to=email_addresses))
     send_notification_email(
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_display_name}} service {{service_display_name}} has stopped",
+        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} has stopped",
         template = "stop-complete",
         to = email_addresses,
     )
 
-def notify_stop_failed(resource_claim, resource_state, email_addresses, logger):
+def notify_stop_failed(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
     logger.info("sending stop-failed notification", extra=dict(to=email_addresses))
 
     attachments = []
-    try:
-        job_id = resource_state['status']['towerJobs']['stop']['deployerJob']
-        resp = requests.get(
-            f"https://{ansible_tower_hostname}/api/v2/jobs/{job_id}/stdout/?format=txt",
-            auth=(ansible_tower_user, ansible_tower_password),
-            # We really need to fix the tower certs!
-            verify=False,
-        )
-        filename = f"ansible-log-{job_id}.txt",
-        mimeapp = MIMEApplication(resp.content, Name=filename)
-        mimeapp['Content-Disposition'] = f"attachment; filename=\"{filename}\""
-        attachments.append(mimeapp)
-    except Exception:
-        logging.exception("Exception when getting tower job.")
+    for deployer_job in resource_claim.stop_deployer_jobs:
+        deployer_log = get_deployer_log(deployer_job, logger)
+        if deployer_log:
+            filename = f"ansible-log-{deployer_job.job_id}.txt"
+            mimeapp = MIMEApplication(deployer_log, Name=filename)
+            mimeapp['Content-Disposition'] = f"attachment; filename=\"{filename}\""
+            attachments.append(mimeapp)
 
     send_notification_email(
+        attachments = attachments,
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "ERROR: {{catalog_display_name}} service {{service_display_name}} failed to stop",
+        subject = "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} failed to stop",
         to = email_addresses,
         template = "stop-failed",
-        template_vars = dict(
-            failure_details = '...',
-        ),
-        attachments = attachments,
     )
 
-def get_template_vars(resource_claim, logger):
-    metadata = resource_claim['metadata']
-    status = resource_claim['status']
-    annotations = metadata.get('annotations', {})
-    labels = metadata.get('labels', {})
-
-    catalog_name = labels.get(f"{babylon_domain}/catalogItemNamespace")
-    catalog_item_name = labels.get(f"{babylon_domain}/catalogItemName")
-    catalog_item_display_name = annotations.get(f"{babylon_domain}/catalogItemDisplayName", catalog_item_name)
-    guid = re.sub(r'^guid-', '', resource_claim['status']['resourceHandle']['name'])
-    service_short_name = annotations.get(f"{babylon_domain}/shortName")
-
+def get_template_vars(catalog_item, catalog_namespace, resource_claim):
     retirement_timestamp, retirement_datetime, retirement_timedelta, retirement_timedelta_humanized = None, None, None, None
-    try:
-        retirement_timestamp = status['lifespan']['end']
-        retirement_datetime = isoparse(retirement_timestamp)
-        retirement_timedelta = retirement_datetime - datetime.now(timezone.utc)
-        retirement_timedelta_humanized = naturaldelta(retirement_timedelta)
-    except KeyError:
-        pass
+    retirement_timestamp = resource_claim.retirement_timestamp
+    retirement_datetime = isoparse(retirement_timestamp) if retirement_timestamp else None
+    retirement_timedelta = retirement_datetime - datetime.now(timezone.utc) if retirement_datetime else None
+    retirement_timedelta_humanized = naturaldelta(retirement_timedelta) if retirement_timedelta else None
 
-    stop_timestamp, stop_datetime, stop_timedelta, stop_timedelta_humanized = None, None, None, None
-    try:
-        stop_timestamp = status['resources'][0]['state']['spec']['vars']['action_schedule']['stop']
-        stop_datetime = isoparse(stop_timestamp)
-        stop_timedelta = stop_datetime - datetime.now(timezone.utc)
-        stop_timedelta_humanized = naturaldelta(stop_timedelta)
-    except (IndexError, KeyError):
-        pass
+    stop_timestamp = resource_claim.stop_timestamp
+    stop_datetime = isoparse(stop_timestamp) if stop_timestamp else None
+    stop_timedelta = stop_datetime - datetime.now(timezone.utc) if stop_datetime else None
+    stop_timedelta_humanized = naturaldelta(stop_timedelta) if stop_timedelta else None
 
     return dict(
-        catalog_display_name = annotations.get(f"{babylon_domain}/catalogDisplayName", catalog_name),
-        catalog_item_name = catalog_item_name,
-        catalog_item_display_name = catalog_item_display_name,
-        catalog_name = catalog_name,
-        guid = guid,
-        stop_datetime = stop_datetime,
-        stop_timestamp = stop_timestamp,
-        stop_timedelta = stop_timedelta,
-        stop_timedelta_humanized = stop_timedelta_humanized,
+        catalog_item = catalog_item,
+        catalog_namespace = catalog_namespace,
+        guid = resource_claim.guid,
         retirement_datetime = retirement_datetime,
         retirement_timestamp = retirement_timestamp,
         retirement_timedelta = retirement_timedelta,
         retirement_timedelta_humanized = retirement_timedelta_humanized,
-        service_display_name = f"{catalog_item_display_name} {guid}" if catalog_item_display_name else metadata['name'],
-        service_short_name = service_short_name,
-        service_url = annotations.get(f"{babylon_domain}/url"),
-        survey_link = None,
+        stop_datetime = stop_datetime,
+        stop_timestamp = stop_timestamp,
+        stop_timedelta = stop_timedelta,
+        stop_timedelta_humanized = stop_timedelta_humanized,
+        service_display_name = f"{catalog_item.display_name} {resource_claim.guid}",
+        service_url = resource_claim.service_url,
+        survey_link = catalog_item.survey_link,
     )
 
-def send_notification_email(resource_claim, subject, to, template, logger, message_body=[], template_vars={}, attachments=[]):
-    metadata = resource_claim['metadata']
-    annotations = metadata.get('annotations', {})
-
+def send_notification_email(
+    catalog_item,
+    catalog_namespace,
+    logger,
+    resource_claim,
+    subject,
+    to,
+    template,
+    message_body=[],
+    template_vars={},
+    attachments=[]
+):
+    template_vars = deepcopy(template_vars)
     template_vars.update(
-        get_template_vars(resource_claim, logger)
+        get_template_vars(
+            catalog_item=catalog_item,
+            catalog_namespace=catalog_namespace,
+            resource_claim=resource_claim,
+        )
     )
+    template_vars['have_attachments'] = len(attachments) > 0
+
     email_subject = j2env.from_string(subject).render(**template_vars)
-    message_template_annotation = annotations.get(f"{babylon_domain}/{kebabToCamelCase(template)}MessageTemplate")
-    if message_template_annotation:
-        message_template = json.loads(message_template_annotation);
-        # FIXME - future support for handling templateFormat and outputFormat in template annotation
-        email_body = j2env.from_string(message_template['template']).render(**template_vars)
-    elif message_body:
+
+    if message_body:
         email_body = "\n".join(message_body)
     else:
-        email_body = j2env.get_template(template + '.html.j2').render(**template_vars)
+        message_template = catalog_item.get_message_template(kebabToCamelCase(template))
+        if message_template:
+            email_body = j2env.from_string(message_template).render(**template_vars)
+        else:
+            email_body = j2env.get_template(template + '.html.j2').render(**template_vars)
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = email_subject
-    msg['From'] = f"{template_vars['catalog_display_name']} <{smtp_from}>"
+    msg['From'] = f"{catalog_namespace.display_name} <{smtp_from}>"
     msg['To'] = ', '.join(to)
 
     msg.attach(MIMEText(html2text(email_body), 'plain'))
@@ -844,29 +739,3 @@ def send_notification_email(resource_claim, subject, to, template, logger, messa
     ) as smtp:
         smtp.starttls(context = tls_context)
         smtp.sendmail(smtp_from, to, msg.as_string())
-
-
-##################################################################################
-# TODO
-##################################################################################
-
-# Email on Stop soon
-# * status.resources[*].spec.vars.current_state == 'started'
-# * status.resources[*].spec.vars.action_schedule.stop < NOW + 30 minutes
-#
-#   Subject: Your RHPDS service <NAME> is about to stop (30 minutes)
-#
-#   Your Red Hat OPENTLC environment <NAME> will shutdown in 30 minutes.
-#
-#   You may manage service runtime at <SERVICE URL>.
-
-# Email on Retirement soon
-#   Subject: RHPDS service retirement reminder for <NAME>
-#
-#   Reminder: Your Red Hat Product Demo System service: <NAME> will be retired in <TIME INTERVAL> at <DATE TIME>.
-#
-#   If you require more time, please adjust lifetime at <SERVICE URL>.
-#
-#   Thank you for using Red Hat Product Demo System
-
-##################################################################################
