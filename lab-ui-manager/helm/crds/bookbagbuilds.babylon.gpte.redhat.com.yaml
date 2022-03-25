@@ -1,0 +1,201 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: bookbagbuilds.babylon.gpte.redhat.com
+spec:
+  conversion:
+    strategy: None
+  group: babylon.gpte.redhat.com
+  names:
+    kind: BookbagBuild
+    listKind: BookbagBuildList
+    plural: bookbagbuilds
+    singular: bookbagbuild
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: >-
+          Bookbag lab interface build and deployment information used by babylon-lab-ui-manager.
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            properties:
+              name:
+                maxLength: 63
+                pattern: ^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$
+                type: string
+            type: object
+          spec:
+            description: >-
+              Specification for bookbag build and deployment.
+            type: object
+            required:
+            - source
+            properties:
+              source:
+                type: object
+                properties:
+                  contextDir:
+                    type: string
+                    description: >-
+                      contextDir specifies the sub-directory where the source code for the
+                      application exists. This allows to have buildable sources in directory
+                      other than root of repository.
+                  dockerfile:
+                    type: string
+                    description: >-
+                      dockerfile is the raw contents of a Dockerfile which should be built. When
+                      this option is specified, the FROM may be modified based on your strategy
+                      base image and additional ENV stanzas from your strategy environment will
+                      be added after the FROM, but before the rest of your Dockerfile stanzas.
+                      The Dockerfile source type may be used with other options like git - in
+                      those cases the Git repo will have any innate Dockerfile replaced in the
+                      context dir.
+                  git:
+                    type: object
+                    properties:
+                      ref:
+                        description: >-
+                          ref is the branch/tag/ref to build.
+                        type: string
+                      uri:
+                        description: >-
+                          uri points to the source that will be built. The structure of the
+                          source will depend on the type of build to run
+                        type: string
+                  type:
+                    description: >-
+                      Type of build input to accept.
+                      At present only "Git" is supported.
+                    type: string
+                    enum:
+                    - Git
+              strategy:
+                type: object
+                properties:
+                  dockerStrategy:
+                    description: >-
+                      dockerStrategy holds the parameters to the container image build strategy.
+                    type: object
+                    properties:
+                      buildArgs:
+                        type: array
+                        items:
+                          description: >-
+                            buildArgs contains build arguments that will be resolved in the Dockerfile.
+                          type: object
+                          required:
+                          - name
+                          - value
+                          properties:
+                            name:
+                              type: string
+                            value:
+                              type: string
+                      dockerfilePath:
+                        type: string
+                        description: >-
+                          dockerfilePath is the path of the Dockerfile that will be used to build the
+                          container image, relative to the root of the context (contextDir). Defaults
+                          to `Dockerfile` if unset.
+                      env:
+                        type: array
+                        items:
+                          description: >-
+                            env contains additional environment variables you want to pass into a
+                            builder container.
+                          type: object
+                          required:
+                          - name
+                          - value
+                          properties:
+                            name:
+                              type: string
+                            value:
+                              type: string
+                      forcePull:
+                        description: >-
+                          forcePull describes if the builder should pull the images from registry
+                          prior to building.
+                        type: boolean
+                      from:
+                        description: >-
+                          from is a reference to an DockerImage which overrides the FROM image in
+                          the FROM image in the Dockerfile for the build. If the Dockerfile uses
+                           multi-stage builds, this will replace the image in the last FROM
+                          directive of the file.
+                        type: object
+                        properties:
+                          kind:
+                            type: string
+                            enum:
+                            - DockerImage
+                          name:
+                            type: string
+                            description: >-
+                              Docker image reference.
+                  sourceStrategy:
+                    type: object
+                    description: >-
+                      sourceStrategy holds the parameters to the Source build strategy.
+                    properties:
+                      env:
+                        type: array
+                        items:
+                          description: >-
+                            env contains additional environment variables you want to pass into a
+                            builder container.
+                          type: object
+                          required:
+                          - name
+                          - value
+                          properties:
+                            name:
+                              type: string
+                            value:
+                              type: string
+                      forcePull:
+                        description: >-
+                          forcePull describes if the builder should pull the images from registry
+                          prior to building.
+                        type: boolean
+                      from:
+                        description: >-
+                          from is reference to a DockerImage which should be used as the
+                          source-to-image builder.
+                        type: object
+                        properties:
+                          kind:
+                            type: string
+                            enum:
+                            - DockerImage
+                          name:
+                            type: string
+                            description: >-
+                              Docker image reference.
+                  type:
+                    type: string
+                    description: >-
+                      strategy defines how to perform a build.
+                    enum:
+                    - Docker
+                    - Source
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+

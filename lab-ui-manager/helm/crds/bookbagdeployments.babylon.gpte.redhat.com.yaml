@@ -1,0 +1,76 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: bookbagdeployments.babylon.gpte.redhat.com
+spec:
+  conversion:
+    strategy: None
+  group: babylon.gpte.redhat.com
+  names:
+    kind: BookbagDeployment
+    listKind: BookbagDeploymentList
+    plural: bookbagdeployments
+    singular: bookbagdeployment
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: >-
+          Bookbag lab interface build and deployment information used by babylon-lab-ui-manager.
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            properties:
+              name:
+                maxLength: 63
+                pattern: ^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$
+                type: string
+            type: object
+          spec:
+            description: >-
+              Specification for bookbag build and deployment.
+            type: object
+            properties:
+              auth:
+                type: object
+                properties:
+                  password:
+                    type: string
+                  user:
+                    type: string
+              image:
+                type: string
+              imageStream:
+                type: object
+                required:
+                - name
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+              route:
+                type: object
+                properties:
+                  host:
+                    type: string
+              vars:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
