@@ -104,7 +104,6 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({
   for (const [label, value] of Object.entries(catalogItem.metadata.labels || {})) {
     if (label.startsWith('babylon.gpte.redhat.com/')
       && label !== 'babylon.gpte.redhat.com/stage'
-      && label !== 'babylon.gpte.redhat.com/userCatalogItem'
     ) {
       const attr:string = label.substring(24);
       attributes[attr] = value;
