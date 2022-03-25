@@ -43,24 +43,10 @@ rules:
 - apiGroups:
   - {{ .Values.babylon.domain }}
   resources:
-  - catalogitems
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - {{ .Values.poolboy.domain }}
-  resources:
-  - resourceclaims
-  - resourcerproviders
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - {{ .Values.poolboy.domain }}
-  resources:
-  - resourcehandles
+  - bookbagbuilds
+  - bookbagbuilds/status
+  - bookbagdeployments
+  - bookbagdeployments/status
   verbs:
   - create
   - delete
@@ -70,14 +56,109 @@ rules:
   - update
   - watch
 - apiGroups:
-  - user.openshift.io
+  - {{ .Values.babylon.domain }}
   resources:
-  - identities
-  - users
+  - catalogitems
   verbs:
   - get
   - list
   - watch
+- apiGroups:
+  - {{ .Values.poolboy.domain }}
+  resources:
+  - resourceclaims
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - build.openshift.io
+  resources:
+  - buildconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+- apiGroups:
+  - image.openshift.io
+  resources:
+  - imagestreams
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  - route.openshift.io
+  resources:
+  - routes/custom-host
+  verbs:
+  - create
 
 {{ if .Values.deploy }}
 ---
@@ -91,21 +172,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{ include "babylon-lab-ui-manager.name" . }}
-subjects:
-- kind: ServiceAccount
-  name: {{ include "babylon-lab-ui-manager.serviceAccountName" . }}
-  namespace: {{ include "babylon-lab-ui-manager.namespaceName" . }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ include "babylon-lab-ui-manager.name" . }}:admin
-  labels:
-    {{- include "babylon-lab-ui-manager.labels" . | nindent 4 }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: admin
 subjects:
 - kind: ServiceAccount
   name: {{ include "babylon-lab-ui-manager.serviceAccountName" . }}

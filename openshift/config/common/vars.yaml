@@ -145,6 +145,7 @@ babylon_resources:
       babylon_lab_ui_manager_deploy | default(true) | bool
     helm_template:
       dir: babylon-lab-ui-manager
+      include_crds: true
 
   - name: Babylon notifier Helm Template
     when: >-
