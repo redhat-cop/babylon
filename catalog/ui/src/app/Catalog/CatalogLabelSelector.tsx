@@ -40,7 +40,6 @@ const CatalogLabelSelector: React.FunctionComponent<CatalogLabelSelectorProps> =
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
       if (!label.startsWith('babylon.gpte.redhat.com/')
         || label.toLowerCase() === 'babylon.gpte.redhat.com/category'
-        || label === 'babylon.gpte.redhat.com/userCatalogItem'
       ) {
         continue;
       }
@@ -71,7 +70,6 @@ const CatalogLabelSelector: React.FunctionComponent<CatalogLabelSelectorProps> =
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
       if (!label.startsWith('babylon.gpte.redhat.com/')
         || label.toLowerCase() === 'babylon.gpte.redhat.com/category'
-        || label === 'babylon.gpte.redhat.com/userCatalogItem'
       ) {
         continue;
       }

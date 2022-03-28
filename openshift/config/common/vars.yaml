@@ -1,5 +1,5 @@
 # Component Versions
-agnosticv_operator_version: v0.20.2
+agnosticv_operator_version: v0.20.3
 babylon_anarchy_version: v0.19.4
 babylon_anarchy_governor_version: v0.11.1
 poolboy_version: v0.11.1
@@ -157,6 +157,12 @@ babylon_resources:
           namespaces: "{{ babylon_anarchy_namespaces | default(default_babylon_anarchy_namespaces) }}"
         redis: "{{ babylon_notifier_redis | default({}) }}"
         smtp: "{{ babylon_notifier_smtp | default({}) }}"
+
+  - name: Babylon workshop-manager Helm Template
+    when: >-
+      babylon_lab_ui_manager_deploy | default(true) | bool
+    helm_template:
+      dir: babylon-workshop-manager
 
   # agnosticv-operator
   - name: AgnosticV Operator Deploy
