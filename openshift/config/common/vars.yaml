@@ -158,6 +158,12 @@ babylon_resources:
         redis: "{{ babylon_notifier_redis | default({}) }}"
         smtp: "{{ babylon_notifier_smtp | default({}) }}"
 
+  - name: Babylon workshop-manager Helm Template
+    when: >-
+      babylon_lab_ui_manager_deploy | default(true) | bool
+    helm_template:
+      dir: babylon-workshop-manager
+
   # agnosticv-operator
   - name: AgnosticV Operator Deploy
     helm_template:

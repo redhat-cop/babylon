@@ -135,6 +135,31 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: babylon-workshop-admin
+  annotations:
+    description: >-
+      Access to manage workshops.
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - workshops
+  - workshopprovisions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: babylon:poolboy:anarchy-access
   annotations:
     description: >-
