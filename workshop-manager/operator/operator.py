@@ -980,7 +980,6 @@ def workshop_provision_delete(logger, **kwargs):
 @kopf.on.resume(babylon_domain, babylon_api_version, 'workshopprovisions')
 def workshop_provision_resume(logger, **kwargs):
     workshop_provision = WorkshopProvision.register(**kwargs)
-    logger.warning(workshop_provision.spec)
     workshop_provision.on_resume(logger=logger)
 
 @kopf.on.update(babylon_domain, babylon_api_version, 'workshopprovisions')
