@@ -114,7 +114,7 @@ class BookbagBuild:
     def delete_build_config(self, logger):
         for build_config in custom_objects_api.list_namespaced_custom_object(
             'build.openshift.io', 'v1', self.build_namespace, 'buildconfigs',
-            label_selector={owner_uid_label: self.uid}
+            label_selector=f"{owner_uid_label}={self.uid}"
         ).get('items', []):
             try:
                 custom_objects_api.delete_namespaced_custom_object(
@@ -129,7 +129,7 @@ class BookbagBuild:
     def delete_image_stream(self, logger):
         for image_stream in custom_objects_api.list_namespaced_custom_object(
             'image.openshift.io', 'v1', self.build_namespace, 'imagestreams',
-            label_selector={owner_uid_label: self.uid}
+            label_selector=f"{owner_uid_label}={self.uid}"
         ).get('items', []):
             try:
                 custom_objects_api.delete_namespaced_custom_object(
@@ -459,11 +459,11 @@ class BookbagDeployment:
     def delete_deployment(self, logger):
         for deployment in apps_v1_api.list_namespaced_deployment(
             self.deployment_namespace,
-            label_selector={owner_uid_label: self.uid}
+            label_selector=f"{owner_uid_label}={self.uid}"
         ).items:
             try:
                 apps_v1_api.delete_namespaced_deployment(
-                    deployment.metadata.name, self.metadata.namespace
+                    deployment.metadata.name, deployment.metadata.namespace
                 )
                 logger.info(f"Deleted Deployment {deployment.metadata.name} in {deployment.metadata.namespace}")
             except ApiException as e:
@@ -473,7 +473,7 @@ class BookbagDeployment:
     def delete_role_binding(self, logger):
         for role_binding in rbac_authorization_v1_api.list_namespaced_role_binding(
             self.deployment_namespace,
-            label_selector={owner_uid_label: self.uid}
+            label_selector=f"{owner_uid_label}={self.uid}"
         ).items:
             try:
                 rbac_authorization_v1_api.delete_namespaced_role_binding(
@@ -484,10 +484,10 @@ class BookbagDeployment:
                 if e.status != 404:
                     raise
 
-    def delete_role_binding(self, logger):
+    def delete_route(self, logger):
         for route in custom_objects_api.list_namespaced_custom_object(
             'route.openshift.io', 'v1', self.deployment_namespace, 'routes',
-            label_selector={owner_uid_label: self.uid}
+            label_selector=f"{owner_uid_label}={self.uid}"
         ).get('items', []):
             try:
                 custom_objects_api.delete_namespaced_custom_object(
@@ -501,7 +501,7 @@ class BookbagDeployment:
     def delete_service(self, logger):
         for service in core_v1_api.list_namespaced_service(
             self.deployment_namespace,
-            label_selector={owner_uid_label: self.uid}
+            label_selector=f"{owner_uid_label}={self.uid}"
         ).items:
             try:
                 core_v1_api.delete_namespaced_service(
@@ -515,7 +515,7 @@ class BookbagDeployment:
     def delete_service_account(self, logger):
         for service in core_v1_api.list_namespaced_service_account(
             self.deployment_namespace,
-            label_selector={owner_uid_label: self.uid}
+            label_selector=f"{owner_uid_label}={self.uid}"
         ).items:
             try:
                 core_v1_api.delete_namespaced_service_account(
