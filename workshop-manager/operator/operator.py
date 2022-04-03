@@ -6,6 +6,7 @@ import kopf
 import kubernetes
 import logging
 import os
+import random
 import re
 
 from copy import deepcopy
@@ -31,6 +32,7 @@ notifier_annotation = f"{babylon_domain}/notifier"
 requester_annotation = f"{babylon_domain}/requester"
 url_annotation = f"{babylon_domain}/url"
 workshop_label = f"{babylon_domain}/workshop"
+workshop_id_label = f"{babylon_domain}/workshop-id"
 workshop_provision_label = f"{babylon_domain}/workshop-provision"
 
 if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
@@ -517,8 +519,38 @@ class Workshop:
     def manage(self, logger):
         self.check_resource_claims(logger=logger)
 
+    def manage_workshop_id_label(self, logger):
+        """
+        Generate a unique workshop id label for workshop to provide a short URL for access.
+        """
+        if workshop_id_label in self.labels:
+            return
+        while True:
+            workshop_id = ''.join(random.choice('23456789abcdefghjkmnpqrstuvwxyz') for i in range(6))
+            # Check if id is in use
+            workshop_list = custom_objects_api.list_cluster_custom_object(
+                babylon_domain, babylon_api_version, 'workshops',
+                label_selector = f"{workshop_id_label}={workshop_id}",
+            )
+            if workshop_list.get('items'):
+                continue
+            workshop_definition = custom_objects_api.patch_namespaced_custom_object(
+                babylon_domain, babylon_api_version, self.namespace, 'workshops', self.name,
+                {
+                    "metadata": {
+                        "labels": {
+                            workshop_id_label: workshop_id,
+                        }
+                    }
+                }
+            )
+            self.__init__(definition=workshop_definition)
+            logger.info(f"Assigned workshop id {workshop_id}")
+            return
+
     def on_create(self, logger):
         logger.debug(f"Handling Workshop create for {self.name} in {self.namespace}")
+        self.manage_workshop_id_label(logger=logger)
 
     def on_delete(self, logger):
         logger.info(f"Handling Workshop delete for {self.name} in {self.namespace}")
@@ -527,9 +559,11 @@ class Workshop:
 
     def on_resume(self, logger):
         logger.debug(f"Handling Workshop resume for {self.name} in {self.namespace}")
+        self.manage_workshop_id_label(logger=logger)
 
     def on_update(self, logger):
         logger.debug(f"Handling Workshop update for {self.name} in {self.namespace}")
+        self.manage_workshop_id_label(logger=logger)
 
     def remove_resource_claim(self, logger, resource_claim):
         while True:
