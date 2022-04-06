@@ -1,4 +1,4 @@
-name: Integration Tests
+name: Catalog UI Tests
 
 on:
   push:
