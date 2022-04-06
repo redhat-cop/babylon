@@ -1,10 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import './app-layout.css';
-import {
-  useDispatch,
-  useSelector,
-} from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux';
 
 import { getApiSession, getUserInfo, listUsers } from '@app/api';
 import { User, UserList } from '@app/types';
@@ -36,19 +33,19 @@ import {
   PageHeaderTools,
   PageSidebar,
   SearchInput,
-  SkipToContent
+  SkipToContent,
 } from '@patternfly/react-core';
 
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
 
 interface IUserImpersonationDialogState {
-    isOpen: boolean,
-    matchCount: number,
-    value: string,
+  isOpen: boolean;
+  matchCount: number;
+  value: string;
 }
 
-import Navigation from "./Navigation";
+import Navigation from './Navigation';
 
 import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
@@ -63,11 +60,13 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   const [isMobileView, setIsMobileView] = React.useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = React.useState(false);
   const [users, setUsers] = React.useState<User[]>([]);
-  const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState<IUserImpersonationDialogState>({
-    isOpen: false,
-    matchCount: 0,
-    value: "",
-  });
+  const [userImpersonationDialogState, setUserImpersonationDialogState] = React.useState<IUserImpersonationDialogState>(
+    {
+      isOpen: false,
+      matchCount: 0,
+      value: '',
+    }
+  );
   const history = useHistory();
 
   const onNavToggleMobile = () => {
@@ -75,7 +74,7 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   };
   const onNavToggle = () => {
     setIsNavOpen(!isNavOpen);
-  }
+  };
   const onPageResize = (props: { mobileView: boolean; windowSize: number }) => {
     setIsMobileView(props.mobileView);
   };
@@ -89,8 +88,8 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   const userIsAdmin = useSelector(selectUserIsAdmin);
   const impersonateUserName = sessionStorage.getItem('impersonateUser');
 
-  async function getUsers({session}): Promise<void> {
-    const resp:UserList = await listUsers({disableImpersonation: true});
+  async function getUsers({ session }): Promise<void> {
+    const resp: UserList = await listUsers({ disableImpersonation: true });
     setUsers(resp.items);
   }
 
@@ -138,11 +137,11 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
         userNamespace: userInfo.userNamespace,
       })
     );
-    sessionStorage.setItem('impersonateUser', user );
+    sessionStorage.setItem('impersonateUser', user);
     setUserImpersonationDialogState({
       isOpen: false,
       matchCount: 0,
-      value: "",
+      value: '',
     });
     history.push('/');
   }
@@ -151,7 +150,7 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
     setUserImpersonationDialogState({
       isOpen: false,
       matchCount: 0,
-      value: "",
+      value: '',
     });
   }
 
@@ -159,7 +158,7 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
     setUserImpersonationDialogState({
       isOpen: true,
       matchCount: 0,
-      value: "",
+      value: '',
     });
   }
 
@@ -169,8 +168,9 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   }
 
   function onUserImpersonationSearchInputChange(value: string) {
-    const exactMatch = users.filter(user => user.metadata.name === value);
-    const filteredUsers = exactMatch.length === 1 ? exactMatch : users.filter(user => user.metadata.name.startsWith(value));
+    const exactMatch = users.filter((user) => user.metadata.name === value);
+    const filteredUsers =
+      exactMatch.length === 1 ? exactMatch : users.filter((user) => user.metadata.name.startsWith(value));
     setUserImpersonationDialogState({
       isOpen: true,
       matchCount: filteredUsers.length,
@@ -182,7 +182,7 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
     setUserImpersonationDialogState({
       isOpen: true,
       matchCount: 0,
-      value: "",
+      value: '',
     });
   }
 
@@ -196,11 +196,23 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
     }
     if (userInterface == 'summit') {
       return (
-        <img src={summitLogo} onClick={handleClick} alt="Red Hat Summit" className="summit-logo" style={{height: "48px"}}/>
+        <img
+          src={summitLogo}
+          onClick={handleClick}
+          alt="Red Hat Summit"
+          className="summit-logo"
+          style={{ height: '48px' }}
+        />
       );
-    } else if(userInterface == 'rhpds') {
+    } else if (userInterface == 'rhpds') {
       return (
-        <img src={rhpdsLogo} onClick={handleClick} alt="Red Hat Product Demo System Logo" className="rhpds-logo" style={{height: "48px"}}/>
+        <img
+          src={rhpdsLogo}
+          onClick={handleClick}
+          alt="Red Hat Product Demo System Logo"
+          className="rhpds-logo"
+          style={{ height: '48px' }}
+        />
       );
     } else {
       return null;
@@ -208,16 +220,28 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   }
 
   const UserControlDropdownItems = [
-    <DropdownItem key="logout" href="/oauth/sign_out" onClick={()=>{sessionStorage.removeItem('impersonateUser');}}>Log out</DropdownItem>,
+    <DropdownItem
+      key="logout"
+      href="/oauth/sign_out"
+      onClick={() => {
+        sessionStorage.removeItem('impersonateUser');
+      }}
+    >
+      Log out
+    </DropdownItem>,
   ];
   if (authIsAdmin || impersonateUserName) {
     UserControlDropdownItems.push(
-      <DropdownItem key="impersonate" onClick={openUserImpersonationDialog}>Impersonate user</DropdownItem>
-    )
+      <DropdownItem key="impersonate" onClick={openUserImpersonationDialog}>
+        Impersonate user
+      </DropdownItem>
+    );
     if (impersonateUser) {
       UserControlDropdownItems.push(
-        <DropdownItem key="clear-impersonation" onClick={clearUserImpersonation}>Clear user impersonation</DropdownItem>
-      )
+        <DropdownItem key="clear-impersonation" onClick={clearUserImpersonation}>
+          Clear user impersonation
+        </DropdownItem>
+      );
     }
   }
 
@@ -231,7 +255,7 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
         toggle={
           <DropdownToggle
             aria-label="user actions dropdown"
-            onToggle={() => setUserControlDropdownOpen(isOpen => !isOpen)}
+            onToggle={() => setUserControlDropdownOpen((isOpen) => !isOpen)}
             toggleIndicator={CaretDownIcon}
           >
             {impersonateUser ? impersonateUser : authUser}
@@ -244,12 +268,17 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
         isOpen={userImpersonationDialogState.isOpen}
         onClose={closeUserImpersonationDialog}
         actions={[
-          <Button key="confirm" variant="primary" isDisabled={userImpersonationDialogState.matchCount != 1} onClick={applyUserImpersonation}>
+          <Button
+            key="confirm"
+            variant="primary"
+            isDisabled={userImpersonationDialogState.matchCount != 1}
+            onClick={applyUserImpersonation}
+          >
             Confirm
           </Button>,
           <Button key="cancel" variant="link" onClick={closeUserImpersonationDialog}>
             Cancel
-          </Button>
+          </Button>,
         ]}
       >
         <SearchInput
@@ -274,20 +303,20 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   );
 
   const Sidebar = (
-    <PageSidebar
-      theme="dark"
-      nav={<Navigation/>}
-      isNavOpen={isMobileView ? isNavOpenMobile : isNavOpen} />
+    <PageSidebar theme="dark" nav={<Navigation />} isNavOpen={isMobileView ? isNavOpenMobile : isNavOpen} />
   );
 
   const pageId = 'primary-app-container';
 
   const PageSkipToContent = (
-    <SkipToContent onClick={(event) => {
-      event.preventDefault();
-      const primaryContentContainer = document.getElementById(pageId);
-      primaryContentContainer && primaryContentContainer.focus();
-    }} href={`#${pageId}`}>
+    <SkipToContent
+      onClick={(event) => {
+        event.preventDefault();
+        const primaryContentContainer = document.getElementById(pageId);
+        primaryContentContainer && primaryContentContainer.focus();
+      }}
+      href={`#${pageId}`}
+    >
       Skip to Content
     </SkipToContent>
   );
@@ -297,10 +326,11 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
       header={Header}
       sidebar={Sidebar}
       onPageResize={onPageResize}
-      skipToContent={PageSkipToContent}>
+      skipToContent={PageSkipToContent}
+    >
       {children}
     </Page>
   );
-}
+};
 
 export { AppLayout };

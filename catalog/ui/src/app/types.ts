@@ -49,7 +49,7 @@ export interface AnarchySubjectList {
 }
 
 export interface AnarchySubjectStatus {
-  towerJobs?: {[jobName:string]: AnarchySubjectStatusTowerJob};
+  towerJobs?: { [jobName: string]: AnarchySubjectStatusTowerJob };
 }
 
 export interface AnarchySubjectStatusTowerJob {
@@ -87,10 +87,10 @@ export interface CatalogItemSpecParameter {
   name: string;
   openAPIV3Schema?: any;
   required?: boolean;
-  resourceIndexes?: (number|'@')[];
+  resourceIndexes?: (number | '@')[];
   validation?: string;
   value?: string;
-  variable?: string
+  variable?: string;
 }
 
 export interface CatalogNamespace {
@@ -134,8 +134,7 @@ export interface K8sObjectReference {
   uid?: string;
 }
 
-export interface Namespace extends K8sObject {
-}
+export interface Namespace extends K8sObject {}
 
 export interface NamespaceList {
   items: Namespace[];
@@ -167,7 +166,7 @@ export interface ResourceClaimSpecResource {
   template: any;
 }
 
-export interface ResourceHandle extends K8sObject{
+export interface ResourceHandle extends K8sObject {
   spec: ResourceHandleSpec;
 }
 
@@ -269,8 +268,7 @@ export interface ServiceNamespace {
   name: string;
 }
 
-export interface User extends K8sObject {
-}
+export interface User extends K8sObject {}
 
 export interface UserList {
   items: User[];

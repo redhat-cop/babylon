@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useLocation, Route, RouteComponentProps, Switch } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux';
 import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
 
-import { Spinner } from "@patternfly/react-core";
+import { Spinner } from '@patternfly/react-core';
 
 import { selectInterface, selectUserIsAdmin } from '@app/store';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
@@ -11,20 +11,20 @@ const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const Services = React.lazy(() => import('@app/Services/Services'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
-const AnarchyActionInstance = React.lazy(()=> import('@app/Admin/AnarchyActionInstance'));
-const AnarchyActions = React.lazy(()=> import('@app/Admin/AnarchyActions'));
-const AnarchyGovernorInstance = React.lazy(()=> import('@app/Admin/AnarchyGovernorInstance'));
-const AnarchyGovernors = React.lazy(()=> import('@app/Admin/AnarchyGovernors'));
-const AnarchyRunInstance = React.lazy(()=> import('@app/Admin/AnarchyRunInstance'));
-const AnarchyRuns = React.lazy(()=> import('@app/Admin/AnarchyRuns'));
-const AnarchySubjectInstance = React.lazy(()=> import('@app/Admin/AnarchySubjectInstance'));
-const AnarchySubjects = React.lazy(()=> import('@app/Admin/AnarchySubjects'));
-const ResourceHandles = React.lazy(()=> import('@app/Admin/ResourceHandles'));
-const ResourceHandleInstance = React.lazy(()=> import('@app/Admin/ResourceHandleInstance'));
-const ResourcePools = React.lazy(()=> import('@app/Admin/ResourcePools'));
-const ResourcePoolInstance = React.lazy(()=> import('@app/Admin/ResourcePoolInstance'));
-const ResourceProviders = React.lazy(()=> import('@app/Admin/ResourceProviders'));
-const ResourceProviderInstance = React.lazy(()=> import('@app/Admin/ResourceProviderInstance'));
+const AnarchyActionInstance = React.lazy(() => import('@app/Admin/AnarchyActionInstance'));
+const AnarchyActions = React.lazy(() => import('@app/Admin/AnarchyActions'));
+const AnarchyGovernorInstance = React.lazy(() => import('@app/Admin/AnarchyGovernorInstance'));
+const AnarchyGovernors = React.lazy(() => import('@app/Admin/AnarchyGovernors'));
+const AnarchyRunInstance = React.lazy(() => import('@app/Admin/AnarchyRunInstance'));
+const AnarchyRuns = React.lazy(() => import('@app/Admin/AnarchyRuns'));
+const AnarchySubjectInstance = React.lazy(() => import('@app/Admin/AnarchySubjectInstance'));
+const AnarchySubjects = React.lazy(() => import('@app/Admin/AnarchySubjects'));
+const ResourceHandles = React.lazy(() => import('@app/Admin/ResourceHandles'));
+const ResourceHandleInstance = React.lazy(() => import('@app/Admin/ResourceHandleInstance'));
+const ResourcePools = React.lazy(() => import('@app/Admin/ResourcePools'));
+const ResourcePoolInstance = React.lazy(() => import('@app/Admin/ResourcePoolInstance'));
+const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'));
+const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
 let routeFocusTimer: number;
@@ -69,7 +69,7 @@ const routes: AppRouteConfig[] = [
     path: '/services',
     title: 'Babylon | Services',
   },
-/*
+  /*
   {
     component: Support,
     exact: true,
@@ -221,7 +221,8 @@ const flattenedRoutes: IAppRoute[] = routes.reduce(
 );
 
 const adminFlattenedRoutes: IAppRoute[] = adminRoutes.reduce(
-  (adminFlattenedRoutes, route) => [...adminFlattenedRoutes, ...(route.adminRoutes ? route.adminRoutes : [route])] as any,
+  (adminFlattenedRoutes, route) =>
+    [...adminFlattenedRoutes, ...(route.adminRoutes ? route.adminRoutes : [route])] as any,
   [] as IAppRoute[]
 );
 
@@ -233,13 +234,15 @@ const AppRoutes = (): React.ReactElement => {
 
   return (
     <LastLocationProvider>
-      <React.Suspense fallback={<Spinner isSVG size="lg"/>}>
+      <React.Suspense fallback={<Spinner isSVG size="lg" />}>
         <Switch>
           {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
-            const pageTitle = (
-              userInterface === 'summit' ? title.replace('Babylon', 'Red Hat Summit') :
-              userInterface === 'rhpds' ? title.replace('Babylon', 'RHPDS') : title
-            );
+            const pageTitle =
+              userInterface === 'summit'
+                ? title.replace('Babylon', 'Red Hat Summit')
+                : userInterface === 'rhpds'
+                ? title.replace('Babylon', 'RHPDS')
+                : title;
             return (
               <RouteWithTitleUpdates
                 path={path}
@@ -249,31 +252,33 @@ const AppRoutes = (): React.ReactElement => {
                 title={pageTitle}
                 isAsync={isAsync}
               />
-            )
+            );
           })}
-          {userIsAdmin ?
-            adminFlattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
-              const pageTitle = (
-                userInterface === 'summit' ? title.replace('Babylon', 'Red Hat Summit') :
-                  userInterface === 'rhpds' ? title.replace('Babylon', 'RHPDS') : title
-              );
-              return (
-                <RouteWithTitleUpdates
-                  path={path}
-                  exact={exact}
-                  component={component}
-                  key={idx}
-                  title={pageTitle}
-                  isAsync={isAsync}
-                />
-              )
-            })
+          {userIsAdmin
+            ? adminFlattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
+                const pageTitle =
+                  userInterface === 'summit'
+                    ? title.replace('Babylon', 'Red Hat Summit')
+                    : userInterface === 'rhpds'
+                    ? title.replace('Babylon', 'RHPDS')
+                    : title;
+                return (
+                  <RouteWithTitleUpdates
+                    path={path}
+                    exact={exact}
+                    component={component}
+                    key={idx}
+                    title={pageTitle}
+                    isAsync={isAsync}
+                  />
+                );
+              })
             : null}
           <PageNotFound title="404 Page Not Found" />
         </Switch>
       </React.Suspense>
     </LastLocationProvider>
   );
-}
+};
 
 export { AppRoutes, routes, adminRoutes };

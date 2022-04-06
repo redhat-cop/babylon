@@ -1,12 +1,12 @@
-import React from "react";
-import { useState } from "react";
+import React from 'react';
+import { useState } from 'react';
 
 import { SearchInput } from '@patternfly/react-core';
 
 export interface KeywordSearchInputProps {
   initialValue?: string[];
   placeholder?: string;
-  onSearch: (keywords:string[]) => void;
+  onSearch: (keywords: string[]) => void;
 }
 
 const KeywordSearchInput: React.FunctionComponent<KeywordSearchInputProps> = ({
@@ -15,7 +15,7 @@ const KeywordSearchInput: React.FunctionComponent<KeywordSearchInputProps> = ({
   onSearch,
 }) => {
   const [value, setValue] = useState(initialValue ? initialValue.join(' ') : '');
-  
+
   return (
     <SearchInput
       value={value}
@@ -32,6 +32,6 @@ const KeywordSearchInput: React.FunctionComponent<KeywordSearchInputProps> = ({
       }}
     />
   );
-}
+};
 
 export default KeywordSearchInput;

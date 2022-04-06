@@ -1,11 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 
-import {
-  PageSection,
-  PageSectionVariants,
-  Title,
-} from '@patternfly/react-core';
+import { PageSection, PageSectionVariants, Title } from '@patternfly/react-core';
 
 import { selectInterface } from '@app/store';
 import { displayName } from '@app/util';
@@ -16,25 +12,31 @@ const CatalogInterfaceDescription: React.FunctionComponent = () => {
   if (userInterface === 'rhpds') {
     return (
       <PageSection variant={PageSectionVariants.light} className="catalog-header">
-        <Title headingLevel="h1" size="2xl">Red Hat Product Demo System</Title>
+        <Title headingLevel="h1" size="2xl">
+          Red Hat Product Demo System
+        </Title>
         <div>Select an item to request a new service, demo, or lab.</div>
       </PageSection>
     );
   } else if (userInterface === 'summit') {
     return (
       <PageSection variant={PageSectionVariants.light} className="catalog-header">
-        <Title headingLevel="h1" size="2xl">Red Hat Summit Labs</Title>
+        <Title headingLevel="h1" size="2xl">
+          Red Hat Summit Labs
+        </Title>
         <div>Please select the catalog item for your lab as instructed by a lab facilitator.</div>
       </PageSection>
     );
   } else {
     return (
       <PageSection variant={PageSectionVariants.light} className="catalog-header">
-        <Title headingLevel="h1" size="2xl">Catalog</Title>
+        <Title headingLevel="h1" size="2xl">
+          Catalog
+        </Title>
         <div>Select an item to request a new service, demo, or lab.</div>
       </PageSection>
     );
   }
-}
+};
 
 export default CatalogInterfaceDescription;

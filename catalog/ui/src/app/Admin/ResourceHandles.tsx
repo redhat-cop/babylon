@@ -1,5 +1,5 @@
-import React from "react";
-import { useEffect, useReducer, useRef, useState } from "react";
+import React from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useHistory, useLocation } from 'react-router-dom';
 import {
   EmptyState,
@@ -29,16 +29,18 @@ import './admin.css';
 
 const FETCH_BATCH_LIMIT = 50;
 
-function keywordMatch(resourceHandle:ResourceHandle, keyword:string): boolean {
+function keywordMatch(resourceHandle: ResourceHandle, keyword: string): boolean {
   if (resourceHandle.metadata.name.includes(keyword)) {
     return true;
   }
   if (resourceHandle.spec.resourcePool && resourceHandle.spec.resourcePool.name.includes(keyword)) {
     return true;
   }
-  if (resourceHandle.spec.resourceClaim && (
-    resourceHandle.spec.resourceClaim.name.includes(keyword) || resourceHandle.spec.resourceClaim.namespace.includes(keyword)
-  )) {
+  if (
+    resourceHandle.spec.resourceClaim &&
+    (resourceHandle.spec.resourceClaim.name.includes(keyword) ||
+      resourceHandle.spec.resourceClaim.namespace.includes(keyword))
+  ) {
     return true;
   }
   for (const resource of resourceHandle.spec.resources) {
@@ -49,7 +51,7 @@ function keywordMatch(resourceHandle:ResourceHandle, keyword:string): boolean {
   return false;
 }
 
-function filterResourceHandle(resourceHandle:ResourceHandle, keywordFilter:string[]): boolean {
+function filterResourceHandle(resourceHandle: ResourceHandle, keywordFilter: string[]): boolean {
   if (!keywordFilter) {
     return true;
   }
@@ -61,7 +63,7 @@ function filterResourceHandle(resourceHandle:ResourceHandle, keywordFilter:strin
   return true;
 }
 
-function pruneResourceHandle(resourceHandle:ResourceHandle): ResourceHandle {
+function pruneResourceHandle(resourceHandle: ResourceHandle): ResourceHandle {
   return {
     apiVersion: resourceHandle.apiVersion,
     kind: resourceHandle.kind,
@@ -82,8 +84,8 @@ function pruneResourceHandle(resourceHandle:ResourceHandle): ResourceHandle {
             provider: resource.provider,
             reference: resource.reference,
           };
-        })
-      ]
+        }),
+      ],
     },
   };
 }
@@ -93,48 +95,51 @@ const ResourceHandles: React.FunctionComponent = () => {
   const location = useLocation();
   const componentWillUnmount = useRef(false);
   const urlSearchParams = new URLSearchParams(location.search);
-  const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
+  const keywordFilter = urlSearchParams.has('search')
+    ? urlSearchParams
+        .get('search')
+        .trim()
+        .split(/ +/)
+        .filter((w) => w != '')
+    : null;
 
   const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const resourceHandles:ResourceHandle[] = fetchState?.filteredItems as ResourceHandle[] || [];
+  const resourceHandles: ResourceHandle[] = (fetchState?.filteredItems as ResourceHandle[]) || [];
 
-  const filterFunction = keywordFilter ? (
-    (resourceHandle:K8sObject):boolean => filterResourceHandle(resourceHandle as ResourceHandle, keywordFilter)
-  ) : null;
+  const filterFunction = keywordFilter
+    ? (resourceHandle: K8sObject): boolean => filterResourceHandle(resourceHandle as ResourceHandle, keywordFilter)
+    : null;
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
     const scrollable = e.target as any;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500
-      && !fetchState?.finished
-      && fetchState.limit <= resourceHandles.length
-    ) {
+    if (scrollRemaining < 500 && !fetchState?.finished && fetchState.limit <= resourceHandles.length) {
       reduceFetchState({
         type: 'modify',
         limit: fetchState.limit + FETCH_BATCH_LIMIT,
       });
     }
-  }
+  };
 
   async function confirmThenDelete(): Promise<void> {
-    if (confirm("Deleted selected ResourceHandles?")) {
-      const removedResourceHandles:ResourceHandle[] = [];
+    if (confirm('Deleted selected ResourceHandles?')) {
+      const removedResourceHandles: ResourceHandle[] = [];
       for (const resourceHandle of resourceHandles) {
         if (selectedUids.includes(resourceHandle.metadata.uid)) {
           await deleteResourceHandle(resourceHandle);
           removedResourceHandles.push(resourceHandle);
         }
       }
-      reduceSelectedUids({type: 'clear'});
-      reduceFetchState({type: 'removeItems', items: removedResourceHandles});
+      reduceSelectedUids({ type: 'clear' });
+      reduceFetchState({ type: 'removeItems', items: removedResourceHandles });
     }
   }
 
   async function fetchResourceHandles(): Promise<void> {
-    const resourceHandleList:ResourceHandleList = await listResourceHandles({
+    const resourceHandleList: ResourceHandleList = await listResourceHandles({
       continue: fetchState.continue,
       limit: FETCH_BATCH_LIMIT,
     });
@@ -144,8 +149,8 @@ const ResourceHandles: React.FunctionComponent = () => {
         k8sObjectList: resourceHandleList,
         refreshInterval: 15000,
         refresh: (): void => {
-          reduceFetchState({type: 'startRefresh'});
-        }
+          reduceFetchState({ type: 'startRefresh' });
+        },
       });
     }
   }
@@ -157,7 +162,7 @@ const ResourceHandles: React.FunctionComponent = () => {
       limit: FETCH_BATCH_LIMIT,
       prune: pruneResourceHandle,
     });
-    reduceSelectedUids({type: 'clear'});
+    reduceSelectedUids({ type: 'clear' });
   }
 
   // First render and detect unmount
@@ -165,22 +170,19 @@ const ResourceHandles: React.FunctionComponent = () => {
     reloadResourceHandles();
     return () => {
       componentWillUnmount.current = true;
-    }
+    };
   }, []);
 
   // Fetch or continue fetching
   useEffect(() => {
-    if (fetchState?.canContinue && (
-      fetchState.refreshing ||
-      fetchState.filteredItems.length < fetchState.limit
-    )) {
+    if (fetchState?.canContinue && (fetchState.refreshing || fetchState.filteredItems.length < fetchState.limit)) {
       fetchResourceHandles();
     }
     return () => {
       if (componentWillUnmount.current) {
         cancelFetchActivity(fetchState);
       }
-    }
+    };
   }, [fetchState]);
 
   // Handle keyword filter change
@@ -193,128 +195,155 @@ const ResourceHandles: React.FunctionComponent = () => {
     }
   }, [JSON.stringify(keywordFilter)]);
 
-  return (<>
-    <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
-      <Split hasGutter>
-        <SplitItem isFilled>
-          <Title headingLevel="h4" size="xl">ResourceHandles</Title>
-        </SplitItem>
-        <SplitItem>
-          <RefreshButton onClick={() => reloadResourceHandles()}/>
-        </SplitItem>
-        <SplitItem>
-          <KeywordSearchInput
-            initialValue={keywordFilter}
-            onSearch={(value) => {
-              if (value) {
-                urlSearchParams.set('search', value.join(' '));
-              } else if(urlSearchParams.has('search')) {
-                urlSearchParams.delete('search');
-              }
-              history.push(`${location.pathname}?${urlSearchParams.toString()}`);
-            }}
-          />
-        </SplitItem>
-        <SplitItem>
-          <ActionDropdown
-            position="right"
-            actionDropdownItems={[
-              <ActionDropdownItem
-                key="delete"
-                label="Delete Selected"
-                onSelect={() => confirmThenDelete()}
-              />,
-            ]}
-          />
-        </SplitItem>
-      </Split>
-    </PageSection>
-    { resourceHandles.length === 0 ? (
-      fetchState?.finished ? (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              No ResourceHandles found
+  return (
+    <>
+      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+        <Split hasGutter>
+          <SplitItem isFilled>
+            <Title headingLevel="h4" size="xl">
+              ResourceHandles
             </Title>
-          </EmptyState>
-        </PageSection>
-      ) : (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      )
-    ) : (
-      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-        <SelectableTable
-          columns={['Name', 'ResourcePool', 'Service Namespace', 'ResourceClaim', 'ResourceProvider(s)', 'Created At']}
-          onSelectAll={(isSelected) => {
-            if (isSelected) {
-              reduceSelectedUids({type: 'set', items: resourceHandles});
-            } else {
-              reduceSelectedUids({type: 'clear'});
-            }
-          }}
-          rows={resourceHandles.map((resourceHandle:ResourceHandle) => {
-            return {
-              cells: [
-                <>
-                  <Link
-                    key="admin"
-                    to={`/admin/resourcehandles/${resourceHandle.metadata.name}`}
-                  >{resourceHandle.metadata.name}</Link>
-                  <OpenshiftConsoleLink key="console" resource={resourceHandle}/>
-                </>,
-                resourceHandle.spec.resourcePool ? (
-                  <>
-                    <Link key="admin" to={`/admin/resourcepools/${resourceHandle.spec.resourcePool.name}`}>{resourceHandle.spec.resourcePool.name}</Link>
-                    <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourcePool}/>
-                  </>
-                ) : '-',
-                resourceHandle.spec.resourceClaim ? (
-                  <>
-                    <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>{resourceHandle.spec.resourceClaim.namespace}</Link>
-                    <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} linkToNamespace={true}/>
-                  </>
-                ) : '-',
-                resourceHandle.spec.resourceClaim ? (
-                  <>
-                    <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}/${resourceHandle.spec.resourceClaim.name}`}>{resourceHandle.spec.resourceClaim.name}</Link>
-                    <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim}/>
-                  </>
-                ) : '-',
-                <>
-                  { resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) =>
-                    <div key={idx}>
-                      <Link key="admin" to={`/admin/resourceproviders/${resourceHandleSpecResource.provider.name}`}>{resourceHandleSpecResource.provider.name}</Link>
-                      <OpenshiftConsoleLink key="console" reference={resourceHandleSpecResource.provider}/>
-                    </div>
-                  )}
-                </>,
-                <>
-                  <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp}/>
-                  {' '}
-                  (<TimeInterval key="interval" toTimestamp={resourceHandle.metadata.creationTimestamp}/>)
-                </>,
-              ],
-              onSelect: (isSelected) => reduceSelectedUids({
-                type: isSelected ? 'add' : 'remove',
-                items: [resourceHandle],
-              }),
-              selected: selectedUids.includes(resourceHandle.metadata.uid),
-            };
-          })}
-        />
-        { fetchState?.canContinue ? (
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        ) : null }
+          </SplitItem>
+          <SplitItem>
+            <RefreshButton onClick={() => reloadResourceHandles()} />
+          </SplitItem>
+          <SplitItem>
+            <KeywordSearchInput
+              initialValue={keywordFilter}
+              onSearch={(value) => {
+                if (value) {
+                  urlSearchParams.set('search', value.join(' '));
+                } else if (urlSearchParams.has('search')) {
+                  urlSearchParams.delete('search');
+                }
+                history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+              }}
+            />
+          </SplitItem>
+          <SplitItem>
+            <ActionDropdown
+              position="right"
+              actionDropdownItems={[
+                <ActionDropdownItem key="delete" label="Delete Selected" onSelect={() => confirmThenDelete()} />,
+              ]}
+            />
+          </SplitItem>
+        </Split>
       </PageSection>
-    )}
-  </>);
-}
+      {resourceHandles.length === 0 ? (
+        fetchState?.finished ? (
+          <PageSection>
+            <EmptyState variant="full">
+              <EmptyStateIcon icon={ExclamationTriangleIcon} />
+              <Title headingLevel="h1" size="lg">
+                No ResourceHandles found
+              </Title>
+            </EmptyState>
+          </PageSection>
+        ) : (
+          <PageSection>
+            <EmptyState variant="full">
+              <EmptyStateIcon icon={LoadingIcon} />
+            </EmptyState>
+          </PageSection>
+        )
+      ) : (
+        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+          <SelectableTable
+            columns={[
+              'Name',
+              'ResourcePool',
+              'Service Namespace',
+              'ResourceClaim',
+              'ResourceProvider(s)',
+              'Created At',
+            ]}
+            onSelectAll={(isSelected) => {
+              if (isSelected) {
+                reduceSelectedUids({ type: 'set', items: resourceHandles });
+              } else {
+                reduceSelectedUids({ type: 'clear' });
+              }
+            }}
+            rows={resourceHandles.map((resourceHandle: ResourceHandle) => {
+              return {
+                cells: [
+                  <>
+                    <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.metadata.name}`}>
+                      {resourceHandle.metadata.name}
+                    </Link>
+                    <OpenshiftConsoleLink key="console" resource={resourceHandle} />
+                  </>,
+                  resourceHandle.spec.resourcePool ? (
+                    <>
+                      <Link key="admin" to={`/admin/resourcepools/${resourceHandle.spec.resourcePool.name}`}>
+                        {resourceHandle.spec.resourcePool.name}
+                      </Link>
+                      <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourcePool} />
+                    </>
+                  ) : (
+                    '-'
+                  ),
+                  resourceHandle.spec.resourceClaim ? (
+                    <>
+                      <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>
+                        {resourceHandle.spec.resourceClaim.namespace}
+                      </Link>
+                      <OpenshiftConsoleLink
+                        key="console"
+                        reference={resourceHandle.spec.resourceClaim}
+                        linkToNamespace={true}
+                      />
+                    </>
+                  ) : (
+                    '-'
+                  ),
+                  resourceHandle.spec.resourceClaim ? (
+                    <>
+                      <Link
+                        key="admin"
+                        to={`/services/${resourceHandle.spec.resourceClaim.namespace}/${resourceHandle.spec.resourceClaim.name}`}
+                      >
+                        {resourceHandle.spec.resourceClaim.name}
+                      </Link>
+                      <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} />
+                    </>
+                  ) : (
+                    '-'
+                  ),
+                  <>
+                    {resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => (
+                      <div key={idx}>
+                        <Link key="admin" to={`/admin/resourceproviders/${resourceHandleSpecResource.provider.name}`}>
+                          {resourceHandleSpecResource.provider.name}
+                        </Link>
+                        <OpenshiftConsoleLink key="console" reference={resourceHandleSpecResource.provider} />
+                      </div>
+                    ))}
+                  </>,
+                  <>
+                    <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} /> (
+                    <TimeInterval key="interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                  </>,
+                ],
+                onSelect: (isSelected) =>
+                  reduceSelectedUids({
+                    type: isSelected ? 'add' : 'remove',
+                    items: [resourceHandle],
+                  }),
+                selected: selectedUids.includes(resourceHandle.metadata.uid),
+              };
+            })}
+          />
+          {fetchState?.canContinue ? (
+            <EmptyState variant="full">
+              <EmptyStateIcon icon={LoadingIcon} />
+            </EmptyState>
+          ) : null}
+        </PageSection>
+      )}
+    </>
+  );
+};
 
 export default ResourceHandles;

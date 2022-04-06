@@ -17,30 +17,17 @@ interface IconConfig {
   style?: object;
 }
 
-const CatalogItemIcon: React.FunctionComponent<CatalogItemIconProps> = ({
-  catalogItem,
-}) => {
+const CatalogItemIcon: React.FunctionComponent<CatalogItemIconProps> = ({ catalogItem }) => {
   const iconValue = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/icon'];
 
   if (iconValue.startsWith('{')) {
-    const iconConfig: IconConfig = JSON.parse(iconValue)
-    return (
-      <img className="catalog-item-icon"
-        alt={iconConfig.alt}
-        src={iconConfig.url}
-        style={iconConfig.style}
-      />
-    );
+    const iconConfig: IconConfig = JSON.parse(iconValue);
+    return <img className="catalog-item-icon" alt={iconConfig.alt} src={iconConfig.url} style={iconConfig.style} />;
   } else if (iconValue in icons) {
-    return (
-      <img className="catalog-item-icon"
-        alt={iconValue}
-        src={icons[iconValue]}
-      />
-    );
+    return <img className="catalog-item-icon" alt={iconValue} src={icons[iconValue]} />;
   } else {
-    return (<PackageIcon className="catalog-item-icon" />);
+    return <PackageIcon className="catalog-item-icon" />;
   }
-}
+};
 
 export default CatalogItemIcon;

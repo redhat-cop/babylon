@@ -5,11 +5,10 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
 const BG_IMAGES_DIRNAME = 'bgimages';
 const ASSET_PATH = process.env.ASSET_PATH || '/';
-module.exports = env => {
-
+module.exports = (env) => {
   return {
     entry: {
-      app: ['react-hot-loader/patch', path.resolve(__dirname, 'src', 'index.tsx')]
+      app: ['react-hot-loader/patch', path.resolve(__dirname, 'src', 'index.tsx')],
     },
     module: {
       rules: [
@@ -21,9 +20,9 @@ module.exports = env => {
               options: {
                 transpileOnly: false,
                 experimentalWatchApi: true,
-              }
-            }
-          ]
+              },
+            },
+          ],
         },
         {
           test: /\.(svg|ttf|eot|woff|woff2)$/,
@@ -34,7 +33,7 @@ module.exports = env => {
             path.resolve(__dirname, 'node_modules/@patternfly/react-core/dist/styles/assets/fonts'),
             path.resolve(__dirname, 'node_modules/@patternfly/react-core/dist/styles/assets/pficon'),
             path.resolve(__dirname, 'node_modules/@patternfly/patternfly/assets/fonts'),
-            path.resolve(__dirname, 'node_modules/@patternfly/patternfly/assets/pficon')
+            path.resolve(__dirname, 'node_modules/@patternfly/patternfly/assets/pficon'),
           ],
           use: {
             loader: 'file-loader',
@@ -43,12 +42,12 @@ module.exports = env => {
               limit: 5000,
               outputPath: 'fonts',
               name: '[name].[ext]',
-            }
-          }
+            },
+          },
         },
         {
           test: /\.svg$/,
-          include: input => input.indexOf('background-filter.svg') > 1,
+          include: (input) => input.indexOf('background-filter.svg') > 1,
           use: [
             {
               loader: 'url-loader',
@@ -56,34 +55,33 @@ module.exports = env => {
                 limit: 5000,
                 outputPath: 'svgs',
                 name: '[name].[ext]',
-              }
-            }
-          ]
+              },
+            },
+          ],
         },
         {
           test: /\.svg$/,
           // only process SVG modules with this loader if they live under a 'bgimages' directory
           // this is primarily useful when applying a CSS background using an SVG
-          include: input => input.indexOf(BG_IMAGES_DIRNAME) > -1,
+          include: (input) => input.indexOf(BG_IMAGES_DIRNAME) > -1,
           use: {
             loader: 'svg-url-loader',
-            options: {}
-          }
+            options: {},
+          },
         },
         {
           test: /\.svg$/,
           // only process SVG modules with this loader when they don't live under a 'bgimages',
           // 'fonts', or 'pficon' directory, those are handled with other loaders
-          include: input => (
-            (input.indexOf(BG_IMAGES_DIRNAME) === -1) &&
-            (input.indexOf('fonts') === -1) &&
-            (input.indexOf('background-filter') === -1) &&
-            (input.indexOf('pficon') === -1)
-          ),
+          include: (input) =>
+            input.indexOf(BG_IMAGES_DIRNAME) === -1 &&
+            input.indexOf('fonts') === -1 &&
+            input.indexOf('background-filter') === -1 &&
+            input.indexOf('pficon') === -1,
           use: {
             loader: 'raw-loader',
-            options: {}
-          }
+            options: {},
+          },
         },
         {
           test: /\.(jpg|jpeg|png|gif)$/i,
@@ -93,9 +91,18 @@ module.exports = env => {
             path.resolve(__dirname, 'node_modules/@patternfly/patternfly/assets/images'),
             path.resolve(__dirname, 'node_modules/@patternfly/react-styles/css/assets/images'),
             path.resolve(__dirname, 'node_modules/@patternfly/react-core/dist/styles/assets/images'),
-            path.resolve(__dirname, 'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images'),
-            path.resolve(__dirname, 'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images'),
-            path.resolve(__dirname, 'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images')
+            path.resolve(
+              __dirname,
+              'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images'
+            ),
+            path.resolve(
+              __dirname,
+              'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images'
+            ),
+            path.resolve(
+              __dirname,
+              'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images'
+            ),
           ],
           use: [
             {
@@ -104,31 +111,29 @@ module.exports = env => {
                 limit: 5000,
                 outputPath: 'images',
                 name: '[name].[ext]',
-              }
-            }
-          ]
-        }
-      ]
+              },
+            },
+          ],
+        },
+      ],
     },
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: '[name].bundle.js',
-      chunkFilename: "[name].bundle.js",
-      publicPath: ASSET_PATH
+      chunkFilename: '[name].bundle.js',
+      publicPath: ASSET_PATH,
     },
     plugins: [
       new HtmlWebpackPlugin({
-        template: path.resolve(__dirname, 'src', 'index.html')
+        template: path.resolve(__dirname, 'src', 'index.html'),
       }),
       new Dotenv({
         systemvars: true,
-        silent: true
+        silent: true,
       }),
       new CopyPlugin({
-        patterns: [
-          { from: './src/favicon.ico', to: 'images' },
-        ]
-      })
+        patterns: [{ from: './src/favicon.ico', to: 'images' }],
+      }),
     ],
     resolve: {
       alias: {
@@ -136,16 +141,16 @@ module.exports = env => {
       },
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
       fallback: {
-        "crypto": require.resolve('crypto-browserify'),
-        "stream": require.resolve("stream-browserify")
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
       },
       plugins: [
         new TsconfigPathsPlugin({
-          configFile: path.resolve(__dirname, './tsconfig.json')
-        })
+          configFile: path.resolve(__dirname, './tsconfig.json'),
+        }),
       ],
       symlinks: false,
-      cacheWithContext: false
-    }
-  }
+      cacheWithContext: false,
+    },
+  };
 };

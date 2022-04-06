@@ -1,5 +1,5 @@
 import React from 'react';
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
@@ -46,24 +46,28 @@ import './catalog.css';
 
 const FETCH_BATCH_LIMIT = 50;
 
-function compareCatalogItems(a:CatalogItem, b:CatalogItem): number {
+function compareCatalogItems(a: CatalogItem, b: CatalogItem): number {
   const aDisplayName = displayName(a);
   const bDisplayName = displayName(b);
   if (aDisplayName !== bDisplayName) {
     return aDisplayName < bDisplayName ? -1 : 1;
   }
-  const aStage = a.metadata.labels?.['babylon.gpte.redhat.com/stage']
-  const bStage = b.metadata.labels?.['babylon.gpte.redhat.com/stage']
+  const aStage = a.metadata.labels?.['babylon.gpte.redhat.com/stage'];
+  const bStage = b.metadata.labels?.['babylon.gpte.redhat.com/stage'];
   if (aStage !== bStage) {
-    return (
-      aStage === 'prod' && bStage !== 'prod' ? -1 :
-      aStage !== 'prod' && bStage === 'prod' ? 1 :
-      aStage === 'test' && bStage !== 'test' ? -1 :
-      aStage !== 'test' && bStage === 'test' ? 1 :
-      aStage === 'dev' && bStage !== 'dev' ? -1 :
-      aStage !== 'dev' && bStage === 'dev' ? 1 :
-      0
-    )
+    return aStage === 'prod' && bStage !== 'prod'
+      ? -1
+      : aStage !== 'prod' && bStage === 'prod'
+      ? 1
+      : aStage === 'test' && bStage !== 'test'
+      ? -1
+      : aStage !== 'test' && bStage === 'test'
+      ? 1
+      : aStage === 'dev' && bStage !== 'dev'
+      ? -1
+      : aStage !== 'dev' && bStage === 'dev'
+      ? 1
+      : 0;
   }
   if (a.metadata.namespace != b.metadata.namespace) {
     return a.metadata.namespace < b.metadata.namespace ? -1 : 1;
@@ -74,15 +78,15 @@ function compareCatalogItems(a:CatalogItem, b:CatalogItem): number {
   return 0;
 }
 
-function filterCatalogItemByAccessControl(catalogItem:CatalogItem, userGroups:string[]): boolean {
+function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: string[]): boolean {
   return 'deny' !== checkAccessControl(catalogItem.spec.accessControl, userGroups);
 }
 
-function filterCatalogItemByCategory(catalogItem:CatalogItem, selectedCategory:string): boolean {
+function filterCatalogItemByCategory(catalogItem: CatalogItem, selectedCategory: string): boolean {
   return selectedCategory === category(catalogItem);
 }
 
-function filterCatalogItemByKeywords(catalogItem:CatalogItem, keywordFilter:string[]): boolean {
+function filterCatalogItemByKeywords(catalogItem: CatalogItem, keywordFilter: string[]): boolean {
   const ciCategory = category(catalogItem);
   const ciDescription = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/description'];
 
@@ -91,18 +95,20 @@ function filterCatalogItemByKeywords(catalogItem:CatalogItem, keywordFilter:stri
 
     let keywordMatch = null;
 
-    if (catalogItem.metadata.name.toLowerCase().includes(keyword)
-      || displayName(catalogItem).toLowerCase().includes(keyword)
-      || (ciCategory && ciCategory.toLowerCase().includes(keyword))
-      || (ciDescription && ciDescription.toLowerCase().includes(keyword))
+    if (
+      catalogItem.metadata.name.toLowerCase().includes(keyword) ||
+      displayName(catalogItem).toLowerCase().includes(keyword) ||
+      (ciCategory && ciCategory.toLowerCase().includes(keyword)) ||
+      (ciDescription && ciDescription.toLowerCase().includes(keyword))
     ) {
       keywordMatch = true;
     }
 
     if (!keywordMatch && catalogItem.metadata.labels) {
       for (const label in catalogItem.metadata.labels) {
-        if (label.startsWith('babylon.gpte.redhat.com/')
-          && catalogItem.metadata.labels[label].toLowerCase().includes(keyword)
+        if (
+          label.startsWith('babylon.gpte.redhat.com/') &&
+          catalogItem.metadata.labels[label].toLowerCase().includes(keyword)
         ) {
           keywordMatch = true;
           break;
@@ -117,14 +123,17 @@ function filterCatalogItemByKeywords(catalogItem:CatalogItem, keywordFilter:stri
   return true;
 }
 
-function filterCatalogItemByLabels(catalogItem:CatalogItem, labelFilter:{[attr:string]: string[]}): boolean {
+function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [attr: string]: string[] }): boolean {
   for (const [attr, values] of Object.entries(labelFilter)) {
-    const matchAttr:string = attr.toLowerCase();
-    const matchValues:string[] = values.map((v) => v.toLowerCase());
-    let matched:boolean = false;
+    const matchAttr: string = attr.toLowerCase();
+    const matchValues: string[] = values.map((v) => v.toLowerCase());
+    let matched: boolean = false;
     for (const [ciLabel, ciValue] of Object.entries(catalogItem.metadata.labels || {})) {
       if (ciLabel.startsWith('babylon.gpte.redhat.com/')) {
-        const ciAttr = ciLabel.substring(24).replace(/-[0-9]+$/, '').toLowerCase();
+        const ciAttr = ciLabel
+          .substring(24)
+          .replace(/-[0-9]+$/, '')
+          .toLowerCase();
         if (matchAttr === ciAttr && matchValues.includes(ciValue.toLowerCase())) {
           matched = true;
         }
@@ -142,57 +151,67 @@ const Catalog: React.FunctionComponent = () => {
   const location = useLocation();
   const componentWillUnmount = useRef(false);
   const routeMatch = useRouteMatch<any>('/catalog/:namespace?');
-  const catalogNamespaceName:string = routeMatch.params.namespace;
+  const catalogNamespaceName: string = routeMatch.params.namespace;
   const urlSearchParams = new URLSearchParams(location.search);
-  const openCatalogItemParam:string|null = urlSearchParams.has('item') ? urlSearchParams.get('item') : null;
-  const openCatalogItemNamespaceName:string|null = openCatalogItemParam ? (
-    openCatalogItemParam.includes('/') ? openCatalogItemParam.split('/')[0] : catalogNamespaceName
-  ) : null;
-  const openCatalogItemName:string|null = openCatalogItemParam ? (
-    openCatalogItemParam.includes('/') ? openCatalogItemParam.split('/')[1] : openCatalogItemParam
-  ) : null;
-  const keywordFilter:string[]|null = urlSearchParams.has('search') ? (
-    urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '')
-  ) : null;
-  const showRequestForm:boolean = urlSearchParams.has('request');
+  const openCatalogItemParam: string | null = urlSearchParams.has('item') ? urlSearchParams.get('item') : null;
+  const openCatalogItemNamespaceName: string | null = openCatalogItemParam
+    ? openCatalogItemParam.includes('/')
+      ? openCatalogItemParam.split('/')[0]
+      : catalogNamespaceName
+    : null;
+  const openCatalogItemName: string | null = openCatalogItemParam
+    ? openCatalogItemParam.includes('/')
+      ? openCatalogItemParam.split('/')[1]
+      : openCatalogItemParam
+    : null;
+  const keywordFilter: string[] | null = urlSearchParams.has('search')
+    ? urlSearchParams
+        .get('search')
+        .trim()
+        .split(/ +/)
+        .filter((w) => w != '')
+    : null;
+  const showRequestForm: boolean = urlSearchParams.has('request');
   const selectedCategory = urlSearchParams.has('category') ? urlSearchParams.get('category') : null;
-  const selectedLabels:{[label:string]: string[]} = urlSearchParams.has('labels') ? (
-    JSON.parse(urlSearchParams.get('labels'))
-  ) : null;
+  const selectedLabels: { [label: string]: string[] } = urlSearchParams.has('labels')
+    ? JSON.parse(urlSearchParams.get('labels'))
+    : null;
 
-  const catalogNamespaces:CatalogNamespace[] = useSelector(selectCatalogNamespaces);
-  const catalogNamespaceNames:string[]|null = catalogNamespaces.map((ci) => ci.name);
-  const userGroups:string[] = useSelector(selectUserGroups);
+  const catalogNamespaces: CatalogNamespace[] = useSelector(selectCatalogNamespaces);
+  const catalogNamespaceNames: string[] | null = catalogNamespaces.map((ci) => ci.name);
+  const userGroups: string[] = useSelector(selectUserGroups);
 
   const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
-  const catalogItems:CatalogItem[] = fetchState?.filteredItems as CatalogItem[] || []
+  const catalogItems: CatalogItem[] = (fetchState?.filteredItems as CatalogItem[]) || [];
   catalogItems.sort(compareCatalogItems);
 
-  const categoryFilteredCatalogItems:CatalogItem[] = selectedCategory ? catalogItems.filter(
-    (catalogItem) =>filterCatalogItemByCategory(catalogItem, selectedCategory)
-  ) : catalogItems;
-  const searchFilteredCatalogItems:CatalogItem[] = keywordFilter ? categoryFilteredCatalogItems.filter(
-    (catalogItem) => filterCatalogItemByKeywords(catalogItem, keywordFilter)
-  ) : categoryFilteredCatalogItems;
-  const labelFilteredCatalogItems:CatalogItem[] = selectedLabels ? searchFilteredCatalogItems.filter(
-    (catalogItem) =>filterCatalogItemByLabels(catalogItem, selectedLabels)
-  ) : searchFilteredCatalogItems;
+  const categoryFilteredCatalogItems: CatalogItem[] = selectedCategory
+    ? catalogItems.filter((catalogItem) => filterCatalogItemByCategory(catalogItem, selectedCategory))
+    : catalogItems;
+  const searchFilteredCatalogItems: CatalogItem[] = keywordFilter
+    ? categoryFilteredCatalogItems.filter((catalogItem) => filterCatalogItemByKeywords(catalogItem, keywordFilter))
+    : categoryFilteredCatalogItems;
+  const labelFilteredCatalogItems: CatalogItem[] = selectedLabels
+    ? searchFilteredCatalogItems.filter((catalogItem) => filterCatalogItemByLabels(catalogItem, selectedLabels))
+    : searchFilteredCatalogItems;
 
-  const openCatalogItem:CatalogItem = openCatalogItemName && openCatalogItemNamespaceName ? (
-    catalogItems.find(
-      (item) => item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName 
-    )
-  ) : null;
+  const openCatalogItem: CatalogItem =
+    openCatalogItemName && openCatalogItemNamespaceName
+      ? catalogItems.find(
+          (item) =>
+            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName
+        )
+      : null;
 
   function closeCatalogItem(): void {
     urlSearchParams.delete('item');
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
-  function onKeywordSearchChange(value:string[]): void {
+  function onKeywordSearchChange(value: string[]): void {
     if (value) {
       urlSearchParams.set('search', value.join(' '));
-    } else if(urlSearchParams.has('search')) {
+    } else if (urlSearchParams.has('search')) {
       urlSearchParams.delete('search');
     }
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
@@ -203,7 +222,7 @@ const Catalog: React.FunctionComponent = () => {
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
-  function onSelectCatalogNamespace(namespaceName:string|null): void {
+  function onSelectCatalogNamespace(namespaceName: string | null): void {
     if (namespaceName) {
       history.push(`/catalog/${namespaceName}${location.search}`);
     } else {
@@ -211,26 +230,26 @@ const Catalog: React.FunctionComponent = () => {
     }
   }
 
-  function onSelectCategory(category:string|null): void {
+  function onSelectCategory(category: string | null): void {
     if (category) {
       urlSearchParams.set('category', category);
-    } else if(urlSearchParams.has('category')) {
+    } else if (urlSearchParams.has('category')) {
       urlSearchParams.delete('category');
     }
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
-  function onSelectLabels(labels:{[label: string]: string[]}|null): void {
+  function onSelectLabels(labels: { [label: string]: string[] } | null): void {
     if (labels) {
       urlSearchParams.set('labels', JSON.stringify(labels));
-    } else if(urlSearchParams.has('labels')) {
+    } else if (urlSearchParams.has('labels')) {
       urlSearchParams.delete('labels');
     }
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
   async function fetchCatalogItems(): Promise<void> {
-    const catalogItemList:CatalogItemList = await listCatalogItems({
+    const catalogItemList: CatalogItemList = await listCatalogItems({
       continue: fetchState.continue,
       limit: FETCH_BATCH_LIMIT,
       namespace: fetchState.namespace,
@@ -247,7 +266,7 @@ const Catalog: React.FunctionComponent = () => {
   useEffect(() => {
     return () => {
       componentWillUnmount.current = true;
-    }
+    };
   }, []);
 
   // Trigger initial fetch and refresh on catalog namespace update
@@ -268,12 +287,7 @@ const Catalog: React.FunctionComponent = () => {
         });
       }
     }
-  }, [
-    catalogNamespaceName,
-    JSON.stringify(catalogNamespaceNames),
-    JSON.stringify(keywordFilter),
-    selectedCategory,
-  ]);
+  }, [catalogNamespaceName, JSON.stringify(catalogNamespaceNames), JSON.stringify(keywordFilter), selectedCategory]);
 
   useEffect(() => {
     if (fetchState) {
@@ -291,18 +305,13 @@ const Catalog: React.FunctionComponent = () => {
       if (componentWillUnmount.current) {
         cancelFetchActivity(fetchState);
       }
-    }
+    };
   }, [fetchState]);
 
   if (showRequestForm) {
     if (openCatalogItem) {
-      return (
-        <CatalogItemRequestForm
-          catalogItem={openCatalogItem}
-          onCancel={onRequestCancel}
-        />
-      );
-    } else if(fetchState?.finished) {
+      return <CatalogItemRequestForm catalogItem={openCatalogItem} onCancel={onRequestCancel} />;
+    } else if (fetchState?.finished) {
       return (
         <PageSection>
           <EmptyState variant="full">
@@ -329,15 +338,17 @@ const Catalog: React.FunctionComponent = () => {
 
   return (
     <Drawer isExpanded={openCatalogItem ? true : false}>
-      <DrawerContent panelContent={openCatalogItem ?
-        <CatalogItemDetails catalogItem={openCatalogItem} onClose={closeCatalogItem}/>
-      : null}>
-        { openCatalogItem ? <Backdrop/> : null }
+      <DrawerContent
+        panelContent={
+          openCatalogItem ? <CatalogItemDetails catalogItem={openCatalogItem} onClose={closeCatalogItem} /> : null
+        }
+      >
+        {openCatalogItem ? <Backdrop /> : null}
         <DrawerContentBody>
-          { catalogNamespaces.length > 1 ?
-            <CatalogNamespaceSelect onSelect={onSelectCatalogNamespace} selected={catalogNamespaceName}/>
-          : null }
-          <CatalogInterfaceDescription/>
+          {catalogNamespaces.length > 1 ? (
+            <CatalogNamespaceSelect onSelect={onSelectCatalogNamespace} selected={catalogNamespaceName} />
+          ) : null}
+          <CatalogInterfaceDescription />
           <PageSection className="catalog-body" variant={PageSectionVariants.light}>
             <Card>
               <CardBody>
@@ -360,7 +371,7 @@ const Catalog: React.FunctionComponent = () => {
                       <Split>
                         <SplitItem isFilled>
                           <Title headingLevel="h2">
-                            {selectedCategory ? selectedCategory.replace(/_/g, ' ') : 'All Items' }
+                            {selectedCategory ? selectedCategory.replace(/_/g, ' ') : 'All Items'}
                           </Title>
                           <KeywordSearchInput
                             initialValue={keywordFilter}
@@ -369,43 +380,38 @@ const Catalog: React.FunctionComponent = () => {
                           />
                         </SplitItem>
                         <SplitItem className="catalog-item-count">
-                          { labelFilteredCatalogItems.length === 1 ?
-                            '1 item' :
-                            `${labelFilteredCatalogItems.length} items`
-                          }
+                          {labelFilteredCatalogItems.length === 1
+                            ? '1 item'
+                            : `${labelFilteredCatalogItems.length} items`}
                         </SplitItem>
                       </Split>
                     </PageSection>
-                    { catalogItems.length > 0 ? (
+                    {catalogItems.length > 0 ? (
                       <PageSection variant={PageSectionVariants.default} className="catalog-content-box">
-                        { labelFilteredCatalogItems.map((catalogItem) =>
-                          <CatalogItemCard key={catalogItem.metadata.uid} catalogItem={catalogItem}/>
-                        ) }
+                        {labelFilteredCatalogItems.map((catalogItem) => (
+                          <CatalogItemCard key={catalogItem.metadata.uid} catalogItem={catalogItem} />
+                        ))}
                       </PageSection>
                     ) : (
                       <PageSection variant={PageSectionVariants.default} className="catalog-content-box-empty">
-                        { fetchState?.finished || fetchState?.refreshing ? (
-                          <EmptyState variant="full">
-                            No catalog items match filters.
-                          </EmptyState>
+                        {fetchState?.finished || fetchState?.refreshing ? (
+                          <EmptyState variant="full">No catalog items match filters.</EmptyState>
                         ) : (
                           <EmptyState variant="full">
                             <EmptyStateIcon icon={LoadingIcon} />
                           </EmptyState>
-                        ) }
+                        )}
                       </PageSection>
-                    ) }
-
+                    )}
                   </SidebarContent>
                 </Sidebar>
               </CardBody>
             </Card>
           </PageSection>
-
         </DrawerContentBody>
       </DrawerContent>
     </Drawer>
   );
-}
+};
 
 export default Catalog;

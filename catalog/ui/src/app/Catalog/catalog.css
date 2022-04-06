@@ -54,7 +54,7 @@
   display: grid;
   gap: 25px 25px;
   grid-auto-flow: dense;
-  grid-template-columns: repeat(auto-fill,280px);
+  grid-template-columns: repeat(auto-fill, 280px);
   min-height: 450px;
 }
 
@@ -100,7 +100,7 @@
 
 /* fixes for mis-formatted descriptions -  hide all content in description */
 .catalog-item-card-description {
-  visibility:hidden;
+  visibility: hidden;
   margin-top: 5px;
 }
 /* show first element in description or nested element in first element only */
@@ -112,7 +112,7 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  visibility:visible;
+  visibility: visible;
 }
 
 .catalog-item-card-header.pf-c-card__header {

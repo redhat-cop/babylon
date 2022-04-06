@@ -1,5 +1,5 @@
-import React from "react";
-import { useEffect, useState } from "react";
+import React from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   Button,
@@ -12,9 +12,7 @@ import {
   SplitItem,
   Title,
 } from '@patternfly/react-core';
-import {
-  RedoIcon,
-} from '@patternfly/react-icons';
+import { RedoIcon } from '@patternfly/react-icons';
 
 const yaml = require('js-yaml');
 
@@ -26,17 +24,18 @@ export interface ServiceItemStatusProps {
   resourceClaim: ResourceClaim;
 }
 
-function getCheckStatusStateFromResource (resourceState:any, resourceTemplate:any): string|null {
+function getCheckStatusStateFromResource(resourceState: any, resourceTemplate: any): string | null {
   const resourceStateVars = resourceState.spec?.vars;
   const resourceTemplateVars = resourceTemplate.spec?.vars;
   if (resourceStateVars?.check_status_state && resourceStateVars.check_status_state != 'successful') {
     return resourceStateVars.check_status_state;
   }
-  if (resourceTemplateVars?.check_status_request_timestamp && (
-    !resourceState?.status?.towerJobs?.status?.startTimestamp ||
-    resourceState.status.towerJobs.status.startTimestamp < resourceTemplateVars.check_status_request_timestamp
-  )) {
-    return 'requested'
+  if (
+    resourceTemplateVars?.check_status_request_timestamp &&
+    (!resourceState?.status?.towerJobs?.status?.startTimestamp ||
+      resourceState.status.towerJobs.status.startTimestamp < resourceTemplateVars.check_status_request_timestamp)
+  ) {
+    return 'requested';
   }
   return null;
 }
@@ -46,7 +45,7 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
   resourceClaim,
 }) => {
   // Extract the last status check request timestamp
-  const lastRequestTimestamp:string|undefined = resourceClaim.spec.resources.reduce<string|undefined>(
+  const lastRequestTimestamp: string | undefined = resourceClaim.spec.resources.reduce<string | undefined>(
     (lastTimestamp, resourceSpec) => {
       const ts = resourceSpec?.template?.spec?.vars?.check_status_request_timestamp;
       if (ts) {
@@ -61,13 +60,13 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
     },
     undefined
   );
-  const lastRequestDate:number = lastRequestTimestamp ? Date.parse(lastRequestTimestamp) : null;
-  const lastRequestMillisecondsAgo:number = lastRequestDate ? Date.now() - lastRequestDate : null;
+  const lastRequestDate: number = lastRequestTimestamp ? Date.parse(lastRequestTimestamp) : null;
+  const lastRequestMillisecondsAgo: number = lastRequestDate ? Date.now() - lastRequestDate : null;
 
   // Extract the last status completion from resource status
-  const lastUpdateTimestamp:string|undefined = resourceClaim.status.resources.reduce(
+  const lastUpdateTimestamp: string | undefined = resourceClaim.status.resources.reduce(
     (lastTimestamp, resourceStatus) => {
-      const ts = resourceStatus?.state?.status?.towerJobs?.status?.completeTimestamp
+      const ts = resourceStatus?.state?.status?.towerJobs?.status?.completeTimestamp;
       if (ts) {
         if (lastTimestamp) {
           return ts > lastTimestamp ? ts : lastTimestamp;
@@ -80,14 +79,14 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
     },
     undefined
   );
-  const lastUpdateDate:number = lastUpdateTimestamp ? Date.parse(lastUpdateTimestamp) : null;
-  const lastUpdateMillisecondsAgo:number = lastUpdateDate ? Date.now() - lastUpdateDate : null;
+  const lastUpdateDate: number = lastUpdateTimestamp ? Date.parse(lastUpdateTimestamp) : null;
+  const lastUpdateMillisecondsAgo: number = lastUpdateDate ? Date.now() - lastUpdateDate : null;
 
   // Possible check status states
   // - requested
   // - pending
   // - running
-  const checkStatusState:string|undefined = resourceClaim.spec.resources.reduce<string|undefined>(
+  const checkStatusState: string | undefined = resourceClaim.spec.resources.reduce<string | undefined>(
     (reducedCheckState, resourceSpec, idx) => {
       const resourceState = resourceClaim.status.resources[idx].state;
       const resourceCheckState = getCheckStatusStateFromResource(resourceState, resourceSpec.template);
@@ -119,14 +118,14 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
     if (lastUpdateTimestamp) {
       setSaveLastUpdateTimestamp(lastUpdateTimestamp);
     }
-    if (!checkStatusState && lastRequestMillisecondsAgo === null || lastRequestMillisecondsAgo > 300000) {
+    if ((!checkStatusState && lastRequestMillisecondsAgo === null) || lastRequestMillisecondsAgo > 300000) {
       requestStatusCheck();
     }
-  }, [lastUpdateTimestamp])
-  
+  }, [lastUpdateTimestamp]);
+
   useEffect(() => {
     setRefreshRequested(false);
-  }, [resourceClaim.metadata.resourceVersion])
+  }, [resourceClaim.metadata.resourceVersion]);
 
   return (
     <>
@@ -136,28 +135,30 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
             <DescriptionListGroup>
               <DescriptionListTerm>Last status update</DescriptionListTerm>
               <DescriptionListDescription>
-                { saveLastUpdateTimestamp ? (
-                  <LocalTimestamp timestamp={saveLastUpdateTimestamp}/>
-                ) : '-' }
+                {saveLastUpdateTimestamp ? <LocalTimestamp timestamp={saveLastUpdateTimestamp} /> : '-'}
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>
         </SplitItem>
         <SplitItem>
-          { checkStatusState ? (
-            <div className="services-item-status-check-state">Status check { checkStatusState + ' ' } <Spinner size="md"/></div>
-          ) : null }
+          {checkStatusState ? (
+            <div className="services-item-status-check-state">
+              Status check {checkStatusState + ' '} <Spinner size="md" />
+            </div>
+          ) : null}
         </SplitItem>
         <SplitItem>
           <Button
-            icon={<RedoIcon/>}
+            icon={<RedoIcon />}
             isDisabled={refreshRequested || checkStatusState ? true : false}
             onClick={requestStatusCheck}
             variant="link"
-          >Refresh Status</Button>
+          >
+            Refresh Status
+          </Button>
         </SplitItem>
       </Split>
-      { resourceClaim.spec.resources.map((resourceSpec, idx) => {
+      {resourceClaim.spec.resources.map((resourceSpec, idx) => {
         const resourceStatus = resourceClaim.status?.resources[idx];
         const resourceState = resourceStatus?.state;
 
@@ -165,42 +166,42 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
           return null;
         }
 
-        const componentDisplayName = 
+        const componentDisplayName =
           resourceClaim.metadata.annotations?.[`babylon.gpte.redhat.com/displayNameComponent${idx}`] ||
           resourceSpec.name ||
           resourceSpec.provider?.name;
 
-       const resourceVars = resourceState?.spec?.vars;
+        const resourceVars = resourceState?.spec?.vars;
 
         return (
           <div key={idx} className="services-item-body-resource">
-            <Title headingLevel="h2" size="lg">{componentDisplayName}</Title>
+            <Title headingLevel="h2" size="lg">
+              {componentDisplayName}
+            </Title>
             <DescriptionList isHorizontal>
-              { resourceVars?.status_messages ? (
+              {resourceVars?.status_messages ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Status Messages</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <pre>{ resourceVars.status_messages }</pre>
+                    <pre>{resourceVars.status_messages}</pre>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-              ) : null }
-              { resourceVars?.status_data ? (
+              ) : null}
+              {resourceVars?.status_data ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Status Data</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <pre>{ yaml.dump(resourceVars.status_data) }</pre>
+                    <pre>{yaml.dump(resourceVars.status_data)}</pre>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-              ) : null }
-              { !resourceVars?.status_data && !resourceVars?.status_messages ? (
-                <p>Status unavailable.</p>
-              ) : null }
+              ) : null}
+              {!resourceVars?.status_data && !resourceVars?.status_messages ? <p>Status unavailable.</p> : null}
             </DescriptionList>
           </div>
         );
       })}
     </>
   );
-}
+};
 
 export default ServiceItemStatus;

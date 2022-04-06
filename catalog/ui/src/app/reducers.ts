@@ -6,7 +6,7 @@ export interface SelectedUidsAction {
   uids?: string[];
 }
 
-export function selectedUidsReducer(state:string[], action:SelectedUidsAction): string[] {
+export function selectedUidsReducer(state: string[], action: SelectedUidsAction): string[] {
   if (action.type === 'clear') {
     return [];
   }

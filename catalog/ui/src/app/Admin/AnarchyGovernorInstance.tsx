@@ -1,5 +1,5 @@
-import React from "react";
-import { useEffect, useReducer, useRef, useState } from "react";
+import React from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -22,15 +22,10 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import Editor from "@monaco-editor/react";
+import Editor from '@monaco-editor/react';
 const yaml = require('js-yaml');
 
-import {
-  deleteAnarchyGovernor,
-  deleteAnarchySubject,
-  getAnarchyGovernor,
-  listAnarchySubjects,
-} from '@app/api';
+import { deleteAnarchyGovernor, deleteAnarchySubject, getAnarchyGovernor, listAnarchySubjects } from '@app/api';
 
 import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
@@ -66,8 +61,8 @@ const AnarchyGovernorInstance: React.FunctionComponent = () => {
   const [anarchySubjectsFetchState, reduceAnarchySubjectsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedAnarchySubjectUids, reduceAnarchySubjectSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const anarchyGovernor:AnarchyGovernor|null = anarchyGovernorFetchState?.item as AnarchyGovernor || null;
-  const anarchySubjects:AnarchySubject[] = anarchySubjectsFetchState?.items as AnarchySubject[] || [];
+  const anarchyGovernor: AnarchyGovernor | null = (anarchyGovernorFetchState?.item as AnarchyGovernor) || null;
+  const anarchySubjects: AnarchySubject[] = (anarchySubjectsFetchState?.items as AnarchySubject[]) || [];
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchyGovernor ${anarchyGovernorName}?`)) {
@@ -78,23 +73,23 @@ const AnarchyGovernorInstance: React.FunctionComponent = () => {
 
   async function confirmThenDeleteAnarchySubjects(): Promise<void> {
     if (confirm(`Delete selected AnarchySubjects?`)) {
-      const removedAnarchySubjects:AnarchySubject[] = [];
+      const removedAnarchySubjects: AnarchySubject[] = [];
       for (const anarchySubject of anarchySubjects) {
         if (selectedAnarchySubjectUids.includes(anarchySubject.metadata.uid)) {
           await deleteAnarchySubject(anarchySubject);
           removedAnarchySubjects.push(anarchySubject);
         }
       }
-      reduceAnarchySubjectSelectedUids({type: 'clear'});
-      reduceAnarchySubjectsFetchState({type: 'removeItems', items: removedAnarchySubjects});
+      reduceAnarchySubjectSelectedUids({ type: 'clear' });
+      reduceAnarchySubjectsFetchState({ type: 'removeItems', items: removedAnarchySubjects });
     }
   }
 
   async function fetchAnarchyGovernor(): Promise<void> {
-    let anarchyGovernor:AnarchyGovernor = null;
+    let anarchyGovernor: AnarchyGovernor = null;
     try {
       anarchyGovernor = await getAnarchyGovernor(anarchyGovernorNamespace, anarchyGovernorName);
-    } catch(error) {
+    } catch (error) {
       if (!(error instanceof Response) || error.status !== 404) {
         throw error;
       }
@@ -105,14 +100,14 @@ const AnarchyGovernorInstance: React.FunctionComponent = () => {
         item: anarchyGovernor,
         refreshInterval: 5000,
         refresh: (): void => {
-          reduceAnarchyGovernorFetchState({type: 'startRefresh'});
-        }
+          reduceAnarchyGovernorFetchState({ type: 'startRefresh' });
+        },
       });
     }
   }
 
   async function fetchAnarchySubjects(): Promise<void> {
-    const anarchySubjectList:AnarchySubjectList = await listAnarchySubjects({
+    const anarchySubjectList: AnarchySubjectList = await listAnarchySubjects({
       labelSelector: `anarchy.gpte.redhat.com/governor=${anarchyGovernorName}`,
       namespace: anarchyGovernorNamespace,
     });
@@ -122,19 +117,19 @@ const AnarchyGovernorInstance: React.FunctionComponent = () => {
         k8sObjectList: anarchySubjectList,
         refreshInterval: 5000,
         refresh: (): void => {
-          reduceAnarchySubjectsFetchState({type: 'startRefresh'});
-        }
+          reduceAnarchySubjectsFetchState({ type: 'startRefresh' });
+        },
       });
     }
   }
 
   // First render and detect unmount
   useEffect(() => {
-    reduceAnarchyGovernorFetchState({type: 'startFetch'});
-    reduceAnarchySubjectsFetchState({type: 'startFetch'});
+    reduceAnarchyGovernorFetchState({ type: 'startFetch' });
+    reduceAnarchySubjectsFetchState({ type: 'startFetch' });
     return () => {
       componentWillUnmount.current = true;
-    }
+    };
   }, []);
 
   useEffect(() => {
@@ -145,8 +140,8 @@ const AnarchyGovernorInstance: React.FunctionComponent = () => {
       if (componentWillUnmount.current) {
         cancelFetchActivity(anarchyGovernorFetchState);
       }
-    }
-  }, [anarchyGovernorFetchState])
+    };
+  }, [anarchyGovernorFetchState]);
 
   useEffect(() => {
     if (anarchySubjectsFetchState?.canContinue) {
@@ -156,8 +151,8 @@ const AnarchyGovernorInstance: React.FunctionComponent = () => {
       if (componentWillUnmount.current) {
         cancelFetchActivity(anarchySubjectsFetchState);
       }
-    }
-  }, [anarchySubjectsFetchState])
+    };
+  }, [anarchySubjectsFetchState]);
 
   if (!anarchyGovernor) {
     if (anarchyGovernorFetchState?.finished) {
@@ -185,86 +180,112 @@ const AnarchyGovernorInstance: React.FunctionComponent = () => {
     }
   }
 
-  return (<>
-    <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
-      <Breadcrumb>
-        <BreadcrumbItem
-          render={({ className }) => <Link to="/admin/anarchygovernors" className={className}>AnarchyGovernors</Link>}
-        />
-        <BreadcrumbItem
-          render={({ className }) => <Link to={`/admin/anarchygovernors/${anarchyGovernorNamespace}`} className={className}>{anarchyGovernorNamespace}</Link>}
-        />
-        <BreadcrumbItem>{ anarchyGovernor.metadata.name }</BreadcrumbItem>
-      </Breadcrumb>
-      <Split>
-        <SplitItem isFilled>
-          <Title headingLevel="h4" size="xl">AnarchyGovernor {anarchyGovernor.metadata.name}</Title>
-        </SplitItem>
-        <SplitItem>
-          <ActionDropdown
-            position="right"
-            actionDropdownItems={[
-              <ActionDropdownItem
-                key="delete"
-                label="Delete"
-                onSelect={() => confirmThenDelete()}
-              />,
-              <ActionDropdownItem
-                key="editInOpenShift"
-                label="Edit in OpenShift Console"
-                onSelect={() => window.open(`${consoleURL}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace('/', '~')}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}/yaml`)}
-              />,
-              <ActionDropdownItem
-                key="openInOpenShift"
-                label="Open in OpenShift Console"
-                onSelect={() => window.open(`${consoleURL}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace('/', '~')}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}`)}
-              />
-            ]}
+  return (
+    <>
+      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+        <Breadcrumb>
+          <BreadcrumbItem
+            render={({ className }) => (
+              <Link to="/admin/anarchygovernors" className={className}>
+                AnarchyGovernors
+              </Link>
+            )}
           />
-        </SplitItem>
-      </Split>
-    </PageSection>
-    <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-      <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => history.push(`/admin/anarchygovernors/${anarchyGovernorNamespace}/${anarchyGovernorName}/${tabIndex}`)}>
-        <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
-          <DescriptionList isHorizontal>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Name</DescriptionListTerm>
-              <DescriptionListDescription>
-                {anarchyGovernor.metadata.name}
-                <OpenshiftConsoleLink resource={anarchyGovernor}/>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Created At</DescriptionListTerm>
-              <DescriptionListDescription>
-                <LocalTimestamp timestamp={anarchyGovernor.metadata.creationTimestamp}/>
-                {' '}
-                (<TimeInterval toTimestamp={anarchyGovernor.metadata.creationTimestamp}/>)
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          </DescriptionList>
-        </Tab>
-        <Tab eventKey="anarchysubjects" title={<TabTitleText>AnarchySubjects</TabTitleText>}>
-          <AnarchySubjectsTable
-            anarchySubjects={anarchySubjects}
-            fetchState={anarchySubjectsFetchState}
-            selectedUids={selectedAnarchySubjectUids}
-            selectedUidsReducer={reduceAnarchySubjectSelectedUids}
+          <BreadcrumbItem
+            render={({ className }) => (
+              <Link to={`/admin/anarchygovernors/${anarchyGovernorNamespace}`} className={className}>
+                {anarchyGovernorNamespace}
+              </Link>
+            )}
           />
-        </Tab>
-        <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
-          <Editor
-            height="500px"
-            language="yaml"
-            options={{readOnly: true}}
-            theme="vs-dark"
-            value={yaml.dump(anarchyGovernor)}
-          />
-        </Tab>
-      </Tabs>
-    </PageSection>
-  </>);
-}
+          <BreadcrumbItem>{anarchyGovernor.metadata.name}</BreadcrumbItem>
+        </Breadcrumb>
+        <Split>
+          <SplitItem isFilled>
+            <Title headingLevel="h4" size="xl">
+              AnarchyGovernor {anarchyGovernor.metadata.name}
+            </Title>
+          </SplitItem>
+          <SplitItem>
+            <ActionDropdown
+              position="right"
+              actionDropdownItems={[
+                <ActionDropdownItem key="delete" label="Delete" onSelect={() => confirmThenDelete()} />,
+                <ActionDropdownItem
+                  key="editInOpenShift"
+                  label="Edit in OpenShift Console"
+                  onSelect={() =>
+                    window.open(
+                      `${consoleURL}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace(
+                        '/',
+                        '~'
+                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}/yaml`
+                    )
+                  }
+                />,
+                <ActionDropdownItem
+                  key="openInOpenShift"
+                  label="Open in OpenShift Console"
+                  onSelect={() =>
+                    window.open(
+                      `${consoleURL}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace(
+                        '/',
+                        '~'
+                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}`
+                    )
+                  }
+                />,
+              ]}
+            />
+          </SplitItem>
+        </Split>
+      </PageSection>
+      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+        <Tabs
+          activeKey={activeTab}
+          onSelect={(e, tabIndex) =>
+            history.push(`/admin/anarchygovernors/${anarchyGovernorNamespace}/${anarchyGovernorName}/${tabIndex}`)
+          }
+        >
+          <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
+            <DescriptionList isHorizontal>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Name</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {anarchyGovernor.metadata.name}
+                  <OpenshiftConsoleLink resource={anarchyGovernor} />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Created At</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <LocalTimestamp timestamp={anarchyGovernor.metadata.creationTimestamp} /> (
+                  <TimeInterval toTimestamp={anarchyGovernor.metadata.creationTimestamp} />)
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
+          </Tab>
+          <Tab eventKey="anarchysubjects" title={<TabTitleText>AnarchySubjects</TabTitleText>}>
+            <AnarchySubjectsTable
+              anarchySubjects={anarchySubjects}
+              fetchState={anarchySubjectsFetchState}
+              selectedUids={selectedAnarchySubjectUids}
+              selectedUidsReducer={reduceAnarchySubjectSelectedUids}
+            />
+          </Tab>
+          <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
+            <Editor
+              height="500px"
+              language="yaml"
+              options={{ readOnly: true }}
+              theme="vs-dark"
+              value={yaml.dump(anarchyGovernor)}
+            />
+          </Tab>
+        </Tabs>
+      </PageSection>
+    </>
+  );
+};
 
 export default AnarchyGovernorInstance;
