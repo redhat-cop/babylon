@@ -23,8 +23,11 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: 'npm'
       - name: Install npm@8
+        working-directory: ./catalog/ui
         run: npm i -g npm@8
       - name: Install packages
+        working-directory: ./catalog/ui
         run: npm ci --prefer-offline
       - name: Run integration tests
+        working-directory: ./catalog/ui
         run: npm run test
