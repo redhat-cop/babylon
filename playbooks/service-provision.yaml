@@ -11,6 +11,7 @@
     catalog_item_params_file: CHANGEME
     kubeconfig: CHANGEME
     platform: CHANGEME
+    cloudforms_useremail: CHANGEME
     cloudforms_username: CHANGEME
 
     # After that don't touch
@@ -180,6 +181,7 @@
             # Requester annotation directly on the ResourceClaim is more
             # convenient than looking up from the namespace.
             babylon.gpte.redhat.com/requester: "{{ cloudforms_username }}"
+            babylon.gpte.redhat.com/requester-email: "{{ cloudforms_useremail }}"
           labels:
             uuid: "{{ uuid }}"
         spec:
