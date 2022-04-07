@@ -25,6 +25,7 @@ def babylon_extract_parameter_vars(vars_dict):
     """
     parameter_vars = dict()
     parameters = vars_dict.get('__meta__', {}).get('catalog', {}).get('parameters')
+    requester_parameters = vars_dict.get('__meta__', {}).get('catalog', {}).get('requester_parameters')
 
     # Cloud tags may passed as a YAML string which must be interpreted.
     # Strip out guid and uuid from cloud tags as these will conflict with Babylon assignment.
@@ -33,12 +34,13 @@ def babylon_extract_parameter_vars(vars_dict):
             k: v for k, v in yaml.safe_load(vars_dict['cloud_tags']).items() if k not in ('guid', 'uuid')
         }
 
-    if parameters == None:
+    if parameters == None and requester_parameters == None:
         # No parameters configured, so must pass all vars as parameter vars
         for varname, value in vars_dict.items():
             if varname not in ('__meta__', 'agnosticv_meta', 'guid', 'uuid'):
                 parameter_vars[varname] = value
-    else:
+
+    if parameters:
         # Pass parameter vars with expected type conversions
         for parameter in parameters:
             # Use explicit variable name for parameter if set, otherwise use parameter name as variable name
@@ -63,6 +65,11 @@ def babylon_extract_parameter_vars(vars_dict):
                         'Invalid value for {}: "{}" is cannot be parsed as {}'.format(varname, raw_value, vartype)
                     )
 
+    if requester_parameters:
+        for requester_parameter in requester_parameters:
+            # Requester parameters are always strings.
+            varname = requester_parameter.get('variable', None if 'annotation' in requester_parameter else requester_parameter['name'])
+            parameter_vars[varname] = vars_dict[varname]
 
     return parameter_vars
 
