@@ -92,10 +92,10 @@ function filterCatalogItemByKeywords(catalogItem:CatalogItem, keywordFilter:stri
 
     let keywordMatch = null;
 
-    if (catalogItem.metadata.name.toLowerCase().includes(keyword)
-      || displayName(catalogItem).toLowerCase().includes(keyword)
-      || (ciCategory && ciCategory.toLowerCase().includes(keyword))
-      || (ciDescription && ciDescription.toLowerCase().includes(keyword))
+    if (catalogItem.metadata.name.toLowerCase().includes(keywordLower)
+      || displayName(catalogItem).toLowerCase().includes(keywordLower)
+      || (ciCategory && ciCategory.toLowerCase().includes(keywordLower))
+      || (ciDescription && ciDescription.toLowerCase().includes(keywordLower))
     ) {
       keywordMatch = true;
     }
@@ -103,7 +103,7 @@ function filterCatalogItemByKeywords(catalogItem:CatalogItem, keywordFilter:stri
     if (!keywordMatch && catalogItem.metadata.labels) {
       for (const label in catalogItem.metadata.labels) {
         if (label.startsWith('babylon.gpte.redhat.com/')
-          && catalogItem.metadata.labels[label].toLowerCase().includes(keyword)
+          && catalogItem.metadata.labels[label].toLowerCase().includes(keywordLower)
         ) {
           keywordMatch = true;
           break;
