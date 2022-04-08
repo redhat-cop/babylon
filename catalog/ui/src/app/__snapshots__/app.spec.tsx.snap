@@ -2,8 +2,19 @@
 
 exports[`App tests should render default App component 1`] = `
 <BrowserRouter>
-  <AppLayout>
-    <AppRoutes />
-  </AppLayout>
+  <Switch>
+    <Route
+      path="/workshop"
+    >
+      <Workshop />
+    </Route>
+    <Route
+      path="/"
+    >
+      <AppLayout>
+        <AppRoutes />
+      </AppLayout>
+    </Route>
+  </Switch>
 </BrowserRouter>
 `;
