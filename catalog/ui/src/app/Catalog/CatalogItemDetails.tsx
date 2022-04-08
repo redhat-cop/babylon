@@ -130,7 +130,7 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({
     }
   }
 
-  async function requestWorkshop(): Promise<void> {
+  function requestWorkshop(): void {
     urlSearchParams.set('request', 'workshop');
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }

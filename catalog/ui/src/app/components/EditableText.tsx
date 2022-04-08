@@ -71,43 +71,40 @@ const EditableText: React.FunctionComponent<EditableTextProps> = ({
           value={editedValue}
         />
       );
-    } else {
-      return (
-        <TextInput autoFocus
-          aria-label={ariaLabel}
-          className="editable-text-input"
-          onBlur={() => finishEditing()}
-          onChange={(v) => setEditedValue(v)}
-          onKeyUp={onKeyUp}
-          value={editedValue}
-        />
-      );
     }
-  } else {
-    if (componentType === 'Password') {
-      return (
-        <Text
-          component={TextVariants.p}
-          className={value ? 'editable-text-value' : 'editable-text-placeholder'}
-          onClick={beginEditing}
-        >
-          {value ? '********' : '- none -'}
-          <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm"/> : <PencilAltIcon/>}/>
-       </Text>
-      )
-    } else {
-      return (
-        <Text
-          component={TextVariants.p}
-          className={value ? 'editable-text-value' : 'editable-text-placeholder'}
-          onClick={beginEditing}
-        >
-          {value || placeholder || ''}
-          <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm"/> : <PencilAltIcon/>}/>
-        </Text>
-      )
-    }
+    return (
+      <TextInput autoFocus
+        aria-label={ariaLabel}
+        className="editable-text-input"
+        onBlur={() => finishEditing()}
+        onChange={(v) => setEditedValue(v)}
+        onKeyUp={onKeyUp}
+        value={editedValue}
+      />
+    );
   }
+  if (componentType === 'Password') {
+    return (
+      <Text
+        component={TextVariants.p}
+        className={value ? 'editable-text-value' : 'editable-text-placeholder'}
+        onClick={beginEditing}
+      >
+        {value ? '********' : '- none -'}
+        <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm"/> : <PencilAltIcon/>}/>
+     </Text>
+    );
+  }
+  return (
+    <Text
+      component={TextVariants.p}
+      className={value ? 'editable-text-value' : 'editable-text-placeholder'}
+      onClick={beginEditing}
+    >
+      {value || placeholder || ''}
+      <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm"/> : <PencilAltIcon/>}/>
+    </Text>
+  );
 }
 
 export default EditableText;

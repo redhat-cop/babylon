@@ -298,14 +298,7 @@ const Catalog: React.FunctionComponent = () => {
 
   if (showRequestForm || showWorkshopForm) {
     if (openCatalogItem) {
-      if (showRequestForm) {
-        return (
-          <CatalogItemRequestForm
-            catalogItem={openCatalogItem}
-            onCancel={onRequestCancel}
-          />
-        );
-      } else {
+      if (showWorkshopForm) {
         return (
           <CatalogItemWorkshopForm
             catalogItem={openCatalogItem}
@@ -313,6 +306,12 @@ const Catalog: React.FunctionComponent = () => {
           />
         );
       }
+      return (
+        <CatalogItemRequestForm
+          catalogItem={openCatalogItem}
+          onCancel={onRequestCancel}
+        />
+      );
     } else if(fetchState?.finished) {
       return (
         <PageSection>
@@ -327,15 +326,15 @@ const Catalog: React.FunctionComponent = () => {
           </EmptyState>
         </PageSection>
       );
-    } else {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      );
     }
+
+    return (
+      <PageSection>
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={LoadingIcon} />
+        </EmptyState>
+      </PageSection>
+    );
   }
 
   return (
