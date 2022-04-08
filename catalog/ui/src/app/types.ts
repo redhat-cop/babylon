@@ -70,6 +70,7 @@ export interface CatalogItemSpec {
   accessControl?: any;
   bookbag?: any;
   messageTemplates?: any;
+  multiuser?: boolean;
   parameters?: CatalogItemSpecParameter[];
   resources?: any[];
   termsOfService?: string;
@@ -99,6 +100,14 @@ export interface CatalogNamespace {
   name: string;
 }
 
+export interface JSONPatch extends Array<JSONPatchOperation>{};
+export interface JSONPatchOperation {
+  op: 'add'|'copy'|'remove'|'replace'|'test';
+  from?: string;
+  path: string;
+  value?: any;
+};
+
 export interface K8sObject {
   apiVersion: string;
   kind: string;
@@ -122,6 +131,7 @@ export interface K8sObjectMeta {
   labels?: object;
   name: string;
   namespace?: string;
+  ownerReferences?: K8sOwnerReference[];
   resourceVersion?: number;
   uid?: string;
 }
@@ -132,6 +142,14 @@ export interface K8sObjectReference {
   name: string;
   namespace: string;
   uid?: string;
+}
+
+export interface K8sOwnerReference {
+  apiVersion: string;
+  controller?: boolean;
+  kind: string;
+  name: string;
+  uid: string;
 }
 
 export interface Namespace extends K8sObject {
@@ -275,4 +293,61 @@ export interface User extends K8sObject {
 export interface UserList {
   items: User[];
   metadata: K8sObjectListMeta;
+}
+
+export interface Workshop extends K8sObject {
+  spec: WorkshopSpec;
+  status?: any;
+}
+
+export interface WorkshopList {
+  items: Workshop[];
+  metadata: K8sObjectListMeta;
+}
+
+export interface WorkshopProvision extends K8sObject {
+  spec: WorkshopProvisionSpec;
+  status?: any;
+}
+
+export interface WorkshopProvisionList {
+  items: WorkshopProvision[];
+  metadata: K8sObjectListMeta;
+}
+
+export interface WorkshopProvisionSpec {
+  catalogItem: {
+    name: string;
+    namespace: string;
+  };
+  concurrency: number;
+  count: number;
+  parameters: any;
+  startDelay?: number;
+  workshopName: string;
+}
+
+export interface WorkshopSpec {
+  accessPassword?: string;
+  description?: string;
+  displayName?: string;
+  multiuserServices?: boolean;
+  openRegistration?: boolean;
+  provisionDisabled?: boolean;
+  userAssignments: WorkshopSpecUserAssignment[];
+}
+
+export interface WorkshopSpecUserAssignment {
+  assignment?: {
+    email: string;
+  };
+  data?: any;
+  labUserInterface?: {
+    data?: object;
+    method?: string;
+    url: string;
+  };
+  messages?: string;
+  resourceClaimName?: string;
+  userName?: string;
 }

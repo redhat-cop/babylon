@@ -40,7 +40,7 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-  
+
 import './admin.css';
 
 interface RouteMatchParams {

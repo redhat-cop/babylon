@@ -10,7 +10,7 @@ describe("ServiceActions", () => {
         const openStartModal = jest.fn();
         const openStopModal = jest.fn();
 
-        const { getByText, debug } = 
+        const { getByText, debug } =
         render(<ServiceActions
             position="right"
             resourceClaim={"resourceClaim"}

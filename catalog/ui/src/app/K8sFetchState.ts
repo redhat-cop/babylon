@@ -182,6 +182,7 @@ function reducePostItems(state:K8sFetchState, action:K8sFetchStateAction): K8sFe
 }
 
 function reduceRemoveItems(state:K8sFetchState, action:K8sFetchStateAction): K8sFetchState {
+  if (!state?.items) { return state }
   const removeItems = action.items;
   const items = [...state.items.filter(
     (item) => !removeItems.find((remove) => remove.metadata.uid === item.metadata.uid)

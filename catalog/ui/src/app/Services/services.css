@@ -22,6 +22,11 @@
   padding-bottom: 1em;
 }
 
+.services-create-workshop-button.pf-c-button {
+  margin-bottom: 1em;
+  margin-top: 0.5em;
+}
+
 .services-head.pf-c-page__main-section {
   padding-top: 1em;
   padding-bottom: 1em;
@@ -58,6 +63,11 @@
   color: var(--pf-c-button--m-plain--focus--Color);
 }
 
+.services-item-body.pf-c-page__main-section .pf-c-form__group.pf-m-action {
+  margin-bottom: 2em;
+  margin-top: 0;
+}
+
 .services-item-body.pf-c-page__main-section .pf-c-button.pf-m-plain:hover {
   text-decoration: underline;
 }
@@ -71,6 +81,14 @@
 .services-item-body-resource h2.pf-c-title.pf-m-lg {
   margin-bottom: 0.5em;
   margin-top: 0.5em;
+}
+
+.services-item-body .pf-c-description-list__group {
+  align-items: center;
+}
+
+.services-item-body .pf-c-description-list__group .pf-c-select {
+  width: auto;
 }
 
 .services-item-head.pf-c-page__main-section .pf-l-split .pf-c-title {

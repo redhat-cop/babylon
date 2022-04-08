@@ -205,7 +205,7 @@ def check_user_support_access(api_client):
     )
     return data.get('status', {}).get('allowed', False)
 
-def check_namespace_workshop_access(namespace, api_client):
+def check_namespace_workshop_provision_access(namespace, api_client):
     (data, status, headers) = api_client.call_api(
         '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
         'POST',
@@ -216,7 +216,7 @@ def check_namespace_workshop_access(namespace, api_client):
            "spec": {
              "resourceAttributes": {
                "group": "babylon.gpte.redhat.com",
-               "resource": "workshops",
+               "resource": "workshopprovisions",
                "verb": "list",
                "namespace": namespace
              }
@@ -304,13 +304,13 @@ def get_user_namespace(user, api_client):
         name = ns.metadata.name
         requester = ns.metadata.annotations.get('openshift.io/requester')
         display_name = ns.metadata.annotations.get('openshift.io/display-name', 'User ' + requester)
-        workshop_access = check_namespace_workshop_access(name, api_client)
+        workshop_provision_access = check_namespace_workshop_provision_access(name, api_client)
 
         return {
             'name': name,
             'displayName': display_name,
             'requester': requester,
-            'workshopAccess': workshop_access,
+            'workshopProvisionAccess': workshop_provision_access,
         }
 
     return None
@@ -709,16 +709,94 @@ def salesforce_opportunity(opportunity_id):
         return flask.jsonify({"success": True})
     flask.abort(404)
 
+@application.route("/api/workshop/<workshop_id>", methods=['GET'])
+def workshop_get(workshop_id):
+    """
+    Fetch workshop for a workshop attendee in order to present overview.
+    """
+    workshop_list = custom_objects_api.list_cluster_custom_object(
+        'babylon.gpte.redhat.com', 'v1', 'workshops',
+        label_selector=f"babylon.gpte.redhat.com/workshop-id={workshop_id}"
+    )
+    if not workshop_list.get('items'):
+        flask.abort(404)
+    workshop = workshop_list['items'][0]
+    ret = {
+        "accessPasswordRequired": True if workshop['spec'].get('accessPassword') else False,
+        "description": workshop['spec'].get('description'),
+        "displayName": workshop['spec'].get('displayName'),
+        "name": workshop['metadata']['name'],
+        "namespace": workshop['metadata']['namespace'],
+    }
+    return flask.jsonify(ret)
 
-@application.route('/')
-def root_path():
-    return flask.redirect('/ui/')
+@application.route("/api/workshop/<workshop_id>", methods=['PUT'])
+def workshop_put(workshop_id):
+    """
+    Access workshop as an attendee with login information.
+    """
+    if not flask.request.json:
+        flask.abort(400)
+    access_password = flask.request.json.get('accessPassword')
+    email = flask.request.json.get('email')
+    if not email:
+        flask.abort(400)
 
-@application.route('/ui/')
-@application.route('/ui/r/<path:path>')
-@application.route('/ui/v/<path:path>')
-def ui_path(path=None):
-    return flask.send_file(application.static_folder + '/index.html')
+    workshop_list = custom_objects_api.list_cluster_custom_object(
+        'babylon.gpte.redhat.com', 'v1', 'workshops',
+        label_selector=f"babylon.gpte.redhat.com/workshop-id={workshop_id}"
+    )
+    if not workshop_list.get('items'):
+        flask.abort(404)
+    workshop = workshop_list['items'][0]
+    workshop_access_password = workshop['spec'].get('accessPassword')
+    workshop_name = workshop['metadata']['name']
+    workshop_namespace = workshop['metadata']['namespace']
+    workshop_open_registration = workshop['spec'].get('openRegistration', True)
+
+    if access_password:
+        if access_password != workshop_access_password:
+            flask.abort(403)
+    elif workshop_access_password:
+        flask.abort(400)
+
+    ret = {
+        "accessPasswordRequired": True if workshop_access_password else False,
+        "description": workshop['spec'].get('description'),
+        "displayName": workshop['spec'].get('displayName'),
+        "name": workshop_name,
+        "namespace": workshop_namespace,
+    }
+
+    while not 'assignment' in ret:
+        for user_assignment in workshop['spec'].get('userAssignments', []):
+            if email == user_assignment.get('assignment', {}).get('email'):
+                ret['assignment'] = user_assignment
+                break
+        else:
+            if not workshop_open_registration:
+                flask.abort(409)
+            try:
+                for user_assignment in workshop['spec'].get('userAssignments', []):
+                    if not 'assignment' in user_assignment:
+                        user_assignment['assignment'] = {"email": email}
+                        workshop = custom_objects_api.replace_namespaced_custom_object(
+                            'babylon.gpte.redhat.com', 'v1', workshop_namespace, 'workshops', workshop_name, workshop
+                        )
+                        ret['assignment'] = user_assignment
+                        break
+                else:
+                    flask.abort(409)
+            except kubernetes.client.rest.ApiException as e:
+                if e.status == 409:
+                    # Conflict, get latest version and retry assignment of user email
+                    workshop = custom_objects_api.get_namespaced_custom_object(
+                        'babylon.gpte.redhat.com', 'v1', workshop_namespace, 'workshops', name, workshop
+                    )
+                else:
+                    raise
+
+    return flask.jsonify(ret)
 
 if __name__ == "__main__":
     application.run()

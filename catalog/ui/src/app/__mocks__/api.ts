@@ -1058,7 +1058,7 @@ const mockClusterCustomObject = {
 };
 
 export async function getApiSession() {
-    return Promise.resolve(mockApiSession);                 
+    return Promise.resolve(mockApiSession);
 };
 
 export async function listClusterCustomObject() {

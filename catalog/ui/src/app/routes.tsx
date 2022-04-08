@@ -10,6 +10,7 @@ import { accessibleRouteChangeHandler } from '@app/utils/utils';
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const Services = React.lazy(() => import('@app/Services/Services'));
+const Workshops = React.lazy(() => import('@app/Workshops/Workshops'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 const AnarchyActionInstance = React.lazy(()=> import('@app/Admin/AnarchyActionInstance'));
 const AnarchyActions = React.lazy(()=> import('@app/Admin/AnarchyActions'));
@@ -68,6 +69,12 @@ const routes: AppRouteConfig[] = [
     component: Services,
     path: '/services',
     title: 'Babylon | Services',
+  },
+  {
+    label: 'Workshops',
+    component: Workshops,
+    path: '/workshops',
+    title: 'Babylon | Workshops',
   },
 /*
   {

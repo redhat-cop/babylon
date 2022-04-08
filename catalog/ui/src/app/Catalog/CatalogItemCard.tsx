@@ -30,7 +30,7 @@ const CatalogItemCard: React.FunctionComponent<CatalogItemCardProps> = ({
   const descriptionFormat = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/descriptionFormat'] || 'asciidoc';
   const provider = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/provider'] || 'Red Hat';
   const stage = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'];
-  
+
   if (catalogNamespaceName) {
     urlSearchParams.set('item', catalogItem.metadata.name);
   } else {

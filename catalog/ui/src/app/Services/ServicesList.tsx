@@ -126,8 +126,8 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
 
-  const sessionServiceNamespaces = useSelector(selectServiceNamespaces);
-  const sessionServiceNamespace = serviceNamespaceName ? sessionServiceNamespaces.find((ns:ServiceNamespace) => ns.name == serviceNamespaceName): null;
+  const sessionServiceNamespaces:ServiceNamespace[] = useSelector(selectServiceNamespaces);
+  const sessionServiceNamespace:ServiceNamespace = serviceNamespaceName ? sessionServiceNamespaces.find((ns:ServiceNamespace) => ns.name == serviceNamespaceName): null;
   const sessionResourceClaims = useSelector(selectResourceClaims);
   const sessionResourceClaimsInNamespace = useSelector(
     (state) => selectResourceClaimsInNamespace(state, serviceNamespaceName)
@@ -146,7 +146,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
   const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [modalState, setModalState] = React.useState<ModalState>({});
-  const [selectedUids, setSelectedUids] = React.useState([]);
+  const [selectedUids, setSelectedUids] = React.useState<string[]>([]);
 
   const serviceNamespaces:ServiceNamespace[] = enableFetchUserNamespaces ? (
     userNamespacesFetchState?.items ? (
@@ -319,6 +319,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
     }
   }, [resourceClaimsFetchState]);
 
+  // Fetch or continue fetching user namespaces
   useEffect(() => {
     if (userNamespacesFetchState?.canContinue) {
       fetchUserNamespaces();
@@ -453,6 +454,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
         <SplitItem>
           <ServiceActions
             isDisabled={selectedUids.length === 0}
+            position="right"
             serviceName="Selected"
             actionHandlers={{
               delete: () => setModalState({modal: 'action', action: 'delete'}),
@@ -587,7 +589,6 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({
                     return (
                       <DescriptionListGroup key={i}>
                         <DescriptionListTerm key="term">{ componentDisplayName  }</DescriptionListTerm>
-
                         <DescriptionListDescription key="description">
                           <ServiceStatus
                             creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}

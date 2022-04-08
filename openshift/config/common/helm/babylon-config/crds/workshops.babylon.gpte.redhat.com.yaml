@@ -71,6 +71,8 @@ spec:
                       description: >-
                         Assignment for workshop participant.
                       type: object
+                      required:
+                      - email
                       properties:
                         email:
                           description: >-

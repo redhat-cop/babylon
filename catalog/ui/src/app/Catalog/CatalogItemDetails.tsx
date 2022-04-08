@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
 
 import {
+  ActionGroup,
   Bullseye,
   Button,
   DescriptionList,
@@ -32,6 +33,7 @@ import {
   selectUserGroups,
   selectUserIsAdmin,
   selectUserNamespace,
+  selectWorkshopNamespaces,
 } from '@app/store';
 import { CatalogItem, CatalogNamespace, ResourceClaim, ServiceNamespace } from '@app/types';
 import { checkAccessControl, displayName, renderContent } from '@app/util';
@@ -74,6 +76,7 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({
   const userResourceClaims:ResourceClaim[] = useSelector(
     (state) => selectResourceClaimsInNamespace(state, userNamespace?.name)
   );
+  const workshopNamespaces:ServiceNamespace[] = useSelector(selectWorkshopNamespaces);
   const userHasInstanceOfCatalogItem:boolean = userResourceClaims.find((rc) =>
     catalogItem.metadata.namespace === rc.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace'] &&
     catalogItem.metadata.name === rc.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName']
@@ -116,7 +119,7 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({
       catalogItem.spec.termsOfService ||
       (catalogItem.spec.parameters || []).length > 0
     ) {
-      urlSearchParams.set('request', 't');
+      urlSearchParams.set('request', 'service');
       history.push(`${location.pathname}?${urlSearchParams.toString()}`);
     } else {
       const resourceClaim = await createServiceRequest({
@@ -125,6 +128,11 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({
       });
       history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
+  }
+
+  function requestWorkshop(): void {
+    urlSearchParams.set('request', 'workshop');
+    history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
   return (
@@ -148,9 +156,12 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({
           </SplitItem>
         </Split>
         <PageSection variant={PageSectionVariants.light} className="catalog-item-actions">
-          { catalogItemAccess === CatalogItemAccess.Allow ? (
-            <Button onClick={requestCatalogItem} variant="primary">Request Service</Button>
-          ) : catalogItemAccess === CatalogItemAccess.Deny ? (
+          { catalogItemAccess === CatalogItemAccess.Allow ? (<>
+            <Button key="request-service" onClick={requestCatalogItem} variant="primary">Request Service</Button>
+            { workshopNamespaces.length > 0 ? (
+              <Button key="request-workshop" onClick={requestWorkshop} variant="primary">Request Workshop</Button>
+            ) : null }
+          </>) : catalogItemAccess === CatalogItemAccess.Deny ? (
             <>
               <Button key="button" isDisabled variant="primary">Request Service</Button>
               <div key="reason" className="catalog-item-access-deny-reason">{ catalogItemAccessDenyReason }</div>

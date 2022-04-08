@@ -1,0 +1,39 @@
+.workshop.pf-c-page__header .pf-c-page__header-brand {
+  height: 60px;
+}
+
+.workshop.pf-c-page__header .rhpds-logo {
+  height: 50px;
+}
+
+.workshops-list.pf-c-page__main-section {
+  padding-top: 1em;
+}
+
+.workshops-list.pf-c-page__main-section table.pf-c-table thead th {
+  padding-top: 0;
+  padding-bottom: 1em;
+}
+
+.workshops-list.pf-c-page__main-section table.pf-c-table thead td {
+  padding-top: 0;
+  padding-bottom: 1em;
+}
+
+.workshops-list.pf-c-page__main-section table.pf-c-table tbody th {
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
+
+.workshops-list.pf-c-page__main-section table.pf-c-table tbody td {
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
+
+.workshop-login-failure {
+  color: var(--pf-global--danger-color--200);
+}
+
+.workshop-login-form.pf-c-form {
+  width: 300px;
+}

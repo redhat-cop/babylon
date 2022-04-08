@@ -123,7 +123,7 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
       requestStatusCheck();
     }
   }, [lastUpdateTimestamp])
-  
+
   useEffect(() => {
     setRefreshRequested(false);
   }, [resourceClaim.metadata.resourceVersion])

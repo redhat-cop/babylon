@@ -33,6 +33,7 @@ import {
 import {
   deleteResourceClaim,
   getResourceClaim,
+  getWorkshop,
   listNamespaces,
   requestStatusForAllResourcesInResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
@@ -47,7 +48,7 @@ import {
   selectUserIsAdmin,
 } from '@app/store';
 
-import { Namespace, NamespaceList, ResourceClaim, ServiceNamespace } from '@app/types';
+import { Namespace, NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
 import { displayName, renderContent } from '@app/util';
 import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
@@ -57,23 +58,27 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 
+import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
+import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
+
 import ServiceActions from './ServiceActions';
 import ServiceItemStatus from './ServiceItemStatus';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
 import ServicesActionModal from './ServicesActionModal';
+import ServicesCreateWorkshopModal from './ServicesCreateWorkshopModal';
 import ServicesScheduleActionModal from './ServicesScheduleActionModal';
+import ServiceUsers from './ServiceUsers';
 
 import './services.css';
 
-export interface ModalState {
+interface ModalState {
   action?: string;
   modal?: string;
-  resourceClaim?: ResourceClaim;
 }
 
-export interface ServicesItemProps {
+interface ServicesItemProps {
   activeTab: string;
   resourceClaimName: string;
   serviceNamespaceName: string;
@@ -96,9 +101,10 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   // Enable fetching resource claims if namespace is not background fetched by the redux store.
   const resourceClaimFetchEnabled:boolean = userIsAdmin && !sessionServiceNamespace ? true : false;
 
+  const [modalState, setModalState] = React.useState<ModalState>({});
   const [resourceClaimFetchState, reduceResourceClaimFetchState] = useReducer(k8sFetchStateReducer, null);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [modalState, setModalState] = React.useState<ModalState>({});
+  const [workshopFetchState, reduceWorkshopFetchState] = useReducer(k8sFetchStateReducer, null);
 
   const serviceNamespaces:ServiceNamespace[] = userNamespacesFetchState?.items ? (
     userNamespacesFetchState.items.map((ns:Namespace): ServiceNamespace => {
@@ -122,6 +128,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       resource?.status?.towerJobs?.provision?.completeTimestamp
     )
   ) ? true : false;
+  const workshop:Workshop|null = workshopFetchState?.item as Workshop;
 
   const catalogItemDisplayName = (
     resourceClaim?.metadata?.annotations?.["babylon.gpte.redhat.com/catalogItemDisplayName"] ||
@@ -161,16 +168,12 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     }).find(u => u != null)
   );
 
-  // Multiple lab user interface urls for multiuser environments.
-  const labUserInterfaceUrls = JSON.parse(resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrls'] || '{}')
+  const serviceHasUsers:boolean = (resourceClaim?.status?.resources || []).find(r =>
+    r.state?.spec?.vars?.provision_data?.users
+  ) ? true : false;
 
-  const users = {};
-  for (const status_resource of (resourceClaim?.status?.resources || [])) {
-    const resource_users = status_resource.state?.spec?.vars?.provision_data?.users;
-    if (resource_users) {
-      Object.assign(users, resource_users);
-    }
-  }
+  const workshopName:string = resourceClaim?.metadata?.labels?.['babylon.gpte.redhat.com/workshop'];
+  const workshopProvisionName:string = resourceClaim?.metadata?.labels?.['babylon.gpte.redhat.com/workshop-provision'];
 
   async function fetchResourceClaim(): Promise<void> {
     let resourceClaim:ResourceClaim = null;
@@ -181,17 +184,16 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
         throw error;
       }
     }
-    if (!resourceClaimFetchState.activity.canceled) { 
+    if (!resourceClaimFetchState.activity.canceled) {
       reduceResourceClaimFetchState({
         type: 'post',
         item: resourceClaim,
-        refreshInterval: 2000,
+        refreshInterval: 3000,
         refresh: (): void => {
           reduceResourceClaimFetchState({type: 'startRefresh'});
         }
       });
     }
-    //resourceClaimFetchState.refreshTimeout = setTimeout(startFetchResourceClaim, 1000);
   }
 
   async function fetchUserNamespaces(): Promise<void> {
@@ -202,6 +204,27 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       reduceUserNamespacesFetchState({
         type: 'post',
         k8sObjectList: userNamespaceList,
+      });
+    }
+  }
+
+  async function fetchWorkshop(): Promise<void> {
+    let workshop:Workshop = null;
+    try {
+      workshop = await getWorkshop(serviceNamespaceName, workshopName)
+    } catch(error) {
+      if (!(error instanceof Response && error.status === 404)) {
+        throw error;
+      }
+    }
+    if (!workshopFetchState.activity.canceled) {
+      reduceWorkshopFetchState({
+        type: 'post',
+        item: workshop,
+        refreshInterval: 8000,
+        refresh: (): void => {
+          reduceWorkshopFetchState({type: 'startRefresh'});
+        }
       });
     }
   }
@@ -228,6 +251,18 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     if (resourceClaimFetchEnabled) {
       reduceResourceClaimFetchState({type: 'updateItem', item: resourceClaimUpdate});
     }
+    setModalState({});
+  }
+
+  async function onWorkshopCreate({
+    resourceClaim, workshop
+  }:{
+    resourceClaim:ResourceClaim, workshop:Workshop
+  }): Promise<void> {
+    if (resourceClaimFetchEnabled) {
+      reduceResourceClaimFetchState({type: 'updateItem', item: resourceClaim});
+    }
+    reduceWorkshopFetchState({type: 'updateItem', item: workshop});
     setModalState({});
   }
 
@@ -259,6 +294,13 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     }
   }, [resourceClaimFetchEnabled, resourceClaimName, serviceNamespaceName])
 
+  // Start fetching workshop
+  useEffect(() => {
+    if (workshopName) {
+      reduceWorkshopFetchState({type: 'startFetch'});
+    }
+  }, [workshopName])
+
   // Fetch user namespaces
   useEffect(() => {
     if (userNamespacesFetchState?.canContinue) {
@@ -283,12 +325,24 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     }
   }, [resourceClaimFetchState])
 
+  // Fetch Workshop
+  useEffect(() => {
+    if (workshopFetchState?.canContinue) {
+      fetchWorkshop();
+    }
+    return () => {
+      if (componentWillUnmount.current) {
+        cancelFetchActivity(workshopFetchState);
+      }
+    }
+  }, [workshopFetchState])
+
   // Show loading until whether the user is admin is determined.
   if (userIsAdmin === null) {
     return (
       <PageSection>
         <EmptyState variant="full">
-        <EmptyStateIcon icon={LoadingIcon} />
+          <EmptyStateIcon icon={LoadingIcon} />
         </EmptyState>
       </PageSection>
     );
@@ -326,6 +380,13 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
         isOpen={true}
         onClose={() => setModalState({})}
         onConfirm={onModalAction}
+        resourceClaim={resourceClaim}
+      />
+    ) : modalState.modal === 'createWorkshop' ? (
+      <ServicesCreateWorkshopModal key="createWorkshopModal"
+        isOpen={true}
+        onClose={() => setModalState({})}
+        onCreate={onWorkshopCreate}
         resourceClaim={resourceClaim}
       />
     ) : modalState.modal === 'scheduleAction' ? (
@@ -621,53 +682,44 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
               { activeTab == 'console' ? <ServiceOpenStackConsole resourceClaim={resourceClaim}/> : null }
             </Tab>
           ) : null }
-          { Object.keys(users).length > 0 ? (
+          { workshopName && !workshopProvisionName ? ([
+            <Tab eventKey="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
+              { workshop ? (
+                <WorkshopsItemDetails
+                  onWorkshopUpdate={(workshop) => reduceWorkshopFetchState({type: 'updateItem', item: workshop})}
+                  workshop={workshop}
+                />
+              ) : (
+                <PageSection>
+                  <EmptyState variant="full">
+                    <EmptyStateIcon icon={LoadingIcon} />
+                  </EmptyState>
+                </PageSection>
+              ) }
+            </Tab>,
             <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
-              { Object.entries(users).map(([userName, userData]: any) => {
-                const userLabUrl = labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url;
-                const userDataEntries = Object.entries(userData).filter(([key, value]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg');
-                const userMessages = userData.msg;
-                return (
-                  <React.Fragment key={userName}>
-                    <h2 className="rhpds-user-name-heading">{userName}</h2>
-                    <DescriptionList isHorizontal>
-                    { userLabUrl ? (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Lab URL</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          <a href={userLabUrl}>{userLabUrl}</a>
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ) : null }
-                    { userMessages ? (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>User Messages</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          <div dangerouslySetInnerHTML={{ __html: renderContent(userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, "$1 +\n")) }}/>
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ) : null }
-                    { userDataEntries ? (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>User Data</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          <DescriptionList isHorizontal className="rhpds-user-data">
-                            {userDataEntries.map(([key, value]) => (
-                              <DescriptionListGroup key={key}>
-                                <DescriptionListTerm>{key}</DescriptionListTerm>
-                                <DescriptionListDescription>
-                                  { typeof value === 'string' ? (value.startsWith('https://') ? <a href={value}><code>{value}</code></a> : <code>{value}</code>) : <code>{JSON.stringify(value)}</code> }
-                                </DescriptionListDescription>
-                              </DescriptionListGroup>
-                            ))}
-                          </DescriptionList>
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ) : null }
-                    </DescriptionList>
-                  </React.Fragment>
-                )
-              }) }
+              { workshop ? (
+                <WorkshopsItemUserAssignments
+                  onWorkshopUpdate={(workshop) => reduceWorkshopFetchState({type: 'updateItem', item: workshop})}
+                  workshop={workshop}
+                />
+              ) : (
+                <PageSection>
+                  <EmptyState variant="full">
+                    <EmptyStateIcon icon={LoadingIcon} />
+                  </EmptyState>
+                </PageSection>
+              ) }
+            </Tab>
+          ]) : serviceHasUsers ? (
+            <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
+              { !workshopName ? (
+                <Button
+                  className="services-create-workshop-button"
+                  onClick={() => {setModalState({action: 'createWorkshop', modal: 'createWorkshop'})}}
+                >Create Workshop Interface</Button>
+              ) : null }
+              <ServiceUsers resourceClaim={resourceClaim}/>
             </Tab>
           ) : null }
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>

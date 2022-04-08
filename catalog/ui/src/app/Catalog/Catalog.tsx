@@ -39,6 +39,7 @@ import CatalogInterfaceDescription from './CatalogInterfaceDescription';
 import CatalogItemCard from './CatalogItemCard';
 import CatalogItemDetails from './CatalogItemDetails';
 import CatalogItemRequestForm from './CatalogItemRequestForm';
+import CatalogItemWorkshopForm from './CatalogItemWorkshopForm';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 
@@ -154,7 +155,8 @@ const Catalog: React.FunctionComponent = () => {
   const keywordFilter:string[]|null = urlSearchParams.has('search') ? (
     urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '')
   ) : null;
-  const showRequestForm:boolean = urlSearchParams.has('request');
+  const showRequestForm:boolean = urlSearchParams.get('request') === 'service';
+  const showWorkshopForm:boolean = urlSearchParams.get('request') === 'workshop';
   const selectedCategory = urlSearchParams.has('category') ? urlSearchParams.get('category') : null;
   const selectedLabels:{[label:string]: string[]} = urlSearchParams.has('labels') ? (
     JSON.parse(urlSearchParams.get('labels'))
@@ -180,7 +182,7 @@ const Catalog: React.FunctionComponent = () => {
 
   const openCatalogItem:CatalogItem = openCatalogItemName && openCatalogItemNamespaceName ? (
     catalogItems.find(
-      (item) => item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName 
+      (item) => item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName
     )
   ) : null;
 
@@ -294,8 +296,16 @@ const Catalog: React.FunctionComponent = () => {
     }
   }, [fetchState]);
 
-  if (showRequestForm) {
+  if (showRequestForm || showWorkshopForm) {
     if (openCatalogItem) {
+      if (showWorkshopForm) {
+        return (
+          <CatalogItemWorkshopForm
+            catalogItem={openCatalogItem}
+            onCancel={onRequestCancel}
+          />
+        );
+      }
       return (
         <CatalogItemRequestForm
           catalogItem={openCatalogItem}
@@ -316,15 +326,15 @@ const Catalog: React.FunctionComponent = () => {
           </EmptyState>
         </PageSection>
       );
-    } else {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      );
     }
+
+    return (
+      <PageSection>
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={LoadingIcon} />
+        </EmptyState>
+      </PageSection>
+    );
   }
 
   return (

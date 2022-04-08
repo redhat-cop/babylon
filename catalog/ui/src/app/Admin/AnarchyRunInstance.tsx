@@ -41,7 +41,7 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-  
+
 import './admin.css';
 
 interface RouteMatchParams {
