@@ -22,7 +22,9 @@ const CatalogItemIcon: React.FunctionComponent<CatalogItemIconProps> = ({
 }) => {
   const iconValue = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/icon'];
 
-  if (iconValue.startsWith('{')) {
+  if (!iconValue) {
+    return (<PackageIcon className="catalog-item-icon" />);
+  } else if (iconValue.startsWith('{')) {
     const iconConfig: IconConfig = JSON.parse(iconValue)
     return (
       <img className="catalog-item-icon"

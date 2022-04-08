@@ -63,7 +63,6 @@ def babylon_extract_parameter_vars(vars_dict):
                         'Invalid value for {}: "{}" is cannot be parsed as {}'.format(varname, raw_value, vartype)
                     )
 
-
     return parameter_vars
 
 class FilterModule(object):

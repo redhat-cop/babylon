@@ -15,7 +15,7 @@ const KeywordSearchInput: React.FunctionComponent<KeywordSearchInputProps> = ({
   onSearch,
 }) => {
   const [value, setValue] = useState(initialValue ? initialValue.join(' ') : '');
-  
+
   return (
     <SearchInput
       value={value}

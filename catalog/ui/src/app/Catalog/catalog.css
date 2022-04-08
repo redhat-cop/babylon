@@ -167,6 +167,10 @@
   padding: 0;
 }
 
+.catalog-item-details .catalog-item-actions.pf-c-page__main-section .pf-c-button {
+  margin-right: 1em;
+}
+
 .catalog-item-details .catalog-item-actions.pf-c-page__main-section .catalog-item-actions-loading-icon {
   display: block;
   text-align: center;

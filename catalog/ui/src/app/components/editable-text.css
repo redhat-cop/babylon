@@ -1,0 +1,11 @@
+.editable-text-area.pf-c-form-control {
+  width: auto;
+}
+
+.editable-text-input.pf-c-form-control {
+  width: auto;
+}
+
+.editable-text-placeholder {
+  color: var(--pf-global--Color--400);
+}

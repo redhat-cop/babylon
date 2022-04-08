@@ -49,7 +49,7 @@ const CatalogCategorySelector: React.FunctionComponent<CatalogCategorySelectorPr
         '2xl': 'insetNone'
       }}>
       <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
-      { categories.map(category => 
+      { categories.map(category =>
         <Tab key={category} eventKey={category} title={<TabTitleText>{category.replace(/_/g, ' ')}</TabTitleText>} aria-controls=""></Tab>
       )}
     </Tabs>
