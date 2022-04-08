@@ -63,11 +63,10 @@ const ServicesActionModal: React.FunctionComponent<ServicesActionModalProps> = (
           Services will automatically stop according to their configured schedules.
         </>)
     ) : action == 'stop' ? (<>
-      Cluod services will be stopped.
+      Cloud services will be stopped.
     </>) : null }
     </Modal>
   );
 }
 
 export default ServicesActionModal;
-

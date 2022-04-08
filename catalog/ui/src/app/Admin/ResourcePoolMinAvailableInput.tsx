@@ -19,7 +19,7 @@ const ResourcePoolMinAvailableInput: React.FunctionComponent<ResourcePoolMinAvai
   const [minAvailable, setMinAvailable] = useState(resourcePool.spec.minAvailable);
   const [minAvailableInputTimeout, setMinAvailableInputTimeout] = useState(null);
   const [minAvailableUpdating, setMinAvailableUpdating] = useState(false);
-  
+
   function queueMinAvailableUpdate(n:number) {
     setMinAvailable(n);
     if (minAvailableInputTimeout) {

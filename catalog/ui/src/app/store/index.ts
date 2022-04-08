@@ -326,6 +326,14 @@ export const selectResourceClaimsInNamespace = createSelector(
   (resourceClaims:any, namespace:string): ResourceClaim[] => resourceClaims?.[namespace] || []
 )
 
+export const selectServiceNamespace = createSelector(
+  [
+    (state:any) => state.impersonate || state.auth,
+    (state:any, namespace:string): string => namespace,
+  ],
+  (state:any, namespace:string) => (state.serviceNamespaces || []).find((ns) => ns.name == namespace),
+)
+
 export const selectServiceNamespaces = createSelector(
   (state:any) => state.impersonate || state.auth,
   (state:any) => state.serviceNamespaces || [],
@@ -336,6 +344,10 @@ export const selectUserNamespace = createSelector(
   state => state.userNamespace
 )
 
+export const selectWorkshopNamespaces = createSelector(
+  (state:any) => state.impersonate || state.auth,
+  (state:any) => (state.serviceNamespaces || []).filter(ns => ns.workshopProvisionAccess),
+)
 
 // Store
 export const store = configureStore({

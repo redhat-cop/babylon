@@ -1,5 +1,5 @@
 import React from "react";
-import { useHistory, useRouteMatch } from 'react-router-dom';
+import { useRouteMatch } from 'react-router-dom';
 
 const ServicesItem = React.lazy(() => import('@app/Services/ServicesItem'));
 const ServicesList = React.lazy(() => import('@app/Services/ServicesList'));

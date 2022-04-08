@@ -7,6 +7,7 @@ import {
   AnarchyRun,
   CatalogItem,
   CatalogItemList,
+  JSONPatch,
   K8sObject,
   K8sObjectList,
   Namespace,
@@ -20,6 +21,12 @@ import {
   ResourcePoolList,
   ResourceProvider,
   ResourceProviderList,
+  ServiceNamespace,
+  Workshop,
+  WorkshopList,
+  WorkshopProvision,
+  WorkshopProvisionList,
+  WorkshopSpecUserAssignment,
   User,
   UserList,
 } from '@app/types';
@@ -97,8 +104,119 @@ async function apiFetch(path:string, opt?:object): Promise<any> {
     throw resp;
   }
 
-  // FIXME - Check response code
   return resp;
+}
+
+export async function assignWorkshopUser({
+  resourceClaimName, userName, email, workshop
+}: {
+  resourceClaimName: string;
+  userName: string;
+  email: string;
+  workshop: Workshop;
+}): Promise<Workshop> {
+  const userAssignmentIdx:number = workshop.spec.userAssignments.findIndex(
+    (item) => resourceClaimName === item.resourceClaimName && userName === item.userName
+  )
+  const userAssignment:WorkshopSpecUserAssignment = workshop.spec.userAssignments[userAssignmentIdx]
+  if (!userAssignment) {
+    console.error(`Unable to assign, ${resourceClaimName} ${userName} not found.`);
+    return workshop
+  } else if (userAssignment.assignment?.email === email || (!userAssignment.assignment?.email && !email)) {
+    return workshop;
+  }
+
+  const jsonPatch:JSONPatch = [{
+    op: "test",
+    path: `/spec/userAssignments/${userAssignmentIdx}/userName`,
+    value: userName
+  }];
+  if (userAssignment.assignment) {
+    jsonPatch.push({
+      op: "test",
+      path: `/spec/userAssignments/${userAssignmentIdx}/assignment/email`,
+      value: workshop.spec.userAssignments[userAssignmentIdx].assignment.email
+    })
+    if (email) {
+      jsonPatch.push({
+        op: "replace",
+        path: `/spec/userAssignments/${userAssignmentIdx}/assignment/email`,
+        value: email
+      });
+    } else {
+      jsonPatch.push({
+        op: "remove",
+        path: `/spec/userAssignments/${userAssignmentIdx}/assignment`,
+      });
+    }
+  } else if(email) {
+    jsonPatch.push({
+      op: "add",
+      path: `/spec/userAssignments/${userAssignmentIdx}/assignment`,
+      value: { email: email }
+    });
+  } else {
+    return workshop;
+  }
+
+  const updatedWorkshop:Workshop = await patchWorkshop({
+    name: workshop.metadata.name,
+    namespace: workshop.metadata.namespace,
+    jsonPatch: jsonPatch,
+  });
+  return updatedWorkshop;
+}
+
+export async function bulkAssignWorkshopUsers({
+  emails, workshop,
+}: {
+  emails: string[];
+  workshop: Workshop;
+}): Promise<{unassignedEmails:string[], userAssignments:WorkshopSpecUserAssignment[], workshop:Workshop}> {
+  if (!workshop.spec.userAssignments) {
+    return {
+      unassignedEmails: emails,
+      userAssignments: [],
+      workshop: workshop,
+    }
+  }
+
+  let _workshop:Workshop = workshop;
+  while (true) {
+    const userAssignments:WorkshopSpecUserAssignment[] = [];
+    const unassignedEmails:string[] = [];
+    for (const email of emails) {
+      const userAssignment = _workshop.spec.userAssignments.find((item) => item.assignment?.email === email);
+      if (userAssignment) {
+        userAssignments.push(userAssignment);
+      } else {
+        unassignedEmails.push(email)
+      }
+    }
+    for (const userAssignment of _workshop.spec.userAssignments) {
+      if (!userAssignment.assignment) {
+        userAssignment.assignment = {
+          email: unassignedEmails.shift(),
+        };
+        userAssignments.push(userAssignment);
+      }
+      if (unassignedEmails.length === 0) { break; }
+    }
+    try {
+      _workshop = await updateWorkshop(_workshop)
+      return {
+        unassignedEmails: unassignedEmails,
+        userAssignments: userAssignments,
+        workshop: _workshop,
+      }
+    } catch(error: any) {
+      if (error.status === 409) {
+        _workshop = await getWorkshop(workshop.metadata.namespace, workshop.metadata.name)
+      } else {
+        throw error;
+      }
+    }
+  }
 }
 
 export async function checkSalesforceId(id:string): Promise<boolean> {
@@ -113,26 +231,32 @@ export async function checkSalesforceId(id:string): Promise<boolean> {
   return true;
 }
 
-export async function createNamespacedCustomObject(group, version, namespace, plural, obj): Promise<any> {
+export async function createK8sObject<Type extends K8sObject>(definition: Type): Promise<Type> {
   const session = await getApiSession();
+  const apiVersion = definition.apiVersion;
+  const namespace = definition.metadata.namespace;
+  const plural = definition.kind.toLowerCase() + 's'
+
+  const path = namespace ?
+    `/apis/${apiVersion}/namespaces/${namespace}/${plural}` :
+    `/apis/${apiVersion}/${plural}`;
+
   const resp = await apiFetch(
-    `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`,
+    path,
     {
-      method: 'POST',
-      body: JSON.stringify(obj),
+      body: JSON.stringify(definition),
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
+      method: 'POST',
     }
   );
   return await resp.json();
 }
 
-export async function createResourceClaim(definition, opt: any = {}): Promise<any> {
+export async function createResourceClaim(definition, opt: any = {}): Promise<ResourceClaim> {
   const namespace = definition.metadata.namespace;
-  const resourceClaim = await createNamespacedCustomObject(
-    'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', definition
-  );
+  const resourceClaim:ResourceClaim = await createK8sObject<ResourceClaim>(definition);
   if (!opt.skipUpdateStore) {
     store.dispatch(
       apiActionInsertResourceClaim({
@@ -145,9 +269,7 @@ export async function createResourceClaim(definition, opt: any = {}): Promise<an
 
 export async function createResourcePool(definition:ResourcePool): Promise<ResourcePool> {
   const namespace = definition.metadata.namespace;
-  const response = await createNamespacedCustomObject(
-    'poolboy.gpte.redhat.com', 'v1', namespace, 'resourcepools', definition
-  );
+  const response = await createK8sObject<ResourcePool>(definition);
   return response;
 }
 
@@ -204,26 +326,9 @@ export async function createServiceRequest({
       }
     }
 
-    // Set user catalog item labels if this is a user catalog item
-    if (catalogItem.metadata.labels?.['babylon.gpte.redhat.com/userCatalogItem']) {
-      requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'] = catalogItem.metadata.labels['babylon.gpte.redhat.com/userCatalogItem'];
-    }
-
-    // Add bookbag label and annotation if catalog item includes bookbag
+    // Add bookbag label
     if (catalogItem.spec.bookbag) {
       requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/labUserInterface'] = 'bookbag';
-      requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/bookbag'] = JSON.stringify(catalogItem.spec.bookbag);
-    }
-
-    // Add message templates for notifications
-    if (catalogItem.spec.messageTemplates) {
-      for (const [key, value] of Object.entries(catalogItem.spec.messageTemplates)) {
-        // Save CatalogItem message templates in ResourceClaim annotation so
-        // that the provisioned service does not depend upon the continued
-        // existence of the CatalogItem.
-        const annotation = `babylon.gpte.redhat.com/${key}MessageTemplate`;
-        requestResourceClaim.metadata.annotations[annotation] = JSON.stringify(value);
-      }
     }
 
     // Copy all parameter values into the ResourceClaim
@@ -287,11 +392,11 @@ export async function createServiceRequest({
     }
   }
 
-  let n = 0;
-  let resourceClaim = null;
-  while (!resourceClaim) {
+  let n:number = 0;
+  while (true) {
     try {
-      return await createResourceClaim(requestResourceClaim);
+      const resourceClaim:ResourceClaim = await createResourceClaim(requestResourceClaim);
+      return resourceClaim;
     } catch(error: any) {
       if (error.status === 409) {
         n++;
@@ -302,6 +407,183 @@ export async function createServiceRequest({
       }
     }
   }
+}
+
+export async function createWorkshop({
+  accessPassword,
+  catalogItem,
+  description,
+  displayName,
+  openRegistration,
+  serviceNamespace,
+}:{
+  accessPassword?: string;
+  catalogItem: CatalogItem;
+  description?: string;
+  displayName?: string;
+  openRegistration: boolean;
+  serviceNamespace: ServiceNamespace;
+}): Promise<Workshop> {
+  const definition:Workshop = {
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    kind: 'Workshop',
+    metadata: {
+      name: catalogItem.metadata.name,
+      namespace: serviceNamespace.name,
+      labels: {
+        "babylon.gpte.redhat.com/catalogItemName": catalogItem.metadata.name,
+        "babylon.gpte.redhat.com/catalogItemNamespace": catalogItem.metadata.namespace,
+      },
+    },
+    spec: {
+      multiuserServices: catalogItem.spec.multiuser,
+      openRegistration: openRegistration,
+      userAssignments: [],
+    }
+  }
+  if (accessPassword) {
+    definition.spec.accessPassword = accessPassword;
+  }
+  if (description) {
+    definition.spec.description = description;
+  }
+  if (displayName) {
+    definition.spec.displayName = displayName;
+  }
+
+  let n:number = 0;
+  while (true) {
+    try {
+      const workshop:Workshop = await createK8sObject<Workshop>(definition);
+      return workshop;
+    } catch(error: any) {
+      if (error.status === 409) {
+        n++;
+        definition.metadata.name = `${catalogItem.metadata.name}-${n}`;
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+export async function createWorkshopForMultiuserService({
+  accessPassword,
+  description,
+  displayName,
+  openRegistration,
+  resourceClaim,
+}:{
+  accessPassword?: string;
+  description: string;
+  displayName: string;
+  openRegistration: boolean;
+  resourceClaim: ResourceClaim;
+}): Promise<{resourceClaim:ResourceClaim, workshop:Workshop}> {
+  const catalogItemName:string = resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'];
+  const catalogItemNamespace:string = resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace'];
+  const definition:Workshop = {
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    kind: 'Workshop',
+    metadata: {
+      name: resourceClaim.metadata.name,
+      namespace: resourceClaim.metadata.namespace,
+      labels: {
+        "babylon.gpte.redhat.com/catalogItemName": catalogItemName,
+        "babylon.gpte.redhat.com/catalogItemNamespace": catalogItemNamespace,
+      },
+      ownerReferences: [{
+        apiVersion: "poolboy.gpte.redhat.com/v1",
+        controller: true,
+        kind: "ResourceClaim",
+        name: resourceClaim.metadata.name,
+        uid: resourceClaim.metadata.uid,
+      }],
+    },
+    spec: {
+      multiuserServices: true,
+      openRegistration: openRegistration,
+      provisionDisabled: true,
+      userAssignments: [],
+    }
+  }
+  if (accessPassword) {
+    definition.spec.accessPassword = accessPassword;
+  }
+  if (description) {
+    definition.spec.description = description;
+  }
+  if (displayName) {
+    definition.spec.displayName = displayName;
+  }
+  // Use GUID as workshop id
+  if (resourceClaim.status?.resourceHandle) {
+    definition.metadata.labels["babylon.gpte.redhat.com/workshop-id"] = resourceClaim.status?.resourceHandle.name.replace(/^guid-/, '');
+  }
+
+  const workshop:Workshop = await createK8sObject<Workshop>(definition);
+  const patchedResourceClaim:ResourceClaim = await patchResourceClaim(
+    resourceClaim.metadata.namespace, resourceClaim.metadata.name,
+    {
+      metadata: {
+        labels: {
+          "babylon.gpte.redhat.com/workshop": workshop.metadata.name,
+        }
+      }
+    }
+  );
+
+  return { resourceClaim: patchedResourceClaim, workshop: workshop };
+}
+
+export async function createWorkshopProvision({
+  catalogItem,
+  concurrency,
+  count,
+  parameters,
+  startDelay,
+  workshop,
+}:{
+  catalogItem: CatalogItem;
+  concurrency: number;
+  count: number;
+  parameters: any;
+  startDelay: number;
+  workshop: Workshop;
+}): Promise<WorkshopProvision> {
+  const definition:WorkshopProvision = {
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    kind: 'WorkshopProvision',
+    metadata: {
+      name: workshop.metadata.name,
+      namespace: workshop.metadata.namespace,
+      labels: {
+        "babylon.gpte.redhat.com/catalogItemName": catalogItem.metadata.name,
+        "babylon.gpte.redhat.com/catalogItemNamespace": catalogItem.metadata.namespace,
+      },
+      ownerReferences: [{
+        apiVersion: "babylon.gpte.redhat.com/v1",
+        controller: true,
+        kind: "Workshop",
+        name: workshop.metadata.name,
+        uid: workshop.metadata.uid,
+      }],
+    },
+    spec: {
+      catalogItem: {
+        name: catalogItem.metadata.name,
+        namespace: catalogItem.metadata.namespace,
+      },
+      concurrency: concurrency,
+      count: count,
+      parameters: parameters,
+      startDelay: startDelay,
+      workshopName: workshop.metadata.name,
+    }
+  }
+
+  const workshopProvision:WorkshopProvision = await createK8sObject<WorkshopProvision>(definition);
+  return workshopProvision;
 }
 
 export async function getAnarchyAction(namespace:string, name:string): Promise<AnarchyAction> {
@@ -339,6 +621,30 @@ export async function getAnarchySubject(namespace:string, name:string): Promise<
   ) as AnarchySubject;
 }
 
+export async function getCatalogItem(namespace:string, name:string): Promise<CatalogItem> {
+  return await getK8sObject<CatalogItem>({
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    name: name,
+    namespace: namespace,
+    plural: 'catalogitems',
+  });
+}
+
+export async function getK8sObject<Type extends K8sObject>({
+  apiVersion, name, namespace, plural
+}: {
+  apiVersion: string,
+  name: string,
+  namespace?: string,
+  plural: string,
+}): Promise<Type> {
+  const path = namespace ?
+    `/apis/${apiVersion}/namespaces/${namespace}/${plural}/${name}` :
+    `/apis/${apiVersion}/${plural}/${name}`;
+  const resp = await apiFetch(path);
+  return await resp.json();
+}
+
 export async function getResourceClaim(namespace, name): Promise<ResourceClaim> {
   return await getNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1', namespace, 'resourceclaims', name
@@ -374,6 +680,15 @@ export async function getUserInfo(user): Promise<any> {
     }
   );
   return await resp.json();
+}
+
+export async function getWorkshop(namespace:string, name:string): Promise<Workshop> {
+  return await getK8sObject<Workshop>({
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    name: name,
+    namespace: namespace,
+    plural: 'workshops',
+  });
 }
 
 function refreshApiSession(): void {
@@ -482,6 +797,22 @@ export async function listUsers(opt?:K8sObjectListCommonOpt): Promise<UserList> 
   }) as UserList;
 }
 
+export async function listWorkshops(opt?:K8sObjectListCommonOpt): Promise<WorkshopList> {
+  return await listK8sObjects({
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    plural: 'workshops',
+    ...opt
+  }) as WorkshopList;
+}
+
+export async function listWorkshopProvisions(opt?:K8sObjectListCommonOpt): Promise<WorkshopProvisionList> {
+  return await listK8sObjects({
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    plural: 'workshopprovisions',
+    ...opt
+  }) as WorkshopProvisionList;
+}
+
 export async function scalePool(resourcepool, minAvailable): Promise<any> {
   try {
     const session = await getApiSession();
@@ -537,7 +868,24 @@ export async function deleteAnarchySubject(anarchySubject:AnarchySubject): Promi
   );
 }
 
-export async function deleteResourceClaim(resourceClaim): Promise<ResourceClaim> {
+export async function deleteK8sObject<Type extends K8sObject>(definition:Type): Promise<Type|null> {
+  const plural = definition.kind.toLowerCase() + 's'
+  const path = definition.metadata.namespace ?
+    `/apis/${definition.apiVersion}/namespaces/${definition.metadata.namespace}/${plural}/${definition.metadata.name}` :
+    `/apis/${definition.apiVersion}/${plural}/${name}`;
+  try {
+    const resp = await apiFetch(path, {method: 'DELETE'});
+    return await resp.json();
+  } catch(error: any) {
+    if (error.status === 404) {
+      return null;
+    } else {
+      throw error;
+    }
+  }
+}
+
+export async function deleteResourceClaim(resourceClaim:ResourceClaim): Promise<ResourceClaim> {
   const deletedResourceClaim = await deleteNamespacedCustomObject(
     'poolboy.gpte.redhat.com', 'v1',
     resourceClaim.metadata.namespace,
@@ -578,6 +926,10 @@ export async function deleteResourceProvider(resourceProvider:ResourceProvider):
   );
 }
 
+export async function deleteWorkshop(workshop:Workshop): Promise<Workshop|null> {
+  return await deleteK8sObject(workshop);
+}
+
 export async function forceDeleteAnarchySubject(anarchySubject:AnarchySubject): Promise<void> {
   if ((anarchySubject.metadata.finalizers || []).length > 0) {
     await patchNamespacedCustomObject(
@@ -590,6 +942,34 @@ export async function forceDeleteAnarchySubject(anarchySubject:AnarchySubject): 
     await deleteAnarchySubject(anarchySubject);
   }
 }
+
+export async function patchK8sObject<Type extends K8sObject>({
+  apiVersion, jsonPatch, name, namespace, patch, plural
+}: {
+  apiVersion: string,
+  jsonPatch?: JSONPatch,
+  name: string,
+  namespace?: string,
+  patch?: object,
+  plural: string,
+}): Promise<Type> {
+  const path = namespace ?
+    `/apis/${apiVersion}/namespaces/${namespace}/${plural}/${name}` :
+    `/apis/${apiVersion}/${plural}/${name}`;
+
+  const resp = await apiFetch(
+    path,
+    {
+      body: JSON.stringify(jsonPatch || patch),
+      headers: {
+        'Content-Type': jsonPatch ? 'application/json-patch+json' : 'application/merge-patch+json',
+      },
+      method: 'PATCH',
+    }
+  );
+  return await resp.json();
+}
+
 
 export async function patchResourceClaim(
   namespace: string,
@@ -618,6 +998,42 @@ export async function patchResourcePool(
     'poolboy.gpte.redhat.com', 'v1', 'poolboy', 'resourcepools', name, patch
   ) as ResourcePool;
   return resourcePool;
+}
+
+export async function patchWorkshop({
+  name, namespace, jsonPatch, patch,
+}: {
+  name: string,
+  namespace: string,
+  jsonPatch?: JSONPatch,
+  patch?: object,
+}): Promise<Workshop> {
+  return patchK8sObject({
+    apiVersion: "babylon.gpte.redhat.com/v1",
+    jsonPatch: jsonPatch,
+    name: name,
+    namespace: namespace,
+    plural: "workshops",
+    patch: patch,
+  })
+}
+
+export async function patchWorkshopProvision({
+  name, namespace, jsonPatch, patch,
+}: {
+  name: string,
+  namespace: string,
+  jsonPatch?: JSONPatch,
+  patch?: object,
+}): Promise<WorkshopProvision> {
+  return patchK8sObject({
+    apiVersion: "babylon.gpte.redhat.com/v1",
+    jsonPatch: jsonPatch,
+    name: name,
+    namespace: namespace,
+    plural: "workshopprovisions",
+    patch: patch,
+  })
 }
 
 export async function requestStatusForAllResourcesInResourceClaim(resourceClaim): Promise<ResourceClaim> {
@@ -884,4 +1300,27 @@ export async function startOpenStackServerConsoleSession(resourceClaim, projectI
     }
   );
   return await resp.json();
+}
+
+export async function updateK8sObject<Type extends K8sObject>(definition:Type): Promise<Type> {
+  const plural = definition.kind.toLowerCase() + 's'
+  const path = definition.metadata.namespace ?
+    `/apis/${definition.apiVersion}/namespaces/${definition.metadata.namespace}/${plural}/${definition.metadata.name}` :
+    `/apis/${definition.apiVersion}/${plural}/${name}`;
+
+  const resp = await apiFetch(
+    path,
+    {
+      body: JSON.stringify(definition),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      method: 'PUT',
+    }
+  );
+  return await resp.json();
+}
+
+export async function updateWorkshop(workshop:Workshop): Promise<Workshop> {
+  return updateK8sObject(workshop);
 }

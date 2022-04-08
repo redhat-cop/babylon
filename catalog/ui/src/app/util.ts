@@ -85,14 +85,21 @@ export function displayName(item: any): string {
       item.metadata?.annotations?.['babylon.gpte.redhat.com/display-name'] ||
       item.metadata?.annotations?.['openshift.io/display-name'] ||
       item.displayName ||
-      item.metadata.name ||
+      item.spec?.displayName ||
+      item.metadata?.name ||
       item.name
     );
   }
 }
 
 export function randomString(length: number): string {
-  return Math.floor(Math.random() * 36**length).toString(36).padStart(length,'0');
+  // Restrict to characters that are easy to read and unlikely to be mistyped
+  const characters:string = "23456789abcdefghjkmnpqrstuzwxyz"
+  var text:string = ''
+  for (var i=0; i < length; i++) {
+    text += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return text;
 }
 
 export function recursiveAssign(target: object, source: object): any {

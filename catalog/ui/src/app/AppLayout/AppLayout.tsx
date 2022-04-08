@@ -303,4 +303,4 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   );
 }
 
-export { AppLayout };
+export default AppLayout;
