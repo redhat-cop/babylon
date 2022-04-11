@@ -1,5 +1,5 @@
-import React from "react";
-import { useState } from "react";
+import React from 'react';
+import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 
@@ -29,26 +29,24 @@ interface EditableWorkshopSpecFields {
 }
 
 interface WorkshopsItemDetailsProps {
-  onWorkshopUpdate: (workshop:Workshop) => void;
+  onWorkshopUpdate: (workshop: Workshop) => void;
   workshop: Workshop;
 }
 
-const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> = ({
-  onWorkshopUpdate, workshop
-}) => {
-  const userIsAdmin:boolean = useSelector(selectUserIsAdmin);
-  const userRegistrationValue:'open'|'pre' = workshop.spec.openRegistration === false ? 'pre' : 'open';
-  const workshopID:string = workshop.metadata.labels?.['babylon.gpte.redhat.com/workshop-id'];
+const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> = ({ onWorkshopUpdate, workshop }) => {
+  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
+  const userRegistrationValue: 'open' | 'pre' = workshop.spec.openRegistration === false ? 'pre' : 'open';
+  const workshopID: string = workshop.metadata.labels?.['babylon.gpte.redhat.com/workshop-id'];
 
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState<boolean>(false);
 
-  async function patchWorkshopSpec(patch:EditableWorkshopSpecFields): Promise<void> {
+  async function patchWorkshopSpec(patch: EditableWorkshopSpecFields): Promise<void> {
     onWorkshopUpdate(
       await patchWorkshop({
         name: workshop.metadata.name,
         namespace: workshop.metadata.namespace,
-        patch: {spec: patch},
-      }),
+        patch: { spec: patch },
+      })
     );
   }
 
@@ -58,19 +56,19 @@ const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> =
         <DescriptionListTerm>Name</DescriptionListTerm>
         <DescriptionListDescription>
           {workshop.metadata.name}
-          { userIsAdmin ? (
-            <OpenshiftConsoleLink resource={workshop}/>
-          ) : null }
+          {userIsAdmin ? <OpenshiftConsoleLink resource={workshop} /> : null}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>Workshop URL</DescriptionListTerm>
         <DescriptionListDescription>
-          { workshopID ? (
+          {workshopID ? (
             <Link to={`/workshop/${workshopID}`}>
               {window.location.protocol}//{window.location.host}/workshop/{workshopID}
             </Link>
-          ): <LoadingIcon /> }
+          ) : (
+            <LoadingIcon />
+          )}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
@@ -78,7 +76,7 @@ const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> =
         <DescriptionListDescription>
           <EditableText
             aria-label={`Edit Display Name`}
-            onChange={(displayName:string) => patchWorkshopSpec({displayName: displayName})}
+            onChange={(displayName: string) => patchWorkshopSpec({ displayName: displayName })}
             placeholder={workshop.metadata.name}
             value={workshop.spec.displayName}
           />
@@ -90,7 +88,7 @@ const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> =
           <EditableText
             aria-label={`Edit Description`}
             componentType="TextArea"
-            onChange={(description:string) => patchWorkshopSpec({description: description}) }
+            onChange={(description: string) => patchWorkshopSpec({ description: description })}
             placeholder="No description provided."
             value={workshop.spec.description}
           />
@@ -102,7 +100,7 @@ const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> =
           <EditableText
             aria-label={`Edit Access Password`}
             componentType="Password"
-            onChange={(accessPassword:string) => patchWorkshopSpec({accessPassword: accessPassword})}
+            onChange={(accessPassword: string) => patchWorkshopSpec({ accessPassword: accessPassword })}
             placeholder="- no description -"
             value={workshop.spec.accessPassword}
           />
@@ -118,7 +116,7 @@ const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> =
             isOpen={userRegistrationSelectIsOpen}
             onSelect={(event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
-              patchWorkshopSpec({openRegistration: selectedValue === 'open'}).then(() =>
+              patchWorkshopSpec({ openRegistration: selectedValue === 'open' }).then(() =>
                 setUserRegistrationSelectIsOpen(false)
               );
             }}
@@ -132,14 +130,15 @@ const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> =
         <DescriptionListTerm>User Assignments</DescriptionListTerm>
         {workshop.spec.userAssignments ? (
           <DescriptionListDescription>
-            {workshop.spec.userAssignments.filter(item => item.assignment).length} / {workshop.spec.userAssignments.length}
+            {workshop.spec.userAssignments.filter((item) => item.assignment).length} /{' '}
+            {workshop.spec.userAssignments.length}
           </DescriptionListDescription>
-        ):(
+        ) : (
           <DescriptionListDescription>-</DescriptionListDescription>
         )}
       </DescriptionListGroup>
     </DescriptionList>
   );
-}
+};
 
 export default WorkshopsItemDetails;

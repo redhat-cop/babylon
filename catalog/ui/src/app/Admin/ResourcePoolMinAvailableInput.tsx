@@ -1,14 +1,11 @@
-import React from "react";
-import { useState } from "react";
-import {
-  NumberInput,
-  Spinner,
-} from '@patternfly/react-core';
+import React from 'react';
+import { useState } from 'react';
+import { NumberInput, Spinner } from '@patternfly/react-core';
 import { ResourcePool } from '@app/types';
 import { patchResourcePool } from '@app/api';
 
 export interface ResourcePoolMinAvailableInputProps {
-  onChange?: (resourcePool:ResourcePool) => void;
+  onChange?: (resourcePool: ResourcePool) => void;
   resourcePool: ResourcePool;
 }
 
@@ -20,21 +17,25 @@ const ResourcePoolMinAvailableInput: React.FunctionComponent<ResourcePoolMinAvai
   const [minAvailableInputTimeout, setMinAvailableInputTimeout] = useState(null);
   const [minAvailableUpdating, setMinAvailableUpdating] = useState(false);
 
-  function queueMinAvailableUpdate(n:number) {
+  function queueMinAvailableUpdate(n: number) {
     setMinAvailable(n);
     if (minAvailableInputTimeout) {
       clearTimeout(minAvailableInputTimeout);
     }
     setMinAvailableInputTimeout(
-      setTimeout((n:number) => {
-        updateMinAvailable(n);
-      }, 1000, n)
+      setTimeout(
+        (n: number) => {
+          updateMinAvailable(n);
+        },
+        1000,
+        n
+      )
     );
   }
 
-  async function updateMinAvailable(n:number) {
+  async function updateMinAvailable(n: number) {
     setMinAvailableUpdating(true);
-    await patchResourcePool(resourcePool.metadata.name, {spec: {minAvailable: n}});
+    await patchResourcePool(resourcePool.metadata.name, { spec: { minAvailable: n } });
     resourcePool.spec.minAvailable = n;
     setMinAvailable(n);
     setMinAvailableUpdating(false);
@@ -43,17 +44,19 @@ const ResourcePoolMinAvailableInput: React.FunctionComponent<ResourcePoolMinAvai
     }
   }
 
-  return (<>
-    <NumberInput
-      min={0}
-      max={99}
-      onChange={(event:any) => queueMinAvailableUpdate(parseInt(event.target.value))}
-      onMinus={() => queueMinAvailableUpdate(minAvailable - 1)}
-      onPlus={() => queueMinAvailableUpdate(minAvailable + 1)}
-      value={minAvailable}
-    />
-    { minAvailableUpdating ? [' ', <Spinner key="spinner" isSVG size="md" />] : null }
-  </>);
-}
+  return (
+    <>
+      <NumberInput
+        min={0}
+        max={99}
+        onChange={(event: any) => queueMinAvailableUpdate(parseInt(event.target.value))}
+        onMinus={() => queueMinAvailableUpdate(minAvailable - 1)}
+        onPlus={() => queueMinAvailableUpdate(minAvailable + 1)}
+        value={minAvailable}
+      />
+      {minAvailableUpdating ? [' ', <Spinner key="spinner" isSVG size="md" />] : null}
+    </>
+  );
+};
 
 export default ResourcePoolMinAvailableInput;

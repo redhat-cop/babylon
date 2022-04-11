@@ -1,12 +1,7 @@
-import React from "react";
+import React from 'react';
 import { Link } from 'react-router-dom';
 
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Title,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import { K8sFetchState } from '@app/K8sFetchState';
@@ -19,7 +14,7 @@ import TimeInterval from '@app/components/TimeInterval';
 
 export interface AnarchySubjectsTableProps {
   anarchySubjects: AnarchySubject[];
-  fetchState: K8sFetchState|null;
+  fetchState: K8sFetchState | null;
   selectedUids: string[];
   selectedUidsReducer: any;
 }
@@ -63,28 +58,33 @@ const AnarchySubjectsTable: React.FunctionComponent<AnarchySubjectsTableProps> =
           });
         }
       }}
-      rows={anarchySubjects.map((anarchySubject:AnarchySubject) => {
+      rows={anarchySubjects.map((anarchySubject: AnarchySubject) => {
         return {
           cells: [
             <>
-              <Link key="admin" to={`/admin/anarchysubjects/${anarchySubject.metadata.namespace}/${anarchySubject.metadata.name}`}>{anarchySubject.metadata.name}</Link>
-              <OpenshiftConsoleLink key="console" resource={anarchySubject}/>
+              <Link
+                key="admin"
+                to={`/admin/anarchysubjects/${anarchySubject.metadata.namespace}/${anarchySubject.metadata.name}`}
+              >
+                {anarchySubject.metadata.name}
+              </Link>
+              <OpenshiftConsoleLink key="console" resource={anarchySubject} />
             </>,
             <>
-              <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.creationTimestamp}/>
-              {' '}
-              (<TimeInterval key="interval" toTimestamp={anarchySubject.metadata.creationTimestamp}/>)
+              <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.creationTimestamp} /> (
+              <TimeInterval key="interval" toTimestamp={anarchySubject.metadata.creationTimestamp} />)
             </>,
           ],
-          onSelect: (isSelected) => selectedUidsReducer({
-            type: isSelected ? 'add' : 'remove',
-            uids: [anarchySubject.metadata.uid],
-          }),
+          onSelect: (isSelected) =>
+            selectedUidsReducer({
+              type: isSelected ? 'add' : 'remove',
+              uids: [anarchySubject.metadata.uid],
+            }),
           selected: selectedUids.includes(anarchySubject.metadata.uid),
         };
       })}
     />
   );
-}
+};
 
 export default AnarchySubjectsTable;

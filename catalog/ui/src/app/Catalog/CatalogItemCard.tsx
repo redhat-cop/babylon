@@ -1,14 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 
-import {
-  Badge,
-  CardBody,
-  CardHeader,
-  Split,
-  SplitItem,
-  Title,
-} from '@patternfly/react-core';
+import { Badge, CardBody, CardHeader, Split, SplitItem, Title } from '@patternfly/react-core';
 
 import { CatalogItem } from '@app/types';
 import { displayName, renderContent } from '@app/util';
@@ -19,15 +12,14 @@ interface CatalogItemCardProps {
   catalogItem: CatalogItem;
 }
 
-const CatalogItemCard: React.FunctionComponent<CatalogItemCardProps> = ({
-  catalogItem,
-}) => {
+const CatalogItemCard: React.FunctionComponent<CatalogItemCardProps> = ({ catalogItem }) => {
   const location = useLocation();
   const routeMatch = useRouteMatch<any>('/catalog/:namespace?');
-  const catalogNamespaceName:string = routeMatch.params.namespace;
+  const catalogNamespaceName: string = routeMatch.params.namespace;
   const urlSearchParams = new URLSearchParams(location.search);
   const description = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/description'];
-  const descriptionFormat = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/descriptionFormat'] || 'asciidoc';
+  const descriptionFormat =
+    catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/descriptionFormat'] || 'asciidoc';
   const provider = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/provider'] || 'Red Hat';
   const stage = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'];
 
@@ -38,40 +30,39 @@ const CatalogItemCard: React.FunctionComponent<CatalogItemCardProps> = ({
   }
 
   return (
-    <Link
-      className="catalog-item-card"
-      to={`${location.pathname}?${urlSearchParams.toString()}`}
-    >
+    <Link className="catalog-item-card" to={`${location.pathname}?${urlSearchParams.toString()}`}>
       <CardHeader className="catalog-item-card-header">
         <Split>
           <SplitItem>
             <CatalogItemIcon catalogItem={catalogItem} />
           </SplitItem>
           <SplitItem className="catalog-item-badges" isFilled>
-            { stage === 'dev' ? (
+            {stage === 'dev' ? (
               <Badge className="catalog-dev-badge">development</Badge>
             ) : stage === 'test' ? (
               <Badge className="catalog-test-badge">test</Badge>
-            ) : null }
+            ) : null}
           </SplitItem>
         </Split>
       </CardHeader>
       <CardBody className="catalog-item-card-body">
-        <Title className="catalog-item-card-title" headingLevel="h3">{displayName(catalogItem)}</Title>
+        <Title className="catalog-item-card-title" headingLevel="h3">
+          {displayName(catalogItem)}
+        </Title>
         <Title className="catalog-item-card-subtitle" headingLevel="h4">
           provided by {provider}
         </Title>
         <div
           className="catalog-item-card-description"
           dangerouslySetInnerHTML={{
-            __html: description ?
-              renderContent(description, {format: descriptionFormat}) :
-              "No description available."
+            __html: description
+              ? renderContent(description, { format: descriptionFormat })
+              : 'No description available.',
           }}
         />
       </CardBody>
     </Link>
-  )
-}
+  );
+};
 
 export default CatalogItemCard;

@@ -1,5 +1,5 @@
-import React from "react";
-import { useEffect, useReducer, useRef, useState } from "react";
+import React from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
   EmptyState,
@@ -31,7 +31,7 @@ import './admin.css';
 
 const FETCH_BATCH_LIMIT = 20;
 
-function keywordMatch(anarchyRun:AnarchyRun, keyword:string): boolean {
+function keywordMatch(anarchyRun: AnarchyRun, keyword: string): boolean {
   if (anarchyRun.metadata.name.includes(keyword)) {
     return true;
   }
@@ -50,7 +50,7 @@ function keywordMatch(anarchyRun:AnarchyRun, keyword:string): boolean {
   return false;
 }
 
-function filterAnarchyRun(anarchyRun:AnarchyRun, keywordFilter:string[]): boolean {
+function filterAnarchyRun(anarchyRun: AnarchyRun, keywordFilter: string[]): boolean {
   if (!keywordFilter) {
     return true;
   }
@@ -62,7 +62,7 @@ function filterAnarchyRun(anarchyRun:AnarchyRun, keywordFilter:string[]): boolea
   return true;
 }
 
-function pruneAnarchyRun(anarchyRun:AnarchyRun) {
+function pruneAnarchyRun(anarchyRun: AnarchyRun) {
   return {
     apiVersion: anarchyRun.apiVersion,
     kind: anarchyRun.kind,
@@ -108,7 +108,7 @@ function pruneAnarchyRun(anarchyRun:AnarchyRun) {
       },
       runner: anarchyRun.status?.runner,
       runnerPod: anarchyRun.status?.runnerPod,
-    }
+    },
   };
 }
 
@@ -119,46 +119,49 @@ const AnarchyRuns: React.FunctionComponent = () => {
   const routeMatch = useRouteMatch<any>('/admin/anarchyruns/:namespace?');
   const anarchyNamespace = routeMatch.params.namespace;
   const urlSearchParams = new URLSearchParams(location.search);
-  const keywordFilter = urlSearchParams.has('search') ? urlSearchParams.get('search').trim().split(/ +/).filter(w => w != '') : null;
+  const keywordFilter = urlSearchParams.has('search')
+    ? urlSearchParams
+        .get('search')
+        .trim()
+        .split(/ +/)
+        .filter((w) => w != '')
+    : null;
   const stateUrlParam = urlSearchParams.has('state') ? urlSearchParams.get('state') : null;
 
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
   const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
   const [anarchyRunnerFetchState, reduceAnarchyRunnerFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [stateFilter, setStateFilter] = useState<string[]|undefined>(undefined);
+  const [stateFilter, setStateFilter] = useState<string[] | undefined>(undefined);
 
-  const anarchyRuns:AnarchyRun[] = fetchState?.filteredItems as AnarchyRun[] || [];
+  const anarchyRuns: AnarchyRun[] = (fetchState?.filteredItems as AnarchyRun[]) || [];
 
-  const filterFunction = keywordFilter ? (
-    (anarchyRun:K8sObject):boolean => filterAnarchyRun(anarchyRun as AnarchyRun, keywordFilter)
-  ) : null;
+  const filterFunction = keywordFilter
+    ? (anarchyRun: K8sObject): boolean => filterAnarchyRun(anarchyRun as AnarchyRun, keywordFilter)
+    : null;
 
   const primaryAppContainer = document.getElementById('primary-app-container');
   primaryAppContainer.onscroll = (e) => {
     const scrollable = e.target as any;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500
-      && fetchState?.continue
-      && fetchState.limit <= anarchyRuns.length
-    ) {
+    if (scrollRemaining < 500 && fetchState?.continue && fetchState.limit <= anarchyRuns.length) {
       reduceFetchState({
         type: 'modify',
         limit: fetchState.limit + FETCH_BATCH_LIMIT,
       });
     }
-  }
+  };
 
   async function confirmThenDelete(): Promise<void> {
-    if (confirm("Deleted selected AnarchyRuns?")) {
-      const removedAnarchyRuns:AnarchyRun[] = [];
+    if (confirm('Deleted selected AnarchyRuns?')) {
+      const removedAnarchyRuns: AnarchyRun[] = [];
       for (const anarchyRun of anarchyRuns) {
         if (selectedUids.includes(anarchyRun.metadata.uid)) {
           await deleteAnarchyRun(anarchyRun);
           removedAnarchyRuns.push(anarchyRun);
         }
       }
-      reduceSelectedUids({type: 'clear'});
-      reduceFetchState({type: 'removeItems', items: removedAnarchyRuns});
+      reduceSelectedUids({ type: 'clear' });
+      reduceFetchState({ type: 'removeItems', items: removedAnarchyRuns });
     }
   }
 
@@ -175,7 +178,7 @@ const AnarchyRuns: React.FunctionComponent = () => {
         labelSelectors.push(`anarchy.gpte.redhat.com/runner in (${stateFilter.join(', ')})`);
       }
     }
-    const anarchyRunList:AnarchyRunList = await listAnarchyRuns({
+    const anarchyRunList: AnarchyRunList = await listAnarchyRuns({
       continue: fetchState.continue,
       labelSelector: labelSelectors.length > 0 ? labelSelectors.join(',') : null,
       limit: FETCH_BATCH_LIMIT,
@@ -187,22 +190,22 @@ const AnarchyRuns: React.FunctionComponent = () => {
         k8sObjectList: anarchyRunList,
         refreshInterval: 10000,
         refresh: (): void => {
-          reduceFetchState({type: 'startRefresh'});
-        }
+          reduceFetchState({ type: 'startRefresh' });
+        },
       });
     }
   }
 
   async function fetchAnarchyRunners(): Promise<void> {
-    const anarchyRunnerList:AnarchyRunnerList = await listAnarchyRunners();
+    const anarchyRunnerList: AnarchyRunnerList = await listAnarchyRunners();
     if (!anarchyRunnerFetchState.activity.canceled) {
       reduceAnarchyRunnerFetchState({
         type: 'post',
         k8sObjectList: anarchyRunnerList,
         refreshInterval: 20000,
         refresh: (): void => {
-          reduceFetchState({type: 'startRefresh'});
-        }
+          reduceFetchState({ type: 'startRefresh' });
+        },
       });
     }
   }
@@ -213,49 +216,46 @@ const AnarchyRuns: React.FunctionComponent = () => {
       filter: filterFunction,
       limit: FETCH_BATCH_LIMIT,
     });
-    reduceSelectedUids({type: 'clear'});
+    reduceSelectedUids({ type: 'clear' });
   }
 
   useEffect(() => {
     return () => {
       componentWillUnmount.current = true;
-    }
+    };
   }, []);
 
   // Translate stateUrlParam to set stateFilter
   useEffect(() => {
     if (stateUrlParam === 'running') {
-      const anarchyRunners:AnarchyRunner[] = anarchyRunnerFetchState?.items as AnarchyRunner[] || [];
-      const anarchyRunnerPodNames:string[] = [];
+      const anarchyRunners: AnarchyRunner[] = (anarchyRunnerFetchState?.items as AnarchyRunner[]) || [];
+      const anarchyRunnerPodNames: string[] = [];
       for (const anarchyRunner of anarchyRunners) {
-        anarchyRunnerPodNames.push(...(anarchyRunner.status?.pods || []).map(p => p.name));
+        anarchyRunnerPodNames.push(...(anarchyRunner.status?.pods || []).map((p) => p.name));
       }
       setStateFilter(anarchyRunnerPodNames);
-    } else if(stateUrlParam) {
+    } else if (stateUrlParam) {
       setStateFilter([stateUrlParam]);
     } else {
       setStateFilter(null);
     }
-  }, [stateUrlParam, anarchyRunnerFetchState])
+  }, [stateUrlParam, anarchyRunnerFetchState]);
 
   // Fetch or continue fetching
   useEffect(() => {
-    if (fetchState?.canContinue && (
-      fetchState.refreshing ||
-      fetchState.filteredItems.length < fetchState.limit
-    )) {
+    if (fetchState?.canContinue && (fetchState.refreshing || fetchState.filteredItems.length < fetchState.limit)) {
       fetchAnarchyRuns();
     }
     return () => {
       if (componentWillUnmount.current) {
         cancelFetchActivity(fetchState);
       }
-    }
+    };
   }, [fetchState]);
 
   useEffect(() => {
     if (!anarchyRunnerFetchState) {
-      reduceAnarchyRunnerFetchState({type: 'startFetch'});
+      reduceAnarchyRunnerFetchState({ type: 'startFetch' });
     } else if (anarchyRunnerFetchState?.canContinue) {
       fetchAnarchyRunners();
     }
@@ -263,7 +263,7 @@ const AnarchyRuns: React.FunctionComponent = () => {
       if (componentWillUnmount.current) {
         cancelFetchActivity(anarchyRunnerFetchState);
       }
-    }
+    };
   }, [anarchyRunnerFetchState]);
 
   // Start fetch and reload on k8s namespace or label filter
@@ -280,141 +280,156 @@ const AnarchyRuns: React.FunctionComponent = () => {
     }
   }, [JSON.stringify(keywordFilter)]);
 
-  return (<>
-    <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
-      <Split hasGutter>
-        <SplitItem isFilled>
-          <Title headingLevel="h4" size="xl">AnarchyRuns</Title>
-        </SplitItem>
-        <SplitItem>
-          <RefreshButton onClick={() => reloadAnarchyRuns()}/>
-        </SplitItem>
-        <SplitItem>
-          <KeywordSearchInput
-            initialValue={keywordFilter}
-            onSearch={(value) => {
-              if (value) {
-                urlSearchParams.set('search', value.join(' '));
-              } else if(urlSearchParams.has('search')) {
-                urlSearchParams.delete('searchs');
-              }
-              history.push(`${location.pathname}?${urlSearchParams.toString()}`);
-            }}
-          />
-        </SplitItem>
-        <SplitItem>
-          <AnarchyRunnerStateSelect
-            runnerState={stateUrlParam}
-            onSelect={(state) => {
-              if (state) {
-                urlSearchParams.set('state', state);
-              } else if(urlSearchParams.has('state')) {
-                urlSearchParams.delete('state');
-              }
-              history.push(`${location.pathname}?${urlSearchParams.toString()}`);
-            }}
-          />
-        </SplitItem>
-        <SplitItem>
-          <AnarchyNamespaceSelect
-            namespace={anarchyNamespace}
-            onSelect={(namespaceName) => {
-              if (namespaceName) {
-                history.push(`/admin/anarchyruns/${namespaceName}${location.search}`);
-              } else {
-                history.push(`/admin/anarchyruns${location.search}`);
-              }
-            }}
-          />
-        </SplitItem>
-        <SplitItem>
-          <ActionDropdown
-            position="right"
-            actionDropdownItems={[
-              <ActionDropdownItem
-                key="delete"
-                label="Delete Selected"
-                onSelect={() => confirmThenDelete()}
-              />,
-            ]}
-          />
-        </SplitItem>
-      </Split>
-    </PageSection>
-    { anarchyRuns.length === 0 ? (
-      fetchState?.finished ? (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              No AnarchyRuns found
+  return (
+    <>
+      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+        <Split hasGutter>
+          <SplitItem isFilled>
+            <Title headingLevel="h4" size="xl">
+              AnarchyRuns
             </Title>
-          </EmptyState>
-        </PageSection>
-      ) : (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      )
-    ) : (
-      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-        <SelectableTable
-          columns={['Namespace', 'Name', 'Runner State', 'AnarchySubject', 'AnarchyAction', 'Created At']}
-          onSelectAll={(isSelected) => {
-            if (isSelected) {
-              reduceSelectedUids({type: 'set', items: anarchyRuns});
-            } else {
-              reduceSelectedUids({type: 'clear'});
-            }
-          }}
-          rows={anarchyRuns.map((anarchyRun:AnarchyRun) => {
-            return {
-              cells: [
-                <>
-                  {anarchyRun.metadata.namespace}
-                  <OpenshiftConsoleLink key="console" resource={anarchyRun} linkToNamespace={true}/>
-                </>,
-                <>
-                  <Link key="admin" to={`/admin/anarchyruns/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}>{anarchyRun.metadata.name}</Link>
-                  <OpenshiftConsoleLink key="console" resource={anarchyRun}/>
-                </>,
-                <>
-                  {anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || '-'}
-                </>,
-                <>
-                  <Link key="admin" to={`/admin/anarchysubjects/${anarchyRun.spec.subject.namespace}/${anarchyRun.spec.subject.name}`}>{anarchyRun.spec.subject.name}</Link>
-                  <OpenshiftConsoleLink key="console" reference={anarchyRun.spec.subject}/>
-                </>,
-                anarchyRun.spec.action ? (
-                  <>
-                    <Link key="admin" to={`/admin/anarchyactions/${anarchyRun.spec.action.namespace}/${anarchyRun.spec.action.name}`}>{anarchyRun.spec.action.name}</Link>
-                    <OpenshiftConsoleLink key="console" reference={anarchyRun.spec.subject}/>
-                  </>
-                ) : '-',
-                <>
-                  <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp}/>
-                  {' '}
-                  (<TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp}/>)
-                </>,
-              ],
-              onSelect: (isSelected) => reduceSelectedUids({
-                type: isSelected ? 'add' : 'remove',
-                items: [anarchyRun],
-              }),
-              selected: selectedUids.includes(anarchyRun.metadata.uid),
-            };
-          })}
-        />
-        { fetchState?.canContinue ? (
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        ) : null }
+          </SplitItem>
+          <SplitItem>
+            <RefreshButton onClick={() => reloadAnarchyRuns()} />
+          </SplitItem>
+          <SplitItem>
+            <KeywordSearchInput
+              initialValue={keywordFilter}
+              onSearch={(value) => {
+                if (value) {
+                  urlSearchParams.set('search', value.join(' '));
+                } else if (urlSearchParams.has('search')) {
+                  urlSearchParams.delete('searchs');
+                }
+                history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+              }}
+            />
+          </SplitItem>
+          <SplitItem>
+            <AnarchyRunnerStateSelect
+              runnerState={stateUrlParam}
+              onSelect={(state) => {
+                if (state) {
+                  urlSearchParams.set('state', state);
+                } else if (urlSearchParams.has('state')) {
+                  urlSearchParams.delete('state');
+                }
+                history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+              }}
+            />
+          </SplitItem>
+          <SplitItem>
+            <AnarchyNamespaceSelect
+              namespace={anarchyNamespace}
+              onSelect={(namespaceName) => {
+                if (namespaceName) {
+                  history.push(`/admin/anarchyruns/${namespaceName}${location.search}`);
+                } else {
+                  history.push(`/admin/anarchyruns${location.search}`);
+                }
+              }}
+            />
+          </SplitItem>
+          <SplitItem>
+            <ActionDropdown
+              position="right"
+              actionDropdownItems={[
+                <ActionDropdownItem key="delete" label="Delete Selected" onSelect={() => confirmThenDelete()} />,
+              ]}
+            />
+          </SplitItem>
+        </Split>
       </PageSection>
-    )}
-  </>);
-}
+      {anarchyRuns.length === 0 ? (
+        fetchState?.finished ? (
+          <PageSection>
+            <EmptyState variant="full">
+              <EmptyStateIcon icon={ExclamationTriangleIcon} />
+              <Title headingLevel="h1" size="lg">
+                No AnarchyRuns found
+              </Title>
+            </EmptyState>
+          </PageSection>
+        ) : (
+          <PageSection>
+            <EmptyState variant="full">
+              <EmptyStateIcon icon={LoadingIcon} />
+            </EmptyState>
+          </PageSection>
+        )
+      ) : (
+        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+          <SelectableTable
+            columns={['Namespace', 'Name', 'Runner State', 'AnarchySubject', 'AnarchyAction', 'Created At']}
+            onSelectAll={(isSelected) => {
+              if (isSelected) {
+                reduceSelectedUids({ type: 'set', items: anarchyRuns });
+              } else {
+                reduceSelectedUids({ type: 'clear' });
+              }
+            }}
+            rows={anarchyRuns.map((anarchyRun: AnarchyRun) => {
+              return {
+                cells: [
+                  <>
+                    {anarchyRun.metadata.namespace}
+                    <OpenshiftConsoleLink key="console" resource={anarchyRun} linkToNamespace={true} />
+                  </>,
+                  <>
+                    <Link
+                      key="admin"
+                      to={`/admin/anarchyruns/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}
+                    >
+                      {anarchyRun.metadata.name}
+                    </Link>
+                    <OpenshiftConsoleLink key="console" resource={anarchyRun} />
+                  </>,
+                  <>{anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || '-'}</>,
+                  <>
+                    <Link
+                      key="admin"
+                      to={`/admin/anarchysubjects/${anarchyRun.spec.subject.namespace}/${anarchyRun.spec.subject.name}`}
+                    >
+                      {anarchyRun.spec.subject.name}
+                    </Link>
+                    <OpenshiftConsoleLink key="console" reference={anarchyRun.spec.subject} />
+                  </>,
+                  anarchyRun.spec.action ? (
+                    <>
+                      <Link
+                        key="admin"
+                        to={`/admin/anarchyactions/${anarchyRun.spec.action.namespace}/${anarchyRun.spec.action.name}`}
+                      >
+                        {anarchyRun.spec.action.name}
+                      </Link>
+                      <OpenshiftConsoleLink key="console" reference={anarchyRun.spec.subject} />
+                    </>
+                  ) : (
+                    '-'
+                  ),
+                  <>
+                    <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} /> (
+                    <TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
+                  </>,
+                ],
+                onSelect: (isSelected) =>
+                  reduceSelectedUids({
+                    type: isSelected ? 'add' : 'remove',
+                    items: [anarchyRun],
+                  }),
+                selected: selectedUids.includes(anarchyRun.metadata.uid),
+              };
+            })}
+          />
+          {fetchState?.canContinue ? (
+            <EmptyState variant="full">
+              <EmptyStateIcon icon={LoadingIcon} />
+            </EmptyState>
+          ) : null}
+        </PageSection>
+      )}
+    </>
+  );
+};
 
 export default AnarchyRuns;

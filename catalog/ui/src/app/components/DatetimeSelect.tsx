@@ -1,15 +1,9 @@
 import React from 'react';
 import './datetime-select.css';
 
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownToggle,
-} from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
 
-import {
-  OutlinedClockIcon,
-} from '@patternfly/react-icons';
+import { OutlinedClockIcon } from '@patternfly/react-icons';
 
 export interface DatetimeSelectProps {
   idPrefix: string;
@@ -41,20 +35,20 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
     if (isOpen) {
       const elem = document.getElementById(currentItemId);
       if (elem && !scrolledIntoView) {
-        elem.scrollIntoView({ block: "center" });
+        elem.scrollIntoView({ block: 'center' });
         setScrolledIntoView(true);
       }
     }
-  })
+  });
 
-  for (var t=Math.ceil(minimum.getTime() / interval) * interval; t < maximum.getTime(); t += interval) {
+  for (var t = Math.ceil(minimum.getTime() / interval) * interval; t < maximum.getTime(); t += interval) {
     //TODO: boolean required but string is used
-    const isCurrent : any = t == currentInterval ? "datetime-select-current" : null;
+    const isCurrent: any = t == currentInterval ? 'datetime-select-current' : null;
     const date = new Date(t);
     const dropdownItem = (
       <DropdownItem
         id={`${idPrefix}${t}`}
-        className={isCurrent ? "datetime-select-current" : ""}
+        className={isCurrent ? 'datetime-select-current' : ''}
         isHovered={isCurrent}
         isPlainText={isCurrent}
         key={t}
@@ -62,37 +56,37 @@ const DatetimeSelect: React.FunctionComponent<DatetimeSelectProps> = ({
           onSelect(date);
           setIsOpen(false);
         }}
-      >{date.toLocaleString()}</DropdownItem>
+      >
+        {date.toLocaleString()}
+      </DropdownItem>
     );
     dropdownItems.push(dropdownItem);
   }
 
   function toggleIsOpen(): void {
-    setIsOpen(isOpen => {
+    setIsOpen((isOpen) => {
       if (isOpen) {
         return false;
       } else {
         setScrolledIntoView(false);
         return true;
       }
-    })
+    });
   }
 
   return (
     <Dropdown
       className="datetimeselect-dropdown"
       toggle={
-        <DropdownToggle
-          className="datetimeselect-toggle"
-          onToggle={toggleIsOpen}
-          toggleIndicator={OutlinedClockIcon}
-        >{toggleContent}</DropdownToggle>
+        <DropdownToggle className="datetimeselect-toggle" onToggle={toggleIsOpen} toggleIndicator={OutlinedClockIcon}>
+          {toggleContent}
+        </DropdownToggle>
       }
       isOpen={isOpen}
       dropdownItems={dropdownItems}
       autoFocus={false}
     />
   );
-}
+};
 
 export default DatetimeSelect;

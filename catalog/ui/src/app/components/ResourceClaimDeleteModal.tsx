@@ -21,21 +21,23 @@ const ResourceClaimDeleteModal: React.FunctionComponent<ResourceClaimDeleteModal
     <Modal
       className="resourceClaim-delete-modal"
       variant={ModalVariant.medium}
-      title={resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : "Delete selected services?" }
+      title={
+        resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?'
+      }
       isOpen={isOpen}
       onClose={onClose}
       actions={[
-        <Button key="confirm" variant="primary"
-          onClick={onConfirm}
-        >Confirm</Button>,
-        <Button key="cancel" variant="link"
-          onClick={onClose}
-        >Cancel</Button>
+        <Button key="confirm" variant="primary" onClick={onConfirm}>
+          Confirm
+        </Button>,
+        <Button key="cancel" variant="link" onClick={onClose}>
+          Cancel
+        </Button>,
       ]}
     >
       Cloud resources will be deleted. Restore for deleted resources is not available.
     </Modal>
   );
-}
+};
 
 export default ResourceClaimDeleteModal;

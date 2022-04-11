@@ -1,19 +1,19 @@
-import React from "react";
-import ReactDOM from "react-dom";
+import React from 'react';
+import ReactDOM from 'react-dom';
 import App from '@app/index';
 
 import { Provider } from 'react-redux';
 import { store } from './app/store';
 
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== 'production') {
   const config = {
     rules: [
       {
         id: 'color-contrast',
-        enabled: false
-      }
+        enabled: false,
+      },
     ],
-    disableDeduplicate: true
+    disableDeduplicate: true,
   };
   // eslint-disable-next-line @typescript-eslint/no-var-requires, no-undef
   const axe = require('@axe-core/react');
@@ -24,5 +24,5 @@ ReactDOM.render(
   <Provider store={store}>
     <App />
   </Provider>,
-  document.getElementById("root") as HTMLElement
+  document.getElementById('root') as HTMLElement
 );

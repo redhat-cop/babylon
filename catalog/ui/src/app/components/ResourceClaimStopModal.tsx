@@ -21,21 +21,23 @@ const ResourceClaimStopModal: React.FunctionComponent<ResourceClaimStopModalProp
     <Modal
       className="resourceClaim-stop-modal"
       variant={ModalVariant.medium}
-      title={resourceClaims.length === 1 ? `Stop service ${displayName(resourceClaims[0])}?` : "Stop selected services?" }
+      title={
+        resourceClaims.length === 1 ? `Stop service ${displayName(resourceClaims[0])}?` : 'Stop selected services?'
+      }
       isOpen={isOpen}
       onClose={onClose}
       actions={[
-        <Button key="confirm" variant="primary"
-          onClick={onConfirm}
-        >Confirm</Button>,
-        <Button key="cancel" variant="link"
-          onClick={onClose}
-        >Cancel</Button>
+        <Button key="confirm" variant="primary" onClick={onConfirm}>
+          Confirm
+        </Button>,
+        <Button key="cancel" variant="link" onClick={onClose}>
+          Cancel
+        </Button>,
       ]}
     >
       Cloud services will be stopped as supported by service deployer.
     </Modal>
   );
-}
+};
 
 export default ResourceClaimStopModal;

@@ -8,10 +8,7 @@ type LoadingIconProps = {
 };
 
 const LoadingIcon: React.FunctionComponent<LoadingIconProps> = ({ className }) => (
-  <div
-    className={classNames('co-m-loader', className)}
-    data-test="loading-indicator"
-  >
+  <div className={classNames('co-m-loader', className)} data-test="loading-indicator">
     <div className="co-m-loader-dot__one" />
     <div className="co-m-loader-dot__two" />
     <div className="co-m-loader-dot__three" />

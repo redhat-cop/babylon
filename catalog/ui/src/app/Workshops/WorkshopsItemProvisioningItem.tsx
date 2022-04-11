@@ -1,5 +1,5 @@
-import React from "react";
-import { useEffect, useReducer, useRef, useState } from "react";
+import React from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
@@ -31,26 +31,28 @@ interface EditableWorkshopProvisionSpecFields {
 }
 
 interface WorkshopsItemProvisioningItemProps {
-  onWorkshopProvisionUpdate: (workshopProvision:WorkshopProvision) => void;
+  onWorkshopProvisionUpdate: (workshopProvision: WorkshopProvision) => void;
   workshop: Workshop;
   workshopProvision: WorkshopProvision;
 }
 
 const WorkshopsItemProvisioningItem: React.FunctionComponent<WorkshopsItemProvisioningItemProps> = ({
-  onWorkshopProvisionUpdate, workshop, workshopProvision,
+  onWorkshopProvisionUpdate,
+  workshop,
+  workshopProvision,
 }) => {
   const componentWillUnmount = useRef(false);
-  const userIsAdmin:boolean = useSelector(selectUserIsAdmin);
+  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
   const [catalogItemFetchState, reduceCatalogItemFetchState] = useReducer(k8sFetchStateReducer, null);
-  const catalogItemName:string = workshopProvision.spec.catalogItem?.name;
-  const catalogItemNamespace:string = workshopProvision.spec.catalogItem?.namespace;
-  const catalogItem:CatalogItem = catalogItemFetchState?.item as CatalogItem;
+  const catalogItemName: string = workshopProvision.spec.catalogItem?.name;
+  const catalogItemNamespace: string = workshopProvision.spec.catalogItem?.namespace;
+  const catalogItem: CatalogItem = catalogItemFetchState?.item as CatalogItem;
 
   async function fetchCatalogItem(): Promise<void> {
-    let catalogItem:CatalogItem = null;
+    let catalogItem: CatalogItem = null;
     try {
-      catalogItem = await getCatalogItem(catalogItemNamespace, catalogItemName)
-    } catch(error) {
+      catalogItem = await getCatalogItem(catalogItemNamespace, catalogItemName);
+    } catch (error) {
       if (!(error instanceof Response && error.status === 404)) {
         throw error;
       }
@@ -63,13 +65,13 @@ const WorkshopsItemProvisioningItem: React.FunctionComponent<WorkshopsItemProvis
     }
   }
 
-  async function patchWorkshopProvisionSpec(patch:EditableWorkshopProvisionSpecFields) {
+  async function patchWorkshopProvisionSpec(patch: EditableWorkshopProvisionSpecFields) {
     onWorkshopProvisionUpdate(
       await patchWorkshopProvision({
         name: workshopProvision.metadata.name,
         namespace: workshopProvision.metadata.namespace,
-        patch: {spec: patch},
-      }),
+        patch: { spec: patch },
+      })
     );
   }
 
@@ -77,13 +79,13 @@ const WorkshopsItemProvisioningItem: React.FunctionComponent<WorkshopsItemProvis
   useEffect(() => {
     return () => {
       componentWillUnmount.current = true;
-    }
+    };
   }, []);
 
   // Start fetching CatalogItem
   useEffect(() => {
     if (catalogItemName && catalogItemNamespace) {
-      reduceCatalogItemFetchState({type: 'startFetch'});
+      reduceCatalogItemFetchState({ type: 'startFetch' });
     }
   }, [catalogItemName, catalogItemNamespace]);
 
@@ -96,80 +98,87 @@ const WorkshopsItemProvisioningItem: React.FunctionComponent<WorkshopsItemProvis
       if (componentWillUnmount.current) {
         cancelFetchActivity(catalogItemFetchState);
       }
-    }
-  }, [catalogItemFetchState])
+    };
+  }, [catalogItemFetchState]);
 
-  return (<>
-    <DescriptionList isHorizontal>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Name</DescriptionListTerm>
-        <DescriptionListDescription>
-          {workshopProvision.metadata.name}
-          { userIsAdmin ? (
-            <OpenshiftConsoleLink resource={workshopProvision}/>
-          ) : null }
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Catalog Item</DescriptionListTerm>
-        <DescriptionListDescription>
-          { catalogItemFetchState?.finished ? (
-            catalogItem ? (<>
-              <Link
-                to={`/catalog?item=${catalogItemNamespace}%2F${catalogItemName}`}
-              >{displayName(catalogItem)}</Link>
-              { userIsAdmin ? (
-                <OpenshiftConsoleLink resource={catalogItem}/>
-              ) : null }
-            </>) : (
-              <p>Missing catalog item {catalogItemName} in {catalogItemNamespace}!</p>
-            )
-          ) : <LoadingIcon/> }
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Parameters</DescriptionListTerm>
-        <DescriptionListDescription>
-          <CodeBlock>
-            <CodeBlockCode>{yaml.dump(workshopProvision.spec.parameters || {})}</CodeBlockCode>
-          </CodeBlock>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Count</DescriptionListTerm>
-        <DescriptionListDescription>
-          <PatientNumberInput
-            min={0}
-            max={200}
-            onChange={(value:number) => patchWorkshopProvisionSpec({count: value})}
-            value={workshopProvision.spec.count}
-          /> service count to provision for workshop
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Concurrency</DescriptionListTerm>
-        <DescriptionListDescription>
-          <PatientNumberInput
-            min={1}
-            max={10}
-            onChange={(value:number) => patchWorkshopProvisionSpec({concurrency: value})}
-            value={workshopProvision.spec.concurrency}
-          /> concurrent provision count
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Start Delay</DescriptionListTerm>
-        <DescriptionListDescription>
-          <PatientNumberInput
-            min={10}
-            max={999}
-            onChange={(value:number) => patchWorkshopProvisionSpec({startDelay: value})}
-            value={workshopProvision.spec.startDelay}
-          /> seconds
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-    </DescriptionList>
-  </>);
-}
+  return (
+    <>
+      <DescriptionList isHorizontal>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Name</DescriptionListTerm>
+          <DescriptionListDescription>
+            {workshopProvision.metadata.name}
+            {userIsAdmin ? <OpenshiftConsoleLink resource={workshopProvision} /> : null}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Catalog Item</DescriptionListTerm>
+          <DescriptionListDescription>
+            {catalogItemFetchState?.finished ? (
+              catalogItem ? (
+                <>
+                  <Link to={`/catalog?item=${catalogItemNamespace}%2F${catalogItemName}`}>
+                    {displayName(catalogItem)}
+                  </Link>
+                  {userIsAdmin ? <OpenshiftConsoleLink resource={catalogItem} /> : null}
+                </>
+              ) : (
+                <p>
+                  Missing catalog item {catalogItemName} in {catalogItemNamespace}!
+                </p>
+              )
+            ) : (
+              <LoadingIcon />
+            )}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Parameters</DescriptionListTerm>
+          <DescriptionListDescription>
+            <CodeBlock>
+              <CodeBlockCode>{yaml.dump(workshopProvision.spec.parameters || {})}</CodeBlockCode>
+            </CodeBlock>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Count</DescriptionListTerm>
+          <DescriptionListDescription>
+            <PatientNumberInput
+              min={0}
+              max={200}
+              onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
+              value={workshopProvision.spec.count}
+            />{' '}
+            service count to provision for workshop
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Concurrency</DescriptionListTerm>
+          <DescriptionListDescription>
+            <PatientNumberInput
+              min={1}
+              max={10}
+              onChange={(value: number) => patchWorkshopProvisionSpec({ concurrency: value })}
+              value={workshopProvision.spec.concurrency}
+            />{' '}
+            concurrent provision count
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Start Delay</DescriptionListTerm>
+          <DescriptionListDescription>
+            <PatientNumberInput
+              min={10}
+              max={999}
+              onChange={(value: number) => patchWorkshopProvisionSpec({ startDelay: value })}
+              value={workshopProvision.spec.startDelay}
+            />{' '}
+            seconds
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      </DescriptionList>
+    </>
+  );
+};
 
 export default WorkshopsItemProvisioningItem;

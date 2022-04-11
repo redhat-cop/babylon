@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import { useRouteMatch } from 'react-router-dom';
 
 const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
@@ -15,12 +15,8 @@ const Workshops: React.FunctionComponent = () => {
       />
     );
   } else {
-    return (
-      <WorkshopsList
-        serviceNamespaceName={routeMatch.params.namespace}
-      />
-    );
+    return <WorkshopsList serviceNamespaceName={routeMatch.params.namespace} />;
   }
-}
+};
 
 export default Workshops;

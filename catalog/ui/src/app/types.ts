@@ -49,7 +49,7 @@ export interface AnarchySubjectList {
 }
 
 export interface AnarchySubjectStatus {
-  towerJobs?: {[jobName:string]: AnarchySubjectStatusTowerJob};
+  towerJobs?: { [jobName: string]: AnarchySubjectStatusTowerJob };
 }
 
 export interface AnarchySubjectStatusTowerJob {
@@ -88,10 +88,10 @@ export interface CatalogItemSpecParameter {
   name: string;
   openAPIV3Schema?: any;
   required?: boolean;
-  resourceIndexes?: (number|'@')[];
+  resourceIndexes?: (number | '@')[];
   validation?: string;
   value?: string;
-  variable?: string
+  variable?: string;
 }
 
 export interface CatalogNamespace {
@@ -100,13 +100,13 @@ export interface CatalogNamespace {
   name: string;
 }
 
-export interface JSONPatch extends Array<JSONPatchOperation>{};
+export interface JSONPatch extends Array<JSONPatchOperation> {}
 export interface JSONPatchOperation {
-  op: 'add'|'copy'|'remove'|'replace'|'test';
+  op: 'add' | 'copy' | 'remove' | 'replace' | 'test';
   from?: string;
   path: string;
   value?: any;
-};
+}
 
 export interface K8sObject {
   apiVersion: string;
@@ -152,8 +152,7 @@ export interface K8sOwnerReference {
   uid: string;
 }
 
-export interface Namespace extends K8sObject {
-}
+export interface Namespace extends K8sObject {}
 
 export interface NamespaceList {
   items: Namespace[];
@@ -185,7 +184,7 @@ export interface ResourceClaimSpecResource {
   template: any;
 }
 
-export interface ResourceHandle extends K8sObject{
+export interface ResourceHandle extends K8sObject {
   spec: ResourceHandleSpec;
 }
 
@@ -287,8 +286,7 @@ export interface ServiceNamespace {
   name: string;
 }
 
-export interface User extends K8sObject {
-}
+export interface User extends K8sObject {}
 
 export interface UserList {
   items: User[];

@@ -7,10 +7,7 @@ export interface CatalogItemRatingProps {
   starDimension: string;
 }
 
-const CatalogItemRating: React.FunctionComponent<CatalogItemRatingProps> = ({
-  catalogItem,
-  starDimension,
-}) => {
+const CatalogItemRating: React.FunctionComponent<CatalogItemRatingProps> = ({ catalogItem, starDimension }) => {
   return (
     <StarRatings
       rating={catalogItem.status.rating}
@@ -21,6 +18,6 @@ const CatalogItemRating: React.FunctionComponent<CatalogItemRatingProps> = ({
       starSpacing="0px"
     />
   );
-}
+};
 
 export default CatalogItemRating;

@@ -1,15 +1,15 @@
 const path = require('path');
-const { merge } = require("webpack-merge");
-const common = require("./webpack.common.js");
-const { stylePaths } = require("./stylePaths");
-const HOST = process.env.HOST || "localhost";
-const PORT = process.env.PORT || "9000";
+const { merge } = require('webpack-merge');
+const common = require('./webpack.common.js');
+const { stylePaths } = require('./stylePaths');
+const HOST = process.env.HOST || 'localhost';
+const PORT = process.env.PORT || '9000';
 
 module.exports = merge(common('development'), {
-  mode: "development",
-  devtool: "eval-source-map",
+  mode: 'development',
+  devtool: 'eval-source-map',
   devServer: {
-    contentBase: "./dist",
+    contentBase: './dist',
     host: HOST,
     port: PORT,
     compress: true,
@@ -25,20 +25,18 @@ module.exports = merge(common('development'), {
     overlay: true,
     open: true,
     proxy: {
-      "/api": "http://localhost:5000",
-      "/apis": "http://localhost:5000",
-      "/auth": "http://localhost:5000",
-    }
+      '/api': 'http://localhost:5000',
+      '/apis': 'http://localhost:5000',
+      '/auth': 'http://localhost:5000',
+    },
   },
   module: {
     rules: [
       {
         test: /\.css$/,
-        include: [
-          ...stylePaths
-        ],
-        use: ["style-loader", "css-loader"]
-      }
-    ]
-  }
+        include: [...stylePaths],
+        use: ['style-loader', 'css-loader'],
+      },
+    ],
+  },
 });

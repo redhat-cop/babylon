@@ -19,7 +19,7 @@ import { displayName, randomString } from '@app/util';
 export interface ServicesCreateWorkshopModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: ({resourceClaim:ResourceClaim, workshop:Workshop}) => void;
+  onCreate: ({ resourceClaim: ResourceClaim, workshop: Workshop }) => void;
   resourceClaim?: ResourceClaim;
 }
 
@@ -36,13 +36,15 @@ const ServicesCreateWorkshopModal: React.FunctionComponent<ServicesCreateWorksho
   const [workshopDisplayName, setWorkshopDisplayName] = useState<string>(displayName(resourceClaim));
 
   async function onConfirm(): Promise<void> {
-    onCreate(await createWorkshopForMultiuserService({
-      accessPassword: workshopAccessPassword,
-      description: workshopDescription,
-      displayName: workshopDisplayName,
-      openRegistration: userRegistrationValue === 'open',
-      resourceClaim: resourceClaim,
-    }));
+    onCreate(
+      await createWorkshopForMultiuserService({
+        accessPassword: workshopAccessPassword,
+        description: workshopDescription,
+        displayName: workshopDisplayName,
+        openRegistration: userRegistrationValue === 'open',
+        resourceClaim: resourceClaim,
+      })
+    );
   }
 
   return (
@@ -53,30 +55,19 @@ const ServicesCreateWorkshopModal: React.FunctionComponent<ServicesCreateWorksho
       isOpen={isOpen}
       onClose={onClose}
       actions={[
-        <Button key="confirm" variant="primary"
-          onClick={onConfirm}
-        >Create Workshop</Button>,
-        <Button key="cancel" variant="link"
-          onClick={onClose}
-        >Cancel</Button>
+        <Button key="confirm" variant="primary" onClick={onConfirm}>
+          Create Workshop
+        </Button>,
+        <Button key="cancel" variant="link" onClick={onClose}>
+          Cancel
+        </Button>,
       ]}
     >
       <Form>
-        <FormGroup
-          fieldId="workshopDisplayName"
-          isRequired={true}
-          label="Display Name"
-        >
-          <TextInput
-            id="workshopDisplayName"
-            onChange={(v) => setWorkshopDisplayName(v)}
-            value={workshopDisplayName}
-          />
+        <FormGroup fieldId="workshopDisplayName" isRequired={true} label="Display Name">
+          <TextInput id="workshopDisplayName" onChange={(v) => setWorkshopDisplayName(v)} value={workshopDisplayName} />
         </FormGroup>
-        <FormGroup
-          fieldId="workshopAccessPassword"
-          label="Access Password"
-        >
+        <FormGroup fieldId="workshopAccessPassword" label="Access Password">
           <TextInput
             id="workshopAccessPassword"
             isRequired={true}
@@ -84,10 +75,7 @@ const ServicesCreateWorkshopModal: React.FunctionComponent<ServicesCreateWorksho
             value={workshopAccessPassword}
           />
         </FormGroup>
-        <FormGroup
-          fieldId="workshopRegistration"
-          label="User Registration"
-        >
+        <FormGroup fieldId="workshopRegistration" label="User Registration">
           <Select
             onToggle={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
             selections={userRegistrationValue}
@@ -102,10 +90,7 @@ const ServicesCreateWorkshopModal: React.FunctionComponent<ServicesCreateWorksho
             <SelectOption value="pre">pre-registration</SelectOption>
           </Select>
         </FormGroup>
-        <FormGroup
-          fieldId="workshopDescription"
-          label="Workshop Description"
-        >
+        <FormGroup fieldId="workshopDescription" label="Workshop Description">
           <TextArea
             onChange={(v) => setWorkshopDescription(v)}
             value={workshopDescription}
@@ -114,7 +99,7 @@ const ServicesCreateWorkshopModal: React.FunctionComponent<ServicesCreateWorksho
         </FormGroup>
       </Form>
     </Modal>
-  )
-}
+  );
+};
 
 export default ServicesCreateWorkshopModal;

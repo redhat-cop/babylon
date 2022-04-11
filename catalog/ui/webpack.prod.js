@@ -10,26 +10,21 @@ module.exports = merge(common('production'), {
   mode: 'production',
   devtool: 'source-map',
   optimization: {
-    minimizer: [
-      new TerserJSPlugin({}),
-      new CssMinimizerPlugin(),
-    ],
+    minimizer: [new TerserJSPlugin({}), new CssMinimizerPlugin()],
   },
   plugins: [
     new MiniCssExtractPlugin({
       filename: '[name].css',
-      chunkFilename: '[name].bundle.css'
-    })
+      chunkFilename: '[name].bundle.css',
+    }),
   ],
   module: {
     rules: [
       {
         test: /\.css$/,
-        include: [
-          ...stylePaths
-        ],
-        use: [MiniCssExtractPlugin.loader, 'css-loader']
-      }
-    ]
-  }
+        include: [...stylePaths],
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
 });
