@@ -23,3 +23,13 @@ rules:
   verbs:
   - get
   - list
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - workshops
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+  - update
