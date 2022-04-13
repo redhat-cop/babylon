@@ -1,23 +1,13 @@
-import React from "react";
-import { useEffect, useReducer, useState } from "react";
+import React from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { useRouteMatch } from 'react-router-dom';
 
-import {
-  EmptyState,
-  EmptyStateIcon,
-  Page,
-  PageSection,
-  Title,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateIcon, Page, PageSection, Title } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import LoadingIcon from '@app/components/LoadingIcon';
 
-import {
-  getWorkshopDetails,
-  workshopLogin,
-  WorkshopDetails,
-} from './workshopAPI';
+import { getWorkshopDetails, workshopLogin, WorkshopDetails } from './workshopAPI';
 import WorkshopAccess from './WorkshopAccess';
 import WorkshopHeader from './WorkshopHeader';
 import WorkshopLogin from './WorkshopLogin';
@@ -29,35 +19,32 @@ async function attemptLogin(
   email: string,
   accessPassword: string,
   setWorkshop: (WorkshopDetails) => void,
-  setLoginFailureMessage: (string) => void,
+  setLoginFailureMessage: (string) => void
 ) {
   try {
-    const workshop:WorkshopDetails = await workshopLogin({
+    const workshop: WorkshopDetails = await workshopLogin({
       accessPassword: accessPassword,
       email: email,
       workshopID: workshopID,
     });
     setLoginFailureMessage(undefined);
     setWorkshop(workshop);
-  } catch(error) {
+  } catch (error) {
     if (error instanceof Error) {
       setLoginFailureMessage(error.message);
     } else {
-      setLoginFailureMessage("UNKOWN ERROR");
+      setLoginFailureMessage('UNKOWN ERROR');
     }
   }
 }
 
-async function getWorkshop(
-  workshopID:string,
-  setWorkshop:(Workshop) => void,
-) {
+async function getWorkshop(workshopID: string, setWorkshop: (Workshop) => void) {
   setWorkshop(await getWorkshopDetails(workshopID));
 }
 
 const Workshop: React.FunctionComponent = () => {
   const routeMatch = useRouteMatch<any>('/workshop/:workshopID');
-  const workshopID:string = routeMatch?.params?.workshopID;
+  const workshopID: string = routeMatch?.params?.workshopID;
   const [loginFailureMessage, setLoginFailureMessage] = useState<string>(undefined);
   const [workshop, setWorkshop] = useState<WorkshopDetails>(undefined);
 
@@ -66,11 +53,11 @@ const Workshop: React.FunctionComponent = () => {
     if (workshopID) {
       getWorkshop(workshopID, setWorkshop);
     }
-  }, [workshopID])
+  }, [workshopID]);
 
   if (!workshopID) {
     return (
-      <Page header={<WorkshopHeader/>}>
+      <Page header={<WorkshopHeader />}>
         <PageSection>
           <Title headingLevel="h1">No workshop Specified in path.</Title>
         </PageSection>
@@ -80,7 +67,7 @@ const Workshop: React.FunctionComponent = () => {
 
   if (workshop === undefined) {
     return (
-      <Page header={<WorkshopHeader/>}>
+      <Page header={<WorkshopHeader />}>
         <PageSection>
           <EmptyState variant="full">
             <EmptyStateIcon icon={LoadingIcon} />
@@ -92,7 +79,7 @@ const Workshop: React.FunctionComponent = () => {
 
   if (workshop === null) {
     return (
-      <Page header={<WorkshopHeader/>}>
+      <Page header={<WorkshopHeader />}>
         <PageSection>
           <EmptyState variant="full">
             <EmptyStateIcon icon={ExclamationTriangleIcon} />
@@ -105,20 +92,18 @@ const Workshop: React.FunctionComponent = () => {
 
   if (workshop.assignment) {
     return (
-      <Page header={<WorkshopHeader/>}>
-        <WorkshopAccess workshop={workshop}/>
+      <Page header={<WorkshopHeader />}>
+        <WorkshopAccess workshop={workshop} />
       </Page>
     );
   } else {
     return (
-      <Page header={<WorkshopHeader/>}>
+      <Page header={<WorkshopHeader />}>
         <WorkshopLogin
           loginFailureMessage={loginFailureMessage}
-          onLogin={
-            (email, accessPassword) => {
-              attemptLogin(workshopID, email, accessPassword, setWorkshop, setLoginFailureMessage)
-            }
-          }
+          onLogin={(email, accessPassword) => {
+            attemptLogin(workshopID, email, accessPassword, setWorkshop, setLoginFailureMessage);
+          }}
           workshop={workshop}
         />
       </Page>

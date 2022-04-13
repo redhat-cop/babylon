@@ -5,8 +5,4 @@ import Dashboard from '@app/Dashboard/Dashboard';
 
 const stories = storiesOf('Components', module);
 stories.addDecorator(withInfo);
-stories.add(
-  'Dashboard',
-  () => <Dashboard />,
-  { info: { inline: true } }
-);
+stories.add('Dashboard', () => <Dashboard />, { info: { inline: true } });

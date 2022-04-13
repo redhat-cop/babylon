@@ -1,44 +1,31 @@
-import {
-  createAction,
-  createReducer,
-  configureStore,
-} from '@reduxjs/toolkit';
+import { createAction, createReducer, configureStore } from '@reduxjs/toolkit';
 
-import {
-  createSelector,
-} from 'reselect'
+import { createSelector } from 'reselect';
 
-import {
-  listResourceClaims,
-} from '@app/api';
+import { listResourceClaims } from '@app/api';
 
-import {
-  CatalogNamespace,
-  ResourceClaim,
-  ResourceClaimList,
-  ServiceNamespace,
-} from '@app/types';
+import { CatalogNamespace, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
 
 let watchResourceClaimsTimeout: null | ReturnType<typeof setTimeout> = null;
 
 export interface ActionSetImpersonation {
-  admin: string,
-  user: string,
-  groups: [string],
-  catalogNamespaces: [],
-  serviceNamespaces: [],
-  userNamespace: [],
+  admin: string;
+  user: string;
+  groups: [string];
+  catalogNamespaces: [];
+  serviceNamespaces: [];
+  userNamespace: [];
 }
 
 export interface ActionStartSession {
-  admin: boolean,
-  consoleURL: string,
-  user: string,
-  groups: [string],
-  interface: string,
-  catalogNamespaces: CatalogNamespace[],
-  serviceNamespaces: ServiceNamespace[],
-  userNamespace: ServiceNamespace,
+  admin: boolean;
+  consoleURL: string;
+  user: string;
+  groups: [string];
+  interface: string;
+  catalogNamespaces: CatalogNamespace[];
+  serviceNamespaces: ServiceNamespace[];
+  userNamespace: ServiceNamespace;
 }
 
 export interface ActionSetResourceClaims {
@@ -51,22 +38,28 @@ export interface ActionSetResourceClaimsForNamespace {
 }
 
 interface ResourceClaimsByNamespace {
-  [key:string]: ResourceClaim[];
+  [key: string]: ResourceClaim[];
 }
 
-async function refreshResourceClaimsFromNamespace(namespace:string, triggeredByTimeout:ReturnType<typeof setTimeout>): Promise<void> {
-  const resourceClaims:ResourceClaim[] = [];
-  let _continue: string = "";
+async function refreshResourceClaimsFromNamespace(
+  namespace: string,
+  triggeredByTimeout: ReturnType<typeof setTimeout>
+): Promise<void> {
+  const resourceClaims: ResourceClaim[] = [];
+  let _continue: string = '';
   while (true) {
-    const resp:ResourceClaimList = await listResourceClaims({
-        continue: _continue,
-        limit: 100,
-	namespace: namespace,
-      }
-    );
+    const resp: ResourceClaimList = await listResourceClaims({
+      continue: _continue,
+      limit: 100,
+      namespace: namespace,
+    });
     // If resource claims timeout has changed then this refresh should abort.
-    if (watchResourceClaimsTimeout !== triggeredByTimeout) { return }
-    if (!resp.items) { break }
+    if (watchResourceClaimsTimeout !== triggeredByTimeout) {
+      return;
+    }
+    if (!resp.items) {
+      break;
+    }
     resourceClaims.push(...resp.items);
     if (resp.metadata.continue) {
       _continue = resp.metadata.continue;
@@ -89,7 +82,7 @@ async function refreshResourceClaims(triggeredByTimeout: ReturnType<typeof setTi
    * @param {Timeout}
    */
   const state = store.getState();
-  const serviceNamespaceNames:string[] = selectServiceNamespaces(state).map(n => n.name);
+  const serviceNamespaceNames: string[] = selectServiceNamespaces(state).map((n) => n.name);
 
   for (const serviceNamespaceName of serviceNamespaceNames) {
     await refreshResourceClaimsFromNamespace(serviceNamespaceName, triggeredByTimeout);
@@ -104,7 +97,7 @@ async function watchResourceClaims(): Promise<void> {
    * so that multiple components can rely on this data without having to
    * implement a means of fetching it.
    */
-  const triggeredByTimeout:ReturnType<typeof setTimeout> = watchResourceClaimsTimeout;
+  const triggeredByTimeout: ReturnType<typeof setTimeout> = watchResourceClaimsTimeout;
   await refreshResourceClaims(triggeredByTimeout);
   if (triggeredByTimeout === watchResourceClaimsTimeout) {
     watchResourceClaimsTimeout = setTimeout(watchResourceClaims, 5 * 1000);
@@ -122,7 +115,6 @@ function startWatchResourceClaims(): void {
   watchResourceClaimsTimeout = setTimeout(watchResourceClaims, 1);
 }
 
-
 // Reducer functions
 function reduce_clearImpersonation(state, action) {
   state.impersonate = null;
@@ -133,18 +125,18 @@ function reduce_clearImpersonation(state, action) {
 }
 
 function reduce_deleteResourceClaim(state, action) {
-  const {name, namespace} = action.payload;
+  const { name, namespace } = action.payload;
   if (state.resourceClaims?.[namespace]) {
-    state.resourceClaims[namespace] = state.resourceClaims[namespace].filter(rc => rc.metadata.name != name);
+    state.resourceClaims[namespace] = state.resourceClaims[namespace].filter((rc) => rc.metadata.name != name);
   }
 }
 
 function reduce_insertResourceClaim(state, action) {
-  const {resourceClaim} = action.payload;
+  const { resourceClaim } = action.payload;
   const namespace = resourceClaim.metadata.namespace;
   if (state.resourceClaims?.[namespace]) {
     state.resourceClaims[namespace].push(resourceClaim);
-  } else if(state.resourceClaims) {
+  } else if (state.resourceClaims) {
     state.resourceClaims[namespace] = [resourceClaim];
   } else {
     state.resourceClaims = {
@@ -154,7 +146,7 @@ function reduce_insertResourceClaim(state, action) {
 }
 
 function reduce_setImpersonation(state, action) {
-  const {admin, groups, roles, user, catalogNamespaces, serviceNamespaces, userNamespace} = action.payload;
+  const { admin, groups, roles, user, catalogNamespaces, serviceNamespaces, userNamespace } = action.payload;
   state.impersonate = {
     admin: admin || false,
     groups: groups || [],
@@ -170,12 +162,12 @@ function reduce_setImpersonation(state, action) {
 }
 
 function reduce_setResourceClaims(state, action) {
-  const {resourceClaims} = action.payload;
+  const { resourceClaims } = action.payload;
   state.resourceClaims = resourceClaims;
 }
 
 function reduce_setResourceClaimsForNamespace(state, action) {
-  const {namespace, resourceClaims} = action.payload;
+  const { namespace, resourceClaims } = action.payload;
   if (state.resourceClaims) {
     state.resourceClaims[namespace] = resourceClaims;
   } else {
@@ -199,11 +191,11 @@ function reduce_startSession(state, action) {
 }
 
 function reduce_updateResourceClaim(state, action) {
-  const {resourceClaim} = action.payload;
+  const { resourceClaim } = action.payload;
   if (state.resourceClaims?.[resourceClaim.metadata.namespace]) {
-    const resourceClaims = state.resourceClaims[resourceClaim.metadata.namespace]
+    const resourceClaims = state.resourceClaims[resourceClaim.metadata.namespace];
     if (resourceClaims) {
-      for (let i=0; i < resourceClaims.length; ++i) {
+      for (let i = 0; i < resourceClaims.length; ++i) {
         if (resourceClaim.metadata.name === resourceClaims[i].metadata.name) {
           if (resourceClaim.metadata.resourceVersion > (resourceClaims[i].metadata.resourceVersion || 0)) {
             resourceClaims[i] = resourceClaim;
@@ -216,162 +208,126 @@ function reduce_updateResourceClaim(state, action) {
 }
 
 // Action creators
-export const actionClearImpersonation = createAction("clearImpersonation");
-export const actionSetImpersonation = createAction<ActionSetImpersonation>("setImpersonation");
-export const actionStartSession = createAction<ActionStartSession>("startSession");
+export const actionClearImpersonation = createAction('clearImpersonation');
+export const actionSetImpersonation = createAction<ActionSetImpersonation>('setImpersonation');
+export const actionStartSession = createAction<ActionStartSession>('startSession');
 
 // TODO: udpate types:: visibilty of types not available
 // Actions reserved for api usage
-export const apiActionDeleteResourceClaim = createAction<any>("deleteResourceClaim")
-export const apiActionInsertResourceClaim = createAction<any>("insertResourceClaim")
-export const apiActionUpdateResourceClaim = createAction<any>("updateResourceClaim")
+export const apiActionDeleteResourceClaim = createAction<any>('deleteResourceClaim');
+export const apiActionInsertResourceClaim = createAction<any>('insertResourceClaim');
+export const apiActionUpdateResourceClaim = createAction<any>('updateResourceClaim');
 
 // Private actions
-export const __actionSetResourceClaims = createAction<ActionSetResourceClaims>("setResourceClaims");
-export const __actionSetResourceClaimsForNamespace = createAction<ActionSetResourceClaimsForNamespace>("setResourceClaimsForNamespace");
-
+export const __actionSetResourceClaims = createAction<ActionSetResourceClaims>('setResourceClaims');
+export const __actionSetResourceClaimsForNamespace = createAction<ActionSetResourceClaimsForNamespace>(
+  'setResourceClaimsForNamespace'
+);
 
 // Selectors
 const selectSelf = (state: any) => state;
-const selectAuth = (state: any) => state.impersonate !== null ? state.impersonate : state.auth;
+const selectAuth = (state: any) => (state.impersonate !== null ? state.impersonate : state.auth);
 
-export const selectAuthIsAdmin = createSelector(
-  selectSelf,
-  (state:any): boolean => state.auth.admin,
-)
+export const selectAuthIsAdmin = createSelector(selectSelf, (state: any): boolean => state.auth.admin);
 
-export const selectAuthUser = createSelector(
-  selectSelf,
-  (state:any): string => state.auth.user,
-)
+export const selectAuthUser = createSelector(selectSelf, (state: any): string => state.auth.user);
 
-export const selectConsoleURL = createSelector(
-  selectSelf,
-  (state:any): string => state.consoleURL,
-)
+export const selectConsoleURL = createSelector(selectSelf, (state: any): string => state.consoleURL);
 
-export const selectInterface = createSelector(
-  selectSelf,
-  (state:any): string => state.interface,
-)
+export const selectInterface = createSelector(selectSelf, (state: any): string => state.interface);
 
-export const selectUser = createSelector(
-  selectAuth,
-  (state:any): string => state.user
-)
+export const selectUser = createSelector(selectAuth, (state: any): string => state.user);
 
-export const selectUserGroups = createSelector(
-  selectAuth,
-  (state:any): string[] => (state.groups || []).concat('system:authenticated')
-)
+export const selectUserGroups = createSelector(selectAuth, (state: any): string[] =>
+  (state.groups || []).concat('system:authenticated')
+);
 
-export const selectUserIsAdmin = createSelector(
-  selectAuth,
-  (state:any): boolean => state.admin
-)
+export const selectUserIsAdmin = createSelector(selectAuth, (state: any): boolean => state.admin);
 
-export const selectUserRoles = createSelector(
-  selectAuth,
-  (state:any): string[] => state.roles || [],
-)
+export const selectUserRoles = createSelector(selectAuth, (state: any): string[] => state.roles || []);
 
-export const selectImpersonationUser = createSelector(
-  selectSelf,
-  (state:any): string => state.impersonate?.user,
-)
+export const selectImpersonationUser = createSelector(selectSelf, (state: any): string => state.impersonate?.user);
 
 export const selectCatalogNamespace = createSelector(
-  [
-    (state:any) => selectCatalogNamespaces(state),
-    (state:any, namespace:string): string => namespace,
-  ],
-  (catalogNamespaces:any, namespace:string): CatalogNamespace => (catalogNamespaces || []).find((catalogNamespace) => catalogNamespace.name === namespace),
-)
+  [(state: any) => selectCatalogNamespaces(state), (state: any, namespace: string): string => namespace],
+  (catalogNamespaces: any, namespace: string): CatalogNamespace =>
+    (catalogNamespaces || []).find((catalogNamespace) => catalogNamespace.name === namespace)
+);
 
 export const selectCatalogNamespaces = createSelector(
   selectAuth,
-  (state:any): CatalogNamespace[] => state.catalogNamespaces || [],
-)
+  (state: any): CatalogNamespace[] => state.catalogNamespaces || []
+);
 
 export const selectResourceClaim = createSelector(
-  [
-    (state:any) => state.resourceClaims,
-    (state:any, namespace:string, name:string): string[] => [namespace, name],
-  ],
-  (resourceClaims:any, args:string[]): ResourceClaim => {
+  [(state: any) => state.resourceClaims, (state: any, namespace: string, name: string): string[] => [namespace, name]],
+  (resourceClaims: any, args: string[]): ResourceClaim => {
     const [namespace, name] = args;
     return (resourceClaims?.[namespace] || []).find((resourceClaim) => resourceClaim.metadata.name === name);
   }
-)
+);
 
-export const selectResourceClaims = createSelector(
-  selectSelf,
-  (state:any): ResourceClaim[] => {
-    if (!state.resourceClaims) { return [] }
-    const namespaceNames = Object.keys(state.resourceClaims);
-    namespaceNames.sort();
-    const resourceClaims = [];
-    for (const ns of namespaceNames) {
-      resourceClaims.push(...state.resourceClaims[ns]);
-    }
-    return resourceClaims;
+export const selectResourceClaims = createSelector(selectSelf, (state: any): ResourceClaim[] => {
+  if (!state.resourceClaims) {
+    return [];
   }
-)
+  const namespaceNames = Object.keys(state.resourceClaims);
+  namespaceNames.sort();
+  const resourceClaims = [];
+  for (const ns of namespaceNames) {
+    resourceClaims.push(...state.resourceClaims[ns]);
+  }
+  return resourceClaims;
+});
 
 export const selectResourceClaimsInNamespace = createSelector(
-  [
-    (state:any) => state.resourceClaims,
-    (state:any, namespace:string): string => namespace,
-  ],
-  (resourceClaims:any, namespace:string): ResourceClaim[] => resourceClaims?.[namespace] || []
-)
+  [(state: any) => state.resourceClaims, (state: any, namespace: string): string => namespace],
+  (resourceClaims: any, namespace: string): ResourceClaim[] => resourceClaims?.[namespace] || []
+);
 
 export const selectServiceNamespace = createSelector(
-  [
-    (state:any) => state.impersonate || state.auth,
-    (state:any, namespace:string): string => namespace,
-  ],
-  (state:any, namespace:string) => (state.serviceNamespaces || []).find((ns) => ns.name == namespace),
-)
+  [(state: any) => state.impersonate || state.auth, (state: any, namespace: string): string => namespace],
+  (state: any, namespace: string) => (state.serviceNamespaces || []).find((ns) => ns.name == namespace)
+);
 
 export const selectServiceNamespaces = createSelector(
-  (state:any) => state.impersonate || state.auth,
-  (state:any) => state.serviceNamespaces || [],
-)
+  (state: any) => state.impersonate || state.auth,
+  (state: any) => state.serviceNamespaces || []
+);
 
-export const selectUserNamespace = createSelector(
-  selectAuth,
-  state => state.userNamespace
-)
+export const selectUserNamespace = createSelector(selectAuth, (state) => state.userNamespace);
 
 export const selectWorkshopNamespaces = createSelector(
-  (state:any) => state.impersonate || state.auth,
-  (state:any) => (state.serviceNamespaces || []).filter(ns => ns.workshopProvisionAccess),
-)
+  (state: any) => state.impersonate || state.auth,
+  (state: any) => (state.serviceNamespaces || []).filter((ns) => ns.workshopProvisionAccess)
+);
 
 // Store
 export const store = configureStore({
-  reducer: createReducer({
-    auth: {
-      admin: null,
-      groups: [],
-      user: null,
-      catalogNamespaces: [],
-      serviceNamespaces: [],
-      userNamespace: null,
+  reducer: createReducer(
+    {
+      auth: {
+        admin: null,
+        groups: [],
+        user: null,
+        catalogNamespaces: [],
+        serviceNamespaces: [],
+        userNamespace: null,
+      },
+      catalogItems: null,
+      impersonate: null,
+      interface: null,
+      resourceClaims: null,
     },
-    catalogItems: null,
-    impersonate: null,
-    interface: null,
-    resourceClaims: null,
-  }, {
-    "clearImpersonation": reduce_clearImpersonation,
-    "deleteResourceClaim": reduce_deleteResourceClaim,
-    "insertResourceClaim": reduce_insertResourceClaim,
-    "setImpersonation": reduce_setImpersonation,
-    "setResourceClaims": reduce_setResourceClaims,
-    "setResourceClaimsForNamespace": reduce_setResourceClaimsForNamespace,
-    "startSession": reduce_startSession,
-    "updateResourceClaim": reduce_updateResourceClaim,
-  })
+    {
+      clearImpersonation: reduce_clearImpersonation,
+      deleteResourceClaim: reduce_deleteResourceClaim,
+      insertResourceClaim: reduce_insertResourceClaim,
+      setImpersonation: reduce_setImpersonation,
+      setResourceClaims: reduce_setResourceClaims,
+      setResourceClaimsForNamespace: reduce_setResourceClaimsForNamespace,
+      startSession: reduce_startSession,
+      updateResourceClaim: reduce_updateResourceClaim,
+    }
+  ),
 });

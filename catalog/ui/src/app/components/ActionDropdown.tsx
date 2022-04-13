@@ -1,12 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownPosition,
-  DropdownToggle,
-} from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownPosition, DropdownToggle } from '@patternfly/react-core';
 
 import './action-dropdown.css';
 
@@ -37,11 +32,15 @@ const ActionDropdown: React.FunctionComponent<ActionDropdownProps> = ({
       isOpen={isOpen}
       onSelect={() => setIsOpen(false)}
       position={position}
-      toggle={<DropdownToggle isDisabled={isDisabled} onToggle={() => setIsOpen(v => !v)}>Actions</DropdownToggle>}
+      toggle={
+        <DropdownToggle isDisabled={isDisabled} onToggle={() => setIsOpen((v) => !v)}>
+          Actions
+        </DropdownToggle>
+      }
       dropdownItems={actionDropdownItems}
     />
   );
-}
+};
 
 const ActionDropdownItem: React.FunctionComponent<ActionDropdownItemProps> = ({
   label,
@@ -49,11 +48,10 @@ const ActionDropdownItem: React.FunctionComponent<ActionDropdownItemProps> = ({
   onSelect,
 }) => {
   return (
-    <DropdownItem key={label}
-      isDisabled={isDisabled}
-      onClick={() => onSelect()}
-    >{label}</DropdownItem>
+    <DropdownItem key={label} isDisabled={isDisabled} onClick={() => onSelect()}>
+      {label}
+    </DropdownItem>
   );
-}
+};
 
 export { ActionDropdown, ActionDropdownItem };

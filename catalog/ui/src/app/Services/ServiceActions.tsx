@@ -1,18 +1,10 @@
 import * as React from 'react';
 
-import {
-  DropdownPosition,
-} from '@patternfly/react-core';
+import { DropdownPosition } from '@patternfly/react-core';
 
-import {
-  ActionDropdown,
-  ActionDropdownItem,
-} from '@app/components/ActionDropdown';
+import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 
-import {
-  checkResourceClaimCanStart,
-  checkResourceClaimCanStop,
-} from '@app/util';
+import { checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 
 export interface ServiceActionsProps {
   actionHandlers: any;
@@ -31,7 +23,7 @@ const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
   resourceClaim,
   serviceName,
 }) => {
-  const actionDropdownItems : any[] = []
+  const actionDropdownItems: any[] = [];
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : true;
   const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : true;
 
@@ -50,7 +42,9 @@ const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
       <ActionDropdownItem
         key="runtime"
         label="Adjust Runtime"
-        isDisabled={!resourceClaim || !canStop || !resourceClaim?.status?.resources?.[0]?.state?.spec?.vars?.action_schedule}
+        isDisabled={
+          !resourceClaim || !canStop || !resourceClaim?.status?.resources?.[0]?.state?.spec?.vars?.action_schedule
+        }
         onSelect={() => actionHandlers.runtime()}
       />
     );
@@ -59,7 +53,7 @@ const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
     actionDropdownItems.push(
       <ActionDropdownItem
         key="delete"
-        label={serviceName ? `Delete ${serviceName}` : "Delete"}
+        label={serviceName ? `Delete ${serviceName}` : 'Delete'}
         onSelect={() => actionHandlers.delete()}
       />
     );
@@ -68,7 +62,7 @@ const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
     actionDropdownItems.push(
       <ActionDropdownItem
         key="start"
-        label={serviceName ? `Start ${serviceName}` : "Start"}
+        label={serviceName ? `Start ${serviceName}` : 'Start'}
         isDisabled={!canStart}
         onSelect={() => actionHandlers.start()}
       />
@@ -78,7 +72,7 @@ const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
     actionDropdownItems.push(
       <ActionDropdownItem
         key="stop"
-        label={serviceName ? `Stop ${serviceName}` : "Stop"}
+        label={serviceName ? `Stop ${serviceName}` : 'Stop'}
         isDisabled={!canStop}
         onSelect={() => actionHandlers.stop()}
       />
@@ -92,6 +86,6 @@ const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
       position={position}
     />
   );
-}
+};
 
 export default ServiceActions;

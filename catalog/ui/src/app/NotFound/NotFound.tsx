@@ -1,20 +1,12 @@
 import * as React from 'react';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import {
-  PageSection,
-  Title,
-  Button,
-  EmptyState,
-  EmptyStateIcon,
-  EmptyStateBody,
-} from '@patternfly/react-core';
+import { PageSection, Title, Button, EmptyState, EmptyStateIcon, EmptyStateBody } from '@patternfly/react-core';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { selectUser } from '@app/store';
 import LoadingIcon from '@app/components/LoadingIcon';
 
 const NotFound: React.FunctionComponent = () => {
-
   const user = useSelector(selectUser);
 
   function GoHomeBtn() {
@@ -22,9 +14,7 @@ const NotFound: React.FunctionComponent = () => {
     function handleClick() {
       history.push('/');
     }
-    return (
-      <Button onClick={handleClick}>Take me home</Button>
-    );
+    return <Button onClick={handleClick}>Take me home</Button>;
   }
 
   if (user) {
@@ -35,9 +25,7 @@ const NotFound: React.FunctionComponent = () => {
           <Title headingLevel="h1" size="lg">
             404 Page not found
           </Title>
-          <EmptyStateBody>
-            We didn&apos;t find a page that matches the address you navigated to.
-          </EmptyStateBody>
+          <EmptyStateBody>We didn&apos;t find a page that matches the address you navigated to.</EmptyStateBody>
           <GoHomeBtn />
         </EmptyState>
       </PageSection>

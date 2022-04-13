@@ -21,21 +21,21 @@ const WorkshopDeleteModal: React.FunctionComponent<WorkshopDeleteModalProps> = (
     <Modal
       className="workshop-delete-modal"
       variant={ModalVariant.medium}
-      title={workshop ? `Delete workshop ${displayName(workshop)}?` : "Delete selected workshops?" }
+      title={workshop ? `Delete workshop ${displayName(workshop)}?` : 'Delete selected workshops?'}
       isOpen={isOpen}
       onClose={onClose}
       actions={[
-        <Button key="confirm" variant="primary"
-          onClick={onConfirm}
-        >Confirm</Button>,
-        <Button key="cancel" variant="link"
-          onClick={onClose}
-        >Cancel</Button>
+        <Button key="confirm" variant="primary" onClick={onConfirm}>
+          Confirm
+        </Button>,
+        <Button key="cancel" variant="link" onClick={onClose}>
+          Cancel
+        </Button>,
       ]}
     >
       Provisioned services will be deleted.
     </Modal>
   );
-}
+};
 
 export default WorkshopDeleteModal;

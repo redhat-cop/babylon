@@ -1,10 +1,10 @@
-import React from "react";
-import { useEffect, useReducer, useRef, useState } from "react";
+import React from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
-import Editor from "@monaco-editor/react";
+import Editor from '@monaco-editor/react';
 const yaml = require('js-yaml');
 
 import {
@@ -34,10 +34,7 @@ import {
   stopAllResourcesInResourceClaim,
 } from '@app/api';
 
-import {
-  selectServiceNamespaces,
-  selectUserIsAdmin,
-} from '@app/store';
+import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
 
 import { Namespace, NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
 import { displayName, renderContent } from '@app/util';
@@ -63,7 +60,7 @@ import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
 import './workshops.css';
 
 export interface ModalState {
-  action?: 'delete'|'deleteService'|'startService'|'stopService';
+  action?: 'delete' | 'deleteService' | 'startService' | 'stopService';
   modal?: string;
   resourceClaim?: ResourceClaim;
 }
@@ -75,16 +72,18 @@ interface WorkshopsItemProps {
 }
 
 const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
-  activeTab, serviceNamespaceName, workshopName
+  activeTab,
+  serviceNamespaceName,
+  workshopName,
 }) => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
   const sessionServiceNamespaces = useSelector(selectServiceNamespaces);
   const sessionServiceNamespace = sessionServiceNamespaces.find(
-    (ns:ServiceNamespace) => ns.name == serviceNamespaceName
+    (ns: ServiceNamespace) => ns.name == serviceNamespaceName
   );
-  const userIsAdmin:boolean = useSelector(selectUserIsAdmin);
+  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
 
   const [modalState, setModalState] = React.useState<ModalState>({});
   const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
@@ -92,24 +91,24 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [workshopFetchState, reduceWorkshopFetchState] = useReducer(k8sFetchStateReducer, null);
 
-  const serviceNamespaces:ServiceNamespace[] = userNamespacesFetchState?.items ? (
-    userNamespacesFetchState.items.map((ns:Namespace): ServiceNamespace => {
-      return {
-        name: ns.metadata.name,
-        displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-      };
-    })
-  ) : sessionServiceNamespaces;
-  const serviceNamespace:ServiceNamespace = (serviceNamespaces || []).find(
+  const serviceNamespaces: ServiceNamespace[] = userNamespacesFetchState?.items
+    ? userNamespacesFetchState.items.map((ns: Namespace): ServiceNamespace => {
+        return {
+          name: ns.metadata.name,
+          displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
+        };
+      })
+    : sessionServiceNamespaces;
+  const serviceNamespace: ServiceNamespace = (serviceNamespaces || []).find(
     (ns) => ns.name === serviceNamespaceName
-  ) || {name: serviceNamespaceName, displayName: serviceNamespaceName};
+  ) || { name: serviceNamespaceName, displayName: serviceNamespaceName };
 
-  const workshop:Workshop = workshopFetchState?.item as Workshop;
+  const workshop: Workshop = workshopFetchState?.item as Workshop;
 
   async function fetchUserNamespaces(): Promise<void> {
-    const userNamespaceList:NamespaceList = await listNamespaces({
-      labelSelector: 'usernamespace.gpte.redhat.com/user-uid'
-    })
+    const userNamespaceList: NamespaceList = await listNamespaces({
+      labelSelector: 'usernamespace.gpte.redhat.com/user-uid',
+    });
     if (!userNamespacesFetchState.activity.canceled) {
       reduceUserNamespacesFetchState({
         type: 'post',
@@ -119,10 +118,10 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
   }
 
   async function fetchWorkshop(): Promise<void> {
-    let workshop:Workshop = null;
+    let workshop: Workshop = null;
     try {
-      workshop = await getWorkshop(serviceNamespaceName, workshopName)
-    } catch(error) {
+      workshop = await getWorkshop(serviceNamespaceName, workshopName);
+    } catch (error) {
       if (!(error instanceof Response && error.status === 404)) {
         throw error;
       }
@@ -133,16 +132,16 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
         item: workshop,
         refreshInterval: 5000,
         refresh: (): void => {
-          reduceWorkshopFetchState({type: 'startRefresh'});
-        }
+          reduceWorkshopFetchState({ type: 'startRefresh' });
+        },
       });
     }
   }
 
   async function onServiceDeleteConfirm(): Promise<void> {
-    const deleteResourceClaims:ResourceClaim[] = (
-      modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims
-    );
+    const deleteResourceClaims: ResourceClaim[] = modalState.resourceClaim
+      ? [modalState.resourceClaim]
+      : selectedResourceClaims;
     for (const resourceClaim of deleteResourceClaims) {
       await deleteResourceClaim(resourceClaim);
     }
@@ -150,16 +149,16 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
       reduceResourceClaimsFetchState({
         type: 'removeItems',
         items: deleteResourceClaims,
-      })
+      });
     }
     setModalState({});
   }
 
   async function onServiceStartConfirm(): Promise<void> {
-    const updatedResourceClaims:ResourceClaim[] = [];
-    const startResourceClaims:ResourceClaim[] = (
-      modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims
-    );
+    const updatedResourceClaims: ResourceClaim[] = [];
+    const startResourceClaims: ResourceClaim[] = modalState.resourceClaim
+      ? [modalState.resourceClaim]
+      : selectedResourceClaims;
     for (const resourceClaim of startResourceClaims) {
       updatedResourceClaims.push(await startAllResourcesInResourceClaim(resourceClaim));
     }
@@ -167,16 +166,16 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
       reduceResourceClaimsFetchState({
         type: 'updateItems',
         items: updatedResourceClaims,
-      })
+      });
     }
     setModalState({});
   }
 
   async function onServiceStopConfirm(): Promise<void> {
-    const updatedResourceClaims:ResourceClaim[] = [];
-    const stopResourceClaims:ResourceClaim[] = (
-      modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims
-    );
+    const updatedResourceClaims: ResourceClaim[] = [];
+    const stopResourceClaims: ResourceClaim[] = modalState.resourceClaim
+      ? [modalState.resourceClaim]
+      : selectedResourceClaims;
     for (const resourceClaim of stopResourceClaims) {
       updatedResourceClaims.push(await stopAllResourcesInResourceClaim(resourceClaim));
     }
@@ -184,7 +183,7 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
       reduceResourceClaimsFetchState({
         type: 'updateItems',
         items: updatedResourceClaims,
-      })
+      });
     }
     setModalState({});
   }
@@ -198,20 +197,20 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
   useEffect(() => {
     return () => {
       componentWillUnmount.current = true;
-    }
+    };
   }, []);
 
   // Start fetch of user namespaces for admin users
   useEffect(() => {
     if (userIsAdmin) {
-      reduceUserNamespacesFetchState({type: 'startFetch'});
+      reduceUserNamespacesFetchState({ type: 'startFetch' });
     }
   }, [userIsAdmin]);
 
   // Start fetching workshop
   useEffect(() => {
-    reduceWorkshopFetchState({type: 'startFetch'});
-  }, [workshopName])
+    reduceWorkshopFetchState({ type: 'startFetch' });
+  }, [workshopName]);
 
   // Fetch user namespaces
   useEffect(() => {
@@ -222,8 +221,8 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
       if (componentWillUnmount.current) {
         cancelFetchActivity(userNamespacesFetchState);
       }
-    }
-  }, [userNamespacesFetchState])
+    };
+  }, [userNamespacesFetchState]);
 
   // Fetch Workshop
   useEffect(() => {
@@ -234,8 +233,8 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
       if (componentWillUnmount.current) {
         cancelFetchActivity(workshopFetchState);
       }
-    }
-  }, [workshopFetchState])
+    };
+  }, [workshopFetchState]);
 
   // Show loading until whether the user is admin is determined.
   if (userIsAdmin === null) {
@@ -273,132 +272,165 @@ const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
     }
   }
 
-  return (<>
-    { modalState?.action === 'delete' ? (
-      <WorkshopDeleteModal key="deleteModal"
-        isOpen={true}
-        onClose={() => setModalState({})}
-        onConfirm={onWorkshopDeleteConfirm}
-        workshop={workshop}
-      />
-    ) : modalState?.action === 'deleteService' ? (
-      <ResourceClaimDeleteModal key="deleteServiceModal"
-        isOpen={true}
-        onClose={() => setModalState({})}
-        onConfirm={onServiceDeleteConfirm}
-        resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
-      />
-    ) : modalState?.action === 'startService' ? (
-      <ResourceClaimStartModal key="startServiceModal"
-        isOpen={true}
-        onClose={() => setModalState({})}
-        onConfirm={onServiceStartConfirm}
-        resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
-      />
-    ) : modalState?.action === 'stopService' ? (
-      <ResourceClaimStopModal key="stopServiceModal"
-        isOpen={true}
-        onClose={() => setModalState({})}
-        onConfirm={onServiceStopConfirm}
-        resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
-      />
-    ) : null }
-    { userIsAdmin || serviceNamespaces.length > 1 ? (
-      <PageSection key="topbar" className="workshops-topbar" variant={PageSectionVariants.light}>
-        <ServiceNamespaceSelect
-          currentNamespaceName={serviceNamespaceName}
-          serviceNamespaces={serviceNamespaces}
-          onSelect={(namespaceName) => {
-            if (namespaceName) {
-              history.push(`/workshops/${namespaceName}${location.search}`);
-            } else {
-              history.push(`/workshops${location.search}`);
-            }
-          }}
+  return (
+    <>
+      {modalState?.action === 'delete' ? (
+        <WorkshopDeleteModal
+          key="deleteModal"
+          isOpen={true}
+          onClose={() => setModalState({})}
+          onConfirm={onWorkshopDeleteConfirm}
+          workshop={workshop}
         />
+      ) : modalState?.action === 'deleteService' ? (
+        <ResourceClaimDeleteModal
+          key="deleteServiceModal"
+          isOpen={true}
+          onClose={() => setModalState({})}
+          onConfirm={onServiceDeleteConfirm}
+          resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
+        />
+      ) : modalState?.action === 'startService' ? (
+        <ResourceClaimStartModal
+          key="startServiceModal"
+          isOpen={true}
+          onClose={() => setModalState({})}
+          onConfirm={onServiceStartConfirm}
+          resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
+        />
+      ) : modalState?.action === 'stopService' ? (
+        <ResourceClaimStopModal
+          key="stopServiceModal"
+          isOpen={true}
+          onClose={() => setModalState({})}
+          onConfirm={onServiceStopConfirm}
+          resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
+        />
+      ) : null}
+      {userIsAdmin || serviceNamespaces.length > 1 ? (
+        <PageSection key="topbar" className="workshops-topbar" variant={PageSectionVariants.light}>
+          <ServiceNamespaceSelect
+            currentNamespaceName={serviceNamespaceName}
+            serviceNamespaces={serviceNamespaces}
+            onSelect={(namespaceName) => {
+              if (namespaceName) {
+                history.push(`/workshops/${namespaceName}${location.search}`);
+              } else {
+                history.push(`/workshops${location.search}`);
+              }
+            }}
+          />
+        </PageSection>
+      ) : null}
+      <PageSection key="head" className="workshops-item-head" variant={PageSectionVariants.light}>
+        <Split hasGutter>
+          <SplitItem isFilled>
+            {userIsAdmin || serviceNamespaces.length > 1 ? (
+              <Breadcrumb>
+                <BreadcrumbItem
+                  render={({ className }) => (
+                    <Link to="/workshops" className={className}>
+                      Workshops
+                    </Link>
+                  )}
+                />
+                <BreadcrumbItem
+                  render={({ className }) => (
+                    <Link to={`/workshops/${serviceNamespaceName}`} className={className}>
+                      {displayName(serviceNamespace)}
+                    </Link>
+                  )}
+                />
+                <BreadcrumbItem>{workshopName}</BreadcrumbItem>
+              </Breadcrumb>
+            ) : (
+              <Breadcrumb>
+                <BreadcrumbItem
+                  render={({ className }) => (
+                    <Link to={`/workshops/${serviceNamespaceName}`} className={className}>
+                      Workshops
+                    </Link>
+                  )}
+                />
+                <BreadcrumbItem>{workshopName}</BreadcrumbItem>
+              </Breadcrumb>
+            )}
+            <Title headingLevel="h4" size="xl">
+              {displayName(workshop)}
+            </Title>
+          </SplitItem>
+          <SplitItem>
+            <Bullseye>
+              <WorkshopActions
+                position="right"
+                workshop={workshop}
+                actionHandlers={{
+                  delete: () => setModalState({ modal: 'action', action: 'delete' }),
+                  deleteService:
+                    selectedResourceClaims.length === 0
+                      ? null
+                      : () => setModalState({ modal: 'action', action: 'deleteService' }),
+                  startService:
+                    selectedResourceClaims.length === 0
+                      ? null
+                      : () => setModalState({ modal: 'action', action: 'startService' }),
+                  stopService:
+                    selectedResourceClaims.length === 0
+                      ? null
+                      : () => setModalState({ modal: 'action', action: 'stopService' }),
+                }}
+              />
+            </Bullseye>
+          </SplitItem>
+        </Split>
       </PageSection>
-    ) : null}
-    <PageSection key="head" className="workshops-item-head" variant={PageSectionVariants.light}>
-      <Split hasGutter>
-        <SplitItem isFilled>
-          { userIsAdmin || serviceNamespaces.length > 1 ? (
-            <Breadcrumb>
-              <BreadcrumbItem render={({ className }) => <Link to="/workshops" className={className}>Workshops</Link>}/>
-              <BreadcrumbItem render={({ className }) => <Link to={`/workshops/${serviceNamespaceName}`} className={className}>{displayName(serviceNamespace)}</Link>}/>
-              <BreadcrumbItem>{workshopName}</BreadcrumbItem>
-            </Breadcrumb>
-          ) : (
-            <Breadcrumb>
-              <BreadcrumbItem render={({ className }) => <Link to={`/workshops/${serviceNamespaceName}`} className={className}>Workshops</Link>}/>
-              <BreadcrumbItem>{workshopName}</BreadcrumbItem>
-            </Breadcrumb>
-          )}
-          <Title headingLevel="h4" size="xl">{displayName(workshop)}</Title>
-        </SplitItem>
-        <SplitItem>
-          <Bullseye>
-            <WorkshopActions
-              position="right"
+      <PageSection key="body" variant={PageSectionVariants.light} className="workshops-item-body">
+        <Tabs
+          activeKey={activeTab || 'details'}
+          onSelect={(e, tabIndex) => history.push(`/workshops/${serviceNamespaceName}/${workshopName}/${tabIndex}`)}
+        >
+          <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
+            <WorkshopsItemDetails
+              onWorkshopUpdate={(workshop: Workshop) =>
+                reduceWorkshopFetchState({ type: 'updateItem', item: workshop })
+              }
               workshop={workshop}
-              actionHandlers={{
-                delete: () => setModalState({modal: 'action', action: 'delete'}),
-                deleteService: (
-                  selectedResourceClaims.length === 0 ? null :
-                  () => setModalState({modal: 'action', action: 'deleteService'})
-                ),
-                startService: (
-                  selectedResourceClaims.length === 0 ? null :
-                  () => setModalState({modal: 'action', action: 'startService'})
-                ),
-                stopService: (
-                  selectedResourceClaims.length === 0 ? null :
-                  () => setModalState({modal: 'action', action: 'stopService'})
-                ),
-              }}
             />
-          </Bullseye>
-        </SplitItem>
-      </Split>
-    </PageSection>
-    <PageSection key="body" variant={PageSectionVariants.light} className="workshops-item-body">
-      <Tabs activeKey={activeTab || "details"} onSelect={(e, tabIndex) => history.push(`/workshops/${serviceNamespaceName}/${workshopName}/${tabIndex}`)}>
-        <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
-          <WorkshopsItemDetails
-            onWorkshopUpdate={(workshop:Workshop) => reduceWorkshopFetchState({type: 'updateItem', item: workshop})}
-            workshop={workshop}
-          />
-        </Tab>
-        <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
-          <WorkshopsItemProvisioning workshop={workshop} />
-        </Tab>
-        <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
-          <WorkshopsItemServices
-            modalState={modalState}
-            setModalState={setModalState}
-            setSelectedResourceClaims={setSelectedResourceClaims}
-            resourceClaimsFetchState={resourceClaimsFetchState}
-            reduceResourceClaimsFetchState={reduceResourceClaimsFetchState}
-            workshop={workshop}
-          />
-        </Tab>
-        <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
-          <WorkshopsItemUserAssignments
-            onWorkshopUpdate={(workshop:Workshop) => reduceWorkshopFetchState({type: 'updateItem', item: workshop})}
-            workshop={workshop}
-          />
-        </Tab>
-        <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
-          <Editor
-            height="500px"
-            language="yaml"
-            options={{readOnly: true}}
-            theme="vs-dark"
-            value={yaml.dump(workshop)}
-          />
-        </Tab>
-      </Tabs>
-    </PageSection>
-  </>);
-}
+          </Tab>
+          <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
+            <WorkshopsItemProvisioning workshop={workshop} />
+          </Tab>
+          <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
+            <WorkshopsItemServices
+              modalState={modalState}
+              setModalState={setModalState}
+              setSelectedResourceClaims={setSelectedResourceClaims}
+              resourceClaimsFetchState={resourceClaimsFetchState}
+              reduceResourceClaimsFetchState={reduceResourceClaimsFetchState}
+              workshop={workshop}
+            />
+          </Tab>
+          <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
+            <WorkshopsItemUserAssignments
+              onWorkshopUpdate={(workshop: Workshop) =>
+                reduceWorkshopFetchState({ type: 'updateItem', item: workshop })
+              }
+              workshop={workshop}
+            />
+          </Tab>
+          <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
+            <Editor
+              height="500px"
+              language="yaml"
+              options={{ readOnly: true }}
+              theme="vs-dark"
+              value={yaml.dump(workshop)}
+            />
+          </Tab>
+        </Tabs>
+      </PageSection>
+    </>
+  );
+};
 
 export default WorkshopsItem;

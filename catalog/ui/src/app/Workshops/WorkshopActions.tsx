@@ -1,15 +1,10 @@
 import * as React from 'react';
 
-import {
-  DropdownPosition,
-} from '@patternfly/react-core';
+import { DropdownPosition } from '@patternfly/react-core';
 
 import { Workshop } from '@app/types';
 
-import {
-  ActionDropdown,
-  ActionDropdownItem,
-} from '@app/components/ActionDropdown';
+import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 
 interface WorkshopActionsProps {
   actionHandlers: {
@@ -37,7 +32,7 @@ const WorkshopActions: React.FunctionComponent<WorkshopActionsProps> = ({
     <ActionDropdownItem
       key="delete"
       isDisabled={!actionHandlers.delete}
-      label={workshopName ? `Delete ${workshopName}` : "Delete"}
+      label={workshopName ? `Delete ${workshopName}` : 'Delete'}
       onSelect={actionHandlers.delete}
     />,
     <ActionDropdownItem
@@ -57,7 +52,7 @@ const WorkshopActions: React.FunctionComponent<WorkshopActionsProps> = ({
       isDisabled={!actionHandlers.stopService}
       label={`Stop Selected Services`}
       onSelect={actionHandlers.stopService}
-    />
+    />,
   ];
 
   return (
@@ -68,6 +63,6 @@ const WorkshopActions: React.FunctionComponent<WorkshopActionsProps> = ({
       position={position}
     />
   );
-}
+};
 
 export default WorkshopActions;

@@ -1,13 +1,8 @@
-import React from "react";
-import { useEffect, useReducer, useRef, useState } from "react";
+import React from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Title,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import { listWorkshopProvisions } from '@app/api';
@@ -27,17 +22,15 @@ interface WorkshopsItemProvisioningProps {
   workshop: Workshop;
 }
 
-const WorkshopsItemProvisioning: React.FunctionComponent<WorkshopsItemProvisioningProps> = ({
-  workshop,
-}) => {
+const WorkshopsItemProvisioning: React.FunctionComponent<WorkshopsItemProvisioningProps> = ({ workshop }) => {
   const componentWillUnmount = useRef(false);
-  const userIsAdmin:boolean = useSelector(selectUserIsAdmin);
+  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
   const [catalogItemFetchState, reduceCatalogItemFetchState] = useReducer(k8sFetchStateReducer, null);
   const [workshopProvisionsFetchState, reduceWorkshopProvisionsFetchState] = useReducer(k8sFetchStateReducer, null);
-  const workshopProvisions:WorkshopProvision[] = workshopProvisionsFetchState?.items as WorkshopProvision[] || [];
+  const workshopProvisions: WorkshopProvision[] = (workshopProvisionsFetchState?.items as WorkshopProvision[]) || [];
 
   async function fetchWorkshopProvisions(): Promise<void> {
-    const workshopProvisionList:WorkshopProvisionList = await listWorkshopProvisions({
+    const workshopProvisionList: WorkshopProvisionList = await listWorkshopProvisions({
       continue: workshopProvisionsFetchState.continue,
       labelSelector: `babylon.gpte.redhat.com/workshop=${workshop.metadata.name}`,
       limit: FETCH_BATCH_LIMIT,
@@ -49,8 +42,8 @@ const WorkshopsItemProvisioning: React.FunctionComponent<WorkshopsItemProvisioni
         k8sObjectList: workshopProvisionList,
         refreshInterval: 5000,
         refresh: (): void => {
-          reduceWorkshopProvisionsFetchState({type: 'startRefresh'});
-        }
+          reduceWorkshopProvisionsFetchState({ type: 'startRefresh' });
+        },
       });
     }
   }
@@ -59,7 +52,7 @@ const WorkshopsItemProvisioning: React.FunctionComponent<WorkshopsItemProvisioni
   useEffect(() => {
     return () => {
       componentWillUnmount.current = true;
-    }
+    };
   }, []);
 
   // Start fetching WorkshopProvisions
@@ -73,17 +66,18 @@ const WorkshopsItemProvisioning: React.FunctionComponent<WorkshopsItemProvisioni
 
   // Fetch or continue fetching WorkshopProvisions
   useEffect(() => {
-    if (workshopProvisionsFetchState?.canContinue && (
-      workshopProvisionsFetchState.refreshing ||
-      workshopProvisionsFetchState.filteredItems.length < workshopProvisionsFetchState.limit
-    )) {
+    if (
+      workshopProvisionsFetchState?.canContinue &&
+      (workshopProvisionsFetchState.refreshing ||
+        workshopProvisionsFetchState.filteredItems.length < workshopProvisionsFetchState.limit)
+    ) {
       fetchWorkshopProvisions();
     }
     return () => {
       if (componentWillUnmount.current) {
         cancelFetchActivity(workshopProvisionsFetchState);
       }
-    }
+    };
   }, [workshopProvisionsFetchState]);
 
   if (workshopProvisions.length === 0) {
@@ -95,8 +89,8 @@ const WorkshopsItemProvisioning: React.FunctionComponent<WorkshopsItemProvisioni
             No WorkshopProvisions found!
           </Title>
           <EmptyStateBody>
-            This indicates an error has occurred.
-            A WorkshopProvision should have been created when this Workshop was created.
+            This indicates an error has occurred. A WorkshopProvision should have been created when this Workshop was
+            created.
           </EmptyStateBody>
         </EmptyState>
       );
@@ -109,18 +103,20 @@ const WorkshopsItemProvisioning: React.FunctionComponent<WorkshopsItemProvisioni
     }
   }
 
-  return (<>
-    { workshopProvisions.map((workshopProvision) => (
-      <WorkshopsItemProvisioningItem
-        key={workshopProvision.metadata.uid}
-        onWorkshopProvisionUpdate={(workshopProvision:WorkshopProvision) =>
-          reduceWorkshopProvisionsFetchState({type: 'updateItems', items: [workshopProvision]})
-        }
-        workshop={workshop}
-        workshopProvision={workshopProvision}
-      />
-    )) }
-  </>);
-}
+  return (
+    <>
+      {workshopProvisions.map((workshopProvision) => (
+        <WorkshopsItemProvisioningItem
+          key={workshopProvision.metadata.uid}
+          onWorkshopProvisionUpdate={(workshopProvision: WorkshopProvision) =>
+            reduceWorkshopProvisionsFetchState({ type: 'updateItems', items: [workshopProvision] })
+          }
+          workshop={workshop}
+          workshopProvision={workshopProvision}
+        />
+      ))}
+    </>
+  );
+};
 
 export default WorkshopsItemProvisioning;

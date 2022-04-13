@@ -1,14 +1,7 @@
 import React from 'react';
-import { useState } from "react";
+import { useState } from 'react';
 
-import {
-  Button,
-  Spinner,
-  Text,
-  TextArea,
-  TextInput,
-  TextVariants,
-} from '@patternfly/react-core';
+import { Button, Spinner, Text, TextArea, TextInput, TextVariants } from '@patternfly/react-core';
 
 import { PencilAltIcon } from '@patternfly/react-icons';
 
@@ -16,9 +9,9 @@ import './editable-text.css';
 
 export interface EditableTextProps {
   ['aria-label']?: string;
-  onChange: (value:string) => void;
+  onChange: (value: string) => void;
   placeholder?: string;
-  componentType?: 'Password'|'TextArea'|'TextInput';
+  componentType?: 'Password' | 'TextArea' | 'TextInput';
   updating?: boolean;
   value: string;
 }
@@ -29,32 +22,32 @@ const EditableText: React.FunctionComponent<EditableTextProps> = ({
   onChange,
   placeholder,
   updating,
-  value
+  value,
 }) => {
   const [editing, setEditing] = useState<boolean>(false);
   const [editedValue, setEditedValue] = useState<string>(value);
 
-  function abortEditing (): void {
+  function abortEditing(): void {
     setEditedValue(value);
     setEditing(false);
   }
 
-  function beginEditing (): void {
+  function beginEditing(): void {
     setEditedValue(value);
     if (!updating) {
       setEditing(true);
     }
   }
 
-  function finishEditing (): void {
+  function finishEditing(): void {
     onChange(editedValue.trim());
     setEditing(false);
   }
 
-  function onKeyUp (event:any): void {
+  function onKeyUp(event: any): void {
     if (event.key === 'Enter') {
       finishEditing();
-    } else if(event.key === 'Escape') {
+    } else if (event.key === 'Escape') {
       abortEditing();
     }
   }
@@ -62,7 +55,8 @@ const EditableText: React.FunctionComponent<EditableTextProps> = ({
   if (editing) {
     if (componentType === 'TextArea') {
       return (
-        <TextArea autoFocus
+        <TextArea
+          autoFocus
           aria-label={ariaLabel}
           className="editable-text-area"
           onBlur={() => finishEditing()}
@@ -73,7 +67,8 @@ const EditableText: React.FunctionComponent<EditableTextProps> = ({
       );
     }
     return (
-      <TextInput autoFocus
+      <TextInput
+        autoFocus
         aria-label={ariaLabel}
         className="editable-text-input"
         onBlur={() => finishEditing()}
@@ -91,8 +86,8 @@ const EditableText: React.FunctionComponent<EditableTextProps> = ({
         onClick={beginEditing}
       >
         {value ? '********' : '- none -'}
-        <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm"/> : <PencilAltIcon/>}/>
-     </Text>
+        <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm" /> : <PencilAltIcon />} />
+      </Text>
     );
   }
   return (
@@ -102,9 +97,9 @@ const EditableText: React.FunctionComponent<EditableTextProps> = ({
       onClick={beginEditing}
     >
       {value || placeholder || ''}
-      <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm"/> : <PencilAltIcon/>}/>
+      <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm" /> : <PencilAltIcon />} />
     </Text>
   );
-}
+};
 
 export default EditableText;

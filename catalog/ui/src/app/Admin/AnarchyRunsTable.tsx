@@ -1,12 +1,7 @@
-import React from "react";
+import React from 'react';
 import { Link } from 'react-router-dom';
 
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Title,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import { K8sFetchState } from '@app/K8sFetchState';
@@ -19,7 +14,7 @@ import TimeInterval from '@app/components/TimeInterval';
 
 export interface AnarchyRunsTableProps {
   anarchyRuns: AnarchyRun[];
-  fetchState: K8sFetchState|null;
+  fetchState: K8sFetchState | null;
   selectedUids: string[];
   selectedUidsReducer: any;
 }
@@ -63,31 +58,31 @@ const AnarchyRunsTable: React.FunctionComponent<AnarchyRunsTableProps> = ({
           });
         }
       }}
-      rows={anarchyRuns.map((anarchyRun:AnarchyRun) => {
+      rows={anarchyRuns.map((anarchyRun: AnarchyRun) => {
         return {
           cells: [
             <>
-              <Link key="admin" to={`/admin/anarchyruns/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}>{anarchyRun.metadata.name}</Link>
-              <OpenshiftConsoleLink key="console" resource={anarchyRun}/>
+              <Link key="admin" to={`/admin/anarchyruns/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}>
+                {anarchyRun.metadata.name}
+              </Link>
+              <OpenshiftConsoleLink key="console" resource={anarchyRun} />
             </>,
+            <>{anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || '-'}</>,
             <>
-              {anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || '-'}
-            </>,
-            <>
-              <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp}/>
-              {' '}
-              (<TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp}/>)
+              <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} /> (
+              <TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
             </>,
           ],
-          onSelect: (isSelected) => selectedUidsReducer({
-            type: isSelected ? 'add' : 'remove',
-            uids: [anarchyRun.metadata.uid],
-          }),
+          onSelect: (isSelected) =>
+            selectedUidsReducer({
+              type: isSelected ? 'add' : 'remove',
+              uids: [anarchyRun.metadata.uid],
+            }),
           selected: selectedUids.includes(anarchyRun.metadata.uid),
         };
       })}
     />
   );
-}
+};
 
 export default AnarchyRunsTable;

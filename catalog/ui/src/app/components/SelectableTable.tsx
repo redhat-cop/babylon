@@ -1,11 +1,6 @@
 import * as React from 'react';
 
-import {
-  headerCol,
-  Table,
-  TableHeader,
-  TableBody,
-} from '@patternfly/react-table';
+import { headerCol, Table, TableHeader, TableBody } from '@patternfly/react-table';
 
 export interface SelectableTableProps {
   columns: any[];
@@ -13,13 +8,9 @@ export interface SelectableTableProps {
   rows: any[];
 }
 
-const SelectableTable: React.FunctionComponent<SelectableTableProps> = ({
-  columns,
-  onSelectAll,
-  rows,
-}) => {
+const SelectableTable: React.FunctionComponent<SelectableTableProps> = ({ columns, onSelectAll, rows }) => {
   function onSelect(event, isSelected, rowId) {
-    if(rowId === -1) {
+    if (rowId === -1) {
       onSelectAll(isSelected);
     } else {
       const rowOnSelect = rows[rowId]?.onSelect;
@@ -30,16 +21,11 @@ const SelectableTable: React.FunctionComponent<SelectableTableProps> = ({
   }
 
   return (
-    <Table
-      aria-label="Selectable Table"
-      cells={columns}
-      onSelect={onSelect}
-      rows={rows}
-    >
+    <Table aria-label="Selectable Table" cells={columns} onSelect={onSelect} rows={rows}>
       <TableHeader />
       <TableBody />
     </Table>
   );
-}
+};
 
 export default SelectableTable;
