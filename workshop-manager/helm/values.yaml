@@ -46,6 +46,6 @@ poolboy:
   domain: poolboy.gpte.redhat.com
 
 image:
-  repository: quay.io/redhat-pfe/babylon-workshop-manager
+  repository: quay.io/redhat-gpte/babylon-workshop-manager
   pullPolicy: Always
   tagOverride: ""
