@@ -20,7 +20,7 @@ const CatalogItemCard: React.FunctionComponent<CatalogItemCardProps> = ({ catalo
   const description = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/description'];
   const descriptionFormat =
     catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/descriptionFormat'] || 'asciidoc';
-  const provider = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/provider'] || 'Red Hat';
+  const provider = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/provider'] || catalogItem.metadata.labels?.['babylon.gpte.redhat.com/Provider'] || 'Red Hat';
   const stage = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'];
 
   if (catalogNamespaceName) {
@@ -50,7 +50,7 @@ const CatalogItemCard: React.FunctionComponent<CatalogItemCardProps> = ({ catalo
           {displayName(catalogItem)}
         </Title>
         <Title className="catalog-item-card-subtitle" headingLevel="h4">
-          provided by {provider}
+          provided by {provider.replace(/_/g, ' ')}
         </Title>
         <div
           className="catalog-item-card-description"
