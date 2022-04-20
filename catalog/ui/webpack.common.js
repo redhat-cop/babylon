@@ -140,10 +140,6 @@ module.exports = (env) => {
         'react-dom': '@hot-loader/react-dom',
       },
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
-      fallback: {
-        crypto: require.resolve('crypto-browserify'),
-        stream: require.resolve('stream-browserify'),
-      },
       plugins: [
         new TsconfigPathsPlugin({
           configFile: path.resolve(__dirname, './tsconfig.json'),
