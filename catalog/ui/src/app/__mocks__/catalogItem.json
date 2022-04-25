@@ -7,9 +7,7 @@
       "babylon.gpte.redhat.com/descriptionFormat": "html",
       "babylon.gpte.redhat.com/displayName": "Test Config",
       "babylon.gpte.redhat.com/icon": "",
-      "babylon.gpte.redhat.com/keywords": "",
-      "operator-sdk/primary-resource": "agnosticv-operator/gpte-agnosticv",
-      "operator-sdk/primary-resource-type": "AgnosticVRepo.gpte.redhat.com"
+      "babylon.gpte.redhat.com/keywords": ""
     },
     "creationTimestamp": "2022-04-22T20:13:37Z",
     "generation": 1,
@@ -56,8 +54,8 @@
     ],
     "name": "tests.test-empty-config.prod",
     "namespace": "babylon-catalog-test",
-    "resourceVersion": "477332322",
-    "uid": "8bc3070b-165c-4274-9121-ae08fa8c7046"
+    "resourceVersion": "1234",
+    "uid": "randomUuid"
   },
   "spec": {
     "parameters": [
@@ -77,18 +75,7 @@
         "formLabel": "Purpose",
         "name": "purpose",
         "openAPIV3Schema": {
-          "enum": [
-            "Customer Activity - Customer environment testing",
-            "Customer Activity - Customer workshop/demo",
-            "Customer Activity - Informal training",
-            "Customer Activity - Multi-customer event",
-            "Customer Activity - Proof of concept",
-            "Development - Catalog item creation / maintenance",
-            "Development - PnT engineering",
-            "Development - Solution prototyping",
-            "Training - Ad-hoc or exploratory",
-            "Training - As part of course"
-          ],
+          "enum": [],
           "type": "string"
         },
         "required": true
@@ -102,80 +89,6 @@
           "default": false,
           "type": "boolean"
         }
-      },
-      {
-        "description": "Request failure in AgnosticD infra.yml",
-        "formGroup": "Request Failure",
-        "formLabel": "Fail in AgnosticD infra stage",
-        "name": "fail_infra",
-        "openAPIV3Schema": {
-          "default": false,
-          "type": "boolean"
-        }
-      },
-      {
-        "description": "Request failure in AgnosticD post_infra.yml",
-        "formGroup": "Request Failure",
-        "formLabel": "Fail in AgnosticD post-infra stage",
-        "name": "fail_post_infra",
-        "openAPIV3Schema": {
-          "default": false,
-          "type": "boolean"
-        }
-      },
-      {
-        "description": "Request failure in AgnosticD pre_software.yml",
-        "formGroup": "Request Failure",
-        "formLabel": "Fail in AgnosticD pre-software stage",
-        "name": "fail_pre_software",
-        "openAPIV3Schema": {
-          "default": false,
-          "type": "boolean"
-        }
-      },
-      {
-        "description": "Request failure in AgnosticD software.yml",
-        "formGroup": "Request Failure",
-        "formLabel": "Fail in AgnosticD software stage",
-        "name": "fail_software",
-        "openAPIV3Schema": {
-          "default": false,
-          "type": "boolean"
-        }
-      },
-      {
-        "description": "Request failure in AgnosticD post_software.yml",
-        "formGroup": "Request Failure",
-        "formLabel": "Fail in AgnosticD post-software stage",
-        "name": "fail_post_software",
-        "openAPIV3Schema": {
-          "default": false,
-          "type": "boolean"
-        },
-        "value": "false"
-      },
-      {
-        "description": "Pause in post_software.yml to extend time until provision completion.",
-        "formGroup": "Provision Pause",
-        "formLabel": "Enable",
-        "name": "test_empty_config_pause_post_software",
-        "openAPIV3Schema": {
-          "default": false,
-          "type": "boolean"
-        }
-      },
-      {
-        "description": "Seconds to pause in post_software.yml",
-        "formDisableCondition": "test_empty_config_pause_post_software !== true",
-        "formLabel": "Pause duration in post_software.yml",
-        "name": "test_empty_config_pause_post_software_seconds",
-        "openAPIV3Schema": {
-          "default": 30,
-          "maximum": 3600,
-          "minimum": 1,
-          "type": "integer"
-        },
-        "validation": "test_empty_config_pause_post_software_seconds < 60 || check_salesforce_id(salesforce_id) || Error('Pause duration must be less than a minute unless a valid Salesforce ID is provided.')"
       }
     ],
     "provisionTimeEstimate": "2m",
@@ -190,6 +103,6 @@
         }
       }
     ],
-    "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+    "termsOfService": "<p>\nPlease pay close attention.\n</p>"
   }
 }
