@@ -40,7 +40,7 @@ import {
 
 import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
 
-import { checkAccessControl, displayName, recursiveAssign } from '@app/util';
+import { checkAccessControl, displayName, recursiveAssign, BABYLON_ANNOTATION } from '@app/util';
 
 declare var window: Window &
   typeof globalThis & {
@@ -121,7 +121,7 @@ export async function assignWorkshopUser({
     return workshop;
   }
 
-  const jsonPatch: JSONPatch = []
+  const jsonPatch: JSONPatch = [];
   if (resourceClaimName) {
     jsonPatch.push({
       op: 'test',
@@ -292,14 +292,14 @@ export async function createServiceRequest({
     kind: 'ResourceClaim',
     metadata: {
       annotations: {
-        'babylon.gpte.redhat.com/catalogDisplayName': catalogNamespace?.displayName || catalogItem.metadata.namespace,
-        'babylon.gpte.redhat.com/catalogItemDisplayName': displayName(catalogItem),
-        'babylon.gpte.redhat.com/requester': session.user,
-        'babylon.gpte.redhat.com/url': `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}`,
+        [`${BABYLON_ANNOTATION}/catalogDisplayName`]: catalogNamespace?.displayName || catalogItem.metadata.namespace,
+        [`${BABYLON_ANNOTATION}/catalogItemDisplayName`]: displayName(catalogItem),
+        [`${BABYLON_ANNOTATION}/requester`]: session.user,
+        [`${BABYLON_ANNOTATION}/url`]: `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}`,
       },
       labels: {
-        'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
-        'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
+        [`${BABYLON_ANNOTATION}/catalogItemName`]: catalogItem.metadata.name,
+        [`${BABYLON_ANNOTATION}/catalogItemNamespace`]: catalogItem.metadata.namespace,
       },
       name: catalogItem.metadata.name,
       namespace: userNamespace.name,
@@ -310,7 +310,7 @@ export async function createServiceRequest({
   };
 
   if (catalogItem.spec.userData) {
-    requestResourceClaim.metadata.annotations['babylon.gpte.redhat.com/userData'] = JSON.stringify(
+    requestResourceClaim.metadata.annotations[`${BABYLON_ANNOTATION}/userData`] = JSON.stringify(
       catalogItem.spec.userData
     );
   }
@@ -326,14 +326,14 @@ export async function createServiceRequest({
 
     // Add display name annotations for components
     for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
-      if (key.startsWith('babylon.gpte.redhat.com/displayNameComponent')) {
+      if (key.startsWith(`${BABYLON_ANNOTATION}/displayNameComponent`)) {
         requestResourceClaim.metadata.annotations[key] = value;
       }
     }
 
     // Add bookbag label
     if (catalogItem.spec.bookbag) {
-      requestResourceClaim.metadata.labels['babylon.gpte.redhat.com/labUserInterface'] = 'bookbag';
+      requestResourceClaim.metadata.labels[`${BABYLON_ANNOTATION}/labUserInterface`] = 'bookbag';
     }
 
     // Copy all parameter values into the ResourceClaim
@@ -390,14 +390,14 @@ export async function createServiceRequest({
         },
         metadata: {
           labels: {
-            'babylon.gpte.redhat.com/catalogItem': catalogItem.metadata.name,
+            [`${BABYLON_ANNOTATION}/catalogItem`]: catalogItem.metadata.name,
           },
         },
       },
     };
   }
 
-  let n: number = 0;
+  let n = 0;
   while (true) {
     try {
       const resourceClaim: ResourceClaim = await createResourceClaim(requestResourceClaim);
@@ -407,7 +407,7 @@ export async function createServiceRequest({
         n++;
         requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${n}`;
         requestResourceClaim.metadata.annotations[
-          'babylon.gpte.redhat.com/url'
+          `${BABYLON_ANNOTATION}/url`
         ] = `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}-${n}`;
       } else {
         throw error;
@@ -432,14 +432,14 @@ export async function createWorkshop({
   serviceNamespace: ServiceNamespace;
 }): Promise<Workshop> {
   const definition: Workshop = {
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     kind: 'Workshop',
     metadata: {
       name: catalogItem.metadata.name,
       namespace: serviceNamespace.name,
       labels: {
-        'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
-        'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
+        [`${BABYLON_ANNOTATION}/catalogItemName`]: catalogItem.metadata.name,
+        [`${BABYLON_ANNOTATION}/catalogItemNamespace`]: catalogItem.metadata.namespace,
       },
     },
     spec: {
@@ -458,7 +458,7 @@ export async function createWorkshop({
     definition.spec.displayName = displayName;
   }
 
-  let n: number = 0;
+  let n = 0;
   while (true) {
     try {
       const workshop: Workshop = await createK8sObject<Workshop>(definition);
@@ -487,17 +487,17 @@ export async function createWorkshopForMultiuserService({
   openRegistration: boolean;
   resourceClaim: ResourceClaim;
 }): Promise<{ resourceClaim: ResourceClaim; workshop: Workshop }> {
-  const catalogItemName: string = resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'];
-  const catalogItemNamespace: string = resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace'];
+  const catalogItemName: string = resourceClaim.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemName`];
+  const catalogItemNamespace: string = resourceClaim.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemNamespace`];
   const definition: Workshop = {
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     kind: 'Workshop',
     metadata: {
       name: resourceClaim.metadata.name,
       namespace: resourceClaim.metadata.namespace,
       labels: {
-        'babylon.gpte.redhat.com/catalogItemName': catalogItemName,
-        'babylon.gpte.redhat.com/catalogItemNamespace': catalogItemNamespace,
+        [`${BABYLON_ANNOTATION}/catalogItemName`]: catalogItemName,
+        [`${BABYLON_ANNOTATION}/catalogItemNamespace`]: catalogItemNamespace,
       },
       ownerReferences: [
         {
@@ -527,8 +527,10 @@ export async function createWorkshopForMultiuserService({
   }
   // Use GUID as workshop id
   if (resourceClaim.status?.resourceHandle) {
-    definition.metadata.labels['babylon.gpte.redhat.com/workshop-id'] =
-      resourceClaim.status?.resourceHandle.name.replace(/^guid-/, '');
+    definition.metadata.labels[`${BABYLON_ANNOTATION}/workshop-id`] = resourceClaim.status?.resourceHandle.name.replace(
+      /^guid-/,
+      ''
+    );
   }
 
   const workshop: Workshop = await createK8sObject<Workshop>(definition);
@@ -538,7 +540,7 @@ export async function createWorkshopForMultiuserService({
     {
       metadata: {
         labels: {
-          'babylon.gpte.redhat.com/workshop': workshop.metadata.name,
+          [`${BABYLON_ANNOTATION}/workshop`]: workshop.metadata.name,
         },
       },
     }
@@ -563,18 +565,18 @@ export async function createWorkshopProvision({
   workshop: Workshop;
 }): Promise<WorkshopProvision> {
   const definition: WorkshopProvision = {
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     kind: 'WorkshopProvision',
     metadata: {
       name: workshop.metadata.name,
       namespace: workshop.metadata.namespace,
       labels: {
-        'babylon.gpte.redhat.com/catalogItemName': catalogItem.metadata.name,
-        'babylon.gpte.redhat.com/catalogItemNamespace': catalogItem.metadata.namespace,
+        [`${BABYLON_ANNOTATION}/catalogItemName`]: catalogItem.metadata.name,
+        [`${BABYLON_ANNOTATION}/catalogItemNamespace`]: catalogItem.metadata.namespace,
       },
       ownerReferences: [
         {
-          apiVersion: 'babylon.gpte.redhat.com/v1',
+          apiVersion: `${BABYLON_ANNOTATION}/v1`,
           controller: true,
           kind: 'Workshop',
           name: workshop.metadata.name,
@@ -652,7 +654,7 @@ export async function getAnarchySubject(namespace: string, name: string): Promis
 
 export async function getCatalogItem(namespace: string, name: string): Promise<CatalogItem> {
   return await getK8sObject<CatalogItem>({
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     name: name,
     namespace: namespace,
     plural: 'catalogitems',
@@ -729,7 +731,7 @@ export async function getUserInfo(user): Promise<any> {
 
 export async function getWorkshop(namespace: string, name: string): Promise<Workshop> {
   return await getK8sObject<Workshop>({
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     name: name,
     namespace: namespace,
     plural: 'workshops',
@@ -795,7 +797,7 @@ export async function listAnarchySubjects(opt?: K8sObjectListCommonOpt): Promise
 
 export async function listCatalogItems(opt?: K8sObjectListCommonOpt): Promise<CatalogItemList> {
   return (await listK8sObjects({
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     plural: 'catalogitems',
     ...opt,
   })) as CatalogItemList;
@@ -846,7 +848,7 @@ export async function listUsers(opt?: K8sObjectListCommonOpt): Promise<UserList>
 
 export async function listWorkshops(opt?: K8sObjectListCommonOpt): Promise<WorkshopList> {
   return (await listK8sObjects({
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     plural: 'workshops',
     ...opt,
   })) as WorkshopList;
@@ -854,7 +856,7 @@ export async function listWorkshops(opt?: K8sObjectListCommonOpt): Promise<Works
 
 export async function listWorkshopProvisions(opt?: K8sObjectListCommonOpt): Promise<WorkshopProvisionList> {
   return (await listK8sObjects({
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     plural: 'workshopprovisions',
     ...opt,
   })) as WorkshopProvisionList;
@@ -1081,7 +1083,7 @@ export async function patchWorkshop({
   patch?: object;
 }): Promise<Workshop> {
   return patchK8sObject({
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     jsonPatch: jsonPatch,
     name: name,
     namespace: namespace,
@@ -1102,7 +1104,7 @@ export async function patchWorkshopProvision({
   patch?: object;
 }): Promise<WorkshopProvision> {
   return patchK8sObject({
-    apiVersion: 'babylon.gpte.redhat.com/v1',
+    apiVersion: `${BABYLON_ANNOTATION}/v1`,
     jsonPatch: jsonPatch,
     name: name,
     namespace: namespace,

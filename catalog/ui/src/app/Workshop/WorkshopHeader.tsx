@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom';
 
 import { PageHeader } from '@patternfly/react-core';
 
-import UserInterfaceLogo from '@app/components/UserInterfaceLogo.tsx';
+import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 
 const WorkshopHeader: React.FunctionComponent = () => {
   const history = useHistory();

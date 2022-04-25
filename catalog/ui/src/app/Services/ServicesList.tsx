@@ -48,7 +48,7 @@ import TimeInterval from '@app/components/TimeInterval';
 
 import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
-import { checkResourceClaimCanStart, checkResourceClaimCanStop, displayName } from '@app/util';
+import { checkResourceClaimCanStart, checkResourceClaimCanStop, displayName, BABYLON_ANNOTATION } from '@app/util';
 
 import ServiceActions from './ServiceActions';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
@@ -82,17 +82,17 @@ function pruneResourceClaim(resourceClaim: ResourceClaim): ResourceClaim {
     kind: resourceClaim.kind,
     metadata: {
       annotations: {
-        'babylon.gpte.redhat.com/catalogDisplayName':
-          resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/catalogDisplayName'],
-        'babylon.gpte.redhat.com/catalogItemDisplayName':
-          resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/catalogItemDisplayName'],
-        'babylon.gpte.redhat.com/requester': resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/requester'],
+        [`${BABYLON_ANNOTATION}/catalogDisplayName`]:
+          resourceClaim.metadata.annotations?.[`${BABYLON_ANNOTATION}/catalogDisplayName`],
+        [`${BABYLON_ANNOTATION}/catalogItemDisplayName`]:
+          resourceClaim.metadata.annotations?.[`${BABYLON_ANNOTATION}/catalogItemDisplayName`],
+        [`${BABYLON_ANNOTATION}/requester`]: resourceClaim.metadata.annotations?.[`${BABYLON_ANNOTATION}/requester`],
       },
       labels: {
-        'babylon.gpte.redhat.com/catalogItemName':
-          resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'],
-        'babylon.gpte.redhat.com/catalogItemNamespace':
-          resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace'],
+        [`${BABYLON_ANNOTATION}/catalogItemName`]:
+          resourceClaim.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemName`],
+        [`${BABYLON_ANNOTATION}/catalogItemNamespace`]:
+          resourceClaim.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemNamespace`],
       },
       creationTimestamp: resourceClaim.metadata.creationTimestamp,
       name: resourceClaim.metadata.name,
@@ -530,7 +530,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNames
               // Find lab user interface information either in the resource claim or inside resources
               // associated with the provisioned service.
               const labUserInterfaceData =
-                resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceData'] ||
+                resourceClaim?.metadata?.annotations?.[`${BABYLON_ANNOTATION}/labUserInterfaceData`] ||
                 resources
                   .map((r) =>
                     r?.kind === 'AnarchySubject'
@@ -540,7 +540,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNames
                   .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
                   .find((u) => u != null);
               const labUserInterfaceMethod =
-                resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceMethod'] ||
+                resourceClaim?.metadata?.annotations?.[`${BABYLON_ANNOTATION}/labUserInterfaceMethod`] ||
                 resources
                   .map((r) =>
                     r?.kind === 'AnarchySubject'
@@ -549,7 +549,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNames
                   )
                   .find((u) => u != null);
               const labUserInterfaceUrl =
-                resourceClaim?.metadata?.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrl'] ||
+                resourceClaim?.metadata?.annotations?.[`${BABYLON_ANNOTATION}/labUserInterfaceUrl`] ||
                 resources
                   .map((r) => {
                     const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
@@ -617,7 +617,7 @@ const ServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNames
                     <DescriptionList isHorizontal>
                       {specResources.map((specResource, i) => {
                         const componentDisplayName =
-                          resourceClaim.metadata.annotations?.[`babylon.gpte.redhat.com/displayNameComponent${i}`] ||
+                          resourceClaim.metadata.annotations?.[`${BABYLON_ANNOTATION}/displayNameComponent${i}`] ||
                           specResource.name ||
                           specResource.provider?.name;
                         return (

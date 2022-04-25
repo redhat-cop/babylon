@@ -7,23 +7,17 @@ import { CatalogItem } from '@app/types';
 import { displayName, renderContent } from '@app/util';
 
 import CatalogItemIcon from './CatalogItemIcon';
+import { getDescription, getProvider, getStage } from './catalog-utils';
 
-interface CatalogItemCardProps {
-  catalogItem: CatalogItem;
-}
-
-const CatalogItemCard: React.FunctionComponent<CatalogItemCardProps> = ({ catalogItem }) => {
+const CatalogItemCard: React.FunctionComponent<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
   const location = useLocation();
   const routeMatch = useRouteMatch<any>('/catalog/:namespace?');
-  const catalogNamespaceName: string = routeMatch.params.namespace;
   const urlSearchParams = new URLSearchParams(location.search);
-  const description = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/description'];
-  const descriptionFormat =
-    catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/descriptionFormat'] || 'asciidoc';
-  const provider = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/provider'] || catalogItem.metadata.labels?.['babylon.gpte.redhat.com/Provider'] || 'Red Hat';
-  const stage = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/stage'];
+  const { description, descriptionFormat } = getDescription(catalogItem);
+  const provider = getProvider(catalogItem);
+  const stage = getStage(catalogItem);
 
-  if (catalogNamespaceName) {
+  if (routeMatch.params.namespace) {
     urlSearchParams.set('item', catalogItem.metadata.name);
   } else {
     urlSearchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);

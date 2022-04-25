@@ -1,11 +1,8 @@
-import React from 'react';
-import { useEffect, useState } from 'react';
+import * as React from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
 
 import {
-  ActionGroup,
-  Bullseye,
   Button,
   DescriptionList,
   DescriptionListTerm,
@@ -36,13 +33,14 @@ import {
   selectWorkshopNamespaces,
 } from '@app/store';
 import { CatalogItem, CatalogNamespace, ResourceClaim, ServiceNamespace } from '@app/types';
-import { checkAccessControl, displayName, renderContent } from '@app/util';
+import { checkAccessControl, displayName, renderContent, BABYLON_ANNOTATION } from '@app/util';
 
 import LoadingIcon from '@app/components/LoadingIcon';
 
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
+import { getProvider, getDescription } from './catalog-utils';
 
 enum CatalogItemAccess {
   Allow,
@@ -50,24 +48,18 @@ enum CatalogItemAccess {
   RequestInformation,
 }
 
-interface CatalogItemDetailsProps {
-  catalogItem: CatalogItem;
-  onClose: () => void;
-}
-
-const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({ catalogItem, onClose }) => {
+const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
   const history = useHistory();
   const location = useLocation();
   const urlSearchParams = new URLSearchParams(location.search);
 
-  const provider: string = catalogItem.metadata.labels?.['babylon.gpte.redhat.com/provider'] || 'Red Hat';
-  const description = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/description'];
-  const descriptionFormat =
-    catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/descriptionFormat'] || 'asciidoc';
+  const { provisionTimeEstimate, termsOfService, parameters, accessControl } = catalogItem.spec;
+  const { labels, namespace, name } = catalogItem.metadata;
+  const provider = getProvider(catalogItem);
+  const catalogItemName = displayName(catalogItem);
+  const { description, descriptionFormat } = getDescription(catalogItem);
 
-  const catalogNamespace: CatalogNamespace = useSelector((state) =>
-    selectCatalogNamespace(state, catalogItem.metadata.namespace)
-  );
+  const catalogNamespace: CatalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
   const userGroups: string[] = useSelector(selectUserGroups);
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
   const userNamespace: ServiceNamespace = useSelector(selectUserNamespace);
@@ -75,15 +67,13 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({ 
     selectResourceClaimsInNamespace(state, userNamespace?.name)
   );
   const workshopNamespaces: ServiceNamespace[] = useSelector(selectWorkshopNamespaces);
-  const userHasInstanceOfCatalogItem: boolean = userResourceClaims.find(
+  const userHasInstanceOfCatalogItem: boolean = userResourceClaims.some(
     (rc) =>
-      catalogItem.metadata.namespace === rc.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace'] &&
-      catalogItem.metadata.name === rc.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName']
-  )
-    ? true
-    : false;
+      namespace === rc.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemNamespace`] &&
+      name === rc.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemName`]
+  );
 
-  const accessCheckResult: string = checkAccessControl(catalogItem.spec.accessControl, userGroups);
+  const accessCheckResult: string = checkAccessControl(accessControl, userGroups);
 
   const catalogItemAccess: CatalogItemAccess = userIsAdmin
     ? CatalogItemAccess.Allow
@@ -106,16 +96,16 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({ 
       : 'Access denied by catalog item configuration.';
 
   const attributes: { [attr: string]: string } = {};
-  for (const [label, value] of Object.entries(catalogItem.metadata.labels || {})) {
-    if (label.startsWith('babylon.gpte.redhat.com/') && label !== 'babylon.gpte.redhat.com/stage') {
-      const attr: string = label.substring(24);
+  for (const [label, value] of Object.entries(labels || {})) {
+    if (label.startsWith(`${BABYLON_ANNOTATION}/`) && label !== `${BABYLON_ANNOTATION}/stage`) {
+      const attr: string = label.substring(BABYLON_ANNOTATION.length + 1);
       attributes[attr] = value;
     }
   }
 
   async function requestCatalogItem(): Promise<void> {
     // Either direct user to request form or immediately request if form would be empty.
-    if (catalogItem.spec.termsOfService || (catalogItem.spec.parameters || []).length > 0) {
+    if (termsOfService || (parameters || []).length > 0) {
       urlSearchParams.set('request', 'service');
       history.push(`${location.pathname}?${urlSearchParams.toString()}`);
     } else {
@@ -147,7 +137,7 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({ 
           </SplitItem>
           <SplitItem isFilled>
             <Title className="catalog-item-title" headingLevel="h3">
-              {displayName(catalogItem)}
+              {catalogItemName}
             </Title>
             {provider ? (
               <Title className="catalog-item-subtitle" headingLevel="h4">
@@ -212,6 +202,12 @@ const CatalogItemDetails: React.FunctionComponent<CatalogItemDetailsProps> = ({ 
                   <DescriptionListDescription>{value.replace(/_/g, ' ')}</DescriptionListDescription>
                 </DescriptionListGroup>
               ))}
+              {provisionTimeEstimate ? (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
+                  <DescriptionListDescription>{provisionTimeEstimate}</DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
             </DescriptionList>
           </SidebarPanel>
           <SidebarContent>

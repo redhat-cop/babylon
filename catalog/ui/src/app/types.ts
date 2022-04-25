@@ -72,6 +72,7 @@ export interface CatalogItemSpec {
   messageTemplates?: any;
   multiuser?: boolean;
   parameters?: CatalogItemSpecParameter[];
+  provisionTimeEstimate?: string;
   resources?: any[];
   termsOfService?: string;
   userData?: any;
@@ -132,7 +133,7 @@ export interface K8sObjectMeta {
   name: string;
   namespace?: string;
   ownerReferences?: K8sOwnerReference[];
-  resourceVersion?: number;
+  resourceVersion?: string;
   uid?: string;
 }
 
