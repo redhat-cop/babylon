@@ -1,6 +1,6 @@
 import { BABYLON_ANNOTATION } from '@app/util';
 import { CatalogItem } from '@app/types';
-
+import { formatDuration } from '@app/util';
 export function getProvider(catalogItem: CatalogItem): string {
   return (
     catalogItem.metadata.labels?.[`${BABYLON_ANNOTATION}/provider`] ||
@@ -22,4 +22,25 @@ export function getDescription(catalogItem: CatalogItem): {
 }
 export function getStage(catalogItem: CatalogItem): string | null {
   return catalogItem.metadata.labels?.[`${BABYLON_ANNOTATION}/stage`];
+}
+
+export function formatTime(time: string): string {
+  const timeUnit = time.charAt(time.length - 1);
+  const timeValue = parseInt(time.slice(0, -1), 10);
+  const timeValueMs: number | null = (() => {
+    switch (timeUnit) {
+      case 's':
+        return timeValue * 1000;
+      case 'm':
+        return timeValue * 60000;
+      case 'h':
+        return timeValue * 3600000;
+      default:
+        return null;
+    }
+  })();
+  if (timeValueMs) {
+    return formatDuration(timeValueMs);
+  }
+  return '-';
 }

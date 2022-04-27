@@ -40,7 +40,7 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
-import { getProvider, getDescription } from './catalog-utils';
+import { getProvider, getDescription, formatTime } from './catalog-utils';
 
 enum CatalogItemAccess {
   Allow,
@@ -205,7 +205,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               {provisionTimeEstimate ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
-                  <DescriptionListDescription>{provisionTimeEstimate}</DescriptionListDescription>
+                  <DescriptionListDescription>{formatTime(provisionTimeEstimate)}</DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
             </DescriptionList>
