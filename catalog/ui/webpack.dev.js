@@ -21,7 +21,6 @@ module.exports = merge(common('development'), {
         { from: /^\/services\/.*/, to: '/index.html' },
       ],
     },
-    hot: true,
     overlay: true,
     open: true,
     proxy: {
