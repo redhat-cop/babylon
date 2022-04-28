@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { getApiSession, getUserInfo, listUsers } from '@app/api';
 import { User, UserList } from '@app/types';
+import useStatusPageEmbed from './useStatusPageEmbed';
 
 import {
   actionClearImpersonation,
@@ -14,8 +15,6 @@ import {
   selectAuthUser,
   selectImpersonationUser,
   selectInterface,
-  selectUserIsAdmin,
-  selectUserNamespace,
 } from '@app/store';
 
 import { useHistory } from 'react-router-dom';
@@ -37,7 +36,6 @@ import {
 } from '@patternfly/react-core';
 
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
-import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
 
 interface IUserImpersonationDialogState {
   isOpen: boolean;
@@ -68,6 +66,7 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
     }
   );
   const history = useHistory();
+  useStatusPageEmbed();
 
   const onNavToggleMobile = () => {
     setIsNavOpenMobile(!isNavOpenMobile);
@@ -84,8 +83,6 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   const authUser = useSelector(selectAuthUser);
   const impersonateUser = useSelector(selectImpersonationUser);
   const userInterface = useSelector(selectInterface);
-  const userNamespace = useSelector(selectUserNamespace);
-  const userIsAdmin = useSelector(selectUserIsAdmin);
   const impersonateUserName = sessionStorage.getItem('impersonateUser');
 
   async function getUsers({ session }): Promise<void> {
