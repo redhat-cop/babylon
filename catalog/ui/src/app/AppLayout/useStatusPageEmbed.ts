@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import useScript from '@app/utils/useScript';
 import { useLocation } from 'react-router-dom';
 
+const STATUS_PAGE_ID = process.env.STATUS_PAGE_ID;
+
 function useStatusPageEmbed(): void {
-  const STATUS_PAGE_ID = process.env.STATUS_PAGE_ID;
   if (!STATUS_PAGE_ID) {
     console.error('statuspage.io ID not defined');
   }
-  useScript(`https://${STATUS_PAGE_ID}.statuspage.io/embed/script.js`);
+  const [visible, setVisible] = useState(STATUS_PAGE_ID ? true : false);
+  useScript(STATUS_PAGE_ID ? `https://${STATUS_PAGE_ID}.statuspage.io/embed/script.js` : '');
   const location = useLocation();
 
   useEffect(() => {
@@ -19,11 +21,14 @@ function useStatusPageEmbed(): void {
           } else {
             iframe.style.right = '-320px';
           }
+          setVisible(false);
         }
       }
     }
-    hideAlertMsg();
-  }, [location, STATUS_PAGE_ID]);
+    if (visible) {
+      hideAlertMsg();
+    }
+  }, [location, visible]);
 
   return null;
 }
