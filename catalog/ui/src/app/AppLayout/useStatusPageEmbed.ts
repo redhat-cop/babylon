@@ -17,9 +17,9 @@ function useStatusPageEmbed(): void {
       for (const iframe of document.getElementsByTagName('iframe')) {
         if (iframe.getAttribute('src').includes(STATUS_PAGE_ID)) {
           if (iframe.style.left !== 'auto') {
-            iframe.style.left = '-320px';
+            iframe.style.left = `-${iframe.style.width}`;
           } else {
-            iframe.style.right = '-320px';
+            iframe.style.right = `-${iframe.style.width}`;
           }
           setVisible(false);
         }
