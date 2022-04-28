@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 function useStatusPageEmbed(): void {
   const STATUS_PAGE_ID = process.env.STATUS_PAGE_ID;
   if (!STATUS_PAGE_ID) {
-    throw Error('statuspage.io ID not defined');
+    console.error('statuspage.io ID not defined');
   }
   useScript(`https://${STATUS_PAGE_ID}.statuspage.io/embed/script.js`);
   const location = useLocation();
@@ -23,7 +23,7 @@ function useStatusPageEmbed(): void {
       }
     }
     hideAlertMsg();
-  }, [location]);
+  }, [location, STATUS_PAGE_ID]);
 
   return null;
 }
