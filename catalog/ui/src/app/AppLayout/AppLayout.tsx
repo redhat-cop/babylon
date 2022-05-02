@@ -211,7 +211,7 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
           onClick={handleClick}
           alt="Red Hat Product Demo System Logo"
           className="rhpds-logo"
-          style={{ height: '48px' }}
+          style={{ width: '220px' }}
         />
       );
     } else {

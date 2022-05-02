@@ -21,3 +21,7 @@ body,
   clip-path: inset(50%);
   border: 0;
 }
+
+.pf-c-page {
+  --pf-c-page__header--MinHeight: 4.5rem;
+}
