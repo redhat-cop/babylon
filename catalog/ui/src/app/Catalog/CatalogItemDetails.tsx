@@ -130,12 +130,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       className="catalog-item-details"
       widths={{ default: 'width_75', lg: 'width_75', xl: 'width_66', '2xl': 'width_50' }}
     >
-      <DrawerHead className="catalog-item-details__header">
+      <DrawerHead>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
         <Split>
-          <SplitItem>
+          <SplitItem className="catalog-item-details__header-icon">
             <CatalogItemIcon catalogItem={catalogItem} />
           </SplitItem>
           <SplitItem isFilled className="catalog-item-details__header-text">
