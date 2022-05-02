@@ -42,6 +42,8 @@ import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
 import { getProvider, getDescription, formatTime } from './catalog-utils';
 
+import './catalog-item-details.css';
+
 enum CatalogItemAccess {
   Allow,
   Deny,
@@ -58,6 +60,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const provider = getProvider(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
+  const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
 
   const catalogNamespace: CatalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
   const userGroups: string[] = useSelector(selectUserGroups);
@@ -127,7 +130,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       className="catalog-item-details"
       widths={{ default: 'width_75', lg: 'width_75', xl: 'width_66', '2xl': 'width_50' }}
     >
-      <DrawerHead className="catalog-item-header">
+      <DrawerHead className="catalog-item-details__header">
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
@@ -135,18 +138,18 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           <SplitItem>
             <CatalogItemIcon catalogItem={catalogItem} />
           </SplitItem>
-          <SplitItem isFilled>
-            <Title className="catalog-item-title" headingLevel="h3">
+          <SplitItem isFilled className="catalog-item-details__header-text">
+            <Title className="catalog-item-details__title" headingLevel="h1">
               {catalogItemName}
             </Title>
             {provider ? (
-              <Title className="catalog-item-subtitle" headingLevel="h4">
+              <Title className="catalog-item-details__subtitle" headingLevel="h4">
                 provided by {provider}
               </Title>
             ) : null}
           </SplitItem>
         </Split>
-        <PageSection variant={PageSectionVariants.light} className="catalog-item-actions">
+        <PageSection variant={PageSectionVariants.light} className="catalog-item-details__actions">
           {catalogItemAccess === CatalogItemAccess.Allow ? (
             <>
               <Button key="request-service" onClick={requestCatalogItem} variant="primary">
@@ -163,7 +166,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               <Button key="button" isDisabled variant="primary">
                 Request Service
               </Button>
-              <div key="reason" className="catalog-item-access-deny-reason">
+              <div key="reason" className="catalog-item-details__access-deny-reason">
                 {catalogItemAccessDenyReason}
               </div>
             </>
@@ -172,13 +175,13 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               Request Information
             </Button>
           ) : (
-            <LoadingIcon className="catalog-item-actions-loading-icon" />
+            <LoadingIcon className="catalog-item-details__actions--loading" />
           )}
         </PageSection>
       </DrawerHead>
-      <DrawerContentBody className="catalog-item-body">
+      <DrawerContentBody className="catalog-item-details__body">
         <Sidebar>
-          <SidebarPanel>
+          <SidebarPanel className="catalog-item-details__sidebar">
             <DescriptionList>
               {catalogItem.status?.rating ? (
                 <DescriptionListGroup>
@@ -203,17 +206,19 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 </DescriptionListGroup>
               ))}
               {provisionTimeEstimate ? (
-                <DescriptionListGroup>
+                <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
-                  <DescriptionListDescription>{formatTime(provisionTimeEstimate)}</DescriptionListDescription>
+                  <DescriptionListDescription>
+                    {displayProvisionTime !== '-' ? `Up to ${displayProvisionTime}*` : displayProvisionTime}
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
             </DescriptionList>
           </SidebarPanel>
           <SidebarContent>
-            <Title headingLevel="h4">Description</Title>
+            <p className="catalog-item-details__description-label">Description</p>
             <div
-              className="catalog-item-details-description"
+              className="catalog-item-details__description"
               dangerouslySetInnerHTML={{
                 __html: description
                   ? renderContent(description, { format: descriptionFormat })

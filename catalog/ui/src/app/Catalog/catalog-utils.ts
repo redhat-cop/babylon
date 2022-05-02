@@ -25,6 +25,9 @@ export function getStage(catalogItem: CatalogItem): string | null {
 }
 
 export function formatTime(time: string): string {
+  if (!time || time.length === 0) {
+    return '-';
+  }
   const timeUnit = time.charAt(time.length - 1);
   const timeValue = parseInt(time.slice(0, -1), 10);
   const timeValueMs: number | null = (() => {
