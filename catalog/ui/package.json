@@ -11,7 +11,7 @@
     "dr:surge": "node dr-surge.js",
     "build": "webpack --config webpack.prod.js && npm run dr:surge",
     "start": "sirv dist --cors --single --host --port 8080",
-    "start:dev": "webpack serve --hot --color --progress --config webpack.dev.js",
+    "start:dev": "webpack serve --color --progress --config webpack.dev.js",
     "test": "jest",
     "eslint": "eslint --ext .tsx,.js ./src/",
     "lint": "npm run eslint",
@@ -58,7 +58,6 @@
     "prop-types": "^15.6.1",
     "raw-loader": "^4.0.2",
     "react-docgen-typescript-loader": "^3.7.2",
-    "react-hot-loader": "^4.13.0",
     "react-router-dom": "^5.3.0",
     "regenerator-runtime": "^0.13.9",
     "rimraf": "^3.0.2",
@@ -78,7 +77,6 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
-    "@hot-loader/react-dom": "^17.0.1",
     "@monaco-editor/react": "^4.2.2",
     "@patternfly/patternfly": "^4.132.2",
     "@patternfly/react-core": "^4.152.4",

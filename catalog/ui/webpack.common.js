@@ -7,9 +7,6 @@ const BG_IMAGES_DIRNAME = 'bgimages';
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 module.exports = (env) => {
   return {
-    entry: {
-      app: ['react-hot-loader/patch', path.resolve(__dirname, 'src', 'index.tsx')],
-    },
     module: {
       rules: [
         {
@@ -136,9 +133,6 @@ module.exports = (env) => {
       }),
     ],
     resolve: {
-      alias: {
-        'react-dom': '@hot-loader/react-dom',
-      },
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
       plugins: [
         new TsconfigPathsPlugin({
