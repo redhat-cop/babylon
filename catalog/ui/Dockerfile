@@ -1,4 +1,4 @@
-FROM node:15.11.0-alpine AS builder
+FROM node:18.1.0-alpine AS builder
 WORKDIR /build
 COPY . /build
 RUN npm install rimraf && \
