@@ -416,9 +416,9 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
             (parameter) =>
               !parameter.isDisabled && (parameter.isValid === false || parameter.validationResult === false)
           );
-          // validated is error if found an invalid parameter
-          // validated is success if all form group parameters are validated.
-          const validated: 'default' | 'error' | 'success' | 'warning' = invalidParameter
+          // status is error if found an invalid parameter
+          // status is success if all form group parameters are validated.
+          const status: 'default' | 'error' | 'success' | 'warning' = invalidParameter
             ? 'error'
             : formGroup.parameters.every((parameter) => parameter.isValid && parameter.validationResult)
             ? 'success'
@@ -433,13 +433,13 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
               helperTextInvalid={
                 <FormHelperText
                   icon={<ExclamationCircleIcon />}
-                  isError={validated === 'error'}
-                  isHidden={validated !== 'error'}
+                  isError={status === 'error'}
+                  isHidden={status !== 'error'}
                 >
                   {invalidParameter ? invalidParameter.validationMessage || invalidParameter.spec.description : null}
                 </FormHelperText>
               }
-              validated={validated}
+              validated={status}
             >
               {formGroup.parameters.map((parameterState) => {
                 const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
