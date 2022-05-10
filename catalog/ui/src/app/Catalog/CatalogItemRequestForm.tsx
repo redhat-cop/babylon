@@ -118,7 +118,7 @@ async function checkConditionsInFormState(
 
   for (const [name, parameterState] of Object.entries(state.parameters)) {
     const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
-    parameterSpec.formDisableCondition = 'true';
+
     if (parameterSpec.formDisableCondition) {
       parameterState.isDisabled = await _checkCondition(parameterSpec.formDisableCondition, conditionValues);
       if (state.conditionChecks.canceled) {
