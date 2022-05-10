@@ -25,3 +25,11 @@ body,
 .pf-c-page {
   --pf-c-page__header--MinHeight: 4.5rem;
 }
+.tooltip-icon-only {
+  opacity: 0.45;
+  transition: opacity 0.3s;
+  cursor: default;
+}
+.tooltip-icon-only:hover {
+  opacity: 1;
+}

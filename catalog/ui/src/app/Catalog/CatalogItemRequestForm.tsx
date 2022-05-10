@@ -15,19 +15,20 @@ import {
   PageSection,
   PageSectionVariants,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
 import { checkSalesforceId, createServiceRequest, CreateServiceRequestParameterValues } from '@app/api';
 import { selectCatalogNamespace, selectUserGroups, selectUserIsAdmin, selectUserRoles } from '@app/store';
-import { CatalogItem, CatalogItemSpecParameter, CatalogNamespace, ResourceClaim } from '@app/types';
-import { ConditionValues, checkAccessControl, checkCondition, displayName } from '@app/util';
+import { CatalogItem, CatalogItemSpecParameter, CatalogNamespace } from '@app/types';
+import { ConditionValues, checkCondition, displayName } from '@app/util';
 
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import LoadingIcon from '@app/components/LoadingIcon';
 import TermsOfService from '@app/components/TermsOfService';
 
-import './catalog-request.css';
+import './catalog-item-request.css';
 
 interface FormState {
   conditionChecks: {
@@ -117,7 +118,7 @@ async function checkConditionsInFormState(
 
   for (const [name, parameterState] of Object.entries(state.parameters)) {
     const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
-
+    parameterSpec.formDisableCondition = 'true';
     if (parameterSpec.formDisableCondition) {
       parameterState.isDisabled = await _checkCondition(parameterSpec.formDisableCondition, conditionValues);
       if (state.conditionChecks.canceled) {
@@ -398,13 +399,13 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
   }
 
   return (
-    <PageSection variant={PageSectionVariants.light} className="catalog-item-actions">
+    <PageSection variant={PageSectionVariants.light} className="catalog-item-request">
       <Title headingLevel="h1" size="lg">
         Request {displayName(catalogItem)}
       </Title>
       {formState.formGroups.length > 0 ? <p>Request by completing the form. Default values may be provided.</p> : null}
       {errorMessage ? <p className="error">{errorMessage}</p> : null}
-      <Form className="catalog-request-form">
+      <Form className="catalog-item-request__form">
         {formState.formGroups.map((formGroup, formGroupIdx) => {
           // do not render form group if all parameters for formGroup are hidden
           if (!formGroup.parameters.find((parameter) => !parameter.isHidden)) {
@@ -427,7 +428,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
           return (
             <FormGroup
               key={formGroup.key}
-              fieldId={formGroup.parameters.length == 1 ? `${formGroup.key}-${formGroupIdx}` : null}
+              fieldId={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
               isRequired={formGroup.isRequired}
               label={formGroup.formGroupLabel}
               helperTextInvalid={
@@ -446,7 +447,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
                 return (
                   <DynamicFormInput
                     key={parameterSpec.name}
-                    id={formGroup.parameters.length == 1 ? `${formGroup.key}-${formGroupIdx}` : null}
+                    id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
                     isDisabled={parameterState.isDisabled}
                     parameter={parameterSpec}
                     validationResult={parameterState.validationResult}
@@ -462,6 +463,11 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
                   />
                 );
               })}
+              {formGroup.parameters.length === 1 && formGroup.parameters[0].spec.description ? (
+                <Tooltip position="right" content={<div>{formGroup.parameters[0].spec.description}</div>}>
+                  <OutlinedQuestionCircleIcon aria-label="Description" className="tooltip-icon-only" />
+                </Tooltip>
+              ) : null}
             </FormGroup>
           );
         })}

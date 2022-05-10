@@ -1,0 +1,12 @@
+.catalog-item-request__form {
+  margin-top: var(--pf-global--spacer--lg);
+}
+
+.catalog-item-request__form .pf-c-check {
+  padding-top: var(--pf-global--spacer--md);
+}
+
+.catalog-item-request .catalog-terms-of-service {
+  background-color: var(--pf-global--BackgroundColor--light-300);
+  padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--md);
+}
