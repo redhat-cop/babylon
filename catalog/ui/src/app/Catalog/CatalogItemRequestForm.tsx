@@ -420,11 +420,9 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
           // validated is success if all form group parameters are validated.
           const validated: 'default' | 'error' | 'success' | 'warning' = invalidParameter
             ? 'error'
-            : formGroup.parameters.find(
-                (parameter) => parameter.isValid !== true && parameter.validationResult !== true
-              )
-            ? 'default'
-            : 'success';
+            : formGroup.parameters.every((parameter) => parameter.isValid && parameter.validationResult)
+            ? 'success'
+            : 'default';
 
           return (
             <FormGroup
