@@ -3,10 +3,29 @@
 }
 
 .catalog-item-request__form .pf-c-check {
-  padding-top: var(--pf-global--spacer--md);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
 .catalog-item-request .catalog-terms-of-service {
   background-color: var(--pf-global--BackgroundColor--light-300);
-  padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--md);
+  padding: var(--pf-global--spacer--md);
+}
+
+.catalog-item-request__form .pf-c-form__group-control {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-global--spacer--md);
+  align-items: center;
+}
+.catalog-item-request__form .catalog-terms-of-service .pf-c-form__group-control {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.catalog-item-request__form .select-wrapper,
+.catalog-item-request__form .pf-c-form-control {
+  max-width: 360px;
+  width: 100%;
 }

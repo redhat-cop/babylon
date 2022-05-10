@@ -408,7 +408,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
       <Form className="catalog-item-request__form">
         {formState.formGroups.map((formGroup, formGroupIdx) => {
           // do not render form group if all parameters for formGroup are hidden
-          if (!formGroup.parameters.find((parameter) => !parameter.isHidden)) {
+          if (formGroup.parameters.every((parameter) => parameter.isHidden)) {
             return null;
           }
           // check if there is an invalid parameter in the form group
@@ -425,6 +425,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
               )
             ? 'default'
             : 'success';
+
           return (
             <FormGroup
               key={formGroup.key}
