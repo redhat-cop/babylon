@@ -33,7 +33,7 @@ import {
   selectWorkshopNamespaces,
 } from '@app/store';
 import { CatalogItem, CatalogNamespace, ResourceClaim, ServiceNamespace } from '@app/types';
-import { checkAccessControl, displayName, renderContent, BABYLON_ANNOTATION } from '@app/util';
+import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN } from '@app/util';
 
 import LoadingIcon from '@app/components/LoadingIcon';
 
@@ -72,8 +72,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const workshopNamespaces: ServiceNamespace[] = useSelector(selectWorkshopNamespaces);
   const userHasInstanceOfCatalogItem: boolean = userResourceClaims.some(
     (rc) =>
-      namespace === rc.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemNamespace`] &&
-      name === rc.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemName`]
+      namespace === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`] &&
+      name === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
   );
 
   const accessCheckResult: string = checkAccessControl(accessControl, userGroups);
@@ -100,8 +100,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
 
   const attributes: { [attr: string]: string } = {};
   for (const [label, value] of Object.entries(labels || {})) {
-    if (label.startsWith(`${BABYLON_ANNOTATION}/`) && label !== `${BABYLON_ANNOTATION}/stage`) {
-      const attr: string = label.substring(BABYLON_ANNOTATION.length + 1);
+    if (label.startsWith(`${BABYLON_DOMAIN}/`) && label !== `${BABYLON_DOMAIN}/stage`) {
+      const attr: string = label.substring(BABYLON_DOMAIN.length + 1);
       attributes[attr] = value;
     }
   }

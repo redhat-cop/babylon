@@ -27,7 +27,7 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { listCatalogItems } from '@app/api';
 import { selectCatalogNamespaces, selectUserGroups } from '@app/store';
 import { CatalogItem, CatalogItemList, CatalogNamespace } from '@app/types';
-import { checkAccessControl, displayName, BABYLON_ANNOTATION } from '@app/util';
+import { checkAccessControl, displayName, BABYLON_DOMAIN } from '@app/util';
 
 import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
@@ -54,8 +54,8 @@ function compareCatalogItems(a: CatalogItem, b: CatalogItem): number {
   if (aDisplayName !== bDisplayName) {
     return aDisplayName < bDisplayName ? -1 : 1;
   }
-  const aStage = a.metadata.labels?.[`${BABYLON_ANNOTATION}/stage`];
-  const bStage = b.metadata.labels?.[`${BABYLON_ANNOTATION}/stage`];
+  const aStage = a.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
+  const bStage = b.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
   if (aStage !== bStage) {
     return aStage === 'prod' && bStage !== 'prod'
       ? -1
@@ -90,7 +90,7 @@ function filterCatalogItemByCategory(catalogItem: CatalogItem, selectedCategory:
 
 function filterCatalogItemByKeywords(catalogItem: CatalogItem, keywordFilter: string[]): boolean {
   const ciCategory = getCategory(catalogItem);
-  const ciDescription = catalogItem.metadata.annotations?.[`${BABYLON_ANNOTATION}/description`];
+  const ciDescription = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/description`];
 
   for (const keyword of keywordFilter) {
     const keywordLower = keyword.toLowerCase();
@@ -109,7 +109,7 @@ function filterCatalogItemByKeywords(catalogItem: CatalogItem, keywordFilter: st
     if (!keywordMatch && catalogItem.metadata.labels) {
       for (const label in catalogItem.metadata.labels) {
         if (
-          label.startsWith(`${BABYLON_ANNOTATION}/`) &&
+          label.startsWith(`${BABYLON_DOMAIN}/`) &&
           catalogItem.metadata.labels[label].toLowerCase().includes(keywordLower)
         ) {
           keywordMatch = true;
@@ -131,9 +131,9 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
     const matchValues: string[] = values.map((v) => v.toLowerCase());
     let matched = false;
     for (const [ciLabel, ciValue] of Object.entries(catalogItem.metadata.labels || {})) {
-      if (ciLabel.startsWith(`${BABYLON_ANNOTATION}/`)) {
+      if (ciLabel.startsWith(`${BABYLON_DOMAIN}/`)) {
         const ciAttr = ciLabel
-          .substring(BABYLON_ANNOTATION.length + 1)
+          .substring(BABYLON_DOMAIN.length + 1)
           .replace(/-[0-9]+$/, '')
           .toLowerCase();
         if (matchAttr === ciAttr && matchValues.includes(ciValue.toLowerCase())) {

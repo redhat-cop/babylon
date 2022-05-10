@@ -1,27 +1,27 @@
-import { BABYLON_ANNOTATION } from '@app/util';
+import { BABYLON_DOMAIN } from '@app/util';
 import { CatalogItem } from '@app/types';
 import { formatDuration } from '@app/util';
 export function getProvider(catalogItem: CatalogItem): string {
   return (
-    catalogItem.metadata.labels?.[`${BABYLON_ANNOTATION}/provider`] ||
-    catalogItem.metadata.labels?.[`${BABYLON_ANNOTATION}/Provider`] ||
+    catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/provider`] ||
+    catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/Provider`] ||
     'Red Hat'
   );
 }
 export function getCategory(catalogItem: CatalogItem): string | null {
-  return catalogItem.metadata.labels?.[`${BABYLON_ANNOTATION}/category`];
+  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`];
 }
 export function getDescription(catalogItem: CatalogItem): {
   description: string | null;
   descriptionFormat: 'asciidoc' | 'html';
 } {
   return {
-    description: catalogItem.metadata.annotations?.[`${BABYLON_ANNOTATION}/description`],
-    descriptionFormat: catalogItem.metadata.annotations?.[`${BABYLON_ANNOTATION}/descriptionFormat`] || 'asciidoc',
+    description: catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/description`],
+    descriptionFormat: catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/descriptionFormat`] || 'asciidoc',
   };
 }
 export function getStage(catalogItem: CatalogItem): string | null {
-  return catalogItem.metadata.labels?.[`${BABYLON_ANNOTATION}/stage`];
+  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
 }
 
 export function formatTime(time: string): string {

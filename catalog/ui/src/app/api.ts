@@ -40,7 +40,7 @@ import {
 
 import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
 
-import { checkAccessControl, displayName, recursiveAssign, BABYLON_ANNOTATION } from '@app/util';
+import { checkAccessControl, displayName, recursiveAssign, BABYLON_DOMAIN } from '@app/util';
 
 declare var window: Window &
   typeof globalThis & {
@@ -292,14 +292,14 @@ export async function createServiceRequest({
     kind: 'ResourceClaim',
     metadata: {
       annotations: {
-        [`${BABYLON_ANNOTATION}/catalogDisplayName`]: catalogNamespace?.displayName || catalogItem.metadata.namespace,
-        [`${BABYLON_ANNOTATION}/catalogItemDisplayName`]: displayName(catalogItem),
-        [`${BABYLON_ANNOTATION}/requester`]: session.user,
-        [`${BABYLON_ANNOTATION}/url`]: `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}`,
+        [`${BABYLON_DOMAIN}/catalogDisplayName`]: catalogNamespace?.displayName || catalogItem.metadata.namespace,
+        [`${BABYLON_DOMAIN}/catalogItemDisplayName`]: displayName(catalogItem),
+        [`${BABYLON_DOMAIN}/requester`]: session.user,
+        [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}`,
       },
       labels: {
-        [`${BABYLON_ANNOTATION}/catalogItemName`]: catalogItem.metadata.name,
-        [`${BABYLON_ANNOTATION}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
+        [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
       },
       name: catalogItem.metadata.name,
       namespace: userNamespace.name,
@@ -310,9 +310,7 @@ export async function createServiceRequest({
   };
 
   if (catalogItem.spec.userData) {
-    requestResourceClaim.metadata.annotations[`${BABYLON_ANNOTATION}/userData`] = JSON.stringify(
-      catalogItem.spec.userData
-    );
+    requestResourceClaim.metadata.annotations[`${BABYLON_DOMAIN}/userData`] = JSON.stringify(catalogItem.spec.userData);
   }
 
   if (access === 'allow') {
@@ -326,14 +324,14 @@ export async function createServiceRequest({
 
     // Add display name annotations for components
     for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
-      if (key.startsWith(`${BABYLON_ANNOTATION}/displayNameComponent`)) {
+      if (key.startsWith(`${BABYLON_DOMAIN}/displayNameComponent`)) {
         requestResourceClaim.metadata.annotations[key] = value;
       }
     }
 
     // Add bookbag label
     if (catalogItem.spec.bookbag) {
-      requestResourceClaim.metadata.labels[`${BABYLON_ANNOTATION}/labUserInterface`] = 'bookbag';
+      requestResourceClaim.metadata.labels[`${BABYLON_DOMAIN}/labUserInterface`] = 'bookbag';
     }
 
     // Copy all parameter values into the ResourceClaim
@@ -390,7 +388,7 @@ export async function createServiceRequest({
         },
         metadata: {
           labels: {
-            [`${BABYLON_ANNOTATION}/catalogItem`]: catalogItem.metadata.name,
+            [`${BABYLON_DOMAIN}/catalogItem`]: catalogItem.metadata.name,
           },
         },
       },
@@ -407,7 +405,7 @@ export async function createServiceRequest({
         n++;
         requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${n}`;
         requestResourceClaim.metadata.annotations[
-          `${BABYLON_ANNOTATION}/url`
+          `${BABYLON_DOMAIN}/url`
         ] = `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}-${n}`;
       } else {
         throw error;
@@ -432,14 +430,14 @@ export async function createWorkshop({
   serviceNamespace: ServiceNamespace;
 }): Promise<Workshop> {
   const definition: Workshop = {
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'Workshop',
     metadata: {
       name: catalogItem.metadata.name,
       namespace: serviceNamespace.name,
       labels: {
-        [`${BABYLON_ANNOTATION}/catalogItemName`]: catalogItem.metadata.name,
-        [`${BABYLON_ANNOTATION}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
+        [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
       },
     },
     spec: {
@@ -487,17 +485,17 @@ export async function createWorkshopForMultiuserService({
   openRegistration: boolean;
   resourceClaim: ResourceClaim;
 }): Promise<{ resourceClaim: ResourceClaim; workshop: Workshop }> {
-  const catalogItemName: string = resourceClaim.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemName`];
-  const catalogItemNamespace: string = resourceClaim.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemNamespace`];
+  const catalogItemName: string = resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
+  const catalogItemNamespace: string = resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`];
   const definition: Workshop = {
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'Workshop',
     metadata: {
       name: resourceClaim.metadata.name,
       namespace: resourceClaim.metadata.namespace,
       labels: {
-        [`${BABYLON_ANNOTATION}/catalogItemName`]: catalogItemName,
-        [`${BABYLON_ANNOTATION}/catalogItemNamespace`]: catalogItemNamespace,
+        [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItemName,
+        [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItemNamespace,
       },
       ownerReferences: [
         {
@@ -527,7 +525,7 @@ export async function createWorkshopForMultiuserService({
   }
   // Use GUID as workshop id
   if (resourceClaim.status?.resourceHandle) {
-    definition.metadata.labels[`${BABYLON_ANNOTATION}/workshop-id`] = resourceClaim.status?.resourceHandle.name.replace(
+    definition.metadata.labels[`${BABYLON_DOMAIN}/workshop-id`] = resourceClaim.status?.resourceHandle.name.replace(
       /^guid-/,
       ''
     );
@@ -540,7 +538,7 @@ export async function createWorkshopForMultiuserService({
     {
       metadata: {
         labels: {
-          [`${BABYLON_ANNOTATION}/workshop`]: workshop.metadata.name,
+          [`${BABYLON_DOMAIN}/workshop`]: workshop.metadata.name,
         },
       },
     }
@@ -565,18 +563,18 @@ export async function createWorkshopProvision({
   workshop: Workshop;
 }): Promise<WorkshopProvision> {
   const definition: WorkshopProvision = {
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'WorkshopProvision',
     metadata: {
       name: workshop.metadata.name,
       namespace: workshop.metadata.namespace,
       labels: {
-        [`${BABYLON_ANNOTATION}/catalogItemName`]: catalogItem.metadata.name,
-        [`${BABYLON_ANNOTATION}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
+        [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
       },
       ownerReferences: [
         {
-          apiVersion: `${BABYLON_ANNOTATION}/v1`,
+          apiVersion: `${BABYLON_DOMAIN}/v1`,
           controller: true,
           kind: 'Workshop',
           name: workshop.metadata.name,
@@ -654,7 +652,7 @@ export async function getAnarchySubject(namespace: string, name: string): Promis
 
 export async function getCatalogItem(namespace: string, name: string): Promise<CatalogItem> {
   return await getK8sObject<CatalogItem>({
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     name: name,
     namespace: namespace,
     plural: 'catalogitems',
@@ -731,7 +729,7 @@ export async function getUserInfo(user): Promise<any> {
 
 export async function getWorkshop(namespace: string, name: string): Promise<Workshop> {
   return await getK8sObject<Workshop>({
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     name: name,
     namespace: namespace,
     plural: 'workshops',
@@ -797,7 +795,7 @@ export async function listAnarchySubjects(opt?: K8sObjectListCommonOpt): Promise
 
 export async function listCatalogItems(opt?: K8sObjectListCommonOpt): Promise<CatalogItemList> {
   return (await listK8sObjects({
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     plural: 'catalogitems',
     ...opt,
   })) as CatalogItemList;
@@ -848,7 +846,7 @@ export async function listUsers(opt?: K8sObjectListCommonOpt): Promise<UserList>
 
 export async function listWorkshops(opt?: K8sObjectListCommonOpt): Promise<WorkshopList> {
   return (await listK8sObjects({
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     plural: 'workshops',
     ...opt,
   })) as WorkshopList;
@@ -856,7 +854,7 @@ export async function listWorkshops(opt?: K8sObjectListCommonOpt): Promise<Works
 
 export async function listWorkshopProvisions(opt?: K8sObjectListCommonOpt): Promise<WorkshopProvisionList> {
   return (await listK8sObjects({
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     plural: 'workshopprovisions',
     ...opt,
   })) as WorkshopProvisionList;
@@ -1083,7 +1081,7 @@ export async function patchWorkshop({
   patch?: object;
 }): Promise<Workshop> {
   return patchK8sObject({
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
     name: name,
     namespace: namespace,
@@ -1104,7 +1102,7 @@ export async function patchWorkshopProvision({
   patch?: object;
 }): Promise<WorkshopProvision> {
   return patchK8sObject({
-    apiVersion: `${BABYLON_ANNOTATION}/v1`,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
     name: name,
     namespace: namespace,

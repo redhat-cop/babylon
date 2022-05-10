@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { BABYLON_ANNOTATION } from '@app/util';
+import { BABYLON_DOMAIN } from '@app/util';
 import { PackageIcon } from '@patternfly/react-icons';
 import { CatalogItem } from '@app/types';
 import openshiftIcon from './icons/openshift.png';
@@ -19,7 +19,7 @@ interface IconConfig {
 }
 
 const CatalogItemIcon: React.FC<CatalogItemIconProps> = ({ catalogItem }) => {
-  const iconValue = catalogItem.metadata.annotations?.[`${BABYLON_ANNOTATION}/icon`];
+  const iconValue = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/icon`];
 
   if (!iconValue) {
     return <PackageIcon className="catalog-item-icon" />;

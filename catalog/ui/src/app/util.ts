@@ -14,7 +14,7 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
 
 import { ResourceClaim } from '@app/types';
 
-export const BABYLON_ANNOTATION = 'babylon.gpte.redhat.com';
+export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
 export function checkAccessControl(accessConfig: any, groups: string[]): string {
   if (!accessConfig) {
@@ -59,8 +59,8 @@ export function checkCondition(condition: string, vars: ConditionValues): boolea
 
 export function displayName(item: any): string {
   if (item.kind === 'ResourceClaim') {
-    const catalogItemName = item.metadata.labels?.[`${BABYLON_ANNOTATION}/catalogItemName`];
-    const catalogItemDisplayName = item.metadata.annotations?.[`${BABYLON_ANNOTATION}/catalogItemDisplayName`];
+    const catalogItemName = item.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
+    const catalogItemDisplayName = item.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`];
 
     if (item.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
       if (catalogItemName && catalogItemDisplayName && item.metadata.name === catalogItemName) {
@@ -83,8 +83,8 @@ export function displayName(item: any): string {
     }
   } else {
     return (
-      item.metadata?.annotations?.[`${BABYLON_ANNOTATION}/displayName`] ||
-      item.metadata?.annotations?.[`${BABYLON_ANNOTATION}/display-name`] ||
+      item.metadata?.annotations?.[`${BABYLON_DOMAIN}/displayName`] ||
+      item.metadata?.annotations?.[`${BABYLON_DOMAIN}/display-name`] ||
       item.metadata?.annotations?.['openshift.io/display-name'] ||
       item.displayName ||
       item.spec?.displayName ||
