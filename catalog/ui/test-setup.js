@@ -1,5 +1,7 @@
-import { configure } from 'enzyme';
-// import ReactSixteenAdapter from 'enzyme-adapter-react-16';
-import ReactSeventeenAdapter from '@wojtekmaj/enzyme-adapter-react-17';
+import fetchMock from 'jest-fetch-mock';
+import '@testing-library/jest-dom/extend-expect';
 
-configure({ adapter: new ReactSeventeenAdapter() });
+fetchMock.enableMocks();
+
+delete window.location;
+window.location = { assign: jest.fn() };

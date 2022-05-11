@@ -198,21 +198,25 @@ function checkEnableSubmit(state: FormState): boolean {
 function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'checkConditionsComplete':
-      return reduceCheckConditionsComplete(state, action);
+      return reduceFormStateComplete(state);
     case 'init':
       cancelFormStateConditionChecks(state);
-      return reduceFormStateInit(state, action);
+      return reduceFormStateInit(action.catalogItem);
     case 'parameterUpdate':
       cancelFormStateConditionChecks(state);
-      return reduceFormStateParameterUpdate(state, action);
+      return reduceFormStateParameterUpdate(state, {
+        name: action.parameterName,
+        value: action.parameterValue,
+        isValid: action.parameterIsValid,
+      });
     case 'termsOfServiceAgreed':
-      return reduceFormStateTermsOfServiceAgreed(state, action);
+      return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
     default:
       throw new Error(`Invalid FormStateAction type: ${action.type}`);
   }
 }
 
-function reduceCheckConditionsComplete(state: FormState, action: FormStateAction): FormState {
+function reduceFormStateComplete(state: FormState): FormState {
   return {
     ...state,
     conditionChecks: {
@@ -224,8 +228,7 @@ function reduceCheckConditionsComplete(state: FormState, action: FormStateAction
   };
 }
 
-function reduceFormStateInit(state: FormState, action: FormStateAction): FormState {
-  const catalogItem: CatalogItem = action.catalogItem;
+function reduceFormStateInit(catalogItem: CatalogItem): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
 
@@ -277,10 +280,13 @@ function reduceFormStateInit(state: FormState, action: FormStateAction): FormSta
   };
 }
 
-function reduceFormStateParameterUpdate(state: FormState, action: FormStateAction): FormState {
-  Object.assign(state.parameters[action.parameterName], {
-    value: action.parameterValue,
-    isValid: action.parameterIsValid,
+function reduceFormStateParameterUpdate(
+  state: FormState,
+  parameter: { name: string; value: boolean | number | string | undefined; isValid: boolean }
+): FormState {
+  Object.assign(state.parameters[parameter.name], {
+    value: parameter.value,
+    isValid: parameter.isValid,
   });
   return {
     ...state,
@@ -293,10 +299,10 @@ function reduceFormStateParameterUpdate(state: FormState, action: FormStateActio
   };
 }
 
-function reduceFormStateTermsOfServiceAgreed(state: FormState, action: FormStateAction): FormState {
+function reduceFormStateTermsOfServiceAgreed(state: FormState, termsOfServiceAgreed: boolean): FormState {
   return {
     ...state,
-    termsOfServiceAgreed: action.termsOfServiceAgreed,
+    termsOfServiceAgreed,
   };
 }
 
@@ -305,8 +311,8 @@ const CatalogItemRequestForm: React.FC<{ catalogItem: CatalogItem; onCancel: () 
   onCancel,
 }) => {
   const history = useHistory();
-  const componentWillUnmount = useRef(false);
-  const [formState, dispatchFormState] = useReducer(reduceFormState, undefined);
+  const ref = useRef(false);
+  const [formState, dispatchFormState] = useReducer(reduceFormState, reduceFormStateInit(catalogItem));
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
 
   const catalogNamespace: CatalogNamespace = useSelector((state) =>
@@ -358,18 +364,9 @@ const CatalogItemRequestForm: React.FC<{ catalogItem: CatalogItem; onCancel: () 
   // First render and detect unmount
   useEffect(() => {
     return () => {
-      componentWillUnmount.current = true;
+      ref.current = true;
     };
   }, []);
-
-  // Initialize form groups for parameters and default vaules
-  React.useEffect(() => {
-    setErrorMessage(undefined);
-    dispatchFormState({
-      type: 'init',
-      catalogItem: catalogItem,
-    });
-  }, [catalogItem.metadata.uid]);
 
   React.useEffect(() => {
     if (formState) {
@@ -377,7 +374,7 @@ const CatalogItemRequestForm: React.FC<{ catalogItem: CatalogItem; onCancel: () 
         checkConditions();
       }
       return () => {
-        if (componentWillUnmount.current) {
+        if (ref.current) {
           cancelFormStateConditionChecks(formState);
         }
       };
@@ -491,7 +488,7 @@ const CatalogItemRequestForm: React.FC<{ catalogItem: CatalogItem; onCancel: () 
         ) : null}
         <ActionList>
           <ActionListItem>
-            <Button isDisabled={!submitRequestEnabled} onClick={submitRequest}>
+            <Button isAriaDisabled={!submitRequestEnabled} isDisabled={!submitRequestEnabled} onClick={submitRequest}>
               Request
             </Button>
           </ActionListItem>

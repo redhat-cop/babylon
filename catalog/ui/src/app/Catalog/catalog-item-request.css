@@ -12,6 +12,9 @@
   background-color: var(--pf-global--BackgroundColor--light-300);
   padding: var(--pf-global--spacer--md);
 }
+.catalog-terms-of-service .pf-c-form__label {
+  cursor: default;
+}
 
 .catalog-item-request__group-control--single,
 .catalog-item-request__group-control--multi,

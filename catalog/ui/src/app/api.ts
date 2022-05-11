@@ -121,7 +121,7 @@ export async function assignWorkshopUser({
     return workshop;
   }
 
-  const jsonPatch: JSONPatch = []
+  const jsonPatch: JSONPatch = [];
   if (resourceClaimName) {
     jsonPatch.push({
       op: 'test',
