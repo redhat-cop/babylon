@@ -444,29 +444,34 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
               {formGroup.parameters.map((parameterState) => {
                 const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
                 return (
-                  <DynamicFormInput
-                    key={parameterSpec.name}
-                    id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
-                    isDisabled={parameterState.isDisabled}
-                    parameter={parameterSpec}
-                    validationResult={parameterState.validationResult}
-                    value={parameterState.value}
-                    onChange={(value: boolean | number | string, isValid?: boolean) => {
-                      dispatchFormState({
-                        type: 'parameterUpdate',
-                        parameterName: parameterSpec.name,
-                        parameterValue: value,
-                        parameterIsValid: isValid,
-                      });
-                    }}
-                  />
+                  <>
+                    <DynamicFormInput
+                      key={parameterSpec.name}
+                      id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
+                      isDisabled={parameterState.isDisabled}
+                      parameter={parameterSpec}
+                      validationResult={parameterState.validationResult}
+                      value={parameterState.value}
+                      onChange={(value: boolean | number | string, isValid?: boolean) => {
+                        dispatchFormState({
+                          type: 'parameterUpdate',
+                          parameterName: parameterSpec.name,
+                          parameterValue: value,
+                          parameterIsValid: isValid,
+                        });
+                      }}
+                    />
+                    {parameterState.spec.description ? (
+                      <Tooltip position="right" content={<div>{parameterState.spec.description}</div>}>
+                        <OutlinedQuestionCircleIcon
+                          aria-label={parameterState.spec.description}
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    ) : null}
+                  </>
                 );
               })}
-              {formGroup.parameters.length === 1 && formGroup.parameters[0].spec.description ? (
-                <Tooltip position="right" content={<div>{formGroup.parameters[0].spec.description}</div>}>
-                  <OutlinedQuestionCircleIcon aria-label="Description" className="tooltip-icon-only" />
-                </Tooltip>
-              ) : null}
             </FormGroup>
           );
         })}
