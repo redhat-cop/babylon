@@ -19,7 +19,6 @@ describe('App tests', () => {
   it('should expand the sidebar on larger viewports', () => {
     Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1200 });
     const { container } = render(<App />);
-    console.log(window.innerWidth);
     fireEvent.resize(window);
     expect(container.querySelector('#page-sidebar').classList.contains('pf-m-expanded')).toBeTruthy();
   });

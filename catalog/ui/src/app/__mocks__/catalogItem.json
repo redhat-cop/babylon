@@ -75,7 +75,18 @@
         "formLabel": "Purpose",
         "name": "purpose",
         "openAPIV3Schema": {
-          "enum": [],
+          "enum": [
+            "Customer Activity - Customer environment testing",
+            "Customer Activity - Customer workshop/demo",
+            "Customer Activity - Informal training",
+            "Customer Activity - Multi-customer event",
+            "Customer Activity - Proof of concept",
+            "Development - Catalog item creation / maintenance",
+            "Development - PnT engineering",
+            "Development - Solution prototyping",
+            "Training - Ad-hoc or exploratory",
+            "Training - As part of course"
+          ],
           "type": "string"
         },
         "required": true

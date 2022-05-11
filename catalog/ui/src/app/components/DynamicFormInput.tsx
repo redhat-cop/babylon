@@ -20,11 +20,9 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
   value,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-
   if (parameter.openAPIV3Schema?.enum) {
     return (
       <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
-        {isOpen ? 'obert' : 'tancat'}
         <Select
           aria-label={parameter.description}
           isDisabled={isDisabled}
