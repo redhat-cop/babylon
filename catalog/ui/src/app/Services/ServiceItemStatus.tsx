@@ -12,6 +12,7 @@ import {
   SplitItem,
   Title,
 } from '@patternfly/react-core';
+import { BABYLON_DOMAIN } from '@app/util';
 import { RedoIcon } from '@patternfly/react-icons';
 
 const yaml = require('js-yaml');
@@ -167,7 +168,7 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
         }
 
         const componentDisplayName =
-          resourceClaim.metadata.annotations?.[`babylon.gpte.redhat.com/displayNameComponent${idx}`] ||
+          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||
           resourceSpec.name ||
           resourceSpec.provider?.name;
 

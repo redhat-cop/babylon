@@ -16,6 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { ResourceClaim, ResourceHandle, ResourcePool } from '@app/types';
 import { createResourcePool, getResourcePool } from '@app/api';
+import { BABYLON_DOMAIN } from '@app/util';
 const yaml = require('js-yaml');
 
 export interface CreateResourcePoolFromResourceHandleModalProps {
@@ -30,7 +31,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FunctionComponent<CreateR
     const history = useHistory();
     const [resourcePoolName, setResourcePoolName] = useState<string>(
       resourceClaim
-        ? resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'] &&
+        ? resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/externalPlatformUrl`] &&
           resourceClaim.metadata.name.match(/-[0-9a-f]{4}$/)
           ? resourceClaim.metadata.name.substring(0, resourceClaim.metadata.name.length - 5)
           : resourceClaim.metadata.name.replace(/-[0-9]+$/, '')

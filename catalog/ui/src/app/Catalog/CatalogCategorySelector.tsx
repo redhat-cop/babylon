@@ -3,7 +3,7 @@ import React from 'react';
 import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 
 import { CatalogItem } from '@app/types';
-import { category } from '@app/util';
+import { getCategory } from './catalog-utils';
 
 interface CatalogCategorySelectorProps {
   catalogItems: CatalogItem[];
@@ -17,7 +17,7 @@ const CatalogCategorySelector: React.FunctionComponent<CatalogCategorySelectorPr
   selected,
 }) => {
   const categories = Array.from(
-    new Set((catalogItems || []).map((ci) => category(ci)).filter((category) => category !== null))
+    new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null))
   );
   categories.sort((a, b) => {
     const av = (a as string).toUpperCase();

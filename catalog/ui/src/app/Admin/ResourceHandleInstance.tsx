@@ -30,6 +30,7 @@ import Editor from '@monaco-editor/react';
 const yaml = require('js-yaml');
 
 import { deleteResourceHandle, getResourceClaim, getResourceHandle } from '@app/api';
+import { BABYLON_DOMAIN } from '@app/util';
 
 import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
@@ -328,36 +329,38 @@ const ResourceHandleInstance: React.FunctionComponent = () => {
                         )}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
-                    {resourceClaim?.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'] ? (
+                    {resourceClaim?.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>CatalogItem</DescriptionListTerm>
                         <DescriptionListDescription>
                           <Link
-                            to={`/catalog/item/${resourceClaim?.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace']}/${resourceClaim?.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName']}`}
+                            to={`/catalog/item/${
+                              resourceClaim?.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`]
+                            }/${resourceClaim?.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]}`}
                           >
-                            {resourceClaim?.metadata.annotations?.['babylon.gpte.redhat.com/catalogItemDisplayName']}
+                            {resourceClaim?.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`]}
                           </Link>
                           <OpenshiftConsoleLink
                             reference={{
-                              apiVersion: 'babylon.gpte.redhat.com/v1',
+                              apiVersion: `${BABYLON_DOMAIN}/v1`,
                               kind: 'CatalogItem',
-                              name: resourceClaim?.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'],
-                              namespace:
-                                resourceClaim?.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace'],
+                              name: resourceClaim?.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`],
+                              namespace: resourceClaim?.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`],
                             }}
                           />
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     ) : null}
-                    {resourceClaim?.metadata.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl'] ? (
+                    {resourceClaim?.metadata.annotations?.[`${BABYLON_DOMAIN}/externalPlatformUrl`] ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>Managed By</DescriptionListTerm>
                         <DescriptionListDescription>
                           <a
-                            href={resourceClaim?.metadata.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl']}
+                            href={resourceClaim?.metadata.annotations?.[`${BABYLON_DOMAIN}/externalPlatformUrl`]}
                             target="_blank"
+                            rel="noreferrer"
                           >
-                            {resourceClaim?.metadata.annotations?.['babylon.gpte.redhat.com/externalPlatformUrl']}
+                            {resourceClaim?.metadata.annotations?.[`${BABYLON_DOMAIN}/externalPlatformUrl`]}
                           </a>
                         </DescriptionListDescription>
                       </DescriptionListGroup>

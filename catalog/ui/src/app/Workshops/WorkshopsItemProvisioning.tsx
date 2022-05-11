@@ -8,7 +8,7 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { listWorkshopProvisions } from '@app/api';
 import { selectUserIsAdmin } from '@app/store';
 import { Workshop, WorkshopProvision, WorkshopProvisionList } from '@app/types';
-import { displayName, renderContent } from '@app/util';
+import { displayName, renderContent, BABYLON_DOMAIN } from '@app/util';
 import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -32,7 +32,7 @@ const WorkshopsItemProvisioning: React.FunctionComponent<WorkshopsItemProvisioni
   async function fetchWorkshopProvisions(): Promise<void> {
     const workshopProvisionList: WorkshopProvisionList = await listWorkshopProvisions({
       continue: workshopProvisionsFetchState.continue,
-      labelSelector: `babylon.gpte.redhat.com/workshop=${workshop.metadata.name}`,
+      labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
       limit: FETCH_BATCH_LIMIT,
       namespace: workshopProvisionsFetchState.namespace,
     });

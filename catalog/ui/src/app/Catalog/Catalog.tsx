@@ -27,7 +27,7 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { listCatalogItems } from '@app/api';
 import { selectCatalogNamespaces, selectUserGroups } from '@app/store';
 import { CatalogItem, CatalogItemList, CatalogNamespace } from '@app/types';
-import { category, checkAccessControl, displayName } from '@app/util';
+import { checkAccessControl, displayName, BABYLON_DOMAIN } from '@app/util';
 
 import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
@@ -42,6 +42,7 @@ import CatalogItemRequestForm from './CatalogItemRequestForm';
 import CatalogItemWorkshopForm from './CatalogItemWorkshopForm';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
+import { getCategory } from './catalog-utils';
 
 import './catalog.css';
 
@@ -53,8 +54,8 @@ function compareCatalogItems(a: CatalogItem, b: CatalogItem): number {
   if (aDisplayName !== bDisplayName) {
     return aDisplayName < bDisplayName ? -1 : 1;
   }
-  const aStage = a.metadata.labels?.['babylon.gpte.redhat.com/stage'];
-  const bStage = b.metadata.labels?.['babylon.gpte.redhat.com/stage'];
+  const aStage = a.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
+  const bStage = b.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
   if (aStage !== bStage) {
     return aStage === 'prod' && bStage !== 'prod'
       ? -1
@@ -84,12 +85,12 @@ function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: 
 }
 
 function filterCatalogItemByCategory(catalogItem: CatalogItem, selectedCategory: string): boolean {
-  return selectedCategory === category(catalogItem);
+  return selectedCategory === getCategory(catalogItem);
 }
 
 function filterCatalogItemByKeywords(catalogItem: CatalogItem, keywordFilter: string[]): boolean {
-  const ciCategory = category(catalogItem);
-  const ciDescription = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/description'];
+  const ciCategory = getCategory(catalogItem);
+  const ciDescription = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/description`];
 
   for (const keyword of keywordFilter) {
     const keywordLower = keyword.toLowerCase();
@@ -108,7 +109,7 @@ function filterCatalogItemByKeywords(catalogItem: CatalogItem, keywordFilter: st
     if (!keywordMatch && catalogItem.metadata.labels) {
       for (const label in catalogItem.metadata.labels) {
         if (
-          label.startsWith('babylon.gpte.redhat.com/') &&
+          label.startsWith(`${BABYLON_DOMAIN}/`) &&
           catalogItem.metadata.labels[label].toLowerCase().includes(keywordLower)
         ) {
           keywordMatch = true;
@@ -128,11 +129,11 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
   for (const [attr, values] of Object.entries(labelFilter)) {
     const matchAttr: string = attr.toLowerCase();
     const matchValues: string[] = values.map((v) => v.toLowerCase());
-    let matched: boolean = false;
+    let matched = false;
     for (const [ciLabel, ciValue] of Object.entries(catalogItem.metadata.labels || {})) {
-      if (ciLabel.startsWith('babylon.gpte.redhat.com/')) {
+      if (ciLabel.startsWith(`${BABYLON_DOMAIN}/`)) {
         const ciAttr = ciLabel
-          .substring(24)
+          .substring(BABYLON_DOMAIN.length + 1)
           .replace(/-[0-9]+$/, '')
           .toLowerCase();
         if (matchAttr === ciAttr && matchValues.includes(ciValue.toLowerCase())) {
@@ -297,7 +298,7 @@ const Catalog: React.FunctionComponent = () => {
         fetchCatalogItems();
       } else {
         // Clear selected category if no catalog items match
-        if (selectedCategory && !catalogItems.find((ci) => selectedCategory === category(ci))) {
+        if (selectedCategory && !catalogItems.find((ci) => selectedCategory === getCategory(ci))) {
           urlSearchParams.delete('category');
           history.push(`${location.pathname}?${urlSearchParams.toString()}`);
         }
