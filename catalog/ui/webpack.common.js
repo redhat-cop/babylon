@@ -141,6 +141,7 @@ module.exports = (env) => {
       ],
       symlinks: false,
       cacheWithContext: false,
+      fallback: { crypto: false },
     },
   };
 };

@@ -72,6 +72,7 @@ export interface CatalogItemSpec {
   messageTemplates?: any;
   multiuser?: boolean;
   parameters?: CatalogItemSpecParameter[];
+  provisionTimeEstimate?: string;
   resources?: any[];
   termsOfService?: string;
   userData?: any;

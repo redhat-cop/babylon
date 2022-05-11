@@ -12,11 +12,9 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
   }
 });
 
-import { CatalogItem, ResourceClaim } from '@app/types';
+import { ResourceClaim } from '@app/types';
 
-export function category(catalogItem: CatalogItem): string | null {
-  return catalogItem.metadata.labels?.['babylon.gpte.redhat.com/category'];
-}
+export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
 export function checkAccessControl(accessConfig: any, groups: string[]): string {
   if (!accessConfig) {
@@ -61,8 +59,8 @@ export function checkCondition(condition: string, vars: ConditionValues): boolea
 
 export function displayName(item: any): string {
   if (item.kind === 'ResourceClaim') {
-    const catalogItemName = item.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'];
-    const catalogItemDisplayName = item.metadata.annotations?.['babylon.gpte.redhat.com/catalogItemDisplayName'];
+    const catalogItemName = item.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
+    const catalogItemDisplayName = item.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`];
 
     if (item.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
       if (catalogItemName && catalogItemDisplayName && item.metadata.name === catalogItemName) {
@@ -85,8 +83,8 @@ export function displayName(item: any): string {
     }
   } else {
     return (
-      item.metadata?.annotations?.['babylon.gpte.redhat.com/displayName'] ||
-      item.metadata?.annotations?.['babylon.gpte.redhat.com/display-name'] ||
+      item.metadata?.annotations?.[`${BABYLON_DOMAIN}/displayName`] ||
+      item.metadata?.annotations?.[`${BABYLON_DOMAIN}/display-name`] ||
       item.metadata?.annotations?.['openshift.io/display-name'] ||
       item.displayName ||
       item.spec?.displayName ||
@@ -98,9 +96,9 @@ export function displayName(item: any): string {
 
 export function randomString(length: number): string {
   // Restrict to characters that are easy to read and unlikely to be mistyped
-  const characters: string = '23456789abcdefghjkmnpqrstuzwxyz';
-  var text: string = '';
-  for (var i = 0; i < length; i++) {
+  const characters = '23456789abcdefghjkmnpqrstuzwxyz';
+  let text = '';
+  for (let i = 0; i < length; i++) {
     text += characters.charAt(Math.floor(Math.random() * characters.length));
   }
   return text;
@@ -181,4 +179,19 @@ export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean
       return false;
     }
   });
+}
+
+export function formatDuration(ms: number): string {
+  if (ms < 0) ms = -ms;
+  const time = {
+    day: Math.floor(ms / 86400000),
+    hour: Math.floor(ms / 3600000) % 24,
+    minute: Math.floor(ms / 60000) % 60,
+    second: Math.floor(ms / 1000) % 60,
+    millisecond: Math.floor(ms) % 1000,
+  };
+  return Object.entries(time)
+    .filter((val) => val[1] !== 0)
+    .map(([key, val]) => `${val} ${key}${val !== 1 ? 's' : ''}`)
+    .join(', ');
 }

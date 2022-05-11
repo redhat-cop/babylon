@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { Checkbox, Form, FormGroup } from '@patternfly/react-core';
-
+import { BABYLON_DOMAIN } from '@app/util';
 import { CatalogItem } from '@app/types';
 
 interface CatalogLabelValues {
@@ -33,11 +33,11 @@ const CatalogLabelSelector: React.FunctionComponent<CatalogLabelSelectorProps> =
       continue;
     }
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
-      if (!label.startsWith('babylon.gpte.redhat.com/') || label.toLowerCase() === 'babylon.gpte.redhat.com/category') {
+      if (!label.startsWith(`${BABYLON_DOMAIN}/`) || label.toLowerCase() === `${BABYLON_DOMAIN}/category`) {
         continue;
       }
       // Allow multiple values for labels with numeric suffixes
-      const attr: string = label.substring(24).replace(/-[0-9]+$/, '');
+      const attr: string = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
       const attrKey: string = attr.toLowerCase();
       const valueKey: string = value.toLowerCase();
       if (!labels[attrKey]) {
@@ -61,12 +61,12 @@ const CatalogLabelSelector: React.FunctionComponent<CatalogLabelSelectorProps> =
       continue;
     }
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
-      if (!label.startsWith('babylon.gpte.redhat.com/') || label.toLowerCase() === 'babylon.gpte.redhat.com/category') {
+      if (!label.startsWith(`${BABYLON_DOMAIN}/`) || label.toLowerCase() === `${BABYLON_DOMAIN}/category`) {
         continue;
       }
       // Allow multiple values for labels with numeric suffixes
       const attrKey: string = label
-        .substring(24)
+        .substring(BABYLON_DOMAIN.length + 1)
         .replace(/-[0-9]+$/, '')
         .toLowerCase();
       const valueKey: string = value.toLowerCase();

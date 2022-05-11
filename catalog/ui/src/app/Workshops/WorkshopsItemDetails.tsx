@@ -16,6 +16,7 @@ import {
 import { patchWorkshop } from '@app/api';
 import { selectUserIsAdmin } from '@app/store';
 import { Workshop } from '@app/types';
+import { BABYLON_DOMAIN } from '@app/util';
 
 import EditableText from '@app/components/EditableText';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -36,7 +37,7 @@ interface WorkshopsItemDetailsProps {
 const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> = ({ onWorkshopUpdate, workshop }) => {
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
   const userRegistrationValue: 'open' | 'pre' = workshop.spec.openRegistration === false ? 'pre' : 'open';
-  const workshopID: string = workshop.metadata.labels?.['babylon.gpte.redhat.com/workshop-id'];
+  const workshopID: string = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
 
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState<boolean>(false);
 

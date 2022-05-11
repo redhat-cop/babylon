@@ -7,7 +7,7 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core';
 
-import { renderContent } from '@app/util';
+import { renderContent, BABYLON_DOMAIN } from '@app/util';
 import { ResourceClaim } from '@app/types';
 
 export interface ServiceUsersProps {
@@ -17,9 +17,9 @@ export interface ServiceUsersProps {
 const ServiceUsers: React.FunctionComponent<ServiceUsersProps> = ({ resourceClaim }) => {
   const users = {};
   const labUserInterfaceUrls = JSON.parse(
-    resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/labUserInterfaceUrls'] || '{}'
+    resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrls`] || '{}'
   );
-  const workshopName: string = resourceClaim?.metadata?.labels?.['babylon.gpte.redhat.com/workshop'];
+  const workshopName: string = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
 
   for (const status_resource of resourceClaim?.status?.resources || []) {
     const resource_users = status_resource.state?.spec?.vars?.provision_data?.users;

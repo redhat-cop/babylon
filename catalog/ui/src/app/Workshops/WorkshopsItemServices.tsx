@@ -20,7 +20,7 @@ import { listResourceClaims } from '@app/api';
 
 import { selectResourceClaimsInNamespace, selectServiceNamespace, selectUserIsAdmin } from '@app/store';
 import { K8sObjectReference, ResourceClaim, ResourceClaimList, ServiceNamespace, Workshop } from '@app/types';
-import { displayName } from '@app/util';
+import { displayName, BABYLON_DOMAIN } from '@app/util';
 import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -43,17 +43,16 @@ function pruneResourceClaim(resourceClaim: ResourceClaim): ResourceClaim {
     kind: resourceClaim.kind,
     metadata: {
       annotations: {
-        'babylon.gpte.redhat.com/catalogDisplayName':
-          resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/catalogDisplayName'],
-        'babylon.gpte.redhat.com/catalogItemDisplayName':
-          resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/catalogItemDisplayName'],
-        'babylon.gpte.redhat.com/requester': resourceClaim.metadata.annotations?.['babylon.gpte.redhat.com/requester'],
+        [`${BABYLON_DOMAIN}/catalogDisplayName`]:
+          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogDisplayName`],
+        [`${BABYLON_DOMAIN}/catalogItemDisplayName`]:
+          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`],
+        [`${BABYLON_DOMAIN}/requester`]: resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/requester`],
       },
       labels: {
-        'babylon.gpte.redhat.com/catalogItemName':
-          resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemName'],
-        'babylon.gpte.redhat.com/catalogItemNamespace':
-          resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/catalogItemNamespace'],
+        [`${BABYLON_DOMAIN}/catalogItemName`]: resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`],
+        [`${BABYLON_DOMAIN}/catalogItemNamespace`]:
+          resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`],
       },
       creationTimestamp: resourceClaim.metadata.creationTimestamp,
       name: resourceClaim.metadata.name,
@@ -103,7 +102,7 @@ const WorkshopsItemServices: React.FunctionComponent<WorkshopsItemServicesProps>
   const resourceClaims: ResourceClaim[] = enableFetchResourceClaims
     ? (resourceClaimsFetchState?.items as ResourceClaim[]) || []
     : sessionResourceClaimsInNamespace.filter(
-        (resourceClaim) => resourceClaim.metadata.labels?.['babylon.gpte.redhat.com/workshop'] == workshop.metadata.name
+        (resourceClaim) => resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/workshop`] == workshop.metadata.name
       );
   const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
     selectedUids.includes(resourceClaim.metadata.uid)
@@ -112,7 +111,7 @@ const WorkshopsItemServices: React.FunctionComponent<WorkshopsItemServicesProps>
   async function fetchResourceClaims(): Promise<void> {
     const resourceClaimList: ResourceClaimList = await listResourceClaims({
       continue: resourceClaimsFetchState.continue,
-      labelSelector: `babylon.gpte.redhat.com/workshop=${workshop.metadata.name}`,
+      labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
       limit: FETCH_BATCH_LIMIT,
       namespace: workshop.metadata.namespace,
     });
@@ -243,7 +242,7 @@ const WorkshopsItemServices: React.FunctionComponent<WorkshopsItemServicesProps>
                 <DescriptionList isHorizontal>
                   {specResources.map((specResource, i) => {
                     const componentDisplayName =
-                      resourceClaim.metadata.annotations?.[`babylon.gpte.redhat.com/displayNameComponent${i}`] ||
+                      resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${i}`] ||
                       specResource.name ||
                       specResource.provider?.name;
                     return (
