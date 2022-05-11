@@ -1,5 +1,5 @@
 .catalog-item-request__form {
-  margin-top: var(--pf-global--spacer--lg);
+  margin: var(--pf-global--spacer--lg) 0;
 }
 
 .catalog-item-request__form .pf-c-check {
@@ -13,19 +13,24 @@
   padding: var(--pf-global--spacer--md);
 }
 
-.catalog-item-request__form .pf-c-form__group-control {
+.catalog-item-request__group-control--single,
+.catalog-item-request__group-control--multi,
+.catalog-terms-of-service .pf-c-form__group-control {
   display: flex;
   flex-direction: row;
   gap: var(--pf-global--spacer--md);
   align-items: center;
 }
-.catalog-item-request__form .catalog-terms-of-service .pf-c-form__group-control {
+.catalog-item-request__group-control--multi {
+  padding-bottom: var(--pf-global--spacer--sm);
+}
+.catalog-terms-of-service .pf-c-form__group-control {
   flex-direction: column;
   align-items: flex-start;
 }
 
 .catalog-item-request__form .select-wrapper,
-.catalog-item-request__form .pf-c-form-control {
+.catalog-item-request__form input:not([type='number']).pf-c-form-control {
   max-width: 360px;
   width: 100%;
 }

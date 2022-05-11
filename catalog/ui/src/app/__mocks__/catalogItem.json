@@ -1,0 +1,108 @@
+{
+  "apiVersion": "babylon.gpte.redhat.com/v1",
+  "kind": "CatalogItem",
+  "metadata": {
+    "annotations": {
+      "babylon.gpte.redhat.com/description": "<p>Test empty config which deploys no cloud resources.</p>",
+      "babylon.gpte.redhat.com/descriptionFormat": "html",
+      "babylon.gpte.redhat.com/displayName": "Test Config",
+      "babylon.gpte.redhat.com/icon": "",
+      "babylon.gpte.redhat.com/keywords": ""
+    },
+    "creationTimestamp": "2022-04-22T20:13:37Z",
+    "generation": 1,
+    "labels": {
+      "babylon.gpte.redhat.com/category": "Other",
+      "babylon.gpte.redhat.com/stage": "prod",
+      "generated_by": "agnosticv"
+    },
+    "managedFields": [
+      {
+        "apiVersion": "babylon.gpte.redhat.com/v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:metadata": {
+            "f:annotations": {
+              ".": {},
+              "f:babylon.gpte.redhat.com/description": {},
+              "f:babylon.gpte.redhat.com/descriptionFormat": {},
+              "f:babylon.gpte.redhat.com/displayName": {},
+              "f:babylon.gpte.redhat.com/icon": {},
+              "f:babylon.gpte.redhat.com/keywords": {},
+              "f:operator-sdk/primary-resource": {},
+              "f:operator-sdk/primary-resource-type": {}
+            },
+            "f:labels": {
+              ".": {},
+              "f:babylon.gpte.redhat.com/category": {},
+              "f:babylon.gpte.redhat.com/stage": {},
+              "f:generated_by": {}
+            }
+          },
+          "f:spec": {
+            ".": {},
+            "f:parameters": {},
+            "f:provisionTimeEstimate": {},
+            "f:resources": {},
+            "f:termsOfService": {}
+          }
+        },
+        "manager": "OpenAPI-Generator",
+        "operation": "Update",
+        "time": "2022-04-22T20:13:37Z"
+      }
+    ],
+    "name": "tests.test-empty-config.prod",
+    "namespace": "babylon-catalog-test",
+    "resourceVersion": "1234",
+    "uid": "randomUuid"
+  },
+  "spec": {
+    "parameters": [
+      {
+        "annotation": "pfe.redhat.com/salesforce-id",
+        "description": "Salesforce Opportunity ID, Campaign ID, or Partner Registration",
+        "formLabel": "Salesforce ID",
+        "name": "salesforce_id",
+        "openAPIV3Schema": {
+          "type": "string"
+        },
+        "validation": "check_salesforce_id(salesforce_id)"
+      },
+      {
+        "annotation": "pfe.redhat.com/purpose",
+        "description": "Purpose for this service.",
+        "formLabel": "Purpose",
+        "name": "purpose",
+        "openAPIV3Schema": {
+          "enum": [],
+          "type": "string"
+        },
+        "required": true
+      },
+      {
+        "description": "Request failure in AgnosticD pre_infra.yml",
+        "formGroup": "Request Failure",
+        "formLabel": "Fail in AgnosticD pre-infra stage",
+        "name": "fail_pre_infra",
+        "openAPIV3Schema": {
+          "default": false,
+          "type": "boolean"
+        }
+      }
+    ],
+    "provisionTimeEstimate": "2m",
+    "resources": [
+      {
+        "name": "test-empty-config",
+        "provider": {
+          "apiVersion": "poolboy.gpte.redhat.com/v1",
+          "kind": "ResourceProvider",
+          "name": "tests.test-empty-config.prod",
+          "namespace": "poolboy"
+        }
+      }
+    ],
+    "termsOfService": "<p>\nPlease pay close attention.\n</p>"
+  }
+}

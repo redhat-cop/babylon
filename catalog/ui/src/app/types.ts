@@ -132,7 +132,7 @@ export interface K8sObjectMeta {
   name: string;
   namespace?: string;
   ownerReferences?: K8sOwnerReference[];
-  resourceVersion?: number;
+  resourceVersion?: string;
   uid?: string;
 }
 

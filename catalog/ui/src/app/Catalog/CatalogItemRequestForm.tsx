@@ -300,12 +300,10 @@ function reduceFormStateTermsOfServiceAgreed(state: FormState, action: FormState
   };
 }
 
-interface CatalogItemRequestFormProps {
-  catalogItem: CatalogItem;
-  onCancel: () => void;
-}
-
-const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProps> = ({ catalogItem, onCancel }) => {
+const CatalogItemRequestForm: React.FC<{ catalogItem: CatalogItem; onCancel: () => void }> = ({
+  catalogItem,
+  onCancel,
+}) => {
   const history = useHistory();
   const componentWillUnmount = useRef(false);
   const [formState, dispatchFormState] = useReducer(reduceFormState, undefined);
@@ -322,7 +320,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
 
   async function submitRequest(): Promise<void> {
     if (!submitRequestEnabled) {
-      throw 'submitRequest called when submission should be disabled!';
+      throw new Error('submitRequest called when submission should be disabled!');
     }
     const parameterValues: CreateServiceRequestParameterValues = {};
     for (const parameterState of Object.values(formState.parameters)) {
@@ -444,9 +442,13 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
               {formGroup.parameters.map((parameterState) => {
                 const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
                 return (
-                  <>
+                  <div
+                    className={`catalog-item-request__group-control--${
+                      formGroup.parameters.length > 1 ? 'multi' : 'single'
+                    }`}
+                    key={parameterSpec.name}
+                  >
                     <DynamicFormInput
-                      key={parameterSpec.name}
                       id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
                       isDisabled={parameterState.isDisabled}
                       parameter={parameterSpec}
@@ -461,15 +463,15 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
                         });
                       }}
                     />
-                    {parameterState.spec.description ? (
-                      <Tooltip position="right" content={<div>{parameterState.spec.description}</div>}>
+                    {parameterSpec.description ? (
+                      <Tooltip position="right" content={<div>{parameterSpec.description}</div>}>
                         <OutlinedQuestionCircleIcon
-                          aria-label={parameterState.spec.description}
+                          aria-label={parameterSpec.description}
                           className="tooltip-icon-only"
                         />
                       </Tooltip>
                     ) : null}
-                  </>
+                  </div>
                 );
               })}
             </FormGroup>
