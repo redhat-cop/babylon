@@ -75,7 +75,6 @@
         "formLabel": "Purpose",
         "name": "purpose",
         "openAPIV3Schema": {
-<<<<<<< HEAD
           "enum": [
             "Customer Activity - Customer environment testing",
             "Customer Activity - Customer workshop/demo",
@@ -88,9 +87,6 @@
             "Training - Ad-hoc or exploratory",
             "Training - As part of course"
           ],
-=======
-          "enum": [],
->>>>>>> main
           "type": "string"
         },
         "required": true
