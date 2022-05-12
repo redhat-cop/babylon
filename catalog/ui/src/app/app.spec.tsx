@@ -3,7 +3,7 @@ import App from '@app/index';
 import { render, fireEvent } from './utils/test-utils';
 
 describe('App tests', () => {
-  it('should render a nav-toggle button', () => {
+  it.only('should render a nav-toggle button', () => {
     const { container } = render(<App />);
     const button = container.querySelector('#nav-toggle');
     expect(button).toBeInTheDocument();
