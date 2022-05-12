@@ -1,0 +1,11 @@
+.storybook
+__mocks__
+stories
+.git
+Dockerfile
+.dockerignore
+.gitignore
+README.md
+dist
+npm-debug.log
+node_modules

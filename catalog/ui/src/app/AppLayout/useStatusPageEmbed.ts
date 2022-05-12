@@ -6,7 +6,7 @@ const STATUS_PAGE_ID = process.env.STATUS_PAGE_ID;
 
 function useStatusPageEmbed(): void {
   if (!STATUS_PAGE_ID) {
-    console.error('statuspage.io ID not defined');
+    console.warn('statuspage.io ID not defined');
   }
   const [visible, setVisible] = useState(STATUS_PAGE_ID ? true : false);
   useScript(STATUS_PAGE_ID ? `https://${STATUS_PAGE_ID}.statuspage.io/embed/script.js` : '');

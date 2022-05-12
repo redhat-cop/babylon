@@ -3,7 +3,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon, PencilAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
-import { BABYLON_DOMAINrom '@app/util';
+import { BABYLON_DOMAIN } from '@app/util';
 import Editor from '@monaco-editor/react';
 const yaml = require('js-yaml');
 
@@ -119,9 +119,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const resourceClaim: ResourceClaim | null = sessionServiceNamespace
     ? sessionResourceClaim
     : (resourceClaimFetchState?.item as ResourceClaim);
-  const externalPlatformUrl = resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAINternalPlatformUrl`];
+  const externalPlatformUrl = resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const resources = (resourceClaim?.status?.resources || []).map((r) => r.state);
-  const userData = JSON.parse(resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAINerData`] || 'null');
+  const userData = JSON.parse(resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/userData`] || 'null');
   const statusEnabled = resources.find(
     (resource) =>
       resource?.status?.supportedActions?.status && resource?.status?.towerJobs?.provision?.completeTimestamp
@@ -131,8 +131,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const workshop: Workshop | null = workshopFetchState?.item as Workshop;
 
   const catalogItemDisplayName =
-    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAINalogItemDisplayName`] ||
-    resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAINtalogItemName`];
+    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`] ||
+    resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
 
   const actionHandlers = {
     delete: () => setModalState({ action: 'delete', modal: 'action' }),
@@ -147,7 +147,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   // Find lab user interface information either in the resource claim or inside resources
   // associated with the provisioned service.
   const labUserInterfaceData =
-    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAINbUserInterfaceData`] ||
+    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
     resources
       .map((r) =>
         r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
@@ -156,14 +156,14 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       .find((u) => u != null);
 
   const labUserInterfaceMethod =
-    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAINbUserInterfaceMethod`] ||
+    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
     resources
       .map((r) =>
         r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
       )
       .find((u) => u != null);
   const labUserInterfaceUrl =
-    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAINbUserInterfaceUrl`] ||
+    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
     resources
       .map((r) => {
         const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
@@ -177,8 +177,8 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     ? true
     : false;
 
-  const workshopName: string = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAINrkshop`];
-  const workshopProvisionName: string = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAINrkshop-provision`];
+  const workshopName: string = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
+  const workshopProvisionName: string = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
 
   async function fetchResourceClaim(): Promise<void> {
     let resourceClaim: ResourceClaim = null;
@@ -568,7 +568,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 const resourceStatus = resourceClaim.status?.resources[idx];
                 const resourceState = resourceStatus?.state;
                 const componentDisplayName =
-                  resourceClaim.metadata.annotations?.[`${BABYLON_DOMAINsplayNameComponent${idx}`] ||
+                  resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||
                   resourceSpec.name ||
                   resourceSpec.provider?.name;
                 const currentState =

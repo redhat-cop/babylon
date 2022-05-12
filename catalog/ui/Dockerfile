@@ -1,8 +1,11 @@
-FROM node:15.11.0-alpine AS builder
+FROM registry.redhat.io/rhel8/nodejs-14-minimal:latest AS builder
 WORKDIR /build
-COPY . /build
-RUN npm install rimraf && \
-    npm run build
+
+COPY package.json package-lock.json ./
+RUN npm ci && npm cache clean --force
+
+COPY ./ ./
+RUN npm run build
 
 FROM registry.access.redhat.com/ubi8/nginx-118:latest
 
