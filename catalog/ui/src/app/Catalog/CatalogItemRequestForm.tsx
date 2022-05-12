@@ -15,19 +15,20 @@ import {
   PageSection,
   PageSectionVariants,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
 import { checkSalesforceId, createServiceRequest, CreateServiceRequestParameterValues } from '@app/api';
 import { selectCatalogNamespace, selectUserGroups, selectUserIsAdmin, selectUserRoles } from '@app/store';
-import { CatalogItem, CatalogItemSpecParameter, CatalogNamespace, ResourceClaim } from '@app/types';
-import { ConditionValues, checkAccessControl, checkCondition, displayName } from '@app/util';
+import { CatalogItem, CatalogItemSpecParameter, CatalogNamespace } from '@app/types';
+import { ConditionValues, checkCondition, displayName } from '@app/util';
 
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import LoadingIcon from '@app/components/LoadingIcon';
 import TermsOfService from '@app/components/TermsOfService';
 
-import './catalog-request.css';
+import './catalog-item-request.css';
 
 interface FormState {
   conditionChecks: {
@@ -197,21 +198,25 @@ function checkEnableSubmit(state: FormState): boolean {
 function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'checkConditionsComplete':
-      return reduceCheckConditionsComplete(state, action);
+      return reduceFormStateComplete(state);
     case 'init':
       cancelFormStateConditionChecks(state);
-      return reduceFormStateInit(state, action);
+      return reduceFormStateInit(action.catalogItem);
     case 'parameterUpdate':
       cancelFormStateConditionChecks(state);
-      return reduceFormStateParameterUpdate(state, action);
+      return reduceFormStateParameterUpdate(state, {
+        name: action.parameterName,
+        value: action.parameterValue,
+        isValid: action.parameterIsValid,
+      });
     case 'termsOfServiceAgreed':
-      return reduceFormStateTermsOfServiceAgreed(state, action);
+      return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
     default:
       throw new Error(`Invalid FormStateAction type: ${action.type}`);
   }
 }
 
-function reduceCheckConditionsComplete(state: FormState, action: FormStateAction): FormState {
+function reduceFormStateComplete(state: FormState): FormState {
   return {
     ...state,
     conditionChecks: {
@@ -223,8 +228,7 @@ function reduceCheckConditionsComplete(state: FormState, action: FormStateAction
   };
 }
 
-function reduceFormStateInit(state: FormState, action: FormStateAction): FormState {
-  const catalogItem: CatalogItem = action.catalogItem;
+function reduceFormStateInit(catalogItem: CatalogItem): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
 
@@ -276,10 +280,13 @@ function reduceFormStateInit(state: FormState, action: FormStateAction): FormSta
   };
 }
 
-function reduceFormStateParameterUpdate(state: FormState, action: FormStateAction): FormState {
-  Object.assign(state.parameters[action.parameterName], {
-    value: action.parameterValue,
-    isValid: action.parameterIsValid,
+function reduceFormStateParameterUpdate(
+  state: FormState,
+  parameter: { name: string; value: boolean | number | string | undefined; isValid: boolean }
+): FormState {
+  Object.assign(state.parameters[parameter.name], {
+    value: parameter.value,
+    isValid: parameter.isValid,
   });
   return {
     ...state,
@@ -292,22 +299,20 @@ function reduceFormStateParameterUpdate(state: FormState, action: FormStateActio
   };
 }
 
-function reduceFormStateTermsOfServiceAgreed(state: FormState, action: FormStateAction): FormState {
+function reduceFormStateTermsOfServiceAgreed(state: FormState, termsOfServiceAgreed: boolean): FormState {
   return {
     ...state,
-    termsOfServiceAgreed: action.termsOfServiceAgreed,
+    termsOfServiceAgreed,
   };
 }
 
-interface CatalogItemRequestFormProps {
-  catalogItem: CatalogItem;
-  onCancel: () => void;
-}
-
-const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProps> = ({ catalogItem, onCancel }) => {
+const CatalogItemRequestForm: React.FC<{ catalogItem: CatalogItem; onCancel: () => void }> = ({
+  catalogItem,
+  onCancel,
+}) => {
   const history = useHistory();
-  const componentWillUnmount = useRef(false);
-  const [formState, dispatchFormState] = useReducer(reduceFormState, undefined);
+  const ref = useRef(false);
+  const [formState, dispatchFormState] = useReducer(reduceFormState, reduceFormStateInit(catalogItem));
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
 
   const catalogNamespace: CatalogNamespace = useSelector((state) =>
@@ -321,7 +326,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
 
   async function submitRequest(): Promise<void> {
     if (!submitRequestEnabled) {
-      throw 'submitRequest called when submission should be disabled!';
+      throw new Error('submitRequest called when submission should be disabled!');
     }
     const parameterValues: CreateServiceRequestParameterValues = {};
     for (const parameterState of Object.values(formState.parameters)) {
@@ -359,18 +364,9 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
   // First render and detect unmount
   useEffect(() => {
     return () => {
-      componentWillUnmount.current = true;
+      ref.current = true;
     };
   }, []);
-
-  // Initialize form groups for parameters and default vaules
-  React.useEffect(() => {
-    setErrorMessage(undefined);
-    dispatchFormState({
-      type: 'init',
-      catalogItem: catalogItem,
-    });
-  }, [catalogItem.metadata.uid]);
 
   React.useEffect(() => {
     if (formState) {
@@ -378,7 +374,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
         checkConditions();
       }
       return () => {
-        if (componentWillUnmount.current) {
+        if (ref.current) {
           cancelFormStateConditionChecks(formState);
         }
       };
@@ -398,16 +394,16 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
   }
 
   return (
-    <PageSection variant={PageSectionVariants.light} className="catalog-item-actions">
+    <PageSection variant={PageSectionVariants.light} className="catalog-item-request">
       <Title headingLevel="h1" size="lg">
         Request {displayName(catalogItem)}
       </Title>
       {formState.formGroups.length > 0 ? <p>Request by completing the form. Default values may be provided.</p> : null}
       {errorMessage ? <p className="error">{errorMessage}</p> : null}
-      <Form className="catalog-request-form">
+      <Form className="catalog-item-request__form">
         {formState.formGroups.map((formGroup, formGroupIdx) => {
           // do not render form group if all parameters for formGroup are hidden
-          if (!formGroup.parameters.find((parameter) => !parameter.isHidden)) {
+          if (formGroup.parameters.every((parameter) => parameter.isHidden)) {
             return null;
           }
           // check if there is an invalid parameter in the form group
@@ -415,51 +411,64 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
             (parameter) =>
               !parameter.isDisabled && (parameter.isValid === false || parameter.validationResult === false)
           );
-          // validated is error if found an invalid parameter
-          // validated is success if all form group parameters are validated.
-          const validated: 'default' | 'error' | 'success' | 'warning' = invalidParameter
+          // status is error if found an invalid parameter
+          // status is success if all form group parameters are validated.
+          const status: 'default' | 'error' | 'success' | 'warning' = invalidParameter
             ? 'error'
-            : formGroup.parameters.find(
-                (parameter) => parameter.isValid !== true && parameter.validationResult !== true
-              )
-            ? 'default'
-            : 'success';
+            : formGroup.parameters.every((parameter) => parameter.isValid && parameter.validationResult)
+            ? 'success'
+            : 'default';
+
           return (
             <FormGroup
               key={formGroup.key}
-              fieldId={formGroup.parameters.length == 1 ? `${formGroup.key}-${formGroupIdx}` : null}
+              fieldId={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
               isRequired={formGroup.isRequired}
               label={formGroup.formGroupLabel}
               helperTextInvalid={
                 <FormHelperText
                   icon={<ExclamationCircleIcon />}
-                  isError={validated === 'error'}
-                  isHidden={validated !== 'error'}
+                  isError={status === 'error'}
+                  isHidden={status !== 'error'}
                 >
                   {invalidParameter ? invalidParameter.validationMessage || invalidParameter.spec.description : null}
                 </FormHelperText>
               }
-              validated={validated}
+              validated={status}
             >
               {formGroup.parameters.map((parameterState) => {
                 const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
                 return (
-                  <DynamicFormInput
+                  <div
+                    className={`catalog-item-request__group-control--${
+                      formGroup.parameters.length > 1 ? 'multi' : 'single'
+                    }`}
                     key={parameterSpec.name}
-                    id={formGroup.parameters.length == 1 ? `${formGroup.key}-${formGroupIdx}` : null}
-                    isDisabled={parameterState.isDisabled}
-                    parameter={parameterSpec}
-                    validationResult={parameterState.validationResult}
-                    value={parameterState.value}
-                    onChange={(value: boolean | number | string, isValid?: boolean) => {
-                      dispatchFormState({
-                        type: 'parameterUpdate',
-                        parameterName: parameterSpec.name,
-                        parameterValue: value,
-                        parameterIsValid: isValid,
-                      });
-                    }}
-                  />
+                  >
+                    <DynamicFormInput
+                      id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
+                      isDisabled={parameterState.isDisabled}
+                      parameter={parameterSpec}
+                      validationResult={parameterState.validationResult}
+                      value={parameterState.value}
+                      onChange={(value: boolean | number | string, isValid?: boolean) => {
+                        dispatchFormState({
+                          type: 'parameterUpdate',
+                          parameterName: parameterSpec.name,
+                          parameterValue: value,
+                          parameterIsValid: isValid,
+                        });
+                      }}
+                    />
+                    {parameterSpec.description ? (
+                      <Tooltip position="right" content={<div>{parameterSpec.description}</div>}>
+                        <OutlinedQuestionCircleIcon
+                          aria-label={parameterSpec.description}
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    ) : null}
+                  </div>
                 );
               })}
             </FormGroup>
@@ -479,7 +488,7 @@ const CatalogItemRequestForm: React.FunctionComponent<CatalogItemRequestFormProp
         ) : null}
         <ActionList>
           <ActionListItem>
-            <Button isDisabled={!submitRequestEnabled} onClick={submitRequest}>
+            <Button isAriaDisabled={!submitRequestEnabled} isDisabled={!submitRequestEnabled} onClick={submitRequest}>
               Request
             </Button>
           </ActionListItem>

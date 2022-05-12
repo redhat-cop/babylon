@@ -68,6 +68,16 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   const history = useHistory();
   useStatusPageEmbed();
 
+  const dispatch = useDispatch();
+  const authIsAdmin = useSelector(selectAuthIsAdmin);
+  const authUser = useSelector(selectAuthUser);
+  const impersonateUser = useSelector(selectImpersonationUser);
+  const userInterface = useSelector(selectInterface);
+
+  React.useEffect(() => {
+    waitForSession();
+  }, []);
+
   const onNavToggleMobile = () => {
     setIsNavOpenMobile(!isNavOpenMobile);
   };
@@ -77,12 +87,6 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
   const onPageResize = (props: { mobileView: boolean; windowSize: number }) => {
     setIsMobileView(props.mobileView);
   };
-
-  const dispatch = useDispatch();
-  const authIsAdmin = useSelector(selectAuthIsAdmin);
-  const authUser = useSelector(selectAuthUser);
-  const impersonateUser = useSelector(selectImpersonationUser);
-  const userInterface = useSelector(selectInterface);
   const impersonateUserName = sessionStorage.getItem('impersonateUser');
 
   async function getUsers({ session }): Promise<void> {
@@ -182,10 +186,6 @@ const AppLayout: React.FunctionComponent<AppLayoutProps> = ({ children }) => {
       value: '',
     });
   }
-
-  React.useEffect(() => {
-    waitForSession();
-  }, []);
 
   function LogoImg() {
     function handleClick() {

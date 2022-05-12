@@ -20,26 +20,27 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
   value,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-
   if (parameter.openAPIV3Schema?.enum) {
     return (
-      <Select
-        aria-label={parameter.description}
-        isDisabled={isDisabled}
-        isOpen={isOpen}
-        onSelect={(event, value) => {
-          onChange(value);
-          setIsOpen(false);
-        }}
-        onToggle={() => setIsOpen((v) => !v)}
-        placeholderText={parameter.placeholderText || `- Select ${parameter.formLabel || parameter.name} -`}
-        selections={value}
-        variant={SelectVariant.single}
-      >
-        {parameter.openAPIV3Schema.enum.map((enumValue) => (
-          <SelectOption key={enumValue} value={enumValue} />
-        ))}
-      </Select>
+      <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
+        <Select
+          aria-label={parameter.description}
+          isDisabled={isDisabled}
+          isOpen={isOpen}
+          onSelect={(event, value) => {
+            onChange(value);
+            setIsOpen(false);
+          }}
+          onToggle={() => setIsOpen((v) => !v)}
+          placeholderText={parameter.placeholderText || `- Select ${parameter.formLabel || parameter.name} -`}
+          selections={value}
+          variant={SelectVariant.single}
+        >
+          {parameter.openAPIV3Schema.enum.map((enumValue) => (
+            <SelectOption key={enumValue} value={enumValue} />
+          ))}
+        </Select>
+      </div>
     );
   } else if (parameter.openAPIV3Schema?.type === 'boolean') {
     return (
