@@ -49,10 +49,10 @@ jobs:
         uses: docker/login-action@v1
         if: steps.image_tags.outputs.IMAGE_TAGS
         with:
-          registry: ${{ secrets.GPTE_REGISTRY_URI }}
-          username: ${{ secrets.GPTE_REGISTRY_USERNAME }}
-          password: ${{ secrets.GPTE_REGISTRY_PASSWORD }}
-          
+          registry: ${{ secrets.REDHAT_REGISTRY_URI }}
+          username: ${{ secrets.REDHAT_REGISTRY_USERNAME }}
+          password: ${{ secrets.REDHAT_REGISTRY_PASSWORD }}
+
       - name: Login to quay.io registry
         uses: docker/login-action@v1
         if: steps.image_tags.outputs.IMAGE_TAGS
