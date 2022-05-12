@@ -1,10 +1,14 @@
 FROM registry.redhat.io/rhel8/nodejs-14-minimal:latest AS builder
 WORKDIR /build
 
+ARG STATUS_PAGE_ID
+
 COPY package.json package-lock.json ./
+RUN mkdir -p ./node_modules
 RUN npm ci && npm cache clean --force
 
 COPY ./ ./
+
 RUN npm run build
 
 FROM registry.access.redhat.com/ubi8/nginx-118:latest
