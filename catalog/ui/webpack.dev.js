@@ -9,11 +9,11 @@ module.exports = merge(common('development'), {
   mode: 'development',
   devtool: 'eval-source-map',
   devServer: {
-    contentBase: './dist',
+    static: './dist',
     host: HOST,
     port: PORT,
     compress: true,
-    inline: true,
+    hot: true,
     historyApiFallback: {
       rewrites: [
         { from: /^\/admin\/.*/, to: '/index.html' },
@@ -21,7 +21,6 @@ module.exports = merge(common('development'), {
         { from: /^\/services\/.*/, to: '/index.html' },
       ],
     },
-    overlay: true,
     open: true,
     proxy: {
       '/api': 'http://localhost:5000',

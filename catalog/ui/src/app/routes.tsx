@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { useLocation, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
 
 import { Spinner } from '@patternfly/react-core';
 
 import { selectInterface, selectUserIsAdmin } from '@app/store';
-import { accessibleRouteChangeHandler } from '@app/utils/utils';
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const Services = React.lazy(() => import('@app/Services/Services'));
@@ -191,23 +189,7 @@ const adminRoutes: AppRouteConfig[] = [
   },
 ];
 
-// a custom hook for sending focus to the primary content container
-// after a view has loaded so that subsequent press of tab key
-// sends focus directly to relevant content
-const useA11yRouteChange = (isAsync: boolean) => {
-  const lastNavigation = useLastLocation();
-  React.useEffect(() => {
-    if (!isAsync && lastNavigation !== null) {
-      routeFocusTimer = accessibleRouteChangeHandler();
-    }
-    return () => {
-      window.clearTimeout(routeFocusTimer);
-    };
-  }, [isAsync, lastNavigation]);
-};
-
 const RouteWithTitleUpdates = ({ component: Component, isAsync = false, title, ...rest }: IAppRoute) => {
-  useA11yRouteChange(isAsync);
   useDocumentTitle(title);
 
   function routeWithTitle(routeProps: RouteComponentProps) {
@@ -240,51 +222,49 @@ const AppRoutes = (): React.ReactElement => {
   const location = useLocation();
 
   return (
-    <LastLocationProvider>
-      <React.Suspense fallback={<Spinner isSVG size="lg" />}>
-        <Switch>
-          {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
-            const pageTitle =
-              userInterface === 'summit'
-                ? title.replace('Babylon', 'Red Hat Summit')
-                : userInterface === 'rhpds'
-                ? title.replace('Babylon', 'RHPDS')
-                : title;
-            return (
-              <RouteWithTitleUpdates
-                path={path}
-                exact={exact}
-                component={component}
-                key={idx}
-                title={pageTitle}
-                isAsync={isAsync}
-              />
-            );
-          })}
-          {userIsAdmin
-            ? adminFlattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
-                const pageTitle =
-                  userInterface === 'summit'
-                    ? title.replace('Babylon', 'Red Hat Summit')
-                    : userInterface === 'rhpds'
-                    ? title.replace('Babylon', 'RHPDS')
-                    : title;
-                return (
-                  <RouteWithTitleUpdates
-                    path={path}
-                    exact={exact}
-                    component={component}
-                    key={idx}
-                    title={pageTitle}
-                    isAsync={isAsync}
-                  />
-                );
-              })
-            : null}
-          <PageNotFound title="404 Page Not Found" />
-        </Switch>
-      </React.Suspense>
-    </LastLocationProvider>
+    <React.Suspense fallback={<Spinner isSVG size="lg" />}>
+      <Switch>
+        {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
+          const pageTitle =
+            userInterface === 'summit'
+              ? title.replace('Babylon', 'Red Hat Summit')
+              : userInterface === 'rhpds'
+              ? title.replace('Babylon', 'RHPDS')
+              : title;
+          return (
+            <RouteWithTitleUpdates
+              path={path}
+              exact={exact}
+              component={component}
+              key={idx}
+              title={pageTitle}
+              isAsync={isAsync}
+            />
+          );
+        })}
+        {userIsAdmin
+          ? adminFlattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
+              const pageTitle =
+                userInterface === 'summit'
+                  ? title.replace('Babylon', 'Red Hat Summit')
+                  : userInterface === 'rhpds'
+                  ? title.replace('Babylon', 'RHPDS')
+                  : title;
+              return (
+                <RouteWithTitleUpdates
+                  path={path}
+                  exact={exact}
+                  component={component}
+                  key={idx}
+                  title={pageTitle}
+                  isAsync={isAsync}
+                />
+              );
+            })
+          : null}
+        <PageNotFound title="404 Page Not Found" />
+      </Switch>
+    </React.Suspense>
   );
 };
 

@@ -25,6 +25,9 @@
     "strictNullChecks": false,
     "strict": true,
     "target": "es5",
+    "typeRoots": [
+      "node_modules/@types"
+    ],
     "resolveJsonModule": true,
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
