@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Spinner } from '@patternfly/react-core';
 
 import { selectInterface, selectUserIsAdmin } from '@app/store';
-import { accessibleRouteChangeHandler } from '@app/utils/utils';
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const Services = React.lazy(() => import('@app/Services/Services'));
