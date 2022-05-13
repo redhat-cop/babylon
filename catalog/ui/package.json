@@ -69,7 +69,7 @@
   "dependencies": {
     "@monaco-editor/react": "^4.2.2",
     "@patternfly/patternfly": "^4.132.2",
-    "@patternfly/react-core": "^4.152.4",
+    "@patternfly/react-core": "^4.214.1",
     "@patternfly/react-icons": "^4.11.14",
     "@patternfly/react-styles": "^4.11.13",
     "@patternfly/react-table": "^4.29.58",
