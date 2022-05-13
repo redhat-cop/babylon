@@ -37,7 +37,7 @@ export interface ConditionValues {
 }
 
 export function checkCondition(condition: string, vars: ConditionValues): boolean {
-  const checkFunction: Function = new Function(
+  const checkFunction = new Function(
     Object.entries(vars)
       .map(([k, v]) => 'const ' + k + ' = ' + JSON.stringify(v) + ';')
       .join('\n') +
