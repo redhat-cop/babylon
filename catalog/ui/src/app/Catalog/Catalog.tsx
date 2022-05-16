@@ -224,6 +224,7 @@ const Catalog: React.FC = () => {
         // Clear selected category if no catalog items match
         if (selectedCategory && !catalogItems.find((ci) => selectedCategory === getCategory(ci))) {
           urlSearchParams.delete('category');
+          setLastFilter(urlSearchParams.toString());
           history.push(`${location.pathname}?${urlSearchParams.toString()}`);
         }
       }
