@@ -10,7 +10,6 @@ import {
   JSONPatch,
   K8sObject,
   K8sObjectList,
-  Namespace,
   NamespaceList,
   ResourceClaim,
   ResourceClaimList,
@@ -27,7 +26,6 @@ import {
   WorkshopProvision,
   WorkshopProvisionList,
   WorkshopSpecUserAssignment,
-  User,
   UserList,
 } from '@app/types';
 
@@ -240,7 +238,6 @@ export async function checkSalesforceId(id: string): Promise<boolean> {
 }
 
 export async function createK8sObject<Type extends K8sObject>(definition: Type): Promise<Type> {
-  const session = await getApiSession();
   const apiVersion = definition.apiVersion;
   const namespace = definition.metadata.namespace;
   const plural = definition.kind.toLowerCase() + 's';
@@ -258,7 +255,6 @@ export async function createK8sObject<Type extends K8sObject>(definition: Type):
 }
 
 export async function createResourceClaim(definition, opt: any = {}): Promise<ResourceClaim> {
-  const namespace = definition.metadata.namespace;
   const resourceClaim: ResourceClaim = await createK8sObject<ResourceClaim>(definition);
   if (!opt.skipUpdateStore) {
     store.dispatch(
@@ -271,7 +267,6 @@ export async function createResourceClaim(definition, opt: any = {}): Promise<Re
 }
 
 export async function createResourcePool(definition: ResourcePool): Promise<ResourcePool> {
-  const namespace = definition.metadata.namespace;
   const response = await createK8sObject<ResourcePool>(definition);
   return response;
 }
@@ -747,7 +742,7 @@ function refreshApiSession(): void {
         window.apiSessionInterval = setInterval(refreshApiSession, (session.lifetime - 60) * 1000);
         resolve(session);
       })
-      .catch((error) => {
+      .catch(() => {
         window.location.href = '/?n=' + new Date().getTime();
       });
   });
@@ -1252,7 +1247,6 @@ export async function stopAllResourcesInResourceClaim(resourceClaim): Promise<Re
 }
 
 export async function deleteNamespacedCustomObject(group, version, namespace, plural, name): Promise<K8sObject> {
-  const session = await getApiSession();
   const resp = await apiFetch(`/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`, {
     method: 'DELETE',
   });
@@ -1260,14 +1254,12 @@ export async function deleteNamespacedCustomObject(group, version, namespace, pl
 }
 
 export async function getNamespacedCustomObject(group, version, namespace, plural, name): Promise<K8sObject> {
-  const session = await getApiSession();
   const resp = await apiFetch(`/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`);
   return await resp.json();
 }
 
 export async function listK8sObjects(opt: K8sObjectListOpt): Promise<K8sObjectList> {
   const { apiVersion, namespace, plural } = opt;
-  const session = await getApiSession();
   const urlSearchParams = new URLSearchParams();
   if (opt.continue) {
     urlSearchParams.set('continue', opt.continue);
@@ -1288,7 +1280,6 @@ export async function listK8sObjects(opt: K8sObjectListOpt): Promise<K8sObjectLi
 }
 
 export async function listNamespaces(opt?: K8sObjectListCommonOpt): Promise<NamespaceList> {
-  const sessino = await getApiSession();
   const query_params = {};
   if (opt?.continue) {
     query_params['continue'] = opt.continue;
@@ -1317,7 +1308,6 @@ export async function patchNamespacedCustomObject(
   patch,
   patchType = 'merge'
 ): Promise<K8sObject> {
-  const session = await getApiSession();
   const resp = await apiFetch(`/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`, {
     method: 'PATCH',
     body: JSON.stringify(patch),
@@ -1329,7 +1319,6 @@ export async function patchNamespacedCustomObject(
 }
 
 export async function getOpenStackServersForResourceClaim(resourceClaim): Promise<any> {
-  const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/servers`
   );
@@ -1337,7 +1326,6 @@ export async function getOpenStackServersForResourceClaim(resourceClaim): Promis
 }
 
 export async function rebootOpenStackServer(resourceClaim, projectId, serverId): Promise<any> {
-  const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/reboot`,
     {
@@ -1352,7 +1340,6 @@ export async function rebootOpenStackServer(resourceClaim, projectId, serverId):
 }
 
 export async function startOpenStackServer(resourceClaim, projectId, serverId): Promise<any> {
-  const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/start`,
     {
@@ -1367,7 +1354,6 @@ export async function startOpenStackServer(resourceClaim, projectId, serverId): 
 }
 
 export async function stopOpenStackServer(resourceClaim, projectId, serverId): Promise<any> {
-  const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/stop`,
     {
@@ -1382,7 +1368,6 @@ export async function stopOpenStackServer(resourceClaim, projectId, serverId): P
 }
 
 export async function startOpenStackServerConsoleSession(resourceClaim, projectId, serverId): Promise<any> {
-  const session = await getApiSession();
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/console`,
     {

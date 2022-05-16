@@ -1,0 +1,95 @@
+.catalog-item-card {
+  color: var(--pf-global--Color--100);
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  box-shadow: var(--pf-c-card--BoxShadow);
+  height: 240px;
+  width: 280px;
+  padding: var(--pf-global--spacer--lg);
+  overflow: hidden;
+}
+
+.catalog-item-card:hover {
+  box-shadow: var(--pf-c-card--m-hoverable--hover--BoxShadow);
+  text-decoration: none;
+}
+
+.catalog-item-card .catalog-item-icon {
+  height: auto;
+  max-height: 60px;
+  width: 60px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.catalog-item-card__body {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-global--spacer--xs);
+}
+
+/* fixes for mis-formatted descriptions -  hide all content in description */
+.catalog-item-card__description {
+  visibility: hidden;
+  font-weight: var(--pf-global--link--FontWeight) !important;
+  font-size: var(--pf-global--FontSize--sm) !important;
+  color: var(--pf-global--Color--100);
+}
+/* show first element in description or nested element in first element only */
+.catalog-item-card__description > *:nth-child(1),
+.catalog-item-card__description > *:nth-child(1) > * {
+  color: var(--pf-global--Color--100);
+  font-size: var(--pf-global--FontSize--sm) !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  visibility: visible;
+  font-weight: var(--pf-global--link--FontWeight) !important;
+}
+
+.catalog-item-card__header {
+  margin-bottom: var(--pf-global--spacer--xs);
+  padding: 0 0 var(--pf-global--spacer--xs) !important;
+  min-height: 60px;
+}
+
+.catalog-item-card__header.pf-c-card__header > .pf-l-split {
+  width: 100%;
+}
+
+.catalog-item-card__badges {
+  text-align: right;
+}
+
+.catalog-item-card__badges--dev {
+  background-color: var(--pf-global--danger-color--100);
+}
+
+.catalog-item-card__badges--test {
+  background-color: var(--pf-global--danger-color--100);
+}
+
+.catalog-item-card__subtitle {
+  color: var(--pf-global--palette--black-600);
+  font-size: var(--pf-global--FontSize--xs) !important;
+  display: flex;
+  align-items: center;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.catalog-item-card__title {
+  color: var(--pf-global--Color--100);
+  font-size: var(--pf-global--FontSize--md) !important;
+  line-height: var(--pf-global--LineHeight--sm) !important;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 46px;
+  display: flex;
+  align-items: flex-start;
+}

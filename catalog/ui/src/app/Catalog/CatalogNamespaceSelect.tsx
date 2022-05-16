@@ -6,6 +6,7 @@ import { Dropdown, DropdownItem, DropdownToggle, PageSection, PageSectionVariant
 
 import { selectCatalogNamespaces } from '@app/store';
 import { displayName } from '@app/util';
+import './catalog-namespace-select.css';
 
 interface CatalogNamespaceSelectProps {
   onSelect: (ns: string) => void;
@@ -19,7 +20,7 @@ const CatalogNamespaceSelect: React.FunctionComponent<CatalogNamespaceSelectProp
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   return (
-    <PageSection variant={PageSectionVariants.light} className="catalog-project-select">
+    <PageSection variant={PageSectionVariants.light} className="catalog-namespace-select">
       <Dropdown
         isPlain
         isOpen={isOpen}

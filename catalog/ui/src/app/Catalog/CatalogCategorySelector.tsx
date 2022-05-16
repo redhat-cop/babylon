@@ -4,18 +4,14 @@ import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 
 import { CatalogItem } from '@app/types';
 import { getCategory } from './catalog-utils';
-
+import './catalog-category-selector.css';
 interface CatalogCategorySelectorProps {
   catalogItems: CatalogItem[];
   onSelect: (category: string) => void;
   selected: string;
 }
 
-const CatalogCategorySelector: React.FunctionComponent<CatalogCategorySelectorProps> = ({
-  catalogItems,
-  onSelect,
-  selected,
-}) => {
+const CatalogCategorySelector: React.FC<CatalogCategorySelectorProps> = ({ catalogItems, onSelect, selected }) => {
   const categories = Array.from(
     new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null))
   );

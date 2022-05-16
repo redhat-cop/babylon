@@ -22,10 +22,32 @@ module.exports = merge(common('development'), {
       ],
     },
     open: true,
+    https: false,
     proxy: {
-      '/api': 'http://localhost:5000',
-      '/apis': 'http://localhost:5000',
-      '/auth': 'http://localhost:5000',
+      '/api': {
+        target: 'http://localhost:5000',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Connection: 'keep-alive',
+        },
+      },
+      '/apis': {
+        target: 'http://localhost:5000',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Connection: 'keep-alive',
+        },
+      },
+      '/auth': {
+        target: 'http://localhost:5000',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Connection: 'keep-alive',
+        },
+      },
     },
   },
   module: {

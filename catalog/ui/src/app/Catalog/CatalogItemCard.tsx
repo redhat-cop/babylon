@@ -8,8 +8,9 @@ import { displayName, renderContent } from '@app/util';
 
 import CatalogItemIcon from './CatalogItemIcon';
 import { getDescription, getProvider, getStage } from './catalog-utils';
+import './catalog-item-card.css';
 
-const CatalogItemCard: React.FunctionComponent<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
+const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
   const location = useLocation();
   const routeMatch = useRouteMatch<any>('/catalog/:namespace?');
   const urlSearchParams = new URLSearchParams(location.search);
@@ -17,37 +18,39 @@ const CatalogItemCard: React.FunctionComponent<{ catalogItem: CatalogItem }> = (
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
 
-  if (routeMatch.params.namespace) {
-    urlSearchParams.set('item', catalogItem.metadata.name);
-  } else {
-    urlSearchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
+  if (!urlSearchParams.has('item')) {
+    if (routeMatch.params.namespace) {
+      urlSearchParams.set('item', catalogItem.metadata.name);
+    } else {
+      urlSearchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
+    }
   }
 
   return (
     <Link className="catalog-item-card" to={`${location.pathname}?${urlSearchParams.toString()}`}>
-      <CardHeader className="catalog-item-card-header">
+      <CardHeader className="catalog-item-card__header">
         <Split>
           <SplitItem>
             <CatalogItemIcon catalogItem={catalogItem} />
           </SplitItem>
-          <SplitItem className="catalog-item-badges" isFilled>
+          <SplitItem className="catalog-item-card__badges" isFilled>
             {stage === 'dev' ? (
-              <Badge className="catalog-dev-badge">development</Badge>
+              <Badge className="catalog-item-card__badges--dev">development</Badge>
             ) : stage === 'test' ? (
-              <Badge className="catalog-test-badge">test</Badge>
+              <Badge className="catalog-item-card__badges--test">test</Badge>
             ) : null}
           </SplitItem>
         </Split>
       </CardHeader>
-      <CardBody className="catalog-item-card-body">
-        <Title className="catalog-item-card-title" headingLevel="h3">
+      <CardBody className="catalog-item-card__body">
+        <Title className="catalog-item-card__title" headingLevel="h3">
           {displayName(catalogItem)}
         </Title>
-        <Title className="catalog-item-card-subtitle" headingLevel="h4">
+        <Title className="catalog-item-card__subtitle" headingLevel="h6">
           provided by {provider.replace(/_/g, ' ')}
         </Title>
         <div
-          className="catalog-item-card-description"
+          className="catalog-item-card__description"
           dangerouslySetInnerHTML={{
             __html: description
               ? renderContent(description, { format: descriptionFormat })

@@ -1,0 +1,22 @@
+.catalog-label-selector {
+  gap: var(--pf-global--spacer--md);
+}
+.catalog-label-selector .pf-c-check__label {
+  font-size: var(--pf-global--FontSize--sm) !important;
+  line-height: var(--pf-global--LineHeight--sm);
+  padding-bottom: var(--pf-global--spacer--xs);
+}
+
+.catalog-label-selector .pf-c-form__group {
+  margin-left: var(--pf-global--spacer--sm);
+}
+
+.catalog-label-selector .pf-c-form__group fieldset {
+  border: none;
+}
+
+.catalog-label-selector legend.pf-c-form__label {
+  font-size: var(--pf-global--FontSize--md) !important;
+  font-weight: bold;
+  margin-bottom: var(--pf-global--spacer--xs);
+}

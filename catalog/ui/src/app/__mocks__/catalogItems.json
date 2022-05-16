@@ -1,0 +1,1447 @@
+{
+  "apiVersion": "babylon.gpte.redhat.com/v1",
+  "items": [
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Example catalog item configured for Babylon infrastructure bookbag deployment for a multiuser workshop environment.</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Multiuser Bookbag Example",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-03-25T17:00:15Z",
+        "generation": 2,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "prod",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": { "f:spec": { "f:multiuser": {} } },
+            "manager": "kubectl-edit",
+            "operation": "Update",
+            "time": "2022-04-08T03:36:13Z"
+          },
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": { ".": {}, "f:bookbag": {}, "f:parameters": {}, "f:resources": {}, "f:termsOfService": {} }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-04-13T20:04:47Z"
+          }
+        ],
+        "name": "tests.bookbag-example-multiuser.prod",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "266508459",
+        "uid": "2ff97989-a13c-4137-8fc2-7adb3536c036"
+      },
+      "spec": {
+        "bookbag": {
+          "imageBuild": {
+            "source": { "git": { "uri": "https://github.com/redhat-gpte-labs/bookbag-template.git" }, "type": "Git" }
+          }
+        },
+        "multiuser": true,
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "description": "User count to simulate",
+            "formLabel": "User Count",
+            "name": "test_empty_config_user_count",
+            "openAPIV3Schema": { "default": 10, "maximum": 50, "minimum": 1, "type": "integer" }
+          }
+        ],
+        "resources": [
+          {
+            "name": "bookbag-example-multiuser",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.bookbag-example-multiuser.prod",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Example catalog item configured for Babylon infrastructure bookbag deployment for a multiuser workshop environment.</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Multiuser Bookbag Example",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-03-25T17:00:23Z",
+        "generation": 2,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "test",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": { "f:spec": { "f:multiuser": {} } },
+            "manager": "kubectl-edit",
+            "operation": "Update",
+            "time": "2022-04-08T03:37:01Z"
+          },
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": { ".": {}, "f:bookbag": {}, "f:parameters": {}, "f:resources": {}, "f:termsOfService": {} }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-04-13T20:04:54Z"
+          }
+        ],
+        "name": "tests.bookbag-example-multiuser.test",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "266508549",
+        "uid": "339d5e05-18f5-4aa3-952a-cadf67a798da"
+      },
+      "spec": {
+        "bookbag": {
+          "imageBuild": {
+            "source": { "git": { "uri": "https://github.com/redhat-gpte-labs/bookbag-template.git" }, "type": "Git" }
+          }
+        },
+        "multiuser": true,
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "description": "User count to simulate",
+            "formLabel": "User Count",
+            "name": "test_empty_config_user_count",
+            "openAPIV3Schema": { "default": 10, "maximum": 50, "minimum": 1, "type": "integer" }
+          }
+        ],
+        "resources": [
+          {
+            "name": "bookbag-example-multiuser",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.bookbag-example-multiuser.test",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Example catalog item configured for Babylon infrastructure bookbag deployment.</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Bookbag Example",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-03-25T16:59:53Z",
+        "generation": 1,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "prod",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": { ".": {}, "f:bookbag": {}, "f:parameters": {}, "f:resources": {}, "f:termsOfService": {} }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-03-25T16:59:53Z"
+          }
+        ],
+        "name": "tests.bookbag-example.prod",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "251028479",
+        "uid": "81a57ee5-5ca7-4c52-a72e-6263a215c114"
+      },
+      "spec": {
+        "bookbag": {
+          "imageBuild": {
+            "source": { "git": { "uri": "https://github.com/redhat-gpte-labs/bookbag-template.git" }, "type": "Git" }
+          }
+        },
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "resources": [
+          {
+            "name": "bookbag-example",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.bookbag-example.prod",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Example catalog item configured for Babylon infrastructure bookbag deployment.</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Bookbag Example",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-03-25T17:00:00Z",
+        "generation": 1,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "test",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": { ".": {}, "f:bookbag": {}, "f:parameters": {}, "f:resources": {}, "f:termsOfService": {} }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-03-25T17:00:00Z"
+          }
+        ],
+        "name": "tests.bookbag-example.test",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "254954898",
+        "uid": "0d661cba-133a-4d97-b95f-bbdca3fd6767"
+      },
+      "spec": {
+        "bookbag": {
+          "imageBuild": {
+            "source": { "git": { "uri": "https://github.com/redhat-gpte-labs/bookbag-template.git" }, "type": "Git" }
+          }
+        },
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "resources": [
+          {
+            "name": "bookbag-example",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.bookbag-example.test",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>\nTest empty config with a chained deployment.\nThis item includes a base empty config component that will feed a variable from the base provision data to a variable passed to the subsequent provision.\n</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Chained Test Config",
+          "babylon.gpte.redhat.com/displayNameComponent0": "Base Empty Config",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-03-25T19:35:39Z",
+        "generation": 1,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "prod",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/displayNameComponent0": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": { ".": {}, "f:parameters": {}, "f:resources": {}, "f:termsOfService": {} }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-03-25T19:35:39Z"
+          }
+        ],
+        "name": "tests.test-empty-config-chained.prod",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "254955702",
+        "uid": "6283924c-4c32-4cc6-8370-e6469fd6fd4e"
+      },
+      "spec": {
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "resources": [
+          {
+            "name": "base",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config.prod",
+              "namespace": "poolboy"
+            }
+          },
+          {
+            "name": "test-empty-config-chained",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config-chained.prod",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>\nTest empty config with a chained deployment.\nThis item includes a base empty config component that will feed a variable from the base provision data to a variable passed to the subsequent provision.\n</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Chained Test Config",
+          "babylon.gpte.redhat.com/displayNameComponent0": "Base Empty Config",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-01-13T16:57:58Z",
+        "generation": 3,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "test",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/displayNameComponent0": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": { ".": {}, "f:parameters": {}, "f:resources": {}, "f:termsOfService": {} }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-03-25T19:35:45Z"
+          }
+        ],
+        "name": "tests.test-empty-config-chained.test",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "251028888",
+        "uid": "80bb3e51-f4cf-44fd-a714-b5618c1aa2b4"
+      },
+      "spec": {
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "resources": [
+          {
+            "name": "base",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config.test",
+              "namespace": "poolboy"
+            }
+          },
+          {
+            "name": "test-empty-config-chained",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config-chained.test",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Test config which deploys no cloud resources while simulating a multiuser environment.</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Multiuser Test Config",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-03-25T17:01:00Z",
+        "generation": 2,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "prod",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": { "f:spec": { "f:multiuser": {} } },
+            "manager": "kubectl-edit",
+            "operation": "Update",
+            "time": "2022-04-08T03:37:01Z"
+          },
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": { ".": {}, "f:parameters": {}, "f:resources": {}, "f:termsOfService": {} }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-04-13T20:06:09Z"
+          }
+        ],
+        "name": "tests.test-empty-config-multiuser.prod",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "266509160",
+        "uid": "594419a1-6efc-458f-97f3-d57fd53ffe3f"
+      },
+      "spec": {
+        "multiuser": true,
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "description": "User count to simulate",
+            "formLabel": "User Count",
+            "name": "test_empty_config_user_count",
+            "openAPIV3Schema": { "default": 10, "maximum": 50, "minimum": 1, "type": "integer" }
+          },
+          {
+            "description": "Deploy bookbag on OpenShift shared cluster.",
+            "formLabel": "Deploy bookbag",
+            "name": "bookbag_deploy",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Git repository for bookbag.",
+            "formDisableCondition": "bookbag_deploy !== true",
+            "formLabel": "Bookbag Git Repository",
+            "name": "bookbag_git_repo",
+            "openAPIV3Schema": {
+              "default": "https://github.com/redhat-gpte-labs/bookbag-template.git",
+              "type": "string"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "name": "test-empty-config-multiuser",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config-multiuser.prod",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Test config which deploys no cloud resources while simulating a multiuser environment.</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Multiuser Test Config",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-03-25T17:01:08Z",
+        "generation": 2,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "test",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": { "f:spec": { "f:multiuser": {} } },
+            "manager": "kubectl-edit",
+            "operation": "Update",
+            "time": "2022-04-08T03:37:01Z"
+          },
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": { ".": {}, "f:parameters": {}, "f:resources": {}, "f:termsOfService": {} }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-04-13T20:06:17Z"
+          }
+        ],
+        "name": "tests.test-empty-config-multiuser.test",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "266509242",
+        "uid": "2968b748-684b-4e42-89af-5835e6b1ffb8"
+      },
+      "spec": {
+        "multiuser": true,
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "description": "User count to simulate",
+            "formLabel": "User Count",
+            "name": "test_empty_config_user_count",
+            "openAPIV3Schema": { "default": 10, "maximum": 50, "minimum": 1, "type": "integer" }
+          },
+          {
+            "description": "Deploy bookbag on OpenShift shared cluster.",
+            "formLabel": "Deploy bookbag",
+            "name": "bookbag_deploy",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Git repository for bookbag.",
+            "formDisableCondition": "bookbag_deploy !== true",
+            "formLabel": "Bookbag Git Repository",
+            "name": "bookbag_git_repo",
+            "openAPIV3Schema": {
+              "default": "https://github.com/redhat-gpte-labs/bookbag-template.git",
+              "type": "string"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "name": "test-empty-config-multiuser",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config-multiuser.test",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Test empty config which passes requester information.<p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "asciidoc",
+          "babylon.gpte.redhat.com/displayName": "Test empty config with requester",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-04-25T14:47:28Z",
+        "generation": 1,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "prod",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:parameters": {},
+                "f:provisionTimeEstimate": {},
+                "f:resources": {},
+                "f:termsOfService": {}
+              }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-04-25T14:47:28Z"
+          }
+        ],
+        "name": "tests.test-empty-config-requester.prod",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "282422242",
+        "uid": "03dbef7c-c861-4bcb-8d66-7b6f8d8886a6"
+      },
+      "spec": {
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "provisionTimeEstimate": "2m",
+        "resources": [
+          {
+            "name": "test-empty-config-requester",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config-requester.prod",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Test empty config which passes requester information.<p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "asciidoc",
+          "babylon.gpte.redhat.com/displayName": "Test empty config with requester",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-04-25T14:47:35Z",
+        "generation": 1,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "test",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:parameters": {},
+                "f:provisionTimeEstimate": {},
+                "f:resources": {},
+                "f:termsOfService": {}
+              }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-04-25T14:47:35Z"
+          }
+        ],
+        "name": "tests.test-empty-config-requester.test",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "282422291",
+        "uid": "db09b111-c3fe-44f6-9e91-ceb38439b991"
+      },
+      "spec": {
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "provisionTimeEstimate": "2m",
+        "resources": [
+          {
+            "name": "test-empty-config-requester",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config-requester.test",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Test empty config which deploys no cloud resources.</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Test Config",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-03-25T17:00:38Z",
+        "generation": 2,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "prod",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:parameters": {},
+                "f:provisionTimeEstimate": {},
+                "f:resources": {},
+                "f:termsOfService": {}
+              }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-04-22T22:35:03Z"
+          }
+        ],
+        "name": "tests.test-empty-config.prod",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "273630848",
+        "uid": "c1e12be9-d742-4c9f-822a-38342a3576ec"
+      },
+      "spec": {
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/salesforce-id",
+            "description": "Salesforce Opportunity ID, Campaign ID, or Partner Registration",
+            "formLabel": "Salesforce ID",
+            "name": "salesforce_id",
+            "openAPIV3Schema": { "type": "string" },
+            "validation": "check_salesforce_id(salesforce_id)"
+          },
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "description": "Request failure in AgnosticD pre_infra.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD pre-infra stage",
+            "name": "fail_pre_infra",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD infra.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD infra stage",
+            "name": "fail_infra",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD post_infra.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD post-infra stage",
+            "name": "fail_post_infra",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD pre_software.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD pre-software stage",
+            "name": "fail_pre_software",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD software.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD software stage",
+            "name": "fail_software",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD post_software.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD post-software stage",
+            "name": "fail_post_software",
+            "openAPIV3Schema": { "default": false, "type": "boolean" },
+            "value": "false"
+          },
+          {
+            "description": "Pause in post_software.yml to extend time until provision completion.",
+            "formGroup": "Provision Pause",
+            "formLabel": "Enable",
+            "name": "test_empty_config_pause_post_software",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Seconds to pause in post_software.yml",
+            "formDisableCondition": "test_empty_config_pause_post_software !== true",
+            "formLabel": "Pause duration in post_software.yml",
+            "name": "test_empty_config_pause_post_software_seconds",
+            "openAPIV3Schema": { "default": 30, "maximum": 3600, "minimum": 1, "type": "integer" },
+            "validation": "test_empty_config_pause_post_software_seconds < 60 || check_salesforce_id(salesforce_id) || Error('Pause duration must be less than a minute unless a valid Salesforce ID is provided.')"
+          }
+        ],
+        "provisionTimeEstimate": "2m",
+        "resources": [
+          {
+            "name": "test-empty-config",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config.prod",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "<p>Test empty config which deploys no cloud resources.</p>",
+          "babylon.gpte.redhat.com/descriptionFormat": "html",
+          "babylon.gpte.redhat.com/displayName": "Test Config",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2022-01-10T18:30:51Z",
+        "generation": 5,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "test",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:parameters": {},
+                "f:provisionTimeEstimate": {},
+                "f:resources": {},
+                "f:termsOfService": {}
+              }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-04-22T22:35:10Z"
+          }
+        ],
+        "name": "tests.test-empty-config.test",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "273630972",
+        "uid": "fb85c241-ba3a-4de9-9a4f-6f121d36b640"
+      },
+      "spec": {
+        "parameters": [
+          {
+            "annotation": "pfe.redhat.com/salesforce-id",
+            "description": "Salesforce Opportunity ID, Campaign ID, or Partner Registration",
+            "formLabel": "Salesforce ID",
+            "name": "salesforce_id",
+            "openAPIV3Schema": { "type": "string" },
+            "validation": "check_salesforce_id(salesforce_id)"
+          },
+          {
+            "annotation": "pfe.redhat.com/purpose",
+            "description": "Purpose for this service.",
+            "formLabel": "Purpose",
+            "name": "purpose",
+            "openAPIV3Schema": {
+              "enum": [
+                "Customer Activity - Customer environment testing",
+                "Customer Activity - Customer workshop/demo",
+                "Customer Activity - Informal training",
+                "Customer Activity - Multi-customer event",
+                "Customer Activity - Proof of concept",
+                "Development - Catalog item creation / maintenance",
+                "Development - PnT engineering",
+                "Development - Solution prototyping",
+                "Training - Ad-hoc or exploratory",
+                "Training - As part of course"
+              ],
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "description": "Request failure in AgnosticD pre_infra.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD pre-infra stage",
+            "name": "fail_pre_infra",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD infra.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD infra stage",
+            "name": "fail_infra",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD post_infra.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD post-infra stage",
+            "name": "fail_post_infra",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD pre_software.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD pre-software stage",
+            "name": "fail_pre_software",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD software.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD software stage",
+            "name": "fail_software",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Request failure in AgnosticD post_software.yml",
+            "formGroup": "Request Failure",
+            "formLabel": "Fail in AgnosticD post-software stage",
+            "name": "fail_post_software",
+            "openAPIV3Schema": { "default": false, "type": "boolean" },
+            "value": "false"
+          },
+          {
+            "description": "Pause in post_software.yml to extend time until provision completion.",
+            "formGroup": "Provision Pause",
+            "formLabel": "Enable",
+            "name": "test_empty_config_pause_post_software",
+            "openAPIV3Schema": { "default": false, "type": "boolean" }
+          },
+          {
+            "description": "Seconds to pause in post_software.yml",
+            "formDisableCondition": "test_empty_config_pause_post_software !== true",
+            "formLabel": "Pause duration in post_software.yml",
+            "name": "test_empty_config_pause_post_software_seconds",
+            "openAPIV3Schema": { "default": 30, "maximum": 3600, "minimum": 1, "type": "integer" },
+            "validation": "test_empty_config_pause_post_software_seconds < 60 || check_salesforce_id(salesforce_id) || Error('Pause duration must be less than a minute unless a valid Salesforce ID is provided.')"
+          }
+        ],
+        "provisionTimeEstimate": "2m",
+        "resources": [
+          {
+            "name": "test-empty-config",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-empty-config.test",
+              "namespace": "poolboy"
+            }
+          }
+        ],
+        "termsOfService": "<p>\nPlease pay close attention to the information provided in this page.<br/>\nAfter you order your environment, you can manage it by logging into this system and select Services.<br/>\nThe ordered environment will cease to run unless you use Extend Runtime in App Control.<br/>\nThe ordered environment will cease to exist at the expiration date and time.<br>\nIf you have read and understood the above, click the check box below then Submit to continue.\n</p>"
+      }
+    },
+    {
+      "apiVersion": "babylon.gpte.redhat.com/v1",
+      "kind": "CatalogItem",
+      "metadata": {
+        "annotations": {
+          "babylon.gpte.redhat.com/description": "Test catalog item with restricted access.\n\nThe configuration restricts access to a list of allowed user groups:\n\n--------------------\n__meta__:\n  access_control:\n    allow_groups:\n      - babylon-admins\n\n  catalog:\n    namespace: babylon-catalog-{{ stage }}\n--------------------\n\nVisibility of the catalog item is primarily controlled by OpenShift role-based access control.\nIf access is not allowed to a user it still remains visible but may not be requested.",
+          "babylon.gpte.redhat.com/descriptionFormat": "asciidoc",
+          "babylon.gpte.redhat.com/displayName": "tests.test-restricted.test",
+          "babylon.gpte.redhat.com/icon": "",
+          "babylon.gpte.redhat.com/keywords": ""
+        },
+        "creationTimestamp": "2021-08-27T17:29:44Z",
+        "generation": 4,
+        "labels": {
+          "babylon.gpte.redhat.com/category": "Other",
+          "babylon.gpte.redhat.com/stage": "test",
+          "generated_by": "agnosticv"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/description": {},
+                  "f:babylon.gpte.redhat.com/descriptionFormat": {},
+                  "f:babylon.gpte.redhat.com/displayName": {},
+                  "f:babylon.gpte.redhat.com/icon": {},
+                  "f:babylon.gpte.redhat.com/keywords": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:babylon.gpte.redhat.com/category": {},
+                  "f:babylon.gpte.redhat.com/stage": {},
+                  "f:generated_by": {}
+                }
+              },
+              "f:spec": { ".": {}, "f:accessControl": {}, "f:resources": {} }
+            },
+            "manager": "OpenAPI-Generator",
+            "operation": "Update",
+            "time": "2022-03-04T20:54:49Z"
+          }
+        ],
+        "name": "tests.test-restricted.test",
+        "namespace": "babylon-catalog-test",
+        "resourceVersion": "232673275",
+        "uid": "744126ae-c4e1-4386-8166-ba059a12f7d8"
+      },
+      "spec": {
+        "accessControl": { "allowGroups": ["babylon-admins"] },
+        "resources": [
+          {
+            "name": "test-restricted",
+            "provider": {
+              "apiVersion": "poolboy.gpte.redhat.com/v1",
+              "kind": "ResourceProvider",
+              "name": "tests.test-restricted.test",
+              "namespace": "poolboy"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "CatalogItemList",
+  "metadata": { "continue": "", "resourceVersion": "292963946" }
+}

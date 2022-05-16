@@ -1,5 +1,6 @@
 .catalog-item-details__actions {
   padding: 0;
+  margin-top: var(--pf-global--spacer--sm);
 }
 
 .catalog-item-details__actions .pf-c-button {
@@ -119,4 +120,9 @@
   display: inline-block;
   width: 16px;
   padding: 0 3px;
+}
+
+.catalog-item-details__access-deny-reason {
+  color: red;
+  padding: 0.1em;
 }

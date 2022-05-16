@@ -3,7 +3,7 @@ import React from 'react';
 import { Checkbox, Form, FormGroup } from '@patternfly/react-core';
 import { BABYLON_DOMAIN } from '@app/util';
 import { CatalogItem } from '@app/types';
-
+import './catalog-label-selector.css';
 interface CatalogLabelValues {
   displayName: string;
   values: { [value: string]: CatalogLabelValueItemCount };
