@@ -60,7 +60,7 @@ const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
         key={parameter.name}
         id={parameter.name}
         isDisabled={isDisabled}
-        min={parameter.openAPIV3Schema.minmum || 0}
+        min={parameter.openAPIV3Schema.minimum || 0}
         max={parameter.openAPIV3Schema.maximum}
         // TODO: value does not exist
         onChange={(event: any) => {
