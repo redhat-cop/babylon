@@ -99,8 +99,8 @@ module.exports = (env) => {
     },
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: '[name].bundle.js',
-      chunkFilename: '[name].bundle.js',
+      filename: '[name].[contenthash:4].bundle.js',
+      chunkFilename: '[name].[contenthash:4].bundle.js',
       publicPath: ASSET_PATH,
     },
     plugins: [
