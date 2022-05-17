@@ -37,23 +37,19 @@ export interface ConditionValues {
 }
 
 export function checkCondition(condition: string, vars: ConditionValues): boolean {
-  try {
-    const checkFunction: Function = new Function(
-      Object.entries(vars)
-        .map(([k, v]) => 'const ' + k + ' = ' + JSON.stringify(v) + ';')
-        .join('\n') +
-        'return (' +
-        condition +
-        ');'
-    );
-    const ret: boolean | Error = checkFunction();
-    if (ret instanceof Error) {
-      throw ret;
-    } else {
-      return Boolean(ret);
-    }
-  } catch (error) {
-    throw new Error(`Failed to evaluate condition: ${error}`);
+  const checkFunction = new Function(
+    Object.entries(vars)
+      .map(([k, v]) => 'const ' + k + ' = ' + JSON.stringify(v) + ';')
+      .join('\n') +
+      'return (' +
+      condition +
+      ');'
+  );
+  const ret: boolean | Error = checkFunction();
+  if (ret instanceof Error) {
+    throw ret;
+  } else {
+    return Boolean(ret);
   }
 }
 
