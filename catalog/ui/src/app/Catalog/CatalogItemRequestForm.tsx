@@ -426,13 +426,15 @@ const CatalogItemRequestForm: React.FC<{ catalogItem: CatalogItem; onCancel: () 
               isRequired={formGroup.isRequired}
               label={formGroup.formGroupLabel}
               helperTextInvalid={
-                <FormHelperText
-                  icon={<ExclamationCircleIcon />}
-                  isError={status === 'error'}
-                  isHidden={status !== 'error'}
-                >
-                  {invalidParameter ? invalidParameter.validationMessage || invalidParameter.spec.description : null}
-                </FormHelperText>
+                invalidParameter?.validationMessage ? (
+                  <FormHelperText
+                    icon={<ExclamationCircleIcon />}
+                    isError={status === 'error'}
+                    isHidden={status !== 'error'}
+                  >
+                    {invalidParameter.validationMessage}
+                  </FormHelperText>
+                ) : null
               }
               validated={status}
             >
