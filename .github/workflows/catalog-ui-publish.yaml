@@ -69,6 +69,6 @@ jobs:
           context: catalog/ui
           file: catalog/ui/Dockerfile
           build-args: |
-            STATUS_PAGE_ID=m7thn7y0z176   # statuspage.io project ID
+            STATUS_PAGE_ID=m7thn7y0z176
           push: true
           tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
