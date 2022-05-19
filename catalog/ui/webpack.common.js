@@ -48,6 +48,7 @@ module.exports = (env) => {
             loader: 'svg-url-loader',
             options: {},
           },
+          type: 'javascript/auto',
         },
         {
           test: /\.svg$/,

@@ -4,14 +4,13 @@ import { useSelector } from 'react-redux';
 import { PageSection, PageSectionVariants, Title } from '@patternfly/react-core';
 
 import { selectInterface } from '@app/store';
-import { displayName } from '@app/util';
 
 const CatalogInterfaceDescription: React.FunctionComponent = () => {
   const userInterface = useSelector(selectInterface);
 
   if (userInterface === 'rhpds') {
     return (
-      <PageSection variant={PageSectionVariants.light} className="catalog-header">
+      <PageSection variant={PageSectionVariants.light} style={{ paddingBottom: 0 }}>
         <Title headingLevel="h1" size="2xl">
           Red Hat Product Demo System
         </Title>
@@ -20,7 +19,7 @@ const CatalogInterfaceDescription: React.FunctionComponent = () => {
     );
   } else if (userInterface === 'summit') {
     return (
-      <PageSection variant={PageSectionVariants.light} className="catalog-header">
+      <PageSection variant={PageSectionVariants.light} style={{ paddingBottom: 0 }}>
         <Title headingLevel="h1" size="2xl">
           Red Hat Summit Labs
         </Title>
@@ -29,7 +28,7 @@ const CatalogInterfaceDescription: React.FunctionComponent = () => {
     );
   } else {
     return (
-      <PageSection variant={PageSectionVariants.light} className="catalog-header">
+      <PageSection variant={PageSectionVariants.light} style={{ paddingBottom: 0 }}>
         <Title headingLevel="h1" size="2xl">
           Catalog
         </Title>

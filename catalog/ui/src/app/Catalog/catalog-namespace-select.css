@@ -1,0 +1,14 @@
+.catalog-namespace-select {
+  padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--md) !important;
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+  display: flex;
+}
+
+.catalog-namespace-select .pf-c-dropdown__toggle {
+  color: var(--pf-global--palette--black-900);
+}
+
+.catalog-namespace-select .pf-c-dropdown__menu {
+  max-height: 500px;
+  overflow-y: scroll;
+}

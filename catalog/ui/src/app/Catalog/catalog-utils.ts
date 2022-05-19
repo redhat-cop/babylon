@@ -47,3 +47,10 @@ export function formatTime(time: string): string {
   }
   return '-';
 }
+
+export function getLastFilter(): string {
+  return sessionStorage.getItem('lastCatalogFilter');
+}
+export function setLastFilter(filter: string): void {
+  sessionStorage.setItem('lastCatalogFilter', filter);
+}
