@@ -182,26 +182,23 @@ const Catalog: React.FC = () => {
 
   const catalogNamespaces: CatalogNamespace[] = useSelector(selectCatalogNamespaces);
   const catalogNamespaceNames: string[] | null = catalogNamespaces.map((ci) => ci.name);
+  const setNamespaces = catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames;
   const userGroups: string[] = useSelector(selectUserGroups);
+  const filterFunction = useMemo(
+    () => (item: CatalogItem) => filterCatalogItemByAccessControl(item, userGroups),
+    [userGroups]
+  );
 
   const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
-  // Track unmount for other effect cleanups
-  useEffect(() => {
-    const lastCatalogQuery = getLastFilter();
-    if (!urlSearchParams.toString() && lastCatalogQuery) {
-      history.push(`${location.pathname}?${lastCatalogQuery}`);
-    }
-    return () => {
-      ref.current = true;
-    };
-  }, [history, location.pathname, urlSearchParams]);
 
   // Trigger initial fetch and refresh on catalog namespace update
   useEffect(() => {
-    if (catalogNamespaceNames.length > 0) {
-      const setNamespaces = catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames;
-      const filterFunction = (item) => filterCatalogItemByAccessControl(item, userGroups);
-      if (JSON.stringify(setNamespaces) !== JSON.stringify(fetchState?.namespaces)) {
+    if (setNamespaces) {
+      const lastCatalogQuery = getLastFilter();
+      if (!urlSearchParams.toString() && lastCatalogQuery) {
+        history.push(`${location.pathname}?${lastCatalogQuery}`);
+      }
+      if (JSON.stringify(setNamespaces) !== JSON.stringify(fetchState?.namespaces) || fetchState?.items.length === 0) {
         reduceFetchState({
           type: 'startFetch',
           filter: filterFunction,
@@ -214,7 +211,18 @@ const Catalog: React.FC = () => {
         });
       }
     }
-  }, [catalogNamespaceName, JSON.stringify(catalogNamespaceNames), JSON.stringify(keywordFilter), selectedCategory]);
+    return () => {
+      ref.current = true;
+    };
+  }, [
+    history,
+    location.pathname,
+    urlSearchParams,
+    selectedCategory,
+    filterFunction,
+    JSON.stringify(setNamespaces),
+    JSON.stringify(keywordFilter),
+  ]);
 
   useEffect(() => {
     if (fetchState) {
