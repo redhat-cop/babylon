@@ -209,7 +209,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {displayProvisionTime !== '-' ? `Up to ${displayProvisionTime}*` : displayProvisionTime}
+                    {displayProvisionTime !== '-' ? `Up to ${displayProvisionTime}` : displayProvisionTime}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
