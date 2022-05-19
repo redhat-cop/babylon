@@ -1,18 +1,31 @@
 import React, { ReactElement } from 'react';
-import { render } from '@testing-library/react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { render, RenderOptions, queries, RenderResult } from '@testing-library/react';
+import { Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from '@app/store';
+import { createMemoryHistory, MemoryHistory } from 'history';
 
-const AllTheProviders = ({ children }) => {
+const AllTheProviders = ({ children, history }) => {
   return (
     <Provider store={store}>
-      <Router>{children}</Router>
+      <Router history={history}>{children}</Router>
     </Provider>
   );
 };
 
-const customRender = (ui: ReactElement, options?) => render(ui, { wrapper: AllTheProviders, ...options });
+const customRender = (
+  ui: ReactElement,
+  options?: { history: MemoryHistory<unknown> } & Omit<RenderOptions, 'queries'>
+): RenderResult<typeof queries> => {
+  function getOptions({ history = createMemoryHistory(), ...rest }) {
+    return { rest, history };
+  }
+  const { history, ...rest } = getOptions(options || {});
+  return render(ui, {
+    wrapper: ({ children }) => <AllTheProviders history={history}>{children}</AllTheProviders>,
+    ...rest,
+  });
+};
 
 // re-export everything
 export * from '@testing-library/react';
