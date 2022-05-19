@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
-import { render, waitFor, fireEvent, act } from '../utils/test-utils';
+import { render, waitFor, fireEvent } from '../utils/test-utils';
 import { within } from '@testing-library/dom';
 import Catalog from './Catalog';
 import catalogItemsObj from '../__mocks__/catalogItems.json';
