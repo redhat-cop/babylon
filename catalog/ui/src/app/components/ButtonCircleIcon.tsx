@@ -1,15 +1,15 @@
 import React from 'react';
-import { Button, Tooltip } from '@patternfly/react-core';
+import { Button, Tooltip, ButtonProps } from '@patternfly/react-core';
 import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 
 import './button-circle-icon.css';
 
-const ButtonCircleIcon: React.FC<{
-  icon: React.ComponentClass<SVGIconProps>;
-  isDisabled?: boolean;
-  description: string;
-  onClick: React.MouseEventHandler<HTMLButtonElement>;
-}> = ({ icon, isDisabled = false, description, onClick, ...rest }) => {
+const ButtonCircleIcon: React.FC<
+  ButtonProps & {
+    icon: React.ComponentClass<SVGIconProps>;
+    description: string;
+  }
+> = ({ icon, isDisabled = false, description, onClick, ...rest }) => {
   const Icon = icon;
   return (
     <Tooltip position="bottom" content={description}>

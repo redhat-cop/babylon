@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
@@ -53,10 +53,11 @@ import { checkResourceClaimCanStart, checkResourceClaimCanStop, displayName, BAB
 import ServiceActions from './ServiceActions';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
-import ServicesActionModal from './ServicesActionModal';
-import ServicesScheduleActionModal from './ServicesScheduleActionModal';
+import ServicesAction from './ServicesAction';
+import ServicesScheduleAction from './ServicesScheduleAction';
 
 import './all-services-list.css';
+import Modal from '@app/Modal';
 
 const FETCH_BATCH_LIMIT = 30;
 
@@ -149,6 +150,8 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
   const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [modalState, setModalState] = React.useState<ModalState>({});
+  const modalAction = useRef(null);
+  const modalScheduleAction = useRef(null);
   const [selectedUids, setSelectedUids] = React.useState<string[]>([]);
 
   const serviceNamespaces: ServiceNamespace[] = enableFetchUserNamespaces
@@ -265,7 +268,6 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
         });
       }
     }
-    setModalState({});
   }
 
   async function onModalScheduleAction(date: Date): Promise<void> {
@@ -279,7 +281,6 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
         items: [resourceClaimUpdate],
       });
     }
-    setModalState({});
   }
 
   async function performModalActionForResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
@@ -362,6 +363,20 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
     }
   }, [enableFetchResourceClaims, JSON.stringify(fetchNamespaces), JSON.stringify(keywordFilter)]);
 
+  const showModal = useCallback(
+    ({ modal, action, resourceClaim }: { modal: string; action: string; resourceClaim?: ResourceClaim }) => {
+      if (modal === 'action') {
+        setModalState({ action, resourceClaim });
+        modalAction.current.open();
+      }
+      if (modal === 'scheduleAction') {
+        setModalState({ action, resourceClaim });
+        modalScheduleAction.current.open();
+      }
+    },
+    [modalAction, modalScheduleAction, setModalState]
+  );
+
   // Show loading until whether the user is admin is determined.
   if (userIsAdmin === null || (enableFetchUserNamespaces && !userNamespacesFetchState?.finished)) {
     return (
@@ -393,25 +408,12 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
 
   return (
     <>
-      {modalState.modal === 'action' ? (
-        <ServicesActionModal
-          key="actionModal"
-          action={modalState.action}
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onConfirm={onModalAction}
-          resourceClaim={modalState.resourceClaim}
-        />
-      ) : modalState.modal === 'scheduleAction' ? (
-        <ServicesScheduleActionModal
-          key="scheduleActionModal"
-          action={modalState.action}
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onConfirm={(date) => onModalScheduleAction(date)}
-          resourceClaim={modalState.resourceClaim}
-        />
-      ) : null}
+      <Modal ref={modalAction} onConfirm={onModalAction} title={null}>
+        <ServicesAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
+      </Modal>
+      <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} title={null}>
+        <ServicesScheduleAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
+      </Modal>
       {serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="all-services-list__topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
@@ -467,9 +469,9 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
               position="right"
               serviceName="Selected"
               actionHandlers={{
-                delete: () => setModalState({ modal: 'action', action: 'delete' }),
-                start: () => setModalState({ modal: 'action', action: 'start' }),
-                stop: () => setModalState({ modal: 'action', action: 'stop' }),
+                delete: () => showModal({ modal: 'action', action: 'delete' }),
+                start: () => showModal({ modal: 'action', action: 'start' }),
+                stop: () => showModal({ modal: 'action', action: 'stop' }),
               }}
             />
           </SplitItem>
@@ -558,17 +560,17 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
 
               // Available actions depends on kind of service
               const actionHandlers = {
-                delete: () => setModalState({ action: 'delete', modal: 'action', resourceClaim: resourceClaim }),
+                delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim: resourceClaim }),
                 lifespan: () =>
-                  setModalState({ action: 'retirement', modal: 'scheduleAction', resourceClaim: resourceClaim }),
+                  showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim: resourceClaim }),
               };
               if (resources.find((r) => r?.kind === 'AnarchySubject')) {
                 actionHandlers['runtime'] = () =>
-                  setModalState({ action: 'stop', modal: 'scheduleAction', resourceClaim: resourceClaim });
+                  showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim: resourceClaim });
                 actionHandlers['start'] = () =>
-                  setModalState({ action: 'start', modal: 'action', resourceClaim: resourceClaim });
+                  showModal({ action: 'start', modal: 'action', resourceClaim: resourceClaim });
                 actionHandlers['stop'] = () =>
-                  setModalState({ action: 'stop', modal: 'action', resourceClaim: resourceClaim });
+                  showModal({ action: 'stop', modal: 'action', resourceClaim: resourceClaim });
               }
 
               // Only include project/namespace column if namespace is not selected.

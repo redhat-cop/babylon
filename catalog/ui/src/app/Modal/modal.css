@@ -1,0 +1,21 @@
+.modal-component.pf-c-modal-box .pf-c-modal-box__title-text {
+  white-space: normal;
+  font-size: var(--pf-global--icon--FontSize--md);
+}
+
+.modal-component.pf-c-modal-box .pf-c-modal-box__body {
+  overflow-x: visible;
+  overflow-y: visible;
+}
+
+.modal-component.pf-c-modal-box .pf-c-dropdown__menu {
+  max-height: 300px;
+}
+
+.modal-component.pf-c-modal-box .pf-c-form__group-label {
+  text-transform: capitalize;
+}
+
+.modal-component.pf-c-modal-box .pf-c-form.pf-m-horizontal .pf-c-form__group {
+  grid-template-columns: none;
+}

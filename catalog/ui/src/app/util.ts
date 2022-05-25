@@ -54,6 +54,9 @@ export function checkCondition(condition: string, vars: ConditionValues): boolea
 }
 
 export function displayName(item: any): string {
+  if (!item) {
+    return '';
+  }
   if (item.kind === 'ResourceClaim') {
     const catalogItemName = item.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
     const catalogItemDisplayName = item.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`];

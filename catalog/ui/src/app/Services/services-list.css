@@ -35,7 +35,7 @@
 }
 
 .services-list__schedule-btn {
-  width: 210px;
+  width: 176px;
   display: flex;
   padding-left: var(--pf-global--spacer--sm);
   padding-right: var(--pf-global--spacer--sm);
