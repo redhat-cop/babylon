@@ -83,6 +83,8 @@ const ServicesScheduleActionModal: React.FunctionComponent<ServicesScheduleActio
         Date.now() + 30 * 24 * 60 * 60 * 1000
   );
 
+  const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'stop' ? 'Auto-stop' : action;
+
   // Interval between times to show
   const interval: number = action === 'retirement' ? 60 * 60 * 1000 : 15 * 60 * 1000;
 
@@ -90,7 +92,7 @@ const ServicesScheduleActionModal: React.FunctionComponent<ServicesScheduleActio
     <Modal
       className="services-schedule-action-modal"
       variant={ModalVariant.small}
-      title={`${displayName(resourceClaim)} ${action}`}
+      title={`${displayName(resourceClaim)}`}
       isOpen={isOpen}
       onClose={onClose}
       actions={[
@@ -103,7 +105,7 @@ const ServicesScheduleActionModal: React.FunctionComponent<ServicesScheduleActio
       ]}
     >
       <Form isHorizontal>
-        <FormGroup fieldId="" label={`${action} time`}>
+        <FormGroup fieldId="" label={actionLabel}>
           <DatetimeSelect
             idPrefix={`${resourceClaim.metadata.namespace}:${resourceClaim.metadata.name}:lifespan:`}
             onSelect={(date) => setSelectedDate(date)}

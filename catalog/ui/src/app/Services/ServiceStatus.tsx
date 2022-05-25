@@ -2,15 +2,9 @@ import * as React from 'react';
 
 import { Spinner } from '@patternfly/react-core';
 
-import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  PauseCircleIcon,
-  PlayIcon,
-  PowerOffIcon,
-  QuestionCircleIcon,
-  TrashIcon,
-} from '@patternfly/react-icons';
+import { CheckCircleIcon, ExclamationCircleIcon, PauseCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
+
+import './service-status.css';
 
 export interface ServiceStatusProps {
   creationTime: number;

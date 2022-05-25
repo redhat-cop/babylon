@@ -24,7 +24,7 @@ const ServicesActionModal: React.FunctionComponent<ServicesActionModalProps> = (
 }) => {
   const targetDisplay: string = resourceClaim ? displayName(resourceClaim) : 'Selected Services';
   const actionDisplay: string = action.charAt(0).toUpperCase() + action.slice(1);
-  const title: string = `${actionDisplay} ${targetDisplay}`;
+  const title = `${actionDisplay} ${targetDisplay}`;
 
   const resourceClaimHasMultipleResources: boolean | null = resourceClaim?.spec?.resources
     ? resourceClaim.spec.resources.length > 1

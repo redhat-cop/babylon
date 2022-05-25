@@ -67,7 +67,7 @@ import ServicesCreateWorkshopModal from './ServicesCreateWorkshopModal';
 import ServicesScheduleActionModal from './ServicesScheduleActionModal';
 import ServiceUsers from './ServiceUsers';
 
-import './services.css';
+import './services-item.css';
 
 interface ModalState {
   action?: string;
@@ -522,7 +522,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 </DescriptionListGroup>
                 {!externalPlatformUrl && resourceClaim?.status?.lifespan?.end ? (
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Retirement</DescriptionListTerm>
+                    <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
                     {resourceClaim.status?.lifespan?.end ? (
                       <DescriptionListDescription>
                         <Button

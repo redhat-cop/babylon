@@ -1,0 +1,19 @@
+.button-circle-icon {
+  border-radius: 50%;
+  border: 1px solid #d2d2d2;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.button-circle-icon.pf-m-disabled {
+  opacity: 0.3;
+}
+.button-circle-icon svg {
+  transition: fill 0.2s ease-in-out;
+}
+.button-circle-icon:hover svg {
+  fill: var(--pf-global--BackgroundColor--dark-100) !important;
+}

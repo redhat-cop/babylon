@@ -1,10 +1,15 @@
-import React, { useEffect, useReducer, useRef, useState } from 'react';
+import React from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
 
 import {
   Breadcrumb,
   BreadcrumbItem,
+  DescriptionList,
+  DescriptionListTerm,
+  DescriptionListGroup,
+  DescriptionListDescription,
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
@@ -13,17 +18,9 @@ import {
   Split,
   SplitItem,
   Title,
-  Button,
 } from '@patternfly/react-core';
 
-import {
-  DollarSignIcon,
-  ExclamationTriangleIcon,
-  OutlinedClockIcon,
-  PauseIcon,
-  PlayIcon,
-  TrashIcon,
-} from '@patternfly/react-icons';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import {
   deleteResourceClaim,
@@ -44,23 +41,22 @@ import {
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import { checkResourceClaimCanStart, checkResourceClaimCanStop, displayName, BABYLON_DOMAIN } from '@app/util';
-import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 
+import ServiceActions from './ServiceActions';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
 import ServicesActionModal from './ServicesActionModal';
 import ServicesScheduleActionModal from './ServicesScheduleActionModal';
 
-import './services-list.css';
-import { Table, TableBody, TableHeader } from '@patternfly/react-table';
-import SelectableTable from '@app/components/SelectableTable';
-import ServiceActions from './ServiceActions';
+import './all-services-list.css';
 
 const FETCH_BATCH_LIMIT = 30;
 
@@ -115,13 +111,13 @@ export interface ModalState {
 }
 
 export interface ServicesListProps {
-  serviceNamespaceName: string;
+  serviceNamespaceName?: string;
 }
 
-const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => {
+const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNamespaceName }) => {
   const history = useHistory();
   const location = useLocation();
-  const ref = useRef(false);
+  const componentWillUnmount = useRef(false);
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search')
     ? urlSearchParams
@@ -152,8 +148,8 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
 
   const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [modalState, setModalState] = useState<ModalState>({});
-  const [selectedUids, setSelectedUids] = useState<string[]>([]);
+  const [modalState, setModalState] = React.useState<ModalState>({});
+  const [selectedUids, setSelectedUids] = React.useState<string[]>([]);
 
   const serviceNamespaces: ServiceNamespace[] = enableFetchUserNamespaces
     ? userNamespacesFetchState?.items
@@ -170,6 +166,12 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
     name: serviceNamespaceName,
     displayName: serviceNamespaceName,
   };
+
+  const fetchNamespaces: string[] = serviceNamespaceName
+    ? [serviceNamespaceName]
+    : userIsAdmin
+    ? null
+    : serviceNamespaces.map((ns) => ns.name);
 
   const resourceClaims: ResourceClaim[] = enableFetchResourceClaims
     ? (resourceClaimsFetchState?.filteredItems as ResourceClaim[]) || []
@@ -296,7 +298,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
   // Track unmount for other effect cleanups
   useEffect(() => {
     return () => {
-      ref.current = true;
+      componentWillUnmount.current = true;
     };
   }, []);
 
@@ -317,7 +319,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
       fetchResourceClaims();
     }
     return () => {
-      if (ref.current) {
+      if (componentWillUnmount.current) {
         cancelFetchActivity(resourceClaimsFetchState);
       }
     };
@@ -329,7 +331,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
       fetchUserNamespaces();
     }
     return () => {
-      if (ref.current) {
+      if (componentWillUnmount.current) {
         cancelFetchActivity(userNamespacesFetchState);
       }
     };
@@ -340,13 +342,13 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
     if (enableFetchResourceClaims) {
       if (
         !resourceClaimsFetchState ||
-        JSON.stringify([serviceNamespaceName]) !== JSON.stringify(resourceClaimsFetchState?.namespaces)
+        JSON.stringify(fetchNamespaces) !== JSON.stringify(resourceClaimsFetchState?.namespaces)
       ) {
         reduceResourceClaimsFetchState({
           type: 'startFetch',
           filter: filterResourceClaim,
           limit: FETCH_BATCH_LIMIT,
-          namespaces: [serviceNamespaceName],
+          namespaces: fetchNamespaces,
           prune: pruneResourceClaim,
         });
       } else if (resourceClaimsFetchState) {
@@ -358,7 +360,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
     } else if (resourceClaimsFetchState) {
       cancelFetchActivity(resourceClaimsFetchState);
     }
-  }, [enableFetchResourceClaims, serviceNamespaceName, JSON.stringify(keywordFilter)]);
+  }, [enableFetchResourceClaims, JSON.stringify(fetchNamespaces), JSON.stringify(keywordFilter)]);
 
   // Show loading until whether the user is admin is determined.
   if (userIsAdmin === null || (enableFetchUserNamespaces && !userNamespacesFetchState?.finished)) {
@@ -411,7 +413,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
         />
       ) : null}
       {serviceNamespaces.length > 1 ? (
-        <PageSection key="topbar" className="services-list__topbar" variant={PageSectionVariants.light}>
+        <PageSection key="topbar" className="all-services-list__topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
             currentNamespaceName={serviceNamespaceName}
             serviceNamespaces={serviceNamespaces}
@@ -425,7 +427,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
           />
         </PageSection>
       ) : null}
-      <PageSection key="head" className="services-list__head" variant={PageSectionVariants.light}>
+      <PageSection key="head" className="all-services-list__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
             {serviceNamespaces.length > 1 && serviceNamespaceName ? (
@@ -498,9 +500,16 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
           </PageSection>
         )
       ) : (
-        <PageSection key="body" className="services-list" variant={PageSectionVariants.light}>
+        <PageSection key="body" className="all-services-list__body" variant={PageSectionVariants.light}>
           <SelectableTable
-            columns={['Name', 'Status', 'Created At', 'Auto-stop', 'Auto-destroy', 'Actions']}
+            columns={(serviceNamespaceName ? [] : ['Project']).concat([
+              'Name',
+              'GUID',
+              'Status',
+              'Lab Interface',
+              'Created At',
+              'Actions',
+            ])}
             onSelectAll={(isSelected) => {
               if (isSelected) {
                 setSelectedUids(resourceClaims.map((resourceClaim) => resourceClaim.metadata.uid));
@@ -509,6 +518,11 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
               }
             }}
             rows={resourceClaims.map((resourceClaim: ResourceClaim) => {
+              const resourceHandle = resourceClaim.status?.resourceHandle;
+              const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
+              const rcServiceNamespace: ServiceNamespace = serviceNamespaces.find(
+                (ns: ServiceNamespace) => ns.name === resourceClaim.metadata.namespace
+              );
               const specResources = resourceClaim.spec.resources || [];
               const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
 
@@ -547,9 +561,6 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                 delete: () => setModalState({ action: 'delete', modal: 'action', resourceClaim: resourceClaim }),
                 lifespan: () =>
                   setModalState({ action: 'retirement', modal: 'scheduleAction', resourceClaim: resourceClaim }),
-                runtime: null,
-                start: null,
-                stop: null,
               };
               if (resources.find((r) => r?.kind === 'AnarchySubject')) {
                 actionHandlers['runtime'] = () =>
@@ -559,7 +570,22 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                 actionHandlers['stop'] = () =>
                   setModalState({ action: 'stop', modal: 'action', resourceClaim: resourceClaim });
               }
-              const cells = [];
+
+              // Only include project/namespace column if namespace is not selected.
+              const cells: any[] = serviceNamespaceName
+                ? []
+                : [
+                    <>
+                      <Link key="services" to={`/services/${resourceClaim.metadata.namespace}`}>
+                        {rcServiceNamespace?.displayName || resourceClaim.metadata.namespace}
+                      </Link>
+                      {userIsAdmin ? (
+                        <OpenshiftConsoleLink key="console" resource={resourceClaim} linkToNamespace={true} />
+                      ) : null}
+                    </>,
+                  ];
+
+              // Add other columns
               cells.push(
                 // Name
                 <>
@@ -571,128 +597,81 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                   </Link>
                   {userIsAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
                 </>,
-
+                // GUID
+                <>
+                  {guid
+                    ? userIsAdmin
+                      ? [
+                          <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
+                            {guid}
+                          </Link>,
+                          <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
+                        ]
+                      : guid
+                    : '-'}
+                </>,
                 // Status
-                <div key="status">
-                  {specResources.length >= 1 ? (
+                specResources.length > 1 ? (
+                  <div>
+                    <DescriptionList isHorizontal>
+                      {specResources.map((specResource, i) => {
+                        const componentDisplayName =
+                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${i}`] ||
+                          specResource.name ||
+                          specResource.provider?.name;
+                        return (
+                          <DescriptionListGroup key={i}>
+                            <DescriptionListTerm key="term">{componentDisplayName}</DescriptionListTerm>
+                            <DescriptionListDescription key="description">
+                              <ServiceStatus
+                                creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                                resource={resources?.[i]}
+                                resourceTemplate={specResource.template}
+                              />
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                        );
+                      })}
+                    </DescriptionList>
+                  </div>
+                ) : specResources.length == 1 ? (
+                  <div>
                     <ServiceStatus
                       creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                      resource={resources?.[specResources.length - 1]}
-                      resourceTemplate={specResources[specResources.length - 1].template}
+                      resource={resources?.[0]}
+                      resourceTemplate={specResources[0].template}
                     />
-                  ) : (
-                    <p>...</p>
-                  )}
-                </div>,
-
+                  </div>
+                ) : (
+                  '...'
+                ),
+                // Lab Interface
+                labUserInterfaceUrl ? (
+                  <div>
+                    <LabInterfaceLink
+                      url={labUserInterfaceUrl}
+                      data={labUserInterfaceData}
+                      method={labUserInterfaceMethod}
+                      variant="secondary"
+                    />
+                  </div>
+                ) : (
+                  '-'
+                ),
                 // Created At
                 <>
-                  <TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />
+                  <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
+                  <br key="break" />
+                  (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
                 </>,
-                // Auto-stop
-                <>
-                  {resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
-                    <Button
-                      key="auto-stop"
-                      variant="control"
-                      icon={<OutlinedClockIcon />}
-                      iconPosition="right"
-                      isDisabled={!checkResourceClaimCanStop(resourceClaim)}
-                      onClick={actionHandlers.runtime}
-                      className="services-list__schedule-btn"
-                    >
-                      {new Date(
-                        Math.min(
-                          ...resourceClaim.spec.resources
-                            .map((specResource, idx) => {
-                              const statusResource = resourceClaim.status?.resources?.[idx];
-                              const stopTimestamp =
-                                specResource.template?.spec?.vars?.action_schedule?.stop ||
-                                statusResource.state.spec.vars.action_schedule.stop;
-                              if (stopTimestamp) {
-                                return Date.parse(stopTimestamp);
-                              } else {
-                                return null;
-                              }
-                            })
-                            .filter((time) => time !== null)
-                        )
-                      ).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Button>
-                  ) : (
-                    <p>-</p>
-                  )}
-                </>,
-                // Auto-destroy
-                <>
-                  {resourceClaim.status?.lifespan ? (
-                    <Button
-                      key="auto-destroy"
-                      variant="control"
-                      isDisabled={!resourceClaim.status?.lifespan}
-                      onClick={actionHandlers.lifespan}
-                      icon={<OutlinedClockIcon />}
-                      iconPosition="right"
-                      className="services-list__schedule-btn"
-                    >
-                      {new Date(
-                        resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end
-                      ).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Button>
-                  ) : (
-                    <p>-</p>
-                  )}
-                </>,
-
                 // Actions
                 <>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      gap: 'var(--pf-global--spacer--sm)',
-                      paddingTop: 'var(--pf-global--spacer--xs)',
-                      paddingRight: 'var(--pf-global--spacer--sm)',
-                    }}
-                  >
-                    <ButtonCircleIcon
-                      isDisabled={checkResourceClaimCanStart(resourceClaim)}
-                      onClick={actionHandlers.start}
-                      description="Start"
-                      icon={PlayIcon}
-                    />
-                    <ButtonCircleIcon
-                      isDisabled={checkResourceClaimCanStop(resourceClaim)}
-                      onClick={actionHandlers.stop}
-                      description="Stop"
-                      icon={PauseIcon}
-                    />
-                    <ButtonCircleIcon onClick={actionHandlers.delete} description="Delete" icon={TrashIcon} />
-                    <ButtonCircleIcon onClick={null} description="Get current cost" icon={DollarSignIcon} />
-                    {
-                      // Lab Interface
-                      labUserInterfaceUrl ? (
-                        <LabInterfaceLink
-                          url={labUserInterfaceUrl}
-                          data={labUserInterfaceData}
-                          method={labUserInterfaceMethod}
-                          variant="secondary"
-                        />
-                      ) : null
-                    }
-                  </div>
+                  <ServiceActions
+                    position="right"
+                    resourceClaim={resourceClaim}
+                    actionHandlers={actionHandlers}
+                    iconOnly={true}
+                  />
                 </>
               );
 
@@ -725,4 +704,4 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
   );
 };
 
-export default ServicesList;
+export default AllServicesList;
