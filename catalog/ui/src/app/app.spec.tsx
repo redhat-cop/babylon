@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import App from '@app/index';
 import { render, fireEvent } from './utils/test-utils';
 

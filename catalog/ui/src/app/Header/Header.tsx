@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { listUsers } from '@app/api';
 import { User, UserList } from '@app/types';
@@ -6,13 +6,10 @@ import { useHistory } from 'react-router-dom';
 import {
   ApplicationLauncher,
   ApplicationLauncherItem,
-  Button,
   Dropdown,
   DropdownItem,
   DropdownPosition,
   DropdownToggle,
-  Modal,
-  ModalVariant,
   PageHeader,
   PageHeaderTools,
   SearchInput,
@@ -22,6 +19,7 @@ import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
+import Modal from '@app/Modal/Modal';
 
 import './header.css';
 
@@ -34,13 +32,12 @@ const Header: React.FC<{
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = useState(false);
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
   const { setImpersonation, userImpersonated, clearImpersonation } = useImpersonateUser();
+  const impersonationModal = useRef(null);
   const [users, setUsers] = useState<User[]>([]);
   const [userImpersonationDialogState, setUserImpersonationDialogState] = useState<{
-    isOpen: boolean;
     matchCount: number;
     value: string;
   }>({
-    isOpen: false,
     matchCount: 0,
     value: '',
   });
@@ -57,27 +54,14 @@ const Header: React.FC<{
     }
   }, [isAdmin]);
 
-  async function applyUserImpersonation() {
+  function applyUserImpersonation() {
     setImpersonation(userImpersonationDialogState.value);
-    setUserImpersonationDialogState({
-      isOpen: false,
-      matchCount: 0,
-      value: '',
-    });
     history.push('/');
   }
 
-  function closeUserImpersonationDialog() {
-    setUserImpersonationDialogState({
-      isOpen: false,
-      matchCount: 0,
-      value: '',
-    });
-  }
-
   function openUserImpersonationDialog() {
+    impersonationModal.current.open();
     setUserImpersonationDialogState({
-      isOpen: true,
       matchCount: 0,
       value: '',
     });
@@ -93,7 +77,6 @@ const Header: React.FC<{
     const filteredUsers =
       exactMatch.length === 1 ? exactMatch : users.filter((user) => user.metadata.name.startsWith(value));
     setUserImpersonationDialogState({
-      isOpen: true,
       matchCount: filteredUsers.length,
       value: filteredUsers.length === 1 ? filteredUsers[0].metadata.name : value,
     });
@@ -101,7 +84,6 @@ const Header: React.FC<{
 
   function onUserImpersonationSearchInputClear() {
     setUserImpersonationDialogState({
-      isOpen: true,
       matchCount: 0,
       value: '',
     });
@@ -121,19 +103,16 @@ const Header: React.FC<{
           style={{ height: '48px' }}
         />
       );
-    } else if (userInterface == 'rhpds') {
-      return (
-        <img
-          src={rhpdsLogo}
-          onClick={handleClick}
-          alt="Red Hat Product Demo System Logo"
-          className="rhpds-logo"
-          style={{ width: '220px' }}
-        />
-      );
-    } else {
-      return null;
     }
+    return (
+      <img
+        src={rhpdsLogo}
+        onClick={handleClick}
+        alt="Red Hat Product Demo System Logo"
+        className="rhpds-logo"
+        style={{ width: '220px' }}
+      />
+    );
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -205,23 +184,10 @@ const Header: React.FC<{
         }
       />
       <Modal
-        variant={ModalVariant.small}
         title="Impersonate User"
-        isOpen={userImpersonationDialogState.isOpen}
-        onClose={closeUserImpersonationDialog}
-        actions={[
-          <Button
-            key="confirm"
-            variant="primary"
-            isDisabled={userImpersonationDialogState.matchCount != 1}
-            onClick={applyUserImpersonation}
-          >
-            Confirm
-          </Button>,
-          <Button key="cancel" variant="link" onClick={closeUserImpersonationDialog}>
-            Cancel
-          </Button>,
-        ]}
+        ref={impersonationModal}
+        isDisabled={userImpersonationDialogState.matchCount != 1}
+        onConfirm={applyUserImpersonation}
       >
         <SearchInput
           placeholder="Select user"
