@@ -2,7 +2,7 @@ jest.mock('../api');
 import '@testing-library/jest-dom';
 
 import React from 'react';
-import { render, waitFor, queryByAttribute, fireEvent } from '../utils/test-utils';
+import { render, waitFor, fireEvent } from '../utils/test-utils';
 import AppLayout from './AppLayout';
 
 describe('Catalog Page Layout Scenario', () => {

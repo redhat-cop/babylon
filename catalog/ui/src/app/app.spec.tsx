@@ -2,9 +2,16 @@ import * as React from 'react';
 import App from '@app/index';
 import { render, fireEvent } from './utils/test-utils';
 
+jest.mock('@app/AppLayout/useSession', () => {
+  return jest.fn(() => ({
+    getSession: () => ({ email: 'test@redhat.com', isAdmin: false }),
+  }));
+});
+
 describe('App tests', () => {
   it.only('should render a nav-toggle button', () => {
-    const { container } = render(<App />);
+    const { container, debug } = render(<App />);
+    console.log(debug);
     const button = container.querySelector('#nav-toggle');
     expect(button).toBeInTheDocument();
   });
