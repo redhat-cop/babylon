@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import classNames from 'classnames';
-import { useDispatch, useSelector } from 'react-redux';
 import { listUsers } from '@app/api';
 import { User, UserList } from '@app/types';
-import { selectInterface } from '@app/store';
 import { useHistory } from 'react-router-dom';
 import {
   ApplicationLauncher,
@@ -47,9 +45,7 @@ const Header: React.FC<{
     value: '',
   });
   const history = useHistory();
-  const dispatch = useDispatch();
-  const { isAdmin, email } = useSession().getSession();
-  const userInterface = useSelector(selectInterface);
+  const { isAdmin, email, userInterface } = useSession().getSession();
 
   useEffect(() => {
     async function getAllUsersList() {
@@ -59,7 +55,7 @@ const Header: React.FC<{
     if (isAdmin) {
       getAllUsersList();
     }
-  }, [dispatch, isAdmin]);
+  }, [isAdmin]);
 
   async function applyUserImpersonation() {
     setImpersonation(userImpersonationDialogState.value);
