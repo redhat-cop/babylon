@@ -4,14 +4,13 @@ import { render, fireEvent } from './utils/test-utils';
 
 jest.mock('@app/utils/useSession', () => {
   return jest.fn(() => ({
-    getSession: () => ({ email: 'test@redhat.com', isAdmin: false }),
+    getSession: () => ({ email: 'test@redhat.com', isAdmin: false, serviceNamespaces: [] }),
   }));
 });
 
 describe('App tests', () => {
   it.only('should render a nav-toggle button', () => {
-    const { container, debug } = render(<App />);
-    console.log(debug);
+    const { container } = render(<App />);
     const button = container.querySelector('#nav-toggle');
     expect(button).toBeInTheDocument();
   });

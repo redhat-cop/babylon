@@ -4,21 +4,19 @@ import { actionClearImpersonation, actionSetImpersonation, selectImpersonationUs
 import { useDispatch, useSelector } from 'react-redux';
 import { AnyAction, Dispatch } from 'redux';
 
-async function setImpersonateUserFn(dispatch: Dispatch<AnyAction>, impersonateUserName: string | null) {
-  if (impersonateUserName) {
-    const userInfo = await getUserInfo(impersonateUserName);
-    dispatch(
-      actionSetImpersonation({
-        admin: userInfo.admin,
-        user: impersonateUserName,
-        groups: userInfo.groups || [],
-        catalogNamespaces: userInfo.catalogNamespaces,
-        serviceNamespaces: userInfo.serviceNamespaces,
-        userNamespace: userInfo.userNamespace,
-      })
-    );
-    sessionStorage.setItem('impersonateUser', impersonateUserName);
-  }
+async function setImpersonateUserFn(dispatch: Dispatch<AnyAction>, impersonateUserName: string) {
+  sessionStorage.setItem('impersonateUser', impersonateUserName);
+  const userInfo = await getUserInfo(impersonateUserName);
+  dispatch(
+    actionSetImpersonation({
+      admin: userInfo.admin,
+      user: impersonateUserName,
+      groups: userInfo.groups || [],
+      catalogNamespaces: userInfo.catalogNamespaces,
+      serviceNamespaces: userInfo.serviceNamespaces,
+      userNamespace: userInfo.userNamespace,
+    })
+  );
 }
 const useImpersonateUser = (): {
   setImpersonation: (impersonateUser: string) => Promise<void>;
@@ -35,7 +33,11 @@ const useImpersonateUser = (): {
     dispatch(actionClearImpersonation());
   }, [dispatch]);
 
-  return { setImpersonation, userImpersonated, clearImpersonation };
+  return {
+    setImpersonation,
+    userImpersonated: sessionStorage.getItem('impersonateUser') || userImpersonated,
+    clearImpersonation,
+  };
 };
 
 export default useImpersonateUser;

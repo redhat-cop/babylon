@@ -20,7 +20,7 @@ import {
 import { CaretDownIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
-import useImpersonateUser from './useImpersonateUser';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
 
 import './header.css';
