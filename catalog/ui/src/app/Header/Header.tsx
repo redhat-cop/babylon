@@ -52,12 +52,14 @@ const Header: React.FC<{
   const userInterface = useSelector(selectInterface);
 
   useEffect(() => {
-    async function getSession() {
+    async function getAllUsersList() {
       const resp: UserList = await listUsers({ disableImpersonation: true });
       setUsers(resp.items);
     }
-    getSession();
-  }, [dispatch]);
+    if (isAdmin) {
+      getAllUsersList();
+    }
+  }, [dispatch, isAdmin]);
 
   async function applyUserImpersonation() {
     setImpersonation(userImpersonationDialogState.value);
