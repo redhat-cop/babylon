@@ -4,15 +4,16 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 
 import { useSelector } from 'react-redux';
 
-import { Button, ButtonVariant } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 
 import { selectUser } from '@app/store';
+import ButtonCircleIcon from './ButtonCircleIcon';
 
 export interface LabInterfaceLinkProps {
   data?: object;
   method: string;
   url: string;
-  variant?: ButtonVariant | 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'circle';
 }
 
 function submitFormFromLink(e) {
@@ -39,7 +40,7 @@ const LabInterfaceLink: React.FunctionComponent<LabInterfaceLinkProps> = ({ data
             value={v === '{{userName}}' ? user : v == '{{userEmail}}' ? email : v}
           />
         ))}
-        {variant ? (
+        {variant === 'secondary' ? (
           <Button
             component="a"
             href={url}
@@ -51,6 +52,15 @@ const LabInterfaceLink: React.FunctionComponent<LabInterfaceLinkProps> = ({ data
           >
             Lab
           </Button>
+        ) : variant === 'circle' ? (
+          <ButtonCircleIcon
+            component="a"
+            href={url}
+            onClick={submitFormFromLink}
+            target="_blank"
+            description="Open Lab"
+            icon={ExternalLinkAltIcon}
+          />
         ) : (
           <a onClick={submitFormFromLink}>
             {url}
@@ -59,7 +69,7 @@ const LabInterfaceLink: React.FunctionComponent<LabInterfaceLinkProps> = ({ data
         )}
       </form>
     );
-  } else if (variant) {
+  } else if (variant === 'secondary') {
     return (
       <Button
         component="a"
@@ -73,9 +83,11 @@ const LabInterfaceLink: React.FunctionComponent<LabInterfaceLinkProps> = ({ data
         Lab
       </Button>
     );
+  } else if (variant === 'circle') {
+    return <ButtonCircleIcon onClick={() => window.open(url)} description="Open Lab" icon={ExternalLinkAltIcon} />;
   } else {
     return (
-      <a href={url} target="_blank">
+      <a href={url} target="_blank" rel="noreferrer">
         {url} <ExternalLinkAltIcon />
       </a>
     );

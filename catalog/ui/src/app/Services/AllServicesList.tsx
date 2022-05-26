@@ -1,10 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import React, { useCallback } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
 
 import {
   Breadcrumb,
   BreadcrumbItem,
+  DescriptionList,
+  DescriptionListTerm,
+  DescriptionListGroup,
+  DescriptionListDescription,
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
@@ -13,17 +18,9 @@ import {
   Split,
   SplitItem,
   Title,
-  Button,
 } from '@patternfly/react-core';
 
-import {
-  DollarSignIcon,
-  ExclamationTriangleIcon,
-  OutlinedClockIcon,
-  PauseIcon,
-  PlayIcon,
-  TrashIcon,
-} from '@patternfly/react-icons';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import {
   deleteResourceClaim,
@@ -44,23 +41,23 @@ import {
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LoadingIcon from '@app/components/LoadingIcon';
+import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import { checkResourceClaimCanStart, checkResourceClaimCanStop, displayName, BABYLON_DOMAIN } from '@app/util';
-import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 
+import ServiceActions from './ServiceActions';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
-import SelectableTable from '@app/components/SelectableTable';
-import ServiceActions from './ServiceActions';
-import Modal from '@app/Modal';
-
-import './services-list.css';
 import ServicesAction from './ServicesAction';
 import ServicesScheduleAction from './ServicesScheduleAction';
+
+import './all-services-list.css';
+import Modal from '@app/Modal';
 
 const FETCH_BATCH_LIMIT = 30;
 
@@ -115,13 +112,13 @@ export interface ModalState {
 }
 
 export interface ServicesListProps {
-  serviceNamespaceName: string;
+  serviceNamespaceName?: string;
 }
 
-const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => {
+const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNamespaceName }) => {
   const history = useHistory();
   const location = useLocation();
-  const ref = useRef(false);
+  const componentWillUnmount = useRef(false);
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search')
     ? urlSearchParams
@@ -152,10 +149,10 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
 
   const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [modalState, setModalState] = useState<ModalState>({});
+  const [modalState, setModalState] = React.useState<ModalState>({});
   const modalAction = useRef(null);
   const modalScheduleAction = useRef(null);
-  const [selectedUids, setSelectedUids] = useState<string[]>([]);
+  const [selectedUids, setSelectedUids] = React.useState<string[]>([]);
 
   const serviceNamespaces: ServiceNamespace[] = enableFetchUserNamespaces
     ? userNamespacesFetchState?.items
@@ -173,38 +170,15 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
     displayName: serviceNamespaceName,
   };
 
-  const filterResourceClaim = useCallback(
-    (resourceClaim: ResourceClaim) => {
-      if (!userIsAdmin && resourceClaim.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
-        return false;
-      }
-      if (!keywordFilter) {
-        return true;
-      }
-      for (const keyword of keywordFilter) {
-        if (!keywordMatch(resourceClaim, keyword)) {
-          return false;
-        }
-      }
-      return true;
-    },
-    [keywordFilter, userIsAdmin]
-  );
+  const fetchNamespaces: string[] = serviceNamespaceName
+    ? [serviceNamespaceName]
+    : userIsAdmin
+    ? null
+    : serviceNamespaces.map((ns) => ns.name);
 
-  const resourceClaims: ResourceClaim[] = useMemo(
-    () =>
-      enableFetchResourceClaims
-        ? (resourceClaimsFetchState?.filteredItems as ResourceClaim[]) || []
-        : (serviceNamespaceName ? sessionResourceClaimsInNamespace : sessionResourceClaims).filter(filterResourceClaim),
-    [
-      enableFetchResourceClaims,
-      filterResourceClaim,
-      resourceClaimsFetchState?.filteredItems,
-      serviceNamespaceName,
-      sessionResourceClaims,
-      sessionResourceClaimsInNamespace,
-    ]
-  );
+  const resourceClaims: ResourceClaim[] = enableFetchResourceClaims
+    ? (resourceClaimsFetchState?.filteredItems as ResourceClaim[]) || []
+    : (serviceNamespaceName ? sessionResourceClaimsInNamespace : sessionResourceClaims).filter(filterResourceClaim);
 
   // Trigger continue fetching more resource claims on scroll.
   if (enableFetchResourceClaims) {
@@ -225,6 +199,21 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
     };
   }
 
+  function filterResourceClaim(resourceClaim: ResourceClaim): boolean {
+    if (!userIsAdmin && resourceClaim.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+      return false;
+    }
+    if (!keywordFilter) {
+      return true;
+    }
+    for (const keyword of keywordFilter) {
+      if (!keywordMatch(resourceClaim, keyword)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   async function fetchResourceClaims(): Promise<void> {
     const resourceClaimList: ResourceClaimList = await listResourceClaims({
       continue: resourceClaimsFetchState.continue,
@@ -243,39 +232,19 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
     }
   }
 
-  const onModalScheduleAction = useCallback(
-    async (date: Date): Promise<void> => {
-      const resourceClaimUpdate: ResourceClaim =
-        modalState.action === 'retirement'
-          ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
-          : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
-      if (enableFetchResourceClaims) {
-        reduceResourceClaimsFetchState({
-          type: 'updateItems',
-          items: [resourceClaimUpdate],
-        });
-      }
-    },
-    [enableFetchResourceClaims, modalState.action, modalState.resourceClaim]
-  );
+  async function fetchUserNamespaces(): Promise<void> {
+    const userNamespaceList: NamespaceList = await listNamespaces({
+      labelSelector: 'usernamespace.gpte.redhat.com/user-uid',
+    });
+    if (!userNamespacesFetchState.activity.canceled) {
+      reduceUserNamespacesFetchState({
+        type: 'post',
+        k8sObjectList: userNamespaceList,
+      });
+    }
+  }
 
-  const performModalActionForResourceClaim = useCallback(
-    async (resourceClaim: ResourceClaim): Promise<ResourceClaim> => {
-      if (modalState.action === 'delete') {
-        return await deleteResourceClaim(resourceClaim);
-      } else if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
-        return await startAllResourcesInResourceClaim(resourceClaim);
-      } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
-        return await stopAllResourcesInResourceClaim(resourceClaim);
-      } else {
-        console.warn(`Unkown action ${modalState.action}`);
-        return resourceClaim;
-      }
-    },
-    [modalState.action]
-  );
-
-  const onModalAction = useCallback(async (): Promise<void> => {
+  async function onModalAction(): Promise<void> {
     const resourceClaimUpdates: ResourceClaim[] = [];
     if (modalState.resourceClaim) {
       resourceClaimUpdates.push(await performModalActionForResourceClaim(modalState.resourceClaim));
@@ -299,19 +268,38 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
         });
       }
     }
-  }, [
-    enableFetchResourceClaims,
-    modalState.action,
-    modalState.resourceClaim,
-    performModalActionForResourceClaim,
-    resourceClaims,
-    selectedUids,
-  ]);
+  }
+
+  async function onModalScheduleAction(date: Date): Promise<void> {
+    const resourceClaimUpdate: ResourceClaim =
+      modalState.action === 'retirement'
+        ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
+        : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
+    if (enableFetchResourceClaims) {
+      reduceResourceClaimsFetchState({
+        type: 'updateItems',
+        items: [resourceClaimUpdate],
+      });
+    }
+  }
+
+  async function performModalActionForResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
+    if (modalState.action === 'delete') {
+      return await deleteResourceClaim(resourceClaim);
+    } else if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
+      return await startAllResourcesInResourceClaim(resourceClaim);
+    } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
+      return await stopAllResourcesInResourceClaim(resourceClaim);
+    } else {
+      console.warn(`Unkown action ${modalState.action}`);
+      return resourceClaim;
+    }
+  }
 
   // Track unmount for other effect cleanups
   useEffect(() => {
     return () => {
-      ref.current = true;
+      componentWillUnmount.current = true;
     };
   }, []);
 
@@ -332,7 +320,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
       fetchResourceClaims();
     }
     return () => {
-      if (ref.current) {
+      if (componentWillUnmount.current) {
         cancelFetchActivity(resourceClaimsFetchState);
       }
     };
@@ -340,22 +328,11 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
 
   // Fetch or continue fetching user namespaces
   useEffect(() => {
-    async function fetchUserNamespaces(): Promise<void> {
-      const userNamespaceList: NamespaceList = await listNamespaces({
-        labelSelector: 'usernamespace.gpte.redhat.com/user-uid',
-      });
-      if (!userNamespacesFetchState.activity.canceled) {
-        reduceUserNamespacesFetchState({
-          type: 'post',
-          k8sObjectList: userNamespaceList,
-        });
-      }
-    }
     if (userNamespacesFetchState?.canContinue) {
       fetchUserNamespaces();
     }
     return () => {
-      if (ref.current) {
+      if (componentWillUnmount.current) {
         cancelFetchActivity(userNamespacesFetchState);
       }
     };
@@ -366,13 +343,13 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
     if (enableFetchResourceClaims) {
       if (
         !resourceClaimsFetchState ||
-        JSON.stringify([serviceNamespaceName]) !== JSON.stringify(resourceClaimsFetchState?.namespaces)
+        JSON.stringify(fetchNamespaces) !== JSON.stringify(resourceClaimsFetchState?.namespaces)
       ) {
         reduceResourceClaimsFetchState({
           type: 'startFetch',
           filter: filterResourceClaim,
           limit: FETCH_BATCH_LIMIT,
-          namespaces: [serviceNamespaceName],
+          namespaces: fetchNamespaces,
           prune: pruneResourceClaim,
         });
       } else if (resourceClaimsFetchState) {
@@ -384,7 +361,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
     } else if (resourceClaimsFetchState) {
       cancelFetchActivity(resourceClaimsFetchState);
     }
-  }, [enableFetchResourceClaims, serviceNamespaceName, JSON.stringify(keywordFilter)]);
+  }, [enableFetchResourceClaims, JSON.stringify(fetchNamespaces), JSON.stringify(keywordFilter)]);
 
   const showModal = useCallback(
     ({ modal, action, resourceClaim }: { modal: string; action: string; resourceClaim?: ResourceClaim }) => {
@@ -397,7 +374,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
         modalScheduleAction.current.open();
       }
     },
-    [setModalState]
+    [modalAction, modalScheduleAction, setModalState]
   );
 
   // Show loading until whether the user is admin is determined.
@@ -431,14 +408,14 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
 
   return (
     <>
-      <Modal ref={modalAction} onConfirm={onModalAction}>
+      <Modal ref={modalAction} onConfirm={onModalAction} title={null}>
         <ServicesAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
       </Modal>
-      <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction}>
+      <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} title={null}>
         <ServicesScheduleAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
       </Modal>
       {serviceNamespaces.length > 1 ? (
-        <PageSection key="topbar" className="services-list__topbar" variant={PageSectionVariants.light}>
+        <PageSection key="topbar" className="all-services-list__topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
             currentNamespaceName={serviceNamespaceName}
             serviceNamespaces={serviceNamespaces}
@@ -452,7 +429,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
           />
         </PageSection>
       ) : null}
-      <PageSection key="head" className="services-list__head" variant={PageSectionVariants.light}>
+      <PageSection key="head" className="all-services-list__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
             {serviceNamespaces.length > 1 && serviceNamespaceName ? (
@@ -525,9 +502,16 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
           </PageSection>
         )
       ) : (
-        <PageSection key="body" className="services-list" variant={PageSectionVariants.light}>
+        <PageSection key="body" className="all-services-list__body" variant={PageSectionVariants.light}>
           <SelectableTable
-            columns={['Name', 'Status', 'Created At', 'Auto-stop', 'Auto-destroy', 'Actions']}
+            columns={(serviceNamespaceName ? [] : ['Project']).concat([
+              'Name',
+              'GUID',
+              'Status',
+              'Lab Interface',
+              'Created At',
+              'Actions',
+            ])}
             onSelectAll={(isSelected) => {
               if (isSelected) {
                 setSelectedUids(resourceClaims.map((resourceClaim) => resourceClaim.metadata.uid));
@@ -536,6 +520,11 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
               }
             }}
             rows={resourceClaims.map((resourceClaim: ResourceClaim) => {
+              const resourceHandle = resourceClaim.status?.resourceHandle;
+              const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
+              const rcServiceNamespace: ServiceNamespace = serviceNamespaces.find(
+                (ns: ServiceNamespace) => ns.name === resourceClaim.metadata.namespace
+              );
               const specResources = resourceClaim.spec.resources || [];
               const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
 
@@ -574,9 +563,6 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                 delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim: resourceClaim }),
                 lifespan: () =>
                   showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim: resourceClaim }),
-                runtime: null,
-                start: null,
-                stop: null,
               };
               if (resources.find((r) => r?.kind === 'AnarchySubject')) {
                 actionHandlers['runtime'] = () =>
@@ -586,7 +572,22 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                 actionHandlers['stop'] = () =>
                   showModal({ action: 'stop', modal: 'action', resourceClaim: resourceClaim });
               }
-              const cells = [];
+
+              // Only include project/namespace column if namespace is not selected.
+              const cells: any[] = serviceNamespaceName
+                ? []
+                : [
+                    <>
+                      <Link key="services" to={`/services/${resourceClaim.metadata.namespace}`}>
+                        {rcServiceNamespace?.displayName || resourceClaim.metadata.namespace}
+                      </Link>
+                      {userIsAdmin ? (
+                        <OpenshiftConsoleLink key="console" resource={resourceClaim} linkToNamespace={true} />
+                      ) : null}
+                    </>,
+                  ];
+
+              // Add other columns
               cells.push(
                 // Name
                 <>
@@ -598,132 +599,81 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                   </Link>
                   {userIsAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
                 </>,
-
+                // GUID
+                <>
+                  {guid
+                    ? userIsAdmin
+                      ? [
+                          <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
+                            {guid}
+                          </Link>,
+                          <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
+                        ]
+                      : guid
+                    : '-'}
+                </>,
                 // Status
-                <div key="status">
-                  {specResources.length >= 1 ? (
+                specResources.length > 1 ? (
+                  <div>
+                    <DescriptionList isHorizontal>
+                      {specResources.map((specResource, i) => {
+                        const componentDisplayName =
+                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${i}`] ||
+                          specResource.name ||
+                          specResource.provider?.name;
+                        return (
+                          <DescriptionListGroup key={i}>
+                            <DescriptionListTerm key="term">{componentDisplayName}</DescriptionListTerm>
+                            <DescriptionListDescription key="description">
+                              <ServiceStatus
+                                creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                                resource={resources?.[i]}
+                                resourceTemplate={specResource.template}
+                              />
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                        );
+                      })}
+                    </DescriptionList>
+                  </div>
+                ) : specResources.length == 1 ? (
+                  <div>
                     <ServiceStatus
                       creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                      resource={resources?.[specResources.length - 1]}
-                      resourceTemplate={specResources[specResources.length - 1].template}
+                      resource={resources?.[0]}
+                      resourceTemplate={specResources[0].template}
                     />
-                  ) : (
-                    <p>...</p>
-                  )}
-                </div>,
-
+                  </div>
+                ) : (
+                  '...'
+                ),
+                // Lab Interface
+                labUserInterfaceUrl ? (
+                  <div>
+                    <LabInterfaceLink
+                      url={labUserInterfaceUrl}
+                      data={labUserInterfaceData}
+                      method={labUserInterfaceMethod}
+                      variant="secondary"
+                    />
+                  </div>
+                ) : (
+                  '-'
+                ),
                 // Created At
                 <>
-                  <TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />
+                  <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
+                  <br key="break" />
+                  (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
                 </>,
-                // Auto-stop
-                <>
-                  {resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
-                    <Button
-                      key="auto-stop"
-                      variant="control"
-                      icon={<OutlinedClockIcon />}
-                      iconPosition="right"
-                      isDisabled={!checkResourceClaimCanStop(resourceClaim)}
-                      onClick={actionHandlers.runtime}
-                      className="services-list__schedule-btn"
-                    >
-                      {new Date(
-                        Math.min(
-                          ...resourceClaim.spec.resources
-                            .map((specResource, idx) => {
-                              const statusResource = resourceClaim.status?.resources?.[idx];
-                              const stopTimestamp =
-                                specResource.template?.spec?.vars?.action_schedule?.stop ||
-                                statusResource.state.spec.vars.action_schedule.stop;
-                              if (stopTimestamp) {
-                                return Date.parse(stopTimestamp);
-                              } else {
-                                return null;
-                              }
-                            })
-                            .filter((time) => time !== null)
-                        )
-                      ).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                      })}
-                    </Button>
-                  ) : (
-                    <p>-</p>
-                  )}
-                </>,
-                // Auto-destroy
-                <>
-                  {resourceClaim.status?.lifespan ? (
-                    <Button
-                      key="auto-destroy"
-                      variant="control"
-                      isDisabled={!resourceClaim.status?.lifespan}
-                      onClick={actionHandlers.lifespan}
-                      icon={<OutlinedClockIcon />}
-                      iconPosition="right"
-                      className="services-list__schedule-btn"
-                    >
-                      {new Date(
-                        resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end
-                      ).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                      })}
-                    </Button>
-                  ) : (
-                    <p>-</p>
-                  )}
-                </>,
-
                 // Actions
                 <>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      gap: 'var(--pf-global--spacer--sm)',
-                      paddingTop: 'var(--pf-global--spacer--xs)',
-                      paddingRight: 'var(--pf-global--spacer--sm)',
-                    }}
-                  >
-                    <ButtonCircleIcon
-                      isDisabled={checkResourceClaimCanStart(resourceClaim)}
-                      onClick={actionHandlers.start}
-                      description="Start"
-                      icon={PlayIcon}
-                    />
-                    <ButtonCircleIcon
-                      isDisabled={checkResourceClaimCanStop(resourceClaim)}
-                      onClick={actionHandlers.stop}
-                      description="Stop"
-                      icon={PauseIcon}
-                    />
-                    <ButtonCircleIcon onClick={actionHandlers.delete} description="Delete" icon={TrashIcon} />
-                    {false ? (
-                      <ButtonCircleIcon onClick={null} description="Get current cost" icon={DollarSignIcon} />
-                    ) : null}
-                    {
-                      // Lab Interface
-                      labUserInterfaceUrl ? (
-                        <LabInterfaceLink
-                          url={labUserInterfaceUrl}
-                          data={labUserInterfaceData}
-                          method={labUserInterfaceMethod}
-                          variant="circle"
-                        />
-                      ) : null
-                    }
-                  </div>
+                  <ServiceActions
+                    position="right"
+                    resourceClaim={resourceClaim}
+                    actionHandlers={actionHandlers}
+                    iconOnly={true}
+                  />
                 </>
               );
 
@@ -756,4 +706,4 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
   );
 };
 
-export default ServicesList;
+export default AllServicesList;

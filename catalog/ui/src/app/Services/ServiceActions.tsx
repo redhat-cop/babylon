@@ -5,6 +5,7 @@ import { DropdownPosition } from '@patternfly/react-core';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 
 import { checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
+import { EllipsisVIcon } from '@patternfly/react-icons';
 
 export interface ServiceActionsProps {
   actionHandlers: any;
@@ -13,6 +14,7 @@ export interface ServiceActionsProps {
   position?: DropdownPosition | 'right' | 'left';
   resourceClaim?: any;
   serviceName?: string;
+  iconOnly?: boolean;
 }
 
 const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
@@ -22,30 +24,31 @@ const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
   position,
   resourceClaim,
   serviceName,
+  iconOnly = false,
 }) => {
   const actionDropdownItems: any[] = [];
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : true;
   const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : true;
 
-  if (actionHandlers.lifespan) {
-    actionDropdownItems.push(
-      <ActionDropdownItem
-        key="lifespan"
-        label="Adjust Lifespan"
-        isDisabled={!resourceClaim?.status?.lifespan}
-        onSelect={() => actionHandlers.lifespan()}
-      />
-    );
-  }
   if (actionHandlers.runtime) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="runtime"
-        label="Adjust Runtime"
+        label="Edit Auto-Stop"
         isDisabled={
           !resourceClaim || !canStop || !resourceClaim?.status?.resources?.[0]?.state?.spec?.vars?.action_schedule
         }
         onSelect={() => actionHandlers.runtime()}
+      />
+    );
+  }
+  if (actionHandlers.lifespan) {
+    actionDropdownItems.push(
+      <ActionDropdownItem
+        key="lifespan"
+        label="Edit Auto-Destroy"
+        isDisabled={!resourceClaim?.status?.lifespan}
+        onSelect={() => actionHandlers.lifespan()}
       />
     );
   }
@@ -84,6 +87,8 @@ const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
       className={className}
       isDisabled={isDisabled}
       position={position}
+      icon={iconOnly ? EllipsisVIcon : null}
+      isPlain={iconOnly ? true : false}
     />
   );
 };

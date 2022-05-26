@@ -1,32 +1,19 @@
-import React from 'react';
-
-const parseDuration = require('parse-duration');
-
-import { Button, Form, FormGroup, Modal, ModalVariant, TimePicker } from '@patternfly/react-core';
+import React, { useEffect } from 'react';
+import parseDuration from 'parse-duration';
+import { Form, FormGroup } from '@patternfly/react-core';
 import { ResourceClaim } from '@app/types';
-import { displayName } from '@app/util';
-
 import DatetimeSelect from '@app/components/DatetimeSelect';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
 
-import './services-schedule-action-modal.css';
+import { displayName } from '@app/util';
 
-export interface ServicesScheduleActionModalProps {
+const ServicesScheduleAction: React.FC<{
   action: string;
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (v: Date) => void;
   resourceClaim: ResourceClaim;
-}
-
-const ServicesScheduleActionModal: React.FunctionComponent<ServicesScheduleActionModalProps> = ({
-  action,
-  isOpen,
-  onClose,
-  onConfirm,
-  resourceClaim,
-}) => {
+  setTitle?: React.Dispatch<React.SetStateAction<string>>;
+  setState?: React.Dispatch<React.SetStateAction<Date>>;
+}> = ({ action, resourceClaim, setTitle, setState }) => {
   const current: Date = new Date(
     action === 'retirement'
       ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end)
@@ -50,9 +37,10 @@ const ServicesScheduleActionModal: React.FunctionComponent<ServicesScheduleActio
   );
 
   const [selectedDate, setSelectedDate] = React.useState<Date>(current);
-
+  useEffect(() => setState(selectedDate), [setState, selectedDate]);
+  useEffect(() => setTitle(`${displayName(resourceClaim)}`), [setTitle, resourceClaim]);
   // Reset selected time to current time when action or resourceClaim changes
-  React.useEffect(() => {
+  useEffect(() => {
     setSelectedDate(current);
   }, [current.getTime()]);
 
@@ -83,44 +71,30 @@ const ServicesScheduleActionModal: React.FunctionComponent<ServicesScheduleActio
         Date.now() + 30 * 24 * 60 * 60 * 1000
   );
 
+  const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'stop' ? 'Auto-stop' : action;
+
   // Interval between times to show
   const interval: number = action === 'retirement' ? 60 * 60 * 1000 : 15 * 60 * 1000;
 
   return (
-    <Modal
-      className="services-schedule-action-modal"
-      variant={ModalVariant.small}
-      title={`${displayName(resourceClaim)} ${action}`}
-      isOpen={isOpen}
-      onClose={onClose}
-      actions={[
-        <Button key="confirm" variant="primary" onClick={() => onConfirm(selectedDate)}>
-          Confirm
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onClose}>
-          Cancel
-        </Button>,
-      ]}
-    >
-      <Form isHorizontal>
-        <FormGroup fieldId="" label={`${action} time`}>
-          <DatetimeSelect
-            idPrefix={`${resourceClaim.metadata.namespace}:${resourceClaim.metadata.name}:lifespan:`}
-            onSelect={(date) => setSelectedDate(date)}
-            toggleContent={
-              <span>
-                <LocalTimestamp date={selectedDate} /> (<TimeInterval toDate={selectedDate} />)
-              </span>
-            }
-            current={selectedDate}
-            interval={interval}
-            minimum={minimum}
-            maximum={maximum}
-          />
-        </FormGroup>
-      </Form>
-    </Modal>
+    <Form isHorizontal>
+      <FormGroup fieldId="" label={actionLabel}>
+        <DatetimeSelect
+          idPrefix={`${resourceClaim.metadata.namespace}:${resourceClaim.metadata.name}:lifespan:`}
+          onSelect={(date) => setSelectedDate(date)}
+          toggleContent={
+            <span>
+              <LocalTimestamp date={selectedDate} /> (<TimeInterval toDate={selectedDate} />)
+            </span>
+          }
+          current={selectedDate}
+          interval={interval}
+          minimum={minimum}
+          maximum={maximum}
+        />
+      </FormGroup>
+    </Form>
   );
 };
 
-export default ServicesScheduleActionModal;
+export default ServicesScheduleAction;
