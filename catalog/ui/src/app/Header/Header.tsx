@@ -23,6 +23,7 @@ import { CaretDownIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from './useImpersonateUser';
+import useSession from '@app/utils/useSession';
 
 import './header.css';
 
@@ -31,8 +32,7 @@ const Header: React.FC<{
   onNavToggle: () => void;
   isNavOpen: boolean;
   isMobileView: boolean;
-  getSession: () => { email: string; isAdmin: boolean };
-}> = ({ isNavOpen, isMobileView, onNavToggle, onNavToggleMobile, getSession }) => {
+}> = ({ isNavOpen, isMobileView, onNavToggle, onNavToggleMobile }) => {
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = useState(false);
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
   const { setImpersonation, userImpersonated, clearImpersonation } = useImpersonateUser();
@@ -48,7 +48,7 @@ const Header: React.FC<{
   });
   const history = useHistory();
   const dispatch = useDispatch();
-  const { isAdmin, email } = getSession();
+  const { isAdmin, email } = useSession().getSession();
   const userInterface = useSelector(selectInterface);
 
   useEffect(() => {

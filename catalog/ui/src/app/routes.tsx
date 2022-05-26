@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { useLocation, Route, RouteComponentProps, Switch } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import React from 'react';
+import { Route, RouteComponentProps, Switch } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 import { Spinner } from '@patternfly/react-core';
 
-import { selectInterface, selectUserIsAdmin } from '@app/store';
+import { selectInterface } from '@app/store';
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const Services = React.lazy(() => import('@app/Services/Services'));
@@ -25,8 +25,7 @@ const ResourcePoolInstance = React.lazy(() => import('@app/Admin/ResourcePoolIns
 const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'));
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-
-let routeFocusTimer: number;
+import useSession from './utils/useSession';
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -217,9 +216,7 @@ const adminFlattenedRoutes: IAppRoute[] = adminRoutes.reduce(
 
 const AppRoutes = (): React.ReactElement => {
   const userInterface = useSelector(selectInterface);
-  const userIsAdmin = useSelector(selectUserIsAdmin);
-  const dispatch = useDispatch();
-  const location = useLocation();
+  const userIsAdmin = useSession().getSession().isAdmin;
 
   return (
     <React.Suspense fallback={<Spinner isSVG size="lg" />}>

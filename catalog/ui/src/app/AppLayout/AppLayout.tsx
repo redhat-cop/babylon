@@ -3,14 +3,12 @@ import useStatusPageEmbed from './useStatusPageEmbed';
 import { EmptyState, EmptyStateIcon, Page, PageSection, PageSidebar } from '@patternfly/react-core';
 import Navigation from './Navigation';
 import Header from '@app/Header/Header';
-import useSession from './useSession';
 import LoadingIcon from '@app/components/LoadingIcon';
 
 const AppLayout: React.FunctionComponent<{ children: React.ReactNode }> = ({ children }) => {
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [isMobileView, setIsMobileView] = useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = useState(false);
-  const { getSession } = useSession();
   useStatusPageEmbed();
 
   const onNavToggleMobile = () => {
@@ -32,7 +30,6 @@ const AppLayout: React.FunctionComponent<{ children: React.ReactNode }> = ({ chi
       isMobileView={isMobileView}
       onNavToggleMobile={onNavToggleMobile}
       onNavToggle={onNavToggle}
-      getSession={getSession}
     />
   );
 
@@ -48,7 +45,7 @@ const AppLayout: React.FunctionComponent<{ children: React.ReactNode }> = ({ chi
     >
       <Page
         className="app-layout"
-        mainContainerId="primary-app-layout-container"
+        mainContainerId="primary-app-container"
         header={_Header}
         sidebar={Sidebar}
         onPageResize={onPageResize}

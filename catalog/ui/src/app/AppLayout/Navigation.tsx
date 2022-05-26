@@ -2,15 +2,17 @@ import * as React from 'react';
 import { useSelector } from 'react-redux';
 import { NavLink, useLocation } from 'react-router-dom';
 
-import { selectServiceNamespaces, selectUserIsAdmin, selectUserNamespace } from '@app/store';
+import { selectServiceNamespaces, selectUserNamespace } from '@app/store';
 
 import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
+import useSession from '@app/utils/useSession';
 
 const Navigation: React.FunctionComponent = () => {
   const location = useLocation();
   const serviceNamespaces = useSelector(selectServiceNamespaces);
   const userNamespace = useSelector(selectUserNamespace);
-  const userIsAdmin = useSelector(selectUserIsAdmin);
+  const userIsAdmin = useSession().getSession().isAdmin;
+
   const workshopNamespaces = serviceNamespaces.filter((ns) => ns.workshopAccess);
 
   const catalogNavigation = (
