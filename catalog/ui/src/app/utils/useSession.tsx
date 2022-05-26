@@ -1,8 +1,19 @@
 import { useMemo, useCallback } from 'react';
 import { getApiSession } from '@app/api';
-import { actionStartSession, selectAuthIsAdmin, selectAuthUser } from '@app/store';
+import {
+  actionStartSession,
+  selectAuthIsAdmin,
+  selectAuthUser,
+  selectCatalogNamespaces,
+  selectConsoleURL,
+  selectInterface,
+  selectServiceNamespaces,
+  selectUserGroups,
+  selectUserNamespace,
+} from '@app/store';
 import { useDispatch, useSelector } from 'react-redux';
 import { AnyAction, Dispatch } from 'redux';
+import { CatalogNamespace, UserNamespace } from '@app/types';
 
 async function getSessionFn(dispatch: Dispatch<AnyAction>) {
   const session = await getApiSession();
@@ -20,19 +31,42 @@ async function getSessionFn(dispatch: Dispatch<AnyAction>) {
   );
 }
 
-export default function useSession(): { getSession: () => { email: string; isAdmin: boolean } } {
+export default function useSession(): {
+  getSession: () => {
+    email: string;
+    isAdmin: boolean;
+    groups: string[];
+    catalogNamespaces: CatalogNamespace[];
+    consoleUrl: string;
+    userInterface: string;
+    serviceNampesaces: UserNamespace[];
+    userNamespace: UserNamespace;
+  };
+} {
   const dispatch = useDispatch();
   const email: string = useSelector(selectAuthUser);
   const isAdmin = useSelector(selectAuthIsAdmin);
-  const promise = useMemo(() => getSessionFn(dispatch), [dispatch]);
+  const groups = useSelector(selectUserGroups);
+  const catalogNamespaces = useSelector(selectCatalogNamespaces);
+  const consoleUrl = useSelector(selectConsoleURL);
+  const userInterface = useSelector(selectInterface);
+  const serviceNampesaces = useSelector(selectServiceNamespaces);
+  const userNamespace = useSelector(selectUserNamespace);
+
+  const promise = useMemo(() => {
+    if (!email) {
+      return getSessionFn(dispatch);
+    }
+    return Promise.resolve();
+  }, [dispatch, email]);
 
   const getSession = useCallback(() => {
     if (!email) {
       throw promise;
     }
 
-    return { email, isAdmin };
-  }, [email, isAdmin, promise]);
+    return { email, isAdmin, groups, catalogNamespaces, consoleUrl, userInterface, serviceNampesaces, userNamespace };
+  }, [email, isAdmin, promise, groups, catalogNamespaces, consoleUrl, userInterface, serviceNampesaces, userNamespace]);
 
   return { getSession };
 }

@@ -155,6 +155,12 @@ export interface K8sOwnerReference {
 
 export interface Namespace extends K8sObject {}
 
+export interface UserNamespace {
+  displayName: string;
+  name: string;
+  requester: string;
+  workshopProvisionAccess: boolean;
+}
 export interface NamespaceList {
   items: Namespace[];
   metadata: K8sObjectListMeta;
