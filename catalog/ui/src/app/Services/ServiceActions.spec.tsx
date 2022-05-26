@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, waitFor, queryByAttribute, fireEvent, screen, cleanup } from '@testing-library/react';
+import { render, waitFor, screen, fireEvent } from '@testing-library/react';
 import ServiceActions from './ServiceActions';
 
 describe('ServiceActions', () => {
@@ -10,7 +10,7 @@ describe('ServiceActions', () => {
     const openStartModal = jest.fn();
     const openStopModal = jest.fn();
 
-    const { getByText, debug } = render(
+    const { getByText } = render(
       <ServiceActions
         position="right"
         resourceClaim={'resourceClaim'}
@@ -33,7 +33,7 @@ describe('ServiceActions', () => {
     const openStartModal = jest.fn();
     const openStopModal = jest.fn();
 
-    const { getByText, debug } = render(
+    const { getByText } = render(
       <ServiceActions
         position="right"
         resourceClaim={'resourceClaim'}
@@ -57,7 +57,7 @@ describe('ServiceActions', () => {
     const openStartModal = jest.fn();
     const openStopModal = jest.fn();
 
-    const { getByText, debug } = render(
+    const { getByText } = render(
       <ServiceActions
         position="right"
         resourceClaim={'resourceClaim'}
@@ -81,7 +81,7 @@ describe('ServiceActions', () => {
     const openStartModal = jest.fn();
     const openStopModal = jest.fn();
 
-    const { getByText, debug } = render(
+    const { getByText } = render(
       <ServiceActions
         position="right"
         resourceClaim={'resourceClaim'}
@@ -105,7 +105,7 @@ describe('ServiceActions', () => {
     const openStartModal = jest.fn();
     const openStopModal = jest.fn();
 
-    const { getByText, debug } = render(
+    const { getByText } = render(
       <ServiceActions
         position="right"
         resourceClaim={'resourceClaim'}
@@ -120,16 +120,16 @@ describe('ServiceActions', () => {
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
-    await waitFor(() => expect(getByText('Adjust Lifespan')).toBeInTheDocument());
+    await waitFor(() => expect(getByText('Edit Auto-Destroy')).toBeInTheDocument());
   });
 
-  test('When ServiceActions layout renders, should display Adjust Runtime', async () => {
+  test('When ServiceActions layout renders, should display Edit Auto-Stop', async () => {
     const openDeleteModal = jest.fn();
     const openScheduleActionModal = jest.fn();
     const openStartModal = jest.fn();
     const openStopModal = jest.fn();
 
-    const { getByText, debug } = render(
+    const { getByText } = render(
       <ServiceActions
         position="right"
         resourceClaim={'resourceClaim'}
@@ -144,6 +144,6 @@ describe('ServiceActions', () => {
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
-    await waitFor(() => expect(getByText('Adjust Runtime')).toBeInTheDocument());
+    await waitFor(() => expect(getByText('Edit Auto-Stop')).toBeInTheDocument());
   });
 });

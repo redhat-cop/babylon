@@ -1,0 +1,62 @@
+.services-list.pf-c-page__main-section {
+  padding-top: var(--pf-global--spacer--md);
+}
+
+.services-list .pf-c-table thead th {
+  padding-top: 0;
+  padding-bottom: var(--pf-global--spacer--md);
+}
+
+.services-list .pf-c-table thead td {
+  padding-top: 0;
+  padding-bottom: var(--pf-global--spacer--md);
+}
+
+.services-list .pf-c-table tbody th,
+.services-list .pf-c-table tbody td {
+  padding-top: var(--pf-global--spacer--md);
+  padding-bottom: var(--pf-global--spacer--md);
+}
+
+.services-list__head.pf-c-page__main-section {
+  padding-top: var(--pf-global--spacer--md);
+  padding-bottom: var(--pf-global--spacer--md);
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+}
+
+.services-list__head.pf-c-page__main-section .pf-c-breadcrumb__item {
+  font-size: var(--pf-global--icon--FontSize--md);
+  margin-top: var(--pf-global--spacer--xs);
+}
+
+.services-list__topbar.pf-c-page__main-section {
+  padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--sm);
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+}
+
+.services-list__schedule-btn {
+  width: 176px;
+  display: flex;
+  padding-left: var(--pf-global--spacer--sm);
+  padding-right: var(--pf-global--spacer--sm);
+}
+.services-list__schedule-btn .pf-c-button__icon.pf-m-end {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.services-list__topbar.pf-c-page__main-section {
+  padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--sm);
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+}
+.services-list__topbar.pf-c-page__main-section .pf-c-dropdown__toggle {
+  color: var(--pf-global--palette--black-900);
+}
+.services-list__topbar.pf-c-page__main-section .pf-c-dropdown__menu {
+  max-height: 350px;
+  overflow-y: scroll;
+}
+.services-list__topbar.pf-c-page__main-section .pf-c-dropdown__menu .pf-c-dropdown__menu-item {
+  padding-bottom: var(--pf-global--spacer--sm);
+  padding-top: var(--pf-global--spacer--sm);
+}

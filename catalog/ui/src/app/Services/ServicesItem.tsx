@@ -1,11 +1,11 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useCallback } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
-import { ExclamationTriangleIcon, PencilAltIcon, QuestionCircleIcon } from '@patternfly/react-icons';
+import { ExclamationTriangleIcon, OutlinedClockIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { BABYLON_DOMAIN } from '@app/util';
 import Editor from '@monaco-editor/react';
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
 
 import {
   Breadcrumb,
@@ -46,7 +46,7 @@ import { selectResourceClaim, selectServiceNamespaces, selectUserIsAdmin } from 
 
 import { Namespace, NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
 import { displayName, renderContent } from '@app/util';
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -62,32 +62,28 @@ import ServiceItemStatus from './ServiceItemStatus';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
-import ServicesActionModal from './ServicesActionModal';
-import ServicesCreateWorkshopModal from './ServicesCreateWorkshopModal';
-import ServicesScheduleActionModal from './ServicesScheduleActionModal';
+import ServicesAction from './ServicesAction';
+import ServicesCreateWorkshop from './ServicesCreateWorkshop';
+import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
+import Modal from '@app/Modal';
 
-import './services.css';
+import './services-item.css';
 
 interface ModalState {
   action?: string;
   modal?: string;
+  resourceClaim?: ResourceClaim;
 }
 
-interface ServicesItemProps {
+const ServicesItem: React.FC<{
   activeTab: string;
   resourceClaimName: string;
   serviceNamespaceName: string;
-}
-
-const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
-  activeTab,
-  resourceClaimName,
-  serviceNamespaceName,
-}) => {
+}> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => {
   const history = useHistory();
   const location = useLocation();
-  const componentWillUnmount = useRef(false);
+  const ref = useRef(false);
   const sessionResourceClaim = useSelector((state) =>
     selectResourceClaim(state, serviceNamespaceName, resourceClaimName)
   );
@@ -100,6 +96,9 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   const resourceClaimFetchEnabled: boolean = userIsAdmin && !sessionServiceNamespace ? true : false;
 
   const [modalState, setModalState] = React.useState<ModalState>({});
+  const modalAction = useRef(null);
+  const modalScheduleAction = useRef(null);
+  const modalCreateWorkshop = useRef(null);
   const [resourceClaimFetchState, reduceResourceClaimFetchState] = useReducer(k8sFetchStateReducer, null);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [workshopFetchState, reduceWorkshopFetchState] = useReducer(k8sFetchStateReducer, null);
@@ -135,13 +134,13 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
 
   const actionHandlers = {
-    delete: () => setModalState({ action: 'delete', modal: 'action' }),
-    lifespan: () => setModalState({ action: 'retirement', modal: 'scheduleAction' }),
+    delete: () => showModal({ action: 'delete', modal: 'action' }),
+    lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction' }),
   };
   if (resources.find((r) => r?.kind === 'AnarchySubject')) {
-    actionHandlers['runtime'] = () => setModalState({ action: 'stop', modal: 'scheduleAction' });
-    actionHandlers['start'] = () => setModalState({ action: 'start', modal: 'action' });
-    actionHandlers['stop'] = () => setModalState({ action: 'stop', modal: 'action' });
+    actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction' });
+    actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action' });
+    actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action' });
   }
 
   // Find lab user interface information either in the resource claim or inside resources
@@ -247,7 +246,6 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
         reduceResourceClaimFetchState({ type: 'updateItem', item: resourceClaimUpdate });
       }
     }
-    setModalState({});
   }
 
   async function onModalScheduleAction(date: Date): Promise<void> {
@@ -258,7 +256,6 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
     if (resourceClaimFetchEnabled) {
       reduceResourceClaimFetchState({ type: 'updateItem', item: resourceClaimUpdate });
     }
-    setModalState({});
   }
 
   async function onWorkshopCreate({
@@ -272,7 +269,6 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       reduceResourceClaimFetchState({ type: 'updateItem', item: resourceClaim });
     }
     reduceWorkshopFetchState({ type: 'updateItem', item: workshop });
-    setModalState({});
   }
 
   async function onCheckStatusRequest(): Promise<void> {
@@ -285,7 +281,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
   // Track unmount for other effect cleanups
   useEffect(() => {
     return () => {
-      componentWillUnmount.current = true;
+      ref.current = true;
     };
   }, []);
 
@@ -316,7 +312,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       fetchUserNamespaces();
     }
     return () => {
-      if (componentWillUnmount.current) {
+      if (ref.current) {
         cancelFetchActivity(userNamespacesFetchState);
       }
     };
@@ -328,7 +324,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       fetchResourceClaim();
     }
     return () => {
-      if (componentWillUnmount.current) {
+      if (ref.current) {
         cancelFetchActivity(resourceClaimFetchState);
       }
     };
@@ -340,11 +336,25 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
       fetchWorkshop();
     }
     return () => {
-      if (componentWillUnmount.current) {
+      if (ref.current) {
         cancelFetchActivity(workshopFetchState);
       }
     };
   }, [workshopFetchState]);
+
+  const showModal = useCallback(
+    ({ modal, action, resourceClaim }: { modal: string; action: string; resourceClaim?: ResourceClaim }) => {
+      if (modal === 'action') {
+        setModalState({ action, resourceClaim });
+        modalAction.current.open();
+      }
+      if (modal === 'scheduleAction') {
+        setModalState({ action, resourceClaim });
+        modalScheduleAction.current.open();
+      }
+    },
+    [modalAction, modalScheduleAction, setModalState]
+  );
 
   // Show loading until whether the user is admin is determined.
   if (userIsAdmin === null) {
@@ -384,33 +394,15 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
 
   return (
     <>
-      {modalState.modal === 'action' ? (
-        <ServicesActionModal
-          key="actionModal"
-          action={modalState.action}
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onConfirm={onModalAction}
-          resourceClaim={resourceClaim}
-        />
-      ) : modalState.modal === 'createWorkshop' ? (
-        <ServicesCreateWorkshopModal
-          key="createWorkshopModal"
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onCreate={onWorkshopCreate}
-          resourceClaim={resourceClaim}
-        />
-      ) : modalState.modal === 'scheduleAction' ? (
-        <ServicesScheduleActionModal
-          key="scheduleActionModal"
-          action={modalState.action}
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onConfirm={(date) => onModalScheduleAction(date)}
-          resourceClaim={resourceClaim}
-        />
-      ) : null}
+      <Modal ref={modalAction} onConfirm={onModalAction} title={null}>
+        <ServicesAction action={modalState.action} resourceClaim={resourceClaim} />
+      </Modal>
+      <Modal ref={modalCreateWorkshop} onConfirm={onWorkshopCreate} title={null}>
+        <ServicesCreateWorkshop resourceClaim={resourceClaim} />
+      </Modal>
+      <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} title={null}>
+        <ServicesScheduleAction action={modalState.action} resourceClaim={resourceClaim} />
+      </Modal>
       {userIsAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
@@ -522,29 +514,40 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                 </DescriptionListGroup>
                 {!externalPlatformUrl && resourceClaim?.status?.lifespan?.end ? (
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Retirement</DescriptionListTerm>
+                    <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
                     {resourceClaim.status?.lifespan?.end ? (
                       <DescriptionListDescription>
                         <Button
-                          variant="plain"
+                          key="auto-destroy"
+                          variant="control"
+                          isDisabled={!resourceClaim.status?.lifespan}
                           onClick={() => {
-                            setModalState({ action: 'retirement', modal: 'scheduleAction' });
+                            showModal({ action: 'retirement', modal: 'scheduleAction' });
                           }}
+                          icon={<OutlinedClockIcon />}
+                          iconPosition="right"
+                          className="services-item__schedule-btn"
                         >
-                          <LocalTimestamp timestamp={resourceClaim.status.lifespan.end} /> (
-                          <TimeInterval toTimestamp={resourceClaim.status.lifespan.end} />)
-                          {resourceClaim.spec?.lifespan?.end &&
-                          resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
-                            <>
-                              {' '}
-                              <Spinner size="md" />
-                            </>
-                          ) : null}{' '}
-                          <PencilAltIcon className="edit" />
+                          {new Date(resourceClaim.status.lifespan.end).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                          })}{' '}
+                          (<TimeInterval toTimestamp={resourceClaim.status.lifespan.end} />)
                         </Button>
+                        {resourceClaim.spec?.lifespan?.end &&
+                        resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
+                          <>
+                            {' '}
+                            <Spinner size="md" />
+                          </>
+                        ) : null}
                       </DescriptionListDescription>
                     ) : (
-                      '...'
+                      '-'
                     )}
                   </DescriptionListGroup>
                 ) : null}
@@ -573,8 +576,6 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                   resourceSpec.provider?.name;
                 const currentState =
                   resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.current_state : 'available';
-                const desiredState =
-                  resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.desired_state : null;
                 const provisionData =
                   resourceState?.kind === 'AnarchySubject'
                     ? resourceState.spec.vars?.provision_data
@@ -584,7 +585,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                     ? resourceState?.spec?.vars?.provision_messages
                     : provisionData?.msg;
                 const provisionDataEntries = provisionData
-                  ? Object.entries(provisionData).filter(([key, value]) => {
+                  ? Object.entries(provisionData).filter(([key]) => {
                       if (
                         key === 'bookbag_url' ||
                         key === 'lab_ui_url' ||
@@ -656,13 +657,22 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                               <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
                               <DescriptionListDescription>
                                 <Button
-                                  variant="plain"
-                                  onClick={() => {
-                                    setModalState({ action: 'stop', modal: 'action' });
-                                  }}
+                                  key="auto-stop"
+                                  variant="control"
+                                  icon={<OutlinedClockIcon />}
+                                  iconPosition="right"
+                                  onClick={() => showModal({ action: 'stop', modal: 'action' })}
+                                  className="services-item__schedule-btn"
                                 >
-                                  <LocalTimestamp timestamp={stopTimestamp} /> (
-                                  <TimeInterval toTimestamp={stopTimestamp} />) <PencilAltIcon className="edit" />
+                                  {new Date(stopTimestamp).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false,
+                                  })}{' '}
+                                  (<TimeInterval toTimestamp={stopTimestamp} />)
                                 </Button>
                               </DescriptionListDescription>
                             </DescriptionListGroup>
@@ -793,7 +803,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
             ) : null}
             {workshopName && !workshopProvisionName ? (
               [
-                <Tab eventKey="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
+                <Tab eventKey="workshop" key="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
                   {workshop ? (
                     <WorkshopsItemDetails
                       onWorkshopUpdate={(workshop) => reduceWorkshopFetchState({ type: 'updateItem', item: workshop })}
@@ -807,7 +817,7 @@ const ServicesItem: React.FunctionComponent<ServicesItemProps> = ({
                     </PageSection>
                   )}
                 </Tab>,
-                <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
+                <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
                   {workshop ? (
                     <WorkshopsItemUserAssignments
                       onWorkshopUpdate={(workshop) => reduceWorkshopFetchState({ type: 'updateItem', item: workshop })}

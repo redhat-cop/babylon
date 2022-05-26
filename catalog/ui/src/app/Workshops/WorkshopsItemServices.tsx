@@ -31,7 +31,6 @@ import TimeInterval from '@app/components/TimeInterval';
 
 import ServiceActions from '@app/Services/ServiceActions';
 import ServiceStatus from '@app/Services/ServiceStatus';
-import ServicesActionModal from '@app/Services/ServicesActionModal';
 
 import { ModalState } from './WorkshopsItem';
 
