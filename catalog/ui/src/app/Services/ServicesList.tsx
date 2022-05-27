@@ -56,11 +56,11 @@ import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
 import SelectableTable from '@app/components/SelectableTable';
 import ServiceActions from './ServiceActions';
-import Modal from '@app/Modal/Modal';
-
-import './services-list.css';
+import Modal, { useModal } from '@app/Modal/Modal';
 import ServicesAction from './ServicesAction';
 import ServicesScheduleAction from './ServicesScheduleAction';
+
+import './services-list.css';
 
 const FETCH_BATCH_LIMIT = 30;
 
@@ -153,8 +153,8 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
   const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [modalState, setModalState] = useState<ModalState>({});
-  const modalAction = useRef(null);
-  const modalScheduleAction = useRef(null);
+  const [modalAction, openModalAction] = useModal();
+  const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
 
   const serviceNamespaces: ServiceNamespace[] = enableFetchUserNamespaces
@@ -390,11 +390,11 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
     ({ modal, action, resourceClaim }: { modal: string; action: string; resourceClaim?: ResourceClaim }) => {
       if (modal === 'action') {
         setModalState({ action, resourceClaim });
-        modalAction.current.open();
+        openModalAction();
       }
       if (modal === 'scheduleAction') {
         setModalState({ action, resourceClaim });
-        modalScheduleAction.current.open();
+        openModalScheduleAction();
       }
     },
     [setModalState]
@@ -431,10 +431,10 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
 
   return (
     <>
-      <Modal ref={modalAction} onConfirm={onModalAction}>
+      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
         <ServicesAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
       </Modal>
-      <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction}>
+      <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
       </Modal>
       {serviceNamespaces.length > 1 ? (
@@ -586,21 +586,20 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                 actionHandlers['stop'] = () =>
                   showModal({ action: 'stop', modal: 'action', resourceClaim: resourceClaim });
               }
-              const cells = [];
-              cells.push(
+              const cells = [
                 // Name
-                <>
+                <React.Fragment key="name">
                   <Link
-                    key="services"
+                    key="name__link"
                     to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
                   >
                     {displayName(resourceClaim)}
                   </Link>
-                  {userIsAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
-                </>,
+                  {userIsAdmin ? <OpenshiftConsoleLink key="name__console" resource={resourceClaim} /> : null}
+                </React.Fragment>,
 
                 // Status
-                <div key="status">
+                <React.Fragment key="status">
                   {specResources.length >= 1 ? (
                     <ServiceStatus
                       creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
@@ -610,17 +609,16 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                   ) : (
                     <p>...</p>
                   )}
-                </div>,
+                </React.Fragment>,
 
                 // Created At
-                <>
-                  <TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />
-                </>,
+                <React.Fragment key="interval">
+                  <TimeInterval toTimestamp={resourceClaim.metadata.creationTimestamp} />
+                </React.Fragment>,
                 // Auto-stop
-                <>
+                <React.Fragment key="auto-stop">
                   {resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
                     <Button
-                      key="auto-stop"
                       variant="control"
                       icon={<OutlinedClockIcon />}
                       iconPosition="right"
@@ -632,7 +630,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                         Math.min(
                           ...resourceClaim.spec.resources
                             .map((specResource, idx) => {
-                              const statusResource = resourceClaim.status?.resources?.[idx];
+                              const statusResource = resourceClaim.status.resources[idx];
                               const stopTimestamp =
                                 specResource.template?.spec?.vars?.action_schedule?.stop ||
                                 statusResource.state.spec.vars.action_schedule.stop;
@@ -656,12 +654,11 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                   ) : (
                     <p>-</p>
                   )}
-                </>,
+                </React.Fragment>,
                 // Auto-destroy
-                <>
+                <React.Fragment key="auto-destroy">
                   {resourceClaim.status?.lifespan ? (
                     <Button
-                      key="auto-destroy"
                       variant="control"
                       isDisabled={!resourceClaim.status?.lifespan}
                       onClick={actionHandlers.lifespan}
@@ -683,49 +680,61 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                   ) : (
                     <p>-</p>
                   )}
-                </>,
+                </React.Fragment>,
 
                 // Actions
-                <>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      gap: 'var(--pf-global--spacer--sm)',
-                      paddingTop: 'var(--pf-global--spacer--xs)',
-                      paddingRight: 'var(--pf-global--spacer--sm)',
-                    }}
-                  >
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    gap: 'var(--pf-global--spacer--sm)',
+                    paddingTop: 'var(--pf-global--spacer--xs)',
+                    paddingRight: 'var(--pf-global--spacer--sm)',
+                  }}
+                  key="actions"
+                >
+                  <ButtonCircleIcon
+                    isDisabled={!checkResourceClaimCanStart(resourceClaim)}
+                    onClick={actionHandlers.start}
+                    description="Start"
+                    icon={PlayIcon}
+                    key="actions__start"
+                  />
+                  <ButtonCircleIcon
+                    isDisabled={!checkResourceClaimCanStop(resourceClaim)}
+                    onClick={actionHandlers.stop}
+                    description="Stop"
+                    icon={PauseIcon}
+                    key="actions__stop"
+                  />
+                  <ButtonCircleIcon
+                    key="actions__delete"
+                    onClick={actionHandlers.delete}
+                    description="Delete"
+                    icon={TrashIcon}
+                  />
+                  {false ? (
                     <ButtonCircleIcon
-                      isDisabled={!checkResourceClaimCanStart(resourceClaim)}
-                      onClick={actionHandlers.start}
-                      description="Start"
-                      icon={PlayIcon}
+                      key="actions__cost"
+                      onClick={null}
+                      description="Get current cost"
+                      icon={DollarSignIcon}
                     />
-                    <ButtonCircleIcon
-                      isDisabled={!checkResourceClaimCanStop(resourceClaim)}
-                      onClick={actionHandlers.stop}
-                      description="Stop"
-                      icon={PauseIcon}
-                    />
-                    <ButtonCircleIcon onClick={actionHandlers.delete} description="Delete" icon={TrashIcon} />
-                    {false ? (
-                      <ButtonCircleIcon onClick={null} description="Get current cost" icon={DollarSignIcon} />
-                    ) : null}
-                    {
-                      // Lab Interface
-                      labUserInterfaceUrl ? (
-                        <LabInterfaceLink
-                          url={labUserInterfaceUrl}
-                          data={labUserInterfaceData}
-                          method={labUserInterfaceMethod}
-                          variant="circle"
-                        />
-                      ) : null
-                    }
-                  </div>
-                </>
-              );
+                  ) : null}
+                  {
+                    // Lab Interface
+                    labUserInterfaceUrl ? (
+                      <LabInterfaceLink
+                        key="actions__lab-interface"
+                        url={labUserInterfaceUrl}
+                        data={labUserInterfaceData}
+                        method={labUserInterfaceMethod}
+                        variant="circle"
+                      />
+                    ) : null
+                  }
+                </div>,
+              ];
 
               return {
                 cells: cells,

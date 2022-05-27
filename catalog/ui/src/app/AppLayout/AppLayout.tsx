@@ -5,7 +5,7 @@ import Navigation from './Navigation';
 import Header from '@app/Header/Header';
 import LoadingIcon from '@app/components/LoadingIcon';
 
-const AppLayout: React.FunctionComponent<{ children: React.ReactNode }> = ({ children }) => {
+const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [isMobileView, setIsMobileView] = useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = useState(false);
