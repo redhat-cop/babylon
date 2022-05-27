@@ -17,7 +17,7 @@ const _Modal: ForwardRefRenderFunction<
   {
     open: () => void;
     close: () => void;
-  } | null,
+  },
   {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onConfirm: (_: any) => Promise<void> | void;
@@ -92,40 +92,39 @@ const _Modal: ForwardRefRenderFunction<
     return child;
   });
 
-  return (
-    domReady &&
-    createPortal(
-      isOpen ? (
-        <Modal
-          className="modal-component"
-          variant={ModalVariant.small}
-          title={_title}
-          aria-label={`Modal: ${_title}`}
-          isOpen={isOpen}
-          actions={[
-            <Button
-              key="confirm"
-              variant="primary"
-              onClick={() => {
-                onConfirm(state);
-                onConfirmCb && onConfirmCb();
-                close();
-              }}
-              isDisabled={isDisabled}
-            >
-              Confirm
-            </Button>,
-            <Button key="cancel" variant="link" onClick={close}>
-              Cancel
-            </Button>,
-          ]}
-        >
-          {childrenWithProps}
-        </Modal>
-      ) : null,
-      document.getElementById('modal-root')
-    )
-  );
+  return domReady
+    ? createPortal(
+        isOpen ? (
+          <Modal
+            className="modal-component"
+            variant={ModalVariant.small}
+            title={_title}
+            aria-label={`Modal: ${_title}`}
+            isOpen={isOpen}
+            actions={[
+              <Button
+                key="confirm"
+                variant="primary"
+                onClick={() => {
+                  onConfirm(state);
+                  onConfirmCb && onConfirmCb();
+                  close();
+                }}
+                isDisabled={isDisabled}
+              >
+                Confirm
+              </Button>,
+              <Button key="cancel" variant="link" onClick={close}>
+                Cancel
+              </Button>,
+            ]}
+          >
+            {childrenWithProps}
+          </Modal>
+        ) : null,
+        document.getElementById('modal-root')
+      )
+    : null;
 };
 
 export { useModal };
