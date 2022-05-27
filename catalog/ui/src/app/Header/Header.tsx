@@ -166,6 +166,7 @@ const Header: React.FC<{
         onToggle={(isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
         isOpen={isUserHelpDropdownOpen}
         items={UserHelpDropdownItems}
+        position={DropdownPosition.right}
         toggleIcon={<QuestionCircleIcon />}
       />
       <Dropdown
