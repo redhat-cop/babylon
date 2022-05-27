@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { useEffect, useReducer, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
-import { ExclamationTriangleIcon, OutlinedClockIcon, PencilAltIcon } from '@patternfly/react-icons';
+import { ExclamationTriangleIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { BABYLON_DOMAIN } from '@app/util';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
@@ -66,7 +66,7 @@ import ServicesAction from './ServicesAction';
 import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
-import Modal from '@app/Modal/Modal';
+import Modal, { useModal } from '@app/Modal/Modal';
 
 import './services-item.css';
 
@@ -96,9 +96,9 @@ const ServicesItem: React.FC<{
   const resourceClaimFetchEnabled: boolean = userIsAdmin && !sessionServiceNamespace ? true : false;
 
   const [modalState, setModalState] = React.useState<ModalState>({});
-  const modalAction = useRef(null);
-  const modalScheduleAction = useRef(null);
-  const modalCreateWorkshop = useRef(null);
+  const [modalAction, openModalAction] = useModal();
+  const [modalScheduleAction, openModalScheduleAction] = useModal();
+  const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
   const [resourceClaimFetchState, reduceResourceClaimFetchState] = useReducer(k8sFetchStateReducer, null);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [workshopFetchState, reduceWorkshopFetchState] = useReducer(k8sFetchStateReducer, null);
@@ -343,17 +343,21 @@ const ServicesItem: React.FC<{
   }, [workshopFetchState]);
 
   const showModal = useCallback(
-    ({ modal, action, resourceClaim }: { modal: string; action: string; resourceClaim?: ResourceClaim }) => {
+    ({ modal, action }: { modal: string; action: string }) => {
       if (modal === 'action') {
-        setModalState({ action, resourceClaim });
-        modalAction.current.open();
+        setModalState({ action });
+        openModalAction();
       }
       if (modal === 'scheduleAction') {
-        setModalState({ action, resourceClaim });
-        modalScheduleAction.current.open();
+        setModalState({ action });
+        openModalScheduleAction();
+      }
+      if (modal === 'createWorkshop') {
+        setModalState({ action });
+        openModalCreateWorkshop();
       }
     },
-    [modalAction, modalScheduleAction, setModalState]
+    [openModalAction, openModalCreateWorkshop, openModalScheduleAction]
   );
 
   // Show loading until whether the user is admin is determined.
@@ -394,13 +398,13 @@ const ServicesItem: React.FC<{
 
   return (
     <>
-      <Modal ref={modalAction} onConfirm={onModalAction} title={null}>
+      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
         <ServicesAction action={modalState.action} resourceClaim={resourceClaim} />
       </Modal>
-      <Modal ref={modalCreateWorkshop} onConfirm={onWorkshopCreate} title={null}>
+      <Modal ref={modalCreateWorkshop} onConfirm={onWorkshopCreate} passModifiers={true}>
         <ServicesCreateWorkshop resourceClaim={resourceClaim} />
       </Modal>
-      <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} title={null}>
+      <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction action={modalState.action} resourceClaim={resourceClaim} />
       </Modal>
       {userIsAdmin || serviceNamespaces.length > 1 ? (

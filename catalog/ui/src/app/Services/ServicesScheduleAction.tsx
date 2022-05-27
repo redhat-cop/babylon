@@ -57,6 +57,9 @@ const ServicesScheduleAction: React.FC<{
       ? Math.min(
           ...resourceClaim.status.resources
             .map((r) => {
+              if (!r.state) {
+                return null;
+              }
               const startTimestamp = r.state.spec.vars.action_schedule.start;
               const resourceMaximumRuntime = r.state.spec.vars.action_schedule.maximum_runtime;
               if (resourceMaximumRuntime && startTimestamp) {

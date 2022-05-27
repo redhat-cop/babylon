@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import classNames from 'classnames';
 import { listUsers } from '@app/api';
 import { User, UserList } from '@app/types';
@@ -19,7 +19,7 @@ import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
-import Modal from '@app/Modal/Modal';
+import Modal, { useModal } from '@app/Modal/Modal';
 
 import './header.css';
 
@@ -32,7 +32,7 @@ const Header: React.FC<{
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = useState(false);
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
   const { setImpersonation, userImpersonated, clearImpersonation } = useImpersonateUser();
-  const impersonationModal = useRef(null);
+  const [impersonationModal, openImpersonationModal] = useModal();
   const [users, setUsers] = useState<User[]>([]);
   const [userImpersonationDialogState, setUserImpersonationDialogState] = useState<{
     matchCount: number;
@@ -60,7 +60,7 @@ const Header: React.FC<{
   }
 
   function openUserImpersonationDialog() {
-    impersonationModal.current.open();
+    openImpersonationModal();
     setUserImpersonationDialogState({
       matchCount: 0,
       value: '',

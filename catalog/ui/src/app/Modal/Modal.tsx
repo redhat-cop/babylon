@@ -9,15 +9,15 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Modal, ModalVariant } from '@patternfly/react-core';
+import useModal from './useModal';
+
 import './modal.css';
 
-type Ref = {
-  open: () => void;
-  onClose: () => void;
-} | null;
-
 const _Modal: ForwardRefRenderFunction<
-  Ref,
+  {
+    open: () => void;
+    close: () => void;
+  },
   {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onConfirm: (_: any) => Promise<void> | void;
@@ -25,12 +25,16 @@ const _Modal: ForwardRefRenderFunction<
     title?: string;
     children: React.ReactNode;
     isDisabled?: boolean;
+    passModifiers?: boolean;
   }
-> = ({ children, onConfirm, title = '', defaultOpened = false, isDisabled = false }, ref): ReactPortal => {
+> = (
+  { children, onConfirm, title = '', defaultOpened = false, isDisabled = false, passModifiers = false },
+  ref
+): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
   const [onConfirmCb, setOnConfirmCb] = useState(() => null);
-  const onClose = useCallback(() => setIsOpen(false), []);
+  const close = useCallback(() => setIsOpen(false), []);
   const [_title, setTitle] = useState(title);
   const [domReady, setDomReady] = useState(false);
 
@@ -42,16 +46,16 @@ const _Modal: ForwardRefRenderFunction<
     ref,
     () => ({
       open: () => setIsOpen(true),
-      onClose,
+      close,
     }),
-    [onClose]
+    [close]
   );
 
   const handleEscape = useCallback(
     (e) => {
-      if (e.keyCode === 27) onClose();
+      if (e.keyCode === 27) close();
     },
-    [onClose]
+    [close]
   );
 
   const handleClick = useCallback(
@@ -63,11 +67,11 @@ const _Modal: ForwardRefRenderFunction<
       }
       if (e.target === backdrop || backdrop.contains(e.target)) {
         if (e.target !== modal && !modal.contains(e.target)) {
-          onClose();
+          close();
         }
       }
     },
-    [onClose]
+    [close]
   );
 
   useEffect(() => {
@@ -82,47 +86,46 @@ const _Modal: ForwardRefRenderFunction<
   }, [handleEscape, isOpen, handleClick]);
 
   const childrenWithProps = React.Children.map(children, (child) => {
-    if (React.isValidElement(child)) {
+    if (passModifiers && React.isValidElement(child)) {
       return React.cloneElement(child, { setTitle, setState, setOnConfirmCb });
     }
     return child;
   });
 
-  return (
-    domReady &&
-    createPortal(
-      isOpen ? (
-        <Modal
-          className="modal-component"
-          variant={ModalVariant.small}
-          title={_title}
-          aria-label={`Modal: ${_title}`}
-          isOpen={isOpen}
-          onClose={onClose}
-          actions={[
-            <Button
-              key="confirm"
-              variant="primary"
-              onClick={() => {
-                onConfirm(state);
-                onConfirmCb && onConfirmCb();
-                onClose();
-              }}
-              isDisabled={isDisabled}
-            >
-              Confirm
-            </Button>,
-            <Button key="cancel" variant="link" onClick={onClose}>
-              Cancel
-            </Button>,
-          ]}
-        >
-          {childrenWithProps}
-        </Modal>
-      ) : null,
-      document.getElementById('modal-root')
-    )
-  );
+  return domReady
+    ? createPortal(
+        isOpen ? (
+          <Modal
+            className="modal-component"
+            variant={ModalVariant.small}
+            title={_title}
+            aria-label={`Modal: ${_title}`}
+            isOpen={isOpen}
+            actions={[
+              <Button
+                key="confirm"
+                variant="primary"
+                onClick={() => {
+                  onConfirm(state);
+                  onConfirmCb && onConfirmCb();
+                  close();
+                }}
+                isDisabled={isDisabled}
+              >
+                Confirm
+              </Button>,
+              <Button key="cancel" variant="link" onClick={close}>
+                Cancel
+              </Button>,
+            ]}
+          >
+            {childrenWithProps}
+          </Modal>
+        ) : null,
+        document.getElementById('modal-root')
+      )
+    : null;
 };
 
+export { useModal };
 export default forwardRef(_Modal);

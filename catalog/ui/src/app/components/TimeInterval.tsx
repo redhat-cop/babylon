@@ -1,20 +1,12 @@
-import * as React from 'react';
+import React from 'react';
+import parseDuration from 'parse-duration';
 
-const parseDuration = require('parse-duration');
-
-export interface TimeIntervalProps {
+const TimeInterval: React.FC<{
   interval?: number | string;
   toDate?: Date;
   toEpochMilliseconds?: number;
   toTimestamp?: string;
-}
-
-const TimeInterval: React.FunctionComponent<TimeIntervalProps> = ({
-  interval,
-  toDate,
-  toEpochMilliseconds,
-  toTimestamp,
-}) => {
+}> = ({ interval, toDate, toEpochMilliseconds, toTimestamp }) => {
   const to: number | null = toDate
     ? toDate.getTime()
     : toTimestamp
