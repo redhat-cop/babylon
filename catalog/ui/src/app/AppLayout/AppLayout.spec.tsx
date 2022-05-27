@@ -2,8 +2,14 @@ jest.mock('../api');
 import '@testing-library/jest-dom';
 
 import React from 'react';
-import { render, waitFor, queryByAttribute, fireEvent } from '../utils/test-utils';
+import { render, waitFor, fireEvent } from '../utils/test-utils';
 import AppLayout from './AppLayout';
+
+jest.mock('@app/utils/useSession', () => {
+  return jest.fn(() => ({
+    getSession: () => ({ email: 'test@redhat.com', isAdmin: false, serviceNamespaces: [] }),
+  }));
+});
 
 describe('Catalog Page Layout Scenario', () => {
   test("When app layout renders, should display 'Catalog' option", async () => {
@@ -18,7 +24,7 @@ describe('Catalog Page Layout Scenario', () => {
   });
   test('When app layout renders, should display user name', async () => {
     const { getByText } = render(<AppLayout>{'Test'}</AppLayout>);
-    const testVar = getByText('test.user-redhat.com');
+    const testVar = getByText('test@redhat.com');
     await waitFor(() => expect(testVar).toBeInTheDocument());
   });
   test('When app layout renders, should display hamburger toggle', async () => {
@@ -31,7 +37,7 @@ describe('Catalog Page Layout Scenario', () => {
 describe('Catalog page event scenarios', () => {
   test('When navigation toggle is clicked, navigation get hidden', async () => {
     const { container } = render(<AppLayout>{'Test'}</AppLayout>);
-    const testVar: any = container.querySelector('#nav-toggle');
+    const testVar = container.querySelector('#nav-toggle');
     fireEvent.click(testVar);
     await waitFor(() => expect(testVar).toBeTruthy());
   });

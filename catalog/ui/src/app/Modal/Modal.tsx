@@ -16,23 +16,27 @@ type Ref = {
   onClose: () => void;
 } | null;
 
-const modalElement = document.getElementById('modal-root');
-
 const _Modal: ForwardRefRenderFunction<
   Ref,
   {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onConfirm: (_: any) => Promise<void>;
+    onConfirm: (_: any) => Promise<void> | void;
     defaultOpened?: boolean;
     title?: string;
     children: React.ReactNode;
+    isDisabled?: boolean;
   }
-> = ({ children, onConfirm, title = '', defaultOpened = false }, ref): ReactPortal => {
+> = ({ children, onConfirm, title = '', defaultOpened = false, isDisabled = false }, ref): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
   const [onConfirmCb, setOnConfirmCb] = useState(() => null);
   const onClose = useCallback(() => setIsOpen(false), []);
   const [_title, setTitle] = useState(title);
+  const [domReady, setDomReady] = useState(false);
+
+  useEffect(() => {
+    setDomReady(true);
+  }, []);
 
   useImperativeHandle(
     ref,
@@ -84,36 +88,40 @@ const _Modal: ForwardRefRenderFunction<
     return child;
   });
 
-  return createPortal(
-    isOpen ? (
-      <Modal
-        className="modal-component"
-        variant={ModalVariant.small}
-        title={_title}
-        aria-label={`Modal: ${_title}`}
-        isOpen={isOpen}
-        onClose={onClose}
-        actions={[
-          <Button
-            key="confirm"
-            variant="primary"
-            onClick={() => {
-              onConfirm(state);
-              onConfirmCb && onConfirmCb();
-              onClose();
-            }}
-          >
-            Confirm
-          </Button>,
-          <Button key="cancel" variant="link" onClick={onClose}>
-            Cancel
-          </Button>,
-        ]}
-      >
-        {childrenWithProps}
-      </Modal>
-    ) : null,
-    modalElement
+  return (
+    domReady &&
+    createPortal(
+      isOpen ? (
+        <Modal
+          className="modal-component"
+          variant={ModalVariant.small}
+          title={_title}
+          aria-label={`Modal: ${_title}`}
+          isOpen={isOpen}
+          onClose={onClose}
+          actions={[
+            <Button
+              key="confirm"
+              variant="primary"
+              onClick={() => {
+                onConfirm(state);
+                onConfirmCb && onConfirmCb();
+                onClose();
+              }}
+              isDisabled={isDisabled}
+            >
+              Confirm
+            </Button>,
+            <Button key="cancel" variant="link" onClick={onClose}>
+              Cancel
+            </Button>,
+          ]}
+        >
+          {childrenWithProps}
+        </Modal>
+      ) : null,
+      document.getElementById('modal-root')
+    )
   );
 };
 

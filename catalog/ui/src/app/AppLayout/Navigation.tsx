@@ -1,17 +1,13 @@
 import * as React from 'react';
-import { useSelector } from 'react-redux';
 import { NavLink, useLocation } from 'react-router-dom';
-
-import { selectServiceNamespaces, selectUserIsAdmin, selectUserNamespace } from '@app/store';
-
 import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
+import useSession from '@app/utils/useSession';
 
-const Navigation: React.FunctionComponent = () => {
+const Navigation: React.FC = () => {
   const location = useLocation();
-  const serviceNamespaces = useSelector(selectServiceNamespaces);
-  const userNamespace = useSelector(selectUserNamespace);
-  const userIsAdmin = useSelector(selectUserIsAdmin);
-  const workshopNamespaces = serviceNamespaces.filter((ns) => ns.workshopAccess);
+  const { isAdmin, userNamespace, serviceNamespaces } = useSession().getSession();
+
+  const workshopNamespaces = serviceNamespaces.filter((ns) => ns.workshopProvisionAccess);
 
   const catalogNavigation = (
     <NavItem>
@@ -22,7 +18,7 @@ const Navigation: React.FunctionComponent = () => {
   );
 
   const serviceNavigation =
-    userIsAdmin || serviceNamespaces.length > 1 ? (
+    isAdmin || serviceNamespaces.length > 1 ? (
       <NavExpandable title="Services" isExpanded={location.pathname.startsWith('/services')}>
         <NavItem>
           <NavLink activeClassName="pf-m-current" to={`/services/${userNamespace.name}`}>
@@ -50,7 +46,7 @@ const Navigation: React.FunctionComponent = () => {
     );
 
   const workshopNavigation =
-    userIsAdmin || workshopNamespaces.length > 1 ? (
+    isAdmin || workshopNamespaces.length > 1 ? (
       <NavExpandable title="Workshops" isExpanded={location.pathname.startsWith('/workshops')}>
         <NavItem>
           <NavLink activeClassName="pf-m-current" to={`/workshops/${userNamespace.name}`}>
@@ -77,7 +73,7 @@ const Navigation: React.FunctionComponent = () => {
       </NavItem>
     ) : null;
 
-  const adminNavigation = userIsAdmin ? (
+  const adminNavigation = isAdmin ? (
     <NavExpandable title="Admin" isExpanded={location.pathname.startsWith('/admin/')}>
       <NavItem>
         <NavLink activeClassName="pf-m-current" to="/admin/anarchyactions">

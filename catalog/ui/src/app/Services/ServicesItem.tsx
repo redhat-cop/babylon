@@ -66,7 +66,7 @@ import ServicesAction from './ServicesAction';
 import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
-import Modal from '@app/Modal';
+import Modal from '@app/Modal/Modal';
 
 import './services-item.css';
 

@@ -9,6 +9,7 @@ const AllTheProviders = ({ children, history }) => {
   return (
     <Provider store={store}>
       <Router history={history}>{children}</Router>
+      <div id="modal-root"></div>
     </Provider>
   );
 };

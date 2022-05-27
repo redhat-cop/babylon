@@ -1,6 +1,12 @@
-import * as React from 'react';
+import React from 'react';
 import App from '@app/index';
 import { render, fireEvent } from './utils/test-utils';
+
+jest.mock('@app/utils/useSession', () => {
+  return jest.fn(() => ({
+    getSession: () => ({ email: 'test@redhat.com', isAdmin: false, serviceNamespaces: [] }),
+  }));
+});
 
 describe('App tests', () => {
   it.only('should render a nav-toggle button', () => {

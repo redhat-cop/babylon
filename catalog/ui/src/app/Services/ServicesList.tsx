@@ -56,7 +56,7 @@ import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
 import SelectableTable from '@app/components/SelectableTable';
 import ServiceActions from './ServiceActions';
-import Modal from '@app/Modal';
+import Modal from '@app/Modal/Modal';
 
 import './services-list.css';
 import ServicesAction from './ServicesAction';
@@ -697,13 +697,13 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                     }}
                   >
                     <ButtonCircleIcon
-                      isDisabled={checkResourceClaimCanStart(resourceClaim)}
+                      isDisabled={!checkResourceClaimCanStart(resourceClaim)}
                       onClick={actionHandlers.start}
                       description="Start"
                       icon={PlayIcon}
                     />
                     <ButtonCircleIcon
-                      isDisabled={checkResourceClaimCanStop(resourceClaim)}
+                      isDisabled={!checkResourceClaimCanStop(resourceClaim)}
                       onClick={actionHandlers.stop}
                       description="Stop"
                       icon={PauseIcon}

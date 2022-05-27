@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
 
@@ -45,19 +45,16 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
-
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { checkResourceClaimCanStart, checkResourceClaimCanStop, displayName, BABYLON_DOMAIN } from '@app/util';
-
 import ServiceActions from './ServiceActions';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
 import ServicesAction from './ServicesAction';
 import ServicesScheduleAction from './ServicesScheduleAction';
+import Modal from '@app/Modal/Modal';
 
 import './all-services-list.css';
-import Modal from '@app/Modal';
 
 const FETCH_BATCH_LIMIT = 30;
 

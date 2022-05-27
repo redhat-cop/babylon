@@ -1,0 +1,10 @@
+.header-component .pf-c-app-launcher__menu-item-external-icon {
+  opacity: 1;
+  color: var(--pf-global--icon--Color--light);
+}
+.header-component .rhpds-user-controls.pf-c-dropdown .pf-c-dropdown__toggle::before {
+  border: none;
+}
+.header-component .rhpds-user-controls.pf-c-dropdown .pf-c-dropdown__toggle .pf-c-dropdown__toggle-icon {
+  margin-left: var(--pf-global--spacer--xs);
+}
