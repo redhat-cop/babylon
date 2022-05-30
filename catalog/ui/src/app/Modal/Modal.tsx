@@ -99,6 +99,7 @@ const _Modal: ForwardRefRenderFunction<
             className="modal-component"
             variant={ModalVariant.small}
             title={_title}
+            onClose={close}
             aria-label={`Modal: ${_title}`}
             isOpen={isOpen}
             actions={[
