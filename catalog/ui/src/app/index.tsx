@@ -10,9 +10,11 @@ import useScript from '@app/utils/useScript';
 
 import '@app/app.css';
 
+const isMonitorEnabled = process.env.MONITOR === 'enabled';
+
 const App: React.FC = () => {
   const { setImpersonation } = useImpersonateUser();
-  useScript(process.env.MONITOR === 'enabled' ? '/monitor.js' : '');
+  useScript(isMonitorEnabled ? '/monitor.js' : '');
 
   useEffect(() => {
     const impersonateUserName = sessionStorage.getItem('impersonateUser');
