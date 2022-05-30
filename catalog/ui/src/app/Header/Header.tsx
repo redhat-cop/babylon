@@ -128,7 +128,13 @@ const Header: React.FC<{
     <ApplicationLauncherItem key="open-support" component="button" onClick={openSupportCase} isExternal>
       Open Support Case
     </ApplicationLauncherItem>,
-    <ApplicationLauncherItem key="status-page-link" href="https://rhpds-demos.statuspage.io/" isExternal>
+    <ApplicationLauncherItem
+      key="status-page-link"
+      href="https://rhpds-demos.statuspage.io/"
+      target="_blank"
+      rel="noreferrer nofollow"
+      isExternal
+    >
       Status Page
     </ApplicationLauncherItem>,
   ];
