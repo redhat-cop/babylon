@@ -12,8 +12,7 @@ import '@app/app.css';
 
 const App: React.FC = () => {
   const { setImpersonation } = useImpersonateUser();
-  useScript(process.env.NODE_ENV === 'production' ? '/monitor.js' : '');
-  console.log(process.env.NODE_ENV);
+  useScript(process.env.MONITOR === 'enabled' ? '/monitor.js' : '');
 
   useEffect(() => {
     const impersonateUserName = sessionStorage.getItem('impersonateUser');
