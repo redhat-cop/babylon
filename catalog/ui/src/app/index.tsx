@@ -5,12 +5,15 @@ import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import AppLayout from '@app/AppLayout/AppLayout';
 import Workshop from '@app/Workshop/Workshop';
 import { AppRoutes } from '@app/routes';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
+import useScript from '@app/utils/useScript';
 
 import '@app/app.css';
-import useImpersonateUser from '@app/utils/useImpersonateUser';
 
 const App: React.FC = () => {
   const { setImpersonation } = useImpersonateUser();
+  useScript(process.env.NODE_ENV === 'production' ? '/monitor.js' : '');
+  console.log(process.env.NODE_ENV);
 
   useEffect(() => {
     const impersonateUserName = sessionStorage.getItem('impersonateUser');
