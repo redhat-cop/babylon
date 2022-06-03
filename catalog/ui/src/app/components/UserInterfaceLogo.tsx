@@ -1,13 +1,13 @@
 import React from 'react';
 
-import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
+import rhpdsLogo from '@app/bgimages/RHPDS-Logo-Beta.svg';
 
-interface UserInterfaceLogoProps {
-  onClick?: () => void;
-}
-
-const UserInterfaceLogo: React.FunctionComponent<UserInterfaceLogoProps> = ({ onClick }) => {
-  return <img alt="Red Hat Product Demo System" className="rhpds-logo" onClick={onClick} src={rhpdsLogo} />;
+const UserInterfaceLogo: React.FC<
+  {
+    onClick?: () => void;
+  } & React.HTMLAttributes<HTMLImageElement>
+> = ({ onClick, ...rest }) => {
+  return <img alt="Red Hat Product Demo System" className="rhpds-logo" {...rest} onClick={onClick} src={rhpdsLogo} />;
 };
 
 export default UserInterfaceLogo;
