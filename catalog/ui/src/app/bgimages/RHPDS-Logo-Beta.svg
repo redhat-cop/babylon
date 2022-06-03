@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1189" height="282" viewBox="0 0 1189 282">
-  <g id="Grupo_12" data-name="Grupo 12" transform="translate(-4221 -1884)">
-    <g id="Two_line_logo" transform="translate(4219 1882)">
+<svg xmlns="http://www.w3.org/2000/svg" width="1508.5" height="178.739" viewBox="0 0 1508.5 178.739">
+  <g id="Grupo_12" data-name="Grupo 12" transform="translate(-4224 -1884)">
+    <g id="Two_line_logo" transform="translate(4222 1882)">
       <g id="Grupo_9" data-name="Grupo 9">
         <path id="Trazado_8" data-name="Trazado 8" d="M318.6,65.2V9.2H344a21.279,21.279,0,0,1,7.8,1.3,18.111,18.111,0,0,1,5.9,3.5,15.577,15.577,0,0,1,5,11.8,15.051,15.051,0,0,1-3.1,9.5,16.836,16.836,0,0,1-8.4,5.8l12.5,24.1h-9.3l-11.6-23H327v23Zm24.7-48.6H327V35.3h16.3q5.25,0,8.1-2.7a8.7,8.7,0,0,0,2.8-6.6,8.7,8.7,0,0,0-2.8-6.6C349.6,17.5,346.9,16.6,343.3,16.6Z" fill="#fff"/>
         <path id="Trazado_9" data-name="Trazado 9" d="M366.1,44.8a20.674,20.674,0,0,1,1.6-8.2,20.288,20.288,0,0,1,4.3-6.7,19.92,19.92,0,0,1,6.5-4.5,19.718,19.718,0,0,1,8-1.6,18.463,18.463,0,0,1,7.8,1.6,18.677,18.677,0,0,1,6.2,4.5,20.927,20.927,0,0,1,4.1,6.8,23.2,23.2,0,0,1,1.5,8.4v2.3H374a13.822,13.822,0,0,0,4.6,8.4,13.6,13.6,0,0,0,9.1,3.3,15.553,15.553,0,0,0,5.7-1,12.858,12.858,0,0,0,4.6-2.6l5.1,5a25.983,25.983,0,0,1-7.4,4.1,24.69,24.69,0,0,1-8.4,1.3,21.306,21.306,0,0,1-8.4-1.6,22.763,22.763,0,0,1-6.8-4.4,20.788,20.788,0,0,1-4.5-6.7A23.2,23.2,0,0,1,366.1,44.8Zm20.2-14.2a11.527,11.527,0,0,0-8,3,13.046,13.046,0,0,0-4.2,7.8h24.2a13.091,13.091,0,0,0-4.2-7.8A11.106,11.106,0,0,0,386.3,30.6Z" fill="#fff"/>
@@ -20,6 +20,9 @@
       <path id="Dividing_line_3_" d="M255.5,160.7a2.22,2.22,0,0,1-2.2-2.2V4.2a2.2,2.2,0,0,1,4.4,0V158.4A2.242,2.242,0,0,1,255.5,160.7Z" fill="#fff"/>
     </g>
     <text id="Product_Demo_System" data-name="Product Demo System" transform="translate(5410 2033)" fill="#fff" font-size="82" font-family="RedHatDisplay-Bold, Red Hat Display" font-weight="700"><tspan x="-877.892" y="0">Product Demo System</tspan></text>
-    <text id="Beta" transform="translate(5410 2141)" fill="#fff" font-size="82" font-family="RedHatDisplay-MediumItalic, Red Hat Display" font-weight="500" font-style="italic"><tspan x="-172.528" y="0">Beta</tspan></text>
+  </g>
+  <g id="Label_-_Filled_-_Red" data-name="Label - Filled - Red" transform="translate(1237.5 62.739)">
+    <path id="Rectangle" d="M76.587,0H194.413C236.711,0,271,25.967,271,58s-34.289,58-76.587,58H76.587C34.289,116,0,90.033,0,58S34.289,0,76.587,0Z" fill="#faeae8"/>
+    <text id="_Beta_" data-name="Beta" transform="translate(44 87)" fill="#7d1007" font-size="82" font-family="RedHatText-Regular, Red Hat Text" letter-spacing="0.01em"><tspan x="0" y="0" xml:space="preserve">Beta</tspan></text>
   </g>
 </svg>
