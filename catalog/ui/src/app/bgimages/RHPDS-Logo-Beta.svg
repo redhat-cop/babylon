@@ -23,6 +23,6 @@
   </g>
   <g id="Label_-_Filled_-_Red" data-name="Label - Filled - Red" transform="translate(1237.5 62.739)">
     <path id="Rectangle" d="M76.587,0H194.413C236.711,0,271,25.967,271,58s-34.289,58-76.587,58H76.587C34.289,116,0,90.033,0,58S34.289,0,76.587,0Z" fill="#faeae8"/>
-    <text id="_Beta_" data-name="Beta" transform="translate(44 87)" fill="#7d1007" font-size="82" font-family="RedHatText-Regular, Red Hat Text" letter-spacing="0.01em"><tspan x="0" y="0" xml:space="preserve">Beta</tspan></text>
+    <text id="_Beta_" data-name="Beta" transform="translate(44 87)" fill="#7d1007" font-size="82" font-style="italic" font-family="RedHatText-Regular, Red Hat Text" letter-spacing="0.01em"><tspan x="0" y="0" xml:space="preserve">Beta</tspan></text>
   </g>
 </svg>
