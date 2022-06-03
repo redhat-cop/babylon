@@ -104,7 +104,7 @@ const Header: React.FC<{
         />
       );
     }
-    return <UserInterfaceLogo onClick={handleClick} style={{ width: '220px' }} />;
+    return <UserInterfaceLogo onClick={handleClick} style={{ width: '278px' }} />;
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();
