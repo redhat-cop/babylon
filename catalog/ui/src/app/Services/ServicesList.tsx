@@ -61,6 +61,7 @@ import ServicesAction from './ServicesAction';
 import ServicesScheduleAction from './ServicesScheduleAction';
 
 import './services-list.css';
+import LocalTimestamp from '@app/components/LocalTimestamp';
 
 const FETCH_BATCH_LIMIT = 30;
 
@@ -616,7 +617,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                   <TimeInterval toTimestamp={resourceClaim.metadata.creationTimestamp} />
                 </React.Fragment>,
                 // Auto-stop
-                <React.Fragment key="auto-stop">
+                <span key="auto-stop">
                   {resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
                     <Button
                       variant="control"
@@ -626,37 +627,35 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                       onClick={actionHandlers.runtime}
                       className="services-list__schedule-btn"
                     >
-                      {new Date(
-                        Math.min(
-                          ...resourceClaim.spec.resources
-                            .map((specResource, idx) => {
-                              const statusResource = resourceClaim.status.resources[idx];
-                              const stopTimestamp =
-                                specResource.template?.spec?.vars?.action_schedule?.stop ||
-                                statusResource.state.spec.vars.action_schedule.stop;
-                              if (stopTimestamp) {
-                                return Date.parse(stopTimestamp);
-                              } else {
-                                return null;
-                              }
-                            })
-                            .filter((time) => time !== null)
-                        )
-                      ).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                      })}
+                      <LocalTimestamp
+                        date={
+                          new Date(
+                            Math.min(
+                              ...resourceClaim.spec.resources
+                                .map((specResource, idx) => {
+                                  const statusResource = resourceClaim.status.resources[idx];
+                                  const stopTimestamp =
+                                    specResource.template?.spec?.vars?.action_schedule?.stop ||
+                                    statusResource.state.spec.vars.action_schedule.stop;
+                                  if (stopTimestamp) {
+                                    return Date.parse(stopTimestamp);
+                                  } else {
+                                    return null;
+                                  }
+                                })
+                                .filter((time) => time !== null)
+                            )
+                          )
+                        }
+                        variant="short"
+                      />
                     </Button>
                   ) : (
                     <p>-</p>
                   )}
-                </React.Fragment>,
+                </span>,
                 // Auto-destroy
-                <React.Fragment key="auto-destroy">
+                <span key="auto-destroy">
                   {resourceClaim.status?.lifespan ? (
                     <Button
                       variant="control"
@@ -666,74 +665,67 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                       iconPosition="right"
                       className="services-list__schedule-btn"
                     >
-                      {new Date(
-                        resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end
-                      ).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                      })}
+                      <LocalTimestamp
+                        variant="short"
+                        date={new Date(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end)}
+                      />
                     </Button>
                   ) : (
                     <p>-</p>
                   )}
-                </React.Fragment>,
+                </span>,
 
                 // Actions
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    gap: 'var(--pf-global--spacer--sm)',
-                    paddingTop: 'var(--pf-global--spacer--xs)',
-                    paddingRight: 'var(--pf-global--spacer--sm)',
-                  }}
-                  key="actions"
-                >
-                  <ButtonCircleIcon
-                    isDisabled={!checkResourceClaimCanStart(resourceClaim)}
-                    onClick={actionHandlers.start}
-                    description="Start"
-                    icon={PlayIcon}
-                    key="actions__start"
-                  />
-                  <ButtonCircleIcon
-                    isDisabled={!checkResourceClaimCanStop(resourceClaim)}
-                    onClick={actionHandlers.stop}
-                    description="Stop"
-                    icon={PauseIcon}
-                    key="actions__stop"
-                  />
-                  <ButtonCircleIcon
-                    key="actions__delete"
-                    onClick={actionHandlers.delete}
-                    description="Delete"
-                    icon={TrashIcon}
-                  />
-                  {false ? (
+                <React.Fragment key="actions">
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      gap: 'var(--pf-global--spacer--sm)',
+                    }}
+                  >
                     <ButtonCircleIcon
-                      key="actions__cost"
-                      onClick={null}
-                      description="Get current cost"
-                      icon={DollarSignIcon}
+                      isDisabled={!checkResourceClaimCanStart(resourceClaim)}
+                      onClick={actionHandlers.start}
+                      description="Start"
+                      icon={PlayIcon}
+                      key="actions__start"
                     />
-                  ) : null}
-                  {
-                    // Lab Interface
-                    labUserInterfaceUrl ? (
-                      <LabInterfaceLink
-                        key="actions__lab-interface"
-                        url={labUserInterfaceUrl}
-                        data={labUserInterfaceData}
-                        method={labUserInterfaceMethod}
-                        variant="circle"
+                    <ButtonCircleIcon
+                      isDisabled={!checkResourceClaimCanStop(resourceClaim)}
+                      onClick={actionHandlers.stop}
+                      description="Stop"
+                      icon={PauseIcon}
+                      key="actions__stop"
+                    />
+                    <ButtonCircleIcon
+                      key="actions__delete"
+                      onClick={actionHandlers.delete}
+                      description="Delete"
+                      icon={TrashIcon}
+                    />
+                    {false ? (
+                      <ButtonCircleIcon
+                        key="actions__cost"
+                        onClick={null}
+                        description="Get current cost"
+                        icon={DollarSignIcon}
                       />
-                    ) : null
-                  }
-                </div>,
+                    ) : null}
+                    {
+                      // Lab Interface
+                      labUserInterfaceUrl ? (
+                        <LabInterfaceLink
+                          key="actions__lab-interface"
+                          url={labUserInterfaceUrl}
+                          data={labUserInterfaceData}
+                          method={labUserInterfaceMethod}
+                          variant="circle"
+                        />
+                      ) : null
+                    }
+                  </div>
+                </React.Fragment>,
               ];
 
               return {

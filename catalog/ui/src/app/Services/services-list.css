@@ -16,6 +16,10 @@
 .services-list .pf-c-table tbody td {
   padding-top: var(--pf-global--spacer--md);
   padding-bottom: var(--pf-global--spacer--md);
+  vertical-align: middle;
+}
+.services-list .pf-c-table__check label {
+  display: inline;
 }
 
 .services-list__head.pf-c-page__main-section {
@@ -35,7 +39,7 @@
 }
 
 .services-list__schedule-btn {
-  width: 176px;
+  width: 248px;
   display: flex;
   padding-left: var(--pf-global--spacer--sm);
   padding-right: var(--pf-global--spacer--sm);
