@@ -39,7 +39,7 @@
 }
 
 .services-list__schedule-btn {
-  width: 248px;
+  width: auto;
   display: flex;
   padding-left: var(--pf-global--spacer--sm);
   padding-right: var(--pf-global--spacer--sm);
@@ -47,6 +47,7 @@
 .services-list__schedule-btn .pf-c-button__icon.pf-m-end {
   margin-left: auto;
   margin-right: 0;
+  padding-left: var(--pf-global--spacer--xs);
 }
 
 .services-list__topbar.pf-c-page__main-section {
