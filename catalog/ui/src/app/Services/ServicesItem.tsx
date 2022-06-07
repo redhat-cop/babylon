@@ -532,15 +532,8 @@ const ServicesItem: React.FC<{
                           iconPosition="right"
                           className="services-item__schedule-btn"
                         >
-                          {new Date(resourceClaim.status.lifespan.end).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: false,
-                          })}{' '}
-                          (<TimeInterval toTimestamp={resourceClaim.status.lifespan.end} />)
+                          <LocalTimestamp timestamp={resourceClaim.status.lifespan.end} /> (
+                          <TimeInterval toTimestamp={resourceClaim.status.lifespan.end} />)
                         </Button>
                         {resourceClaim.spec?.lifespan?.end &&
                         resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
@@ -668,15 +661,8 @@ const ServicesItem: React.FC<{
                                   onClick={() => showModal({ action: 'stop', modal: 'action' })}
                                   className="services-item__schedule-btn"
                                 >
-                                  {new Date(stopTimestamp).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    hour12: false,
-                                  })}{' '}
-                                  (<TimeInterval toTimestamp={stopTimestamp} />)
+                                  <LocalTimestamp timestamp={stopTimestamp} /> (
+                                  <TimeInterval toTimestamp={stopTimestamp} />)
                                 </Button>
                               </DescriptionListDescription>
                             </DescriptionListGroup>
