@@ -15,7 +15,7 @@ import {
   SearchInput,
 } from '@patternfly/react-core';
 import { CaretDownIcon, QuestionCircleIcon } from '@patternfly/react-icons';
-import rhpdsLogo from '@app/bgimages/RHPDS-Logo.svg';
+import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
@@ -104,15 +104,7 @@ const Header: React.FC<{
         />
       );
     }
-    return (
-      <img
-        src={rhpdsLogo}
-        onClick={handleClick}
-        alt="Red Hat Product Demo System Logo"
-        className="rhpds-logo"
-        style={{ width: '220px' }}
-      />
-    );
+    return <UserInterfaceLogo onClick={handleClick} style={{ width: '278px' }} />;
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();
