@@ -89,14 +89,19 @@
       delay: 5
       retries: 60
     rescue:
-    - name: Report failure waiting for AnarchyGovernor vars sync
+    - name: Report failure waiting for AnarchyGovernor doesn't exist
+      when: r_governor.resources | length == 0
       fail:
         msg: |-
-         {% if r_governor.resources | length == 0 %}
          AnarchyGovernor {{ catalog_item_name }} not found in {{ anarchy_namespace }} namespace.
-         {% else %}
+         Check agnosticv-operator logs:
+           oc logs -n agnosticv-operator deployment/agnosticv-operator
+
+    - name: Report failure waiting for AnarchyGovernor vars sync
+      ignore_errors: true
+      fail:
+        msg: |-
          AnarchyGovernor {{ catalog_item_name }} in {{ anarchy_namespace }} job_vars do not match agnosticv.
-         {% endif %}
          Check agnosticv-operator logs:
            oc logs -n agnosticv-operator deployment/agnosticv-operator
 
