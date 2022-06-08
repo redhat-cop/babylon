@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import {
   Button,
@@ -14,16 +13,12 @@ import {
 } from '@patternfly/react-core';
 import { BABYLON_DOMAIN } from '@app/util';
 import { RedoIcon } from '@patternfly/react-icons';
+import yaml from 'js-yaml';
 
-const yaml = require('js-yaml');
-
-import { K8sObject, ResourceClaim } from '@app/types';
+import { ResourceClaim } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 
-export interface ServiceItemStatusProps {
-  onCheckStatusRequest: () => Promise<void>;
-  resourceClaim: ResourceClaim;
-}
+import './service-item-status.css';
 
 function getCheckStatusStateFromResource(resourceState: any, resourceTemplate: any): string | null {
   const resourceStateVars = resourceState.spec?.vars;
@@ -41,10 +36,10 @@ function getCheckStatusStateFromResource(resourceState: any, resourceTemplate: a
   return null;
 }
 
-const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
-  onCheckStatusRequest,
-  resourceClaim,
-}) => {
+const ServiceItemStatus: React.FC<{
+  onCheckStatusRequest: () => Promise<void>;
+  resourceClaim: ResourceClaim;
+}> = ({ onCheckStatusRequest, resourceClaim }) => {
   // Extract the last status check request timestamp
   const lastRequestTimestamp: string | undefined = resourceClaim.spec.resources.reduce<string | undefined>(
     (lastTimestamp, resourceSpec) => {
@@ -130,7 +125,7 @@ const ServiceItemStatus: React.FunctionComponent<ServiceItemStatusProps> = ({
 
   return (
     <>
-      <Split key="refresh" className="services-item-status-header">
+      <Split key="refresh" className="services-item-status__header">
         <SplitItem isFilled>
           <DescriptionList isHorizontal>
             <DescriptionListGroup>

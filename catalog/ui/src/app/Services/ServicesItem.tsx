@@ -72,7 +72,6 @@ import './services-item.css';
 
 interface ModalState {
   action?: string;
-  modal?: string;
   resourceClaim?: ResourceClaim;
 }
 
@@ -408,7 +407,7 @@ const ServicesItem: React.FC<{
         <ServicesScheduleAction action={modalState.action} resourceClaim={resourceClaim} />
       </Modal>
       {userIsAdmin || serviceNamespaces.length > 1 ? (
-        <PageSection key="topbar" className="services-topbar" variant={PageSectionVariants.light}>
+        <PageSection key="topbar" className="services-item__topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
             currentNamespaceName={serviceNamespaceName}
             serviceNamespaces={serviceNamespaces}
@@ -422,7 +421,7 @@ const ServicesItem: React.FC<{
           />
         </PageSection>
       ) : null}
-      <PageSection key="head" className="services-item-head" variant={PageSectionVariants.light}>
+      <PageSection key="head" className="services-item__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
             {userIsAdmin || serviceNamespaces.length > 1 ? (
@@ -476,13 +475,13 @@ const ServicesItem: React.FC<{
         <PageSection
           key="body"
           variant={PageSectionVariants.light}
-          className="services-item-body"
+          className="services-item__body"
           style={{ paddingTop: '1em' }}
         >
           <p>Thank you for your interest in {catalogItemDisplayName || 'this service'}.</p>
         </PageSection>
       ) : (
-        <PageSection key="body" variant={PageSectionVariants.light} className="services-item-body">
+        <PageSection key="body" variant={PageSectionVariants.light} className="services-item__body">
           <Tabs
             activeKey={activeTab || 'details'}
             onSelect={(e, tabIndex) =>
@@ -618,17 +617,15 @@ const ServicesItem: React.FC<{
                 const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
                 const startDate = startTime ? new Date(startTime) : null;
                 return (
-                  <div key={idx} className="services-item-body-resource">
-                    {resourceClaim.spec.resources.length > 1 ? (
-                      <h2 className="rhpds-component-display-name">{componentDisplayName}</h2>
-                    ) : null}
+                  <div key={idx} className="services-item__body-resource">
+                    {resourceClaim.spec.resources.length > 1 ? <h2>{componentDisplayName}</h2> : null}
                     <DescriptionList isHorizontal>
                       {resourceState?.kind == 'AnarchySubject' ? (
                         <>
                           <DescriptionListGroup>
                             <DescriptionListTerm>UUID</DescriptionListTerm>
                             <DescriptionListDescription>
-                              {resourceState?.spec?.vars?.job_vars?.uuid || '...'}
+                              {resourceState?.spec?.vars?.job_vars?.uuid || '-'}
                             </DescriptionListDescription>
                           </DescriptionListGroup>
                           <DescriptionListGroup>
@@ -651,7 +648,7 @@ const ServicesItem: React.FC<{
                             </DescriptionListGroup>
                           ) : stopDate && Number(stopDate) > Date.now() ? (
                             <DescriptionListGroup>
-                              <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
+                              <DescriptionListTerm>Auto-Stop</DescriptionListTerm>
                               <DescriptionListDescription>
                                 <Button
                                   key="auto-stop"
@@ -721,30 +718,11 @@ const ServicesItem: React.FC<{
                           ) : null}
                         </>
                       ) : null}
-                      {provisionMessages ? (
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Provision Messages</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: renderContent(
-                                  (typeof provisionMessages === 'string'
-                                    ? provisionMessages
-                                    : provisionMessages.join('\n')
-                                  )
-                                    .replace(/^\s+|\s+$/g, '')
-                                    .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
-                                ),
-                              }}
-                            />
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      ) : null}
                       {provisionDataEntries && provisionDataEntries.length > 0 ? (
                         <DescriptionListGroup>
                           <DescriptionListTerm>Provision Data</DescriptionListTerm>
                           <DescriptionListDescription>
-                            <DescriptionList isHorizontal className="rhpds-user-data">
+                            <DescriptionList isHorizontal className="services-item__provision-data">
                               {provisionDataEntries
                                 .sort((a, b) => a[0].localeCompare(b[0]))
                                 .map(([key, value]) => (
@@ -766,6 +744,25 @@ const ServicesItem: React.FC<{
                                   </DescriptionListGroup>
                                 ))}
                             </DescriptionList>
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      ) : null}
+                      {provisionMessages ? (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Provision Messages</DescriptionListTerm>
+                          <DescriptionListDescription>
+                            <div
+                              dangerouslySetInnerHTML={{
+                                __html: renderContent(
+                                  (typeof provisionMessages === 'string'
+                                    ? provisionMessages
+                                    : provisionMessages.join('\n')
+                                  )
+                                    .replace(/^\s+|\s+$/g, '')
+                                    .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
+                                ),
+                              }}
+                            />
                           </DescriptionListDescription>
                         </DescriptionListGroup>
                       ) : null}
@@ -826,9 +823,9 @@ const ServicesItem: React.FC<{
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
                 {!workshopName ? (
                   <Button
-                    className="services-create-workshop-button"
+                    className="services-item__create-workshop-button"
                     onClick={() => {
-                      setModalState({ action: 'createWorkshop', modal: 'createWorkshop' });
+                      setModalState({ action: 'createWorkshop' });
                     }}
                   >
                     Create Workshop Interface

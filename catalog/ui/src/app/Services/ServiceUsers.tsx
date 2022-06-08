@@ -10,16 +10,13 @@ import {
 import { renderContent, BABYLON_DOMAIN } from '@app/util';
 import { ResourceClaim } from '@app/types';
 
-export interface ServiceUsersProps {
+const ServiceUsers: React.FC<{
   resourceClaim: ResourceClaim;
-}
-
-const ServiceUsers: React.FunctionComponent<ServiceUsersProps> = ({ resourceClaim }) => {
+}> = ({ resourceClaim }) => {
   const users = {};
   const labUserInterfaceUrls = JSON.parse(
     resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrls`] || '{}'
   );
-  const workshopName: string = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
 
   for (const status_resource of resourceClaim?.status?.resources || []) {
     const resource_users = status_resource.state?.spec?.vars?.provision_data?.users;
@@ -40,7 +37,7 @@ const ServiceUsers: React.FunctionComponent<ServiceUsersProps> = ({ resourceClai
         const userMessages: string = userData.msg;
         return (
           <React.Fragment key={userName}>
-            <h2 className="rhpds-user-name-heading">{userName}</h2>
+            <h2>{userName}</h2>
             <DescriptionList isHorizontal>
               {userLabUrl ? (
                 <DescriptionListGroup>
@@ -68,7 +65,7 @@ const ServiceUsers: React.FunctionComponent<ServiceUsersProps> = ({ resourceClai
                 <DescriptionListGroup>
                   <DescriptionListTerm>User Data</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <DescriptionList isHorizontal className="rhpds-user-data">
+                    <DescriptionList isHorizontal className="service-users__user-data">
                       {userDataEntries.map(([key, value]) => (
                         <DescriptionListGroup key={key}>
                           <DescriptionListTerm>{key}</DescriptionListTerm>
