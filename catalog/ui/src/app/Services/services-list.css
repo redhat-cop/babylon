@@ -47,7 +47,7 @@
 .services-list__schedule-btn .pf-c-button__icon.pf-m-end {
   margin-left: auto;
   margin-right: 0;
-  padding-left: var(--pf-global--spacer--xs);
+  padding-left: var(--pf-global--spacer--sm);
 }
 
 .services-list__topbar.pf-c-page__main-section {

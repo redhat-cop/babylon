@@ -19,3 +19,13 @@
 .modal-component.pf-c-modal-box .pf-c-form.pf-m-horizontal .pf-c-form__group {
   grid-template-columns: none;
 }
+
+@media (--small-viewport) {
+  .pf-c-backdrop__open .pf-c-backdrop {
+    max-width: 100vw;
+  }
+  .modal-component.pf-c-modal-box {
+    margin-bottom: auto;
+    margin-top: 120px;
+  }
+}

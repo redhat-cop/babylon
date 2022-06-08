@@ -626,6 +626,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                       isDisabled={!checkResourceClaimCanStop(resourceClaim)}
                       onClick={actionHandlers.runtime}
                       className="services-list__schedule-btn"
+                      isSmall={true}
                     >
                       <LocalTimestamp
                         date={
@@ -664,6 +665,7 @@ const ServicesList: React.FC<ServicesListProps> = ({ serviceNamespaceName }) => 
                       icon={<OutlinedClockIcon />}
                       iconPosition="right"
                       className="services-list__schedule-btn"
+                      isSmall={true}
                     >
                       <LocalTimestamp
                         variant="short"

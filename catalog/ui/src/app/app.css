@@ -33,3 +33,8 @@ body,
 .tooltip-icon-only:hover {
   opacity: 1;
 }
+@media (--small-viewport) {
+  .pf-l-split {
+    flex-direction: column;
+  }
+}
