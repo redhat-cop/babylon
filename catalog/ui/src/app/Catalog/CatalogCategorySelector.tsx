@@ -48,7 +48,6 @@ const CatalogCategorySelector: React.FC<CatalogCategorySelectorProps> = ({ catal
           key={category}
           eventKey={category}
           title={<TabTitleText>{category.replace(/_/g, ' ')}</TabTitleText>}
-          aria-controls=""
         ></Tab>
       ))}
     </Tabs>

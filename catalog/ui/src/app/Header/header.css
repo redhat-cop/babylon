@@ -8,3 +8,9 @@
 .header-component .rhpds-user-controls.pf-c-dropdown .pf-c-dropdown__toggle .pf-c-dropdown__toggle-icon {
   margin-left: var(--pf-global--spacer--xs);
 }
+
+@media (--small-viewport) {
+  .header-component.pf-c-page__header {
+    grid-template-columns: 1fr 0;
+  }
+}

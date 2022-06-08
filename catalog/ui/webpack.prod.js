@@ -5,6 +5,8 @@ const { stylePaths } = require('./stylePaths');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserJSPlugin = require('terser-webpack-plugin');
+const postcss = require('postcss');
+const postcssCustomMedia = require('postcss-custom-media');
 
 module.exports = merge(common('production'), {
   mode: 'production',
@@ -23,7 +25,18 @@ module.exports = merge(common('production'), {
       {
         test: /\.css$/,
         include: [...stylePaths],
-        use: [MiniCssExtractPlugin.loader, 'css-loader'],
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader',
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [['postcss-custom-media']],
+              },
+            },
+          },
+        ],
       },
     ],
   },

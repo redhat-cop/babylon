@@ -383,7 +383,7 @@ const Catalog: React.FC = () => {
           <PageSection className="catalog__body" variant={PageSectionVariants.light}>
             <Card>
               <CardBody>
-                <Sidebar>
+                <Sidebar tabIndex={0}>
                   <SidebarPanel className="catalog__sidebar-panel">
                     <CatalogCategorySelector
                       catalogItems={catalogItems}
@@ -408,6 +408,7 @@ const Catalog: React.FC = () => {
                             initialValue={getInitialKeywordFilter()}
                             placeholder="Filter by keyword..."
                             onSearch={onKeywordSearchChange}
+                            className="catalog__searchbox"
                           />
                         </SplitItem>
                         <SplitItem className="catalog__item-count">
