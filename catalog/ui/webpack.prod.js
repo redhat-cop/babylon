@@ -32,7 +32,14 @@ module.exports = merge(common('production'), {
             loader: 'postcss-loader',
             options: {
               postcssOptions: {
-                plugins: [['postcss-custom-media']],
+                plugins: [
+                  [
+                    'postcss-custom-media',
+                    {
+                      importFrom: ['./src/app/custom-media.css'],
+                    },
+                  ],
+                ],
               },
             },
           },
