@@ -1,9 +1,8 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
 
 import {
   CodeBlock,
@@ -30,17 +29,11 @@ interface EditableWorkshopProvisionSpecFields {
   startDelay?: number;
 }
 
-interface WorkshopsItemProvisioningItemProps {
+const WorkshopsItemProvisioningItem: React.FC<{
   onWorkshopProvisionUpdate: (workshopProvision: WorkshopProvision) => void;
   workshop: Workshop;
   workshopProvision: WorkshopProvision;
-}
-
-const WorkshopsItemProvisioningItem: React.FunctionComponent<WorkshopsItemProvisioningItemProps> = ({
-  onWorkshopProvisionUpdate,
-  workshop,
-  workshopProvision,
-}) => {
+}> = ({ onWorkshopProvisionUpdate, workshopProvision }) => {
   const componentWillUnmount = useRef(false);
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
   const [catalogItemFetchState, reduceCatalogItemFetchState] = useReducer(k8sFetchStateReducer, null);

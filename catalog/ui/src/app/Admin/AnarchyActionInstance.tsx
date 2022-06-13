@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -23,13 +22,13 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
 
 import { deleteAnarchyAction, deleteAnarchyRun, getAnarchyAction, listAnarchyRuns } from '@app/api';
 
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
-import { AnarchyAction, AnarchyRun, AnarchyRunList, K8sObject } from '@app/types';
+import { AnarchyAction, AnarchyRun, AnarchyRunList } from '@app/types';
 
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -42,17 +41,15 @@ import AnarchyRunsTable from './AnarchyRunsTable';
 
 import './admin.css';
 
-interface RouteMatchParams {
-  name: string;
-  namespace: string;
-  tab?: string;
-}
-
-const AnarchyActionInstance: React.FunctionComponent = () => {
+const AnarchyActionInstance: React.FC = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchyactions/:namespace/:name/:tab?');
+  const routeMatch = useRouteMatch<{
+    name: string;
+    namespace: string;
+    tab?: string;
+  }>('/admin/anarchyactions/:namespace/:name/:tab?');
   const anarchyActionName = routeMatch.params.name;
   const anarchyActionNamespace = routeMatch.params.namespace;
   const activeTab = routeMatch.params.tab || 'details';

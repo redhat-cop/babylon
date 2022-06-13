@@ -1,15 +1,10 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
 
 import {
   Breadcrumb,
   BreadcrumbItem,
-  DescriptionList,
-  DescriptionListTerm,
-  DescriptionListGroup,
-  DescriptionListDescription,
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
@@ -23,10 +18,10 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import { deleteWorkshop, listNamespaces, listWorkshops } from '@app/api';
-import { K8sOwnerReference, Namespace, NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
+import { Namespace, NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
 import { displayName } from '@app/util';
 
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import { selectServiceNamespaces, selectUserIsAdmin, selectWorkshopNamespaces } from '@app/store';
 
@@ -64,11 +59,9 @@ interface ModalState {
   workshop?: Workshop;
 }
 
-interface WorkshopsListProps {
+const WorkshopsList: React.FC<{
   serviceNamespaceName: string;
-}
-
-const WorkshopsList: React.FunctionComponent<WorkshopsListProps> = ({ serviceNamespaceName }) => {
+}> = ({ serviceNamespaceName }) => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);

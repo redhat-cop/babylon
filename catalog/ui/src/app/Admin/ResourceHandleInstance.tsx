@@ -27,7 +27,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
 
 import { deleteResourceHandle, getResourceClaim, getResourceHandle } from '@app/api';
 import { BABYLON_DOMAIN } from '@app/util';

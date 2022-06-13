@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 
@@ -21,7 +20,7 @@ import { listResourceClaims } from '@app/api';
 import { selectResourceClaimsInNamespace, selectServiceNamespace, selectUserIsAdmin } from '@app/store';
 import { K8sObjectReference, ResourceClaim, ResourceClaimList, ServiceNamespace, Workshop } from '@app/types';
 import { displayName, BABYLON_DOMAIN } from '@app/util';
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity } from '@app/K8sFetchState';
 
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -64,17 +63,14 @@ function pruneResourceClaim(resourceClaim: ResourceClaim): ResourceClaim {
   };
 }
 
-interface WorkshopsItemServicesProps {
+const WorkshopsItemServices: React.FC<{
   modalState: ModalState;
   resourceClaimsFetchState: any;
   reduceResourceClaimsFetchState: any;
   setModalState: (modalState: ModalState) => void;
   setSelectedResourceClaims: (resourceClaims: ResourceClaim[]) => void;
   workshop: Workshop;
-}
-
-const WorkshopsItemServices: React.FunctionComponent<WorkshopsItemServicesProps> = ({
-  modalState,
+}> = ({
   setModalState,
   resourceClaimsFetchState,
   reduceResourceClaimsFetchState,

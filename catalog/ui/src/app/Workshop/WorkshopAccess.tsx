@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
 
 import {
   ActionGroup,
