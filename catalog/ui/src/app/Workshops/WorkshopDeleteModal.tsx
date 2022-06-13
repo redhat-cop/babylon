@@ -4,19 +4,12 @@ import { Button, Modal, ModalVariant } from '@patternfly/react-core';
 import { Workshop } from '@app/types';
 import { displayName } from '@app/util';
 
-interface WorkshopDeleteModalProps {
+const WorkshopDeleteModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
   workshop?: Workshop;
-}
-
-const WorkshopDeleteModal: React.FunctionComponent<WorkshopDeleteModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  workshop,
-}) => {
+}> = ({ isOpen, onClose, onConfirm, workshop }) => {
   return (
     <Modal
       className="workshop-delete-modal"

@@ -65,7 +65,9 @@ const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> =
         <DescriptionListDescription>
           {workshopID ? (
             <Link to={`/workshop/${workshopID}`}>
-              {window.location.protocol}//{window.location.host}/workshop/{workshopID}
+              {window.location.protocol}
+              {'//'}
+              {window.location.host}/workshop/{workshopID}
             </Link>
           ) : (
             <LoadingIcon />

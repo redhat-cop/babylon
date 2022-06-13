@@ -1,12 +1,9 @@
-import * as React from 'react';
-
+import React from 'react';
 import { DropdownPosition } from '@patternfly/react-core';
-
 import { Workshop } from '@app/types';
-
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 
-interface WorkshopActionsProps {
+const WorkshopActions: React.FC<{
   actionHandlers: {
     delete: () => void;
     deleteService?: () => void | null;
@@ -18,16 +15,7 @@ interface WorkshopActionsProps {
   position?: DropdownPosition | 'right' | 'left';
   workshop?: Workshop;
   workshopName?: string;
-}
-
-const WorkshopActions: React.FunctionComponent<WorkshopActionsProps> = ({
-  actionHandlers,
-  className,
-  isDisabled,
-  position,
-  workshop,
-  workshopName,
-}) => {
+}> = ({ actionHandlers, className, isDisabled, position, workshopName }) => {
   const actionDropdownItems = [
     <ActionDropdownItem
       key="delete"

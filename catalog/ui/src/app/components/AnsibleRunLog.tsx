@@ -1,5 +1,5 @@
 import React from 'react';
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
 
 import './ansible-run-log.css';
 

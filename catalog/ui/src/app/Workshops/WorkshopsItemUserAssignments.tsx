@@ -1,8 +1,6 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
 
 import {
   ActionGroup,
@@ -21,7 +19,7 @@ import {
 import { TableComposable, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 
 import { assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
-import { Workshop, WorkshopSpecUserAssignment } from '@app/types';
+import { Workshop } from '@app/types';
 import { renderContent } from '@app/util';
 
 import BulkUserAssignmentModal from '@app/components/BulkUserAssignmentModal';
@@ -29,15 +27,10 @@ import EditableText from '@app/components/EditableText';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LoadingIcon from '@app/components/LoadingIcon';
 
-interface WorkshopsItemUserAssignmentsProps {
+const WorkshopsItemUserAssignments: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
   workshop: Workshop;
-}
-
-const WorkshopsItemUserAssignments: React.FunctionComponent<WorkshopsItemUserAssignmentsProps> = ({
-  onWorkshopUpdate,
-  workshop,
-}) => {
+}> = ({ onWorkshopUpdate, workshop }) => {
   const [bulkUserAssignmentMessage, setBulkUserAssignmentMessage] = useState<string>('');
   const [bulkUserAssignmentModalIsOpen, setBulkUserAssignmentModalIsOpen] = useState<boolean>(false);
 
@@ -137,7 +130,7 @@ const WorkshopsItemUserAssignments: React.FunctionComponent<WorkshopsItemUserAss
                       })
                     }
                     placeholder="- unassigned -"
-                    value={userAssignment.assignment?.email}
+                    value={userAssignment.assignment?.email || ''}
                   />
                 </Td>
                 <Td>

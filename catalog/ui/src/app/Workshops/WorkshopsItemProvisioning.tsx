@@ -1,31 +1,23 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useEffect, useReducer, useRef } from 'react';
 
 import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import { listWorkshopProvisions } from '@app/api';
-import { selectUserIsAdmin } from '@app/store';
 import { Workshop, WorkshopProvision, WorkshopProvisionList } from '@app/types';
-import { displayName, renderContent, BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN } from '@app/util';
 import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import LoadingIcon from '@app/components/LoadingIcon';
-import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 
 import WorkshopsItemProvisioningItem from './WorkshopsItemProvisioningItem';
 
 const FETCH_BATCH_LIMIT = 30;
 
-interface WorkshopsItemProvisioningProps {
+const WorkshopsItemProvisioning: React.FC<{
   workshop: Workshop;
-}
-
-const WorkshopsItemProvisioning: React.FunctionComponent<WorkshopsItemProvisioningProps> = ({ workshop }) => {
+}> = ({ workshop }) => {
   const componentWillUnmount = useRef(false);
-  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
-  const [catalogItemFetchState, reduceCatalogItemFetchState] = useReducer(k8sFetchStateReducer, null);
   const [workshopProvisionsFetchState, reduceWorkshopProvisionsFetchState] = useReducer(k8sFetchStateReducer, null);
   const workshopProvisions: WorkshopProvision[] = (workshopProvisionsFetchState?.items as WorkshopProvision[]) || [];
 

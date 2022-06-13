@@ -1,11 +1,11 @@
 import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import Editor from '@monaco-editor/react';
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
 
 import {
   Breadcrumb,
@@ -29,7 +29,6 @@ import {
   deleteWorkshop,
   getWorkshop,
   listNamespaces,
-  patchWorkshop,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
@@ -37,16 +36,13 @@ import {
 import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
 
 import { Namespace, NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
-import { displayName, renderContent } from '@app/util';
+import { displayName } from '@app/util';
 import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
-import EditableText from '@app/components/EditableText';
 import LoadingIcon from '@app/components/LoadingIcon';
-import LocalTimestamp from '@app/components/LocalTimestamp';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
 import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
 import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
-import TimeInterval from '@app/components/TimeInterval';
 
 import WorkshopActions from './WorkshopActions';
 import WorkshopDeleteModal from './WorkshopDeleteModal';
@@ -65,24 +61,15 @@ export interface ModalState {
   resourceClaim?: ResourceClaim;
 }
 
-interface WorkshopsItemProps {
+const WorkshopsItem: React.FC<{
   activeTab: string;
   serviceNamespaceName: string;
   workshopName: string;
-}
-
-const WorkshopsItem: React.FunctionComponent<WorkshopsItemProps> = ({
-  activeTab,
-  serviceNamespaceName,
-  workshopName,
-}) => {
+}> = ({ activeTab, serviceNamespaceName, workshopName }) => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
   const sessionServiceNamespaces = useSelector(selectServiceNamespaces);
-  const sessionServiceNamespace = sessionServiceNamespaces.find(
-    (ns: ServiceNamespace) => ns.name == serviceNamespaceName
-  );
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
 
   const [modalState, setModalState] = React.useState<ModalState>({});

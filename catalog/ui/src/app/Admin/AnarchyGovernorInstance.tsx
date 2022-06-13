@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -23,11 +22,11 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
-const yaml = require('js-yaml');
+import yaml from 'js-yaml';
 
 import { deleteAnarchyGovernor, deleteAnarchySubject, getAnarchyGovernor, listAnarchySubjects } from '@app/api';
 
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchyGovernor, AnarchySubject, AnarchySubjectList } from '@app/types';
 
@@ -42,17 +41,15 @@ import AnarchySubjectsTable from './AnarchySubjectsTable';
 
 import './admin.css';
 
-interface RouteMatchParams {
-  name: string;
-  namespace: string;
-  tab?: string;
-}
-
-const AnarchyGovernorInstance: React.FunctionComponent = () => {
+const AnarchyGovernorInstance: React.FC = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchygovernors/:namespace/:name/:tab?');
+  const routeMatch = useRouteMatch<{
+    name: string;
+    namespace: string;
+    tab?: string;
+  }>('/admin/anarchygovernors/:namespace/:name/:tab?');
   const anarchyGovernorName = routeMatch.params.name;
   const anarchyGovernorNamespace = routeMatch.params.namespace;
   const activeTab = routeMatch.params.tab || 'details';
