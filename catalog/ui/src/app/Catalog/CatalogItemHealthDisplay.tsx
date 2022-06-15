@@ -1,10 +1,8 @@
-import * as React from 'react';
+import React from 'react';
 
-export interface CatalogItemHealthDisplayProps {
+const CatalogItemHealthDisplay: React.FunctionComponent<{
   catalogItem: any;
-}
-
-const CatalogItemHealthDisplay: React.FunctionComponent<CatalogItemHealthDisplayProps> = ({ catalogItem }) => {
+}> = ({ catalogItem }) => {
   return (
     <div
       style={{

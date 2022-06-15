@@ -14,19 +14,12 @@ interface CatalogLabelValueItemCount {
   displayName: string;
 }
 
-interface CatalogLabelSelectorProps {
+const CatalogLabelSelector: React.FC<{
   catalogItems: CatalogItem[];
   filteredCatalogItems: CatalogItem[];
   onSelect: (labels: { [label: string]: string[] }) => void;
   selected: { [label: string]: string[] };
-}
-
-const CatalogLabelSelector: React.FunctionComponent<CatalogLabelSelectorProps> = ({
-  catalogItems,
-  filteredCatalogItems,
-  onSelect,
-  selected,
-}) => {
+}> = ({ catalogItems, filteredCatalogItems, onSelect, selected }) => {
   const labels: { [label: string]: CatalogLabelValues } = {};
   for (const catalogItem of catalogItems || []) {
     if (!catalogItem.metadata.labels) {
