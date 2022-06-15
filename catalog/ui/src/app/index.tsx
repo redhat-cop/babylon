@@ -10,7 +10,7 @@ import useScript from '@app/utils/useScript';
 
 import '@app/app.css';
 
-const isMonitorEnabled = process.env.MONITOR === 'enabled';
+const isMonitorEnabled = process.env.MONITOR_ENABLED === 'true';
 
 const App: React.FC = () => {
   const { setImpersonation } = useImpersonateUser();

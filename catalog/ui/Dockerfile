@@ -2,7 +2,8 @@ FROM registry.redhat.io/rhel8/nodejs-14-minimal:latest AS builder
 USER root 
 WORKDIR /build
 ARG STATUS_PAGE_ID
-ARG MONITOR
+ARG MONITOR_ENABLED
+ARG GTM_ID
 
 COPY package.json package-lock.json ./
 RUN npm ci && npm cache clean --force
