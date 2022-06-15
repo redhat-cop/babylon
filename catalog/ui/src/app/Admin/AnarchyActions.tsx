@@ -319,20 +319,20 @@ const AnarchyActions: React.FC = () => {
                   ),
                   <>
                     <LocalTimestamp key="timestamp" timestamp={anarchyAction.metadata.creationTimestamp} />
-                    <span style={{ padding: '0 6px' }}>
-                      (<TimeInterval key="interval" toTimestamp={anarchyAction.metadata.creationTimestamp} />)
+                    <span key="interval" style={{ padding: '0 6px' }}>
+                      <TimeInterval key="time-interval" toTimestamp={anarchyAction.metadata.creationTimestamp} />)
                     </span>
                   </>,
-                  <>{anarchyAction.status?.state || '-'}</>,
+                  <>{anarchyAction.status?.state || <p>-</p>}</>,
                   anarchyAction.status?.finishedTimestamp ? (
                     <>
                       <LocalTimestamp key="timestamp" timestamp={anarchyAction.status.finishedTimestamp} />
-                      <span style={{ padding: '0 6px' }}>
-                        (<TimeInterval key="interval" toTimestamp={anarchyAction.status.finishedTimestamp} />)
+                      <span key="interval" style={{ padding: '0 6px' }}>
+                        <TimeInterval key="time-interval" toTimestamp={anarchyAction.status.finishedTimestamp} />)
                       </span>
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   ),
                 ],
                 onSelect: (isSelected) =>

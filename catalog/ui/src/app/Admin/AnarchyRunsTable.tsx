@@ -60,7 +60,7 @@ const AnarchyRunsTable: React.FC<{
               </Link>
               <OpenshiftConsoleLink key="console" resource={anarchyRun} />
             </>,
-            <>{anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || '-'}</>,
+            <>{anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || <p>-</p>}</>,
             <>
               <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} /> (
               <TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)

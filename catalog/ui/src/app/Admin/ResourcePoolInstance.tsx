@@ -269,25 +269,25 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                   <DescriptionListGroup>
                     <DescriptionListTerm>Default Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.default || '-'}
+                      {resourcePool.spec.lifespan?.default || <p>-</p>}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Maximum Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.maximum || '-'}
+                      {resourcePool.spec.lifespan?.maximum || <p>-</p>}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Relative Maximum Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.relativeMaximum || '-'}
+                      {resourcePool.spec.lifespan?.relativeMaximum || <p>-</p>}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Unclaimed Handle Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.unclaimed || '-'}
+                      {resourcePool.spec.lifespan?.unclaimed || <p>-</p>}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
@@ -356,35 +356,41 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                         <OpenshiftConsoleLink key="console" resource={resourceHandle} />
                       </>,
                       <>
-                        {resourceHandle.spec.resourceClaim
-                          ? [
-                              <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>
-                                {resourceHandle.spec.resourceClaim.namespace}
-                              </Link>,
-                              <OpenshiftConsoleLink
-                                key="console"
-                                reference={resourceHandle.spec.resourceClaim}
-                                linkToNamespace={true}
-                              />,
-                            ]
-                          : '-'}
+                        {resourceHandle.spec.resourceClaim ? (
+                          [
+                            <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>
+                              {resourceHandle.spec.resourceClaim.namespace}
+                            </Link>,
+                            <OpenshiftConsoleLink
+                              key="console"
+                              reference={resourceHandle.spec.resourceClaim}
+                              linkToNamespace={true}
+                            />,
+                          ]
+                        ) : (
+                          <p>-</p>
+                        )}
                       </>,
                       <>
-                        {resourceHandle.spec.resourceClaim
-                          ? [
-                              <Link
-                                key="admin"
-                                to={`/services/${resourceHandle.spec.resourceClaim.namespace}/${resourceHandle.spec.resourceClaim.name}`}
-                              >
-                                {resourceHandle.spec.resourceClaim.name}
-                              </Link>,
-                              <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} />,
-                            ]
-                          : '-'}
+                        {resourceHandle.spec.resourceClaim ? (
+                          [
+                            <Link
+                              key="admin"
+                              to={`/services/${resourceHandle.spec.resourceClaim.namespace}/${resourceHandle.spec.resourceClaim.name}`}
+                            >
+                              {resourceHandle.spec.resourceClaim.name}
+                            </Link>,
+                            <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} />,
+                          ]
+                        ) : (
+                          <p>-</p>
+                        )}
                       </>,
                       <>
-                        <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} /> (
-                        <TimeInterval key="interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                        <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} />
+                        <span key="interval" style={{ padding: '0 6px' }}>
+                          (<TimeInterval key="time-interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                        </span>
                       </>,
                     ],
                     onSelect: (isSelected) =>

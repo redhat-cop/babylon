@@ -280,7 +280,7 @@ const ResourceHandles: React.FC = () => {
                       <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourcePool} />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   ),
                   resourceHandle.spec.resourceClaim ? (
                     <>
@@ -294,7 +294,7 @@ const ResourceHandles: React.FC = () => {
                       />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   ),
                   resourceHandle.spec.resourceClaim ? (
                     <>
@@ -307,7 +307,7 @@ const ResourceHandles: React.FC = () => {
                       <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   ),
                   <>
                     {resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => (
@@ -321,8 +321,8 @@ const ResourceHandles: React.FC = () => {
                   </>,
                   <>
                     <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} />
-                    <span style={{ padding: '0 6px' }}>
-                      (<TimeInterval key="interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                    <span key="interval" style={{ padding: '0 6px' }}>
+                      (<TimeInterval key="time-interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
                     </span>
                   </>,
                 ],

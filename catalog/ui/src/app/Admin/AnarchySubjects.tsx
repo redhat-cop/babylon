@@ -324,22 +324,22 @@ const AnarchySubjects: React.FC = () => {
                       }}
                     />
                   </>,
-                  anarchySubject.spec.vars?.current_state || '-',
+                  anarchySubject.spec.vars?.current_state || <p>-</p>,
                   <>
                     <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.creationTimestamp} />
-                    <span style={{ padding: '0 6px' }}>
-                      (<TimeInterval key="interval" toTimestamp={anarchySubject.metadata.creationTimestamp} />)
+                    <span key="interval" style={{ padding: '0 6px' }}>
+                      (<TimeInterval key="time-interval" toTimestamp={anarchySubject.metadata.creationTimestamp} />)
                     </span>
                   </>,
                   anarchySubject.metadata.deletionTimestamp ? (
                     <>
                       <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.deletionTimestamp} />
-                      <span style={{ padding: '0 6px' }}>
-                        (<TimeInterval key="interval" toTimestamp={anarchySubject.metadata.deletionTimestamp} />)
+                      <span key="interval" style={{ padding: '0 6px' }}>
+                        (<TimeInterval key="time-interval" toTimestamp={anarchySubject.metadata.deletionTimestamp} />)
                       </span>
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   ),
                 ],
                 onSelect: (isSelected) =>

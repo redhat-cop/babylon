@@ -304,7 +304,7 @@ const AnarchyActionInstance: React.FC = () => {
                       <OpenshiftConsoleLink key="console" reference={anarchyAction.status.runRef} />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>

@@ -265,8 +265,8 @@ const AnarchyGovernors: React.FC = () => {
                   </>,
                   <>
                     <LocalTimestamp key="timestamp" timestamp={anarchyGovernor.metadata.creationTimestamp} />
-                    <span style={{ padding: '0 6px' }}>
-                      (<TimeInterval key="interval" toTimestamp={anarchyGovernor.metadata.creationTimestamp} />)
+                    <span key="interval" style={{ padding: '0 6px' }}>
+                      (<TimeInterval key="time-interval" toTimestamp={anarchyGovernor.metadata.creationTimestamp} />)
                     </span>
                   </>,
                 ],

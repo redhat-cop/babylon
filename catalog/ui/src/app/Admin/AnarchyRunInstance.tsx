@@ -265,7 +265,7 @@ const AnarchyRunInstance: React.FC = () => {
                       <OpenshiftConsoleLink reference={anarchyRun.status.runnerPod} />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>

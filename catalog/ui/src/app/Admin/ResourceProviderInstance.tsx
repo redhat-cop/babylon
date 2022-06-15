@@ -207,19 +207,19 @@ const ResourceProviderInstance: React.FunctionComponent = () => {
               <DescriptionListGroup>
                 <DescriptionListTerm>Default Lifespan</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {resourceProvider.spec.lifespan?.default || '-'}
+                  {resourceProvider.spec.lifespan?.default || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Maximum Lifespan</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {resourceProvider.spec.lifespan?.maximum || '-'}
+                  {resourceProvider.spec.lifespan?.maximum || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Relative Maximum Lifespan</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {resourceProvider.spec.lifespan?.relativeMaximum || '-'}
+                  {resourceProvider.spec.lifespan?.relativeMaximum || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>

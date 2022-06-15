@@ -339,13 +339,13 @@ const AnarchySubjectInstance: React.FC = () => {
               <DescriptionListGroup>
                 <DescriptionListTerm>Current State</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {anarchySubject.spec.vars?.current_state || '-'}
+                  {anarchySubject.spec.vars?.current_state || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Desired State</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {anarchySubject.spec.vars?.desired_state || '-'}
+                  {anarchySubject.spec.vars?.desired_state || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
@@ -379,7 +379,7 @@ const AnarchySubjectInstance: React.FC = () => {
                       />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>
@@ -405,7 +405,7 @@ const AnarchySubjectInstance: React.FC = () => {
                       />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>
@@ -432,7 +432,7 @@ const AnarchySubjectInstance: React.FC = () => {
                       />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>

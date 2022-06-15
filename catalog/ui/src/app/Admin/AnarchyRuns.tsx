@@ -384,7 +384,7 @@ const AnarchyRuns: React.FC = () => {
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={anarchyRun} />
                   </>,
-                  <>{anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || '-'}</>,
+                  <>{anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || <p>-</p>}</>,
                   <>
                     <Link
                       key="admin"
@@ -405,12 +405,12 @@ const AnarchyRuns: React.FC = () => {
                       <OpenshiftConsoleLink key="console" reference={anarchyRun.spec.subject} />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   ),
                   <>
                     <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} />
-                    <span style={{ padding: '0 6px' }}>
-                      (<TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
+                    <span key="interval" style={{ padding: '0 6px' }}>
+                      (<TimeInterval key="time-interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
                     </span>
                   </>,
                 ],

@@ -308,7 +308,7 @@ const ResourceHandleInstance: React.FC = () => {
                             />
                           </>
                         ) : (
-                          '-'
+                          <p>-</p>
                         )}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
@@ -323,7 +323,7 @@ const ResourceHandleInstance: React.FC = () => {
                             </span>
                           </>
                         ) : (
-                          '-'
+                          <p>-</p>
                         )}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
@@ -414,7 +414,7 @@ const ResourceHandleInstance: React.FC = () => {
                                 <OpenshiftConsoleLink reference={resourceHandleSpecResource.reference} />
                               </>
                             ) : (
-                              '-'
+                              <p>-</p>
                             )}
                           </DescriptionListDescription>
                         </DescriptionListGroup>

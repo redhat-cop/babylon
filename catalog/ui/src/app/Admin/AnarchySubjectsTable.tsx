@@ -65,8 +65,8 @@ const AnarchySubjectsTable: React.FC<{
             </>,
             <>
               <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.creationTimestamp} />
-              <span style={{ padding: '0 6px' }}>
-                (<TimeInterval key="interval" toTimestamp={anarchySubject.metadata.creationTimestamp} />)
+              <span key="interval" style={{ padding: '0 6px' }}>
+                (<TimeInterval key="time-interval" toTimestamp={anarchySubject.metadata.creationTimestamp} />)
               </span>
             </>,
           ],

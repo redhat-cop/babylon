@@ -440,7 +440,7 @@ const WorkshopsList: React.FC<{
                 // Registration
                 <>{workshop.spec.openRegistration === false ? 'Pre-registration' : 'Open'}</>,
                 // Users
-                <>{totalUserAssignments ? `${claimedUserAssignments}/${totalUserAssignments}` : '-'}</>,
+                <>{totalUserAssignments ? `${claimedUserAssignments}/${totalUserAssignments}` : <p>-</p>}</>,
                 // Created At
                 <>
                   <LocalTimestamp key="timestamp" timestamp={workshop.metadata.creationTimestamp} />

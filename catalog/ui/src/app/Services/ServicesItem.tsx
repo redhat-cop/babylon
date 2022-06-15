@@ -545,7 +545,7 @@ const ServicesItem: React.FC<{
                         ) : null}
                       </DescriptionListDescription>
                     ) : (
-                      '-'
+                      <p>-</p>
                     )}
                   </DescriptionListGroup>
                 ) : null}
@@ -627,7 +627,7 @@ const ServicesItem: React.FC<{
                           <DescriptionListGroup>
                             <DescriptionListTerm>UUID</DescriptionListTerm>
                             <DescriptionListDescription>
-                              {resourceState?.spec?.vars?.job_vars?.uuid || '-'}
+                              {resourceState?.spec?.vars?.job_vars?.uuid || <p>-</p>}
                             </DescriptionListDescription>
                           </DescriptionListGroup>
                           <DescriptionListGroup>
