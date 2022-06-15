@@ -105,12 +105,13 @@ module.exports = (env) => {
       publicPath: ASSET_PATH,
     },
     plugins: [
-      new HtmlWebpackPlugin({
-        template: path.resolve(__dirname, 'src', 'index.html'),
-      }),
       new Dotenv({
         systemvars: true,
         silent: true,
+      }),
+      new HtmlWebpackPlugin({
+        template: path.resolve(__dirname, 'src', 'index.html'),
+        GTM_ID: process.env.GTM_ID,
       }),
       new CopyPlugin({
         patterns: [
