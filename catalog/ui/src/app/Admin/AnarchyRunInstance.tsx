@@ -259,10 +259,10 @@ const AnarchyRunInstance: React.FC = () => {
               <DescriptionListGroup>
                 <DescriptionListTerm>AnarchyRunner Pod</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {anarchyRun.status?.runnerPod ? (
+                  {anarchyRun.spec?.runnerPod ? (
                     <>
-                      {anarchyRun.status.runnerPod.name}
-                      <OpenshiftConsoleLink reference={anarchyRun.status.runnerPod} />
+                      {anarchyRun.spec.runnerPod.name}
+                      <OpenshiftConsoleLink reference={anarchyRun.spec.runnerPod} />
                     </>
                   ) : (
                     <p>-</p>
@@ -278,8 +278,8 @@ const AnarchyRunInstance: React.FC = () => {
             </DescriptionList>
           </Tab>
           <Tab eventKey="log" title={<TabTitleText>Ansible Log</TabTitleText>}>
-            {anarchyRun.status?.result?.ansibleRun ? (
-              <AnsibleRunLog ansibleRun={anarchyRun.status.result.ansibleRun} />
+            {anarchyRun.spec?.result?.ansibleRun ? (
+              <AnsibleRunLog ansibleRun={anarchyRun.spec.result.ansibleRun} />
             ) : (
               <EmptyState variant="full">
                 <EmptyStateIcon icon={ExclamationTriangleIcon} />
