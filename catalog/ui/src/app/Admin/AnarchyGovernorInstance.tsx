@@ -256,8 +256,10 @@ const AnarchyGovernorInstance: React.FC = () => {
               <DescriptionListGroup>
                 <DescriptionListTerm>Created At</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <LocalTimestamp timestamp={anarchyGovernor.metadata.creationTimestamp} /> (
-                  <TimeInterval toTimestamp={anarchyGovernor.metadata.creationTimestamp} />)
+                  <LocalTimestamp timestamp={anarchyGovernor.metadata.creationTimestamp} />
+                  <span style={{ padding: '0 6px' }}>
+                    (<TimeInterval toTimestamp={anarchyGovernor.metadata.creationTimestamp} />)
+                  </span>
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>

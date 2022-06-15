@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -27,9 +26,8 @@ import yaml from 'js-yaml';
 
 import { deleteAnarchyRun, getAnarchyRun } from '@app/api';
 
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
-import { selectedUidsReducer } from '@app/reducers';
-import { AnarchyRun, K8sObject } from '@app/types';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { AnarchyRun } from '@app/types';
 
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import AnsibleRunLog from '@app/components/AnsibleRunLog';
@@ -41,17 +39,15 @@ import { selectConsoleURL } from '@app/store';
 
 import './admin.css';
 
-interface RouteMatchParams {
-  name: string;
-  namespace: string;
-  tab?: string;
-}
-
-const AnarchyRunInstance: React.FunctionComponent = () => {
+const AnarchyRunInstance: React.FC = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchyruns/:namespace/:name/:tab?');
+  const routeMatch = useRouteMatch<{
+    name: string;
+    namespace: string;
+    tab?: string;
+  }>('/admin/anarchyruns/:namespace/:name/:tab?');
   const anarchyRunName = routeMatch.params.name;
   const anarchyRunNamespace = routeMatch.params.namespace;
   const activeTab = routeMatch.params.tab || 'details';
@@ -219,8 +215,10 @@ const AnarchyRunInstance: React.FunctionComponent = () => {
               <DescriptionListGroup>
                 <DescriptionListTerm>Created At</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <LocalTimestamp timestamp={anarchyRun.metadata.creationTimestamp} /> (
-                  <TimeInterval toTimestamp={anarchyRun.metadata.creationTimestamp} />)
+                  <LocalTimestamp timestamp={anarchyRun.metadata.creationTimestamp} />
+                  <span style={{ padding: '0 6px' }}>
+                    (<TimeInterval toTimestamp={anarchyRun.metadata.creationTimestamp} />)
+                  </span>
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>

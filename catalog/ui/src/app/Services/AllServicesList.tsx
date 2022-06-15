@@ -660,8 +660,9 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
                 // Created At
                 <>
                   <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
-                  <br key="break" />
-                  (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
+                  <span style={{ padding: '0 6px' }}>
+                    (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
+                  </span>
                 </>,
                 // Actions
                 <>

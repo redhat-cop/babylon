@@ -531,8 +531,10 @@ const ServicesItem: React.FC<{
                           iconPosition="right"
                           className="services-item__schedule-btn"
                         >
-                          <LocalTimestamp timestamp={resourceClaim.status.lifespan.end} /> (
-                          <TimeInterval toTimestamp={resourceClaim.status.lifespan.end} />)
+                          <LocalTimestamp timestamp={resourceClaim.status.lifespan.end} />
+                          <span style={{ padding: '0 6px' }}>
+                            (<TimeInterval toTimestamp={resourceClaim.status.lifespan.end} />)
+                          </span>
                         </Button>
                         {resourceClaim.spec?.lifespan?.end &&
                         resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
@@ -642,8 +644,10 @@ const ServicesItem: React.FC<{
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
                               <DescriptionListDescription>
-                                <LocalTimestamp timestamp={startTimestamp} /> (
-                                <TimeInterval toTimestamp={startTimestamp} />)
+                                <LocalTimestamp timestamp={startTimestamp} />
+                                <span style={{ padding: '0 6px' }}>
+                                  (<TimeInterval toTimestamp={startTimestamp} />)
+                                </span>
                               </DescriptionListDescription>
                             </DescriptionListGroup>
                           ) : stopDate && Number(stopDate) > Date.now() ? (
@@ -658,8 +662,10 @@ const ServicesItem: React.FC<{
                                   onClick={() => showModal({ action: 'stop', modal: 'action' })}
                                   className="services-item__schedule-btn"
                                 >
-                                  <LocalTimestamp timestamp={stopTimestamp} /> (
-                                  <TimeInterval toTimestamp={stopTimestamp} />)
+                                  <LocalTimestamp timestamp={stopTimestamp} />
+                                  <span style={{ padding: '0 6px' }}>
+                                    (<TimeInterval toTimestamp={stopTimestamp} />)
+                                  </span>
                                 </Button>
                               </DescriptionListDescription>
                             </DescriptionListGroup>

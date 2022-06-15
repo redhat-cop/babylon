@@ -1,9 +1,7 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useLocation } from 'react-router-dom';
 import {
   EmptyState,
-  EmptyStateBody,
   EmptyStateIcon,
   PageSection,
   PageSectionVariants,
@@ -13,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteResourceProvider, listResourceProviders } from '@app/api';
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { K8sObject, ResourceProvider, ResourceProviderList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
@@ -64,7 +62,7 @@ function pruneResourceProvider(resourceProvider: ResourceProvider) {
   };
 }
 
-const ResourceProviders: React.FunctionComponent = () => {
+const ResourceProviders: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
@@ -243,8 +241,10 @@ const ResourceProviders: React.FunctionComponent = () => {
                     <OpenshiftConsoleLink key="console" resource={resourceProvider} />
                   </>,
                   <>
-                    <LocalTimestamp key="timestamp" timestamp={resourceProvider.metadata.creationTimestamp} /> (
-                    <TimeInterval key="interval" toTimestamp={resourceProvider.metadata.creationTimestamp} />)
+                    <LocalTimestamp key="timestamp" timestamp={resourceProvider.metadata.creationTimestamp} />
+                    <span style={{ padding: '0 6px' }}>
+                      (<TimeInterval key="interval" toTimestamp={resourceProvider.metadata.creationTimestamp} />)
+                    </span>
                   </>,
                 ],
                 onSelect: (isSelected) =>

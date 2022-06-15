@@ -1,9 +1,7 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useLocation } from 'react-router-dom';
 import {
   EmptyState,
-  EmptyStateBody,
   EmptyStateIcon,
   PageSection,
   PageSectionVariants,
@@ -13,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteResourceHandle, listResourceHandles } from '@app/api';
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { K8sObject, ResourceHandle, ResourceHandleList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
@@ -90,7 +88,7 @@ function pruneResourceHandle(resourceHandle: ResourceHandle): ResourceHandle {
   };
 }
 
-const ResourceHandles: React.FunctionComponent = () => {
+const ResourceHandles: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
@@ -322,8 +320,10 @@ const ResourceHandles: React.FunctionComponent = () => {
                     ))}
                   </>,
                   <>
-                    <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} /> (
-                    <TimeInterval key="interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                    <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} />
+                    <span style={{ padding: '0 6px' }}>
+                      (<TimeInterval key="interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                    </span>
                   </>,
                 ],
                 onSelect: (isSelected) =>

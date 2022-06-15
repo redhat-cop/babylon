@@ -1,13 +1,10 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Select, SelectOption, SelectVariant } from '@patternfly/react-core';
 
-export interface AnarchyActionSelectProps {
+const AnarchyActionSelect: React.FC<{
   action: string;
   onSelect: (string) => void;
-}
-
-const AnarchyActionSelect: React.FunctionComponent<AnarchyActionSelectProps> = ({ action, onSelect }) => {
+}> = ({ action, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
