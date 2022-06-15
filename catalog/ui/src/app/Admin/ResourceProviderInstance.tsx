@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -27,8 +26,7 @@ import yaml from 'js-yaml';
 
 import { deleteResourceProvider, getResourceProvider } from '@app/api';
 
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
-import { selectedUidsReducer } from '@app/reducers';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectConsoleURL } from '@app/store';
 import { ResourceProvider } from '@app/types';
 
@@ -200,26 +198,28 @@ const ResourceProviderInstance: React.FunctionComponent = () => {
               <DescriptionListGroup>
                 <DescriptionListTerm>Created At</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <LocalTimestamp timestamp={resourceProvider.metadata.creationTimestamp} /> (
-                  <TimeInterval toTimestamp={resourceProvider.metadata.creationTimestamp} />)
+                  <LocalTimestamp timestamp={resourceProvider.metadata.creationTimestamp} />
+                  <span style={{ padding: '0 6px' }}>
+                    (<TimeInterval toTimestamp={resourceProvider.metadata.creationTimestamp} />)
+                  </span>
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Default Lifespan</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {resourceProvider.spec.lifespan?.default || '-'}
+                  {resourceProvider.spec.lifespan?.default || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Maximum Lifespan</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {resourceProvider.spec.lifespan?.maximum || '-'}
+                  {resourceProvider.spec.lifespan?.maximum || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Relative Maximum Lifespan</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {resourceProvider.spec.lifespan?.relativeMaximum || '-'}
+                  {resourceProvider.spec.lifespan?.relativeMaximum || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>

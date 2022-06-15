@@ -1,18 +1,12 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { NumberInput, Spinner } from '@patternfly/react-core';
 import { ResourcePool } from '@app/types';
 import { patchResourcePool } from '@app/api';
 
-export interface ResourcePoolMinAvailableInputProps {
+const ResourcePoolMinAvailableInput: React.FC<{
   onChange?: (resourcePool: ResourcePool) => void;
   resourcePool: ResourcePool;
-}
-
-const ResourcePoolMinAvailableInput: React.FunctionComponent<ResourcePoolMinAvailableInputProps> = ({
-  onChange,
-  resourcePool,
-}) => {
+}> = ({ onChange, resourcePool }) => {
   const [minAvailable, setMinAvailable] = useState(resourcePool.spec.minAvailable);
   const [minAvailableInputTimeout, setMinAvailableInputTimeout] = useState(null);
   const [minAvailableUpdating, setMinAvailableUpdating] = useState(false);

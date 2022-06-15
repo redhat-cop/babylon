@@ -1,11 +1,9 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  Button,
   DescriptionList,
   DescriptionListTerm,
   DescriptionListGroup,
@@ -22,7 +20,6 @@ import {
   Tabs,
   Tab,
   TabTitleText,
-  TextInput,
   Title,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -32,8 +29,7 @@ import yaml from 'js-yaml';
 import { deleteResourceHandle, getResourceClaim, getResourceHandle } from '@app/api';
 import { BABYLON_DOMAIN } from '@app/util';
 
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
-import { selectedUidsReducer } from '@app/reducers';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectConsoleURL } from '@app/store';
 import { ResourceClaim, ResourceHandle } from '@app/types';
 
@@ -47,16 +43,14 @@ import CreateResourcePoolFromResourceHandleModal from './CreateResourcePoolFromR
 
 import './admin.css';
 
-interface RouteMatchParams {
-  name: string;
-  tab?: string;
-}
-
-const ResourceHandleInstance: React.FunctionComponent = () => {
+const ResourceHandleInstance: React.FC = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/resourcehandles/:name/:tab?');
+  const routeMatch = useRouteMatch<{
+    name: string;
+    tab?: string;
+  }>('/admin/resourcehandles/:name/:tab?');
   const resourceHandleName = routeMatch.params.name;
   const activeTab = routeMatch.params.tab || 'details';
 
@@ -276,8 +270,10 @@ const ResourceHandleInstance: React.FunctionComponent = () => {
                   <DescriptionListGroup>
                     <DescriptionListTerm>Created At</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <LocalTimestamp timestamp={resourceHandle.metadata.creationTimestamp} /> (
-                      <TimeInterval toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                      <LocalTimestamp timestamp={resourceHandle.metadata.creationTimestamp} />
+                      <span style={{ padding: '0 6px' }}>
+                        (<TimeInterval toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                      </span>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
@@ -312,7 +308,7 @@ const ResourceHandleInstance: React.FunctionComponent = () => {
                             />
                           </>
                         ) : (
-                          '-'
+                          <p>-</p>
                         )}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
@@ -321,11 +317,13 @@ const ResourceHandleInstance: React.FunctionComponent = () => {
                       <DescriptionListDescription>
                         {resourceClaim ? (
                           <>
-                            <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} /> (
-                            <TimeInterval toTimestamp={resourceClaim.metadata.creationTimestamp} />)
+                            <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} />
+                            <span style={{ padding: '0 6px' }}>
+                              (<TimeInterval toTimestamp={resourceClaim.metadata.creationTimestamp} />)
+                            </span>
                           </>
                         ) : (
-                          '-'
+                          <p>-</p>
                         )}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
@@ -416,7 +414,7 @@ const ResourceHandleInstance: React.FunctionComponent = () => {
                                 <OpenshiftConsoleLink reference={resourceHandleSpecResource.reference} />
                               </>
                             ) : (
-                              '-'
+                              <p>-</p>
                             )}
                           </DescriptionListDescription>
                         </DescriptionListGroup>

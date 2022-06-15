@@ -2,12 +2,10 @@ import * as React from 'react';
 
 import StarRatings from 'react-star-ratings';
 
-export interface CatalogItemRatingProps {
+const CatalogItemRating: React.FC<{
   catalogItem: any;
   starDimension: string;
-}
-
-const CatalogItemRating: React.FunctionComponent<CatalogItemRatingProps> = ({ catalogItem, starDimension }) => {
+}> = ({ catalogItem, starDimension }) => {
   return (
     <StarRatings
       rating={catalogItem.status.rating}

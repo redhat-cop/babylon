@@ -1,12 +1,8 @@
-import * as React from 'react';
+import React from 'react';
 import { BABYLON_DOMAIN } from '@app/util';
 import { PackageIcon } from '@patternfly/react-icons';
 import { CatalogItem } from '@app/types';
 import openshiftIcon from './icons/openshift.png';
-
-interface CatalogItemIconProps {
-  catalogItem: CatalogItem;
-}
 
 const icons = {
   openshift: openshiftIcon,
@@ -15,10 +11,12 @@ const icons = {
 interface IconConfig {
   url: string;
   alt: string;
-  style?: object;
+  style?: any;
 }
 
-const CatalogItemIcon: React.FC<CatalogItemIconProps> = ({ catalogItem }) => {
+const CatalogItemIcon: React.FC<{
+  catalogItem: CatalogItem;
+}> = ({ catalogItem }) => {
   const iconValue = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/icon`];
 
   if (!iconValue) {

@@ -87,7 +87,10 @@ const ServicesScheduleAction: React.FC<{
           onSelect={(date) => setSelectedDate(date)}
           toggleContent={
             <span>
-              <LocalTimestamp date={selectedDate} /> (<TimeInterval toDate={selectedDate} />)
+              <LocalTimestamp date={selectedDate} />
+              <span style={{ padding: '0 6px' }}>
+                (<TimeInterval toDate={selectedDate} />)
+              </span>
             </span>
           }
           current={selectedDate}

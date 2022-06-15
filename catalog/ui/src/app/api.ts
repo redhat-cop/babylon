@@ -964,7 +964,7 @@ export async function deleteResourcePool(resourcePool: ResourcePool): Promise<vo
     'poolboy.gpte.redhat.com',
     'v1',
     resourcePool.metadata.namespace,
-    'resourcehandles',
+    'resourcepools',
     resourcePool.metadata.name
   );
 }

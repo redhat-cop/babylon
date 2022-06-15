@@ -68,6 +68,7 @@ const AnarchyActionInstance: React.FC = () => {
     }
   }
 
+  /*
   async function confirmThenDeleteAnarchyRuns(): Promise<void> {
     if (confirm(`Delete selected AnarchyRuns?`)) {
       const removedAnarchyRuns: AnarchyRun[] = [];
@@ -81,6 +82,7 @@ const AnarchyActionInstance: React.FC = () => {
       reduceAnarchyRunsFetchState({ type: 'removeItems', items: removedAnarchyRuns });
     }
   }
+  */
 
   async function fetchAnarchyAction(): Promise<void> {
     let anarchyAction: AnarchyAction = null;
@@ -256,8 +258,10 @@ const AnarchyActionInstance: React.FC = () => {
               <DescriptionListGroup>
                 <DescriptionListTerm>Created At</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <LocalTimestamp timestamp={anarchyAction.metadata.creationTimestamp} /> (
-                  <TimeInterval toTimestamp={anarchyAction.metadata.creationTimestamp} />)
+                  <LocalTimestamp timestamp={anarchyAction.metadata.creationTimestamp} />
+                  <span style={{ padding: '0 6px' }}>
+                    (<TimeInterval toTimestamp={anarchyAction.metadata.creationTimestamp} />)
+                  </span>
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
@@ -300,7 +304,7 @@ const AnarchyActionInstance: React.FC = () => {
                       <OpenshiftConsoleLink key="console" reference={anarchyAction.status.runRef} />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>

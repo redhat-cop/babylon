@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useReducer, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   Button,
@@ -14,21 +13,17 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
-import { ResourceClaim, ResourceHandle, ResourcePool } from '@app/types';
+import { ResourceClaim, ResourceHandle } from '@app/types';
 import { createResourcePool, getResourcePool } from '@app/api';
 import { BABYLON_DOMAIN } from '@app/util';
 import yaml from 'js-yaml';
 
-export interface CreateResourcePoolFromResourceHandleModalProps {
+const CreateResourcePoolFromResourceHandleModal: React.FC<{
   isOpen: any;
   onClose: any;
   resourceClaim?: ResourceClaim;
   resourceHandle: ResourceHandle;
-}
-
-const CreateResourcePoolFromResourceHandleModal: React.FunctionComponent<
-  CreateResourcePoolFromResourceHandleModalProps
-> = ({ isOpen, onClose, resourceClaim, resourceHandle }) => {
+}> = ({ isOpen, onClose, resourceClaim, resourceHandle }) => {
   const history = useHistory();
   const [resourcePoolName, setResourcePoolName] = useState<string>(
     resourceClaim
@@ -47,7 +42,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FunctionComponent<
   const [maximumLifespanIsOpen, setMaximumLifespanIsOpen] = useState<boolean>(false);
   const [relativeMaximumLifespan, setRelativeMaximumLifespan] = useState<string>('7d');
   const [relativeMaximumLifespanIsOpen, setRelativeMaximumLifespanIsOpen] = useState<boolean>(false);
-  const [unclaimedLifespan, setUnclaimedLifespan] = useState<string>('7d');
+  const unclaimedLifespan = '7d';
 
   const poolNameValidated: boolean = resourcePoolName.match(/^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$/) !== null;
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
+import { EmptyState, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import { K8sFetchState } from '@app/K8sFetchState';
@@ -12,19 +12,12 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 
-export interface AnarchyRunsTableProps {
+const AnarchyRunsTable: React.FC<{
   anarchyRuns: AnarchyRun[];
   fetchState: K8sFetchState | null;
   selectedUids: string[];
   selectedUidsReducer: any;
-}
-
-const AnarchyRunsTable: React.FunctionComponent<AnarchyRunsTableProps> = ({
-  anarchyRuns,
-  fetchState,
-  selectedUids,
-  selectedUidsReducer,
-}) => {
+}> = ({ anarchyRuns, fetchState, selectedUids, selectedUidsReducer }) => {
   if (anarchyRuns.length === 0) {
     if (fetchState?.finished) {
       return (
@@ -67,7 +60,7 @@ const AnarchyRunsTable: React.FunctionComponent<AnarchyRunsTableProps> = ({
               </Link>
               <OpenshiftConsoleLink key="console" resource={anarchyRun} />
             </>,
-            <>{anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || '-'}</>,
+            <>{anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || <p>-</p>}</>,
             <>
               <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} /> (
               <TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)

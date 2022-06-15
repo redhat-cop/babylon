@@ -131,7 +131,7 @@ const ServiceItemStatus: React.FC<{
             <DescriptionListGroup>
               <DescriptionListTerm>Last status update</DescriptionListTerm>
               <DescriptionListDescription>
-                {saveLastUpdateTimestamp ? <LocalTimestamp timestamp={saveLastUpdateTimestamp} /> : '-'}
+                {saveLastUpdateTimestamp ? <LocalTimestamp timestamp={saveLastUpdateTimestamp} /> : <p>-</p>}
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>

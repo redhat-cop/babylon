@@ -5,7 +5,7 @@ import { PageSection, PageSectionVariants, Title } from '@patternfly/react-core'
 
 import { selectInterface } from '@app/store';
 
-const CatalogInterfaceDescription: React.FunctionComponent = () => {
+const CatalogInterfaceDescription: React.FC = () => {
   const userInterface = useSelector(selectInterface);
 
   if (userInterface === 'rhpds') {

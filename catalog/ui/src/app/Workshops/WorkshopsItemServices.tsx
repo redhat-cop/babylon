@@ -220,16 +220,20 @@ const WorkshopsItemServices: React.FC<{
             </>,
             // GUID
             <>
-              {guid
-                ? userIsAdmin
-                  ? [
-                      <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
-                        {guid}
-                      </Link>,
-                      <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
-                    ]
-                  : guid
-                : '-'}
+              {guid ? (
+                userIsAdmin ? (
+                  [
+                    <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
+                      {guid}
+                    </Link>,
+                    <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
+                  ]
+                ) : (
+                  guid
+                )
+              ) : (
+                <p>-</p>
+              )}
             </>,
             // Status
             specResources.length > 1 ? (

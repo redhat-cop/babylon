@@ -1,9 +1,7 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
   EmptyState,
-  EmptyStateBody,
   EmptyStateIcon,
   PageSection,
   PageSectionVariants,
@@ -13,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteAnarchySubject, forceDeleteAnarchySubject, listAnarchySubjects } from '@app/api';
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchySubject, AnarchySubjectList, K8sObject } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
@@ -74,7 +72,7 @@ function pruneAnarchySubject(anarchySubject: AnarchySubject): AnarchySubject {
   };
 }
 
-const AnarchySubjects: React.FunctionComponent = () => {
+const AnarchySubjects: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
@@ -326,18 +324,22 @@ const AnarchySubjects: React.FunctionComponent = () => {
                       }}
                     />
                   </>,
-                  anarchySubject.spec.vars?.current_state || '-',
+                  anarchySubject.spec.vars?.current_state || <p>-</p>,
                   <>
-                    <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.creationTimestamp} /> (
-                    <TimeInterval key="interval" toTimestamp={anarchySubject.metadata.creationTimestamp} />)
+                    <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.creationTimestamp} />
+                    <span key="interval" style={{ padding: '0 6px' }}>
+                      (<TimeInterval key="time-interval" toTimestamp={anarchySubject.metadata.creationTimestamp} />)
+                    </span>
                   </>,
                   anarchySubject.metadata.deletionTimestamp ? (
                     <>
-                      <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.deletionTimestamp} /> (
-                      <TimeInterval key="interval" toTimestamp={anarchySubject.metadata.deletionTimestamp} />)
+                      <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.deletionTimestamp} />
+                      <span key="interval" style={{ padding: '0 6px' }}>
+                        (<TimeInterval key="time-interval" toTimestamp={anarchySubject.metadata.deletionTimestamp} />)
+                      </span>
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   ),
                 ],
                 onSelect: (isSelected) =>

@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -27,15 +26,9 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 
-import {
-  deleteResourceHandle,
-  deleteResourcePool,
-  getResourcePool,
-  listResourceHandles,
-  patchResourcePool,
-} from '@app/api';
+import { deleteResourceHandle, deleteResourcePool, getResourcePool, listResourceHandles } from '@app/api';
 
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { selectConsoleURL } from '@app/store';
 import { ResourceHandle, ResourceHandleList, ResourcePool } from '@app/types';
@@ -63,9 +56,6 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
   const resourcePoolName = routeMatch.params.name;
   const activeTab = routeMatch.params.tab || 'details';
 
-  const [minAvailable, setMinAvailable] = useState(null);
-  const [minAvailableInputTimeout, setMinAvailableInputTimeout] = useState(null);
-  const [minAvailableUpdating, setMinAvailableUpdating] = useState(false);
   const [resourceHandlesFetchState, reduceResourceHandlesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [resourcePoolFetchState, reduceResourcePoolFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedResourceHandleUids, reduceResourceHandleSelectedUids] = useReducer(selectedUidsReducer, []);
@@ -129,30 +119,6 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
         },
       });
     }
-  }
-
-  function queueMinAvailableUpdate(n: number): void {
-    setMinAvailable(n);
-    if (minAvailableInputTimeout) {
-      clearTimeout(minAvailableInputTimeout);
-    }
-    setMinAvailableInputTimeout(
-      setTimeout(
-        (n: number) => {
-          updateMinAvailable(n);
-        },
-        1000,
-        n
-      )
-    );
-  }
-
-  async function updateMinAvailable(n: number): Promise<void> {
-    setMinAvailableUpdating(true);
-    const result = await patchResourcePool(resourcePoolName, { spec: { minAvailable: n } });
-    setMinAvailable(n);
-    reduceResourcePoolFetchState({ type: 'updateItem', item: result });
-    setMinAvailableUpdating(false);
   }
 
   // First render and detect unmount
@@ -288,8 +254,10 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                   <DescriptionListGroup>
                     <DescriptionListTerm>Created At</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <LocalTimestamp timestamp={resourcePool.metadata.creationTimestamp} /> (
-                      <TimeInterval toTimestamp={resourcePool.metadata.creationTimestamp} />)
+                      <LocalTimestamp timestamp={resourcePool.metadata.creationTimestamp} />
+                      <span style={{ padding: '0 6px' }}>
+                        (<TimeInterval toTimestamp={resourcePool.metadata.creationTimestamp} />)
+                      </span>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
@@ -301,25 +269,25 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                   <DescriptionListGroup>
                     <DescriptionListTerm>Default Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.default || '-'}
+                      {resourcePool.spec.lifespan?.default || <p>-</p>}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Maximum Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.maximum || '-'}
+                      {resourcePool.spec.lifespan?.maximum || <p>-</p>}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Relative Maximum Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.relativeMaximum || '-'}
+                      {resourcePool.spec.lifespan?.relativeMaximum || <p>-</p>}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Unclaimed Handle Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.unclaimed || '-'}
+                      {resourcePool.spec.lifespan?.unclaimed || <p>-</p>}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
@@ -388,35 +356,41 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                         <OpenshiftConsoleLink key="console" resource={resourceHandle} />
                       </>,
                       <>
-                        {resourceHandle.spec.resourceClaim
-                          ? [
-                              <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>
-                                {resourceHandle.spec.resourceClaim.namespace}
-                              </Link>,
-                              <OpenshiftConsoleLink
-                                key="console"
-                                reference={resourceHandle.spec.resourceClaim}
-                                linkToNamespace={true}
-                              />,
-                            ]
-                          : '-'}
+                        {resourceHandle.spec.resourceClaim ? (
+                          [
+                            <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>
+                              {resourceHandle.spec.resourceClaim.namespace}
+                            </Link>,
+                            <OpenshiftConsoleLink
+                              key="console"
+                              reference={resourceHandle.spec.resourceClaim}
+                              linkToNamespace={true}
+                            />,
+                          ]
+                        ) : (
+                          <p>-</p>
+                        )}
                       </>,
                       <>
-                        {resourceHandle.spec.resourceClaim
-                          ? [
-                              <Link
-                                key="admin"
-                                to={`/services/${resourceHandle.spec.resourceClaim.namespace}/${resourceHandle.spec.resourceClaim.name}`}
-                              >
-                                {resourceHandle.spec.resourceClaim.name}
-                              </Link>,
-                              <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} />,
-                            ]
-                          : '-'}
+                        {resourceHandle.spec.resourceClaim ? (
+                          [
+                            <Link
+                              key="admin"
+                              to={`/services/${resourceHandle.spec.resourceClaim.namespace}/${resourceHandle.spec.resourceClaim.name}`}
+                            >
+                              {resourceHandle.spec.resourceClaim.name}
+                            </Link>,
+                            <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} />,
+                          ]
+                        ) : (
+                          <p>-</p>
+                        )}
                       </>,
                       <>
-                        <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} /> (
-                        <TimeInterval key="interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                        <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} />
+                        <span key="interval" style={{ padding: '0 6px' }}>
+                          (<TimeInterval key="time-interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
+                        </span>
                       </>,
                     ],
                     onSelect: (isSelected) =>

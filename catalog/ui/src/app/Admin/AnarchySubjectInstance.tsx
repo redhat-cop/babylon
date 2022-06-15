@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -35,9 +34,9 @@ import {
   listAnarchyRuns,
 } from '@app/api';
 
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
-import { AnarchyAction, AnarchyActionList, AnarchyRun, AnarchyRunList, AnarchySubject, K8sObject } from '@app/types';
+import { AnarchyAction, AnarchyActionList, AnarchyRun, AnarchyRunList, AnarchySubject } from '@app/types';
 
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -51,17 +50,15 @@ import AnarchyRunsTable from './AnarchyRunsTable';
 
 import './admin.css';
 
-interface RouteMatchParams {
-  name: string;
-  namespace: string;
-  tab?: string;
-}
-
-const AnarchySubjectInstance: React.FunctionComponent = () => {
+const AnarchySubjectInstance: React.FC = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/anarchysubjects/:namespace/:name/:tab?');
+  const routeMatch = useRouteMatch<{
+    name: string;
+    namespace: string;
+    tab?: string;
+  }>('/admin/anarchysubjects/:namespace/:name/:tab?');
   const anarchySubjectName = routeMatch.params.name;
   const anarchySubjectNamespace = routeMatch.params.namespace;
   const activeTab = routeMatch.params.tab || 'details';
@@ -342,20 +339,22 @@ const AnarchySubjectInstance: React.FunctionComponent = () => {
               <DescriptionListGroup>
                 <DescriptionListTerm>Current State</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {anarchySubject.spec.vars?.current_state || '-'}
+                  {anarchySubject.spec.vars?.current_state || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Desired State</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {anarchySubject.spec.vars?.desired_state || '-'}
+                  {anarchySubject.spec.vars?.desired_state || <p>-</p>}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
                 <DescriptionListTerm>Created At</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <LocalTimestamp timestamp={anarchySubject.metadata.creationTimestamp} /> (
-                  <TimeInterval toTimestamp={anarchySubject.metadata.creationTimestamp} />)
+                  <LocalTimestamp timestamp={anarchySubject.metadata.creationTimestamp} />
+                  <span style={{ padding: '0 6px' }}>
+                    (<TimeInterval toTimestamp={anarchySubject.metadata.creationTimestamp} />)
+                  </span>
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
@@ -380,7 +379,7 @@ const AnarchySubjectInstance: React.FunctionComponent = () => {
                       />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>
@@ -406,7 +405,7 @@ const AnarchySubjectInstance: React.FunctionComponent = () => {
                       />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>
@@ -433,7 +432,7 @@ const AnarchySubjectInstance: React.FunctionComponent = () => {
                       />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   )}
                 </DescriptionListDescription>
               </DescriptionListGroup>
@@ -452,7 +451,7 @@ const AnarchySubjectInstance: React.FunctionComponent = () => {
                       <DescriptionListGroup key={jobName}>
                         <DescriptionListTerm>{jobName}</DescriptionListTerm>
                         <DescriptionListDescription>
-                          <a href={jobUrl} target="_blank">
+                          <a href={jobUrl} target="_blank" rel="noreferrer">
                             {jobUrl}
                           </a>
                         </DescriptionListDescription>

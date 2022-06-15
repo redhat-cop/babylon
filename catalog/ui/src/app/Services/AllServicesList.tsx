@@ -598,16 +598,20 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
                 </>,
                 // GUID
                 <>
-                  {guid
-                    ? userIsAdmin
-                      ? [
-                          <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
-                            {guid}
-                          </Link>,
-                          <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
-                        ]
-                      : guid
-                    : '-'}
+                  {guid ? (
+                    userIsAdmin ? (
+                      [
+                        <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
+                          {guid}
+                        </Link>,
+                        <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
+                      ]
+                    ) : (
+                      guid
+                    )
+                  ) : (
+                    <p>-</p>
+                  )}
                 </>,
                 // Status
                 specResources.length > 1 ? (
@@ -655,13 +659,14 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
                     />
                   </div>
                 ) : (
-                  '-'
+                  <p>-</p>
                 ),
                 // Created At
                 <>
                   <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
-                  <br key="break" />
-                  (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
+                  <span key="interval" style={{ padding: '0 6px' }}>
+                    (<TimeInterval key="time-interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
+                  </span>
                 </>,
                 // Actions
                 <>

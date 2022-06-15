@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
+import { EmptyState, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 import { K8sFetchState } from '@app/K8sFetchState';
@@ -12,19 +12,12 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 
-export interface AnarchyActionsTableProps {
+const AnarchyActionsTable: React.FC<{
   anarchyActions: AnarchyAction[];
   fetchState: K8sFetchState | null;
   selectedUids: string[];
   selectedUidsReducer: any;
-}
-
-const AnarchyActionsTable: React.FunctionComponent<AnarchyActionsTableProps> = ({
-  anarchyActions,
-  fetchState,
-  selectedUids,
-  selectedUidsReducer,
-}) => {
+}> = ({ anarchyActions, fetchState, selectedUids, selectedUidsReducer }) => {
   if (anarchyActions.length === 0) {
     if (fetchState?.finished) {
       return (
@@ -71,8 +64,10 @@ const AnarchyActionsTable: React.FunctionComponent<AnarchyActionsTableProps> = (
               <OpenshiftConsoleLink key="console" resource={anarchyAction} />
             </>,
             <>
-              <LocalTimestamp key="timestamp" timestamp={anarchyAction.metadata.creationTimestamp} /> (
-              <TimeInterval key="interval" toTimestamp={anarchyAction.metadata.creationTimestamp} />)
+              <LocalTimestamp key="timestamp" timestamp={anarchyAction.metadata.creationTimestamp} />
+              <span key="interval" style={{ padding: '0 6px' }}>
+                (<TimeInterval key="time-interval" toTimestamp={anarchyAction.metadata.creationTimestamp} />)
+              </span>
             </>,
           ],
           onSelect: (isSelected) =>

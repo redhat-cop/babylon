@@ -1,16 +1,13 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { Select, SelectOption, SelectVariant } from '@patternfly/react-core';
 import { listNamespaces } from '@app/api';
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
-import { Namespace, NamespaceList } from '@app/types';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { Namespace } from '@app/types';
 
-export interface AnarchyNamespaceSelectProps {
+const AnarchyNamespaceSelect: React.FC<{
   namespace: string;
   onSelect: (string) => void;
-}
-
-const AnarchyNamespaceSelect: React.FunctionComponent<AnarchyNamespaceSelectProps> = ({ namespace, onSelect }) => {
+}> = ({ namespace, onSelect }) => {
   const componentWillUnmount = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
   const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);

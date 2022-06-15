@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import { Dropdown, DropdownItem, DropdownToggle, PageSection, PageSectionVariants } from '@patternfly/react-core';
@@ -8,12 +7,10 @@ import { selectCatalogNamespaces } from '@app/store';
 import { displayName } from '@app/util';
 import './catalog-namespace-select.css';
 
-interface CatalogNamespaceSelectProps {
+const CatalogNamespaceSelect: React.FC<{
   onSelect: (ns: string) => void;
   selected?: string;
-}
-
-const CatalogNamespaceSelect: React.FunctionComponent<CatalogNamespaceSelectProps> = ({ onSelect, selected }) => {
+}> = ({ onSelect, selected }) => {
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const selectedCatalogNamespace = catalogNamespaces.find((ns) => ns.name === selected);
 

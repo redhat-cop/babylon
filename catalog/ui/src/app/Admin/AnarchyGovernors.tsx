@@ -1,9 +1,7 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
   EmptyState,
-  EmptyStateBody,
   EmptyStateIcon,
   PageSection,
   PageSectionVariants,
@@ -13,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteAnarchyGovernor, listAnarchyGovernors } from '@app/api';
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchyGovernor, AnarchyGovernorList, K8sObject } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
@@ -49,6 +47,7 @@ function filterAnarchyGovernor(anarchyGovernor: AnarchyGovernor, keywordFilter: 
   return true;
 }
 
+/*
 function pruneAnarchyGovernor(anarchyGovernor: AnarchyGovernor) {
   return {
     apiVersion: anarchyGovernor.apiVersion,
@@ -62,8 +61,9 @@ function pruneAnarchyGovernor(anarchyGovernor: AnarchyGovernor) {
     spec: {},
   };
 }
+*/
 
-const AnarchyGovernors: React.FunctionComponent = () => {
+const AnarchyGovernors: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
@@ -264,8 +264,10 @@ const AnarchyGovernors: React.FunctionComponent = () => {
                     <OpenshiftConsoleLink key="console" resource={anarchyGovernor} />
                   </>,
                   <>
-                    <LocalTimestamp key="timestamp" timestamp={anarchyGovernor.metadata.creationTimestamp} /> (
-                    <TimeInterval key="interval" toTimestamp={anarchyGovernor.metadata.creationTimestamp} />)
+                    <LocalTimestamp key="timestamp" timestamp={anarchyGovernor.metadata.creationTimestamp} />
+                    <span key="interval" style={{ padding: '0 6px' }}>
+                      (<TimeInterval key="time-interval" toTimestamp={anarchyGovernor.metadata.creationTimestamp} />)
+                    </span>
                   </>,
                 ],
                 onSelect: (isSelected) =>

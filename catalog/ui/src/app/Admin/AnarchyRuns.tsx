@@ -1,9 +1,7 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
   EmptyState,
-  EmptyStateBody,
   EmptyStateIcon,
   PageSection,
   PageSectionVariants,
@@ -13,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { deleteAnarchyRun, listAnarchyRuns, listAnarchyRunners } from '@app/api';
-import { K8sFetchState, cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchyRun, AnarchyRunList, AnarchyRunner, AnarchyRunnerList, K8sObject } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
@@ -62,6 +60,7 @@ function filterAnarchyRun(anarchyRun: AnarchyRun, keywordFilter: string[]): bool
   return true;
 }
 
+/*
 function pruneAnarchyRun(anarchyRun: AnarchyRun) {
   return {
     apiVersion: anarchyRun.apiVersion,
@@ -111,8 +110,9 @@ function pruneAnarchyRun(anarchyRun: AnarchyRun) {
     },
   };
 }
+*/
 
-const AnarchyRuns: React.FunctionComponent = () => {
+const AnarchyRuns: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
@@ -384,7 +384,7 @@ const AnarchyRuns: React.FunctionComponent = () => {
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={anarchyRun} />
                   </>,
-                  <>{anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || '-'}</>,
+                  <>{anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || <p>-</p>}</>,
                   <>
                     <Link
                       key="admin"
@@ -405,11 +405,13 @@ const AnarchyRuns: React.FunctionComponent = () => {
                       <OpenshiftConsoleLink key="console" reference={anarchyRun.spec.subject} />
                     </>
                   ) : (
-                    '-'
+                    <p>-</p>
                   ),
                   <>
-                    <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} /> (
-                    <TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
+                    <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} />
+                    <span key="interval" style={{ padding: '0 6px' }}>
+                      (<TimeInterval key="time-interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
+                    </span>
                   </>,
                 ],
                 onSelect: (isSelected) =>

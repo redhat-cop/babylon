@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 
@@ -23,23 +22,10 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
-import { checkSalesforceId, createWorkshop, createWorkshopProvision } from '@app/api';
-import {
-  selectCatalogNamespace,
-  selectUserGroups,
-  selectUserIsAdmin,
-  selectUserRoles,
-  selectWorkshopNamespaces,
-} from '@app/store';
-import {
-  CatalogItem,
-  CatalogItemSpecParameter,
-  CatalogNamespace,
-  ServiceNamespace,
-  Workshop,
-  WorkshopProvision,
-} from '@app/types';
-import { ConditionValues, checkAccessControl, checkCondition, displayName, randomString } from '@app/util';
+import { checkSalesforceId, createWorkshop } from '@app/api';
+import { selectUserGroups, selectUserIsAdmin, selectUserRoles, selectWorkshopNamespaces } from '@app/store';
+import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, Workshop } from '@app/types';
+import { ConditionValues, checkCondition, displayName, randomString } from '@app/util';
 
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -209,10 +195,10 @@ function checkEnableSubmit(state: FormState): boolean {
 function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'checkConditionsComplete':
-      return reduceCheckConditionsComplete(state, action);
+      return reduceCheckConditionsComplete(state);
     case 'init':
       cancelFormStateConditionChecks(state);
-      return reduceFormStateInit(state, action);
+      return reduceFormStateInit(action);
     case 'parameterUpdate':
       cancelFormStateConditionChecks(state);
       return reduceFormStateParameterUpdate(state, action);
@@ -221,7 +207,7 @@ function reduceFormState(state: FormState, action: FormStateAction): FormState {
   }
 }
 
-function reduceCheckConditionsComplete(state: FormState, action: FormStateAction): FormState {
+function reduceCheckConditionsComplete(state: FormState): FormState {
   return {
     ...state,
     conditionChecks: {
@@ -233,7 +219,7 @@ function reduceCheckConditionsComplete(state: FormState, action: FormStateAction
   };
 }
 
-function reduceFormStateInit(state: FormState, action: FormStateAction): FormState {
+function reduceFormStateInit(action: FormStateAction): FormState {
   const catalogItem: CatalogItem = action.catalogItem;
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
@@ -300,12 +286,10 @@ function reduceFormStateParameterUpdate(state: FormState, action: FormStateActio
   };
 }
 
-interface CatalogItemWorkshopFormProps {
+const CatalogItemWorkshopForm: React.FC<{
   catalogItem: CatalogItem;
   onCancel: () => void;
-}
-
-const CatalogItemWorkshopForm: React.FunctionComponent<CatalogItemWorkshopFormProps> = ({ catalogItem, onCancel }) => {
+}> = ({ catalogItem, onCancel }) => {
   const history = useHistory();
   const componentWillUnmount = useRef(false);
   const [formState, dispatchFormState] = useReducer(reduceFormState, undefined);
@@ -320,10 +304,6 @@ const CatalogItemWorkshopForm: React.FunctionComponent<CatalogItemWorkshopFormPr
     catalogItem.spec.multiuser ? 1 : 10
   );
   const [workshopProvisionStartDelay, setWorkshopProvisionStartDelay] = useState<number>(30);
-
-  const catalogNamespace: CatalogNamespace = useSelector((state) =>
-    selectCatalogNamespace(state, catalogItem.metadata.namespace)
-  );
   const userGroups: string[] = useSelector(selectUserGroups);
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
   const userRoles: string[] = useSelector(selectUserRoles);
@@ -356,15 +336,6 @@ const CatalogItemWorkshopForm: React.FunctionComponent<CatalogItemWorkshopFormPr
       openRegistration: userRegistrationValue === 'open',
       // FIXME - Allow selecting service namespace
       serviceNamespace: workshopNamespaces[0],
-    });
-
-    const workshopProvision: WorkshopProvision = await createWorkshopProvision({
-      catalogItem: catalogItem,
-      concurrency: workshopProvisionConcurrency,
-      count: workshopProvisionCount,
-      parameters: parameterValues,
-      startDelay: workshopProvisionStartDelay,
-      workshop: workshop,
     });
 
     history.push(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
