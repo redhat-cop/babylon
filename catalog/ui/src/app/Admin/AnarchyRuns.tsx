@@ -100,13 +100,13 @@ function pruneAnarchyRun(anarchyRun: AnarchyRun) {
     },
     status: {
       result: {
-        status: anarchyRun.status?.result?.status,
+        status: anarchyRun.spec?.result?.status,
       },
       runPostTimestamp: {
-        status: anarchyRun.status?.runPostTimestamp,
+        status: anarchyRun.spec?.runPostTimestamp,
       },
-      runner: anarchyRun.status?.runner,
-      runnerPod: anarchyRun.status?.runnerPod,
+      runner: anarchyRun.spec?.runner,
+      runnerPod: anarchyRun.spec?.runnerPod,
     },
   };
 }
