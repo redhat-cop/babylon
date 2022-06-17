@@ -73,7 +73,7 @@
     "@monaco-editor/react": "^4.4.5",
     "@patternfly/patternfly": "^4.194.4",
     "@patternfly/react-core": "^4.214.1",
-    "@patternfly/react-icons": "^4.65.1",
+    "@patternfly/react-icons": "^4.73.10",
     "@patternfly/react-styles": "^4.64.1",
     "@patternfly/react-table": "^4.83.1",
     "@reduxjs/toolkit": "^1.8.2",
