@@ -239,24 +239,25 @@ export const selectInterface = createSelector(selectSelf, (state: any): string =
 export const selectUser = createSelector(selectAuth, (state: any): string => state.user);
 
 export const selectUserGroups = createSelector(selectAuth, (state: any): string[] =>
-  (state.groups || []).concat('system:authenticated')
+  (state.groups || []).filter(Boolean).concat('system:authenticated')
 );
 
 export const selectUserIsAdmin = createSelector(selectAuth, (state: any): boolean => state.admin);
 
-export const selectUserRoles = createSelector(selectAuth, (state: any): string[] => state.roles || []);
+export const selectUserRoles = createSelector(selectAuth, (state: any): string[] =>
+  (state.roles || []).filter(Boolean)
+);
 
 export const selectImpersonationUser = createSelector(selectSelf, (state: any): string => state.impersonate?.user);
 
 export const selectCatalogNamespace = createSelector(
   [(state: any) => selectCatalogNamespaces(state), (state: any, namespace: string): string => namespace],
   (catalogNamespaces: any, namespace: string): CatalogNamespace =>
-    (catalogNamespaces || []).find((catalogNamespace) => catalogNamespace.name === namespace)
+    (catalogNamespaces || []).filter(Boolean).find((catalogNamespace) => catalogNamespace.name === namespace)
 );
 
-export const selectCatalogNamespaces = createSelector(
-  selectAuth,
-  (state: any): CatalogNamespace[] => state.catalogNamespaces || []
+export const selectCatalogNamespaces = createSelector(selectAuth, (state: any): CatalogNamespace[] =>
+  (state.catalogNamespaces || []).filter(Boolean)
 );
 
 export const selectResourceClaim = createSelector(
@@ -287,19 +288,19 @@ export const selectResourceClaimsInNamespace = createSelector(
 
 export const selectServiceNamespace = createSelector(
   [(state: any) => state.impersonate || state.auth, (state: any, namespace: string): string => namespace],
-  (state: any, namespace: string) => (state.serviceNamespaces || []).find((ns) => ns.name == namespace)
+  (state: any, namespace: string) => (state.serviceNamespaces || []).filter(Boolean).find((ns) => ns.name == namespace)
 );
 
 export const selectServiceNamespaces = createSelector(
   (state: any) => state.impersonate || state.auth,
-  (state: any) => state.serviceNamespaces || []
+  (state: any) => (state.serviceNamespaces || []).filter(Boolean)
 );
 
 export const selectUserNamespace = createSelector(selectAuth, (state) => state.userNamespace);
 
 export const selectWorkshopNamespaces = createSelector(
   (state: any) => state.impersonate || state.auth,
-  (state: any) => (state.serviceNamespaces || []).filter((ns) => ns.workshopProvisionAccess)
+  (state: any) => (state.serviceNamespaces || []).filter(Boolean).filter((ns) => ns.workshopProvisionAccess)
 );
 
 // Store

@@ -10,6 +10,7 @@ import {
   selectUserGroups,
   selectUserIsAdmin,
   selectUserNamespace,
+  selectWorkshopNamespaces,
 } from '@app/store';
 import { useDispatch, useSelector } from 'react-redux';
 import { AnyAction, Dispatch } from 'redux';
@@ -42,6 +43,7 @@ export default function useSession(): {
     consoleUrl: string;
     userInterface: string;
     serviceNamespaces: UserNamespace[];
+    workshopNamespaces: UserNamespace[];
     userNamespace: UserNamespace;
   };
 } {
@@ -53,6 +55,7 @@ export default function useSession(): {
   const consoleUrl = useSelector(selectConsoleURL);
   const userInterface = useSelector(selectInterface);
   const serviceNamespaces = useSelector(selectServiceNamespaces);
+  const workshopNamespaces = useSelector(selectWorkshopNamespaces);
   const userNamespace = useSelector(selectUserNamespace);
   const { userImpersonated } = useImpersonateUser();
 
@@ -71,8 +74,29 @@ export default function useSession(): {
       throw promise;
     }
 
-    return { email, isAdmin, groups, catalogNamespaces, consoleUrl, userInterface, serviceNamespaces, userNamespace };
-  }, [email, isAdmin, promise, groups, catalogNamespaces, consoleUrl, userInterface, serviceNamespaces, userNamespace]);
+    return {
+      email,
+      isAdmin,
+      groups,
+      catalogNamespaces,
+      consoleUrl,
+      userInterface,
+      serviceNamespaces,
+      workshopNamespaces,
+      userNamespace,
+    };
+  }, [
+    email,
+    isAdmin,
+    promise,
+    groups,
+    catalogNamespaces,
+    consoleUrl,
+    userInterface,
+    serviceNamespaces,
+    workshopNamespaces,
+    userNamespace,
+  ]);
 
   return { getSession };
 }
