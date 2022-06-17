@@ -5,9 +5,7 @@ import useSession from '@app/utils/useSession';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
-  const { isAdmin, userNamespace, serviceNamespaces } = useSession().getSession();
-
-  const workshopNamespaces = serviceNamespaces.filter((ns) => ns.workshopProvisionAccess);
+  const { isAdmin, userNamespace, serviceNamespaces, workshopNamespaces } = useSession().getSession();
 
   const catalogNavigation = (
     <NavItem>

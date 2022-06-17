@@ -4,7 +4,7 @@ import { render, fireEvent } from './utils/test-utils';
 
 jest.mock('@app/utils/useSession', () => {
   return jest.fn(() => ({
-    getSession: () => ({ email: 'test@redhat.com', isAdmin: false, serviceNamespaces: [] }),
+    getSession: () => ({ email: 'test@redhat.com', isAdmin: false, serviceNamespaces: [], workshopNamespaces: [] }),
   }));
 });
 
