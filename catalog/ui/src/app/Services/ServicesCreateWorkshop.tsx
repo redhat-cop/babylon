@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { useState } from 'react';
 import { Form, FormGroup, Select, SelectOption, SelectVariant, TextArea, TextInput } from '@patternfly/react-core';
 import { createWorkshopForMultiuserService } from '@app/api';
@@ -15,16 +15,17 @@ const ServicesCreateWorkshop: React.FC<{
   const [workshopDescription, setWorkshopDescription] = useState<string>('');
   const [workshopDisplayName, setWorkshopDisplayName] = useState<string>(displayName(resourceClaim));
 
-  useCallback(async () => {
-    setOnConfirmCb(
-      await createWorkshopForMultiuserService({
+  useEffect(() => {
+    function _createWorkshopForMultiuserService() {
+      return createWorkshopForMultiuserService({
         accessPassword: workshopAccessPassword,
         description: workshopDescription,
         displayName: workshopDisplayName,
         openRegistration: userRegistrationValue === 'open',
         resourceClaim: resourceClaim,
-      })
-    );
+      });
+    }
+    setOnConfirmCb(() => _createWorkshopForMultiuserService);
   }, [
     resourceClaim,
     setOnConfirmCb,

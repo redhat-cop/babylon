@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useEffect, useReducer, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
@@ -40,24 +40,21 @@ import { displayName } from '@app/util';
 import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 
 import LoadingIcon from '@app/components/LoadingIcon';
-import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
-import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
-import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
 
 import WorkshopActions from './WorkshopActions';
-import WorkshopDeleteModal from './WorkshopDeleteModal';
 import WorkshopsItemDetails from './WorkshopsItemDetails';
 import WorkshopsItemProvisioning from './WorkshopsItemProvisioning';
 import WorkshopsItemServices from './WorkshopsItemServices';
 import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
-
 import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
+import Modal, { useModal } from '@app/Modal/Modal';
 
-import './workshops.css';
-
+import './workshops-item.css';
+import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
+import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
+import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
 export interface ModalState {
   action?: 'delete' | 'deleteService' | 'startService' | 'stopService';
-  modal?: string;
   resourceClaim?: ResourceClaim;
 }
 
@@ -73,10 +70,23 @@ const WorkshopsItem: React.FC<{
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
 
   const [modalState, setModalState] = React.useState<ModalState>({});
+  const [modalAction, openModalAction] = useModal();
+  const [modalDelete, openModalDelete] = useModal();
   const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedResourceClaims, setSelectedResourceClaims] = React.useState<ResourceClaim[]>([]);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [workshopFetchState, reduceWorkshopFetchState] = useReducer(k8sFetchStateReducer, null);
+  const showModal = useCallback(
+    ({ action, resourceClaim }: ModalState) => {
+      setModalState({ action, resourceClaim });
+      if (action === 'delete') {
+        openModalDelete();
+      } else if (action === 'deleteService' || action === 'startService' || action === 'stopService') {
+        openModalAction();
+      }
+    },
+    [openModalAction, openModalDelete]
+  );
 
   const serviceNamespaces: ServiceNamespace[] = userNamespacesFetchState?.items
     ? userNamespacesFetchState.items.map((ns: Namespace): ServiceNamespace => {
@@ -138,7 +148,6 @@ const WorkshopsItem: React.FC<{
         items: deleteResourceClaims,
       });
     }
-    setModalState({});
   }
 
   async function onServiceStartConfirm(): Promise<void> {
@@ -155,7 +164,6 @@ const WorkshopsItem: React.FC<{
         items: updatedResourceClaims,
       });
     }
-    setModalState({});
   }
 
   async function onServiceStopConfirm(): Promise<void> {
@@ -172,7 +180,6 @@ const WorkshopsItem: React.FC<{
         items: updatedResourceClaims,
       });
     }
-    setModalState({});
   }
 
   async function onWorkshopDeleteConfirm(): Promise<void> {
@@ -261,39 +268,33 @@ const WorkshopsItem: React.FC<{
 
   return (
     <>
-      {modalState?.action === 'delete' ? (
-        <WorkshopDeleteModal
-          key="deleteModal"
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onConfirm={onWorkshopDeleteConfirm}
-          workshop={workshop}
-        />
-      ) : modalState?.action === 'deleteService' ? (
-        <ResourceClaimDeleteModal
-          key="deleteServiceModal"
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onConfirm={onServiceDeleteConfirm}
-          resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
-        />
-      ) : modalState?.action === 'startService' ? (
-        <ResourceClaimStartModal
-          key="startServiceModal"
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onConfirm={onServiceStartConfirm}
-          resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
-        />
-      ) : modalState?.action === 'stopService' ? (
-        <ResourceClaimStopModal
-          key="stopServiceModal"
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onConfirm={onServiceStopConfirm}
-          resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
-        />
-      ) : null}
+      <Modal
+        ref={modalDelete}
+        onConfirm={onWorkshopDeleteConfirm}
+        title={workshop ? `Delete workshop ${displayName(workshop)}?` : 'Delete selected workshops?'}
+      >
+        <p>Provisioned services will be deleted.</p>
+      </Modal>
+
+      <Modal ref={modalAction} passModifiers={true} onConfirm={() => null}>
+        {modalState?.action === 'deleteService' ? (
+          <ResourceClaimDeleteModal
+            onConfirm={onServiceDeleteConfirm}
+            resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
+          />
+        ) : modalState?.action === 'startService' ? (
+          <ResourceClaimStartModal
+            onConfirm={onServiceStartConfirm}
+            resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
+          />
+        ) : modalState?.action === 'stopService' ? (
+          <ResourceClaimStopModal
+            onConfirm={onServiceStopConfirm}
+            resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
+          />
+        ) : null}
+      </Modal>
+
       {userIsAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
@@ -350,28 +351,21 @@ const WorkshopsItem: React.FC<{
             <Bullseye>
               <WorkshopActions
                 position="right"
-                workshop={workshop}
+                workshopName={workshop.spec.displayName}
                 actionHandlers={{
-                  delete: () => setModalState({ modal: 'action', action: 'delete' }),
+                  delete: () => showModal({ action: 'delete' }),
                   deleteService:
-                    selectedResourceClaims.length === 0
-                      ? null
-                      : () => setModalState({ modal: 'action', action: 'deleteService' }),
+                    selectedResourceClaims.length === 0 ? null : () => showModal({ action: 'deleteService' }),
                   startService:
-                    selectedResourceClaims.length === 0
-                      ? null
-                      : () => setModalState({ modal: 'action', action: 'startService' }),
-                  stopService:
-                    selectedResourceClaims.length === 0
-                      ? null
-                      : () => setModalState({ modal: 'action', action: 'stopService' }),
+                    selectedResourceClaims.length === 0 ? null : () => showModal({ action: 'startService' }),
+                  stopService: selectedResourceClaims.length === 0 ? null : () => showModal({ action: 'stopService' }),
                 }}
               />
             </Bullseye>
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection key="body" variant={PageSectionVariants.light} className="workshops-item-body">
+      <PageSection key="body" variant={PageSectionVariants.light} className="workshops-item__body">
         <Tabs
           activeKey={activeTab || 'details'}
           onSelect={(e, tabIndex) => history.push(`/workshops/${serviceNamespaceName}/${workshopName}/${tabIndex}`)}
@@ -390,7 +384,7 @@ const WorkshopsItem: React.FC<{
           <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
             <WorkshopsItemServices
               modalState={modalState}
-              setModalState={setModalState}
+              showModal={showModal}
               setSelectedResourceClaims={setSelectedResourceClaims}
               resourceClaimsFetchState={resourceClaimsFetchState}
               reduceResourceClaimsFetchState={reduceResourceClaimsFetchState}
