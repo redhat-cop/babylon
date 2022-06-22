@@ -7,7 +7,9 @@ import { CatalogItem } from '@app/types';
 import { displayName, renderContent } from '@app/util';
 
 import CatalogItemIcon from './CatalogItemIcon';
-import { getDescription, getProvider, getStage } from './catalog-utils';
+import { getDescription, getIsDisabled, getProvider, getStage, getStatus } from './catalog-utils';
+import StatusPageIcons from '@app/components/StatusPageIcons';
+
 import './catalog-item-card.css';
 
 const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
@@ -17,6 +19,8 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const { description, descriptionFormat } = getDescription(catalogItem);
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
+  const isDisabled = getIsDisabled(catalogItem);
+  const { code: status } = getStatus(catalogItem);
 
   if (!urlSearchParams.has('item')) {
     if (routeMatch.params.namespace) {
@@ -27,11 +31,15 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   }
 
   return (
-    <Link className="catalog-item-card" to={`${location.pathname}?${urlSearchParams.toString()}`}>
+    <Link
+      className={`catalog-item-card ${isDisabled ? 'catalog-item-card--disabled' : ''}`}
+      to={`${location.pathname}?${urlSearchParams.toString()}`}
+    >
       <CardHeader className="catalog-item-card__header">
         <Split>
           <SplitItem>
             <CatalogItemIcon catalogItem={catalogItem} />
+            {status && status !== 'operational' ? <StatusPageIcons status={status} /> : null}
           </SplitItem>
           <SplitItem className="catalog-item-card__badges" isFilled>
             {stage === 'dev' ? (

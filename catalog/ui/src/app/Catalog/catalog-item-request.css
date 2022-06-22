@@ -34,6 +34,6 @@
 
 .catalog-item-request__form .select-wrapper,
 .catalog-item-request__form input:not([type='number']).pf-c-form-control {
-  max-width: 360px;
+  max-width: var(--babylon-form-width);
   width: 100%;
 }

@@ -21,6 +21,7 @@ import {
   Split,
   SplitItem,
   Title,
+  Label,
 } from '@patternfly/react-core';
 
 import { createServiceRequest } from '@app/api';
@@ -40,9 +41,10 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
-import { getProvider, getDescription, formatTime } from './catalog-utils';
+import { getProvider, getDescription, formatTime, getIsDisabled, getStatus } from './catalog-utils';
 
 import './catalog-item-details.css';
+import StatusPageIcons from '@app/components/StatusPageIcons';
 
 enum CatalogItemAccess {
   Allow,
@@ -75,6 +77,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       namespace === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`] &&
       name === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
   );
+  const isDisabled = getIsDisabled(catalogItem);
+  const { code: statusCode, name: statusName } = getStatus(catalogItem);
 
   const accessCheckResult: string = checkAccessControl(accessControl, userGroups);
 
@@ -152,13 +156,33 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         <PageSection variant={PageSectionVariants.light} className="catalog-item-details__actions">
           {catalogItemAccess === CatalogItemAccess.Allow ? (
             <>
-              <Button key="request-service" onClick={requestCatalogItem} variant="primary">
+              <Button key="request-service" onClick={requestCatalogItem} variant="primary" isDisabled={isDisabled}>
                 Request Service
               </Button>
               {workshopNamespaces.length > 0 ? (
-                <Button key="request-workshop" onClick={requestWorkshop} variant="primary">
+                <Button key="request-workshop" onClick={requestWorkshop} variant="primary" isDisabled={isDisabled}>
                   Request Workshop
                 </Button>
+              ) : null}
+              {userIsAdmin ? (
+                <Button
+                  key="catalog-item-admin"
+                  onClick={() => history.push(`/admin/catalogitems/${namespace}/${name}`)}
+                  variant="secondary"
+                >
+                  Admin
+                </Button>
+              ) : null}
+              {statusCode && statusCode !== 'operational' ? (
+                <div className="catalog-item-details__status">
+                  <Label
+                    className={`catalog-item-details__status--${statusCode}`}
+                    variant="outline"
+                    icon={<StatusPageIcons style={{ width: '16px' }} status={statusCode} />}
+                  >
+                    {statusName}
+                  </Label>
+                </div>
               ) : null}
             </>
           ) : catalogItemAccess === CatalogItemAccess.Deny ? (

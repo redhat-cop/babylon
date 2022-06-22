@@ -268,7 +268,7 @@ const WorkshopsItemServices: React.FC<{
                 />
               </div>
             ) : (
-              '...'
+              <p>...</p>
             ),
             // Created
             <>
