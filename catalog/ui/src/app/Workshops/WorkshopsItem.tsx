@@ -48,11 +48,11 @@ import WorkshopsItemServices from './WorkshopsItemServices';
 import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
 import Modal, { useModal } from '@app/Modal/Modal';
-
-import './workshops-item.css';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
 import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
 import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
+
+import './workshops-item.css';
 export interface ModalState {
   action?: 'delete' | 'deleteService' | 'startService' | 'stopService';
   resourceClaim?: ResourceClaim;
@@ -296,7 +296,7 @@ const WorkshopsItem: React.FC<{
       </Modal>
 
       {userIsAdmin || serviceNamespaces.length > 1 ? (
-        <PageSection key="topbar" className="workshops-topbar" variant={PageSectionVariants.light}>
+        <PageSection key="topbar" className="workshops-item__topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
             currentNamespaceName={serviceNamespaceName}
             serviceNamespaces={serviceNamespaces}
@@ -310,7 +310,7 @@ const WorkshopsItem: React.FC<{
           />
         </PageSection>
       ) : null}
-      <PageSection key="head" className="workshops-item-head" variant={PageSectionVariants.light}>
+      <PageSection key="head" className="workshops-item__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
             {userIsAdmin || serviceNamespaces.length > 1 ? (
