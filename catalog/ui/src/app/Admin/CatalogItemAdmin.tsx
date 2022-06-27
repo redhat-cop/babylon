@@ -36,9 +36,9 @@ import MajorOutageLogo from '@app/components/StatusPageIcons/MajorOutage';
 import UnderMaintenanceLogo from '@app/components/StatusPageIcons/UnderMaintenance';
 import useSession from '@app/utils/useSession';
 import LocalTimestamp from '@app/components/LocalTimestamp';
+import LoadingIcon from '@app/components/LoadingIcon';
 
 import './catalog-item-admin.css';
-import LoadingIcon from '@app/components/LoadingIcon';
 
 const CatalogItemAdmin: React.FC = () => {
   const routeMatch = useRouteMatch<{
