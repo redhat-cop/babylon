@@ -131,3 +131,25 @@
   color: red;
   padding: 0.1em;
 }
+
+.catalog-item-details__status {
+  display: inline-flex;
+}
+.catalog-item-details__status .pf-c-label {
+  margin: auto 0;
+}
+.catalog-item-details__status .pf-c-label__icon {
+  display: flex;
+}
+.catalog-item-details__status .pf-c-label__content {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-global--spacer--xs);
+  align-items: center;
+}
+.catalog-item-details__status--degraded-performance .pf-c-label__content:before {
+  border-color: #f1c40f;
+}
+.catalog-item-details__status--degraded-performance .pf-c-label__content {
+  color: #3d2c00;
+}

@@ -646,7 +646,7 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
                     />
                   </div>
                 ) : (
-                  '...'
+                  <p>...</p>
                 ),
                 // Lab Interface
                 labUserInterfaceUrl ? (

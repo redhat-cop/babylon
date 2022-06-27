@@ -1,0 +1,75 @@
+.catalog-item-admin__header-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.catalog-item-admin__header-icon .catalog-item-icon {
+  height: 90px;
+  width: 90px;
+  margin-right: var(--pf-global--spacer--md);
+}
+.catalog-item-admin__title {
+  font-weight: var(--pf-global--FontWeight--bold) !important;
+  padding-bottom: var(--pf-global--spacer--xs);
+}
+.catalog-item-admin__subtitle {
+  color: var(--pf-global--palette--black-600);
+  font-size: var(--pf-global--FontSize--sm) !important;
+  font-weight: var(--pf-global--FontWeight--bold) !important;
+  padding-bottom: var(--pf-global--spacer--xs);
+}
+.catalog-item-admin__form {
+  margin: var(--pf-global--spacer--lg) 0;
+}
+.catalog-item-admin__form .select-wrapper,
+.catalog-item-admin__form input:not([type='number']).pf-c-form-control {
+  max-width: var(--babylon-form-width);
+  width: 100%;
+}
+.catalog-item-admin__add-comment {
+  max-width: 560px;
+}
+.catalog-item-admin__form .select-wrapper .pf-c-select__toggle-text,
+.catalog-item-admin__form .select-wrapper .pf-c-select__menu-item {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-global--spacer--sm);
+  align-items: center;
+}
+.catalog-item-admin__group-control--single,
+.catalog-item-admin__group-control--multi {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-global--spacer--md);
+  align-items: center;
+}
+
+.catalog-item-admin__author {
+  font-weight: var(--pf-global--link--FontWeight) !important;
+  font-size: var(--pf-global--FontSize--xs) !important;
+  color: var(--pf-global--Color--100);
+}
+.catalog-item-admin__timestamp {
+  color: var(--pf-global--palette--black-600);
+  font-style: italic;
+}
+.catalog-item-admin__message {
+  font-size: var(--pf-global--FontSize--xs) !important;
+  padding-bottom: var(--pf-global--spacer--xs);
+}
+.catalog-item-admin__comments > li:last-child {
+  padding-bottom: var(--pf-global--spacer--sm);
+}
+.catalog-item-admin__add-comment {
+  margin-bottom: var(--pf-global--spacer--sm);
+  min-height: 80px;
+}
+.catalog-item-admin__loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.65);
+  z-index: 999;
+}

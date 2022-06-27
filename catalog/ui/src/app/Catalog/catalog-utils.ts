@@ -24,6 +24,34 @@ export function getStage(catalogItem: CatalogItem): string | null {
   return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
 }
 
+export function getIsDisabled(catalogItem: CatalogItem): boolean {
+  if (catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/disabled`]) {
+    return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/disabled`] === 'true';
+  }
+  return false;
+}
+
+export function getStatus(catalogItem: CatalogItem): { code: string; name: string } | null {
+  if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]) {
+    const ops = JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]);
+    if (ops.status) {
+      switch (ops.status) {
+        case 'degraded-performance':
+          return { code: ops.status, name: 'Degraded performance' };
+        case 'partial-outage':
+          return { code: ops.status, name: 'Partial outage' };
+        case 'major-outage':
+          return { code: ops.status, name: 'Major outage' };
+        case 'under-maintenance':
+          return { code: ops.status, name: 'Under maintenance' };
+        default:
+          return { code: 'operational', name: 'Operational' };
+      }
+    }
+  }
+  return { code: null, name: '' };
+}
+
 export function formatTime(time: string): string {
   if (!time || time.length === 0) {
     return '-';

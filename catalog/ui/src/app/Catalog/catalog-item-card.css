@@ -9,6 +9,9 @@
   padding: var(--pf-global--spacer--lg);
   overflow: hidden;
 }
+.catalog-item-card--disabled {
+  opacity: 0.45;
+}
 
 .catalog-item-card:hover {
   box-shadow: var(--pf-c-card--m-hoverable--hover--BoxShadow);
@@ -59,7 +62,14 @@
 .catalog-item-card__header.pf-c-card__header > .pf-l-split {
   width: 100%;
 }
-
+.catalog-item-card__header.pf-c-card__header .pf-l-split__item {
+  position: relative;
+}
+.catalog-item-card__header.pf-c-card__header svg {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+}
 .catalog-item-card__badges {
   text-align: right;
 }
