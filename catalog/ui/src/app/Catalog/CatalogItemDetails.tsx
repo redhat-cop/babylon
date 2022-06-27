@@ -156,11 +156,21 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         <PageSection variant={PageSectionVariants.light} className="catalog-item-details__actions">
           {catalogItemAccess === CatalogItemAccess.Allow ? (
             <>
-              <Button key="request-service" onClick={requestCatalogItem} variant="primary" isDisabled={isDisabled}>
+              <Button
+                key="request-service"
+                onClick={requestCatalogItem}
+                variant="primary"
+                isDisabled={userIsAdmin ? false : isDisabled}
+              >
                 Request Service
               </Button>
               {workshopNamespaces.length > 0 ? (
-                <Button key="request-workshop" onClick={requestWorkshop} variant="primary" isDisabled={isDisabled}>
+                <Button
+                  key="request-workshop"
+                  onClick={requestWorkshop}
+                  variant="primary"
+                  isDisabled={userIsAdmin ? false : isDisabled}
+                >
                   Request Workshop
                 </Button>
               ) : null}

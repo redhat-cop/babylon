@@ -61,7 +61,7 @@ describe('CatalogItemAdmin Component', () => {
       status: 'operational',
       identifier: 'jdoe@redhat.com',
       incidentUrl: '',
-      lastUpdated: mockDate.getTime(),
+      lastUpdated: mockDate.toISOString(),
       lastUpdatedBy: 'test@redhat.com',
       comments: [],
     };

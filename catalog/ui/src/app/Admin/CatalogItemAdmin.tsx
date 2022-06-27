@@ -96,14 +96,14 @@ const CatalogItemAdmin: React.FC = () => {
       ? comments.push({
           message: comment,
           author: userEmail,
-          timestamp: new Date().getTime(),
+          timestamp: new Date().toISOString(),
         })
       : [];
     const patchObj = {
       status,
       identifier,
       incidentUrl,
-      lastUpdated: new Date().getTime(),
+      lastUpdated: new Date().toISOString(),
       lastUpdatedBy: userEmail,
       comments,
     };
@@ -225,7 +225,7 @@ const CatalogItemAdmin: React.FC = () => {
               <li key={comment.timestamp} className="catalog-item-admin__comment">
                 <p className="catalog-item-admin__author">
                   <b>{comment.author} </b>-{' '}
-                  <LocalTimestamp className="catalog-item-admin__timestamp" time={comment.timestamp} />
+                  <LocalTimestamp className="catalog-item-admin__timestamp" timestamp={comment.timestamp} />
                   <Button aria-label="Remove comment" onClick={() => removeComment(comment)} variant="plain">
                     <TrashIcon width={12} color="#6a6e73" />
                   </Button>
