@@ -1,25 +1,22 @@
-import React from 'react';
-
-import { Button, Modal, ModalVariant } from '@patternfly/react-core';
+import React, { useEffect } from 'react';
 import { ResourceClaim } from '@app/types';
 import { displayName } from '@app/util';
-
-const parseDuration = require('parse-duration');
+import parseDuration from 'parse-duration';
 import TimeInterval from '@app/components/TimeInterval';
 
-interface ResourceClaimStartModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
+const ResourceClaimStartModal: React.FC<{
+  onConfirm: () => Promise<void>;
   resourceClaims: ResourceClaim[];
-}
+  setTitle?: React.Dispatch<React.SetStateAction<string>>;
+  setOnConfirmCb?: (_: any) => Promise<void>;
+}> = ({ onConfirm, resourceClaims, setTitle, setOnConfirmCb }) => {
+  useEffect(() => {
+    setOnConfirmCb(() => onConfirm);
+  }, [onConfirm, setOnConfirmCb]);
+  useEffect(() => {
+    setTitle(resourceClaims.length === 1 ? `Start ${displayName(resourceClaims[0])}?` : 'Start selected services?');
+  }, [resourceClaims, setTitle]);
 
-const ResourceClaimStartModal: React.FunctionComponent<ResourceClaimStartModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  resourceClaims,
-}) => {
   if (resourceClaims.length === 1) {
     const resourceClaim: ResourceClaim = resourceClaims[0];
     const defaultRuntime: number | null = resourceClaim.status?.resources
@@ -30,21 +27,7 @@ const ResourceClaimStartModal: React.FunctionComponent<ResourceClaimStartModalPr
         )
       : null;
     return (
-      <Modal
-        className="resourceClaim-start-modal"
-        variant={ModalVariant.small}
-        title={`Start ${displayName(resourceClaim)}`}
-        isOpen={isOpen}
-        onClose={onClose}
-        actions={[
-          <Button key="confirm" variant="primary" onClick={onConfirm}>
-            Confirm
-          </Button>,
-          <Button key="cancel" variant="link" onClick={onClose}>
-            Cancel
-          </Button>,
-        ]}
-      >
+      <p>
         {defaultRuntime ? (
           <>
             {(resourceClaim.spec.resources || []).length === 1 ? 'Service' : 'Services'}
@@ -54,28 +37,10 @@ const ResourceClaimStartModal: React.FunctionComponent<ResourceClaimStartModalPr
         ) : (
           <>Services will automatically stop according to their configured schedules.</>
         )}
-      </Modal>
+      </p>
     );
   } else {
-    return (
-      <Modal
-        className="resourceClaim-delete-modal"
-        variant={ModalVariant.medium}
-        title="Start selected services?"
-        isOpen={isOpen}
-        onClose={onClose}
-        actions={[
-          <Button key="confirm" variant="primary" onClick={onConfirm}>
-            Confirm
-          </Button>,
-          <Button key="cancel" variant="link" onClick={onClose}>
-            Cancel
-          </Button>,
-        ]}
-      >
-        Services may automatically stop according to their configured schedules.
-      </Modal>
-    );
+    return <p> Services may automatically stop according to their configured schedules.</p>;
   }
 };
 

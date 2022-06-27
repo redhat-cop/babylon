@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useRef } from 'react';
+import React, { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
 
@@ -15,7 +15,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { ExclamationTriangleIcon, TrashIcon } from '@patternfly/react-icons';
 
 import { deleteWorkshop, listNamespaces, listWorkshops } from '@app/api';
 import { Namespace, NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
@@ -35,9 +35,10 @@ import TimeInterval from '@app/components/TimeInterval';
 import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
 
 import WorkshopActions from './WorkshopActions';
-import WorkshopDeleteModal from './WorkshopDeleteModal';
+import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
+import Modal, { useModal } from '@app/Modal/Modal';
 
-import './workshops.css';
+import './workshops-list.css';
 
 const FETCH_BATCH_LIMIT = 30;
 
@@ -53,18 +54,13 @@ function keywordMatch(workshop: Workshop, keyword: string): boolean {
   return false;
 }
 
-interface ModalState {
-  action?: string;
-  modal?: string;
-  workshop?: Workshop;
-}
-
 const WorkshopsList: React.FC<{
   serviceNamespaceName: string;
 }> = ({ serviceNamespaceName }) => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
+  const [modalAction, openModalAction] = useModal();
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search')
     ? urlSearchParams
@@ -78,10 +74,18 @@ const WorkshopsList: React.FC<{
   const sessionWorkshopNamespaces = useSelector(selectWorkshopNamespaces);
   const userIsAdmin = useSelector(selectUserIsAdmin);
 
-  const [modalState, setModalState] = React.useState<ModalState>({});
+  const [modalState, setModalState] = React.useState<{ action?: string; workshop?: Workshop }>({});
   const [selectedUids, setSelectedUids] = React.useState([]);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [workshopsFetchState, reduceWorkshopsFetchState] = useReducer(k8sFetchStateReducer, null);
+
+  const showModal = useCallback(
+    ({ action, workshop }: { action: string; workshop?: Workshop }) => {
+      setModalState({ action, workshop });
+      openModalAction();
+    },
+    [openModalAction]
+  );
 
   const serviceNamespaces: ServiceNamespace[] = userIsAdmin
     ? userNamespacesFetchState?.items
@@ -186,7 +190,6 @@ const WorkshopsList: React.FC<{
       type: 'removeItems',
       items: deletedWorkshops,
     });
-    setModalState({});
   }
 
   // Track unmount for other effect cleanups
@@ -278,17 +281,17 @@ const WorkshopsList: React.FC<{
 
   return (
     <>
-      {modalState?.action === 'delete' ? (
-        <WorkshopDeleteModal
-          key="deleteModal"
-          isOpen={true}
-          onClose={() => setModalState({})}
-          onConfirm={onWorkshopDeleteConfirm}
-          workshop={modalState.workshop}
-        />
-      ) : null}
+      <Modal
+        ref={modalAction}
+        onConfirm={onWorkshopDeleteConfirm}
+        title={
+          modalState.workshop ? `Delete workshop ${displayName(modalState.workshop)}?` : 'Delete selected workshops?'
+        }
+      >
+        <p>Provisioned services will be deleted.</p>
+      </Modal>
       {serviceNamespaces.length > 1 ? (
-        <PageSection key="topbar" className="workshops-topbar" variant={PageSectionVariants.light}>
+        <PageSection key="topbar" className="workshops-list__topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
             currentNamespaceName={serviceNamespaceName}
             serviceNamespaces={serviceNamespaces}
@@ -302,7 +305,7 @@ const WorkshopsList: React.FC<{
           />
         </PageSection>
       ) : null}
-      <PageSection key="head" className="workshops-head" variant={PageSectionVariants.light}>
+      <PageSection key="head" className="workshops-list__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
             {serviceNamespaces.length > 1 && serviceNamespaceName ? (
@@ -342,7 +345,7 @@ const WorkshopsList: React.FC<{
               position="right"
               workshopName="Selected"
               actionHandlers={{
-                delete: () => setModalState({ modal: 'action', action: 'delete' }),
+                delete: () => showModal({ action: 'delete' }),
               }}
             />
           </SplitItem>
@@ -391,7 +394,7 @@ const WorkshopsList: React.FC<{
             }}
             rows={workshops.map((workshop: Workshop) => {
               const actionHandlers = {
-                delete: () => setModalState({ action: 'delete', modal: 'action', workshop: workshop }),
+                delete: () => showModal({ action: 'delete', workshop }),
               };
 
               const workshopServiceNamespace: ServiceNamespace = serviceNamespaces.find(
@@ -448,9 +451,22 @@ const WorkshopsList: React.FC<{
                   (<TimeInterval key="interval" toTimestamp={workshop.metadata.creationTimestamp} />)
                 </>,
                 // Actions
-                <>
-                  <WorkshopActions position="right" workshop={workshop} actionHandlers={actionHandlers} />
-                </>
+                <React.Fragment key="actions">
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      gap: 'var(--pf-global--spacer--sm)',
+                    }}
+                  >
+                    <ButtonCircleIcon
+                      key="actions__delete"
+                      onClick={actionHandlers.delete}
+                      description="Delete"
+                      icon={TrashIcon}
+                    />
+                  </div>
+                </React.Fragment>
               );
               return {
                 cells: cells,

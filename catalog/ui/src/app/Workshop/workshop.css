@@ -6,30 +6,6 @@
   height: 50px;
 }
 
-.workshops-list.pf-c-page__main-section {
-  padding-top: 1em;
-}
-
-.workshops-list.pf-c-page__main-section table.pf-c-table thead th {
-  padding-top: 0;
-  padding-bottom: 1em;
-}
-
-.workshops-list.pf-c-page__main-section table.pf-c-table thead td {
-  padding-top: 0;
-  padding-bottom: 1em;
-}
-
-.workshops-list.pf-c-page__main-section table.pf-c-table tbody th {
-  padding-top: 1em;
-  padding-bottom: 1em;
-}
-
-.workshops-list.pf-c-page__main-section table.pf-c-table tbody td {
-  padding-top: 1em;
-  padding-bottom: 1em;
-}
-
 .workshop-login-failure {
   color: var(--pf-global--danger-color--200);
 }

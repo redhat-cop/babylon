@@ -1,8 +1,6 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-
 import {
   DescriptionList,
   DescriptionListTerm,
@@ -29,12 +27,10 @@ interface EditableWorkshopSpecFields {
   openRegistration?: boolean;
 }
 
-interface WorkshopsItemDetailsProps {
+const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
   workshop: Workshop;
-}
-
-const WorkshopsItemDetails: React.FunctionComponent<WorkshopsItemDetailsProps> = ({ onWorkshopUpdate, workshop }) => {
+}> = ({ onWorkshopUpdate, workshop }) => {
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
   const userRegistrationValue: 'open' | 'pre' = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopID: string = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];

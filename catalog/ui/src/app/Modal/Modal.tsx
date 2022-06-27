@@ -6,6 +6,7 @@ import React, {
   useCallback,
   ForwardRefRenderFunction,
   ReactPortal,
+  useLayoutEffect,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Modal, ModalVariant } from '@patternfly/react-core';
@@ -41,6 +42,10 @@ const _Modal: ForwardRefRenderFunction<
   useEffect(() => {
     setDomReady(true);
   }, []);
+
+  useLayoutEffect(() => {
+    setTitle(title);
+  }, [title]);
 
   useImperativeHandle(
     ref,

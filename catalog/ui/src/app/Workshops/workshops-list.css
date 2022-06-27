@@ -1,0 +1,33 @@
+.workshops-list__head.pf-c-page__main-section {
+  padding-top: var(--pf-global--spacer--md);
+  padding-bottom: var(--pf-global--spacer--md);
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+}
+
+.workshops-list__head.pf-c-page__main-section .pf-c-breadcrumb__item {
+  font-size: var(--pf-global--icon--FontSize--md);
+  margin-top: var(--pf-global--spacer--xs);
+}
+
+.workshops-list__topbar.pf-c-page__main-section {
+  padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--sm);
+  border-bottom: 1px solid var(--pf-global--palette--black-300);
+}
+
+.workshops-list__topbar.pf-c-page__main-section .pf-c-dropdown__toggle {
+  color: var(--pf-global--palette--black-900);
+}
+
+.workshops-list__topbar.pf-c-page__main-section .pf-c-dropdown__menu {
+  max-height: 25em;
+  overflow-y: scroll;
+}
+
+.workshops-list__topbar.pf-c-page__main-section .pf-c-dropdown__menu .pf-c-dropdown__menu-item {
+  padding-bottom: var(--pf-global--spacer--sm);
+  padding-top: var(--pf-global--spacer--sm);
+}
+
+.workshops-list .pf-c-table tbody > tr > * {
+  vertical-align: middle !important;
+}

@@ -1,43 +1,22 @@
-import React from 'react';
-
-import { Button, Modal, ModalVariant } from '@patternfly/react-core';
+import React, { useEffect } from 'react';
 import { ResourceClaim } from '@app/types';
 import { displayName } from '@app/util';
 
-interface ResourceClaimDeleteModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
+const ResourceClaimDeleteModal: React.FC<{
+  onConfirm: () => Promise<void>;
   resourceClaims: ResourceClaim[];
-}
-
-const ResourceClaimDeleteModal: React.FunctionComponent<ResourceClaimDeleteModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  resourceClaims,
-}) => {
-  return (
-    <Modal
-      className="resourceClaim-delete-modal"
-      variant={ModalVariant.medium}
-      title={
-        resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?'
-      }
-      isOpen={isOpen}
-      onClose={onClose}
-      actions={[
-        <Button key="confirm" variant="primary" onClick={onConfirm}>
-          Confirm
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onClose}>
-          Cancel
-        </Button>,
-      ]}
-    >
-      Cloud resources will be deleted. Restore for deleted resources is not available.
-    </Modal>
-  );
+  setTitle?: React.Dispatch<React.SetStateAction<string>>;
+  setOnConfirmCb?: (_: any) => Promise<void>;
+}> = ({ onConfirm, resourceClaims, setTitle, setOnConfirmCb }) => {
+  useEffect(() => {
+    setOnConfirmCb(() => onConfirm);
+  }, [onConfirm, setOnConfirmCb]);
+  useEffect(() => {
+    setTitle(
+      resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?'
+    );
+  }, [resourceClaims, setTitle]);
+  return <p>Cloud resources will be deleted. Restore for deleted resources is not available.</p>;
 };
 
 export default ResourceClaimDeleteModal;
