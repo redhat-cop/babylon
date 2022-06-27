@@ -1,0 +1,6 @@
+apiVersion: v2
+name: babylon-cost-tracker
+description: A Helm chart for the babylon cost tracker component.
+type: application
+version: 0.1.0
+appVersion: 0.1.0
