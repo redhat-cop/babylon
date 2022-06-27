@@ -1,14 +1,28 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, Suspense } from 'react';
 import { render, RenderOptions, queries, RenderResult } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from '@app/store';
 import { createMemoryHistory, MemoryHistory } from 'history';
+import { EmptyState, EmptyStateIcon, PageSection } from '@patternfly/react-core';
+import LoadingIcon from '@app/components/LoadingIcon';
 
 const AllTheProviders = ({ children, history }) => {
   return (
     <Provider store={store}>
-      <Router history={history}>{children}</Router>
+      <Router history={history}>
+        <Suspense
+          fallback={
+            <PageSection>
+              <EmptyState variant="full">
+                <EmptyStateIcon icon={LoadingIcon} />
+              </EmptyState>
+            </PageSection>
+          }
+        >
+          {children}
+        </Suspense>
+      </Router>
       <div id="modal-root"></div>
     </Provider>
   );

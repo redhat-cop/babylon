@@ -649,7 +649,7 @@ const AllServicesList: React.FunctionComponent<{
                     />
                   </div>
                 ) : (
-                  '...'
+                  <p>...</p>
                 ),
                 // Lab Interface
                 labUserInterfaceUrl ? (

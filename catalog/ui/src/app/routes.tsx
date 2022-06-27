@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Route, RouteComponentProps, Switch } from 'react-router-dom';
-import { Spinner } from '@patternfly/react-core';
+import { EmptyState, EmptyStateIcon, PageSection } from '@patternfly/react-core';
 
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
@@ -21,8 +21,10 @@ const ResourcePools = React.lazy(() => import('@app/Admin/ResourcePools'));
 const ResourcePoolInstance = React.lazy(() => import('@app/Admin/ResourcePoolInstance'));
 const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'));
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
+const CatalogItemAdmin = React.lazy(() => import('@app/Admin/CatalogItemAdmin'));
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import useSession from '@app/utils/useSession';
+import LoadingIcon from '@app/components/LoadingIcon';
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -183,6 +185,11 @@ const adminRoutes: AppRouteConfig[] = [
     path: '/admin/resourceproviders',
     title: 'Babylon | Admin',
   },
+  {
+    component: CatalogItemAdmin,
+    path: '/admin/catalogitems/:namespace/:name',
+    title: 'Babylon | Admin',
+  },
 ];
 
 const RouteWithTitleUpdates = ({ component: Component, isAsync = false, title, ...rest }: IAppRoute) => {
@@ -215,7 +222,15 @@ const AppRoutes = (): React.ReactElement => {
   const { isAdmin, userInterface } = useSession().getSession();
 
   return (
-    <React.Suspense fallback={<Spinner isSVG size="lg" />}>
+    <Suspense
+      fallback={
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={LoadingIcon} />
+          </EmptyState>
+        </PageSection>
+      }
+    >
       <Switch>
         {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
           const pageTitle =
@@ -257,7 +272,7 @@ const AppRoutes = (): React.ReactElement => {
           : null}
         <PageNotFound title="404 Page Not Found" />
       </Switch>
-    </React.Suspense>
+    </Suspense>
   );
 };
 

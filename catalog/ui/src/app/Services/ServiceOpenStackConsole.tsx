@@ -1,11 +1,6 @@
 import React from 'react';
-
-import { useLocation } from 'react-router-dom';
-
 import { Button, Dropdown, DropdownToggle, DropdownItem, Spinner } from '@patternfly/react-core';
-
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
-
 import {
   getOpenStackServersForResourceClaim,
   rebootOpenStackServer,
@@ -16,10 +11,6 @@ import {
 } from '@app/api';
 
 import { ResourceClaim } from '@app/types';
-
-export interface ServiceOpenStackConsoleProps {
-  resourceClaim: ResourceClaim;
-}
 
 async function fetchOpenStackServers(resourceClaim, setOpenStackServers, setSelectedServer) {
   try {
@@ -34,7 +25,9 @@ async function fetchOpenStackServers(resourceClaim, setOpenStackServers, setSele
   }
 }
 
-const ServiceOpenStackConsole: React.FunctionComponent<ServiceOpenStackConsoleProps> = ({ resourceClaim }) => {
+const ServiceOpenStackConsole: React.FC<{
+  resourceClaim: ResourceClaim;
+}> = ({ resourceClaim }) => {
   const [openStackServers, setOpenStackServers] = React.useState([] as any);
   const [serverConsoleUrl, setServerConsoleUrl] = React.useState<string | null>(null);
   const [serverSelectIsOpen, setServerSelectIsOpen] = React.useState(false);

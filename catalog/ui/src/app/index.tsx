@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
-
+import { SWRConfig } from 'swr';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import AppLayout from '@app/AppLayout/AppLayout';
 import Workshop from '@app/Workshop/Workshop';
@@ -23,18 +23,24 @@ const App: React.FC = () => {
     }
   }, [setImpersonation]);
   return (
-    <BrowserRouter>
-      <Switch>
-        <Route path="/workshop">
-          <Workshop />
-        </Route>
-        <Route path="/">
-          <AppLayout>
-            <AppRoutes />
-          </AppLayout>
-        </Route>
-      </Switch>
-    </BrowserRouter>
+    <SWRConfig
+      value={{
+        suspense: true,
+      }}
+    >
+      <BrowserRouter>
+        <Switch>
+          <Route path="/workshop">
+            <Workshop />
+          </Route>
+          <Route path="/">
+            <AppLayout>
+              <AppRoutes />
+            </AppLayout>
+          </Route>
+        </Switch>
+      </BrowserRouter>
+    </SWRConfig>
   );
 };
 

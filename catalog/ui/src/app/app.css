@@ -1,3 +1,7 @@
+:root {
+  --babylon-form-width: 360px;
+}
+
 html,
 body,
 #root {

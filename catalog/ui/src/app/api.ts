@@ -97,6 +97,11 @@ async function apiFetch(path: string, opt?: object): Promise<any> {
   return resp;
 }
 
+export async function fetcher(path: string, opt?: object): Promise<any> {
+  const response = await apiFetch(path, opt);
+  return response.json();
+}
+
 export async function assignWorkshopUser({
   resourceClaimName,
   userName,
@@ -1028,6 +1033,23 @@ export async function patchK8sObject<Type extends K8sObject>({
   return await resp.json();
 }
 
+export async function patchK8sObjectByPath<Type extends K8sObject>({
+  patch,
+  path,
+}: {
+  patch: object;
+  path: string;
+}): Promise<Type> {
+  const resp = await apiFetch(path, {
+    body: JSON.stringify(patch),
+    headers: {
+      'Content-Type': 'application/merge-patch+json',
+    },
+    method: 'PATCH',
+  });
+  return await resp.json();
+}
+
 export async function patchResourceClaim(
   namespace: string,
   name: string,
@@ -1385,7 +1407,7 @@ export async function updateK8sObject<Type extends K8sObject>(definition: Type):
   const plural = definition.kind.toLowerCase() + 's';
   const path = definition.metadata.namespace
     ? `/apis/${definition.apiVersion}/namespaces/${definition.metadata.namespace}/${plural}/${definition.metadata.name}`
-    : `/apis/${definition.apiVersion}/${plural}/${name}`;
+    : `/apis/${definition.apiVersion}/${plural}/${definition.metadata.name}`;
 
   const resp = await apiFetch(path, {
     body: JSON.stringify(definition),
@@ -1400,3 +1422,8 @@ export async function updateK8sObject<Type extends K8sObject>(definition: Type):
 export async function updateWorkshop(workshop: Workshop): Promise<Workshop> {
   return updateK8sObject(workshop);
 }
+
+export const apiPaths = {
+  CATALOG_ITEM: ({ namespace, name }): string =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
+};
