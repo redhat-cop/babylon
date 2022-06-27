@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useEffect, useReducer, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
@@ -55,6 +55,7 @@ import ServicesScheduleAction from './ServicesScheduleAction';
 import Modal, { useModal } from '@app/Modal/Modal';
 
 import './all-services-list.css';
+import { k8sObjectListEquals } from '@app/utils/utils';
 
 const FETCH_BATCH_LIMIT = 30;
 
@@ -108,11 +109,9 @@ export interface ModalState {
   resourceClaim?: ResourceClaim;
 }
 
-export interface ServicesListProps {
+const AllServicesList: React.FunctionComponent<{
   serviceNamespaceName?: string;
-}
-
-const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNamespaceName }) => {
+}> = ({ serviceNamespaceName }) => {
   const history = useHistory();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
@@ -146,7 +145,7 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
 
   const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [modalState, setModalState] = React.useState<ModalState>({});
+  const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [selectedUids, setSelectedUids] = React.useState<string[]>([]);
@@ -218,14 +217,19 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
       namespace: resourceClaimsFetchState.namespace,
     });
     if (!resourceClaimsFetchState.activity.canceled) {
-      reduceResourceClaimsFetchState({
-        type: 'post',
-        k8sObjectList: resourceClaimList,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceResourceClaimsFetchState({ type: 'startRefresh' });
-        },
-      });
+      if (
+        resourceClaimsFetchState.filteredItems.length < resourceClaimsFetchState.limit ||
+        !k8sObjectListEquals(resourceClaimList.items, resourceClaimsFetchState.items)
+      ) {
+        reduceResourceClaimsFetchState({
+          type: 'post',
+          k8sObjectList: resourceClaimList,
+          refreshInterval: 5000,
+          refresh: (): void => {
+            reduceResourceClaimsFetchState({ type: 'startRefresh' });
+          },
+        });
+      }
     }
   }
 
@@ -242,6 +246,18 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
   }
 
   async function onModalAction(): Promise<void> {
+    async function performModalActionForResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
+      if (modalState.action === 'delete') {
+        return await deleteResourceClaim(resourceClaim);
+      } else if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
+        return await startAllResourcesInResourceClaim(resourceClaim);
+      } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
+        return await stopAllResourcesInResourceClaim(resourceClaim);
+      } else {
+        console.warn(`Unkown action ${modalState.action}`);
+        return resourceClaim;
+      }
+    }
     const resourceClaimUpdates: ResourceClaim[] = [];
     if (modalState.resourceClaim) {
       resourceClaimUpdates.push(await performModalActionForResourceClaim(modalState.resourceClaim));
@@ -277,19 +293,6 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
         type: 'updateItems',
         items: [resourceClaimUpdate],
       });
-    }
-  }
-
-  async function performModalActionForResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
-    if (modalState.action === 'delete') {
-      return await deleteResourceClaim(resourceClaim);
-    } else if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
-      return await startAllResourcesInResourceClaim(resourceClaim);
-    } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
-      return await stopAllResourcesInResourceClaim(resourceClaim);
-    } else {
-      console.warn(`Unkown action ${modalState.action}`);
-      return resourceClaim;
     }
   }
 
@@ -697,7 +700,9 @@ const AllServicesList: React.FunctionComponent<ServicesListProps> = ({ serviceNa
               };
             })}
           />
-          {enableFetchResourceClaims && !resourceClaimsFetchState?.finished && !resourceClaimsFetchState?.refreshing ? (
+          {enableFetchResourceClaims &&
+          !resourceClaimsFetchState?.finished &&
+          resourceClaimsFetchState.limit > resourceClaimsFetchState.filteredItems.length ? (
             <EmptyState variant="full">
               <EmptyStateIcon icon={LoadingIcon} />
             </EmptyState>

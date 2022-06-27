@@ -5,6 +5,7 @@ import { createSelector } from 'reselect';
 import { listResourceClaims } from '@app/api';
 
 import { CatalogNamespace, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
+import { k8sObjectListEquals } from '@app/utils/utils';
 
 let watchResourceClaimsTimeout: null | ReturnType<typeof setTimeout> = null;
 
@@ -46,7 +47,7 @@ async function refreshResourceClaimsFromNamespace(
   triggeredByTimeout: ReturnType<typeof setTimeout>
 ): Promise<void> {
   const resourceClaims: ResourceClaim[] = [];
-  let _continue: string = '';
+  let _continue = '';
   while (true) {
     const resp: ResourceClaimList = await listResourceClaims({
       continue: _continue,
@@ -57,7 +58,7 @@ async function refreshResourceClaimsFromNamespace(
     if (watchResourceClaimsTimeout !== triggeredByTimeout) {
       return;
     }
-    if (!resp.items) {
+    if (!resp.items || resp.items.length === 0) {
       break;
     }
     resourceClaims.push(...resp.items);
@@ -67,12 +68,16 @@ async function refreshResourceClaimsFromNamespace(
       break;
     }
   }
-  store.dispatch(
-    __actionSetResourceClaimsForNamespace({
-      namespace: namespace,
-      resourceClaims: resourceClaims,
-    })
-  );
+  const currentResourceClaims = selectResourceClaimsInNamespace(store.getState(), namespace);
+
+  if (!k8sObjectListEquals(resourceClaims, currentResourceClaims)) {
+    store.dispatch(
+      __actionSetResourceClaimsForNamespace({
+        namespace: namespace,
+        resourceClaims: resourceClaims,
+      })
+    );
+  }
 }
 
 async function refreshResourceClaims(triggeredByTimeout: ReturnType<typeof setTimeout>): Promise<void> {

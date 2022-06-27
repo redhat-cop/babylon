@@ -247,7 +247,7 @@ function reduceStartFetch(state: K8sFetchState, action: K8sFetchStateAction): K8
   };
 }
 
-function reduceStartRefresh(state: K8sFetchState, action: K8sFetchStateAction): K8sFetchState {
+function reduceStartRefresh(state: K8sFetchState): K8sFetchState {
   cancelFetchActivity(state);
   return {
     activity: {
@@ -310,7 +310,7 @@ export function k8sFetchStateReducer(state: K8sFetchState, action: K8sFetchState
     case 'startFetch':
       return reduceStartFetch(state, action);
     case 'startRefresh':
-      return reduceStartRefresh(state, action);
+      return reduceStartRefresh(state);
     case 'updateItem':
       return reduceUpdateItem(state, action);
     case 'updateItems':
