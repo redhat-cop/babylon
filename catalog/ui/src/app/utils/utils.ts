@@ -17,7 +17,7 @@ export function k8sObjectListEquals(newObjList: K8sObject[], oldObjList: K8sObje
     let itemEqual = false;
     oldObjList.forEach((c: any) => {
       if (c.metadata.uid === obj.metadata.uid) {
-        itemEqual = true;
+        itemEqual = c.metadata.resourceVersion === obj.metadata.resourceVersion;
       }
     });
     if (!itemEqual) {

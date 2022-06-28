@@ -74,7 +74,7 @@ export interface K8sObjectListOpt extends K8sObjectListCommonOpt {
   plural: string;
 }
 
-async function apiFetch(path: string, opt?: object): Promise<any> {
+export async function apiFetch(path: string, opt?: object): Promise<any> {
   const session = await getApiSession();
 
   const options = opt ? JSON.parse(JSON.stringify(opt)) : {};
@@ -1424,6 +1424,30 @@ export async function updateWorkshop(workshop: Workshop): Promise<Workshop> {
 }
 
 export const apiPaths = {
-  CATALOG_ITEM: ({ namespace, name }): string =>
+  CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
+  RESOURCE_CLAIMS: ({
+    namespace,
+    limit,
+    continueId,
+  }: {
+    namespace?: string;
+    limit: number;
+    continueId?: string;
+  }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1${namespace ? `/namespaces/${namespace}` : ''}/resourceclaims?limit=${limit}${
+      continueId ? `&continue=${continueId}` : ''
+    }`,
+  NAMESPACES: ({
+    labelSelector,
+    limit,
+    continueId,
+  }: {
+    labelSelector: string;
+    limit?: number;
+    continueId?: string;
+  }): string =>
+    `/api/v1/namespaces?labelSelector=${labelSelector || ''}${limit ? `&limit=${limit}` : ''}${
+      continueId ? `&continue=${continueId}` : ''
+    }`,
 };

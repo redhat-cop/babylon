@@ -12,7 +12,7 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
   }
 });
 
-import { ResourceClaim } from '@app/types';
+import { K8sObject, ResourceClaim } from '@app/types';
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
@@ -194,3 +194,46 @@ export function formatDuration(ms: number): string {
     .map(([key, val]) => `${val} ${key}${val !== 1 ? 's' : ''}`)
     .join(', ');
 }
+
+export function keywordMatch(resourceClaim: ResourceClaim, keyword: string): boolean {
+  const keywordLowerCased = keyword.toLowerCase();
+  const resourceHandleName = resourceClaim.status?.resourceHandle?.name;
+  const guid = resourceHandleName ? resourceHandleName.replace(/^guid-/, '') : null;
+  if (resourceClaim.metadata.name.includes(keywordLowerCased)) {
+    return true;
+  }
+  if (displayName(resourceClaim).toLowerCase().includes(keywordLowerCased)) {
+    return true;
+  }
+  if (guid && guid.includes(keywordLowerCased)) {
+    return true;
+  }
+  return false;
+}
+
+export const compareK8sObjects = (currentData?: K8sObject[], newData?: K8sObject[]): boolean => {
+  function areMapsEqual(map1: Map<string, string>, map2: Map<string, string>) {
+    let testVal: string;
+    if (map1.size !== map2.size) {
+      return false;
+    }
+    for (const [key, val] of map1) {
+      testVal = map2.get(key);
+      // in cases of an undefined value, make sure the key
+      // actually exists on the object so there are no false positives
+      if (testVal !== val || (testVal === undefined && !map2.has(key))) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (currentData !== newData) {
+    const currentDataMap = new Map<string, string>();
+    const newDataMap = new Map<string, string>();
+    if (newData) newData.forEach((i: K8sObject) => newDataMap.set(i.metadata.uid, i.metadata.resourceVersion));
+    if (currentData)
+      currentData.forEach((i: K8sObject) => currentDataMap.set(i.metadata.uid, i.metadata.resourceVersion));
+    return areMapsEqual(currentDataMap, newDataMap);
+  }
+  return true;
+};
