@@ -105,7 +105,16 @@
          Check agnosticv-operator logs:
            oc logs -n agnosticv-operator deployment/agnosticv-operator
 
-  - name: Create namespace for {{ cloudforms_username }}
+  - name: Check if namespace {{ user_namespace }} exists
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: v1
+      kind: Namespace
+      name: "{{ user_namespace }}"
+    register: r_user_namespace
+
+  - name: Create namespace {{ user_namespace }}
+    when: r_user_namespace.resources | length == 0
     k8s:
       kubeconfig: "{{ kubeconfig }}"
       definition:
