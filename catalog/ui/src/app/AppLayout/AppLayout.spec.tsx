@@ -7,7 +7,23 @@ import AppLayout from './AppLayout';
 
 jest.mock('@app/utils/useSession', () => {
   return jest.fn(() => ({
-    getSession: () => ({ email: 'test@redhat.com', isAdmin: false, serviceNamespaces: [], workshopNamespaces: [] }),
+    getSession: () => ({
+      email: 'test@redhat.com',
+      isAdmin: false,
+      serviceNamespaces: [
+        {
+          displayName: 'User test-redhat.com',
+          name: 'user-test-redhat-com',
+          requester: 'test-redhat.com',
+        },
+      ],
+      userNamespace: {
+        displayName: 'User test-redhat.com',
+        name: 'user-test-redhat-com',
+        requester: 'test-redhat.com',
+      },
+      workshopNamespaces: [],
+    }),
   }));
 });
 
