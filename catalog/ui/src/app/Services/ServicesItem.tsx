@@ -211,7 +211,13 @@ const ServicesItemComponent: React.FC<{
   }
 
   const showModal = useCallback(
-    ({ modal, action }: { modal: string; action: string }) => {
+    ({
+      modal,
+      action,
+    }: {
+      modal: 'action' | 'scheduleAction' | 'createWorkshop';
+      action: 'start' | 'stop' | 'delete' | 'retirement';
+    }) => {
       if (modal === 'action') {
         setModalState({ action });
         openModalAction();
@@ -492,7 +498,7 @@ const ServicesItemComponent: React.FC<{
                                   variant="control"
                                   icon={<OutlinedClockIcon />}
                                   iconPosition="right"
-                                  onClick={() => showModal({ action: 'stop', modal: 'action' })}
+                                  onClick={() => showModal({ action: 'stop', modal: 'scheduleAction' })}
                                   className="services-item__schedule-btn"
                                 >
                                   <LocalTimestamp timestamp={stopTimestamp} />
