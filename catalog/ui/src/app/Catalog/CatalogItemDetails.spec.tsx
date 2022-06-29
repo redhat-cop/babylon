@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, fireEvent, waitFor } from '../utils/test-utils';
+import { render, fireEvent } from '../utils/test-utils';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import CatalogItemDetails from './CatalogItemDetails';
 import catalogItemObj from '../__mocks__/catalogItem.json';
@@ -21,7 +21,7 @@ jest.mock('swr/infinite', () =>
 );
 
 describe('CatalogItemDetails Component', () => {
-  test("When renders as a patternfly panelContent, should display 'CatalogItem' properties", async () => {
+  test("When renders as a patternfly panelContent, should display 'CatalogItem' properties", () => {
     const { getByText } = render(
       <Drawer isExpanded={true}>
         <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItemObj} onClose={jest.fn} />}>
@@ -39,7 +39,7 @@ describe('CatalogItemDetails Component', () => {
     const categoryLabel = 'Category';
     const categoryText = 'Other';
 
-    await waitFor(() => expect(getByText(catalogItemDisplayName)).toBeInTheDocument());
+    expect(getByText(catalogItemDisplayName)).toBeInTheDocument();
     expect(getByText(providedByText)).toBeInTheDocument();
     expect(getByText(provisionTimeEstimateLabel).closest('div').textContent).toContain(provisionTimeEstimate);
     expect(getByText(descriptionLabel).closest('div').textContent).toContain(descriptionText);
