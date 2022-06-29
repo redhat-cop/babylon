@@ -211,7 +211,7 @@ export function keywordMatch(resourceClaim: ResourceClaim, keyword: string): boo
   return false;
 }
 
-export const compareK8sObjects = (currentData?: K8sObject[], newData?: K8sObject[]): boolean => {
+export const compareK8sObjects = (obj1?: K8sObject[], obj2?: K8sObject[]): boolean => {
   function areMapsEqual(map1: Map<string, string>, map2: Map<string, string>) {
     let testVal: string;
     if (map1.size !== map2.size) {
@@ -227,13 +227,12 @@ export const compareK8sObjects = (currentData?: K8sObject[], newData?: K8sObject
     }
     return true;
   }
-  if (currentData !== newData) {
-    const currentDataMap = new Map<string, string>();
-    const newDataMap = new Map<string, string>();
-    if (newData) newData.forEach((i: K8sObject) => newDataMap.set(i.metadata.uid, i.metadata.resourceVersion));
-    if (currentData)
-      currentData.forEach((i: K8sObject) => currentDataMap.set(i.metadata.uid, i.metadata.resourceVersion));
-    return areMapsEqual(currentDataMap, newDataMap);
+  if (obj1 !== obj2) {
+    const map1 = new Map<string, string>();
+    const map2 = new Map<string, string>();
+    if (obj1) obj1.map((i: K8sObject) => map1.set(i.metadata.uid, i.metadata.resourceVersion));
+    if (obj2) obj2.map((i: K8sObject) => map2.set(i.metadata.uid, i.metadata.resourceVersion));
+    return areMapsEqual(map1, map2);
   }
   return true;
 };

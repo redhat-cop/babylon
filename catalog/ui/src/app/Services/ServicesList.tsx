@@ -33,7 +33,7 @@ import {
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-import { Namespace, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
+import { Namespace, NamespaceList, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
 import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
@@ -89,13 +89,13 @@ const ServicesList: React.FC<{
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
 
-  const { data: userNamespaceList } = useSWR(
+  const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
   );
   const serviceNamespaces: ServiceNamespace[] = useMemo(() => {
     return enableFetchUserNamespaces
-      ? userNamespaceList.items.map((ns: Namespace): ServiceNamespace => {
+      ? userNamespaceList.items.map((ns): ServiceNamespace => {
           return {
             name: ns.metadata.name,
             displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
@@ -114,7 +114,7 @@ const ServicesList: React.FC<{
     mutate,
     size,
     setSize,
-  } = useSWRInfinite(
+  } = useSWRInfinite<ResourceClaimList>(
     (index, previousPageData: ResourceClaimList) => {
       if (previousPageData && !previousPageData.metadata?.continue) {
         return null;
@@ -185,8 +185,7 @@ const ServicesList: React.FC<{
   );
 
   const resourceClaims: ResourceClaim[] = useMemo(
-    () =>
-      ([].concat(...resourceClaimsList.map((page) => page.items)).filter(filterResourceClaim) as ResourceClaim[]) || [],
+    () => [].concat(...resourceClaimsList.map((page) => page.items)).filter(filterResourceClaim) || [],
     [filterResourceClaim, resourceClaimsList]
   );
 

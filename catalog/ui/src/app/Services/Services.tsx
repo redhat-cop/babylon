@@ -4,7 +4,7 @@ import { useRouteMatch } from 'react-router-dom';
 const ServicesItem = React.lazy(() => import('@app/Services/ServicesItem'));
 const ServicesList = React.lazy(() => import('@app/Services/ServicesList'));
 
-const Services: React.FunctionComponent = () => {
+const Services: React.FC = () => {
   const routeMatch = useRouteMatch<any>('/services/:namespace?/:name?/:tab?');
   if (routeMatch.params.name) {
     return (

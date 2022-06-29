@@ -39,6 +39,7 @@ import {
 import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
 
 import { checkAccessControl, displayName, recursiveAssign, BABYLON_DOMAIN } from '@app/util';
+import { string } from 'prop-types';
 
 declare var window: Window &
   typeof globalThis & {
@@ -1438,16 +1439,20 @@ export const apiPaths = {
     `/apis/poolboy.gpte.redhat.com/v1${namespace ? `/namespaces/${namespace}` : ''}/resourceclaims?limit=${limit}${
       continueId ? `&continue=${continueId}` : ''
     }`,
+  RESOURCE_CLAIM: ({ namespace, resourceClaimName }: { namespace: string; resourceClaimName: string }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/${namespace}/resourceclaims/${resourceClaimName}`,
   NAMESPACES: ({
     labelSelector,
     limit,
     continueId,
   }: {
-    labelSelector: string;
+    labelSelector?: string;
     limit?: number;
     continueId?: string;
   }): string =>
-    `/api/v1/namespaces?labelSelector=${labelSelector || ''}${limit ? `&limit=${limit}` : ''}${
+    `/api/v1/namespaces?${labelSelector ? `labelSelector=${labelSelector}` : ''}${limit ? `&limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
     }`,
+  WORKSHOP: ({ namespace, workshopName }: { namespace: string; workshopName: string }): string =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshops/${workshopName}`,
 };
