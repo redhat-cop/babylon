@@ -85,7 +85,7 @@ export async function apiFetch(path: string, opt?: object): Promise<any> {
     }
   }
 
-  const resp = await fetch(path, options);
+  const resp = await window.fetch(path, options);
   if (resp.status >= 400 && resp.status < 600) {
     throw resp;
   }

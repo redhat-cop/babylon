@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { ErrorBoundary } from 'react-error-boundary';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
@@ -50,7 +51,7 @@ export interface ModalState {
   resourceClaim?: ResourceClaim;
 }
 
-const WorkshopsItem: React.FC<{
+const WorkshopsItemComponent: React.FC<{
   activeTab: string;
   serviceNamespaceName: string;
   workshopName: string;
@@ -104,6 +105,7 @@ const WorkshopsItem: React.FC<{
     mutate,
     size,
     setSize,
+    error,
   } = useSWRInfinite<ResourceClaimList>(
     (index, previousPageData: ResourceClaimList) => {
       if (previousPageData && !previousPageData.metadata?.continue) {
@@ -135,6 +137,7 @@ const WorkshopsItem: React.FC<{
       },
     }
   );
+  if (error) throw error;
 
   const resourceClaims: ResourceClaim[] = useMemo(
     () => [].concat(...resourceClaimsPages.map((page) => page.items)) || [],
@@ -204,21 +207,6 @@ const WorkshopsItem: React.FC<{
     await deleteWorkshop(workshop);
     mutateWorkshop(null);
     history.push(`/workshops/${serviceNamespaceName}`);
-  }
-
-  // Show loading or not found
-  if (!workshop) {
-    return (
-      <EmptyState variant="full">
-        <EmptyStateIcon icon={ExclamationTriangleIcon} />
-        <Title headingLevel="h1" size="lg">
-          Workshop not found
-        </Title>
-        <EmptyStateBody>
-          Workshop {workshopName} was not found in {serviceNamespaceName}.
-        </EmptyStateBody>
-      </EmptyState>
-    );
   }
 
   return (
@@ -362,5 +350,36 @@ const WorkshopsItem: React.FC<{
     </>
   );
 };
+
+const NotFoundComponent: React.FC<{
+  workshopName: string;
+  serviceNamespaceName: string;
+}> = ({ workshopName, serviceNamespaceName }) => (
+  <EmptyState variant="full">
+    <EmptyStateIcon icon={ExclamationTriangleIcon} />
+    <Title headingLevel="h1" size="lg">
+      Workshop not found
+    </Title>
+    <EmptyStateBody>
+      Workshop {workshopName} was not found in {serviceNamespaceName}.
+    </EmptyStateBody>
+  </EmptyState>
+);
+
+const WorkshopsItem: React.FC<{
+  activeTab: string;
+  serviceNamespaceName: string;
+  workshopName: string;
+}> = ({ activeTab, serviceNamespaceName, workshopName }) => (
+  <ErrorBoundary
+    fallbackRender={() => <NotFoundComponent workshopName={workshopName} serviceNamespaceName={serviceNamespaceName} />}
+  >
+    <WorkshopsItemComponent
+      activeTab={activeTab}
+      workshopName={workshopName}
+      serviceNamespaceName={serviceNamespaceName}
+    />
+  </ErrorBoundary>
+);
 
 export default WorkshopsItem;

@@ -67,17 +67,33 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     data: resourceClaimsPages,
     size,
     setSize,
-  } = useSWRInfinite<ResourceClaimList>((index, previousPageData: ResourceClaimList) => {
-    if (previousPageData && !previousPageData.metadata?.continue) {
-      return null;
+  } = useSWRInfinite<ResourceClaimList>(
+    (index, previousPageData: ResourceClaimList) => {
+      if (!userNamespace.name) {
+        return null;
+      }
+      if (previousPageData && !previousPageData.metadata?.continue) {
+        return null;
+      }
+      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
+      return apiPaths.RESOURCE_CLAIMS({
+        namespace: userNamespace.name,
+        limit: FETCH_BATCH_LIMIT,
+        continueId,
+      });
+    },
+    fetcher,
+    {
+      fallbackData: [
+        {
+          items: [],
+          metadata: {
+            continue: '',
+          },
+        },
+      ],
     }
-    const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
-    return apiPaths.RESOURCE_CLAIMS({
-      namespace: userNamespace.name,
-      limit: FETCH_BATCH_LIMIT,
-      continueId,
-    });
-  }, fetcher);
+  );
 
   const userResourceClaims: ResourceClaim[] = useMemo(
     () => [].concat(...resourceClaimsPages.map((page) => page.items)) || [],

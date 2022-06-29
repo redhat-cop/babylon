@@ -79,11 +79,14 @@ const ServicesItemComponent: React.FC<{
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
 
-  const { data: resourceClaim, mutate } = useSWR<ResourceClaim>(
-    apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }),
-    fetcher,
-    { refreshInterval: 8000 }
-  );
+  const {
+    data: resourceClaim,
+    mutate,
+    error,
+  } = useSWR<ResourceClaim>(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }), fetcher, {
+    refreshInterval: 8000,
+  });
+  if (error) throw error;
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const enableFetchUserNamespaces: boolean = userIsAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
