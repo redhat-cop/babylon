@@ -21,7 +21,7 @@ import { renderContent } from '@app/util';
 import BulkUserAssignmentModal from '@app/components/BulkUserAssignmentModal';
 import EditableText from '@app/components/EditableText';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
-import LoadingIcon from '@app/components/LoadingIcon';
+import { ErrorCircleOIcon } from '@patternfly/react-icons';
 
 const WorkshopsItemUserAssignments: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
@@ -74,10 +74,10 @@ const WorkshopsItemUserAssignments: React.FC<{
     onWorkshopUpdate(updatedWorkshop);
   }
 
-  if (!workshop.spec.userAssignments || workshop.spec.userAssignments.length === 0) {
+  if (!workshop.spec.userAssignments) {
     return (
       <EmptyState variant="full">
-        <EmptyStateIcon icon={LoadingIcon} />
+        <EmptyStateIcon icon={ErrorCircleOIcon} />
       </EmptyState>
     );
   }
