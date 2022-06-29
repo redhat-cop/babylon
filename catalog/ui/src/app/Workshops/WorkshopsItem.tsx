@@ -1,12 +1,9 @@
-import React, { useCallback } from 'react';
-import { useEffect, useReducer, useRef } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,24 +20,17 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
-
 import {
+  apiPaths,
   deleteResourceClaim,
   deleteWorkshop,
-  getWorkshop,
-  listNamespaces,
+  fetcher,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-
 import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
-
-import { Namespace, NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
-import { displayName } from '@app/util';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
-
-import LoadingIcon from '@app/components/LoadingIcon';
-
+import { NamespaceList, ResourceClaim, ResourceClaimList, ServiceNamespace, Workshop } from '@app/types';
+import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import WorkshopActions from './WorkshopActions';
 import WorkshopsItemDetails from './WorkshopsItemDetails';
 import WorkshopsItemProvisioning from './WorkshopsItemProvisioning';
@@ -51,6 +41,8 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
 import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
 import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
+import useSWR from 'swr';
+import useSWRInfinite from 'swr/infinite';
 
 import './workshops-item.css';
 export interface ModalState {
@@ -65,17 +57,12 @@ const WorkshopsItem: React.FC<{
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => {
   const history = useHistory();
   const location = useLocation();
-  const componentWillUnmount = useRef(false);
   const sessionServiceNamespaces = useSelector(selectServiceNamespaces);
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
-
-  const [modalState, setModalState] = React.useState<ModalState>({});
+  const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
-  const [resourceClaimsFetchState, reduceResourceClaimsFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [selectedResourceClaims, setSelectedResourceClaims] = React.useState<ResourceClaim[]>([]);
-  const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [workshopFetchState, reduceWorkshopFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
   const showModal = useCallback(
     ({ action, resourceClaim }: ModalState) => {
       setModalState({ action, resourceClaim });
@@ -87,52 +74,98 @@ const WorkshopsItem: React.FC<{
     },
     [openModalAction, openModalDelete]
   );
+  const enableFetchUserNamespaces: boolean = userIsAdmin;
+  const { data: userNamespaceList } = useSWR<NamespaceList>(
+    enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
+    fetcher
+  );
+  const serviceNamespaces: ServiceNamespace[] = useMemo(() => {
+    return enableFetchUserNamespaces
+      ? userNamespaceList.items.map((ns): ServiceNamespace => {
+          return {
+            name: ns.metadata.name,
+            displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
+          };
+        })
+      : sessionServiceNamespaces;
+  }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
+  const serviceNamespace: ServiceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
+    name: serviceNamespaceName,
+    displayName: serviceNamespaceName,
+  };
 
-  const serviceNamespaces: ServiceNamespace[] = userNamespacesFetchState?.items
-    ? userNamespacesFetchState.items.map((ns: Namespace): ServiceNamespace => {
-        return {
-          name: ns.metadata.name,
-          displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-        };
-      })
-    : sessionServiceNamespaces;
-  const serviceNamespace: ServiceNamespace = (serviceNamespaces || []).find(
-    (ns) => ns.name === serviceNamespaceName
-  ) || { name: serviceNamespaceName, displayName: serviceNamespaceName };
-
-  const workshop: Workshop = workshopFetchState?.item as Workshop;
-
-  async function fetchUserNamespaces(): Promise<void> {
-    const userNamespaceList: NamespaceList = await listNamespaces({
-      labelSelector: 'usernamespace.gpte.redhat.com/user-uid',
-    });
-    if (!userNamespacesFetchState.activity.canceled) {
-      reduceUserNamespacesFetchState({
-        type: 'post',
-        k8sObjectList: userNamespaceList,
-      });
-    }
-  }
-
-  async function fetchWorkshop(): Promise<void> {
-    let workshop: Workshop = null;
-    try {
-      workshop = await getWorkshop(serviceNamespaceName, workshopName);
-    } catch (error) {
-      if (!(error instanceof Response && error.status === 404)) {
-        throw error;
+  const { data: workshop, mutate: mutateWorkshop } = useSWR<Workshop>(
+    workshopName ? apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }) : null,
+    fetcher,
+    { refreshInterval: 8000 }
+  );
+  const {
+    data: resourceClaimsPages,
+    mutate,
+    size,
+    setSize,
+  } = useSWRInfinite<ResourceClaimList>(
+    (index, previousPageData: ResourceClaimList) => {
+      if (previousPageData && !previousPageData.metadata?.continue) {
+        return null;
       }
-    }
-    if (!workshopFetchState.activity.canceled) {
-      reduceWorkshopFetchState({
-        type: 'post',
-        item: workshop,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceWorkshopFetchState({ type: 'startRefresh' });
-        },
+      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
+      return apiPaths.RESOURCE_CLAIMS({
+        namespace: serviceNamespaceName,
+        labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+        limit: FETCH_BATCH_LIMIT,
+        continueId,
       });
+    },
+    fetcher,
+    {
+      refreshInterval: 8000,
+      revalidateFirstPage: true,
+      revalidateAll: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      compare: (currentData: any, newData: any) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.length === 0) return false;
+        if (!newData || newData.length === 0) return false;
+        if (currentData.length !== newData.length) return false;
+        for (let i = 0; i < currentData.length; i++) {
+          if (!compareK8sObjects(currentData[i].items, newData[i].items)) return false;
+        }
+        return true;
+      },
     }
+  );
+
+  const resourceClaims: ResourceClaim[] = useMemo(
+    () => [].concat(...resourceClaimsPages.map((page) => page.items)) || [],
+    [resourceClaimsPages]
+  );
+
+  const revalidate = useCallback(
+    ({ updatedItems, action }: { updatedItems: ResourceClaim[]; action: 'update' | 'delete' }) => {
+      const resourceClaimsPagesCpy = JSON.parse(JSON.stringify(resourceClaimsPages));
+      let p: ResourceClaimList;
+      let i: number;
+      for ([i, p] of resourceClaimsPagesCpy.entries()) {
+        for (const updatedItem of updatedItems) {
+          const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+          if (foundIndex > -1) {
+            if (action === 'update') {
+              resourceClaimsPagesCpy[i].items[foundIndex] = updatedItem;
+            } else if (action === 'delete') {
+              resourceClaimsPagesCpy[i].items.splice(foundIndex, 1);
+            }
+            mutate(resourceClaimsPagesCpy);
+          }
+        }
+      }
+    },
+    [mutate, resourceClaimsPages]
+  );
+
+  // Fetch all pages
+  if (resourceClaimsPages.length > 0 && resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue) {
+    setSize(size + 1);
   }
 
   async function onServiceDeleteConfirm(): Promise<void> {
@@ -142,12 +175,7 @@ const WorkshopsItem: React.FC<{
     for (const resourceClaim of deleteResourceClaims) {
       await deleteResourceClaim(resourceClaim);
     }
-    if (resourceClaimsFetchState) {
-      reduceResourceClaimsFetchState({
-        type: 'removeItems',
-        items: deleteResourceClaims,
-      });
-    }
+    revalidate({ updatedItems: deleteResourceClaims, action: 'delete' });
   }
 
   async function onServiceStartConfirm(): Promise<void> {
@@ -158,12 +186,7 @@ const WorkshopsItem: React.FC<{
     for (const resourceClaim of startResourceClaims) {
       updatedResourceClaims.push(await startAllResourcesInResourceClaim(resourceClaim));
     }
-    if (resourceClaimsFetchState) {
-      reduceResourceClaimsFetchState({
-        type: 'updateItems',
-        items: updatedResourceClaims,
-      });
-    }
+    revalidate({ updatedItems: updatedResourceClaims, action: 'update' });
   }
 
   async function onServiceStopConfirm(): Promise<void> {
@@ -174,96 +197,28 @@ const WorkshopsItem: React.FC<{
     for (const resourceClaim of stopResourceClaims) {
       updatedResourceClaims.push(await stopAllResourcesInResourceClaim(resourceClaim));
     }
-    if (resourceClaimsFetchState) {
-      reduceResourceClaimsFetchState({
-        type: 'updateItems',
-        items: updatedResourceClaims,
-      });
-    }
+    revalidate({ updatedItems: updatedResourceClaims, action: 'update' });
   }
 
   async function onWorkshopDeleteConfirm(): Promise<void> {
     await deleteWorkshop(workshop);
+    mutateWorkshop(null);
     history.push(`/workshops/${serviceNamespaceName}`);
-  }
-
-  // Track unmount for other effect cleanups
-  useEffect(() => {
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  // Start fetch of user namespaces for admin users
-  useEffect(() => {
-    if (userIsAdmin) {
-      reduceUserNamespacesFetchState({ type: 'startFetch' });
-    }
-  }, [userIsAdmin]);
-
-  // Start fetching workshop
-  useEffect(() => {
-    reduceWorkshopFetchState({ type: 'startFetch' });
-  }, [workshopName]);
-
-  // Fetch user namespaces
-  useEffect(() => {
-    if (userNamespacesFetchState?.canContinue) {
-      fetchUserNamespaces();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(userNamespacesFetchState);
-      }
-    };
-  }, [userNamespacesFetchState]);
-
-  // Fetch Workshop
-  useEffect(() => {
-    if (workshopFetchState?.canContinue) {
-      fetchWorkshop();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(workshopFetchState);
-      }
-    };
-  }, [workshopFetchState]);
-
-  // Show loading until whether the user is admin is determined.
-  if (userIsAdmin === null) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    );
   }
 
   // Show loading or not found
   if (!workshop) {
-    if (workshopFetchState?.finished) {
-      return (
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            Workshop not found
-          </Title>
-          <EmptyStateBody>
-            Workshop {workshopName} was not found in {serviceNamespaceName}.
-          </EmptyStateBody>
-        </EmptyState>
-      );
-    } else {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      );
-    }
+    return (
+      <EmptyState variant="full">
+        <EmptyStateIcon icon={ExclamationTriangleIcon} />
+        <Title headingLevel="h1" size="lg">
+          Workshop not found
+        </Title>
+        <EmptyStateBody>
+          Workshop {workshopName} was not found in {serviceNamespaceName}.
+        </EmptyStateBody>
+      </EmptyState>
+    );
   }
 
   return (
@@ -372,9 +327,7 @@ const WorkshopsItem: React.FC<{
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <WorkshopsItemDetails
-              onWorkshopUpdate={(workshop: Workshop) =>
-                reduceWorkshopFetchState({ type: 'updateItem', item: workshop })
-              }
+              onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
               workshop={workshop}
             />
           </Tab>
@@ -386,16 +339,12 @@ const WorkshopsItem: React.FC<{
               modalState={modalState}
               showModal={showModal}
               setSelectedResourceClaims={setSelectedResourceClaims}
-              resourceClaimsFetchState={resourceClaimsFetchState}
-              reduceResourceClaimsFetchState={reduceResourceClaimsFetchState}
-              workshop={workshop}
+              resourceClaims={resourceClaims}
             />
           </Tab>
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
             <WorkshopsItemUserAssignments
-              onWorkshopUpdate={(workshop: Workshop) =>
-                reduceWorkshopFetchState({ type: 'updateItem', item: workshop })
-              }
+              onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
               workshop={workshop}
             />
           </Tab>

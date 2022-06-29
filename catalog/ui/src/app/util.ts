@@ -236,3 +236,5 @@ export const compareK8sObjects = (obj1?: K8sObject[], obj2?: K8sObject[]): boole
   }
   return true;
 };
+
+export const FETCH_BATCH_LIMIT = 100;

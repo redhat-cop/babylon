@@ -40,7 +40,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 
 import './workshops-list.css';
 
-const FETCH_BATCH_LIMIT = 30;
+const FETCH_BATCH_LIMIT = 50;
 
 function keywordMatch(workshop: Workshop, keyword: string): boolean {
   const keywordLowerCased = keyword.toLowerCase();

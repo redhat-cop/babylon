@@ -1431,14 +1431,16 @@ export const apiPaths = {
     namespace,
     limit,
     continueId,
+    labelSelector,
   }: {
     namespace?: string;
     limit: number;
     continueId?: string;
+    labelSelector?: string;
   }): string =>
     `/apis/poolboy.gpte.redhat.com/v1${namespace ? `/namespaces/${namespace}` : ''}/resourceclaims?limit=${limit}${
       continueId ? `&continue=${continueId}` : ''
-    }`,
+    }${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
   RESOURCE_CLAIM: ({ namespace, resourceClaimName }: { namespace: string; resourceClaimName: string }): string =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/${namespace}/resourceclaims/${resourceClaimName}`,
   NAMESPACES: ({

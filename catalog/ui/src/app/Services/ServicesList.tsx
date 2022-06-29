@@ -33,7 +33,7 @@ import {
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-import { Namespace, NamespaceList, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
+import { NamespaceList, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
 import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
@@ -60,7 +60,7 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 
 import './services-list.css';
 
-const FETCH_BATCH_LIMIT = 100;
+const FETCH_BATCH_LIMIT = 50;
 
 const ServicesList: React.FC<{
   serviceNamespaceName: string;
@@ -110,7 +110,6 @@ const ServicesList: React.FC<{
 
   const {
     data: resourceClaimsList,
-    error,
     mutate,
     size,
     setSize,
@@ -124,7 +123,7 @@ const ServicesList: React.FC<{
     },
     fetcher,
     {
-      refreshInterval: 5000,
+      refreshInterval: 8000,
       revalidateFirstPage: true,
       revalidateAll: true,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -162,7 +161,7 @@ const ServicesList: React.FC<{
     [mutate, resourceClaimsList]
   );
   const isReachingEnd = resourceClaimsList && !resourceClaimsList[resourceClaimsList.length - 1].metadata.continue;
-  const isLoadingInitialData = !resourceClaimsList && !error;
+  const isLoadingInitialData = !resourceClaimsList;
   const isLoadingMore =
     isLoadingInitialData || (size > 0 && resourceClaimsList && typeof resourceClaimsList[size - 1] === 'undefined');
 
@@ -265,7 +264,11 @@ const ServicesList: React.FC<{
   );
 
   // Fetch all if keywordFilter is defined.
-  if (keywordFilter) {
+  if (
+    keywordFilter &&
+    resourceClaimsList.length > 0 &&
+    resourceClaimsList[resourceClaimsList.length - 1].metadata.continue
+  ) {
     if (!isLoadingMore) {
       if (resourceClaims.length > 0) {
         setTimeout(() => {

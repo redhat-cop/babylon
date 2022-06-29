@@ -113,11 +113,12 @@ function startWatchResourceClaims(): void {
   /**
    * Start watch of resource claims, canceling any ongoing watch.
    */
-  if (watchResourceClaimsTimeout) {
+  return;
+  /*if (watchResourceClaimsTimeout) {
     clearTimeout(watchResourceClaimsTimeout);
     watchResourceClaimsTimeout = null;
   }
-  watchResourceClaimsTimeout = setTimeout(watchResourceClaims, 1);
+  watchResourceClaimsTimeout = setTimeout(watchResourceClaims, 1);*/
 }
 
 // Reducer functions

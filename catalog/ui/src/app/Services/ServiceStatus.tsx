@@ -1,18 +1,14 @@
-import * as React from 'react';
-
+import React from 'react';
 import { Spinner } from '@patternfly/react-core';
-
 import { CheckCircleIcon, ExclamationCircleIcon, PauseCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 
 import './service-status.css';
 
-export interface ServiceStatusProps {
+const ServiceStatus: React.FC<{
   creationTime: number;
   resource?: any;
   resourceTemplate?: any;
-}
-
-const ServiceStatus: React.FunctionComponent<ServiceStatusProps> = ({ creationTime, resource, resourceTemplate }) => {
+}> = ({ creationTime, resource, resourceTemplate }) => {
   const currentState: string = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
   const desiredState: string | null = resourceTemplate?.spec?.vars?.desired_state;
   const startTimestamp: string | null =
