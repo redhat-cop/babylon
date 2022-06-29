@@ -41,6 +41,10 @@ babylon:
 poolboy:
   domain: poolboy.gpte.redhat.com
 
+#awsSandboxManagerCredentials:
+#  awsAccessKeyId: '...'
+#  awsSecretAccessKey: '...'
+
 image:
   repository: quay.io/redhat-gpte/babylon-cost-tracker
   pullPolicy: Always

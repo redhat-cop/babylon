@@ -56,6 +56,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{/*
 Create the name of the service account to use
 */}}
+{{- define "babylon-cost-tracker.awsSandboxManagerSecretName" -}}
+{{- include "babylon-cost-tracker.name" . -}}-aws-sandbox-manager
+{{- end -}}
+
+{{/*
+Create the name of the service account to use
+*/}}
 {{- define "babylon-cost-tracker.serviceAccountName" -}}
   {{- if .Values.serviceAccount.create -}}
     {{- default (include "babylon-cost-tracker.name" .) .Values.serviceAccount.name -}}

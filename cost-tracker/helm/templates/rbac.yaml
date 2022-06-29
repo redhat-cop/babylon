@@ -47,6 +47,8 @@ rules:
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 
 {{ if .Values.deploy }}

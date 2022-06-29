@@ -43,30 +43,14 @@ oc adm policy add-cluster-role-to-user babylon-cost-tracker-dev -z default
 odo create --devfile devfile.yaml
 ---------------------------------
 
-. Set SMTP values for `odo` deployment:
-+
-Set `ONLY_SEND_TO` to your email to prevent other users from receiving emails from your tests:
+. Set `AWS_SANDBOX_MANAGER_ACCESS_KEY_ID` and `AWS_SANDBOX_MANAGER_SECRET_ACCESS_KEY` values for `odo` deployment:
 +
 ---------------------------------------------------
-odo config set --env ONLY_SEND_TO="you@example.com"
+odo config set --env AWS_SANDBOX_MANAGER_ACCESS_KEY_ID="..."
+odo config set --env AWS_SANDBOX_MANAGER_SECRET_ACCESS_KEY="..."
 ---------------------------------------------------
 +
-Configure SMTP variables:
-+
-----------------------------------------------------
-odo config set --env SMTP_FROM="noreply@opentlc.com"
-odo config set --env SMTP_HOST="mx00.opentlc.com"
-odo config set --env SMTP_PORT="19587"
-----------------------------------------------------
-+
-Set `SMTP_TLS_CERT` and `SMTP_TLS_KEY`:
-+
------------------------------------
-sed -i devfile.yaml -e "/- name: SMTP_TLS_CERT/{n;s|value: .*|value: $(jq -Rs . < client.crt | sed 's/\\/\\\\/g')|}"
-sed -i devfile.yaml -e "/- name: SMTP_TLS_KEY/{n;s|value: .*|value: $(jq -Rs . < client.key | sed 's/\\/\\\\/g')|}"
------------------------------------
-+
-NOTE: https://github.com/openshift/odo/issues/4783
+NOTE: Do not check the updated `devfile.yaml` into GitHub!
 
 . Use `odo push` to push code into the odo container:
 +
@@ -95,8 +79,6 @@ helm template helm \
 --set deploy=false \
 --set nameOverride=babylon-cost-tracker-dev \
 --set namespace.name=$(oc project --short) \
---set redis.deploy=true \
---set redis.password=p4ssw0rd \
 | oc delete -f -
 -------------------------------
 
@@ -108,9 +90,9 @@ It is often best to iterate development using `odo` and also test with an OpenSh
 
 . Create a project for development using `oc`:
 +
------------------------------------
+---------------------------------------
 oc new-project babylon-cost-tracker-dev
------------------------------------
+---------------------------------------
 
 . Process OpenShift build template to create BuildConfig and ImageStream:
 +
@@ -120,9 +102,9 @@ oc process --local -f build-template.yaml | oc apply -f -
 
 . Build babylon-cost-tracker image from local source:
 +
------------------------------------------------------
+----------------------------------------------------------
 oc start-build babylon-cost-tracker --from-dir=.. --follow
------------------------------------------------------
+----------------------------------------------------------
 
 . Deploy Poolboy from build image
 +
@@ -130,13 +112,6 @@ oc start-build babylon-cost-tracker --from-dir=.. --follow
 helm template helm \
 --set nameOverride=babylon-cost-tracker-dev \
 --set namespace.create=false \
---set onlySendTo=someone@example.com \
---set redis.password=p4ssw0rd \
---set smtp.from=noreply@opentlc.com \
---set smtp.host=mx00.opentlc.com \
---set smtp.port=19587 \
---set smtp.tls.crt="$(cat client.crt)" \
---set smtp.tls.key="$(cat client.key)" \
 --set=image.override="$(oc get imagestream babylon-cost-tracker -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}')" \
 | oc apply -f -
 --------------------------------------------------------------------------------
@@ -149,8 +124,6 @@ Remove resources created from the helm template:
 helm template helm \
 --set nameOverride=babylon-cost-tracker-dev \
 --set namespace.create=false \
---set smtp.from=- \
---set smtp.host=- \
 | oc delete -f -
 ---------------------------------------------
 +

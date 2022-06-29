@@ -80,6 +80,14 @@ babylon_resources:
             "replik8sVersion": replik8s_version,
           } }}
 
+  - name: Babylon cost-tracker Helm Template
+    when: >-
+      babylon_cost_tracker_deploy | default(false) | bool
+    helm_template:
+      dir: babylon-cost-tracker
+      values:
+        awsSandboxManagerCredentials: "{{ aws_sandbox_manager_credentials | default({}) }}"
+
   - namespace: babylon-cross-cluster-backup
     resources:
     - name: Babylon cross-cluster-backup replik8s

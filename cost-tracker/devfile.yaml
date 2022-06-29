@@ -5,6 +5,7 @@ commands:
     group:
       isDefault: true
       kind: build
+    hotReloadCapable: false
     workingDir: ${PROJECT_SOURCE}
   id: s2i-assemble
 - exec:
@@ -13,10 +14,12 @@ commands:
     group:
       isDefault: true
       kind: run
+    hotReloadCapable: false
     workingDir: ${PROJECT_SOURCE}
   id: s2i-run
 components:
 - container:
+    dedicatedPod: false
     image: quay.io/redhat-cop/python-kopf-s2i
     mountSources: true
     sourceMapping: /tmp/projects

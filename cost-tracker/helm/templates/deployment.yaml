@@ -20,6 +20,17 @@ spec:
     spec:
       containers:
       - name: cost-tracker
+        env:
+        - name: AWS_SANDBOX_MANAGER_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylon-cost-tracker.awsSandboxManagerSecretName" . }}
+              key: aws_access_key_id
+        - name: AWS_SANDBOX_MANAGER_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylon-cost-tracker.awsSandboxManagerSecretName" . }}
+              key: aws_secret_access_key
         image: {{ include "babylon-cost-tracker.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:
