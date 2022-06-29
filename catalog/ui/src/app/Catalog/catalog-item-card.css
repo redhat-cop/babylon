@@ -69,6 +69,11 @@
   top: 0;
   left: 0;
 }
+.catalog-item-card__statusPageIcon {
+  top: -6px !important;
+  left: 46px !important;
+  width: 20px !important;
+}
 .catalog-item-card__badges {
   text-align: right;
   position: absolute;
