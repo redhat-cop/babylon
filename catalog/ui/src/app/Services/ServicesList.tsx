@@ -109,7 +109,7 @@ const ServicesList: React.FC<{
   };
 
   const {
-    data: resourceClaimsList,
+    data: resourceClaimsPages,
     mutate,
     size,
     setSize,
@@ -141,29 +141,29 @@ const ServicesList: React.FC<{
   );
   const revalidate = useCallback(
     ({ updatedItems, action }: { updatedItems: ResourceClaim[]; action: 'update' | 'delete' }) => {
-      const resourceClaimsPages = JSON.parse(JSON.stringify(resourceClaimsList));
+      const resourceClaimsPagesCpy = JSON.parse(JSON.stringify(resourceClaimsPages));
       let p: ResourceClaimList;
       let i: number;
-      for ([i, p] of resourceClaimsPages.entries()) {
+      for ([i, p] of resourceClaimsPagesCpy.entries()) {
         for (const updatedItem of updatedItems) {
           const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
           if (foundIndex > -1) {
             if (action === 'update') {
-              resourceClaimsPages[i].items[foundIndex] = updatedItem;
+              resourceClaimsPagesCpy[i].items[foundIndex] = updatedItem;
             } else if (action === 'delete') {
-              resourceClaimsPages[i].items.splice(foundIndex, 1);
+              resourceClaimsPagesCpy[i].items.splice(foundIndex, 1);
             }
-            mutate(resourceClaimsPages);
+            mutate(resourceClaimsPagesCpy);
           }
         }
       }
     },
-    [mutate, resourceClaimsList]
+    [mutate, resourceClaimsPages]
   );
-  const isReachingEnd = resourceClaimsList && !resourceClaimsList[resourceClaimsList.length - 1].metadata.continue;
-  const isLoadingInitialData = !resourceClaimsList;
+  const isReachingEnd = resourceClaimsPages && !resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue;
+  const isLoadingInitialData = !resourceClaimsPages;
   const isLoadingMore =
-    isLoadingInitialData || (size > 0 && resourceClaimsList && typeof resourceClaimsList[size - 1] === 'undefined');
+    isLoadingInitialData || (size > 0 && resourceClaimsPages && typeof resourceClaimsPages[size - 1] === 'undefined');
 
   const filterResourceClaim = useCallback(
     (resourceClaim: ResourceClaim) => {
@@ -184,8 +184,8 @@ const ServicesList: React.FC<{
   );
 
   const resourceClaims: ResourceClaim[] = useMemo(
-    () => [].concat(...resourceClaimsList.map((page) => page.items)).filter(filterResourceClaim) || [],
-    [filterResourceClaim, resourceClaimsList]
+    () => [].concat(...resourceClaimsPages.map((page) => page.items)).filter(filterResourceClaim) || [],
+    [filterResourceClaim, resourceClaimsPages]
   );
 
   // Trigger continue fetching more resource claims on scroll.
@@ -266,8 +266,8 @@ const ServicesList: React.FC<{
   // Fetch all if keywordFilter is defined.
   if (
     keywordFilter &&
-    resourceClaimsList.length > 0 &&
-    resourceClaimsList[resourceClaimsList.length - 1].metadata.continue
+    resourceClaimsPages.length > 0 &&
+    resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue
   ) {
     if (!isLoadingMore) {
       if (resourceClaims.length > 0) {

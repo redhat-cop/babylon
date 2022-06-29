@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
-
 import {
   Button,
   DescriptionList,
@@ -23,28 +22,25 @@ import {
   Title,
   Label,
 } from '@patternfly/react-core';
-
-import { createServiceRequest } from '@app/api';
+import { apiPaths, createServiceRequest, fetcher } from '@app/api';
 import {
   selectCatalogNamespace,
-  selectResourceClaimsInNamespace,
   selectUserGroups,
   selectUserIsAdmin,
   selectUserNamespace,
   selectWorkshopNamespaces,
 } from '@app/store';
-import { CatalogItem, CatalogNamespace, ResourceClaim, ServiceNamespace } from '@app/types';
-import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN } from '@app/util';
-
+import { CatalogItem, CatalogNamespace, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
+import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import LoadingIcon from '@app/components/LoadingIcon';
-
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
 import { getProvider, getDescription, formatTime, getIsDisabled, getStatus } from './catalog-utils';
+import StatusPageIcons from '@app/components/StatusPageIcons';
+import useSWRInfinite from 'swr/infinite';
 
 import './catalog-item-details.css';
-import StatusPageIcons from '@app/components/StatusPageIcons';
 
 enum CatalogItemAccess {
   Allow,
@@ -56,27 +52,46 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const history = useHistory();
   const location = useLocation();
   const urlSearchParams = new URLSearchParams(location.search);
-
   const { provisionTimeEstimate, termsOfService, parameters, accessControl } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
-
   const catalogNamespace: CatalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
   const userGroups: string[] = useSelector(selectUserGroups);
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
   const userNamespace: ServiceNamespace = useSelector(selectUserNamespace);
-  const userResourceClaims: ResourceClaim[] = useSelector((state) =>
-    selectResourceClaimsInNamespace(state, userNamespace?.name)
-  );
   const workshopNamespaces: ServiceNamespace[] = useSelector(selectWorkshopNamespaces);
-  const userHasInstanceOfCatalogItem: boolean = userResourceClaims.some(
+  const {
+    data: resourceClaimsPages,
+    size,
+    setSize,
+  } = useSWRInfinite<ResourceClaimList>((index, previousPageData: ResourceClaimList) => {
+    if (previousPageData && !previousPageData.metadata?.continue) {
+      return null;
+    }
+    const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
+    return apiPaths.RESOURCE_CLAIMS({
+      namespace: userNamespace.name,
+      limit: FETCH_BATCH_LIMIT,
+      continueId,
+    });
+  }, fetcher);
+
+  const userResourceClaims: ResourceClaim[] = useMemo(
+    () => [].concat(...resourceClaimsPages.map((page) => page.items)) || [],
+    [resourceClaimsPages]
+  );
+  const userHasInstanceOfCatalogItem = userResourceClaims.some(
     (rc) =>
       namespace === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`] &&
       name === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
   );
+  // Fetch all pages
+  if (resourceClaimsPages.length > 0 && resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue) {
+    setSize(size + 1);
+  }
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
 
