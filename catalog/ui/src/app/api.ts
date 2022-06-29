@@ -1457,4 +1457,8 @@ export const apiPaths = {
     }`,
   WORKSHOP: ({ namespace, workshopName }: { namespace: string; workshopName: string }): string =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshops/${workshopName}`,
+  WORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number; continueId?: string }): string =>
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
+      limit ? `limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}`,
 };
