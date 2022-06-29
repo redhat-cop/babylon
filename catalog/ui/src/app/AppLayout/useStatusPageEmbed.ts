@@ -15,7 +15,7 @@ function useStatusPageEmbed(): void {
   useEffect(() => {
     function hideAlertMsg() {
       for (const iframe of document.getElementsByTagName('iframe')) {
-        if (iframe.getAttribute('src').includes(STATUS_PAGE_ID)) {
+        if (iframe.getAttribute('src') && iframe.getAttribute('src').includes(STATUS_PAGE_ID)) {
           if (iframe.style.left !== 'auto') {
             iframe.style.left = `-${iframe.style.width}`;
           } else {
