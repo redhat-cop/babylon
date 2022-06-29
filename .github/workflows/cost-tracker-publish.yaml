@@ -1,0 +1,63 @@
+---
+name: cost-tracker-publish
+on:
+  push:
+    branches-ignore:
+    - '*'
+    tags:
+    - 'cost-tracker-v[0-9]*'
+jobs:
+  publish:
+    env:
+      IMAGE_NAME: babylon-cost-tracker
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v2
+
+    - name: Get image tags
+      id: image_tags
+      run: |
+        # Version is a semantic version tag or semantic version with release number
+        # GITHUB_REF will be of the form "refs/tags/admin-v0.1.2" or "refs/tags/admin-v0.1.2-1"
+        # To determine RELEASE, strip off the leading "refs/tags/"
+        RELEASE=${GITHUB_REF#refs/tags/cost-tracker-}
+        # To determine VERSION, strip off any release number suffix
+        VERSION=${RELEASE/-*/}
+        echo "::set-output name=RELEASE::${RELEASE}"
+        echo "::set-output name=VERSION::${VERSION}"
+
+        # Only build image if version tag without release number
+        # Releases indicate a change in the repository that should not trigger a new build.
+        if [[ "${VERSION}" == "${RELEASE}" ]]; then
+          # Publish to latest, minor, and patch tags
+          # Ex: latest,v0.1.2,v0.1
+          IMAGE_TAGS=(
+            '${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest'
+            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION%.*}"
+            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+          )
+          # Set IMAGE_TAGS output for use in next step
+          ( IFS=$','; echo "::set-output name=IMAGE_TAGS::${IMAGE_TAGS[*]}" )
+        fi
+
+    - name: Set up buildx
+      uses: docker/setup-buildx-action@v1
+      if: steps.image_tags.outputs.IMAGE_TAGS
+
+    - name: Login to image registry
+      uses: docker/login-action@v1
+      if: steps.image_tags.outputs.IMAGE_TAGS
+      with:
+        registry: ${{ secrets.REGISTRY_URI }}
+        username: ${{ secrets.GPTE_REGISTRY_USERNAME }}
+        password: ${{ secrets.GPTE_REGISTRY_PASSWORD }}
+
+    - name: Build and publish image
+      uses: docker/build-push-action@v2
+      if: steps.image_tags.outputs.IMAGE_TAGS
+      with:
+        context: cost-tracker
+        file: cost-tracker/Dockerfile
+        push: true
+        tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}

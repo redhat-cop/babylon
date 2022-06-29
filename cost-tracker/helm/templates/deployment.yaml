@@ -1,0 +1,62 @@
+{{ if .Values.deploy }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "babylon-cost-tracker.name" . }}
+  namespace: {{ include "babylon-cost-tracker.namespaceName" . }}
+  labels:
+    {{- include "babylon-cost-tracker.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylon-cost-tracker.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon-cost-tracker.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: cost-tracker
+        env:
+        - name: AWS_SANDBOX_MANAGER_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylon-cost-tracker.awsSandboxManagerSecretName" . }}
+              key: aws_access_key_id
+        - name: AWS_SANDBOX_MANAGER_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylon-cost-tracker.awsSandboxManagerSecretName" . }}
+              key: aws_secret_access_key
+        image: {{ include "babylon-cost-tracker.image" . | quote }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: {{ include "babylon-cost-tracker.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 30
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{ end }}

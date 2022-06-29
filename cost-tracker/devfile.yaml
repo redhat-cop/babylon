@@ -1,0 +1,30 @@
+commands:
+- exec:
+    commandLine: /usr/libexec/s2i/assemble
+    component: s2i-builder
+    group:
+      isDefault: true
+      kind: build
+    hotReloadCapable: false
+    workingDir: ${PROJECT_SOURCE}
+  id: s2i-assemble
+- exec:
+    commandLine: /usr/libexec/s2i/run
+    component: s2i-builder
+    group:
+      isDefault: true
+      kind: run
+    hotReloadCapable: false
+    workingDir: ${PROJECT_SOURCE}
+  id: s2i-run
+components:
+- container:
+    dedicatedPod: false
+    image: quay.io/redhat-cop/python-kopf-s2i
+    mountSources: true
+    sourceMapping: /tmp/projects
+  name: s2i-builder
+metadata:
+  name: babylon-cost-tracker
+  version: 1.0.0
+schemaVersion: 2.0.0

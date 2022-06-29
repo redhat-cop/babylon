@@ -1,0 +1,134 @@
+# Babylon Cost Tracker Development
+
+Development can be performed in the `odo` OpenShift developer CLI or building with OpenShift build configs.
+An OpenShift cluster with cluster-admin is required for `odo` development.
+https://developers.redhat.com/products/codeready-containers/overview[CodeReady Containers] is recommended for local development.
+An Ansible test suite is available for functional testing.
+
+## Development with `odo`
+
+Use of `odo` is recommended for fast iterative development.
+`odo` simplifies the build/deploy process and avoids creating unnecessary build artifacts during the development process.
+
+. Install the `odo` developer CLI as described in the OpenShift documentation:
+https://docs.openshift.com/container-platform/latest/cli_reference/developer_cli_odo/installing-odo.html[Installing odo]
+
+. Create a project for development using `odo`:
++
+---------------------------------------
+odo project create babylon-cost-tracker-dev
+---------------------------------------
+
+. Create Babylon cost-tracker resources from the provided helm chart:
++
+-------------------------------
+helm template helm \
+--set deploy=false \
+--set nameOverride=babylon-cost-tracker-dev \
+--set namespace.name=$(oc project --short) \
+| oc apply -f -
+-------------------------------
++
+NOTE: Password `p4ssw0rd` is the default redis password value in `devfile.yaml`.
+
+. Grant privileges for cluster role `babylon-cost-tracker` to default service account:
++
+----------------------------------------------------------------------
+oc adm policy add-cluster-role-to-user babylon-cost-tracker-dev -z default
+----------------------------------------------------------------------
+
+. Setup `odo` from the provided `devfile.yaml`:
++
+---------------------------------
+odo create --devfile devfile.yaml
+---------------------------------
+
+. Set `AWS_SANDBOX_MANAGER_ACCESS_KEY_ID` and `AWS_SANDBOX_MANAGER_SECRET_ACCESS_KEY` values for `odo` deployment:
++
+---------------------------------------------------
+odo config set --env AWS_SANDBOX_MANAGER_ACCESS_KEY_ID="..."
+odo config set --env AWS_SANDBOX_MANAGER_SECRET_ACCESS_KEY="..."
+---------------------------------------------------
++
+NOTE: Do not check the updated `devfile.yaml` into GitHub!
+
+. Use `odo push` to push code into the odo container:
++
+--------
+odo push
+--------
+
+. Cleanup
++
+Remove `odo` component
++
+---------------------------------------
+odo delete --force babylon-cost-tracker-dev
+---------------------------------------
++
+Remove the cluster-reader cluster role binding
++
+---------------------------------------------------------------------------
+oc adm policy remove-cluster-role-from-user babylon-cost-tracker-dev -z default
+---------------------------------------------------------------------------
++
+Remove resources created from the helm template
++
+-------------------------------
+helm template helm \
+--set deploy=false \
+--set nameOverride=babylon-cost-tracker-dev \
+--set namespace.name=$(oc project --short) \
+| oc delete -f -
+-------------------------------
+
+
+## Development OpenShift Build
+
+The OpenShift build process is a bit slower for development but has the advantage of being a bit closer to a normal deployment of the babylon-cost-tracker.
+It is often best to iterate development using `odo` and also test with an OpenShift build and deployment prior to opening a pull request.
+
+. Create a project for development using `oc`:
++
+---------------------------------------
+oc new-project babylon-cost-tracker-dev
+---------------------------------------
+
+. Process OpenShift build template to create BuildConfig and ImageStream:
++
+---------------------------------------------------------
+oc process --local -f build-template.yaml | oc apply -f -
+---------------------------------------------------------
+
+. Build babylon-cost-tracker image from local source:
++
+----------------------------------------------------------
+oc start-build babylon-cost-tracker --from-dir=.. --follow
+----------------------------------------------------------
+
+. Deploy Poolboy from build image
++
+--------------------------------------------------------------------------------
+helm template helm \
+--set nameOverride=babylon-cost-tracker-dev \
+--set namespace.create=false \
+--set=image.override="$(oc get imagestream babylon-cost-tracker -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}')" \
+| oc apply -f -
+--------------------------------------------------------------------------------
+
+. Cleanup
++
+Remove resources created from the helm template:
++
+---------------------------------------------
+helm template helm \
+--set nameOverride=babylon-cost-tracker-dev \
+--set namespace.create=false \
+| oc delete -f -
+---------------------------------------------
++
+Remove BuildConfig and ImageStream:
++
+----------------------------------------------------------
+oc process --local -f build-template.yaml | oc delete -f -
+----------------------------------------------------------

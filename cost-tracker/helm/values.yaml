@@ -1,0 +1,51 @@
+deploy: true
+replicaCount: 1
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+namespace:
+  # Specifies whether a namespace should be created
+  create: true
+  # The name of the namespace to use.
+  # If not set and create is true, a name is generated using the name template
+  name:
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+anarchy:
+  domain: anarchy.gpte.redhat.com
+
+babylon:
+  domain: babylon.gpte.redhat.com
+
+poolboy:
+  domain: poolboy.gpte.redhat.com
+
+#awsSandboxManagerCredentials:
+#  awsAccessKeyId: '...'
+#  awsSecretAccessKey: '...'
+
+image:
+  repository: quay.io/redhat-gpte/babylon-cost-tracker
+  pullPolicy: Always
+  tagOverride: ""
