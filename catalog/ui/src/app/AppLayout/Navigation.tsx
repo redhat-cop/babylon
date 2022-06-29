@@ -37,7 +37,7 @@ const Navigation: React.FC = () => {
       </NavExpandable>
     ) : (
       <NavItem>
-        <NavLink activeClassName="pf-m-current" to="/services">
+        <NavLink activeClassName="pf-m-current" to={`/services/${userNamespace.name}`}>
           Services
         </NavLink>
       </NavItem>
@@ -65,7 +65,7 @@ const Navigation: React.FC = () => {
       </NavExpandable>
     ) : workshopNamespaces.length > 0 ? (
       <NavItem>
-        <NavLink activeClassName="pf-m-current" to="/workshops">
+        <NavLink activeClassName="pf-m-current" to={`/workshops/${userNamespace.name}`}>
           Workshops
         </NavLink>
       </NavItem>
