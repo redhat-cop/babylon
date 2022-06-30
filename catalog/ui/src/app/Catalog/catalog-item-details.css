@@ -153,6 +153,22 @@
 .catalog-item-details__status--degraded-performance .pf-c-label__content:before {
   border-color: #f1c40f;
 }
-.catalog-item-details__status--degraded-performance .pf-c-label__content {
+.catalog-item-details__status--partial-outage .pf-c-label__content:before {
+  border-color: #f9e0a2;
+}
+.catalog-item-details__status--major-outage .pf-c-label__content:before {
+  border-color: #c9190b;
+}
+.catalog-item-details__status--under-maintenance .pf-c-label__content:before {
+  border-color: #a2d9d9;
+}
+.catalog-item-details__status--degraded-performance .pf-c-label__content,
+.catalog-item-details__status--partial-outage .pf-c-label__content {
   color: #3d2c00;
+}
+.catalog-item-details__status--major-outage .pf-c-label__content {
+  color: #7d1007;
+}
+.catalog-item-details__status--under-maintenance .pf-c-label__content {
+  color: #003737;
 }
