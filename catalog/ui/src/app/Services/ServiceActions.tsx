@@ -1,13 +1,10 @@
-import * as React from 'react';
-
+import React from 'react';
 import { DropdownPosition } from '@patternfly/react-core';
-
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-
 import { checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 
-export interface ServiceActionsProps {
+const ServiceActions: React.FC<{
   actionHandlers: any;
   className?: string;
   isDisabled?: boolean;
@@ -15,17 +12,7 @@ export interface ServiceActionsProps {
   resourceClaim?: any;
   serviceName?: string;
   iconOnly?: boolean;
-}
-
-const ServiceActions: React.FunctionComponent<ServiceActionsProps> = ({
-  actionHandlers,
-  className,
-  isDisabled,
-  position,
-  resourceClaim,
-  serviceName,
-  iconOnly = false,
-}) => {
+}> = ({ actionHandlers, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
   const actionDropdownItems: any[] = [];
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : true;
   const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : true;

@@ -1,4 +1,4 @@
-const parseDuration = require('parse-duration');
+import parseDuration from 'parse-duration';
 
 import {
   AnarchyAction,
@@ -29,16 +29,12 @@ import {
   UserList,
 } from '@app/types';
 
-import {
-  store,
-  apiActionDeleteResourceClaim,
-  apiActionInsertResourceClaim,
-  apiActionUpdateResourceClaim,
-} from '@app/store';
+import { store } from '@app/store';
 
 import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
 
 import { checkAccessControl, displayName, recursiveAssign, BABYLON_DOMAIN } from '@app/util';
+import { string } from 'prop-types';
 
 declare var window: Window &
   typeof globalThis & {
@@ -74,7 +70,7 @@ export interface K8sObjectListOpt extends K8sObjectListCommonOpt {
   plural: string;
 }
 
-async function apiFetch(path: string, opt?: object): Promise<any> {
+export async function apiFetch(path: string, opt?: object): Promise<any> {
   const session = await getApiSession();
 
   const options = opt ? JSON.parse(JSON.stringify(opt)) : {};
@@ -89,7 +85,7 @@ async function apiFetch(path: string, opt?: object): Promise<any> {
     }
   }
 
-  const resp = await fetch(path, options);
+  const resp = await window.fetch(path, options);
   if (resp.status >= 400 && resp.status < 600) {
     throw resp;
   }
@@ -260,20 +256,11 @@ export async function createK8sObject<Type extends K8sObject>(definition: Type):
 }
 
 export async function createResourceClaim(definition, opt: any = {}): Promise<ResourceClaim> {
-  const resourceClaim: ResourceClaim = await createK8sObject<ResourceClaim>(definition);
-  if (!opt.skipUpdateStore) {
-    store.dispatch(
-      apiActionInsertResourceClaim({
-        resourceClaim: resourceClaim,
-      })
-    );
-  }
-  return resourceClaim;
+  return await createK8sObject<ResourceClaim>(definition);
 }
 
 export async function createResourcePool(definition: ResourcePool): Promise<ResourcePool> {
-  const response = await createK8sObject<ResourcePool>(definition);
-  return response;
+  return await createK8sObject<ResourcePool>(definition);
 }
 
 export async function createServiceRequest({
@@ -938,20 +925,13 @@ export async function deleteK8sObject<Type extends K8sObject>(definition: Type):
 }
 
 export async function deleteResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
-  const deletedResourceClaim = (await deleteNamespacedCustomObject(
+  return (await deleteNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name
   )) as ResourceClaim;
-  store.dispatch(
-    apiActionDeleteResourceClaim({
-      namespace: resourceClaim.metadata.namespace,
-      name: resourceClaim.metadata.name,
-    })
-  );
-  return deletedResourceClaim;
 }
 
 export async function deleteResourceHandle(resourceHandle: ResourceHandle): Promise<void> {
@@ -1056,7 +1036,7 @@ export async function patchResourceClaim(
   patch: object,
   opt: any = {}
 ): Promise<ResourceClaim> {
-  const resourceClaim = (await patchNamespacedCustomObject(
+  return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
     namespace,
@@ -1064,18 +1044,10 @@ export async function patchResourceClaim(
     name,
     patch
   )) as ResourceClaim;
-  if (!opt.skipUpdateStore) {
-    store.dispatch(
-      apiActionInsertResourceClaim({
-        resourceClaim: resourceClaim,
-      })
-    );
-  }
-  return resourceClaim;
 }
 
 export async function patchResourcePool(name: string, patch: any): Promise<ResourcePool> {
-  const resourcePool = (await patchNamespacedCustomObject(
+  return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
     'poolboy',
@@ -1083,7 +1055,6 @@ export async function patchResourcePool(name: string, patch: any): Promise<Resou
     name,
     patch
   )) as ResourcePool;
-  return resourcePool;
 }
 
 export async function patchWorkshop({
@@ -1139,7 +1110,7 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim)
       data.spec.resources[i].template.spec.vars.check_status_request_timestamp = requestTimestamp;
     }
   }
-  const patchedResourceClaim = (await patchNamespacedCustomObject(
+  return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
     resourceClaim.metadata.namespace,
@@ -1147,12 +1118,6 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim)
     resourceClaim.metadata.name,
     data
   )) as ResourceClaim;
-  store.dispatch(
-    apiActionUpdateResourceClaim({
-      resourceClaim: patchedResourceClaim,
-    })
-  );
-  return patchedResourceClaim;
 }
 
 export async function scheduleStopForAllResourcesInResourceClaim(
@@ -1167,7 +1132,7 @@ export async function scheduleStopForAllResourcesInResourceClaim(
     patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
   }
 
-  const updatedResourceClaim: ResourceClaim = (await patchNamespacedCustomObject(
+  return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
     resourceClaim.metadata.namespace,
@@ -1175,12 +1140,6 @@ export async function scheduleStopForAllResourcesInResourceClaim(
     resourceClaim.metadata.name,
     patch
   )) as ResourceClaim;
-  store.dispatch(
-    apiActionUpdateResourceClaim({
-      resourceClaim: updatedResourceClaim,
-    })
-  );
-  return updatedResourceClaim;
 }
 
 export async function setLifespanEndForResourceClaim(resourceClaim: ResourceClaim, date: Date): Promise<ResourceClaim> {
@@ -1195,7 +1154,7 @@ export async function setLifespanEndForResourceClaim(resourceClaim: ResourceClai
     data.spec.lifespan = { end: endTimestamp };
   }
 
-  const updatedResourceClaim: ResourceClaim = (await patchNamespacedCustomObject(
+  return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
     resourceClaim.metadata.namespace,
@@ -1203,12 +1162,6 @@ export async function setLifespanEndForResourceClaim(resourceClaim: ResourceClai
     resourceClaim.metadata.name,
     data
   )) as ResourceClaim;
-  store.dispatch(
-    apiActionUpdateResourceClaim({
-      resourceClaim: updatedResourceClaim,
-    })
-  );
-  return updatedResourceClaim;
 }
 
 export async function startAllResourcesInResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
@@ -1227,7 +1180,7 @@ export async function startAllResourcesInResourceClaim(resourceClaim: ResourceCl
     data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + 'Z';
   }
 
-  const patchedResourceClaim = (await patchNamespacedCustomObject(
+  return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
     resourceClaim.metadata.namespace,
@@ -1235,12 +1188,6 @@ export async function startAllResourcesInResourceClaim(resourceClaim: ResourceCl
     resourceClaim.metadata.name,
     data
   )) as ResourceClaim;
-  store.dispatch(
-    apiActionUpdateResourceClaim({
-      resourceClaim: patchedResourceClaim,
-    })
-  );
-  return patchedResourceClaim;
 }
 
 export async function stopAllResourcesInResourceClaim(resourceClaim): Promise<ResourceClaim> {
@@ -1252,7 +1199,7 @@ export async function stopAllResourcesInResourceClaim(resourceClaim): Promise<Re
     data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + 'Z';
   }
 
-  const patchedResourceClaim = (await patchNamespacedCustomObject(
+  return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
     resourceClaim.metadata.namespace,
@@ -1260,12 +1207,6 @@ export async function stopAllResourcesInResourceClaim(resourceClaim): Promise<Re
     resourceClaim.metadata.name,
     data
   )) as ResourceClaim;
-  store.dispatch(
-    apiActionUpdateResourceClaim({
-      resourceClaim: patchedResourceClaim,
-    })
-  );
-  return patchedResourceClaim;
 }
 
 export async function deleteNamespacedCustomObject(group, version, namespace, plural, name): Promise<K8sObject> {
@@ -1424,6 +1365,40 @@ export async function updateWorkshop(workshop: Workshop): Promise<Workshop> {
 }
 
 export const apiPaths = {
-  CATALOG_ITEM: ({ namespace, name }): string =>
+  CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
+  RESOURCE_CLAIMS: ({
+    namespace,
+    limit,
+    continueId,
+    labelSelector,
+  }: {
+    namespace?: string;
+    limit: number;
+    continueId?: string;
+    labelSelector?: string;
+  }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1${namespace ? `/namespaces/${namespace}` : ''}/resourceclaims?limit=${limit}${
+      continueId ? `&continue=${continueId}` : ''
+    }${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
+  RESOURCE_CLAIM: ({ namespace, resourceClaimName }: { namespace: string; resourceClaimName: string }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/${namespace}/resourceclaims/${resourceClaimName}`,
+  NAMESPACES: ({
+    labelSelector,
+    limit,
+    continueId,
+  }: {
+    labelSelector?: string;
+    limit?: number;
+    continueId?: string;
+  }): string =>
+    `/api/v1/namespaces?${labelSelector ? `labelSelector=${labelSelector}` : ''}${limit ? `&limit=${limit}` : ''}${
+      continueId ? `&continue=${continueId}` : ''
+    }`,
+  WORKSHOP: ({ namespace, workshopName }: { namespace: string; workshopName: string }): string =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshops/${workshopName}`,
+  WORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number; continueId?: string }): string =>
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
+      limit ? `limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}`,
 };

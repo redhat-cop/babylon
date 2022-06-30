@@ -1,9 +1,24 @@
 import '@testing-library/jest-dom';
-import * as React from 'react';
+import React from 'react';
 import { render, fireEvent } from '../utils/test-utils';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import CatalogItemDetails from './CatalogItemDetails';
 import catalogItemObj from '../__mocks__/catalogItem.json';
+
+jest.mock('swr/infinite', () =>
+  jest.fn().mockReturnValue({
+    data: [
+      {
+        items: [],
+        metadata: {
+          continue: '',
+        },
+      },
+    ],
+    size: jest.fn(),
+    setSize: jest.fn(),
+  })
+);
 
 describe('CatalogItemDetails Component', () => {
   test("When renders as a patternfly panelContent, should display 'CatalogItem' properties", () => {

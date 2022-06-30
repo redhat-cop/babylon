@@ -5,7 +5,6 @@ import { ResourceClaim } from '@app/types';
 import DatetimeSelect from '@app/components/DatetimeSelect';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
-
 import { displayName } from '@app/util';
 
 const ServicesScheduleAction: React.FC<{

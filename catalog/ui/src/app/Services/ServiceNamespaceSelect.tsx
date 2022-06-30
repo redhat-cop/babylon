@@ -1,24 +1,12 @@
-import React from 'react';
-import { useState } from 'react';
-import { useSelector } from 'react-redux';
-
+import React, { useState } from 'react';
 import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core';
-
-import { selectServiceNamespaces } from '@app/store';
-
 import { ServiceNamespace } from '@app/types';
 
-export interface ServiceNamespaceSelectProps {
+const ServiceNamespaceSelect: React.FC<{
   currentNamespaceName: string;
   serviceNamespaces: ServiceNamespace[];
-  onSelect: (string) => void;
-}
-
-const ServiceNamespaceSelect: React.FunctionComponent<ServiceNamespaceSelectProps> = ({
-  currentNamespaceName,
-  serviceNamespaces,
-  onSelect,
-}) => {
+  onSelect: (namespace: string) => void;
+}> = ({ currentNamespaceName, serviceNamespaces, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
   const currentNamespace: ServiceNamespace | null = currentNamespaceName
     ? serviceNamespaces.find((ns) => ns.name === currentNamespaceName)

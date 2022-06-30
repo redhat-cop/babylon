@@ -63,6 +63,14 @@ const routes: AppRouteConfig[] = [
   {
     label: 'Services',
     component: Services,
+    exact: true,
+    path: '/services/:namespace/:name?/:tab?',
+    title: 'Babylon | Services',
+  },
+  {
+    label: 'All Services',
+    component: Services,
+    exact: true,
     path: '/services',
     title: 'Babylon | Services',
   },

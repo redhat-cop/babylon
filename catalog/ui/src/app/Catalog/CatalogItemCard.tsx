@@ -39,7 +39,9 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
         <Split>
           <SplitItem>
             <CatalogItemIcon catalogItem={catalogItem} />
-            {status && status !== 'operational' ? <StatusPageIcons status={status} /> : null}
+            {status && status !== 'operational' ? (
+              <StatusPageIcons status={status} className="catalog-item-card__statusPageIcon" />
+            ) : null}
           </SplitItem>
           <SplitItem className="catalog-item-card__badges" isFilled>
             {stage === 'dev' ? (

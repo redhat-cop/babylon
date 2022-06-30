@@ -1,12 +1,11 @@
-import React, { useCallback } from 'react';
-import { useEffect, useReducer, useRef } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { BABYLON_DOMAIN } from '@app/util';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -29,34 +28,26 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
-
 import {
+  apiPaths,
   deleteResourceClaim,
-  getResourceClaim,
-  getWorkshop,
-  listNamespaces,
+  fetcher,
   requestStatusForAllResourcesInResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
   setLifespanEndForResourceClaim,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-
-import { selectResourceClaim, selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
-
-import { Namespace, NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
+import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
+import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
 import { displayName, renderContent } from '@app/util';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
-
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-
 import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
-
 import ServiceActions from './ServiceActions';
 import ServiceItemStatus from './ServiceItemStatus';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
@@ -67,70 +58,68 @@ import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
 import Modal, { useModal } from '@app/Modal/Modal';
+import useSWR from 'swr';
 
 import './services-item.css';
 
-interface ModalState {
-  action?: string;
-  resourceClaim?: ResourceClaim;
-}
-
-const ServicesItem: React.FC<{
+const ServicesItemComponent: React.FC<{
   activeTab: string;
   resourceClaimName: string;
   serviceNamespaceName: string;
 }> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => {
   const history = useHistory();
   const location = useLocation();
-  const ref = useRef(false);
-  const sessionResourceClaim = useSelector((state) =>
-    selectResourceClaim(state, serviceNamespaceName, resourceClaimName)
-  );
   const sessionServiceNamespaces = useSelector(selectServiceNamespaces);
-  const sessionServiceNamespace = sessionServiceNamespaces.find(
-    (ns: ServiceNamespace) => ns.name == serviceNamespaceName
-  );
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
-  // Enable fetching resource claims if namespace is not background fetched by the redux store.
-  const resourceClaimFetchEnabled: boolean = userIsAdmin && !sessionServiceNamespace ? true : false;
-
-  const [modalState, setModalState] = React.useState<ModalState>({});
+  const [modalState, setModalState] = useState<{
+    action?: string;
+    resourceClaim?: ResourceClaim;
+  }>({});
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
-  const [resourceClaimFetchState, reduceResourceClaimFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [userNamespacesFetchState, reduceUserNamespacesFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [workshopFetchState, reduceWorkshopFetchState] = useReducer(k8sFetchStateReducer, null);
 
-  const serviceNamespaces: ServiceNamespace[] = userNamespacesFetchState?.items
-    ? userNamespacesFetchState.items.map((ns: Namespace): ServiceNamespace => {
-        return {
-          name: ns.metadata.name,
-          displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-        };
-      })
-    : sessionServiceNamespaces;
-  const serviceNamespace: ServiceNamespace = (serviceNamespaces || []).find(
-    (ns) => ns.name === serviceNamespaceName
-  ) || { name: serviceNamespaceName, displayName: serviceNamespaceName };
-
-  const resourceClaim: ResourceClaim | null = sessionServiceNamespace
-    ? sessionResourceClaim
-    : (resourceClaimFetchState?.item as ResourceClaim);
-  const externalPlatformUrl = resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
-  const resources = (resourceClaim?.status?.resources || []).map((r) => r.state);
-  const userData = JSON.parse(resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/userData`] || 'null');
+  const {
+    data: resourceClaim,
+    mutate,
+    error,
+  } = useSWR<ResourceClaim>(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }), fetcher, {
+    refreshInterval: 8000,
+  });
+  if (error) throw error;
+  // As admin we need to fetch service namespaces for the service namespace dropdown
+  const enableFetchUserNamespaces: boolean = userIsAdmin;
+  const { data: userNamespaceList } = useSWR<NamespaceList>(
+    enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
+    fetcher
+  );
+  const serviceNamespaces: ServiceNamespace[] = useMemo(() => {
+    return enableFetchUserNamespaces
+      ? userNamespaceList.items.map((ns): ServiceNamespace => {
+          return {
+            name: ns.metadata.name,
+            displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
+          };
+        })
+      : sessionServiceNamespaces;
+  }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
+  const serviceNamespace: ServiceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
+    name: serviceNamespaceName,
+    displayName: serviceNamespaceName,
+  };
+  const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
+  const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
+  const userData = JSON.parse(resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/userData`] || 'null');
   const statusEnabled = resources.find(
     (resource) =>
       resource?.status?.supportedActions?.status && resource?.status?.towerJobs?.provision?.completeTimestamp
   )
     ? true
     : false;
-  const workshop: Workshop | null = workshopFetchState?.item as Workshop;
 
   const catalogItemDisplayName =
-    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`] ||
-    resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
+    resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`] ||
+    resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
 
   const actionHandlers = {
     delete: () => showModal({ action: 'delete', modal: 'action' }),
@@ -145,7 +134,7 @@ const ServicesItem: React.FC<{
   // Find lab user interface information either in the resource claim or inside resources
   // associated with the provisioned service.
   const labUserInterfaceData =
-    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
+    resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
     resources
       .map((r) =>
         r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
@@ -154,14 +143,14 @@ const ServicesItem: React.FC<{
       .find((u) => u != null);
 
   const labUserInterfaceMethod =
-    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
+    resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
     resources
       .map((r) =>
         r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
       )
       .find((u) => u != null);
   const labUserInterfaceUrl =
-    resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
+    resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
     resources
       .map((r) => {
         const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
@@ -169,68 +158,20 @@ const ServicesItem: React.FC<{
       })
       .find((u) => u != null);
 
-  const serviceHasUsers: boolean = (resourceClaim?.status?.resources || []).find(
+  const serviceHasUsers: boolean = (resourceClaim.status?.resources || []).find(
     (r) => r.state?.spec?.vars?.provision_data?.users
   )
     ? true
     : false;
 
-  const workshopName: string = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
-  const workshopProvisionName: string = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
+  const workshopName: string = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
+  const workshopProvisionName: string = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
 
-  async function fetchResourceClaim(): Promise<void> {
-    let resourceClaim: ResourceClaim = null;
-    try {
-      resourceClaim = await getResourceClaim(serviceNamespaceName, resourceClaimName);
-    } catch (error) {
-      if (!(error instanceof Response && error.status === 404)) {
-        throw error;
-      }
-    }
-    if (!resourceClaimFetchState.activity.canceled) {
-      reduceResourceClaimFetchState({
-        type: 'post',
-        item: resourceClaim,
-        refreshInterval: 3000,
-        refresh: (): void => {
-          reduceResourceClaimFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  async function fetchUserNamespaces(): Promise<void> {
-    const userNamespaceList: NamespaceList = await listNamespaces({
-      labelSelector: 'usernamespace.gpte.redhat.com/user-uid',
-    });
-    if (!userNamespacesFetchState.activity.canceled) {
-      reduceUserNamespacesFetchState({
-        type: 'post',
-        k8sObjectList: userNamespaceList,
-      });
-    }
-  }
-
-  async function fetchWorkshop(): Promise<void> {
-    let workshop: Workshop = null;
-    try {
-      workshop = await getWorkshop(serviceNamespaceName, workshopName);
-    } catch (error) {
-      if (!(error instanceof Response && error.status === 404)) {
-        throw error;
-      }
-    }
-    if (!workshopFetchState.activity.canceled) {
-      reduceWorkshopFetchState({
-        type: 'post',
-        item: workshop,
-        refreshInterval: 8000,
-        refresh: (): void => {
-          reduceWorkshopFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
+  const { data: workshop, mutate: mutateWorkshop } = useSWR<Workshop>(
+    workshopName ? apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }) : null,
+    fetcher,
+    { refreshInterval: 8000 }
+  );
 
   async function onModalAction(): Promise<void> {
     if (modalState.action === 'delete') {
@@ -241,9 +182,7 @@ const ServicesItem: React.FC<{
         modalState.action === 'start'
           ? await startAllResourcesInResourceClaim(resourceClaim)
           : await stopAllResourcesInResourceClaim(resourceClaim);
-      if (resourceClaimFetchEnabled) {
-        reduceResourceClaimFetchState({ type: 'updateItem', item: resourceClaimUpdate });
-      }
+      mutate(resourceClaimUpdate);
     }
   }
 
@@ -252,9 +191,7 @@ const ServicesItem: React.FC<{
       modalState.action === 'retirement'
         ? await setLifespanEndForResourceClaim(resourceClaim, date)
         : await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
-    if (resourceClaimFetchEnabled) {
-      reduceResourceClaimFetchState({ type: 'updateItem', item: resourceClaimUpdate });
-    }
+    mutate(resourceClaimUpdate);
   }
 
   async function onWorkshopCreate({
@@ -264,85 +201,23 @@ const ServicesItem: React.FC<{
     resourceClaim: ResourceClaim;
     workshop: Workshop;
   }): Promise<void> {
-    if (resourceClaimFetchEnabled) {
-      reduceResourceClaimFetchState({ type: 'updateItem', item: resourceClaim });
-    }
-    reduceWorkshopFetchState({ type: 'updateItem', item: workshop });
+    mutate(resourceClaim);
+    mutateWorkshop(workshop);
   }
 
   async function onCheckStatusRequest(): Promise<void> {
     const resourceClaimUpdate: ResourceClaim = await requestStatusForAllResourcesInResourceClaim(resourceClaim);
-    if (resourceClaimFetchEnabled) {
-      reduceResourceClaimFetchState({ type: 'updateItem', item: resourceClaimUpdate });
-    }
+    mutate(resourceClaimUpdate);
   }
 
-  // Track unmount for other effect cleanups
-  useEffect(() => {
-    return () => {
-      ref.current = true;
-    };
-  }, []);
-
-  // Start fetch of user namespaces for admin users
-  useEffect(() => {
-    if (userIsAdmin) {
-      reduceUserNamespacesFetchState({ type: 'startFetch' });
-    }
-  }, [userIsAdmin]);
-
-  // Start fetching resource claim
-  useEffect(() => {
-    if (resourceClaimFetchEnabled) {
-      reduceResourceClaimFetchState({ type: 'startFetch' });
-    }
-  }, [resourceClaimFetchEnabled, resourceClaimName, serviceNamespaceName]);
-
-  // Start fetching workshop
-  useEffect(() => {
-    if (workshopName) {
-      reduceWorkshopFetchState({ type: 'startFetch' });
-    }
-  }, [workshopName]);
-
-  // Fetch user namespaces
-  useEffect(() => {
-    if (userNamespacesFetchState?.canContinue) {
-      fetchUserNamespaces();
-    }
-    return () => {
-      if (ref.current) {
-        cancelFetchActivity(userNamespacesFetchState);
-      }
-    };
-  }, [userNamespacesFetchState]);
-
-  // Fetch ResourceClaim
-  useEffect(() => {
-    if (resourceClaimFetchState?.canContinue) {
-      fetchResourceClaim();
-    }
-    return () => {
-      if (ref.current) {
-        cancelFetchActivity(resourceClaimFetchState);
-      }
-    };
-  }, [resourceClaimFetchState]);
-
-  // Fetch Workshop
-  useEffect(() => {
-    if (workshopFetchState?.canContinue) {
-      fetchWorkshop();
-    }
-    return () => {
-      if (ref.current) {
-        cancelFetchActivity(workshopFetchState);
-      }
-    };
-  }, [workshopFetchState]);
-
   const showModal = useCallback(
-    ({ modal, action }: { modal: string; action: string }) => {
+    ({
+      modal,
+      action,
+    }: {
+      modal: 'action' | 'scheduleAction' | 'createWorkshop';
+      action: 'start' | 'stop' | 'delete' | 'retirement';
+    }) => {
       if (modal === 'action') {
         setModalState({ action });
         openModalAction();
@@ -358,42 +233,6 @@ const ServicesItem: React.FC<{
     },
     [openModalAction, openModalCreateWorkshop, openModalScheduleAction]
   );
-
-  // Show loading until whether the user is admin is determined.
-  if (userIsAdmin === null) {
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    );
-  }
-
-  // Show loading or not found
-  if (!resourceClaim) {
-    if (resourceClaimFetchEnabled && (!resourceClaimFetchState || resourceClaimFetchState.item === undefined)) {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      );
-    } else {
-      return (
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            Service not found
-          </Title>
-          <EmptyStateBody>
-            ResourceClaim {resourceClaimName} was not found in {serviceNamespaceName}.
-          </EmptyStateBody>
-        </EmptyState>
-      );
-    }
-  }
 
   return (
     <>
@@ -659,7 +498,7 @@ const ServicesItem: React.FC<{
                                   variant="control"
                                   icon={<OutlinedClockIcon />}
                                   iconPosition="right"
-                                  onClick={() => showModal({ action: 'stop', modal: 'action' })}
+                                  onClick={() => showModal({ action: 'stop', modal: 'scheduleAction' })}
                                   className="services-item__schedule-btn"
                                 >
                                   <LocalTimestamp timestamp={stopTimestamp} />
@@ -799,7 +638,7 @@ const ServicesItem: React.FC<{
                 <Tab eventKey="workshop" key="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
                   {workshop ? (
                     <WorkshopsItemDetails
-                      onWorkshopUpdate={(workshop) => reduceWorkshopFetchState({ type: 'updateItem', item: workshop })}
+                      onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)}
                       workshop={workshop}
                     />
                   ) : (
@@ -813,7 +652,7 @@ const ServicesItem: React.FC<{
                 <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
                   {workshop ? (
                     <WorkshopsItemUserAssignments
-                      onWorkshopUpdate={(workshop) => reduceWorkshopFetchState({ type: 'updateItem', item: workshop })}
+                      onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)}
                       workshop={workshop}
                     />
                   ) : (
@@ -855,5 +694,38 @@ const ServicesItem: React.FC<{
     </>
   );
 };
+
+const NotFoundComponent: React.FC<{
+  resourceClaimName: string;
+  serviceNamespaceName: string;
+}> = ({ resourceClaimName, serviceNamespaceName }) => (
+  <EmptyState variant="full">
+    <EmptyStateIcon icon={ExclamationTriangleIcon} />
+    <Title headingLevel="h1" size="lg">
+      Service not found
+    </Title>
+    <EmptyStateBody>
+      ResourceClaim {resourceClaimName} was not found in {serviceNamespaceName}.
+    </EmptyStateBody>
+  </EmptyState>
+);
+
+const ServicesItem: React.FC<{
+  activeTab: string;
+  resourceClaimName: string;
+  serviceNamespaceName: string;
+}> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => (
+  <ErrorBoundary
+    fallbackRender={() => (
+      <NotFoundComponent resourceClaimName={resourceClaimName} serviceNamespaceName={serviceNamespaceName} />
+    )}
+  >
+    <ServicesItemComponent
+      activeTab={activeTab}
+      resourceClaimName={resourceClaimName}
+      serviceNamespaceName={serviceNamespaceName}
+    />
+  </ErrorBoundary>
+);
 
 export default ServicesItem;
