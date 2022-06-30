@@ -147,6 +147,13 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
   return true;
 }
 
+function saveFilter(urlParams: URLSearchParams) {
+  if (urlParams.has('item')) {
+    urlParams.delete('item');
+  }
+  setLastFilter(urlParams.toString());
+}
+
 const Catalog: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
@@ -231,7 +238,7 @@ const Catalog: React.FC = () => {
         // Clear selected category if no catalog items match
         if (selectedCategory && !catalogItems.find((ci) => selectedCategory === getCategory(ci))) {
           urlSearchParams.delete('category');
-          setLastFilter(urlSearchParams.toString());
+          saveFilter(urlSearchParams);
           history.push(`${location.pathname}?${urlSearchParams.toString()}`);
         }
       }
@@ -275,7 +282,7 @@ const Catalog: React.FC = () => {
     } else if (urlSearchParams.has('search')) {
       urlSearchParams.delete('search');
     }
-    setLastFilter(urlSearchParams.toString());
+    saveFilter(urlSearchParams);
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
@@ -298,7 +305,7 @@ const Catalog: React.FC = () => {
     } else if (urlSearchParams.has('category')) {
       urlSearchParams.delete('category');
     }
-    setLastFilter(urlSearchParams.toString());
+    saveFilter(urlSearchParams);
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
@@ -308,7 +315,7 @@ const Catalog: React.FC = () => {
     } else if (urlSearchParams.has('labels')) {
       urlSearchParams.delete('labels');
     }
-    setLastFilter(urlSearchParams.toString());
+    saveFilter(urlSearchParams);
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 

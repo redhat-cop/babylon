@@ -6,24 +6,27 @@ import { store } from '@app/store';
 import { createMemoryHistory, MemoryHistory } from 'history';
 import { EmptyState, EmptyStateIcon, PageSection } from '@patternfly/react-core';
 import LoadingIcon from '@app/components/LoadingIcon';
+import { SWRConfig } from 'swr';
 
 const AllTheProviders = ({ children, history }) => {
   return (
     <Provider store={store}>
-      <Router history={history}>
-        <Suspense
-          fallback={
-            <PageSection>
-              <EmptyState variant="full">
-                <EmptyStateIcon icon={LoadingIcon} />
-              </EmptyState>
-            </PageSection>
-          }
-        >
-          {children}
-        </Suspense>
-      </Router>
-      <div id="modal-root"></div>
+      <SWRConfig value={{ suspense: true }}>
+        <Router history={history}>
+          <Suspense
+            fallback={
+              <PageSection>
+                <EmptyState variant="full">
+                  <EmptyStateIcon icon={LoadingIcon} />
+                </EmptyState>
+              </PageSection>
+            }
+          >
+            {children}
+          </Suspense>
+        </Router>
+        <div id="modal-root"></div>
+      </SWRConfig>
     </Provider>
   );
 };

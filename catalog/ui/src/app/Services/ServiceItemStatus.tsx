@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Button,
   DescriptionList,
@@ -14,7 +13,6 @@ import {
 import { BABYLON_DOMAIN } from '@app/util';
 import { RedoIcon } from '@patternfly/react-icons';
 import yaml from 'js-yaml';
-
 import { ResourceClaim } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 
@@ -75,8 +73,6 @@ const ServiceItemStatus: React.FC<{
     },
     undefined
   );
-  const lastUpdateDate: number = lastUpdateTimestamp ? Date.parse(lastUpdateTimestamp) : null;
-  const lastUpdateMillisecondsAgo: number = lastUpdateDate ? Date.now() - lastUpdateDate : null;
 
   // Possible check status states
   // - requested
@@ -99,15 +95,15 @@ const ServiceItemStatus: React.FC<{
   );
 
   // Save refresh requested in state to immediately disable the refresh button
-  const [refreshRequested, setRefreshRequested] = useState<boolean>(false);
+  const [refreshRequested, setRefreshRequested] = useState(false);
 
   // Save last update timestamp as the value is lost when update begins running.
-  const [saveLastUpdateTimestamp, setSaveLastUpdateTimestamp] = useState<string>(lastUpdateTimestamp);
+  const [saveLastUpdateTimestamp, setSaveLastUpdateTimestamp] = useState(lastUpdateTimestamp);
 
-  function requestStatusCheck(): void {
+  const requestStatusCheck = useCallback(() => {
     onCheckStatusRequest();
     setRefreshRequested(true);
-  }
+  }, [onCheckStatusRequest]);
 
   // Immediately request a status check if last check is over 5 minutes ago.
   useEffect(() => {
@@ -117,7 +113,7 @@ const ServiceItemStatus: React.FC<{
     if ((!checkStatusState && lastRequestMillisecondsAgo === null) || lastRequestMillisecondsAgo > 300000) {
       requestStatusCheck();
     }
-  }, [lastUpdateTimestamp]);
+  }, [checkStatusState, lastRequestMillisecondsAgo, lastUpdateTimestamp, requestStatusCheck]);
 
   useEffect(() => {
     setRefreshRequested(false);

@@ -1,12 +1,10 @@
 import React from 'react';
-
 import {
   DescriptionList,
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
 } from '@patternfly/react-core';
-
 import { renderContent, BABYLON_DOMAIN } from '@app/util';
 import { ResourceClaim } from '@app/types';
 
@@ -31,8 +29,7 @@ const ServiceUsers: React.FC<{
         const userLabUrl =
           labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url;
         const userDataEntries = Object.entries(userData).filter(
-          ([key, value]) =>
-            key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg'
+          ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg'
         );
         const userMessages: string = userData.msg;
         return (

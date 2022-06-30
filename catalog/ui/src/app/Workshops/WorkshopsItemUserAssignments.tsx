@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import yaml from 'js-yaml';
-
 import {
   ActionGroup,
   Button,
@@ -15,25 +14,21 @@ import {
   EmptyStateIcon,
   Text,
 } from '@patternfly/react-core';
-
 import { TableComposable, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-
 import { assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
 import { Workshop } from '@app/types';
 import { renderContent } from '@app/util';
-
 import BulkUserAssignmentModal from '@app/components/BulkUserAssignmentModal';
 import EditableText from '@app/components/EditableText';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
-import LoadingIcon from '@app/components/LoadingIcon';
+import { ErrorCircleOIcon } from '@patternfly/react-icons';
 
 const WorkshopsItemUserAssignments: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
   workshop: Workshop;
 }> = ({ onWorkshopUpdate, workshop }) => {
-  const [bulkUserAssignmentMessage, setBulkUserAssignmentMessage] = useState<string>('');
-  const [bulkUserAssignmentModalIsOpen, setBulkUserAssignmentModalIsOpen] = useState<boolean>(false);
-
+  const [bulkUserAssignmentMessage, setBulkUserAssignmentMessage] = useState('');
+  const [bulkUserAssignmentModalIsOpen, setBulkUserAssignmentModalIsOpen] = useState(false);
   const haveUserNames = (workshop.spec.userAssignments || []).find((ua) => ua.userName) ? true : false;
   const resourceClaimNames = [...new Set((workshop.spec.userAssignments || []).map((ua) => ua.resourceClaimName))];
 
@@ -79,10 +74,10 @@ const WorkshopsItemUserAssignments: React.FC<{
     onWorkshopUpdate(updatedWorkshop);
   }
 
-  if (!workshop.spec.userAssignments || workshop.spec.userAssignments.length === 0) {
+  if (!workshop.spec.userAssignments) {
     return (
       <EmptyState variant="full">
-        <EmptyStateIcon icon={LoadingIcon} />
+        <EmptyStateIcon icon={ErrorCircleOIcon} />
       </EmptyState>
     );
   }

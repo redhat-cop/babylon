@@ -1,6 +1,5 @@
 import React from 'react';
 import { DropdownPosition } from '@patternfly/react-core';
-import { Workshop } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 
 const WorkshopActions: React.FC<{
