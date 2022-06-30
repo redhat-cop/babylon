@@ -219,7 +219,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <Label
                     className={`catalog-item-details__status--${statusCode}`}
                     variant="outline"
-                    icon={<StatusPageIcons style={{ width: '16px' }} status={statusCode} />}
+                    icon={<StatusPageIcons style={{ width: '20px' }} status={statusCode} />}
                   >
                     {statusName}
                   </Label>
