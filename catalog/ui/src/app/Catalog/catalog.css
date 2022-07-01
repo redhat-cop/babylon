@@ -6,9 +6,24 @@
 .catalog__body > .pf-c-card > .pf-c-card__body {
   padding: var(--pf-global--spacer--md) 0 0 0;
 }
+.catalog__body > .pf-c-card > .pf-c-card__body > .pf-c-sidebar > .pf-c-sidebar__main {
+  align-items: stretch;
+}
+.catalog__body > .pf-c-card > .pf-c-card__body > .pf-c-sidebar > .pf-c-sidebar__main > .pf-c-sidebar__content {
+  align-items: stretch;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 
 .catalog__header {
   padding: 0 var(--pf-global--spacer--xl) var(--pf-global--spacer--md) 0 !important;
+}
+.catalog__content-box {
+  height: 100%;
+}
+.catalog__sidebar-panel .pf-c-tabs.pf-m-vertical {
+  height: auto;
 }
 
 @media (--small-viewport) {
@@ -46,6 +61,7 @@
   gap: var(--pf-global--spacer--md) var(--pf-global--spacer--md);
   grid-auto-flow: dense;
   grid-template-columns: repeat(auto-fill, 280px);
+  grid-template-rows: repeat(auto-fill, 260px);
   min-height: 460px;
 }
 

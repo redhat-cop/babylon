@@ -238,3 +238,9 @@ export const compareK8sObjects = (obj1?: K8sObject[], obj2?: K8sObject[]): boole
 };
 
 export const FETCH_BATCH_LIMIT = 100;
+
+export function stripHtml(html: string): string {
+  const tmp = document.createElement('DIV');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}

@@ -4,6 +4,7 @@ import { Checkbox, Form, FormGroup } from '@patternfly/react-core';
 import { BABYLON_DOMAIN } from '@app/util';
 import { CatalogItem } from '@app/types';
 import './catalog-label-selector.css';
+import { HIDDEN_LABELS } from './catalog-utils';
 interface CatalogLabelValues {
   displayName: string;
   values: { [value: string]: CatalogLabelValueItemCount };
@@ -13,8 +14,6 @@ interface CatalogLabelValueItemCount {
   count: number;
   displayName: string;
 }
-
-const ignoreLabels = ['disabled', 'userCatalogItem'];
 
 const CatalogLabelSelector: React.FC<{
   catalogItems: CatalogItem[];
@@ -52,22 +51,15 @@ const CatalogLabelSelector: React.FC<{
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
       if (!label.startsWith(`${BABYLON_DOMAIN}/`) || label.toLowerCase() === `${BABYLON_DOMAIN}/category`) continue;
       // Allow multiple values for labels with numeric suffixes
-      const attrKey: string = label
-        .substring(BABYLON_DOMAIN.length + 1)
-        .replace(/-[0-9]+$/, '')
-        .toLowerCase();
-      const valueKey: string = value.toLowerCase();
-      labels[attrKey].values[valueKey].count++;
+      const attrKey: string = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
+      // Only non-hidden labels
+      if (!HIDDEN_LABELS.includes(attrKey)) {
+        const valueKey: string = value.toLowerCase();
+        labels[attrKey.toLowerCase()].values[valueKey].count++;
+      } else {
+        delete labels[attrKey.toLowerCase()];
+      }
     }
-  }
-
-  // Hide stage if user only sees prod (single value)
-  if (labels.stage && Object.keys(labels.stage.values).length == 1) {
-    delete labels['stage'];
-  }
-  // Hide ingored labels
-  for (const label of Object.keys(labels)) {
-    if (ignoreLabels.includes(label)) delete labels[label];
   }
 
   function onChange(checked: boolean, changedLabel: string, changedValue: string): void {

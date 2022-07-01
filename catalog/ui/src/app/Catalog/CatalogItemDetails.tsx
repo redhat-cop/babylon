@@ -36,7 +36,7 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
-import { getProvider, getDescription, formatTime, getIsDisabled, getStatus } from './catalog-utils';
+import { getProvider, getDescription, formatTime, getIsDisabled, getStatus, HIDDEN_LABELS } from './catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSWRInfinite from 'swr/infinite';
 
@@ -135,9 +135,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
 
   const attributes: { [attr: string]: string } = {};
   for (const [label, value] of Object.entries(labels || {})) {
-    if (label.startsWith(`${BABYLON_DOMAIN}/`) && label !== `${BABYLON_DOMAIN}/stage`) {
+    if (label.startsWith(`${BABYLON_DOMAIN}/`)) {
       const attr: string = label.substring(BABYLON_DOMAIN.length + 1);
-      attributes[attr] = value;
+      if (!HIDDEN_LABELS.includes(attr)) {
+        attributes[attr] = value;
+      }
     }
   }
 
