@@ -82,3 +82,5 @@ export function getLastFilter(): string {
 export function setLastFilter(filter: string): void {
   sessionStorage.setItem('lastCatalogFilter', filter);
 }
+
+export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage'];

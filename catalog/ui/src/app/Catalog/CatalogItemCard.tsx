@@ -1,11 +1,8 @@
 import React from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
-
 import { Badge, CardBody, CardHeader, Split, SplitItem, Title } from '@patternfly/react-core';
-
 import { CatalogItem } from '@app/types';
-import { displayName, renderContent } from '@app/util';
-
+import { displayName, renderContent, stripHtml } from '@app/util';
 import CatalogItemIcon from './CatalogItemIcon';
 import { getDescription, getIsDisabled, getProvider, getStage, getStatus } from './catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
@@ -59,14 +56,11 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
         <Title className="catalog-item-card__subtitle" headingLevel="h6">
           provided by {provider.replace(/_/g, ' ')}
         </Title>
-        <div
-          className="catalog-item-card__description"
-          dangerouslySetInnerHTML={{
-            __html: description
-              ? renderContent(description, { format: descriptionFormat })
-              : 'No description available.',
-          }}
-        />
+        <div className="catalog-item-card__description">
+          {description
+            ? stripHtml(renderContent(description, { format: descriptionFormat }))
+            : 'No description available.'}
+        </div>
       </CardBody>
     </Link>
   );

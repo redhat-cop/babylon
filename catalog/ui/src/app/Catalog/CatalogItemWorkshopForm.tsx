@@ -22,7 +22,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
-import { checkSalesforceId, createWorkshop } from '@app/api';
+import { checkSalesforceId, createWorkshop, createWorkshopProvision } from '@app/api';
 import { selectUserGroups, selectUserIsAdmin, selectUserRoles, selectWorkshopNamespaces } from '@app/store';
 import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, Workshop } from '@app/types';
 import { ConditionValues, checkCondition, displayName, randomString } from '@app/util';
@@ -336,6 +336,15 @@ const CatalogItemWorkshopForm: React.FC<{
       openRegistration: userRegistrationValue === 'open',
       // FIXME - Allow selecting service namespace
       serviceNamespace: workshopNamespaces[0],
+    });
+
+    await createWorkshopProvision({
+      catalogItem: catalogItem,
+      concurrency: workshopProvisionConcurrency,
+      count: workshopProvisionCount,
+      parameters: parameterValues,
+      startDelay: workshopProvisionStartDelay,
+      workshop: workshop,
     });
 
     history.push(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
