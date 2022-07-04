@@ -36,7 +36,15 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
-import { getProvider, getDescription, formatTime, getIsDisabled, getStatus, HIDDEN_LABELS } from './catalog-utils';
+import {
+  getProvider,
+  getDescription,
+  formatTime,
+  getIsDisabled,
+  getStatus,
+  HIDDEN_LABELS,
+  getIncidentUrl,
+} from './catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSWRInfinite from 'swr/infinite';
 
@@ -110,6 +118,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   }
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
+  const incidentUrl = getIncidentUrl(catalogItem);
 
   const accessCheckResult: string = checkAccessControl(accessControl, userGroups);
 
@@ -221,6 +230,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <Label
                     className={`catalog-item-details__status--${statusCode}`}
                     variant="outline"
+                    href={incidentUrl}
                     icon={<StatusPageIcons style={{ width: '20px' }} status={statusCode} />}
                   >
                     {statusName}

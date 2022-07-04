@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useHistory, useRouteMatch } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -25,7 +25,6 @@ import {
 import { apiPaths, fetcher, patchK8sObjectByPath } from '@app/api';
 import { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN, displayName } from '@app/util';
-
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import { getProvider } from '@app/Catalog/catalog-utils';
 import { OutlinedQuestionCircleIcon, TrashIcon } from '@patternfly/react-icons';
@@ -40,6 +39,28 @@ import LoadingIcon from '@app/components/LoadingIcon';
 
 import './catalog-item-admin.css';
 
+export type Ops = {
+  disabled: boolean;
+  status: {
+    id: string;
+    updated: {
+      author: string;
+      updatedAt: string;
+    };
+  };
+  incidentUrl?: string;
+  jiraIssueId?: string;
+  comments: {
+    author: string;
+    createdAt: string;
+    message: string;
+  }[];
+  updated: {
+    author: string;
+    updatedAt: string;
+  };
+};
+
 const CatalogItemAdmin: React.FC = () => {
   const routeMatch = useRouteMatch<{
     namespace: string;
@@ -52,27 +73,39 @@ const CatalogItemAdmin: React.FC = () => {
     { suspense: true }
   );
   const userEmail = useSession().getSession().email;
-
+  const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const ops = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]
+  const ops: Ops = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]
     ? JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`])
-    : {};
+    : null;
   const disabled = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/disabled`]
     ? JSON.parse(catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/disabled`])
     : false;
-  const [status, setStatus] = useState(ops.status || 'operational');
+  const [status, setStatus] = useState(ops?.status.id || 'operational');
   const [isDisabled, setIsDisabled] = useState(disabled);
-  const [incidentUrl, setIncidentUrl] = useState(ops.incidentUrl || '');
-  const [identifier, setIdentifier] = useState(ops.identifier || '');
+  const [incidentUrl, setIncidentUrl] = useState(ops?.incidentUrl || '');
+  const [jiraIssueId, setJiraIssueId] = useState(ops?.jiraIssueId || '');
   const [comment, setComment] = useState('');
   const provider = getProvider(catalogItem);
 
+  useEffect(() => {
+    if (status === 'operational') {
+      setIsDisabled(false);
+      setIsReadOnlyValue(true);
+    } else if (status === 'major-outage') {
+      setIsDisabled(true);
+      setIsReadOnlyValue(true);
+    } else {
+      setIsReadOnlyValue(false);
+    }
+  }, [setIsReadOnlyValue, status]);
+
   async function removeComment(comment) {
-    if (!ops.comments || ops.comments.length < 1) {
+    if (!ops?.comments || ops.comments.length < 1) {
       throw "Can't find comment to delete";
     }
-    const comments = ops.comments.filter((c) => c.timestamp !== comment.timestamp);
+    const comments = ops.comments.filter((c) => c.createdAt !== comment.createdAt);
     const patch = {
       metadata: {
         annotations: { [`${BABYLON_DOMAIN}/ops`]: JSON.stringify({ ...ops, comments }) },
@@ -91,20 +124,23 @@ const CatalogItemAdmin: React.FC = () => {
     setIsLoading(false);
   }
   async function saveForm() {
-    const comments = ops.comments || [];
+    const comments = ops?.comments || [];
     comment
       ? comments.push({
           message: comment,
           author: userEmail,
-          timestamp: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
         })
       : [];
     const patchObj = {
-      status,
-      identifier,
+      status: {
+        id: status,
+        updated:
+          ops?.status.id !== status ? { author: userEmail, updatedAt: new Date().toISOString() } : ops?.status.updated,
+      },
+      jiraIssueId,
       incidentUrl,
-      lastUpdated: new Date().toISOString(),
-      lastUpdatedBy: userEmail,
+      updated: { author: userEmail, updatedAt: new Date().toISOString() },
       comments,
     };
 
@@ -181,10 +217,19 @@ const CatalogItemAdmin: React.FC = () => {
                 <UnderMaintenanceLogo /> Under maintenance
               </SelectOption>
             </Select>
-            <Tooltip position="right" content={<div>StatusPage.io status</div>}>
-              <OutlinedQuestionCircleIcon aria-label="StatusPage.io status" className="tooltip-icon-only" />
+            <Tooltip position="right" content={<div>Catalog Item status, should be the same as in StatusPage.io</div>}>
+              <OutlinedQuestionCircleIcon
+                aria-label="Catalog Item status, should be the same as in StatusPage.io"
+                className="tooltip-icon-only"
+              />
             </Tooltip>
           </div>
+          {ops ? (
+            <p className="catalog-item-admin__author">
+              Changed by: <b>{ops.status.updated.author} </b>-{' '}
+              <LocalTimestamp className="catalog-item-admin__timestamp" timestamp={ops.status.updated.updatedAt} />
+            </p>
+          ) : null}
         </FormGroup>
         <FormGroup fieldId="disabled">
           <div className="catalog-item-admin__group-control--single">
@@ -193,6 +238,7 @@ const CatalogItemAdmin: React.FC = () => {
               name="disabled"
               label="Disabled"
               isChecked={isDisabled}
+              isDisabled={isReadOnlyValue}
               onChange={(checked) => setIsDisabled(checked)}
             />
             <Tooltip position="right" content={<div>Users will not be able to order this Catalog Item</div>}>
@@ -211,21 +257,18 @@ const CatalogItemAdmin: React.FC = () => {
             </Tooltip>
           </div>
         </FormGroup>
-        <FormGroup fieldId="identifier" label="Identifier (only visible to admins)">
+        <FormGroup fieldId="jiraIssueId" label="Jira Issue Id (only visible to admins)">
           <div className="catalog-item-admin__group-control--single">
-            <TextInput type="text" id="identifier" onChange={(v) => setIdentifier(v)} value={identifier} />
-            <Tooltip position="right" content={<div>Person in contact</div>}>
-              <OutlinedQuestionCircleIcon aria-label="Person in contact" className="tooltip-icon-only" />
-            </Tooltip>
+            <TextInput type="text" id="jiraIssueId" onChange={(v) => setJiraIssueId(v)} value={jiraIssueId} />
           </div>
         </FormGroup>
         <FormGroup fieldId="comment" label="Comments (only visible to admins)">
           <ul className="catalog-item-admin__comments">
-            {(ops.comments || []).map((comment) => (
-              <li key={comment.timestamp} className="catalog-item-admin__comment">
+            {(ops?.comments || []).map((comment) => (
+              <li key={comment.createdAt} className="catalog-item-admin__comment">
                 <p className="catalog-item-admin__author">
                   <b>{comment.author} </b>-{' '}
-                  <LocalTimestamp className="catalog-item-admin__timestamp" timestamp={comment.timestamp} />
+                  <LocalTimestamp className="catalog-item-admin__timestamp" timestamp={comment.createdAt} />
                   <Button aria-label="Remove comment" onClick={() => removeComment(comment)} variant="plain">
                     <TrashIcon width={12} color="#6a6e73" />
                   </Button>

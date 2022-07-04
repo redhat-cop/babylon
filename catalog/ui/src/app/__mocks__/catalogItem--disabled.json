@@ -8,7 +8,7 @@
       "babylon.gpte.redhat.com/displayName": "Test Config",
       "babylon.gpte.redhat.com/icon": "",
       "babylon.gpte.redhat.com/keywords": "",
-      "babylon.gpte.redhat.com/ops": "{\"status\":\"under-maintenance\",\"lastUpdated\":1655982352450,\"identifier\":\"jdoe@redhat.com\"}"
+      "babylon.gpte.redhat.com/ops": "{\"status\":{\"id\":\"under-maintenance\",\"updated\":{\"author\":\"test@redhat.com\",\"updatedAt\":\"2022-06-23T11:05:52.450Z\"}},\"jiraIssueId\":\"GPTEINFRA-123\",\"incidentUrl\":\"\",\"updated\":{\"author\":\"test@redhat.com\",\"updatedAt\":\"2022-06-23T11:05:52.450Z\"},\"comments\":[]}"
     },
     "creationTimestamp": "2022-04-22T20:13:37Z",
     "generation": 1,
