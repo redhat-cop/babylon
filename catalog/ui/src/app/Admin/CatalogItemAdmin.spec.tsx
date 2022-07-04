@@ -55,12 +55,13 @@ describe('CatalogItemAdmin Component', () => {
     await waitFor(() => {
       expect(getByLabelText('Disabled').closest('input')).toBeChecked();
       expect(getByText('Under maintenance')).toBeInTheDocument();
-      expect(getByDisplayValue('jdoe@redhat.com')).toBeInTheDocument();
+      expect(getByDisplayValue('GPTEINFRA-123')).toBeInTheDocument();
     });
   });
   test('When save form API function is called', async () => {
     const mockDate = new Date();
     jest.spyOn(global, 'Date').mockImplementation(() => mockDate as unknown as string);
+    Date.parse = jest.fn(() => 1656950267699);
     const { getByLabelText, getByText } = render(<CatalogItemAdmin />);
 
     await waitFor(() => {
@@ -74,11 +75,10 @@ describe('CatalogItemAdmin Component', () => {
       name: ciName,
     });
     const patchObj = {
-      status: 'operational',
-      identifier: 'jdoe@redhat.com',
+      status: { id: 'operational', updated: { author: 'test@redhat.com', updatedAt: mockDate.toISOString() } },
+      jiraIssueId: 'GPTEINFRA-123',
       incidentUrl: '',
-      lastUpdated: mockDate.toISOString(),
-      lastUpdatedBy: 'test@redhat.com',
+      updated: { author: 'test@redhat.com', updatedAt: mockDate.toISOString() },
       comments: [],
     };
     const patch = {

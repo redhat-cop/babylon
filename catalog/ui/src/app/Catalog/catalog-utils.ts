@@ -1,6 +1,8 @@
 import { BABYLON_DOMAIN } from '@app/util';
 import { CatalogItem } from '@app/types';
 import { formatDuration } from '@app/util';
+import { Ops } from '@app/Admin/CatalogItemAdmin';
+
 export function getProvider(catalogItem: CatalogItem): string {
   return (
     catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/provider`] ||
@@ -31,25 +33,35 @@ export function getIsDisabled(catalogItem: CatalogItem): boolean {
   return false;
 }
 
-export function getStatus(catalogItem: CatalogItem): { code: string; name: string } | null {
+export function getStatus(
+  catalogItem: CatalogItem
+): { code: string; name: string; updated?: { author: string; updatedAt: string } } | null {
   if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]) {
-    const ops = JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]);
-    if (ops.status) {
-      switch (ops.status) {
+    const ops: Ops = JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]);
+    if (ops.status.id) {
+      switch (ops.status.id) {
         case 'degraded-performance':
-          return { code: ops.status, name: 'Degraded performance' };
+          return { code: ops.status.id, name: 'Degraded performance', updated: ops.status.updated };
         case 'partial-outage':
-          return { code: ops.status, name: 'Partial outage' };
+          return { code: ops.status.id, name: 'Partial outage', updated: ops.status.updated };
         case 'major-outage':
-          return { code: ops.status, name: 'Major outage' };
+          return { code: ops.status.id, name: 'Major outage', updated: ops.status.updated };
         case 'under-maintenance':
-          return { code: ops.status, name: 'Under maintenance' };
+          return { code: ops.status.id, name: 'Under maintenance', updated: ops.status.updated };
         default:
-          return { code: 'operational', name: 'Operational' };
+          return { code: 'operational', name: 'Operational', updated: ops.status.updated };
       }
     }
   }
   return { code: null, name: '' };
+}
+
+export function getIncidentUrl(catalogItem: CatalogItem): string {
+  if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]) {
+    const ops: Ops = JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]);
+    return ops.incidentUrl || null;
+  }
+  return null;
 }
 
 export function formatTime(time: string): string {
