@@ -230,7 +230,15 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <Label
                     className={`catalog-item-details__status--${statusCode}`}
                     variant="outline"
-                    href={incidentUrl}
+                    render={({ className, content }) =>
+                      incidentUrl ? (
+                        <a href={incidentUrl} target="_blank" rel="noreferrer" className={className}>
+                          {content}
+                        </a>
+                      ) : (
+                        <p className={className}>{content}</p>
+                      )
+                    }
                     icon={<StatusPageIcons style={{ width: '20px' }} status={statusCode} />}
                   >
                     {statusName}
