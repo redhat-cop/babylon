@@ -807,6 +807,15 @@ class WorkshopProvision:
         ).replace(tzinfo=timezone.utc)
 
     @property
+    def lifespan_start(self):
+        lifespan_start_timestamp = self.spec.get('lifespan', {}).get('start')
+        if not lifespan_start_timestamp:
+            return None
+        return datetime.strptime(
+            lifespan_start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
     def owner_references(self):
         return self.meta.get('ownerReferences', [])
 
@@ -989,6 +998,12 @@ class WorkshopProvision:
                 )
             else:
                 provisioning_count += 1
+
+        # Do not start any provisions if lifespan start is in the future
+        if self.lifespan_start and self.lifespan_start > datetime.now(timezone.utc):
+            return
+
+        # Start provisions up to count and within concurrency limit
         if resource_claim_count < self.count and provisioning_count < self.concurrency:
             self.create_resource_claim(logger=logger, workshop=workshop)
 

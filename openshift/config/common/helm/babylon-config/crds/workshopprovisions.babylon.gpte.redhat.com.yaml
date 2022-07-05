@@ -85,6 +85,11 @@ spec:
                       End of lifespan for workshop provision and provisioned ResourceClaims.
                     type: string
                     format: date-time
+                  start:
+                    description: >-
+                      Scheduled start for provisioning to begin for workshop.
+                    type: string
+                    format: date-time
               parameters:
                 description: >-
                   Parameter values to use with catalog item provisioning.
