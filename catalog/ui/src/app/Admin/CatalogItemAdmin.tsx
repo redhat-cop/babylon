@@ -145,7 +145,7 @@ const CatalogItemAdmin: React.FC = () => {
           </Title>
           {provider ? (
             <Title className="catalog-item-admin__subtitle" headingLevel="h4">
-              provided by {provider}
+              provided by {provider.replace(/_/g, ' ')}
             </Title>
           ) : null}
         </SplitItem>
