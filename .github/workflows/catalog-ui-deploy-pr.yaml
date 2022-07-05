@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     env:        
       APP_NAME: babylon-catalog-ui
+      CONTAINER_NAME: ui
       IMAGE_TAGS: ${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.APP_NAME }}:${{ github.sha }}
     steps:
       - name: Checkout
@@ -72,4 +73,4 @@ jobs:
       - name: Deploy
         if: secrets.OPENSHIFT_BABYDEV_SERVER != ''
         run: |
-          "${GITHUB_WORKSPACE}/.github/script.sh" ${{ env.APP_NAME }} ${{ env.IMAGE_TAGS }} ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }}
+          "${GITHUB_WORKSPACE}/.github/script.sh" ${{ env.APP_NAME }} ${{ env.IMAGE_TAGS }} ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }} ${{ env.CONTAINER_NAME }}
