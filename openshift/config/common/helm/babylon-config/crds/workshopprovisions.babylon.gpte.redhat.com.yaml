@@ -39,6 +39,21 @@ spec:
             - count
             - workshopName
             properties:
+              actionSchedule:
+                description: >-
+                  Configuration for when services should start and stop.
+                type: object
+                properties:
+                  start:
+                    description: >-
+                      Time when service should start. If in the future then service should be stopped.
+                    type: string
+                    format: date-time
+                  stop:
+                    description: >-
+                      Time when service should stop. If in the past then service should be stopped.
+                    type: string
+                    format: date-time
               catalogItem:
                 description: >-
                   CatalogItem for workshop.
@@ -60,6 +75,16 @@ spec:
                 description: >-
                   Target number of services to provision.
                 type: integer
+              lifespan:
+                description: >-
+                  Lifespan settings for this workshop provision.
+                type: object
+                properties:
+                  end:
+                    description: >-
+                      End of lifespan for workshop provision and provisioned ResourceClaims.
+                    type: string
+                    format: date-time
               parameters:
                 description: >-
                   Parameter values to use with catalog item provisioning.

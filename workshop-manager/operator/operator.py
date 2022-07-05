@@ -10,6 +10,7 @@ import random
 import re
 
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from infinite_relative_backoff import InfiniteRelativeBackoff
 from pydantic.utils import deep_update
 
@@ -172,6 +173,21 @@ class ResourceClaim:
         self.definition = definition
 
     @property
+    def creation_datetime(self):
+        return datetime.strptime(
+            self.definition['metadata']['creationTimestamp'], '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
+    def effective_lifespan_end(self):
+        lifespan_end_timestamp = self.definition.get('status', {}).get('lifespan', {}).get('end')
+        if not lifespan_end_timestamp:
+            return None
+        return datetime.strptime(
+            lifespan_end_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
     def name(self):
         return self.definition['metadata']['name']
 
@@ -194,8 +210,90 @@ class ResourceClaim:
         return True
 
     @property
+    def resource_handle_name(self):
+        return self.definition['status'].get('resourceHandle', {}).get('name')
+
+    @property
+    def resource_handle_namespace(self):
+        return self.definition['status'].get('resourceHandle', {}).get('namespace')
+
+    @property
+    def start_datetime(self):
+        for resource in self.definition['spec']['resources']:
+            try:
+                return datetime.strptime(
+                    resource['template']['spec']['vars']['action_schedule']['start'], '%Y-%m-%dT%H:%M:%SZ'
+                ).replace(tzinfo=timezone.utc)
+            except KeyError:
+                pass
+
+    @property
+    def stop_datetime(self):
+        for resource in self.definition['spec']['resources']:
+            try:
+                return datetime.strptime(
+                    resource['template']['spec']['vars']['action_schedule']['stop'], '%Y-%m-%dT%H:%M:%SZ'
+                ).replace(tzinfo=timezone.utc)
+            except KeyError:
+                pass
+
+    @property
     def workshop_name(self):
         return self.definition['metadata']['labels'][workshop_label]
+
+    def adjust_action_schedule_and_lifetime(self, lifespan_end=None, logger=None, start_datetime=None, stop_datetime=None):
+        resource_claim_patch = None
+        if lifespan_end and lifespan_end != self.effective_lifespan_end:
+            lifespan_end_ts = lifespan_end.strftime('%FT%TZ')
+            lifespan_maximum_days = 1 + int((lifespan_end - self.creation_datetime).total_seconds() / 60 / 60 / 24)
+            lifespan_relative_maximum_days = 1 + int((lifespan_end - datetime.now(timezone.utc)).total_seconds() / 60 / 60 / 24)
+            logger.info(f"Extending lifetime of {self.name} to {lifespan_end_ts}")
+            custom_objects_api.patch_namespaced_custom_object(
+                poolboy_domain, poolboy_api_version,
+                self.resource_handle_namespace, 'resourcehandles', self.resource_handle_name,
+                {
+                    "spec": {
+                        "lifespan": {
+                            "end": lifespan_end_ts,
+                            "maximum": f"{lifespan_maximum_days}d",
+                            "relativeMaximum": f"{lifespan_relative_maximum_days}d"
+                        }
+                    }
+                }
+            )
+            resource_claim_patch = {
+                "spec": {
+                    "lifespan": {
+                        "end": lifespan_end_ts,
+                    }
+                }
+            }
+
+        if (start_datetime and self.start_datetime and start_datetime != self.start_datetime) \
+        or (stop_datetime and self.stop_datetime and stop_datetime != self.stop_datetime):
+            logger.info(f"Adjusting action schedule of {self.name}")
+            if resource_claim_patch:
+                resource_claim_patch['spec']['resources'] = []
+            else:
+                resource_claim_patch = {
+                    "spec": {
+                        "resources": []
+                    }
+                }
+            for resource in self.definition.get('spec', {}).get('resources', []):
+                resource_copy = deepcopy(resource)
+                action_schedule = resource_copy.get('template', {}).get('spec', {}).get('vars', {}).get('action_schedule', {})
+                if 'start' in action_schedule:
+                    action_schedule['start'] = start_datetime.strftime('%FT%TZ')
+                if 'stop' in action_schedule:
+                    action_schedule['stop'] = stop_datetime.strftime('%FT%TZ')
+                resource_claim_patch['spec']['resources'].append(resource_copy)
+
+        if resource_claim_patch:
+            custom_objects_api.patch_namespaced_custom_object(
+                poolboy_domain, poolboy_api_version,
+                self.namespace, 'resourceclaims', self.name, resource_claim_patch
+            )
 
     def as_user_assignment(self, logger):
         annotations = self.definition['metadata'].get('annotations', {})
@@ -700,6 +798,15 @@ class WorkshopProvision:
         return self.spec.get('count', 0)
 
     @property
+    def lifespan_end(self):
+        lifespan_end_timestamp = self.spec.get('lifespan', {}).get('end')
+        if not lifespan_end_timestamp:
+            return None
+        return datetime.strptime(
+            lifespan_end_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
     def owner_references(self):
         return self.meta.get('ownerReferences', [])
 
@@ -710,6 +817,24 @@ class WorkshopProvision:
     @property
     def start_delay(self):
         return self.spec.get('startDelay', 10)
+
+    @property
+    def action_schedule_start(self):
+        start_timestamp = self.spec.get('actionSchedule', {}).get('start')
+        if not start_timestamp:
+            return None
+        return datetime.strptime(
+            start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
+    def action_schedule_stop(self):
+        stop_timestamp = self.spec.get('actionSchedule', {}).get('stop')
+        if not stop_timestamp:
+            return None
+        return datetime.strptime(
+            stop_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
 
     @property
     def workshop_name(self):
@@ -851,6 +976,12 @@ class WorkshopProvision:
         provisioning_count = 0
         for resource_claim in self.list_resource_claims():
             resource_claim_count += 1
+            resource_claim.adjust_action_schedule_and_lifetime(
+                lifespan_end = self.lifespan_end,
+                logger = logger,
+                start_datetime = self.action_schedule_start,
+                stop_datetime = self.action_schedule_stop,
+            )
             if resource_claim.provision_complete:
                 workshop.update_resource_claim(
                     logger = logger,
