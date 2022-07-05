@@ -11,16 +11,12 @@ on:
       - catalog/**
     branches:
       - main
-env:        
-  OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_BABYDEV_SERVER }}
-  OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_BABYDEV_TOKEN }}  
-  OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }}  
-  APP_NAME: babylon-catalog-ui
-  IMAGE_TAGS: ${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.APP_NAME }}:${{ github.sha }}
 jobs:
-  manual-deploy:
-    name: Deploy Current Project
-    runs-on: ubuntu-20.04
+  deploy:
+    runs-on: ubuntu-latest
+    env:        
+      APP_NAME: babylon-catalog-ui
+      IMAGE_TAGS: ${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.APP_NAME }}:${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2  
@@ -65,15 +61,15 @@ jobs:
           oc_version: '4.9'
           
       - name: Log in to OpenShift 
-        if: env.OPENSHIFT_BABYDEV_SERVER != ''
+        if: secrets.OPENSHIFT_BABYDEV_SERVER != ''
         uses: redhat-actions/oc-login@v1
         with:
-          openshift_server_url: ${{ env.OPENSHIFT_BABYDEV_SERVER }}
-          openshift_token: ${{ env.OPENSHIFT_BABYDEV_TOKEN }}
+          openshift_server_url: ${{ secrets.OPENSHIFT_BABYDEV_SERVER }}
+          openshift_token: ${{ secrets.OPENSHIFT_BABYDEV_TOKEN }}
           insecure_skip_tls_verify: true
-          namespace: ${{ env.OPENSHIFT_BABYDEV_NAMESPACE }}
+          namespace: ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }}
           
       - name: Deploy
-        if: env.OPENSHIFT_BABYDEV_SERVER != ''
+        if: secrets.OPENSHIFT_BABYDEV_SERVER != ''
         run: |
-          "${GITHUB_WORKSPACE}/.github/script.sh" ${{ env.APP_NAME }} ${{ env.IMAGE_TAGS }} ${{ env.OPENSHIFT_BABYDEV_NAMESPACE }}
+          "${GITHUB_WORKSPACE}/.github/script.sh" ${{ env.APP_NAME }} ${{ env.IMAGE_TAGS }} ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }}
