@@ -15,9 +15,8 @@ env:
   OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_BABYDEV_SERVER }}
   OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_BABYDEV_TOKEN }}  
   OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }}  
-  APP_NAME: babylon-catalog
-  IMAGE_NAME: babylon-catalog-ui
-  IMAGE_TAGS: ${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+  APP_NAME: babylon-catalog-ui
+  IMAGE_TAGS: ${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.APP_NAME }}:${{ github.sha }}
 jobs:
   manual-deploy:
     name: Deploy Current Project
@@ -76,5 +75,5 @@ jobs:
           
       - name: Deploy
         if: env.OPENSHIFT_BABYDEV_SERVER != ''
-        - run: | 
-         "${GITHUB_WORKSPACE}/.github/script.sh" ${{ env.APP_NAME }} ${{ env.IMAGE_TAGS }} ${{ env.OPENSHIFT_BABYDEV_NAMESPACE }}
+        run: |
+          "${GITHUB_WORKSPACE}/.github/script.sh" ${{ env.APP_NAME }} ${{ env.IMAGE_TAGS }} ${{ env.OPENSHIFT_BABYDEV_NAMESPACE }}
