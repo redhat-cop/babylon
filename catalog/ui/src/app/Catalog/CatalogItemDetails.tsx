@@ -190,7 +190,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
             </Title>
             {provider ? (
               <Title className="catalog-item-details__subtitle" headingLevel="h4">
-                provided by {provider}
+                provided by {provider.replace(/_/g, ' ')}
               </Title>
             ) : null}
           </SplitItem>
