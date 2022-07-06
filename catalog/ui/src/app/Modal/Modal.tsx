@@ -34,7 +34,7 @@ const _Modal: ForwardRefRenderFunction<
 ): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
-  const [onConfirmCb, setOnConfirmCb] = useState<() => Promise<void>>(() => Promise.resolve());
+  const [onConfirmCb, setOnConfirmCb] = useState<() => Promise<void>>(null);
   const close = useCallback(() => setIsOpen(false), []);
   const [_title, setTitle] = useState(title);
   const [domReady, setDomReady] = useState(false);
@@ -91,7 +91,7 @@ const _Modal: ForwardRefRenderFunction<
   }, [handleEscape, isOpen, handleClick]);
 
   const handleOnConfirm = useCallback(async () => {
-    await onConfirmCb();
+    onConfirmCb && (await onConfirmCb());
     onConfirm(state);
     close();
   }, [close, onConfirm, onConfirmCb, state]);
