@@ -60,7 +60,7 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListTerm>Workshop URL</DescriptionListTerm>
         <DescriptionListDescription>
           {workshopID ? (
-            <Link to={`/workshop/${workshopID}`}>
+            <Link to={`/workshop/${workshopID}`} target="_blank" rel="noopener">
               {window.location.protocol}
               {'//'}
               {window.location.host}/workshop/{workshopID}
