@@ -62,7 +62,7 @@ jobs:
           oc_version: "4.9"
 
       - name: Log in to OpenShift
-        if: secrets.OPENSHIFT_BABYDEV_SERVER != ''
+        if: env.IMAGE_TAGS
         uses: redhat-actions/oc-login@v1
         with:
           openshift_server_url: ${{ secrets.OPENSHIFT_BABYDEV_SERVER }}
@@ -71,6 +71,6 @@ jobs:
           namespace: ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }}
 
       - name: Deploy
-        if: secrets.OPENSHIFT_BABYDEV_SERVER != ''
+        if: env.IMAGE_TAGS
         run: |
           "${GITHUB_WORKSPACE}/.github/update-deployment.sh" ${{ env.APP_NAME }} ${{ env.IMAGE_TAGS }} ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }} ${{ env.CONTAINER_NAME }}
