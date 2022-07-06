@@ -14,14 +14,14 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:        
+    env:
       APP_NAME: babylon-catalog-ui
       CONTAINER_NAME: ui
-      IMAGE_TAGS: ${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.APP_NAME }}:${{ github.sha }}
+      IMAGE_TAGS: ${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/babylon-catalog-ui:${{ github.sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2  
-      
+        uses: actions/checkout@v2
+
       - name: Set up buildx
         uses: docker/setup-buildx-action@v1
         if: env.IMAGE_TAGS
@@ -55,13 +55,13 @@ jobs:
             GTM_ID=GTM-PGZCQBB
           push: true
           tags: ${{ env.IMAGE_TAGS }}
-          
+
       - name: Install oc
         uses: redhat-actions/oc-installer@v1
         with:
-          oc_version: '4.9'
-          
-      - name: Log in to OpenShift 
+          oc_version: "4.9"
+
+      - name: Log in to OpenShift
         if: secrets.OPENSHIFT_BABYDEV_SERVER != ''
         uses: redhat-actions/oc-login@v1
         with:
@@ -69,7 +69,7 @@ jobs:
           openshift_token: ${{ secrets.OPENSHIFT_BABYDEV_TOKEN }}
           insecure_skip_tls_verify: true
           namespace: ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }}
-          
+
       - name: Deploy
         if: secrets.OPENSHIFT_BABYDEV_SERVER != ''
         run: |
