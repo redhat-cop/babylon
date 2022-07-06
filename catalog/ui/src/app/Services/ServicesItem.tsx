@@ -216,7 +216,7 @@ const ServicesItemComponent: React.FC<{
       action,
     }: {
       modal: 'action' | 'scheduleAction' | 'createWorkshop';
-      action: 'start' | 'stop' | 'delete' | 'retirement';
+      action?: 'start' | 'stop' | 'delete' | 'retirement';
     }) => {
       if (modal === 'action') {
         setModalState({ action });
@@ -227,7 +227,6 @@ const ServicesItemComponent: React.FC<{
         openModalScheduleAction();
       }
       if (modal === 'createWorkshop') {
-        setModalState({ action });
         openModalCreateWorkshop();
       }
     },
@@ -670,7 +669,7 @@ const ServicesItemComponent: React.FC<{
                   <Button
                     className="services-item__create-workshop-button"
                     onClick={() => {
-                      setModalState({ action: 'createWorkshop' });
+                      showModal({ modal: 'createWorkshop' });
                     }}
                   >
                     Create Workshop Interface
