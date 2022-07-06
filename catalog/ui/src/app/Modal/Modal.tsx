@@ -34,7 +34,7 @@ const _Modal: ForwardRefRenderFunction<
 ): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
-  const [onConfirmCb, setOnConfirmCb] = useState(() => null);
+  const [onConfirmCb, setOnConfirmCb] = useState<() => Promise<void>>(null);
   const close = useCallback(() => setIsOpen(false), []);
   const [_title, setTitle] = useState(title);
   const [domReady, setDomReady] = useState(false);
@@ -90,6 +90,12 @@ const _Modal: ForwardRefRenderFunction<
     };
   }, [handleEscape, isOpen, handleClick]);
 
+  const handleOnConfirm = useCallback(async () => {
+    onConfirmCb && (await onConfirmCb());
+    onConfirm(state);
+    close();
+  }, [close, onConfirm, onConfirmCb, state]);
+
   const childrenWithProps = React.Children.map(children, (child) => {
     if (passModifiers && React.isValidElement(child)) {
       return React.cloneElement(child, { setTitle, setState, setOnConfirmCb });
@@ -108,16 +114,7 @@ const _Modal: ForwardRefRenderFunction<
             aria-label={`Modal: ${_title}`}
             isOpen={isOpen}
             actions={[
-              <Button
-                key="confirm"
-                variant="primary"
-                onClick={() => {
-                  onConfirm(state);
-                  onConfirmCb && onConfirmCb();
-                  close();
-                }}
-                isDisabled={isDisabled}
-              >
+              <Button key="confirm" variant="primary" onClick={handleOnConfirm} isDisabled={isDisabled}>
                 Confirm
               </Button>,
               <Button key="cancel" variant="link" onClick={close}>

@@ -194,15 +194,9 @@ const ServicesItemComponent: React.FC<{
     mutate(resourceClaimUpdate);
   }
 
-  async function onWorkshopCreate({
-    resourceClaim,
-    workshop,
-  }: {
-    resourceClaim: ResourceClaim;
-    workshop: Workshop;
-  }): Promise<void> {
-    mutate(resourceClaim);
-    mutateWorkshop(workshop);
+  function onModalWorkshopCreate() {
+    mutate();
+    mutateWorkshop();
   }
 
   async function onCheckStatusRequest(): Promise<void> {
@@ -238,7 +232,7 @@ const ServicesItemComponent: React.FC<{
       <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
         <ServicesAction action={modalState.action} resourceClaim={resourceClaim} />
       </Modal>
-      <Modal ref={modalCreateWorkshop} onConfirm={onWorkshopCreate} passModifiers={true}>
+      <Modal ref={modalCreateWorkshop} onConfirm={onModalWorkshopCreate} passModifiers={true}>
         <ServicesCreateWorkshop resourceClaim={resourceClaim} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
