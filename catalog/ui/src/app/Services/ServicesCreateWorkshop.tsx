@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Form, FormGroup, Select, SelectOption, SelectVariant, TextArea, TextInput } from '@patternfly/react-core';
 import { createWorkshopForMultiuserService } from '@app/api';
 import { ResourceClaim } from '@app/types';
