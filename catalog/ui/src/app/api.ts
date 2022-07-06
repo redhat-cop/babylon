@@ -1,5 +1,4 @@
 import parseDuration from 'parse-duration';
-
 import {
   AnarchyAction,
   AnarchyGovernor,
@@ -28,13 +27,9 @@ import {
   WorkshopSpecUserAssignment,
   UserList,
 } from '@app/types';
-
 import { store } from '@app/store';
-
 import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
-
 import { checkAccessControl, displayName, recursiveAssign, BABYLON_DOMAIN } from '@app/util';
-import { string } from 'prop-types';
 
 declare var window: Window &
   typeof globalThis & {
@@ -76,7 +71,7 @@ export async function apiFetch(path: string, opt?: object): Promise<any> {
   const options = opt ? JSON.parse(JSON.stringify(opt)) : {};
   options.method = options.method || 'GET';
   options.headers = options.headers || {};
-  options.headers.Authentication = `Bearer ${session.token}`;
+  options.headers['Authentication'] = `Bearer ${session.token}`;
 
   if (!options.disableImpersonation) {
     const impersonateUser = selectImpersonationUser(store.getState());

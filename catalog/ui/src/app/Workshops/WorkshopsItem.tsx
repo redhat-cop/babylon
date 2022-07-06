@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { ErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
@@ -137,7 +137,7 @@ const WorkshopsItemComponent: React.FC<{
       },
     }
   );
-  if (error) throw error;
+  useErrorHandler(error?.status === 404 ? error : null);
 
   const resourceClaims: ResourceClaim[] = useMemo(
     () => [].concat(...resourceClaimsPages.map((page) => page.items)) || [],
