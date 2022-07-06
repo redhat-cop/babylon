@@ -528,6 +528,15 @@ class Workshop:
         ).replace(tzinfo=timezone.utc)
 
     @property
+    def lifespan_start(self):
+        lifespan_start_timestamp = self.spec.get('lifespan', {}).get('start')
+        if not lifespan_start_timestamp:
+            return None
+        return datetime.strptime(
+            lifespan_start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
     def multiuser_services(self):
         return self.spec.get('multiuserServices', False)
 
@@ -1034,9 +1043,7 @@ class WorkshopProvision:
     def manage_action_schedule_and_lifespan(self, logger, workshop):
         patch = {}
 
-        if workshop.action_schedule_start and (
-            not self.action_schedule_start or workshop.action_schedule_start != self.action_schedule_start
-        ):
+        if workshop.action_schedule_start and workshop.action_schedule_start != self.action_schedule_start:
             patch = deep_update(patch, {
                 "spec": {
                     "actionSchedule": {
@@ -1045,9 +1052,7 @@ class WorkshopProvision:
                 }
             })
 
-        if workshop.action_schedule_stop and (
-            not self.action_schedule_stop or workshop.action_schedule_stop != self.action_schedule_stop
-        ):
+        if workshop.action_schedule_stop and workshop.action_schedule_stop != self.action_schedule_stop:
             patch = deep_update(patch, {
                 "spec": {
                     "actionSchedule": {
@@ -1056,13 +1061,20 @@ class WorkshopProvision:
                 }
             })
 
-        if workshop.lifespan_end and (
-            not self.lifespan_end or workshop.lifespan_end != self.lifespan_end
-        ):
+        if workshop.lifespan_end and workshop.lifespan_end != self.lifespan_end:
             patch = deep_update(patch, {
                 "spec": {
                     "lifespan": {
                         "end": workshop.lifespan_end.strftime('%FT%TZ')
+                    }
+                }
+            })
+
+        if workshop.lifespan_start and workshop.lifespan_start != self.lifespan_start:
+            patch = deep_update(patch, {
+                "spec": {
+                    "lifespan": {
+                        "start": workshop.lifespan_start.strftime('%FT%TZ')
                     }
                 }
             })

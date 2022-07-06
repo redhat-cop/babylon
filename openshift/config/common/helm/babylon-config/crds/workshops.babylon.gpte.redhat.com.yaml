@@ -75,6 +75,11 @@ spec:
                       End of lifespan for Workshop any WorkshopProvisions that belong to it.
                     type: string
                     format: date-time
+                  start:
+                    description: >-
+                      Start of lifespan for Workshop any WorkshopProvisions that belong to it.
+                    type: string
+                    format: date-time
               multiuserServices:
                 description: >-
                   Flag to indicate that services for this workshop are multi-user.
