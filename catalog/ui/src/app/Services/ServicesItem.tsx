@@ -86,7 +86,7 @@ const ServicesItemComponent: React.FC<{
   } = useSWR<ResourceClaim>(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }), fetcher, {
     refreshInterval: 8000,
   });
-  useErrorHandler(error?.status !== 401 ? error : null);
+  useErrorHandler(error?.status === 404 ? error : null);
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const enableFetchUserNamespaces: boolean = userIsAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(

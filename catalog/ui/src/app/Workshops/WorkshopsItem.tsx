@@ -137,7 +137,7 @@ const WorkshopsItemComponent: React.FC<{
       },
     }
   );
-  useErrorHandler(error?.status !== 401 ? error : null);
+  useErrorHandler(error?.status === 404 ? error : null);
 
   const resourceClaims: ResourceClaim[] = useMemo(
     () => [].concat(...resourceClaimsPages.map((page) => page.items)) || [],
