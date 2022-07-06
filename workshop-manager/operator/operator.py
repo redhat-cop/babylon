@@ -500,6 +500,43 @@ class Workshop:
             self.uid = uid
 
     @property
+    def action_schedule_start(self):
+        start_timestamp = self.spec.get('actionSchedule', {}).get('start')
+        if not start_timestamp:
+            return None
+        return datetime.strptime(
+            start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
+    def action_schedule_stop(self):
+        stop_timestamp = self.spec.get('actionSchedule', {}).get('stop')
+        if not stop_timestamp:
+            return None
+        return datetime.strptime(
+            stop_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+
+    @property
+    def lifespan_end(self):
+        lifespan_end_timestamp = self.spec.get('lifespan', {}).get('end')
+        if not lifespan_end_timestamp:
+            return None
+        return datetime.strptime(
+            lifespan_end_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
+    def lifespan_start(self):
+        lifespan_start_timestamp = self.spec.get('lifespan', {}).get('start')
+        if not lifespan_start_timestamp:
+            return None
+        return datetime.strptime(
+            lifespan_start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
     def multiuser_services(self):
         return self.spec.get('multiuserServices', False)
 
@@ -528,7 +565,7 @@ class Workshop:
         for resource_claim_name in check_resource_claim_names:
             try:
                 custom_objects_api.get_namespaced_custom_object(
-                    poolboy_domain, poolboy_api_version, self.namespace, 
+                    poolboy_domain, poolboy_api_version, self.namespace,
                     'resourceclaims', resource_claim_name
                 )
             except kubernetes.client.rest.ApiException as e:
@@ -560,6 +597,16 @@ class Workshop:
                 if e.status != 409 and e.status != 404:
                     raise
 
+    def delete(self, logger):
+        logger.info(f"Deleting Workshop {self.name} in {self.namespace}")
+        try:
+            custom_objects_api.delete_namespaced_custom_object(
+                babylon_domain, babylon_api_version, self.namespace, 'workshops', self.name
+            )
+        except kubernetes.client.rest.ApiException as e:
+            if e.status != 404:
+                raise
+
     def delete_all_workshop_provisions(self, logger):
         logger.info(f"Deleting all WorkshopProvisions for Workshop {self.name} in {self.namespace}")
         for workshop_provision in self.list_workshop_provisions():
@@ -579,7 +626,7 @@ class Workshop:
             logger.info(f"Deleting ResourceClaim {resource_claim.name} in namespace {resource_claim.namespace}")
             try:
                 custom_objects_api.delete_namespaced_custom_object(
-                    poolboy_domain, poolboy_api_version, resource_claim.namespace, 
+                    poolboy_domain, poolboy_api_version, resource_claim.namespace,
                     'resourceclaims', resource_claim.name
                 )
             except kubernetes.client.rest.ApiException as e:
@@ -705,7 +752,7 @@ class Workshop:
                 for idx, item in enumerate(workshop_definition['spec'].get('userAssignments', [])):
                     if item.get('resourceClaimName') == resource_claim.name \
                     and (
-                        not self.multiuser_services or 
+                        not self.multiuser_services or
                         item.get('userName') == user_assignment.user_name
                     ):
                         updated_item = deep_update(item, user_assignment_definition)
@@ -782,6 +829,24 @@ class WorkshopProvision:
             self.uid = uid
 
     @property
+    def action_schedule_start(self):
+        start_timestamp = self.spec.get('actionSchedule', {}).get('start')
+        if not start_timestamp:
+            return None
+        return datetime.strptime(
+            start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
+    def action_schedule_stop(self):
+        stop_timestamp = self.spec.get('actionSchedule', {}).get('stop')
+        if not stop_timestamp:
+            return None
+        return datetime.strptime(
+            stop_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
     def catalog_item_name(self):
         return self.spec['catalogItem']['name']
 
@@ -828,27 +893,9 @@ class WorkshopProvision:
         return self.spec.get('startDelay', 10)
 
     @property
-    def action_schedule_start(self):
-        start_timestamp = self.spec.get('actionSchedule', {}).get('start')
-        if not start_timestamp:
-            return None
-        return datetime.strptime(
-            start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
-        ).replace(tzinfo=timezone.utc)
-
-    @property
-    def action_schedule_stop(self):
-        stop_timestamp = self.spec.get('actionSchedule', {}).get('stop')
-        if not stop_timestamp:
-            return None
-        return datetime.strptime(
-            stop_timestamp, '%Y-%m-%dT%H:%M:%SZ'
-        ).replace(tzinfo=timezone.utc)
-
-    @property
     def workshop_name(self):
         return self.spec['workshopName']
-    
+
     def create_resource_claim(self, logger, workshop):
         logger.debug(f"Creating ResourceClaim for {self.name} in namespace {self.namespace}")
         try:
@@ -940,13 +987,24 @@ class WorkshopProvision:
         )
         return resource_claim
 
+    def delete(self, logger):
+        logger.info(f"Deleting WorkshopProvision {self.name} in {self.namespace}")
+        try:
+            custom_objects_api.delete_namespaced_custom_object(
+                babylon_domain, babylon_api_version, self.namespace,
+                'workshopprovisions', self.name
+            )
+        except kubernetes.client.rest.ApiException as e:
+            if e.status != 404:
+                raise
+
     def delete_all_resource_claims(self, logger):
         logger.info(f"Deleting all ResourceClaims for WorkshopProvision {self.name} in namespace {self.namespace}")
         for resource_claim in self.list_resource_claims():
             logger.info(f"Deleting ResourceClaim {resource_claim.name} in namespace {resource_claim.namespace}")
             try:
                 custom_objects_api.delete_namespaced_custom_object(
-                    poolboy_domain, poolboy_api_version, resource_claim.namespace, 
+                    poolboy_domain, poolboy_api_version, resource_claim.namespace,
                     'resourceclaims', resource_claim.name
                 )
             except kubernetes.client.rest.ApiException as e:
@@ -970,9 +1028,7 @@ class WorkshopProvision:
             if not _continue:
                 return
 
-    def manage_resource_claims(self, logger):
-        logger.debug(f"Manage ResourceClaims for {self.name} in namespace {self.namespace}")
-
+    def manage(self, logger):
         try:
             workshop = self.get_workshop()
         except kubernetes.client.rest.ApiException as e:
@@ -980,6 +1036,56 @@ class WorkshopProvision:
                 raise kopf.TemporaryError("Workshop {self.workshop_name} was not found.", delay=30)
             else:
                 raise
+
+        self.manage_action_schedule_and_lifespan(logger=logger, workshop=workshop)
+        self.manage_resource_claims(logger=logger, workshop=workshop)
+
+    def manage_action_schedule_and_lifespan(self, logger, workshop):
+        patch = {}
+
+        if workshop.action_schedule_start and workshop.action_schedule_start != self.action_schedule_start:
+            patch = deep_update(patch, {
+                "spec": {
+                    "actionSchedule": {
+                        "start": workshop.action_schedule_start.strftime('%FT%TZ')
+                    }
+                }
+            })
+
+        if workshop.action_schedule_stop and workshop.action_schedule_stop != self.action_schedule_stop:
+            patch = deep_update(patch, {
+                "spec": {
+                    "actionSchedule": {
+                        "stop": workshop.action_schedule_stop.strftime('%FT%TZ')
+                    }
+                }
+            })
+
+        if workshop.lifespan_end and workshop.lifespan_end != self.lifespan_end:
+            patch = deep_update(patch, {
+                "spec": {
+                    "lifespan": {
+                        "end": workshop.lifespan_end.strftime('%FT%TZ')
+                    }
+                }
+            })
+
+        if workshop.lifespan_start and workshop.lifespan_start != self.lifespan_start:
+            patch = deep_update(patch, {
+                "spec": {
+                    "lifespan": {
+                        "start": workshop.lifespan_start.strftime('%FT%TZ')
+                    }
+                }
+            })
+
+        if patch:
+            custom_objects_api.patch_namespaced_custom_object(
+                babylon_domain, babylon_api_version, self.namespace, 'workshopprovisions', self.name, patch
+            )
+
+    def manage_resource_claims(self, logger, workshop):
+        logger.debug(f"Manage ResourceClaims for {self.name} in namespace {self.namespace}")
 
         resource_claim_count = 0
         provisioning_count = 0
@@ -1140,6 +1246,10 @@ async def workshop_daemon(logger, stopped, **kwargs):
     workshop = Workshop.register(**kwargs)
     try:
         while not stopped:
+            if workshop.lifespan_end and workshop.lifespan_end < datetime.now(timezone.utc):
+                logger.info("Deleting Workshop {workshop.name} in {workshop.namespace} for lifespan end")
+                workshop.delete(logger=logger)
+                break
             workshop.manage(logger=logger)
             await asyncio.sleep(60)
     except asyncio.CancelledError:
@@ -1172,7 +1282,12 @@ async def workshop_provision(logger, stopped, **kwargs):
     workshop_provision = WorkshopProvision.register(**kwargs)
     try:
         while not stopped:
-            workshop_provision.manage_resource_claims(logger=logger)
-            await asyncio.sleep(workshop_provision.start_delay)
+            if workshop_provision.lifespan_end and workshop_provision.lifespan_end < datetime.now(timezone.utc):
+                logger.info("Deleting WorkshopProvision {workshop_provision.name} in {workshop_provision.namespace} for lifespan end")
+                workshop_provision.delete(logger=logger)
+                break
+            else:
+                workshop_provision.manage(logger=logger)
+                await asyncio.sleep(workshop_provision.start_delay)
     except asyncio.CancelledError:
         pass

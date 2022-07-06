@@ -38,6 +38,23 @@ spec:
                 description: >-
                   Optional password for access to the workshop.
                 type: string
+              actionSchedule:
+                description: >-
+                  Configuration for when services should start and stop to propagate to WorkshopProvisions that belong to this Workshop.
+                  This configuration is only for Workshops that have WorkshopProvisions.
+                  This configuration has no effect for Workshops that are owned by a ResourceClaim.
+                type: object
+                properties:
+                  start:
+                    description: >-
+                      Time when services should start. If in the future then services should be stopped.
+                    type: string
+                    format: date-time
+                  stop:
+                    description: >-
+                      Time when services should stop. If in the past then services should be stopped.
+                    type: string
+                    format: date-time
               description:
                 description: >-
                   Description text for the workshop.
@@ -46,6 +63,23 @@ spec:
                 description: >-
                   Display name for the workshop.
                 type: string
+              lifespan:
+                description: >-
+                  Lifespan settings for this Workshop.
+                  This configuration is meant for Workshops that have WorkshopProvisions.
+                  Lifespan for Workshops owned by a ResourceClaim should be managed through the owning ResourceClaim.
+                type: object
+                properties:
+                  end:
+                    description: >-
+                      End of lifespan for Workshop any WorkshopProvisions that belong to it.
+                    type: string
+                    format: date-time
+                  start:
+                    description: >-
+                      Start of lifespan for Workshop any WorkshopProvisions that belong to it.
+                    type: string
+                    format: date-time
               multiuserServices:
                 description: >-
                   Flag to indicate that services for this workshop are multi-user.
