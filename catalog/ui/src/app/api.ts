@@ -26,6 +26,7 @@ import {
   WorkshopProvisionList,
   WorkshopSpecUserAssignment,
   UserList,
+  Session,
 } from '@app/types';
 import { store } from '@app/store';
 import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
@@ -33,9 +34,8 @@ import { checkAccessControl, displayName, recursiveAssign, BABYLON_DOMAIN } from
 
 declare var window: Window &
   typeof globalThis & {
-    apiSessionPromise?: any;
-    apiSessionInterval?: any;
-    apiSessionImpersonateUser?: any;
+    session?: any;
+    impersonateUser?: any;
   };
 
 export interface CreateServiceRequestOpt {
@@ -80,9 +80,19 @@ export async function apiFetch(path: string, opt?: object): Promise<any> {
     }
   }
 
-  const resp = await window.fetch(path, options);
+  let resp = await window.fetch(path, options);
   if (resp.status >= 400 && resp.status < 600) {
-    throw resp;
+    if (resp.status === 401) {
+      // Retry with a refreshed session
+      const session = await getApiSession(true);
+      options.headers['Authentication'] = `Bearer ${session.token}`;
+      resp = await window.fetch(path, options);
+      if (resp.status >= 400 && resp.status < 600) {
+        throw resp;
+      }
+    } else {
+      throw resp;
+    }
   }
 
   return resp;
@@ -591,13 +601,13 @@ export async function getAnarchyAction(namespace: string, name: string): Promise
   )) as AnarchyAction;
 }
 
-export async function getApiSession(): Promise<any> {
-  if (!window.apiSessionPromise) {
-    refreshApiSession();
+export async function getApiSession(forceRefresh = false): Promise<Session> {
+  let session = window.session;
+  if (!session || forceRefresh) {
+    session = await fetchApiSession();
   }
-  const session = await window.apiSessionPromise;
-  if (window.apiSessionImpersonateUser) {
-    session.impersonateUser = window.apiSessionImpersonateUser;
+  if (window.impersonateUser) {
+    session.impersonateUser = window.impersonateUser;
   }
   return session;
 }
@@ -700,7 +710,7 @@ export async function getResourceProvider(name: string): Promise<ResourceProvide
 }
 
 export async function getUserInfo(user): Promise<any> {
-  const session = await getApiSession();
+  const session = await getApiSession(true);
   const resp = await fetch(`/auth/users/${user}`, {
     headers: {
       Authentication: `Bearer ${session.token}`,
@@ -718,21 +728,15 @@ export async function getWorkshop(namespace: string, name: string): Promise<Work
   });
 }
 
-function refreshApiSession(): void {
-  window.apiSessionPromise = new Promise((resolve) => {
-    fetch('/auth/session')
-      .then((response) => response.json())
-      .then((session) => {
-        if (window.apiSessionInterval) {
-          clearInterval(window.apiSessionInterval);
-        }
-        window.apiSessionInterval = setInterval(refreshApiSession, (session.lifetime - 60) * 1000);
-        resolve(session);
-      })
-      .catch(() => {
-        window.location.href = '/?n=' + new Date().getTime();
-      });
-  });
+async function fetchApiSession(): Promise<Session> {
+  const response = await fetch('/auth/session');
+  if (!response.ok) {
+    window.location.href = '/?n=' + new Date().getTime();
+    return Promise.resolve(null);
+  }
+  const session: Session = await response.json();
+  window.session = session;
+  return session;
 }
 
 export async function listAnarchyActions(opt?: K8sObjectListCommonOpt): Promise<any> {
@@ -844,7 +848,7 @@ export async function listWorkshopProvisions(opt?: K8sObjectListCommonOpt): Prom
 
 export async function scalePool(resourcepool, minAvailable): Promise<any> {
   try {
-    const session = await getApiSession();
+    const session = await getApiSession(true);
     const response = await fetch(
       `/apis/poolboy.gpte.redhat.com/v1/namespaces/${resourcepool.metadata.namespace}/resourcepools/${resourcepool.metadata.name}`,
       {
