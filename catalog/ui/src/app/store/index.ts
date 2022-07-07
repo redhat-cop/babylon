@@ -5,7 +5,7 @@ import { CatalogNamespace, ServiceNamespace } from '@app/types';
 export interface ActionSetImpersonation {
   admin: string;
   user: string;
-  groups: [string];
+  groups: string[];
   catalogNamespaces: [];
   serviceNamespaces: [];
   userNamespace: [];
@@ -15,7 +15,7 @@ export interface ActionStartSession {
   admin: boolean;
   consoleURL: string;
   user: string;
-  groups: [string];
+  groups: string[];
   interface: string;
   catalogNamespaces: CatalogNamespace[];
   serviceNamespaces: ServiceNamespace[];
@@ -23,7 +23,7 @@ export interface ActionStartSession {
 }
 
 // Reducer functions
-function reduce_clearImpersonation(state, action) {
+function reduce_clearImpersonation(state) {
   state.impersonate = null;
   state.catalogItems = null;
   sessionStorage.removeItem('impersonateUser');

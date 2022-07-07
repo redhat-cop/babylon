@@ -356,3 +356,17 @@ export interface WorkshopSpecUserAssignment {
   resourceClaimName?: string;
   userName?: string;
 }
+
+export type Session = {
+  lifetime: number;
+  token: string;
+  impersonateUser: string;
+  admin: boolean;
+  consoleURL: string;
+  groups: string[] | [];
+  interface: string;
+  user: string;
+  catalogNamespaces: CatalogNamespace[];
+  serviceNamespaces: CatalogNamespace[];
+  userNamespace: UserNamespace;
+};
