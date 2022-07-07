@@ -25,6 +25,7 @@ from humanize import naturaldelta
 from catalog_item import CatalogItem
 from catalog_namespace import CatalogNamespace
 from infinite_relative_backoff import InfiniteRelativeBackoff
+from configure_kopf_logging import configure_kopf_logging
 from resource_claim import ResourceClaim
 from service_namespace import ServiceNamespace
 from tempfile import mkstemp
@@ -124,6 +125,8 @@ def configure(settings: kopf.OperatorSettings, **_):
 
     # Disable scanning for CustomResourceDefinitions
     settings.scanning.disabled = True
+
+    configure_kopf_logging()
 
 @kopf.on.event(
     poolboy_domain, poolboy_api_version, 'resourceclaims',
