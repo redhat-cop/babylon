@@ -729,12 +729,12 @@ export async function getWorkshop(namespace: string, name: string): Promise<Work
 }
 
 async function fetchApiSession(): Promise<Session> {
-  const session: Promise<Session> = await fetch('/auth/session')
-    .then((response) => response.json())
-    .catch(() => {
-      window.location.href = '/?n=' + new Date().getTime();
-      return Promise.resolve(null);
-    });
+  const response = await fetch('/auth/session');
+  if (!response.ok) {
+    window.location.href = '/?n=' + new Date().getTime();
+    return Promise.resolve(null);
+  }
+  const session: Session = await response.json();
   window.session = session;
   return session;
 }
