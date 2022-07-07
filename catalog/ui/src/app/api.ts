@@ -710,7 +710,13 @@ export async function getResourceProvider(name: string): Promise<ResourceProvide
 }
 
 export async function getUserInfo(user): Promise<any> {
-  return await apiFetch(`/auth/users/${user}`);
+  const session = await getApiSession(true);
+  const resp = await fetch(`/auth/users/${user}`, {
+    headers: {
+      Authentication: `Bearer ${session.token}`,
+    },
+  });
+  return await resp.json();
 }
 
 export async function getWorkshop(namespace: string, name: string): Promise<Workshop> {
