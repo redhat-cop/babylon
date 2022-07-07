@@ -1,27 +1,25 @@
-schemaVersion: 2.0.0
-metadata:
-  name: babylon-notifier
-  version: 1.0.0
+commands:
+- exec:
+    commandLine: /usr/libexec/s2i/assemble
+    component: s2i-builder
+    group:
+      isDefault: true
+      kind: build
+    hotReloadCapable: false
+    workingDir: ${PROJECT_SOURCE}
+  id: s2i-assemble
+- exec:
+    commandLine: /usr/libexec/s2i/run
+    component: s2i-builder
+    group:
+      isDefault: true
+      kind: run
+    hotReloadCapable: false
+    workingDir: ${PROJECT_SOURCE}
+  id: s2i-run
 components:
-- name: s2i-builder
-  container:
+- container:
     env:
-    - name: ODO_S2I_SCRIPTS_URL
-      value: /usr/libexec/s2i
-    - name: ODO_S2I_SCRIPTS_PROTOCOL
-      value: image://
-    - name: ODO_S2I_SRC_BIN_PATH
-      value: /tmp
-    - name: ODO_S2I_DEPLOYMENT_DIR
-      value: ""
-    - name: ODO_S2I_WORKING_DIR
-      value: /opt/app-root/src
-    - name: ODO_S2I_BUILDER_IMG
-      value: quay.io/redhat-cop/python-kopf-s2i:v1.35
-    - name: ODO_SRC_BACKUP_DIR
-      value: /opt/app-root/src-backup
-    - name: ODO_S2I_CONVERTED_DEVFILE
-      value: "true"
     - name: ONLY_SEND_TO
       value: jkupfere@redhat.com
     - name: REDIS_HOST
@@ -41,18 +39,8 @@ components:
     image: quay.io/redhat-cop/python-kopf-s2i:v1.35
     mountSources: true
     sourceMapping: /tmp/projects
-commands:
-- id: s2i-assemble
-  exec:
-    commandLine: /opt/odo/bin/s2i-setup && /opt/odo/bin/assemble-and-restart
-    component: s2i-builder
-    group:
-      isDefault: true
-      kind: build
-- id: s2i-run
-  exec:
-    commandLine: /opt/odo/bin/run
-    component: s2i-builder
-    group:
-      isDefault: true
-      kind: run
+  name: s2i-builder
+metadata:
+  name: babylon-notifier
+  version: 1.0.0
+schemaVersion: 2.0.0
