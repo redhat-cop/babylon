@@ -31,4 +31,4 @@ class CatalogItem:
         return None
 
     def get_message_template(self, template_name):
-        template_config = self.definition['spec'].get('messageTemplates', {}).get(template_name, {}).get('template')
+        return self.definition['spec'].get('messageTemplates', {}).get(template_name, {}).get('template')
