@@ -44,10 +44,11 @@ import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
 import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
+import CostTrackerDialog from '@app/components/CostTrackerDialog';
 
 import './workshops-item.css';
 export interface ModalState {
-  action?: 'delete' | 'deleteService' | 'startService' | 'stopService';
+  action?: 'delete' | 'deleteService' | 'startService' | 'stopService' | 'getCost';
   resourceClaim?: ResourceClaim;
 }
 
@@ -63,6 +64,7 @@ const WorkshopsItemComponent: React.FC<{
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
+  const [modalGetCost, openModalGetCost] = useModal();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
   const showModal = useCallback(
     ({ action, resourceClaim }: ModalState) => {
@@ -71,9 +73,11 @@ const WorkshopsItemComponent: React.FC<{
         openModalDelete();
       } else if (action === 'deleteService' || action === 'startService' || action === 'stopService') {
         openModalAction();
+      } else if (action === 'getCost') {
+        openModalGetCost();
       }
     },
-    [openModalAction, openModalDelete]
+    [openModalAction, openModalDelete, openModalGetCost]
   );
   const enableFetchUserNamespaces: boolean = userIsAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
@@ -237,7 +241,9 @@ const WorkshopsItemComponent: React.FC<{
           />
         ) : null}
       </Modal>
-
+      <Modal ref={modalGetCost} onConfirm={() => null} type="ack">
+        <CostTrackerDialog resourceClaim={modalState.resourceClaim} />
+      </Modal>
       {userIsAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-item__topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect

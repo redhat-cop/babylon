@@ -68,6 +68,16 @@ const ServiceActions: React.FC<{
       />
     );
   }
+
+  if (actionHandlers.getCost) {
+    actionDropdownItems.push(
+      <ActionDropdownItem
+        key="getCost"
+        label={serviceName ? `Get amount spent ${serviceName}` : 'Get amount spent'}
+        onSelect={() => actionHandlers.getCost()}
+      />
+    );
+  }
   return (
     <ActionDropdown
       actionDropdownItems={actionDropdownItems}

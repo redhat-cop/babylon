@@ -93,3 +93,9 @@
   align-items: flex-start;
   row-gap: 0;
 }
+.services-item__estimated-cost-label {
+  font-size: var(--pf-global--FontSize--sm);
+  color: var(--pf-global--palette--black-800);
+  font-style: italic;
+  margin-left: var(--pf-global--spacer--xs);
+}

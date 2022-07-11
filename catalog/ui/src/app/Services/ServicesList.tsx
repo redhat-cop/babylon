@@ -47,6 +47,7 @@ import {
   BABYLON_DOMAIN,
   keywordMatch,
   compareK8sObjects,
+  getCostTracker,
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
@@ -57,6 +58,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import ServicesAction from './ServicesAction';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import LocalTimestamp from '@app/components/LocalTimestamp';
+import CostTrackerDialog from '@app/components/CostTrackerDialog';
 
 import './services-list.css';
 
@@ -87,6 +89,7 @@ const ServicesList: React.FC<{
   }>({});
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
+  const [modalGetCost, openModalGetCost] = useModal();
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
 
   const { data: userNamespaceList } = useSWR<NamespaceList>(
@@ -250,7 +253,7 @@ const ServicesList: React.FC<{
   ]);
 
   const showModal = useCallback(
-    ({ modal, action, resourceClaim }: { modal: string; action: string; resourceClaim?: ResourceClaim }) => {
+    ({ modal, action, resourceClaim }: { modal: string; action?: string; resourceClaim?: ResourceClaim }) => {
       if (modal === 'action') {
         setModalState({ action, resourceClaim });
         openModalAction();
@@ -258,6 +261,10 @@ const ServicesList: React.FC<{
       if (modal === 'scheduleAction') {
         setModalState({ action, resourceClaim });
         openModalScheduleAction();
+      }
+      if (modal === 'getCost') {
+        setModalState({ resourceClaim });
+        openModalGetCost();
       }
     },
     [openModalAction, openModalScheduleAction]
@@ -305,6 +312,14 @@ const ServicesList: React.FC<{
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
+      </Modal>
+      <Modal
+        ref={modalGetCost}
+        onConfirm={() => null}
+        type="ack"
+        title={`Amount spent on ${displayName(modalState.resourceClaim)}`}
+      >
+        <CostTrackerDialog resourceClaim={modalState.resourceClaim} />
       </Modal>
       {serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-list__topbar" variant={PageSectionVariants.light}>
@@ -438,22 +453,23 @@ const ServicesList: React.FC<{
                   })
                   .find((u) => u != null);
 
+              const costTracker = getCostTracker(resourceClaim);
               // Available actions depends on kind of service
               const actionHandlers = {
-                delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim: resourceClaim }),
-                lifespan: () =>
-                  showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim: resourceClaim }),
+                delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
+                lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
                 runtime: null,
                 start: null,
                 stop: null,
+                getCost: null,
               };
               if (resources.find((r) => r?.kind === 'AnarchySubject')) {
-                actionHandlers['runtime'] = () =>
-                  showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim: resourceClaim });
-                actionHandlers['start'] = () =>
-                  showModal({ action: 'start', modal: 'action', resourceClaim: resourceClaim });
-                actionHandlers['stop'] = () =>
-                  showModal({ action: 'stop', modal: 'action', resourceClaim: resourceClaim });
+                actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', resourceClaim });
+                actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
+              }
+              if (costTracker) {
+                actionHandlers['getCost'] = () => showModal({ modal: 'getCost', resourceClaim });
               }
 
               const projectCell = (
@@ -617,11 +633,11 @@ const ServicesList: React.FC<{
                       description="Delete"
                       icon={TrashIcon}
                     />
-                    {false ? (
+                    {actionHandlers.getCost ? (
                       <ButtonCircleIcon
                         key="actions__cost"
-                        onClick={null}
-                        description="Get current cost"
+                        onClick={actionHandlers.getCost}
+                        description="Get amount spent"
                         icon={DollarSignIcon}
                       />
                     ) : null}

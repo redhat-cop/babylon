@@ -67,10 +67,9 @@ const CatalogItemAdmin: React.FC = () => {
     name: string;
   }>('/admin/catalogitems/:namespace/:name');
   const history = useHistory();
-  const { data: catalogItem, mutate }: { data?: CatalogItem; mutate: any } = useSWR(
+  const { data: catalogItem, mutate } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: routeMatch.params.namespace, name: routeMatch.params.name }),
-    fetcher,
-    { suspense: true }
+    fetcher
   );
   const userEmail = useSession().getSession().email;
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
@@ -113,13 +112,13 @@ const CatalogItemAdmin: React.FC = () => {
     };
     setIsLoading(true);
     mutate(
-      await patchK8sObjectByPath({
+      (await patchK8sObjectByPath({
         path: apiPaths.CATALOG_ITEM({
           namespace: routeMatch.params.namespace,
           name: routeMatch.params.name,
         }),
         patch,
-      })
+      })) as CatalogItem
     );
     setIsLoading(false);
   }
@@ -152,13 +151,13 @@ const CatalogItemAdmin: React.FC = () => {
     };
     setIsLoading(true);
     mutate(
-      await patchK8sObjectByPath({
+      (await patchK8sObjectByPath({
         path: apiPaths.CATALOG_ITEM({
           namespace: routeMatch.params.namespace,
           name: routeMatch.params.name,
         }),
         patch,
-      })
+      })) as CatalogItem
     );
     setIsLoading(false);
     history.push('/catalog');

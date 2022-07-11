@@ -27,9 +27,18 @@ const _Modal: ForwardRefRenderFunction<
     children: React.ReactNode;
     isDisabled?: boolean;
     passModifiers?: boolean;
+    type?: 'action' | 'ack';
   }
 > = (
-  { children, onConfirm, title = '', defaultOpened = false, isDisabled = false, passModifiers = false },
+  {
+    children,
+    onConfirm,
+    title = '',
+    defaultOpened = false,
+    isDisabled = false,
+    passModifiers = false,
+    type = 'action',
+  },
   ref
 ): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
@@ -113,14 +122,22 @@ const _Modal: ForwardRefRenderFunction<
             onClose={close}
             aria-label={`Modal: ${_title}`}
             isOpen={isOpen}
-            actions={[
-              <Button key="confirm" variant="primary" onClick={handleOnConfirm} isDisabled={isDisabled}>
-                Confirm
-              </Button>,
-              <Button key="cancel" variant="link" onClick={close}>
-                Cancel
-              </Button>,
-            ]}
+            actions={
+              type === 'action'
+                ? [
+                    <Button key="confirm" variant="primary" onClick={handleOnConfirm} isDisabled={isDisabled}>
+                      Confirm
+                    </Button>,
+                    <Button key="cancel" variant="link" onClick={close}>
+                      Cancel
+                    </Button>,
+                  ]
+                : [
+                    <Button key="confirm" variant="primary" onClick={handleOnConfirm} isDisabled={isDisabled}>
+                      Close
+                    </Button>,
+                  ]
+            }
           >
             {childrenWithProps}
           </Modal>
