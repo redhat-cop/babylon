@@ -36,7 +36,7 @@
     "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.7.1",
     "css-minimizer-webpack-plugin": "^4.0.0",
-    "dotenv-webpack": "^7.1.1",
+    "dotenv-webpack": "^8.0.0",
     "eslint": "^7.32.0",
     "eslint-plugin-react": "^7.30.1",
     "eslint-plugin-react-hooks": "^4.6.0",
