@@ -484,7 +484,7 @@ const ServicesItemComponent: React.FC<{
                           <DescriptionListGroup>
                             <DescriptionListTerm>Amount spent</DescriptionListTerm>
                             <DescriptionListDescription>
-                              {costTracker?.estimatedCost ? (
+                              {costTracker?.estimatedCost && costTracker.estimatedCost > 1 ? (
                                 <p>
                                   <CurrencyAmount amount={costTracker.estimatedCost} />{' '}
                                   <span className="services-item__estimated-cost-label">
