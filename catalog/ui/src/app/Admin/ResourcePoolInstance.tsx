@@ -199,12 +199,12 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
             <ActionDropdown
               position="right"
               actionDropdownItems={[
-                <ActionDropdownItem key="delete" label="Delete" onSelect={() => confirmThenDelete()} />,
+                <ActionDropdownItem key="delete" label="Delete ResourcePool" onSelect={confirmThenDelete} />,
                 <ActionDropdownItem
                   key="deletedSelectedHandles"
                   isDisabled={selectedResourceHandleUids.length === 0}
                   label="Delete Selected ResourceHandles"
-                  onSelect={() => confirmThenDeleteSelectedHandles()}
+                  onSelect={confirmThenDeleteSelectedHandles}
                 />,
                 <ActionDropdownItem
                   key="editInOpenShift"
