@@ -480,22 +480,23 @@ const ServicesItemComponent: React.FC<{
                               />
                             </DescriptionListDescription>
                           </DescriptionListGroup>
-
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>Amount spent</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {costTracker?.estimatedCost && costTracker.estimatedCost > 1 ? (
-                                <p>
-                                  <CurrencyAmount amount={costTracker.estimatedCost} />{' '}
-                                  <span className="services-item__estimated-cost-label">
-                                    (Estimated by the cloud provider)
-                                  </span>
-                                </p>
-                              ) : (
-                                'No data available'
-                              )}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
+                          {costTracker ? (
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Amount spent</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                {costTracker.estimatedCost && costTracker.estimatedCost > 1 ? (
+                                  <p>
+                                    <CurrencyAmount amount={costTracker.estimatedCost} />{' '}
+                                    <span className="services-item__estimated-cost-label">
+                                      (Estimated by the cloud provider)
+                                    </span>
+                                  </p>
+                                ) : (
+                                  'No data available'
+                                )}
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                          ) : null}
                           {externalPlatformUrl ? null : startDate && Number(startDate) > Date.now() ? (
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
