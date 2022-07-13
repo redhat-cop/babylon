@@ -10,7 +10,7 @@ import {
   EmptyStateIcon,
   Title,
 } from '@patternfly/react-core';
-import { DollarSignIcon, ExclamationTriangleIcon, PauseIcon, PlayIcon, TrashIcon } from '@patternfly/react-icons';
+import { DollarSignIcon, ExclamationTriangleIcon, StopIcon, PlayIcon, TrashIcon } from '@patternfly/react-icons';
 import { K8sObjectReference, ResourceClaim } from '@app/types';
 import { displayName, BABYLON_DOMAIN, checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -192,7 +192,7 @@ const WorkshopsItemServices: React.FC<{
                   isDisabled={!checkResourceClaimCanStop(resourceClaim)}
                   onClick={actionHandlers.stop}
                   description="Stop"
-                  icon={PauseIcon}
+                  icon={StopIcon}
                   key="actions__stop"
                 />
                 <ButtonCircleIcon

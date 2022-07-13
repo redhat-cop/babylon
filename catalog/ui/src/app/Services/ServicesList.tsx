@@ -20,7 +20,7 @@ import {
   DollarSignIcon,
   ExclamationTriangleIcon,
   OutlinedClockIcon,
-  PauseIcon,
+  StopIcon,
   PlayIcon,
   TrashIcon,
 } from '@patternfly/react-icons';
@@ -608,7 +608,7 @@ const ServicesList: React.FC<{
                       isDisabled={!checkResourceClaimCanStop(resourceClaim)}
                       onClick={actionHandlers.stop}
                       description="Stop"
-                      icon={PauseIcon}
+                      icon={StopIcon}
                       key="actions__stop"
                     />
                     <ButtonCircleIcon
