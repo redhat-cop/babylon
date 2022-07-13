@@ -730,9 +730,7 @@ export async function getWorkshop(namespace: string, name: string): Promise<Work
 function fetchApiSession(): Promise<Session> {
   window.sessionPromiseInstance = fetch('/auth/session')
     .then((response) => {
-      if (response.ok) {
-        return response.json();
-      }
+      if (response.ok) return response.json();
       throw new Error(response.statusText);
     })
     .catch(() => {
