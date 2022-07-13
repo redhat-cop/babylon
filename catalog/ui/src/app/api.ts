@@ -32,10 +32,9 @@ import { store } from '@app/store';
 import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
 import { checkAccessControl, displayName, recursiveAssign, BABYLON_DOMAIN } from '@app/util';
 
-declare var window: Window &
+declare const window: Window &
   typeof globalThis & {
-    session?: any;
-    impersonateUser?: any;
+    sessionPromiseInstance?: Promise<Session>;
   };
 
 export interface CreateServiceRequestOpt {
@@ -602,12 +601,12 @@ export async function getAnarchyAction(namespace: string, name: string): Promise
 }
 
 export async function getApiSession(forceRefresh = false): Promise<Session> {
-  let session = window.session;
-  if (!session || forceRefresh) {
+  const sessionPromise = window.sessionPromiseInstance;
+  let session: Session;
+  if (!sessionPromise || forceRefresh) {
     session = await fetchApiSession();
-  }
-  if (window.impersonateUser) {
-    session.impersonateUser = window.impersonateUser;
+  } else {
+    session = await sessionPromise;
   }
   return session;
 }
@@ -728,15 +727,16 @@ export async function getWorkshop(namespace: string, name: string): Promise<Work
   });
 }
 
-async function fetchApiSession(): Promise<Session> {
-  const response = await fetch('/auth/session');
-  if (!response.ok) {
-    window.location.href = '/?n=' + new Date().getTime();
-    return Promise.resolve(null);
-  }
-  const session: Session = await response.json();
-  window.session = session;
-  return session;
+function fetchApiSession(): Promise<Session> {
+  window.sessionPromiseInstance = fetch('/auth/session')
+    .then((response) => {
+      if (response.ok) return response.json();
+      throw new Error(response.statusText);
+    })
+    .catch(() => {
+      window.location.href = '/?n=' + new Date().getTime();
+    });
+  return window.sessionPromiseInstance;
 }
 
 export async function listAnarchyActions(opt?: K8sObjectListCommonOpt): Promise<any> {
