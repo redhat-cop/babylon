@@ -1,6 +1,6 @@
 import React from 'react';
 import { Spinner } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon, PauseCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, ExclamationCircleIcon, StopCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 
 import './service-status.css';
 
@@ -120,7 +120,7 @@ const ServiceStatus: React.FC<{
   } else if (currentState === 'stopped') {
     return (
       <span className="rhpds-status-stopped">
-        <PauseCircleIcon /> Stopped
+        <StopCircleIcon /> Stopped
       </span>
     );
   } else if (currentState === 'stopping') {
