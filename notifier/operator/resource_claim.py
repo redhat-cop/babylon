@@ -1,5 +1,7 @@
 import re
 
+from pydantic.utils import deep_update
+
 class DeployerJob:
     def __init__(self, definition, namespace):
         self.definition = definition
@@ -123,15 +125,6 @@ class ResourceClaim:
                 if not state.get('status', {}).get('towerJobs', {}).get('provision', {}).get('completeTimestamp'):
                     return False
         return True
-
-    @property
-    def provision_data(self):
-        data = {}
-        for resource in self.definition['status']['resources']:
-            state = resource.get('state')
-            if state and state['kind'] == 'AnarchySubject':
-                data.update(state['spec'].get('vars', {}).get('provision_data', {}))
-        return data
 
     @property
     def provision_deployer_jobs(self):
@@ -273,3 +266,21 @@ class ResourceClaim:
     @property
     def uid(self):
         return self.definition['metadata']['uid']
+
+    def get_provision_data(self):
+        merged_data = {}
+        component_data = {}
+        for i, resource in enumerate(self.definition['spec']['resources']):
+            try:
+                state = self.definition['status']['resources'][i]['state']
+                if state and state['kind'] == 'AnarchySubject':
+                    resource_provision_data = state['spec']['vars']['provision_data']
+                    merged_data = deep_update(merged_data, resource_provision_data)
+                    # Set provision data by numeric index
+                    component_data[i] = resource_provision_data
+                    # Set provision data by name if name is set
+                    if 'name' in resource:
+                        component_data[resource['name']] = resource_provision_data
+            except (IndexError, KeyError):
+                pass
+        return merged_data, component_data

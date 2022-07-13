@@ -534,7 +534,6 @@ def notify_ready(catalog_item, catalog_namespace, email_addresses, logger, resou
     logger.info("sending service-ready notification", extra=dict(to=email_addresses))
     provision_message_body = resource_claim.provision_message_body
     provision_messages = resource_claim.provision_messages
-    provision_data = resource_claim.provision_data
 
     template_vars = {}
     if provision_messages:
@@ -549,9 +548,6 @@ def notify_ready(catalog_item, catalog_namespace, email_addresses, logger, resou
             input = "\n".join([m + ' +' if m else m for m in provision_messages]).encode('utf8')
         )
         template_vars['provision_messages_html'] = stdout.decode('utf8')
-
-    if provision_data:
-        template_vars['provision_data'] = provision_data
 
     send_notification_email(
         catalog_item = catalog_item,
@@ -664,6 +660,7 @@ def notify_stop_failed(catalog_item, catalog_namespace, email_addresses, logger,
     )
 
 def get_template_vars(catalog_item, catalog_namespace, resource_claim):
+    provision_data, provision_data_for_component = resource_claim.get_provision_data()
     retirement_timestamp, retirement_datetime, retirement_timedelta, retirement_timedelta_humanized = None, None, None, None
     retirement_timestamp = resource_claim.retirement_timestamp
     retirement_datetime = isoparse(retirement_timestamp) if retirement_timestamp else None
@@ -675,22 +672,25 @@ def get_template_vars(catalog_item, catalog_namespace, resource_claim):
     stop_timedelta = stop_datetime - datetime.now(timezone.utc) if stop_datetime else None
     stop_timedelta_humanized = naturaldelta(stop_timedelta) if stop_timedelta else None
 
-    return dict(
-        catalog_item = catalog_item,
-        catalog_namespace = catalog_namespace,
-        guid = resource_claim.guid,
-        retirement_datetime = retirement_datetime,
-        retirement_timestamp = retirement_timestamp,
-        retirement_timedelta = retirement_timedelta,
-        retirement_timedelta_humanized = retirement_timedelta_humanized,
-        stop_datetime = stop_datetime,
-        stop_timestamp = stop_timestamp,
-        stop_timedelta = stop_timedelta,
-        stop_timedelta_humanized = stop_timedelta_humanized,
-        service_display_name = f"{catalog_item.display_name} {resource_claim.guid}",
-        service_url = resource_claim.service_url,
-        survey_link = catalog_item.survey_link,
-    )
+    return {
+        **{k: v for (k, v) in provision_data.items() if isinstance(k, str)},
+        "catalog_item": catalog_item,
+        "catalog_namespace": catalog_namespace,
+        "guid": resource_claim.guid,
+        "provision_data": provision_data,
+        "provision_data_for_component": provision_data_for_component,
+        "retirement_datetime": retirement_datetime,
+        "retirement_timestamp": retirement_timestamp,
+        "retirement_timedelta": retirement_timedelta,
+        "retirement_timedelta_humanized": retirement_timedelta_humanized,
+        "stop_datetime": stop_datetime,
+        "stop_timestamp": stop_timestamp,
+        "stop_timedelta": stop_timedelta,
+        "stop_timedelta_humanized": stop_timedelta_humanized,
+        "service_display_name": f"{catalog_item.display_name} {resource_claim.guid}",
+        "service_url": resource_claim.service_url,
+        "survey_link": catalog_item.survey_link,
+    }
 
 def send_notification_email(
     catalog_item,
