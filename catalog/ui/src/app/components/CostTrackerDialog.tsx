@@ -24,7 +24,7 @@ const CostTrackerDialogData: React.FC<{
   );
   const costTracker = getCostTracker(resourceClaim);
 
-  return costTracker?.estimatedCost && costTracker.estimatedCost > 1 ? (
+  return costTracker?.estimatedCost ? (
     <div>
       <p>
         <CurrencyAmount amount={costTracker.estimatedCost} />
