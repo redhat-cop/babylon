@@ -370,3 +370,8 @@ export type Session = {
   serviceNamespaces: CatalogNamespace[];
   userNamespace: UserNamespace;
 };
+export type CostTracker = {
+  lastRequest: string;
+  estimatedCost?: number;
+  lastUpdate?: string;
+};

@@ -3,7 +3,7 @@ import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon, OutlinedClockIcon } from '@patternfly/react-icons';
-import { BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN, getCostTracker } from '@app/util';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import {
@@ -32,6 +32,7 @@ import {
   apiPaths,
   deleteResourceClaim,
   fetcher,
+  fetchWithUpdatedCostTracker,
   requestStatusForAllResourcesInResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
   setLifespanEndForResourceClaim,
@@ -59,6 +60,7 @@ import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
+import CurrencyAmount from '@app/components/CurrencyAmount';
 
 import './services-item.css';
 
@@ -83,9 +85,14 @@ const ServicesItemComponent: React.FC<{
     data: resourceClaim,
     mutate,
     error,
-  } = useSWR<ResourceClaim>(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }), fetcher, {
-    refreshInterval: 8000,
-  });
+  } = useSWR<ResourceClaim>(
+    apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }),
+    (path) =>
+      resourceClaim ? fetchWithUpdatedCostTracker({ path, initialResourceClaim: resourceClaim }) : fetcher(path),
+    {
+      refreshInterval: 8000,
+    }
+  );
   useErrorHandler(error?.status === 404 ? error : null);
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const enableFetchUserNamespaces: boolean = userIsAdmin;
@@ -450,11 +457,12 @@ const ServicesItemComponent: React.FC<{
                     : null;
                 const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
                 const startDate = startTime ? new Date(startTime) : null;
+                const costTracker = getCostTracker(resourceClaim);
                 return (
                   <div key={idx} className="services-item__body-resource">
                     {resourceClaim.spec.resources.length > 1 ? <h2>{componentDisplayName}</h2> : null}
                     <DescriptionList isHorizontal>
-                      {resourceState?.kind == 'AnarchySubject' ? (
+                      {resourceState?.kind === 'AnarchySubject' ? (
                         <>
                           <DescriptionListGroup>
                             <DescriptionListTerm>UUID</DescriptionListTerm>
@@ -472,6 +480,23 @@ const ServicesItemComponent: React.FC<{
                               />
                             </DescriptionListDescription>
                           </DescriptionListGroup>
+                          {costTracker ? (
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Amount spent</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                {costTracker.estimatedCost && costTracker.estimatedCost > 1 ? (
+                                  <p>
+                                    <CurrencyAmount amount={costTracker.estimatedCost} />{' '}
+                                    <span className="services-item__estimated-cost-label">
+                                      (Estimated by the cloud provider)
+                                    </span>
+                                  </p>
+                                ) : (
+                                  'No data available'
+                                )}
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                          ) : null}
                           {externalPlatformUrl ? null : startDate && Number(startDate) > Date.now() ? (
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Start</DescriptionListTerm>

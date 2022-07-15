@@ -30,7 +30,14 @@ import {
 } from '@app/types';
 import { store } from '@app/store';
 import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
-import { checkAccessControl, displayName, recursiveAssign, BABYLON_DOMAIN } from '@app/util';
+import {
+  checkAccessControl,
+  displayName,
+  recursiveAssign,
+  BABYLON_DOMAIN,
+  getCostTracker,
+  compareStringDates,
+} from '@app/util';
 
 declare const window: Window &
   typeof globalThis & {
@@ -70,6 +77,7 @@ export async function apiFetch(path: string, opt?: object): Promise<any> {
   const options = opt ? JSON.parse(JSON.stringify(opt)) : {};
   options.method = options.method || 'GET';
   options.headers = options.headers || {};
+  options.body = options.body || null;
   options.headers['Authentication'] = `Bearer ${session.token}`;
 
   if (!options.disableImpersonation) {
@@ -1361,6 +1369,44 @@ export async function updateK8sObject<Type extends K8sObject>(definition: Type):
 
 export async function updateWorkshop(workshop: Workshop): Promise<Workshop> {
   return updateK8sObject(workshop);
+}
+
+export async function fetchWithUpdatedCostTracker({
+  path,
+  initialResourceClaim,
+}: {
+  path: string;
+  initialResourceClaim: ResourceClaim;
+}): Promise<ResourceClaim> {
+  const FIVE_MINUTES_MS = 300000;
+  const initialCostTracker = getCostTracker(initialResourceClaim);
+  if (initialCostTracker) {
+    const lastUpdate = initialCostTracker.lastUpdate;
+    if (!lastUpdate || compareStringDates(lastUpdate, new Date().toISOString()) > FIVE_MINUTES_MS) {
+      const patch = {
+        metadata: {
+          annotations: {
+            [`${BABYLON_DOMAIN}/cost-tracker`]: JSON.stringify({
+              ...initialCostTracker,
+              lastRequest: new Date().toISOString().replace(/\.[0-9]{3}/, ''), // remove milliseconds
+            }),
+          },
+        },
+      };
+      await patchK8sObjectByPath({
+        path,
+        patch,
+      });
+      let resourceClaim = initialResourceClaim;
+      let costTracker = initialCostTracker;
+      while (costTracker.lastUpdate === initialCostTracker.lastUpdate) {
+        resourceClaim = await fetcher(path);
+        costTracker = getCostTracker(resourceClaim);
+      }
+      return resourceClaim;
+    }
+  }
+  return initialResourceClaim;
 }
 
 export const apiPaths = {

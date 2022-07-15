@@ -25,7 +25,7 @@ const ServiceActions: React.FC<{
         isDisabled={
           !resourceClaim || !canStop || !resourceClaim?.status?.resources?.[0]?.state?.spec?.vars?.action_schedule
         }
-        onSelect={() => actionHandlers.runtime()}
+        onSelect={actionHandlers.runtime}
       />
     );
   }
@@ -35,7 +35,7 @@ const ServiceActions: React.FC<{
         key="lifespan"
         label="Edit Auto-Destroy"
         isDisabled={!resourceClaim?.status?.lifespan}
-        onSelect={() => actionHandlers.lifespan()}
+        onSelect={actionHandlers.lifespan}
       />
     );
   }
@@ -44,7 +44,7 @@ const ServiceActions: React.FC<{
       <ActionDropdownItem
         key="delete"
         label={serviceName ? `Delete ${serviceName}` : 'Delete'}
-        onSelect={() => actionHandlers.delete()}
+        onSelect={actionHandlers.delete}
       />
     );
   }
@@ -54,7 +54,7 @@ const ServiceActions: React.FC<{
         key="start"
         label={serviceName ? `Start ${serviceName}` : 'Start'}
         isDisabled={!canStart}
-        onSelect={() => actionHandlers.start()}
+        onSelect={actionHandlers.start}
       />
     );
   }
@@ -64,8 +64,14 @@ const ServiceActions: React.FC<{
         key="stop"
         label={serviceName ? `Stop ${serviceName}` : 'Stop'}
         isDisabled={!canStop}
-        onSelect={() => actionHandlers.stop()}
+        onSelect={actionHandlers.stop}
       />
+    );
+  }
+
+  if (actionHandlers.getCost) {
+    actionDropdownItems.push(
+      <ActionDropdownItem key="getCost" label="Get amount spent" onSelect={actionHandlers.getCost} />
     );
   }
   return (

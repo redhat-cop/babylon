@@ -12,7 +12,7 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
   }
 });
 
-import { K8sObject, ResourceClaim } from '@app/types';
+import { CostTracker, K8sObject, ResourceClaim } from '@app/types';
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
@@ -243,4 +243,15 @@ export function stripHtml(html: string): string {
   const tmp = document.createElement('DIV');
   tmp.innerHTML = html;
   return tmp.textContent || tmp.innerText || '';
+}
+
+export function getCostTracker(resourceClaim: ResourceClaim): CostTracker {
+  if (!resourceClaim || !resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/cost-tracker`]) return null;
+  return JSON.parse(resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/cost-tracker`]);
+}
+
+export function compareStringDates(stringDate1: string, stringDate2: string): number {
+  const date1 = new Date(stringDate1).getTime();
+  const date2 = new Date(stringDate2).getTime();
+  return Math.abs(date1 - date2);
 }

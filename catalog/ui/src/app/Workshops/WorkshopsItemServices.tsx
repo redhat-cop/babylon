@@ -12,7 +12,13 @@ import {
 } from '@patternfly/react-core';
 import { DollarSignIcon, ExclamationTriangleIcon, StopIcon, PlayIcon, TrashIcon } from '@patternfly/react-icons';
 import { K8sObjectReference, ResourceClaim } from '@app/types';
-import { displayName, BABYLON_DOMAIN, checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
+import {
+  displayName,
+  BABYLON_DOMAIN,
+  checkResourceClaimCanStart,
+  checkResourceClaimCanStop,
+  getCostTracker,
+} from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
@@ -71,10 +77,12 @@ const WorkshopsItemServices: React.FC<{
           const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
           const specResources = resourceClaim.spec.resources || [];
           const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
+          const costTracker = getCostTracker(resourceClaim);
           const actionHandlers = {
             delete: () => showModal({ action: 'deleteService', resourceClaim: resourceClaim }),
             start: () => showModal({ action: 'startService', resourceClaim: resourceClaim }),
             stop: () => showModal({ action: 'stopService', resourceClaim: resourceClaim }),
+            getCost: () => showModal({ action: 'getCost', resourceClaim: resourceClaim }),
           };
           // Find lab user interface information either in the resource claim or inside resources
           // associated with the provisioned service.
@@ -201,11 +209,11 @@ const WorkshopsItemServices: React.FC<{
                   description="Delete"
                   icon={TrashIcon}
                 />
-                {false ? (
+                {costTracker ? (
                   <ButtonCircleIcon
                     key="actions__cost"
-                    onClick={null}
-                    description="Get current cost"
+                    onClick={actionHandlers.getCost}
+                    description="Get amount spent"
                     icon={DollarSignIcon}
                   />
                 ) : null}
