@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Dropdown, DropdownToggle, DropdownItem, Spinner } from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import {
@@ -17,7 +17,10 @@ async function fetchOpenStackServers(resourceClaim, setOpenStackServers, setSele
     const resp = await getOpenStackServersForResourceClaim(resourceClaim);
     setOpenStackServers({ subjects: resp });
     setSelectedServer((s) => {
-      const firstServer = resp?.[0].openStackServers[0];
+      let firstServer: any = {};
+      if (resp && resp.length > 0 && resp[0].openStackServers[0]) {
+        firstServer = resp[0].openStackServers[0];
+      }
       return s || `${firstServer.project_id}.${firstServer.id}`;
     });
   } catch (err) {
@@ -28,20 +31,20 @@ async function fetchOpenStackServers(resourceClaim, setOpenStackServers, setSele
 const ServiceOpenStackConsole: React.FC<{
   resourceClaim: ResourceClaim;
 }> = ({ resourceClaim }) => {
-  const [openStackServers, setOpenStackServers] = React.useState([] as any);
-  const [serverConsoleUrl, setServerConsoleUrl] = React.useState<string | null>(null);
-  const [serverSelectIsOpen, setServerSelectIsOpen] = React.useState(false);
-  const [selectedServer, setSelectedServer] = React.useState<string | null>(null);
+  const [openStackServers, setOpenStackServers] = useState<any>([]);
+  const [serverConsoleUrl, setServerConsoleUrl] = useState<string | null>(null);
+  const [serverSelectIsOpen, setServerSelectIsOpen] = useState(false);
+  const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [projectId, serverId] = selectedServer ? selectedServer.split('.') : [null, null];
   const serverState = (openStackServers?.subjects || [])
     .map((subject) => subject.openStackServers || [])
     .flat()
     .find((s) => s.id == serverId);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchOpenStackServers(resourceClaim, setOpenStackServers, setSelectedServer);
   }, [resourceClaim]);
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedServer) {
       for (const subject of openStackServers?.subjects || []) {
         for (const server of subject.openStackServers || []) {
@@ -57,7 +60,7 @@ const ServiceOpenStackConsole: React.FC<{
       }
     }
   }, [selectedServer]);
-  React.useEffect(() => {
+  useEffect(() => {
     if (serverState?.status === 'ACTIVE') {
       reconnectConsole();
     }
@@ -74,10 +77,9 @@ const ServiceOpenStackConsole: React.FC<{
     return (
       <React.Fragment>
         <p>
-          <Button variant="plain" onClick={() => startAllResourcesInResourceClaim(resourceClaim)}>
-            Start
+          <Button onClick={() => startAllResourcesInResourceClaim(resourceClaim)}>
+            Start service for console access
           </Button>
-          service for console access.
         </p>
       </React.Fragment>
     );
@@ -142,11 +144,11 @@ const ServiceOpenStackConsole: React.FC<{
         />
       ) : null}
       {serverState?.status === 'ACTIVE' ? (
-        <Button variant="primary" onClick={() => stopServer()}>
+        <Button variant="primary" onClick={stopServer}>
           Stop
         </Button>
       ) : serverState?.status === 'SHUTOFF' ? (
-        <Button variant="primary" onClick={() => startServer()}>
+        <Button variant="primary" onClick={startServer}>
           Start
         </Button>
       ) : (
@@ -154,10 +156,10 @@ const ServiceOpenStackConsole: React.FC<{
           Start
         </Button>
       )}{' '}
-      <Button variant="primary" isDisabled={serverState?.status !== 'ACTIVE'} onClick={() => rebootServer()}>
+      <Button variant="primary" isDisabled={serverState?.status !== 'ACTIVE'} onClick={rebootServer}>
         Reboot
       </Button>{' '}
-      <Button variant="primary" isDisabled={serverState?.status !== 'ACTIVE'} onClick={() => reconnectConsole()}>
+      <Button variant="primary" isDisabled={serverState?.status !== 'ACTIVE'} onClick={reconnectConsole}>
         Reconnect
       </Button>
       {serverConsoleUrl ? <iframe src={serverConsoleUrl} style={{ width: '100%', height: '800px' }}></iframe> : null}
