@@ -55,7 +55,6 @@ const ServiceStatus: React.FC<{
           },
         },
       };
-      await new Promise((resolve) => setTimeout(() => resolve(true), 1000));
       await patchK8sObjectByPath({
         path: apiPaths.ANARCHY_SUBJECT({
           namespace: resource.metadata.namespace,
