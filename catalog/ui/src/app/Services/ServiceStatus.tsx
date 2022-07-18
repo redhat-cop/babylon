@@ -7,9 +7,11 @@ import {
   QuestionCircleIcon,
   RedoIcon,
 } from '@patternfly/react-icons';
-import { AnarchySubject } from '@app/types';
+import { AnarchySubject, Nullable } from '@app/types';
 import { apiPaths, patchK8sObjectByPath } from '@app/api';
 import useMatchMutate from '@app/utils/useMatchMutate';
+import { selectUserIsAdmin } from '@app/store';
+import { useSelector } from 'react-redux';
 
 import './service-status.css';
 
@@ -20,19 +22,20 @@ const ServiceStatus: React.FC<{
   isValidating?: boolean;
 }> = ({ creationTime, resource, resourceTemplate, isValidating = false }) => {
   const currentState: string = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
-  const desiredState: string | null = resourceTemplate?.spec?.vars?.desired_state;
-  const startTimestamp: string | null =
+  const desiredState: Nullable<string> = resourceTemplate?.spec?.vars?.desired_state;
+  const startTimestamp: Nullable<string> =
     resourceTemplate?.spec?.vars?.action_schedule?.start || resource?.spec?.vars?.action_schedule?.start;
-  const startTime: number | null = startTimestamp ? Date.parse(startTimestamp) : null;
-  const stopTimestamp: string | null =
+  const startTime: Nullable<number> = startTimestamp ? Date.parse(startTimestamp) : null;
+  const stopTimestamp: Nullable<string> =
     resourceTemplate?.spec?.vars?.action_schedule?.stop || resource?.spec?.vars?.action_schedule?.stop;
-  const stopTime: number | null = stopTimestamp ? Date.parse(stopTimestamp) : null;
+  const stopTime: Nullable<number> = stopTimestamp ? Date.parse(stopTimestamp) : null;
   const matchMutate = useMatchMutate();
-  const [retryingState, setRetryingState] = useState<'init' | 'mutating' | 'completed'>(null);
+  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
+  const [retryingState, setRetryingState] = useState<Nullable<'init' | 'mutating' | 'completed'>>(null);
 
   async function retryHandle() {
     if (resource?.kind === 'AnarchySubject') {
-      let currentStateUpdated: string = null;
+      let currentStateUpdated = '';
       switch (currentState) {
         case 'provision-failed':
           currentStateUpdated = 'new';
@@ -106,22 +109,6 @@ const ServiceStatus: React.FC<{
     return (
       <span className="service-status--in-progress">
         <Spinner isSVG size="md" /> New
-      </span>
-    );
-  } else if (currentState === 'provision-failed') {
-    return (
-      <span className="service-status--failed">
-        <ExclamationCircleIcon /> Provision Failed
-        <Button
-          onClick={retryHandle}
-          variant="link"
-          isInline
-          icon={<RedoIcon />}
-          style={{ marginLeft: 'var(--pf-global--spacer--sm)' }}
-          isDisabled={retryingState === 'init' || retryingState === 'mutating'}
-        >
-          Retry
-        </Button>
       </span>
     );
   } else if (currentState === 'provision-pending') {
@@ -199,7 +186,19 @@ const ServiceStatus: React.FC<{
   } else if (currentState.endsWith('-failed')) {
     return (
       <span className="service-status--failed">
-        <ExclamationCircleIcon /> {currentState}
+        <ExclamationCircleIcon /> {currentState.replace(/-/g, ' ')}
+        {userIsAdmin ? (
+          <Button
+            onClick={retryHandle}
+            variant="link"
+            isInline
+            icon={<RedoIcon />}
+            style={{ marginLeft: 'var(--pf-global--spacer--sm)' }}
+            isDisabled={retryingState === 'init' || retryingState === 'mutating'}
+          >
+            Retry
+          </Button>
+        ) : null}
       </span>
     );
   } else {

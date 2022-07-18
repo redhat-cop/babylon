@@ -387,3 +387,5 @@ export type CostTracker = {
   estimatedCost?: number;
   lastUpdate?: string;
 };
+
+export type Nullable<T> = T | null;

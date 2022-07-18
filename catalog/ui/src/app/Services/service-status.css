@@ -4,6 +4,7 @@
 
 .service-status--failed {
   color: var(--pf-global--danger-color--100);
+  text-transform: capitalize;
 }
 
 .service-status--running {
