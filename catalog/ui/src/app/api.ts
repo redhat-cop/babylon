@@ -1406,7 +1406,7 @@ export async function fetchWithUpdatedCostTracker({
       return resourceClaim;
     }
   }
-  return initialResourceClaim;
+  return await fetcher(path);
 }
 
 export const apiPaths = {

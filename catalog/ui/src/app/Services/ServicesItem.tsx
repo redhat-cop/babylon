@@ -88,8 +88,7 @@ const ServicesItemComponent: React.FC<{
     isValidating,
   } = useSWR<ResourceClaim>(
     apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }),
-    (path) =>
-      resourceClaim ? fetchWithUpdatedCostTracker({ path, initialResourceClaim: resourceClaim }) : fetcher(path),
+    (path) => fetchWithUpdatedCostTracker({ path, initialResourceClaim: resourceClaim }),
     {
       refreshInterval: 8000,
     }
