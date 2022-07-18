@@ -85,6 +85,7 @@ const ServicesItemComponent: React.FC<{
     data: resourceClaim,
     mutate,
     error,
+    isValidating,
   } = useSWR<ResourceClaim>(
     apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }),
     (path) =>
@@ -477,6 +478,7 @@ const ServicesItemComponent: React.FC<{
                                 creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                                 resource={resourceState}
                                 resourceTemplate={resourceSpec.template}
+                                isValidating={isValidating}
                               />
                             </DescriptionListDescription>
                           </DescriptionListGroup>

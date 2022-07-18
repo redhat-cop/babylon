@@ -110,6 +110,7 @@ const WorkshopsItemComponent: React.FC<{
     size,
     setSize,
     error,
+    isValidating,
   } = useSWRInfinite<ResourceClaimList>(
     (index, previousPageData: ResourceClaimList) => {
       if (previousPageData && !previousPageData.metadata?.continue) {
@@ -334,6 +335,7 @@ const WorkshopsItemComponent: React.FC<{
               showModal={showModal}
               setSelectedResourceClaims={setSelectedResourceClaims}
               resourceClaims={resourceClaims}
+              isValidating={isValidating}
             />
           </Tab>
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>

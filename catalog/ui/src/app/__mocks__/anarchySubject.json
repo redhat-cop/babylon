@@ -1,0 +1,213 @@
+{
+  "apiVersion": "anarchy.gpte.redhat.com/v1",
+  "kind": "AnarchySubject",
+  "metadata": {
+    "generateName": "tests.babylon-empty-config-2.prod-",
+    "annotations": {
+      "poolboy.gpte.redhat.com/resource-provider-namespace": "poolboy",
+      "anarchy.gpte.redhat.com/spec-sha256": "qjRVhENXuOTijrMdxUwqAVzpkbS2cQ6MvsoJUE0XN9M=",
+      "poolboy.gpte.redhat.com/resource-provider-name": "babylon",
+      "poolboy.gpte.redhat.com/resource-claim-namespace": "user-jenkins-sfo01",
+      "poolboy.gpte.redhat.com/resource-handle-name": "guid-4jt84",
+      "poolboy.gpte.redhat.com/resource-handle-uid": "dbed62d9-c843-4dc5-8dc4-1244e56bd0bf",
+      "poolboy.gpte.redhat.com/resource-index": "0",
+      "poolboy.gpte.redhat.com/resource-handle-version": "238576919",
+      "poolboy.gpte.redhat.com/resource-handle-namespace": "poolboy",
+      "kopf.zalando.org/last-handled-configuration": "{}\n",
+      "poolboy.gpte.redhat.com/resource-claim-name": "tests.babylon-empty-config-2.prod-6130"
+    },
+    "resourceVersion": "247431565",
+    "name": "tests.babylon-empty-config-2.prod-4jt84",
+    "uid": "355031e1-0c85-44dc-9c2d-46a2a9b54aec",
+    "creationTimestamp": "2022-03-11T03:26:04Z",
+    "generation": 1,
+    "managedFields": [
+      {
+        "apiVersion": "anarchy.gpte.redhat.com/v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:metadata": {
+            "f:annotations": {
+              "f:poolboy.gpte.redhat.com/resource-handle-name": {},
+              "f:poolboy.gpte.redhat.com/resource-handle-version": {},
+              "f:poolboy.gpte.redhat.com/resource-index": {},
+              "f:poolboy.gpte.redhat.com/resource-handle-namespace": {},
+              "f:poolboy.gpte.redhat.com/resource-claim-name": {},
+              ".": {},
+              "f:poolboy.gpte.redhat.com/resource-provider-namespace": {},
+              "f:anarchy.gpte.redhat.com/spec-sha256": {},
+              "f:poolboy.gpte.redhat.com/resource-provider-name": {},
+              "f:poolboy.gpte.redhat.com/resource-handle-uid": {},
+              "f:poolboy.gpte.redhat.com/resource-claim-namespace": {}
+            },
+            "f:finalizers": {
+              ".": {},
+              "v:\"anarchy.gpte.redhat.com\"": {},
+              "v:\"anarchy.gpte.redhat.com/subject\"": {}
+            },
+            "f:generateName": {},
+            "f:labels": {
+              ".": {},
+              "f:anarchy.gpte.redhat.com/governor": {},
+              "f:state": {}
+            }
+          },
+          "f:spec": {
+            ".": {},
+            "f:governor": {},
+            "f:vars": {
+              "f:job_vars": {},
+              "f:babylon_user_email": {},
+              "f:provision_data": {},
+              "f:healthy": {},
+              "f:provision_messages": {},
+              ".": {},
+              "f:check_status_state": {},
+              "f:babylon_user_fullname": {},
+              "f:babylon_username": {},
+              "f:current_state": {},
+              "f:desired_state": {},
+              "f:provision_message_body": {}
+            }
+          }
+        },
+        "manager": "OpenAPI-Generator",
+        "operation": "Update",
+        "time": "2022-03-11T03:26:04Z"
+      },
+      {
+        "apiVersion": "anarchy.gpte.redhat.com/v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:metadata": {
+            "f:annotations": {
+              "f:kopf.zalando.org/last-handled-configuration": {}
+            }
+          }
+        },
+        "manager": "kopf",
+        "operation": "Update",
+        "time": "2022-03-11T03:28:06Z"
+      },
+      {
+        "apiVersion": "anarchy.gpte.redhat.com/v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:status": {
+            ".": {},
+            "f:activeAction": {
+              ".": {},
+              "f:apiVersion": {},
+              "f:kind": {},
+              "f:name": {},
+              "f:namespace": {},
+              "f:uid": {}
+            },
+            "f:diffBase": {},
+            "f:pendingActions": {},
+            "f:runs": {
+              ".": {},
+              "f:active": {}
+            },
+            "f:supportedActions": {
+              ".": {},
+              "f:destroy": {},
+              "f:provision": {},
+              "f:start": {},
+              "f:status": {},
+              "f:stop": {}
+            },
+            "f:towerJobs": {
+              ".": {},
+              "f:provision": {
+                ".": {},
+                "f:completeTimestamp": {},
+                "f:deployerJob": {},
+                "f:startTimestamp": {},
+                "f:towerHost": {},
+                "f:towerJobURL": {}
+              },
+              "f:stop": {
+                ".": {},
+                "f:completeTimestamp": {},
+                "f:deployerJob": {},
+                "f:startTimestamp": {},
+                "f:towerHost": {},
+                "f:towerJobURL": {}
+              }
+            }
+          }
+        },
+        "manager": "OpenAPI-Generator",
+        "operation": "Update",
+        "subresource": "status",
+        "time": "2022-03-11T03:29:02Z"
+      }
+    ],
+    "namespace": "anarchy-operator",
+    "finalizers": ["anarchy.gpte.redhat.com/subject", "anarchy.gpte.redhat.com"],
+    "labels": {
+      "anarchy.gpte.redhat.com/governor": "tests.babylon-empty-config-2.prod",
+      "state": "stopped"
+    }
+  },
+  "spec": {
+    "governor": "tests.babylon-empty-config-2.prod",
+    "vars": {
+      "babylon_username": "None",
+      "provision_message_body": ["GUID is 4jt84", "Some random string ENhQkaRJgiHfBXS"],
+      "babylon_user_fullname": "None",
+      "current_state": "stopped",
+      "desired_state": "stopped",
+      "job_vars": {
+        "guid": "4jt84",
+        "uuid": "f2fe636b-d663-530b-990d-c13a43f3feaf"
+      },
+      "babylon_user_email": "None",
+      "provision_data": {
+        "GUID": "4jt84",
+        "random_string": "zlNsxzpccLFquAw"
+      },
+      "provision_messages": ["GUID is 4jt84", "Some random string ENhQkaRJgiHfBXS"],
+      "check_status_state": "",
+      "healthy": true
+    }
+  },
+  "status": {
+    "activeAction": {
+      "apiVersion": "anarchy.gpte.redhat.com/v1",
+      "kind": "AnarchyAction",
+      "name": "tests.babylon-empty-config-2.prod-4jt84-stop-x78f9",
+      "namespace": "anarchy-operator",
+      "uid": "3b5af101-7c7d-4b65-b4bc-7aff1466f912"
+    },
+    "diffBase": "",
+    "pendingActions": [],
+    "runs": {
+      "active": []
+    },
+    "supportedActions": {
+      "destroy": {},
+      "provision": {},
+      "start": {},
+      "status": {},
+      "stop": {}
+    },
+    "towerJobs": {
+      "provision": {
+        "completeTimestamp": "2022-03-10T14:45:02Z",
+        "deployerJob": 402003,
+        "startTimestamp": "2022-03-10T14:43:19Z",
+        "towerHost": "tower-host-redacted.redhat.com",
+        "towerJobURL": "tower-host-redacted.redhat.com#/jobs/402003/"
+      },
+      "stop": {
+        "completeTimestamp": "2022-03-10T15:43:57Z",
+        "deployerJob": 402091,
+        "startTimestamp": "2022-03-10T15:42:14Z",
+        "towerHost": "tower-host-redacted.redhat.com",
+        "towerJobURL": "tower-host-redacted.redhat.com#/jobs/402091/"
+      }
+    }
+  }
+}
