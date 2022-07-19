@@ -37,7 +37,8 @@ const WorkshopsItemServices: React.FC<{
   resourceClaims: ResourceClaim[];
   showModal: (modalState: ModalState) => void;
   setSelectedResourceClaims: (resourceClaims: ResourceClaim[]) => void;
-}> = ({ showModal, resourceClaims, setSelectedResourceClaims }) => {
+  isValidating?: boolean;
+}> = ({ showModal, resourceClaims, setSelectedResourceClaims, isValidating = false }) => {
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
 
@@ -155,6 +156,7 @@ const WorkshopsItemServices: React.FC<{
                             creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                             resource={resources?.[i]}
                             resourceTemplate={specResource.template}
+                            isValidating={isValidating}
                           />
                         </DescriptionListDescription>
                       </DescriptionListGroup>
@@ -168,6 +170,7 @@ const WorkshopsItemServices: React.FC<{
                   creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                   resource={resources?.[0]}
                   resourceTemplate={specResources[0].template}
+                  isValidating={isValidating}
                 />
               </div>
             ) : (

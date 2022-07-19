@@ -116,6 +116,7 @@ const ServicesList: React.FC<{
     mutate,
     size,
     setSize,
+    isValidating,
   } = useSWRInfinite<ResourceClaimList>(
     (index, previousPageData: ResourceClaimList) => {
       if (previousPageData && !previousPageData.metadata?.continue) {
@@ -142,6 +143,7 @@ const ServicesList: React.FC<{
       },
     }
   );
+
   const revalidate = useCallback(
     ({ updatedItems, action }: { updatedItems: ResourceClaim[]; action: 'update' | 'delete' }) => {
       const resourceClaimsPagesCpy = JSON.parse(JSON.stringify(resourceClaimsPages));
@@ -267,7 +269,7 @@ const ServicesList: React.FC<{
         openModalGetCost();
       }
     },
-    [openModalAction, openModalScheduleAction]
+    [openModalAction, openModalGetCost, openModalScheduleAction]
   );
 
   // Fetch all if keywordFilter is defined.
@@ -524,6 +526,7 @@ const ServicesList: React.FC<{
                       creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                       resource={resources?.[specResources.length - 1]}
                       resourceTemplate={specResources[specResources.length - 1].template}
+                      isValidating={isValidating}
                     />
                   ) : (
                     <p>...</p>

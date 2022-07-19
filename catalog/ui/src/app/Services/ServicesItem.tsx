@@ -85,10 +85,10 @@ const ServicesItemComponent: React.FC<{
     data: resourceClaim,
     mutate,
     error,
+    isValidating,
   } = useSWR<ResourceClaim>(
     apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }),
-    (path) =>
-      resourceClaim ? fetchWithUpdatedCostTracker({ path, initialResourceClaim: resourceClaim }) : fetcher(path),
+    (path) => fetchWithUpdatedCostTracker({ path, initialResourceClaim: resourceClaim }),
     {
       refreshInterval: 8000,
     }
@@ -477,6 +477,7 @@ const ServicesItemComponent: React.FC<{
                                 creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                                 resource={resourceState}
                                 resourceTemplate={resourceSpec.template}
+                                isValidating={isValidating}
                               />
                             </DescriptionListDescription>
                           </DescriptionListGroup>

@@ -245,7 +245,7 @@ export function stripHtml(html: string): string {
   return tmp.textContent || tmp.innerText || '';
 }
 
-export function getCostTracker(resourceClaim: ResourceClaim): CostTracker {
+export function getCostTracker(resourceClaim?: ResourceClaim): CostTracker {
   if (!resourceClaim || !resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/cost-tracker`]) return null;
   return JSON.parse(resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/cost-tracker`]);
 }

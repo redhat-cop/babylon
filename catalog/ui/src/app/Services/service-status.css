@@ -1,11 +1,12 @@
-.rhpds-status-available {
+.service-status--available {
   color: var(--pf-global--success-color--100);
 }
 
-.rhpds-status-failed {
+.service-status--failed {
   color: var(--pf-global--danger-color--100);
+  text-transform: capitalize;
 }
 
-.rhpds-status-running {
+.service-status--running {
   color: var(--pf-global--success-color--100);
 }

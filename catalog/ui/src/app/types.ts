@@ -39,8 +39,20 @@ export interface AnarchyRunnerList {
 }
 
 export interface AnarchySubject extends K8sObject {
-  spec: any;
+  spec: AnarchySubjectSpec;
   status?: AnarchySubjectStatus;
+}
+
+export interface AnarchySubjectSpec {
+  governor?: string;
+  varSecrets?: VarSecret[];
+  vars?: any;
+}
+
+export interface VarSecret {
+  name: string;
+  namespace?: string;
+  var?: string;
 }
 
 export interface AnarchySubjectList {
@@ -375,3 +387,5 @@ export type CostTracker = {
   estimatedCost?: number;
   lastUpdate?: string;
 };
+
+export type Nullable<T> = T | null;

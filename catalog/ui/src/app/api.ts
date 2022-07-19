@@ -1406,7 +1406,7 @@ export async function fetchWithUpdatedCostTracker({
       return resourceClaim;
     }
   }
-  return initialResourceClaim;
+  return await fetcher(path);
 }
 
 export const apiPaths = {
@@ -1446,4 +1446,6 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
+  ANARCHY_SUBJECT: ({ namespace, anarchySubjectName }: { namespace: string; anarchySubjectName: string }): string =>
+    `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchysubjects/${anarchySubjectName}`,
 };
