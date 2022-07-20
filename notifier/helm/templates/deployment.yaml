@@ -38,12 +38,12 @@ spec:
           valueFrom:
             secretKeyRef:
               key: smtp_account
-              name: {{ include "babylon-notifier.name" . }}-smtp-credentials
+              name: {{ include "babylon-notifier.smtpSecret" . | quote }}
         - name: SMTP_USER_PASSWORD
           valueFrom:
             secretKeyRef:
               key: smtp_password
-              name: {{ include "babylon-notifier.name" . }}-smtp-credentials
+              name: {{ include "babylon-notifier.smtpSecret" . | quote }}
         {{- end }}
         - name: REDIS_HOST
           value: {{ include "babylon-notifier.redisName" . | quote }}
