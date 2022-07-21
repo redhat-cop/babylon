@@ -30,7 +30,7 @@ const CatalogLabelSelector: React.FC<{
       const attr: string = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
       const attrKey: string = attr.toLowerCase();
       // Only non-hidden labels
-      if (!HIDDEN_LABELS.includes(attrKey)) {
+      if (!HIDDEN_LABELS.includes(attr)) {
         const valueKey: string = value.toLowerCase();
         if (!labels[attrKey]) {
           labels[attrKey] = {

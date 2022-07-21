@@ -42,7 +42,7 @@ import {
   HIDDEN_LABELS,
   setLastFilter,
 } from './catalog-utils';
-import { ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
+import { DownloadIcon, ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
 import { AsyncParser } from 'json2csv';
 import CatalogItemListItem from './CatalogItemListItem';
 
@@ -450,14 +450,13 @@ const Catalog: React.FC = () => {
                                   </Tooltip>
                                 </li>
                                 <li>
-                                  <Tooltip content="Download catalog">
+                                  <Tooltip content="Export to CSV">
                                     <Button
                                       variant="plain"
-                                      data-label="Download catalog in a .csv file"
+                                      data-label="Export to CSV"
                                       onClick={() => handleDownloadCsv(catalogItems)}
-                                      isActive={view === 'list'}
                                     >
-                                      .csv
+                                      <DownloadIcon />
                                     </Button>
                                   </Tooltip>
                                 </li>
