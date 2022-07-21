@@ -59,11 +59,13 @@ describe('Catalog Component', () => {
     expect(history.location.search).toBe('?category=Other');
   });
   it('should export the CSV', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const link: any = {
       click: jest.fn(),
       setAttribute: jest.fn(),
       style: {},
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blob: any = new Blob(['hello world'], { type: 'text/plain' });
 
     const { getByLabelText, getByText } = render(<Catalog />);
