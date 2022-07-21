@@ -58,4 +58,26 @@ describe('Catalog Component', () => {
     );
     expect(history.location.search).toBe('?category=Other');
   });
+  it('should export the CSV', async () => {
+    const link: any = {
+      click: jest.fn(),
+      setAttribute: jest.fn(),
+      style: {},
+    };
+    const blob: any = new Blob(['hello world'], { type: 'text/plain' });
+
+    const { getByLabelText, getByText } = render(<Catalog />);
+    await waitFor(() => expect(getByText('12 items')).toBeInTheDocument());
+
+    global.URL.createObjectURL = jest.fn(() => blob);
+    jest.spyOn(document, 'createElement').mockReturnValueOnce(link);
+    jest.spyOn(document.body, 'appendChild').mockReturnValueOnce(null);
+
+    fireEvent.click(getByLabelText('Export to CSV', { selector: 'button' }));
+    await new Promise((r) => setTimeout(r, 1000)); // wait for async function
+
+    expect(link.setAttribute).toHaveBeenNthCalledWith(1, 'href', blob);
+    expect(link.setAttribute).toHaveBeenNthCalledWith(2, 'download', 'demo-redhat-catalog.csv');
+    expect(link.click).toHaveBeenCalledTimes(1);
+  });
 });

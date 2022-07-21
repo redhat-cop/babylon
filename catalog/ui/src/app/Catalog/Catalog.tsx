@@ -80,7 +80,7 @@ function compareCatalogItems(a: CatalogItem, b: CatalogItem): number {
   return 0;
 }
 
-const handleDownloadCsv = (catalogItems: CatalogItem[]) => {
+function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
   const labels = [];
   catalogItems.forEach((ci) => {
@@ -136,7 +136,6 @@ const handleDownloadCsv = (catalogItems: CatalogItem[]) => {
   asyncParser.processor
     .on('data', (chunk) => (csv += chunk.toString()))
     .on('end', () => {
-      console.log(csv);
       const url = window.URL.createObjectURL(new Blob([csv], { type: 'text/plain' }));
       const link = document.createElement('a');
       link.style.display = 'none';
@@ -147,7 +146,7 @@ const handleDownloadCsv = (catalogItems: CatalogItem[]) => {
     });
   catalogItems.forEach((ci) => asyncParser.input.push(ci));
   asyncParser.input.push(null);
-};
+}
 
 function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: string[]): boolean {
   return 'deny' !== checkAccessControl(catalogItem.spec.accessControl, userGroups);
@@ -429,7 +428,7 @@ const Catalog: React.FC = () => {
                                   <Tooltip content="Gallery view">
                                     <Button
                                       variant="plain"
-                                      data-label="View as gallery"
+                                      aria-label="View as gallery"
                                       onClick={() => setView('gallery')}
                                       isActive={view === 'gallery'}
                                     >
@@ -441,7 +440,7 @@ const Catalog: React.FC = () => {
                                   <Tooltip content="List view">
                                     <Button
                                       variant="plain"
-                                      data-label="View as list"
+                                      aria-label="View as list"
                                       onClick={() => setView('list')}
                                       isActive={view === 'list'}
                                     >
@@ -453,8 +452,8 @@ const Catalog: React.FC = () => {
                                   <Tooltip content="Export to CSV">
                                     <Button
                                       variant="plain"
-                                      data-label="Export to CSV"
-                                      onClick={() => handleDownloadCsv(catalogItems)}
+                                      aria-label="Export to CSV"
+                                      onClick={() => handleExportCsv(catalogItems)}
                                     >
                                       <DownloadIcon />
                                     </Button>
