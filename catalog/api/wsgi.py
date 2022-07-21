@@ -425,22 +425,28 @@ def salesforce_connection():
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
 def get_salesforce_opportunity(opportunity_id):
     opportunity_info = {}
+    is_campaign = False
     if redis_connection:
         opportunity_json = redis_connection.get(opportunity_id)
         if opportunity_json:
             opportunity_info = json.loads(opportunity_json)
-
+            is_campaign = opportunity_info.get('is_campaign', False)
     if not opportunity_info:
         salesforce_api = salesforce_connection()
 
-        opportunity_query = format_soql(
-            "SELECT "
-            "  Id, Name, AccountId, IsClosed, "
-            "  CloseDate, StageName, OpportunityNumber__c "
-            "FROM Opportunity "
-            "WHERE OpportunityNumber__c = {}",
-            str(opportunity_id).strip()
-        )
+        # If opportunity_id starts with 701 it's a campaign number/id
+        if opportunity_id.startswith('701'):
+            is_campaign = True
+            opportunity_query = format_soql("SELECT "
+                                            "  Id, StartDate, EndDate, IsActive "
+                                            "FROM Campaign "
+                                            "WHERE Id = {}", str(opportunity_id).strip())
+        else:
+            opportunity_query = format_soql("SELECT "
+                                            "  Id, Name, AccountId, IsClosed, "
+                                            "  CloseDate, StageName, OpportunityNumber__c "
+                                            "FROM Opportunity "
+                                            "WHERE OpportunityNumber__c = {}", str(opportunity_id).strip())
 
         try:
             opp_results = salesforce_api.query(opportunity_query)
@@ -449,8 +455,12 @@ def get_salesforce_opportunity(opportunity_id):
                 if 'attributes' in i:
                     del i['attributes']
                 opportunity_info.update(i)
-                # Rename custom field to be readable
-                opportunity_info['Number'] = opportunity_info.pop('OpportunityNumber__c')
+                if is_campaign:
+                    opportunity_info['is_campaign'] = True
+                else:
+                    # Rename custom field to be readable
+                    opportunity_info['Number'] = opportunity_info.pop('OpportunityNumber__c')
+                    opportunity_info['is_campaign'] = False
 
         except SalesforceMalformedRequest:
             flask.abort(404,  description='Invalid SalesForce Request')
@@ -464,17 +474,24 @@ def get_salesforce_opportunity(opportunity_id):
     if opportunity_valid == 0:
         return False
     else:
-        # Business rules for invalid opportunity:
-        # If the opportunity is Closed
-        # If the current date is more than the CloseDate
-        # If opportunity's stage in Closed Booked, Closed Lost or Closed On
-        current_date = datetime.utcnow().strftime("%Y-%m-%d")
-        is_closed = opportunity_info.get('IsClosed', False)
-        close_date = opportunity_info.get('CloseDate')
-        stage_name = opportunity_info.get('StageName')
-        if is_closed or current_date > close_date or \
-                stage_name in ('Closed Booked', 'Closed Lost', 'Closed Won'):
-            return False
+        if is_campaign:
+            # Business rules for a invalid Campaign
+            # if IsActive is false
+            is_active = opportunity_info.get('IsActive', False)
+            if not is_active:
+                return False
+        else:
+            # Business rules for invalid opportunity:
+            # If the opportunity is Closed
+            # If the current date is more than the CloseDate
+            # If opportunity's stage in Closed Booked, Closed Lost or Closed On
+            current_date = datetime.utcnow().strftime("%Y-%m-%d")
+            is_closed = opportunity_info.get('IsClosed', False)
+            close_date = opportunity_info.get('CloseDate')
+            stage_name = opportunity_info.get('StageName')
+            if is_closed or current_date > close_date or \
+                    stage_name in ('Closed Booked', 'Closed Lost', 'Closed Won'):
+                return False
 
         return True
 
