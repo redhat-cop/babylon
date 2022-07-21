@@ -7,13 +7,12 @@ import catalogItemsObj from '../__mocks__/catalogItems.json';
 import { CatalogItemList, CatalogNamespace } from '@app/types';
 import { createMemoryHistory } from 'history';
 
-jest.mock('@app/api', () => {
-  return {
-    listCatalogItems: jest.fn(() => Promise.resolve(catalogItemsObj as CatalogItemList)),
-  };
-});
+jest.mock('@app/api', () => ({
+  ...jest.requireActual('@app/api'),
+  fetcher: jest.fn(() => Promise.resolve(catalogItemsObj as CatalogItemList)),
+}));
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'), // use actual for all non-hook parts
+  ...jest.requireActual('react-router-dom'),
   useParams: () => ({ namespace: 'fakeNamespace' }),
   useRouteMatch: () => ({ url: '/catalog/fakeNamespace', params: { namespace: 'fakeNamespace' } }),
 }));

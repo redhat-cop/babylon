@@ -1,0 +1,91 @@
+.catalog-item-list-item {
+  overflow: hidden;
+  max-width: 1200px;
+}
+.catalog-item-list-item--disabled {
+  opacity: 0.45;
+}
+.catalog-item-list-item__card {
+  display: flex;
+  flex-direction: row;
+  padding: var(--pf-global--spacer--lg);
+}
+.catalog-item-list-item:hover {
+  box-shadow: var(--pf-c-card--m-hoverable--hover--BoxShadow);
+  text-decoration: none;
+}
+
+.catalog-item-list-item__body {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-global--spacer--xs);
+}
+
+.catalog-item-list-item__description {
+  line-height: 1.25em;
+  height: 3.75em;
+  overflow: hidden;
+  font-weight: var(--pf-global--link--FontWeight) !important;
+  font-size: var(--pf-global--FontSize--sm) !important;
+  color: var(--pf-global--Color--100);
+  margin-top: var(--pf-global--spacer--xs);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  white-space: normal;
+  text-overflow: ellipsis;
+}
+
+.catalog-item-list-item__header {
+  margin: 0 auto;
+  padding: 0 !important;
+  margin-right: var(--pf-global--spacer--lg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
+}
+.catalog-item-list-item__header .catalog-item-icon {
+  display: block;
+  width: 100%;
+  max-width: 90px;
+  height: auto;
+  max-height: 100%;
+  padding-bottom: var(--pf-global--spacer--md);
+}
+
+.catalog-item-list-item__statusPageIcon {
+  position: absolute;
+  top: -6px !important;
+  left: 75px !important;
+  width: 20px !important;
+}
+.catalog-item-list-item__badges {
+  text-align: right;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.catalog-item-list-item__badges--dev,
+.catalog-item-list-item__badges--test {
+  background-color: var(--pf-global--danger-color--100);
+}
+
+.catalog-item-list-item__subtitle {
+  color: var(--pf-global--palette--black-600);
+  font-size: var(--pf-global--FontSize--xs) !important;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.catalog-item-list-item__title {
+  color: var(--pf-global--Color--100);
+  font-size: var(--pf-global--FontSize--md) !important;
+  line-height: var(--pf-global--LineHeight--sm) !important;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+}

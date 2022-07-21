@@ -50,7 +50,7 @@
 }
 
 .catalog__item-count {
-  align-items: flex-end;
+  justify-content: flex-end;
   display: flex;
   font-weight: var(--pf-global--FontWeight--bold);
 }
@@ -65,7 +65,22 @@
   min-height: 460px;
 }
 
+.catalog__content-box--list.pf-c-page__main-section {
+  grid-template-columns: none;
+  display: flex;
+  flex-direction: column;
+}
+
 .catalog__content-box--empty.pf-c-page__main-section {
   background-color: var(--pf-global--palette--black-200);
   min-height: 450px;
+}
+.catalog__select-view {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+.catalog__select-view button {
+  margin-left: 1rem;
+  padding: 0;
 }

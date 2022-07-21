@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import {
   Button,
   DescriptionList,
@@ -44,6 +44,7 @@ import {
   getStatus,
   HIDDEN_LABELS,
   getIncidentUrl,
+  formatString,
 } from './catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSWRInfinite from 'swr/infinite';
@@ -58,8 +59,6 @@ enum CatalogItemAccess {
 
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
   const history = useHistory();
-  const location = useLocation();
-  const urlSearchParams = new URLSearchParams(location.search);
   const { provisionTimeEstimate, termsOfService, parameters, accessControl } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
@@ -155,8 +154,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   async function requestCatalogItem(): Promise<void> {
     // Either direct user to request form or immediately request if form would be empty.
     if (termsOfService || (parameters || []).length > 0) {
-      urlSearchParams.set('request', 'service');
-      history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+      history.push(`/catalog/${namespace}/order/${name}?request=service`);
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem: catalogItem,
@@ -167,8 +165,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   }
 
   function requestWorkshop(): void {
-    urlSearchParams.set('request', 'workshop');
-    history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+    history.push(`/catalog/${namespace}/order/${name}?request=workshop`);
   }
 
   return (
@@ -190,7 +187,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
             </Title>
             {provider ? (
               <Title className="catalog-item-details__subtitle" headingLevel="h4">
-                provided by {provider.replace(/_/g, ' ')}
+                provided by {formatString(provider)}
               </Title>
             ) : null}
           </SplitItem>
@@ -286,8 +283,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               ) : null}
               {Object.entries(attributes).map(([attr, value]) => (
                 <DescriptionListGroup key={attr}>
-                  <DescriptionListTerm>{attr.replace(/_/g, ' ')}</DescriptionListTerm>
-                  <DescriptionListDescription>{value.replace(/_/g, ' ')}</DescriptionListDescription>
+                  <DescriptionListTerm>{formatString(attr)}</DescriptionListTerm>
+                  <DescriptionListDescription>{formatString(value)}</DescriptionListDescription>
                 </DescriptionListGroup>
               ))}
               {provisionTimeEstimate ? (

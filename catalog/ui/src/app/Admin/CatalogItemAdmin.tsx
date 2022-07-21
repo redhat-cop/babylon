@@ -26,7 +26,7 @@ import { apiPaths, fetcher, patchK8sObjectByPath } from '@app/api';
 import { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN, displayName } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
-import { getProvider } from '@app/Catalog/catalog-utils';
+import { formatString, getProvider } from '@app/Catalog/catalog-utils';
 import { OutlinedQuestionCircleIcon, TrashIcon } from '@patternfly/react-icons';
 import OperationalLogo from '@app/components/StatusPageIcons/Operational';
 import DegradedPerformanceLogo from '@app/components/StatusPageIcons/DegradedPerformance';
@@ -180,7 +180,7 @@ const CatalogItemAdmin: React.FC = () => {
           </Title>
           {provider ? (
             <Title className="catalog-item-admin__subtitle" headingLevel="h4">
-              provided by {provider.replace(/_/g, ' ')}
+              provided by {formatString(provider)}
             </Title>
           ) : null}
         </SplitItem>
