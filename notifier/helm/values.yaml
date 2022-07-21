@@ -39,6 +39,8 @@ smtp:
   #tls:
   #  crt:
   #  key:
+  # tlsca:
+    # crt:
   # account:
     # generateSecret: false
     # secretName: # default use chart name + '-smtp-credentials'

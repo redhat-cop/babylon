@@ -33,6 +33,10 @@ spec:
         - name: SMTP_TLS_KEY_FILE
           value: /smtp-tls/tls.key
         {{- end }}
+        {{- if .Values.smtp.tlsca }}
+        - name: SMTP_TLS_CA_CERT_FILE
+          value: /smtp-tls-ca/tls-ca.crt
+        {{- end }}
         {{- if .Values.smtp.account }}
         - name: SMTP_USER
           valueFrom:
@@ -71,6 +75,11 @@ spec:
           mountPath: /smtp-tls
           readOnly: true
         {{- end }}
+        {{- if .Values.smtp.tlsca }}
+        - name: smtp-tls-ca
+          mountPath: /smtp-tls-ca
+          readOnly: true
+        {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -96,5 +105,11 @@ spec:
         secret:
           defaultMode: 0440
           secretName: {{ include "babylon-notifier.name" . }}-tls
+      {{- end }}
+      {{- if .Values.smtp.tlsca }}
+      - name: smtp-tls-ca
+        secret:
+          defaultMode: 0440
+          secretName: {{ include "babylon-notifier.name" . }}-tls-ca
       {{- end }}
 {{ end }}

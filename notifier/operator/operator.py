@@ -43,6 +43,8 @@ smtp_host = os.environ.get('SMTP_HOST', None)
 smtp_port = int(os.environ.get('SMTP_PORT', 25))
 smtp_user = os.environ.get('SMTP_USER', None)
 smtp_user_password = os.environ.get('SMTP_USER_PASSWORD', None)
+smtp_tls_ca_cert = os.environ.get('SMTP_TLS_CA_CERT', None)
+smtp_tls_ca_cert_file = os.environ.get('SMTP_TLS_CA_CERT_FILE', None)
 smtp_tls_cert = os.environ.get('SMTP_TLS_CERT', None)
 smtp_tls_cert_file = os.environ.get('SMTP_TLS_CERT_FILE', None)
 smtp_tls_key = os.environ.get('SMTP_TLS_KEY', None)
@@ -63,7 +65,10 @@ if smtp_tls_cert:
     with open(smtp_tls_cert_fd, 'w') as f:
         f.write(f"{smtp_tls_cert}\n{smtp_tls_key}\n")
 
-tls_context = smtplib.ssl.create_default_context()
+tls_context = smtplib.ssl.create_default_context(
+    cadata = smtp_tls_ca_cert,
+    cafile = smtp_tls_ca_cert_file,
+)
 
 if smtp_tls_cert_file and smtp_tls_key_file:
     tls_context.load_cert_chain(smtp_tls_cert_file, smtp_tls_key_file)
