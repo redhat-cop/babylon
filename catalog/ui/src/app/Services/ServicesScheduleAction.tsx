@@ -14,7 +14,7 @@ const ServicesScheduleAction: React.FC<{
   setState?: React.Dispatch<React.SetStateAction<Date>>;
 }> = ({ action, resourceClaim, setTitle, setState }) => {
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
-  const current: Date = useMemo(
+  const currentActionDate: Date = useMemo(
     () =>
       new Date(
         action === 'retirement'
@@ -44,7 +44,7 @@ const ServicesScheduleAction: React.FC<{
     ]
   );
 
-  const [selectedDate, setSelectedDate] = React.useState(current);
+  const [selectedDate, setSelectedDate] = React.useState(currentActionDate);
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
   useEffect(() => setTitle(`${displayName(resourceClaim)}`), [setTitle, resourceClaim]);
 
