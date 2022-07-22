@@ -1,4 +1,4 @@
-name: Catalog UI - PR Workflow - Run tests and deploy on OpenShift (BabyDev)
+name: Catalog UI - PR Workflow
 
 on:
   push:
@@ -13,6 +13,7 @@ on:
       - main
 jobs:
   test:
+    name: "UI Tests"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -37,6 +38,7 @@ jobs:
         run: npm run test
   deploy:
     needs: test
+    name: "Deploy on OpenShift (BabyDev)"
     if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     env:
