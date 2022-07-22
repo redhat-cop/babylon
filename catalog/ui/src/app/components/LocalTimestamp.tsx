@@ -1,5 +1,5 @@
-import { getLang } from '@app/util';
 import React from 'react';
+import { getLang } from '@app/util';
 
 const LocalTimestamp: React.FC<
   {

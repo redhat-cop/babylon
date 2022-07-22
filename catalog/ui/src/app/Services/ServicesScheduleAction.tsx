@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { ResourceClaim } from '@app/types';
@@ -44,7 +44,7 @@ const ServicesScheduleAction: React.FC<{
     ]
   );
 
-  const [selectedDate, setSelectedDate] = React.useState(currentActionDate);
+  const [selectedDate, setSelectedDate] = useState(currentActionDate);
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
   useEffect(() => setTitle(`${displayName(resourceClaim)}`), [setTitle, resourceClaim]);
 
