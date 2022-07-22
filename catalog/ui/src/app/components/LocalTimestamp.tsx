@@ -1,9 +1,5 @@
-import * as React from 'react';
-
-function getLang() {
-  if (navigator.languages != undefined) return navigator.languages[0];
-  return navigator.language || 'en-US';
-}
+import { getLang } from '@app/util';
+import React from 'react';
 
 const LocalTimestamp: React.FC<
   {

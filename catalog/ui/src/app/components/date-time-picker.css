@@ -1,0 +1,6 @@
+.date-time-picker__time-picker .pf-c-dropdown__menu {
+  overflow-y: auto;
+}
+.date-time-picker__text.pf-c-form-control {
+  font-size: var(--pf-global--FontSize--sm);
+}

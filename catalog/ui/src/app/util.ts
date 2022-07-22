@@ -255,3 +255,8 @@ export function compareStringDates(stringDate1: string, stringDate2: string): nu
   const date2 = new Date(stringDate2).getTime();
   return Math.abs(date1 - date2);
 }
+
+export function getLang(): string {
+  if (navigator.languages != undefined) return navigator.languages[0];
+  return navigator.language || 'en-US';
+}
