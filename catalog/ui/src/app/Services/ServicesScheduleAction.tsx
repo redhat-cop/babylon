@@ -48,7 +48,7 @@ const ServicesScheduleAction: React.FC<{
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
   useEffect(() => setTitle(`${displayName(resourceClaim)}`), [setTitle, resourceClaim]);
 
-  const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'stop' ? 'Auto-stop' : action;
+  const actionLabel = action === 'retirement' ? 'Auto-destroy' : 'Auto-stop';
 
   const maxDateNumber =
     action === 'retirement'
