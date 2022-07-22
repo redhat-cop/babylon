@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import classNames from 'classnames';
 import { listUsers } from '@app/api';
 import { User, UserList } from '@app/types';
 import { useHistory } from 'react-router-dom';
@@ -168,7 +167,9 @@ const Header: React.FC<{
         toggleIcon={<QuestionCircleIcon />}
       />
       <Dropdown
-        className={classNames(userImpersonated ? ['rhpds-user-controls', 'rhpds-warning'] : ['rhpds-user-controls'])}
+        className={`header-component__user-controls${
+          userImpersonated ? ' header-component__user-controls--warning' : ''
+        }`}
         position={DropdownPosition.right}
         isOpen={isUserControlDropdownOpen}
         dropdownItems={UserControlDropdownItems}

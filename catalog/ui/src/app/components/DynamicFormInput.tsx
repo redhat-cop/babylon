@@ -1,25 +1,15 @@
-import React from 'react';
-
+import React, { useState } from 'react';
 import { Checkbox, NumberInput, Select, SelectOption, SelectVariant, TextInput } from '@patternfly/react-core';
 
-export interface DynamicFormInputProps {
+const DynamicFormInput: React.FC<{
   id?: string;
   isDisabled?: boolean;
   onChange: any;
   parameter: any;
   validationResult?: boolean;
   value?: any;
-}
-
-const DynamicFormInput: React.FunctionComponent<DynamicFormInputProps> = ({
-  id,
-  isDisabled,
-  onChange,
-  parameter,
-  validationResult,
-  value,
-}) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+}> = ({ id, isDisabled, onChange, parameter, validationResult, value }) => {
+  const [isOpen, setIsOpen] = useState(false);
   if (parameter.openAPIV3Schema?.enum) {
     return (
       <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">

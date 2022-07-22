@@ -1,31 +1,19 @@
-import React from 'react';
-import { useState } from 'react';
-
+import React, { useState } from 'react';
 import { Button, Spinner, Text, TextArea, TextInput, TextVariants } from '@patternfly/react-core';
-
 import { PencilAltIcon } from '@patternfly/react-icons';
 
 import './editable-text.css';
 
-export interface EditableTextProps {
+const EditableText: React.FC<{
   ['aria-label']?: string;
   onChange: (value: string) => void;
   placeholder?: string;
   componentType?: 'Password' | 'TextArea' | 'TextInput';
   updating?: boolean;
   value: string;
-}
-
-const EditableText: React.FunctionComponent<EditableTextProps> = ({
-  'aria-label': ariaLabel,
-  componentType,
-  onChange,
-  placeholder,
-  updating,
-  value,
-}) => {
-  const [editing, setEditing] = useState<boolean>(false);
-  const [editedValue, setEditedValue] = useState<string>(value);
+}> = ({ 'aria-label': ariaLabel, componentType, onChange, placeholder, updating, value }) => {
+  const [editing, setEditing] = useState(false);
+  const [editedValue, setEditedValue] = useState(value);
 
   function abortEditing(): void {
     setEditedValue(value);
