@@ -48,11 +48,11 @@ function formatHHMM(timeStr: string): string {
 }
 
 export const DateTimePicker: React.FC<{
-  defaultTimestamp: string;
+  defaultTimestamp: number;
   isDisabled?: boolean;
   onSelect: (date: Date) => void;
-  minDate?: Date;
-  maxDate?: Date;
+  minDate?: number;
+  maxDate?: number;
 }> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate }) => {
   const dateFormat = (date: Date, withTime = true) =>
     date.toLocaleDateString([getLang(), 'en-US'], {
@@ -105,19 +105,19 @@ export const DateTimePicker: React.FC<{
 
   const rangeValidatorDate = (date: Date) => {
     if (minDate) {
-      const newMinDate = new Date(minDate.getTime());
+      const newMinDate = new Date(minDate);
       newMinDate.setDate(newMinDate.getDate() - 1);
       if (date < newMinDate) return false;
     }
-    if (maxDate && date > maxDate) {
+    if (maxDate && date > new Date(maxDate)) {
       return false;
     }
 
     return true;
   };
   const rangeValidatorTime = (date: Date) => {
-    if (minDate && date < minDate) return false;
-    else if (maxDate && date > maxDate) return false;
+    if (minDate && date < new Date(minDate)) return false;
+    else if (maxDate && date > new Date(maxDate)) return false;
 
     return true;
   };

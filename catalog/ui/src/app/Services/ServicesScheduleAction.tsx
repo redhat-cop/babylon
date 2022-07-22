@@ -50,7 +50,7 @@ const ServicesScheduleAction: React.FC<{
 
   const actionLabel = action === 'retirement' ? 'Auto-destroy' : 'Auto-stop';
 
-  const maxDateNumber =
+  const maxDate =
     action === 'retirement'
       ? Math.min(
           Date.parse(resourceClaim.metadata.creationTimestamp) + parseDuration(resourceClaim.status.lifespan.maximum),
@@ -76,8 +76,8 @@ const ServicesScheduleAction: React.FC<{
         );
 
   const minMaxProps = {
-    minDate: new Date(),
-    maxDate: new Date(maxDateNumber),
+    minDate: Date.now(),
+    maxDate,
   };
   if (userIsAdmin) {
     minMaxProps.maxDate = null;
@@ -87,7 +87,7 @@ const ServicesScheduleAction: React.FC<{
     <Form isHorizontal>
       <FormGroup fieldId="services-schedule-action" label={actionLabel}>
         <DateTimePicker
-          defaultTimestamp={selectedDate.toString()}
+          defaultTimestamp={selectedDate.getTime()}
           onSelect={(date) => setSelectedDate(date)}
           {...minMaxProps}
         />
