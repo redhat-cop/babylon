@@ -19,8 +19,7 @@ const ServicesScheduleAction: React.FC<{
       new Date(
         action === 'retirement'
           ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end)
-          : action === 'stop'
-          ? Math.min(
+          : Math.min(
               ...resourceClaim.spec.resources
                 .map((specResource, idx) => {
                   const statusResource = resourceClaim.status?.resources?.[idx];
@@ -35,7 +34,6 @@ const ServicesScheduleAction: React.FC<{
                 })
                 .filter((time) => time !== null)
             )
-          : Date.now()
       ),
     [
       action,
