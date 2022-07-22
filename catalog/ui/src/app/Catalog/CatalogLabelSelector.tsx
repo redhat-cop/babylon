@@ -1,10 +1,10 @@
-import React from 'react';
-
+import React, { useCallback } from 'react';
 import { Checkbox, Form, FormGroup } from '@patternfly/react-core';
 import { BABYLON_DOMAIN } from '@app/util';
 import { CatalogItem } from '@app/types';
+import { formatString, HIDDEN_LABELS } from './catalog-utils';
+
 import './catalog-label-selector.css';
-import { HIDDEN_LABELS } from './catalog-utils';
 interface CatalogLabelValues {
   displayName: string;
   values: { [value: string]: CatalogLabelValueItemCount };
@@ -29,19 +29,22 @@ const CatalogLabelSelector: React.FC<{
       // Allow multiple values for labels with numeric suffixes
       const attr: string = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
       const attrKey: string = attr.toLowerCase();
-      const valueKey: string = value.toLowerCase();
-      if (!labels[attrKey]) {
-        labels[attrKey] = {
-          displayName: attr === 'stage' ? 'Stage' : attr.replace(/_/g, ' '),
-          values: {},
-        };
-      }
-      const labelValues = labels[attrKey].values;
-      if (!labelValues[valueKey]) {
-        labelValues[valueKey] = {
-          count: 0,
-          displayName: value.replace(/_/g, ' '),
-        };
+      // Only non-hidden labels
+      if (!HIDDEN_LABELS.includes(attr)) {
+        const valueKey: string = value.toLowerCase();
+        if (!labels[attrKey]) {
+          labels[attrKey] = {
+            displayName: formatString(attr),
+            values: {},
+          };
+        }
+        const labelValues = labels[attrKey].values;
+        if (!labelValues[valueKey]) {
+          labelValues[valueKey] = {
+            count: 0,
+            displayName: formatString(value),
+          };
+        }
       }
     }
   }
@@ -56,29 +59,30 @@ const CatalogLabelSelector: React.FC<{
       if (!HIDDEN_LABELS.includes(attrKey)) {
         const valueKey: string = value.toLowerCase();
         labels[attrKey.toLowerCase()].values[valueKey].count++;
-      } else {
-        delete labels[attrKey.toLowerCase()];
       }
     }
   }
 
-  function onChange(checked: boolean, changedLabel: string, changedValue: string): void {
-    const updated: { [label: string]: string[] } = {};
-    for (const [label, values] of Object.entries(selected || {})) {
-      if (label === changedLabel) {
-        const updatedValues = checked ? [...values, changedValue] : values.filter((v) => v != changedValue);
-        if (updatedValues.length > 0) {
-          updated[label] = updatedValues;
+  const onChange = useCallback(
+    (checked: boolean, changedLabel: string, changedValue: string) => {
+      const updated: { [label: string]: string[] } = {};
+      for (const [label, values] of Object.entries(selected || {})) {
+        if (label === changedLabel) {
+          const updatedValues = checked ? [...values, changedValue] : values.filter((v) => v != changedValue);
+          if (updatedValues.length > 0) {
+            updated[label] = updatedValues;
+          }
+        } else {
+          updated[label] = values;
         }
-      } else {
-        updated[label] = values;
       }
-    }
-    if (checked && !updated[changedLabel]) {
-      updated[changedLabel] = [changedValue];
-    }
-    onSelect(Object.keys(updated).length === 0 ? null : updated);
-  }
+      if (checked && !updated[changedLabel]) {
+        updated[changedLabel] = [changedValue];
+      }
+      onSelect(Object.keys(updated).length === 0 ? null : updated);
+    },
+    [onSelect, selected]
+  );
 
   return (
     <Form className="catalog-label-selector">

@@ -4,14 +4,14 @@ import { Badge, CardBody, CardHeader, Split, SplitItem, Title } from '@patternfl
 import { CatalogItem } from '@app/types';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import CatalogItemIcon from './CatalogItemIcon';
-import { getDescription, getIsDisabled, getProvider, getStage, getStatus } from './catalog-utils';
+import { formatString, getDescription, getIsDisabled, getProvider, getStage, getStatus } from './catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 
 import './catalog-item-card.css';
 
 const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
   const location = useLocation();
-  const routeMatch = useRouteMatch<any>('/catalog/:namespace?');
+  const routeMatch = useRouteMatch<{ namespace: string }>('/catalog/:namespace?');
   const urlSearchParams = new URLSearchParams(location.search);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const provider = getProvider(catalogItem);
@@ -54,7 +54,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
           {displayName(catalogItem)}
         </Title>
         <Title className="catalog-item-card__subtitle" headingLevel="h6">
-          provided by {provider.replace(/_/g, ' ')}
+          provided by {formatString(provider)}
         </Title>
         <div className="catalog-item-card__description">
           {description

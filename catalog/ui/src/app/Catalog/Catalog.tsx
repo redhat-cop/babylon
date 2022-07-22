@@ -1,17 +1,15 @@
-import React, { useEffect, useReducer, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-
 import {
   Backdrop,
+  Button,
   Card,
   CardBody,
   Drawer,
   DrawerContent,
   DrawerContentBody,
   EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
   PageSection,
   PageSectionVariants,
   Sidebar,
@@ -19,33 +17,36 @@ import {
   SidebarPanel,
   Split,
   SplitItem,
+  Stack,
+  StackItem,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-
-import { listCatalogItems } from '@app/api';
+import useSWR from 'swr';
+import { apiPaths, fetcher } from '@app/api';
 import { selectCatalogNamespaces, selectUserGroups } from '@app/store';
-import { CatalogItem, CatalogItemList, CatalogNamespace } from '@app/types';
-import { checkAccessControl, displayName, BABYLON_DOMAIN } from '@app/util';
-
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
-
+import { CatalogItem, CatalogItemList, CatalogNamespace, Nullable } from '@app/types';
+import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
-import LoadingIcon from '@app/components/LoadingIcon';
-
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
 import CatalogItemCard from './CatalogItemCard';
 import CatalogItemDetails from './CatalogItemDetails';
-import CatalogItemRequestForm from './CatalogItemRequestForm';
-import CatalogItemWorkshopForm from './CatalogItemWorkshopForm';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
-import { getCategory, getLastFilter, setLastFilter } from './catalog-utils';
+import {
+  formatString,
+  getCategory,
+  getLastFilter,
+  HIDDEN_ANNOTATIONS,
+  HIDDEN_LABELS,
+  setLastFilter,
+} from './catalog-utils';
+import { DownloadIcon, ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
+import { AsyncParser } from 'json2csv';
+import CatalogItemListItem from './CatalogItemListItem';
 
 import './catalog.css';
-
-const FETCH_BATCH_LIMIT = 50;
 
 function compareCatalogItems(a: CatalogItem, b: CatalogItem): number {
   const aDisplayName = displayName(a);
@@ -77,6 +78,74 @@ function compareCatalogItems(a: CatalogItem, b: CatalogItem): number {
     return a.metadata.name < b.metadata.name ? -1 : 1;
   }
   return 0;
+}
+
+function handleExportCsv(catalogItems: CatalogItem[]) {
+  const annotations = [];
+  const labels = [];
+  catalogItems.forEach((ci) => {
+    for (const annotation of Object.keys(ci.metadata.annotations || [])) {
+      if (
+        annotation.startsWith(BABYLON_DOMAIN + '/') &&
+        !HIDDEN_ANNOTATIONS.includes(annotation.substring(BABYLON_DOMAIN.length + 1))
+      ) {
+        if (!annotations.includes(annotation)) annotations.push(annotation);
+      }
+    }
+    for (const label of Object.keys(ci.metadata.labels || [])) {
+      if (
+        label.startsWith(BABYLON_DOMAIN + '/') &&
+        !HIDDEN_LABELS.includes(label.substring(BABYLON_DOMAIN.length + 1))
+      ) {
+        if (!labels.includes(label)) labels.push(label);
+      }
+    }
+  });
+
+  const fields = [
+    {
+      label: 'Name',
+      value: 'metadata.name',
+      default: '',
+    },
+    {
+      label: 'Catalog',
+      value: 'metadata.namespace',
+      default: '',
+    },
+  ];
+  for (const annotation of annotations) {
+    fields.push({
+      label: formatString(annotation.substring(BABYLON_DOMAIN.length + 1)),
+      value: `metadata.annotations.["${annotation}"]`,
+      default: '',
+    });
+  }
+  for (const label of labels) {
+    fields.push({
+      label: formatString(label.substring(BABYLON_DOMAIN.length + 1)),
+      value: `metadata.labels.["${label}"]`,
+      default: '',
+    });
+  }
+  const opts = { fields };
+  const transformOpts = { objectMode: true };
+  const asyncParser = new AsyncParser(opts, transformOpts);
+
+  let csv = '';
+  asyncParser.processor
+    .on('data', (chunk) => (csv += chunk.toString()))
+    .on('end', () => {
+      const url = window.URL.createObjectURL(new Blob([csv], { type: 'text/plain' }));
+      const link = document.createElement('a');
+      link.style.display = 'none';
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'demo-redhat-catalog.csv');
+      document.body.appendChild(link);
+      link.click();
+    });
+  catalogItems.forEach((ci) => asyncParser.input.push(ci));
+  asyncParser.input.push(null);
 }
 
 function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: string[]): boolean {
@@ -154,11 +223,33 @@ function saveFilter(urlParams: URLSearchParams) {
   setLastFilter(urlParams.toString());
 }
 
+async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
+  async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
+    const catalogItems: CatalogItem[] = [];
+    let continueId: Nullable<string> = null;
+    while (continueId || continueId === null) {
+      const res: CatalogItemList = await fetcher(
+        apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+      );
+      continueId = res.metadata.continue;
+      catalogItems.push(...res.items);
+    }
+    return catalogItems;
+  }
+  const catalogItems: CatalogItem[] = [];
+  const namespacesPromises = [];
+  for (const namespace of namespaces) {
+    namespacesPromises.push(fetchNamespace(namespace).then((cis) => catalogItems.push(...cis)));
+  }
+  await Promise.all(namespacesPromises);
+  return catalogItems;
+}
+
 const Catalog: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
-  const ref = useRef(false);
   const routeMatch = useRouteMatch<{ namespace: string }>('/catalog/:namespace?');
+  const [view, setView] = useState<'gallery' | 'list'>('gallery');
   const catalogNamespaceName: string = routeMatch.params.namespace;
   const urlSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const openCatalogItemParam: string | null = urlSearchParams.has('item') ? urlSearchParams.get('item') : null;
@@ -179,79 +270,36 @@ const Catalog: React.FC = () => {
         .split(/ +/)
         .filter((w) => w != '')
     : null;
-  const showRequestForm: boolean = urlSearchParams.get('request') === 'service';
-  const showWorkshopForm: boolean = urlSearchParams.get('request') === 'workshop';
   const selectedCategory = urlSearchParams.has('category') ? urlSearchParams.get('category') : null;
   const selectedLabels: { [label: string]: string[] } = urlSearchParams.has('labels')
     ? JSON.parse(urlSearchParams.get('labels'))
     : null;
-
   const catalogNamespaces: CatalogNamespace[] = useSelector(selectCatalogNamespaces);
-  const catalogNamespaceNames: string[] | null = catalogNamespaces.map((ci) => ci.name);
-  const setNamespaces = catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames;
+  const catalogNamespaceNames: string[] = catalogNamespaces.map((ci) => ci.name);
   const userGroups: string[] = useSelector(selectUserGroups);
   const filterFunction = useMemo(
     () => (item: CatalogItem) => filterCatalogItemByAccessControl(item, userGroups),
     [userGroups]
   );
 
-  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
+  const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
+    apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName }),
+    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
+  );
 
-  // Trigger initial fetch and refresh on catalog namespace update
+  // Filter & Sort catalog items
+  const catalogItems = useMemo(
+    () => catalogItemsArr.filter(filterFunction).sort(compareCatalogItems),
+    [catalogItemsArr, filterFunction]
+  );
+
+  // Load last filter
   useEffect(() => {
-    if (setNamespaces) {
-      const lastCatalogQuery = getLastFilter();
-      if (!urlSearchParams.toString() && lastCatalogQuery) {
-        history.push(`${location.pathname}?${lastCatalogQuery}`);
-      }
-      if (JSON.stringify(setNamespaces) !== JSON.stringify(fetchState?.namespaces) || fetchState?.items.length === 0) {
-        reduceFetchState({
-          type: 'startFetch',
-          filter: filterFunction,
-          namespaces: setNamespaces,
-        });
-      } else {
-        reduceFetchState({
-          type: 'modify',
-          filter: filterFunction,
-        });
-      }
+    const lastCatalogQuery = getLastFilter();
+    if (!urlSearchParams.toString() && lastCatalogQuery) {
+      history.push(`${location.pathname}?${lastCatalogQuery}`);
     }
-    return () => {
-      ref.current = true;
-    };
-  }, [
-    history,
-    location.pathname,
-    urlSearchParams,
-    selectedCategory,
-    filterFunction,
-    JSON.stringify(setNamespaces),
-    JSON.stringify(keywordFilter),
-  ]);
-
-  useEffect(() => {
-    if (fetchState) {
-      if (fetchState.canContinue) {
-        fetchCatalogItems();
-      } else {
-        // Clear selected category if no catalog items match
-        if (selectedCategory && !catalogItems.find((ci) => selectedCategory === getCategory(ci))) {
-          urlSearchParams.delete('category');
-          saveFilter(urlSearchParams);
-          history.push(`${location.pathname}?${urlSearchParams.toString()}`);
-        }
-      }
-    }
-    return () => {
-      if (ref.current) {
-        cancelFetchActivity(fetchState);
-      }
-    };
-  }, [fetchState]);
-
-  const catalogItems: CatalogItem[] = (fetchState?.filteredItems as CatalogItem[]) || [];
-  catalogItems.sort(compareCatalogItems);
+  }, [history, location.pathname, urlSearchParams]);
 
   const categoryFilteredCatalogItems: CatalogItem[] = selectedCategory
     ? catalogItems.filter((catalogItem) => filterCatalogItemByCategory(catalogItem, selectedCategory))
@@ -286,11 +334,6 @@ const Catalog: React.FC = () => {
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
-  function onRequestCancel(): void {
-    urlSearchParams.delete('request');
-    history.push(`${location.pathname}?${urlSearchParams.toString()}`);
-  }
-
   function onSelectCatalogNamespace(namespaceName: string | null): void {
     if (namespaceName) {
       history.push(`/catalog/${namespaceName}${location.search}`);
@@ -319,18 +362,9 @@ const Catalog: React.FC = () => {
     history.push(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
-  async function fetchCatalogItems(): Promise<void> {
-    const catalogItemList: CatalogItemList = await listCatalogItems({
-      continue: fetchState.continue,
-      limit: FETCH_BATCH_LIMIT,
-      namespace: fetchState.namespace,
-    });
-    if (!fetchState.activity.canceled) {
-      reduceFetchState({
-        type: 'post',
-        k8sObjectList: catalogItemList,
-      });
-    }
+  function onClearFilters() {
+    saveFilter(new URLSearchParams());
+    history.push(`${location.pathname}`);
   }
 
   const getInitialKeywordFilter = () => {
@@ -341,37 +375,6 @@ const Catalog: React.FC = () => {
       ? [new URLSearchParams(lastCatalogQuery).get('search')]
       : null;
   };
-
-  if (showRequestForm || showWorkshopForm) {
-    if (openCatalogItem) {
-      if (showWorkshopForm) {
-        return <CatalogItemWorkshopForm catalogItem={openCatalogItem} onCancel={onRequestCancel} />;
-      }
-      return <CatalogItemRequestForm catalogItem={openCatalogItem} onCancel={onRequestCancel} />;
-    } else if (fetchState?.finished) {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              Catalog item not found.
-            </Title>
-            <EmptyStateBody>
-              CatalogItem {openCatalogItemName} was not found in {openCatalogItemNamespaceName}
-            </EmptyStateBody>
-          </EmptyState>
-        </PageSection>
-      );
-    }
-
-    return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      </PageSection>
-    );
-  }
 
   return (
     <Drawer isExpanded={openCatalogItem ? true : false}>
@@ -408,7 +411,7 @@ const Catalog: React.FC = () => {
                       <Split>
                         <SplitItem isFilled>
                           <Title headingLevel="h2">
-                            {selectedCategory ? selectedCategory.replace(/_/g, ' ') : 'All Items'}
+                            {selectedCategory ? formatString(selectedCategory) : 'All Items'}
                           </Title>
                           <KeywordSearchInput
                             initialValue={getInitialKeywordFilter()}
@@ -417,28 +420,85 @@ const Catalog: React.FC = () => {
                             className="catalog__searchbox"
                           />
                         </SplitItem>
-                        <SplitItem className="catalog__item-count">
-                          {labelFilteredCatalogItems.length === 1
-                            ? '1 item'
-                            : `${labelFilteredCatalogItems.length} items`}
+                        <SplitItem>
+                          <Stack hasGutter>
+                            <StackItem>
+                              <ul className="catalog__select-view">
+                                <li>
+                                  <Tooltip content="Gallery view">
+                                    <Button
+                                      variant="plain"
+                                      aria-label="View as gallery"
+                                      onClick={() => setView('gallery')}
+                                      isActive={view === 'gallery'}
+                                    >
+                                      <ThIcon />
+                                    </Button>
+                                  </Tooltip>
+                                </li>
+                                <li>
+                                  <Tooltip content="List view">
+                                    <Button
+                                      variant="plain"
+                                      aria-label="View as list"
+                                      onClick={() => setView('list')}
+                                      isActive={view === 'list'}
+                                    >
+                                      <ListIcon />
+                                    </Button>
+                                  </Tooltip>
+                                </li>
+                                <li>
+                                  <Tooltip content="Export to CSV">
+                                    <Button
+                                      variant="plain"
+                                      aria-label="Export to CSV"
+                                      onClick={() => handleExportCsv(catalogItems)}
+                                    >
+                                      <DownloadIcon />
+                                    </Button>
+                                  </Tooltip>
+                                </li>
+                              </ul>
+                            </StackItem>
+                            <StackItem>
+                              <p className="catalog__item-count">
+                                {labelFilteredCatalogItems.length} item{labelFilteredCatalogItems.length > 1 && 's'}
+                              </p>
+                            </StackItem>
+                          </Stack>
                         </SplitItem>
                       </Split>
                     </PageSection>
-                    {catalogItems.length > 0 ? (
-                      <PageSection variant={PageSectionVariants.default} className="catalog__content-box">
-                        {labelFilteredCatalogItems.map((catalogItem) => (
-                          <CatalogItemCard key={catalogItem.metadata.uid} catalogItem={catalogItem} />
-                        ))}
+                    {labelFilteredCatalogItems.length > 0 ? (
+                      <PageSection
+                        variant={PageSectionVariants.default}
+                        className={`catalog__content-box catalog__content-box--${view}`}
+                      >
+                        {labelFilteredCatalogItems.map((catalogItem) =>
+                          view === 'gallery' ? (
+                            <CatalogItemCard key={catalogItem.metadata.uid} catalogItem={catalogItem} />
+                          ) : (
+                            <CatalogItemListItem key={catalogItem.metadata.uid} catalogItem={catalogItem} />
+                          )
+                        )}
                       </PageSection>
                     ) : (
                       <PageSection variant={PageSectionVariants.default} className="catalog__content-box--empty">
-                        {fetchState?.finished || fetchState?.refreshing ? (
-                          <EmptyState variant="full">No catalog items match filters.</EmptyState>
-                        ) : (
-                          <EmptyState variant="full">
-                            <EmptyStateIcon icon={LoadingIcon} />
-                          </EmptyState>
-                        )}
+                        <EmptyState variant="full">
+                          <p>
+                            No catalog items match filters.{' '}
+                            <Button
+                              variant="primary"
+                              aria-label="Clear all filters"
+                              icon={<TimesIcon />}
+                              style={{ marginLeft: 'var(--pf-global--spacer--sm)' }}
+                              onClick={onClearFilters}
+                            >
+                              Clear all filters
+                            </Button>
+                          </p>
+                        </EmptyState>
                       </PageSection>
                     )}
                   </SidebarContent>

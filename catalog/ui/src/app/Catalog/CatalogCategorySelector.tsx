@@ -1,9 +1,8 @@
 import React from 'react';
-
 import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
-
 import { CatalogItem } from '@app/types';
-import { getCategory } from './catalog-utils';
+import { formatString, getCategory } from './catalog-utils';
+
 import './catalog-category-selector.css';
 
 const CatalogCategorySelector: React.FC<{
@@ -43,11 +42,7 @@ const CatalogCategorySelector: React.FC<{
     >
       <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
       {categories.map((category) => (
-        <Tab
-          key={category}
-          eventKey={category}
-          title={<TabTitleText>{category.replace(/_/g, ' ')}</TabTitleText>}
-        ></Tab>
+        <Tab key={category} eventKey={category} title={<TabTitleText>{formatString(category)}</TabTitleText>}></Tab>
       ))}
     </Tabs>
   );

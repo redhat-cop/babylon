@@ -4,6 +4,7 @@ import { EmptyState, EmptyStateIcon, PageSection } from '@patternfly/react-core'
 
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
+const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
 const Services = React.lazy(() => import('@app/Services/Services'));
 const Workshops = React.lazy(() => import('@app/Workshops/Workshops'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
@@ -53,6 +54,12 @@ const routes: AppRouteConfig[] = [
     //label: 'Dashboard',
     path: '/',
     title: 'Babylon | Dashboard',
+  },
+  {
+    label: 'Catalog',
+    component: CatalogItemForm,
+    path: '/catalog/:namespace/order/:catalogItem',
+    title: 'Babylon | Catalog',
   },
   {
     label: 'Catalog',

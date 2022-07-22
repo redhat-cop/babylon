@@ -33,26 +33,18 @@
   gap: var(--pf-global--spacer--xs);
 }
 
-/* fixes for mis-formatted descriptions -  hide all content in description */
 .catalog-item-card__description {
   line-height: 1.25em;
   height: 3.75em;
   overflow: hidden;
-  font-weight: var(--pf-global--link--FontWeight) !important;
-  font-size: var(--pf-global--FontSize--sm) !important;
-  color: var(--pf-global--Color--100);
-}
-/* show first element in description or nested element in first element only */
-.catalog-item-card__description > *:nth-child(1),
-.catalog-item-card__description > *:nth-child(1) > * {
-  color: var(--pf-global--Color--100);
-  font-size: var(--pf-global--FontSize--sm) !important;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-  overflow: hidden;
-  visibility: visible;
   font-weight: var(--pf-global--link--FontWeight) !important;
+  font-size: var(--pf-global--FontSize--sm) !important;
+  color: var(--pf-global--Color--100);
+  white-space: normal;
+  text-overflow: ellipsis;
 }
 
 .catalog-item-card__header {

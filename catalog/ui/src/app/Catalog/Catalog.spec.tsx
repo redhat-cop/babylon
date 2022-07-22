@@ -7,13 +7,12 @@ import catalogItemsObj from '../__mocks__/catalogItems.json';
 import { CatalogItemList, CatalogNamespace } from '@app/types';
 import { createMemoryHistory } from 'history';
 
-jest.mock('@app/api', () => {
-  return {
-    listCatalogItems: jest.fn(() => Promise.resolve(catalogItemsObj as CatalogItemList)),
-  };
-});
+jest.mock('@app/api', () => ({
+  ...jest.requireActual('@app/api'),
+  fetcher: jest.fn(() => Promise.resolve(catalogItemsObj as CatalogItemList)),
+}));
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'), // use actual for all non-hook parts
+  ...jest.requireActual('react-router-dom'),
   useParams: () => ({ namespace: 'fakeNamespace' }),
   useRouteMatch: () => ({ url: '/catalog/fakeNamespace', params: { namespace: 'fakeNamespace' } }),
 }));
@@ -58,5 +57,29 @@ describe('Catalog Component', () => {
       expect(withinCategorySelector.getByText('Other').closest('button').getAttribute('aria-selected')).toBe('true')
     );
     expect(history.location.search).toBe('?category=Other');
+  });
+  it('should export the CSV', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const link: any = {
+      click: jest.fn(),
+      setAttribute: jest.fn(),
+      style: {},
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const blob: any = new Blob(['hello world'], { type: 'text/plain' });
+
+    const { getByLabelText, getByText } = render(<Catalog />);
+    await waitFor(() => expect(getByText('12 items')).toBeInTheDocument());
+
+    global.URL.createObjectURL = jest.fn(() => blob);
+    jest.spyOn(document, 'createElement').mockReturnValueOnce(link);
+    jest.spyOn(document.body, 'appendChild').mockReturnValueOnce(null);
+
+    fireEvent.click(getByLabelText('Export to CSV', { selector: 'button' }));
+    await new Promise((r) => setTimeout(r, 1000)); // wait for async function
+
+    expect(link.setAttribute).toHaveBeenNthCalledWith(1, 'href', blob);
+    expect(link.setAttribute).toHaveBeenNthCalledWith(2, 'download', 'demo-redhat-catalog.csv');
+    expect(link.click).toHaveBeenCalledTimes(1);
   });
 });

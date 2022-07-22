@@ -485,7 +485,7 @@ const CatalogItemWorkshopForm: React.FC<{
         </Form>
       </PageSection>
       <PageSection
-        key="actions"
+        key="workshop-form"
         variant={PageSectionVariants.light}
         className="catalog-item-workshop-form-workshop-config"
       >

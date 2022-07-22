@@ -1412,6 +1412,20 @@ export async function fetchWithUpdatedCostTracker({
 export const apiPaths = {
   CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
+  CATALOG_ITEMS: ({
+    namespace,
+    limit,
+    continueId,
+    labelSelector,
+  }: {
+    namespace: string;
+    labelSelector?: string;
+    limit?: number;
+    continueId?: string;
+  }): string =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems?limit=${limit}${
+      continueId ? `&continue=${continueId}` : ''
+    }${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
   RESOURCE_CLAIMS: ({
     namespace,
     limit,
