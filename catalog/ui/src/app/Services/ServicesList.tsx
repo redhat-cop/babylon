@@ -313,7 +313,10 @@ const ServicesList: React.FC<{
         <ServicesAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
-        <ServicesScheduleAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
+        <ServicesScheduleAction
+          action={modalState.action === 'retirement' ? 'retirement' : 'stop'}
+          resourceClaim={modalState.resourceClaim}
+        />
       </Modal>
       <Modal
         ref={modalGetCost}

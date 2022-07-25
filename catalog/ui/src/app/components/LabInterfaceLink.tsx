@@ -1,27 +1,21 @@
-import * as React from 'react';
-
+import React from 'react';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-
 import { useSelector } from 'react-redux';
-
 import { Button } from '@patternfly/react-core';
-
 import { selectUser } from '@app/store';
 import ButtonCircleIcon from './ButtonCircleIcon';
-
-export interface LabInterfaceLinkProps {
-  data?: object;
-  method: string;
-  url: string;
-  variant?: 'primary' | 'secondary' | 'circle';
-}
 
 function submitFormFromLink(e) {
   e.preventDefault();
   e.target.closest('form').submit();
 }
 
-const LabInterfaceLink: React.FunctionComponent<LabInterfaceLinkProps> = ({ data, method, url, variant }) => {
+const LabInterfaceLink: React.FC<{
+  data?: object;
+  method: string;
+  url: string;
+  variant?: 'primary' | 'secondary' | 'circle';
+}> = ({ data, method, url, variant }) => {
   const user = useSelector(selectUser);
   const email = user.includes('@')
     ? user

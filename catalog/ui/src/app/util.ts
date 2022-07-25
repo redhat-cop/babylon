@@ -1,9 +1,7 @@
-// Use asciidoctor to translate descriptions
-import AsciiDoctor from 'asciidoctor';
-const asciidoctor = AsciiDoctor();
+import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
+import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
+import { CostTracker, K8sObject, ResourceClaim } from '@app/types';
 
-// Use dompurify to make asciidoctor output safe
-import dompurify from 'dompurify';
 // Force all links to target new window and not pass unsafe attributes
 dompurify.addHook('afterSanitizeAttributes', function (node) {
   if (node.tagName == 'A' && node.getAttribute('href')) {
@@ -11,8 +9,6 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
     node.setAttribute('rel', 'noopener noreferrer');
   }
 });
-
-import { CostTracker, K8sObject, ResourceClaim } from '@app/types';
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
@@ -130,7 +126,8 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
   if (options.format === 'html') {
     return dompurify.sanitize(content, sanitize_opt);
   } else {
-    return dompurify.sanitize(asciidoctor.convert(content), sanitize_opt);
+    const asciidoctor = AsciiDoctor();
+    return dompurify.sanitize(asciidoctor.convert(content).toString(), sanitize_opt);
   }
 }
 
@@ -254,4 +251,9 @@ export function compareStringDates(stringDate1: string, stringDate2: string): nu
   const date1 = new Date(stringDate1).getTime();
   const date2 = new Date(stringDate2).getTime();
   return Math.abs(date1 - date2);
+}
+
+export function getLang(): string {
+  if (navigator.languages != undefined) return navigator.languages[0];
+  return navigator.language || 'en-US';
 }

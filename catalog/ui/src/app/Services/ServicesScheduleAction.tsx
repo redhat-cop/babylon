@@ -1,61 +1,65 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { ResourceClaim } from '@app/types';
-import DatetimeSelect from '@app/components/DatetimeSelect';
-import LocalTimestamp from '@app/components/LocalTimestamp';
-import TimeInterval from '@app/components/TimeInterval';
 import { displayName } from '@app/util';
+import { useSelector } from 'react-redux';
+import { selectUserIsAdmin } from '@app/store';
+import { DateTimePicker } from '@app/components/DateTimePicker';
 
 const ServicesScheduleAction: React.FC<{
-  action: string;
+  action: 'retirement' | 'stop';
   resourceClaim: ResourceClaim;
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
   setState?: React.Dispatch<React.SetStateAction<Date>>;
 }> = ({ action, resourceClaim, setTitle, setState }) => {
-  const current: Date = new Date(
-    action === 'retirement'
-      ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end)
-      : action === 'stop'
-      ? Math.min(
-          ...resourceClaim.spec.resources
-            .map((specResource, idx) => {
-              const statusResource = resourceClaim.status?.resources?.[idx];
-              const stopTimestamp =
-                specResource.template?.spec?.vars?.action_schedule?.stop ||
-                statusResource.state.spec.vars.action_schedule.stop;
-              if (stopTimestamp) {
-                return Date.parse(stopTimestamp);
-              } else {
-                return null;
-              }
-            })
-            .filter((time) => time !== null)
-        )
-      : Date.now()
+  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
+  const currentActionDate: Date = useMemo(
+    () =>
+      new Date(
+        action === 'retirement'
+          ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end)
+          : Math.min(
+              ...resourceClaim.spec.resources
+                .map((specResource, idx) => {
+                  const statusResource = resourceClaim.status?.resources?.[idx];
+                  const stopTimestamp =
+                    specResource.template?.spec?.vars?.action_schedule?.stop ||
+                    statusResource.state.spec.vars.action_schedule.stop;
+                  if (stopTimestamp) {
+                    return Date.parse(stopTimestamp);
+                  } else {
+                    return null;
+                  }
+                })
+                .filter((time) => time !== null)
+            )
+      ),
+    [
+      action,
+      resourceClaim.spec.lifespan?.end,
+      resourceClaim.spec.resources,
+      resourceClaim.status.lifespan.end,
+      resourceClaim.status?.resources,
+    ]
   );
 
-  const [selectedDate, setSelectedDate] = React.useState<Date>(current);
+  const [selectedDate, setSelectedDate] = useState(currentActionDate);
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
   useEffect(() => setTitle(`${displayName(resourceClaim)}`), [setTitle, resourceClaim]);
-  // Reset selected time to current time when action or resourceClaim changes
-  useEffect(() => {
-    setSelectedDate(current);
-  }, [current.getTime()]);
 
-  const minimum: Date = new Date(Date.now());
-  const maximum: Date = new Date(
-    // Calculate retirement maximum from maximum lifespan
+  const actionLabel = action === 'retirement' ? 'Auto-destroy' : 'Auto-stop';
+
+  const maxDate =
     action === 'retirement'
       ? Math.min(
           Date.parse(resourceClaim.metadata.creationTimestamp) + parseDuration(resourceClaim.status.lifespan.maximum),
           Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum)
         )
-      : // Calculate stop maximum from runtime maximum
-      action === 'stop'
-      ? Math.min(
+      : Math.min(
           ...resourceClaim.status.resources
-            .map((r) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((r: any) => {
               if (!r.state) {
                 return null;
               }
@@ -67,35 +71,25 @@ const ServicesScheduleAction: React.FC<{
                 return null;
               }
             })
-            .filter((runtime) => runtime !== null)
-        )
-      : // Default to 30 days?
-        Date.now() + 30 * 24 * 60 * 60 * 1000
-  );
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((runtime: any) => runtime !== null)
+        );
 
-  const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'stop' ? 'Auto-stop' : action;
-
-  // Interval between times to show
-  const interval: number = action === 'retirement' ? 60 * 60 * 1000 : 15 * 60 * 1000;
+  const minMaxProps = {
+    minDate: Date.now(),
+    maxDate,
+  };
+  if (userIsAdmin) {
+    minMaxProps.maxDate = null;
+  }
 
   return (
     <Form isHorizontal>
-      <FormGroup fieldId="" label={actionLabel}>
-        <DatetimeSelect
-          idPrefix={`${resourceClaim.metadata.namespace}:${resourceClaim.metadata.name}:lifespan:`}
+      <FormGroup fieldId="services-schedule-action" label={actionLabel}>
+        <DateTimePicker
+          defaultTimestamp={selectedDate.getTime()}
           onSelect={(date) => setSelectedDate(date)}
-          toggleContent={
-            <span>
-              <LocalTimestamp date={selectedDate} />
-              <span style={{ padding: '0 6px' }}>
-                (<TimeInterval toDate={selectedDate} />)
-              </span>
-            </span>
-          }
-          current={selectedDate}
-          interval={interval}
-          minimum={minimum}
-          maximum={maximum}
+          {...minMaxProps}
         />
       </FormGroup>
     </Form>

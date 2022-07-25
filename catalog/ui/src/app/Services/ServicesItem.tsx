@@ -243,7 +243,10 @@ const ServicesItemComponent: React.FC<{
         <ServicesCreateWorkshop resourceClaim={resourceClaim} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
-        <ServicesScheduleAction action={modalState.action} resourceClaim={resourceClaim} />
+        <ServicesScheduleAction
+          action={modalState.action === 'retirement' ? 'retirement' : 'stop'}
+          resourceClaim={resourceClaim}
+        />
       </Modal>
       {userIsAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-item__topbar" variant={PageSectionVariants.light}>

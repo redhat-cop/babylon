@@ -1,34 +1,19 @@
 /* NumberInput which aggregates consecutive changes into single events */
 
-import React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NumberInput } from '@patternfly/react-core';
 
-interface PatientNumberInputProps {
-  className?: string;
-  isDisabled?: boolean;
+const PatientNumberInput: React.FC<{
   min?: number;
   max?: number;
   onChange?: (value: number) => void;
   onChangeDelay?: number;
   value: number;
-}
-
-interface PatientNumberInputState {
-  timeout?: any;
-  value: number;
-}
-
-const PatientNumberInput: React.FunctionComponent<PatientNumberInputProps> = ({
-  className,
-  isDisabled,
-  min,
-  max,
-  onChange,
-  onChangeDelay,
-  value,
-}) => {
-  const [state, setState] = useState<PatientNumberInputState>({ value: value });
+}> = ({ min, max, onChange, onChangeDelay, value }) => {
+  const [state, setState] = useState<{
+    timeout?: any;
+    value: number;
+  }>({ value: value });
 
   function onValueChange(newValue: number) {
     const validatedValue: number =

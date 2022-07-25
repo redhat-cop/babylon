@@ -8,11 +8,6 @@ body,
   height: 100%;
 }
 
-.pf-c-dropdown.rhpds-user-controls.rhpds-warning .pf-c-dropdown__toggle-text {
-  color: #ee0000;
-  font-weight: bold;
-}
-
 .visually-hidden {
   position: absolute;
   width: 1px;

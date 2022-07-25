@@ -1,41 +1,23 @@
-import * as React from 'react';
-import classNames from 'classnames';
-
+import React from 'react';
 import { Dropdown, DropdownItem, DropdownPosition, DropdownToggle } from '@patternfly/react-core';
+import { CaretDownIcon } from '@patternfly/react-icons';
+import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
 import './action-dropdown.css';
-import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
-import { CaretDownIcon } from '@patternfly/react-icons';
 
-export interface ActionDropdownProps {
+const ActionDropdown: React.FC<{
   actionDropdownItems: any;
   className?: string;
   isDisabled?: boolean;
   position: DropdownPosition | 'right' | 'left';
   icon?: React.ComponentClass<SVGIconProps>;
   isPlain?: boolean;
-}
-
-export interface ActionDropdownItemProps {
-  className?: string;
-  isDisabled?: boolean;
-  label: string;
-  onSelect: () => void;
-}
-
-const ActionDropdown: React.FunctionComponent<ActionDropdownProps> = ({
-  actionDropdownItems,
-  className,
-  isDisabled = false,
-  position,
-  icon,
-  isPlain = false,
-}) => {
+}> = ({ actionDropdownItems, className, isDisabled = false, position, icon, isPlain = false }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const Icon = icon;
   return (
     <Dropdown
-      className={classNames('rhpds-action-dropdown', className)}
+      className={`action-dropdown${className ? ` ${className}` : ''}`}
       isOpen={isOpen}
       onSelect={() => setIsOpen(false)}
       position={position}
@@ -54,11 +36,11 @@ const ActionDropdown: React.FunctionComponent<ActionDropdownProps> = ({
   );
 };
 
-const ActionDropdownItem: React.FunctionComponent<ActionDropdownItemProps> = ({
-  label,
-  isDisabled = false,
-  onSelect,
-}) => {
+const ActionDropdownItem: React.FC<{
+  isDisabled?: boolean;
+  label: string;
+  onSelect: () => void;
+}> = ({ label, isDisabled = false, onSelect }) => {
   return (
     <DropdownItem key={label} isDisabled={isDisabled} onClick={() => onSelect()}>
       {label}

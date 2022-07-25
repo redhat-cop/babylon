@@ -9,62 +9,132 @@ import {
   Button,
   Popover,
 } from '@patternfly/react-core';
-import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/esm/icons/outlined-calendar-alt-icon';
-import OutlinedClockIcon from '@patternfly/react-icons/dist/esm/icons/outlined-clock-icon';
+import { getLang } from '@app/util';
+import { OutlinedCalendarAltIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 
-export const DateTimePicker: React.FC<{ defaultTimestamp: string; isDisabled: boolean }> = ({
-  defaultTimestamp,
-  isDisabled = false,
-}) => {
+import './date-time-picker.css';
+
+function getHoursMinutes(timeStr: string): { hours: number; minutes: number } {
+  const timeStrArr = timeStr.split(':');
+  if (timeStrArr.length !== 2) throw new Error('Invalid time');
+  return {
+    hours: Number(timeStrArr[0]),
+    minutes: Number(timeStrArr[1]),
+  };
+}
+function getDateTime(dateStr: string, timeStr: string): Date {
+  const { hours, minutes } = getHoursMinutes(timeStr);
+  const valueDateTime = new Date(dateStr);
+  valueDateTime.setHours(hours);
+  valueDateTime.setMinutes(minutes);
+  return valueDateTime;
+}
+function formatAmPm(timeStr: string): string {
+  // eslint-disable-next-line prefer-const
+  let { hours, minutes } = getHoursMinutes(timeStr);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours %= 12;
+  hours = hours || 12;
+
+  return `${('00' + hours).slice(-2)}:${('00' + minutes).slice(-2)} ${ampm}`;
+}
+function formatHHMM(timeStr: string): string {
+  let hours = Number(timeStr.match(/^(\d+)/)[1]);
+  const minutes = Number(timeStr.match(/:(\d+)/)[1]);
+  const AMPM = timeStr.match(/\s(.*)$/)[1];
+  if (AMPM === 'PM' && hours < 12) hours = hours + 12;
+  if (AMPM === 'AM' && hours === 12) hours = hours - 12;
+  return `${('00' + hours).slice(-2)}:${('00' + minutes).slice(-2)}`;
+}
+
+export const DateTimePicker: React.FC<{
+  defaultTimestamp: number;
+  isDisabled?: boolean;
+  onSelect: (date: Date) => void;
+  minDate?: number;
+  maxDate?: number;
+}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate }) => {
+  const dateFormat = (date: Date, withTime = true) =>
+    date.toLocaleDateString([getLang(), 'en-US'], {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+      timeZoneName: 'short',
+    });
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isTimeOpen, setIsTimeOpen] = useState(false);
   const dateTime = new Date(defaultTimestamp);
-  const defaultTime = `${dateTime.getHours()}:${dateTime.getMinutes()}`;
-  const defaultDate = dateTime.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
+  const defaultTime = `${('00' + dateTime.getHours()).slice(-2)}:${('00' + dateTime.getMinutes()).slice(-2)}`;
+  const defaultDate = dateFormat(dateTime, false);
   const [valueDate, setValueDate] = useState(defaultDate);
   const [valueTime, setValueTime] = useState(defaultTime);
-  const hours = Array.from(new Array(24), (_, i) => i);
-  const minutes = ['00', '30'];
 
-  const dateFormat = (date: Date) =>
-    date
-      .toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', timeZoneName: 'short' })
-      .replace(/\//g, '-');
+  const hours = Array.from(new Array(24), (_, i) => ('00' + i).slice(-2));
+  const minutes = ['00', '30'];
 
   const onToggleCalendar = () => {
     setIsCalendarOpen(!isCalendarOpen);
     setIsTimeOpen(false);
   };
 
-  const onToggleTime = () => {
-    setIsTimeOpen(!isTimeOpen);
+  const onToggleTime = (value: boolean, e: unknown) => {
+    setIsTimeOpen(e instanceof PointerEvent ? !value : !isTimeOpen);
     setIsCalendarOpen(false);
   };
 
+  const _onSelect = (valueDate: string, valueTime: string) => {
+    const dateTime = getDateTime(valueDate, valueTime);
+    onSelect(dateTime);
+  };
+
   const onSelectCalendar = (newValueDate: Date) => {
-    const newValue = dateFormat(newValueDate);
+    const newValue = dateFormat(newValueDate, false);
     setValueDate(newValue);
     setIsCalendarOpen(!isCalendarOpen);
+    setIsTimeOpen(!isTimeOpen);
+    _onSelect(newValue, valueTime);
   };
 
   const onSelectTime = (ev: React.SyntheticEvent<HTMLDivElement>) => {
-    setValueTime(ev.currentTarget.textContent);
+    const newValueTime = formatHHMM(ev.currentTarget.textContent);
+    setValueTime(newValueTime);
     setIsTimeOpen(!isTimeOpen);
+    _onSelect(valueDate, newValueTime);
+  };
+
+  const rangeValidatorDate = (date: Date) => {
+    if (minDate) {
+      const newMinDate = new Date(minDate);
+      newMinDate.setDate(newMinDate.getDate() - 1);
+      if (date < newMinDate) return false;
+    }
+    if (maxDate && date > new Date(maxDate)) {
+      return false;
+    }
+
+    return true;
+  };
+  const rangeValidatorTime = (date: Date) => {
+    if (minDate && date < new Date(minDate)) return false;
+    else if (maxDate && date > new Date(maxDate)) return false;
+
+    return true;
   };
 
   const timeOptions = hours.map((hour) =>
-    minutes.map((minute) => (
-      <DropdownItem key={`${hour}-${minute}`} component="button" value={`${hour}:${minute}`}>
-        {`${hour}:${minute}`}
-      </DropdownItem>
-    ))
+    minutes
+      .filter((minute) => rangeValidatorTime(getDateTime(valueDate, `${hour}:${minute}`)))
+      .map((minute) => (
+        <DropdownItem key={`${hour}-${minute}`} component="button">
+          {formatAmPm(`${hour}:${minute}`)}
+        </DropdownItem>
+      ))
   );
 
-  const calendar = <CalendarMonth date={new Date(valueDate)} onChange={onSelectCalendar} />;
+  const calendar = (
+    <CalendarMonth date={new Date(valueDate)} onChange={onSelectCalendar} validators={[rangeValidatorDate]} />
+  );
 
   const time = (
     <Dropdown
@@ -82,6 +152,7 @@ export const DateTimePicker: React.FC<{ defaultTimestamp: string; isDisabled: bo
       }
       isOpen={isTimeOpen}
       dropdownItems={timeOptions}
+      className="date-time-picker__time-picker"
     />
   );
 
@@ -92,7 +163,7 @@ export const DateTimePicker: React.FC<{ defaultTimestamp: string; isDisabled: bo
   );
 
   return (
-    <div style={{ width: '300px' }}>
+    <div style={{ width: '320px' }}>
       <Popover
         position="bottom"
         bodyContent={calendar}
@@ -105,9 +176,11 @@ export const DateTimePicker: React.FC<{ defaultTimestamp: string; isDisabled: bo
           <TextInput
             type="text"
             id="date-time"
-            aria-label="date and time picker"
-            value={valueDate + ' ' + valueTime}
+            aria-label="Date and time picker"
+            value={dateFormat(getDateTime(valueDate, valueTime), true)}
             isReadOnly
+            className="date-time-picker__text"
+            onClick={onToggleCalendar}
           />
           {calendarButton}
           {time}
