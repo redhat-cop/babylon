@@ -41,6 +41,10 @@ redis_port = int(os.environ.get('REDIS_PORT', 6379))
 smtp_from = os.environ.get('SMTP_FROM', None)
 smtp_host = os.environ.get('SMTP_HOST', None)
 smtp_port = int(os.environ.get('SMTP_PORT', 25))
+smtp_user = os.environ.get('SMTP_USER', None)
+smtp_user_password = os.environ.get('SMTP_USER_PASSWORD', None)
+smtp_tls_ca_cert = os.environ.get('SMTP_TLS_CA_CERT', None)
+smtp_tls_ca_cert_file = os.environ.get('SMTP_TLS_CA_CERT_FILE', None)
 smtp_tls_cert = os.environ.get('SMTP_TLS_CERT', None)
 smtp_tls_cert_file = os.environ.get('SMTP_TLS_CERT_FILE', None)
 smtp_tls_key = os.environ.get('SMTP_TLS_KEY', None)
@@ -54,10 +58,6 @@ if not smtp_from:
     raise Exception('Environment variable SMTP_FROM must be set')
 if not smtp_host:
     raise Exception('Environment variable SMTP_HOST must be set')
-if not smtp_tls_cert and not smtp_tls_cert_file:
-    raise Exception('Environment variable SMTP_TLS_CERT or SMTP_TLS_CERT_FILE must be set')
-if not smtp_tls_key and not smtp_tls_key_file:
-    raise Exception('Environment variable SMTP_TLS_KEY or SMTP_TLS_KEY_FILE must be set')
 
 # Write cert and key to tmp file and load
 if smtp_tls_cert:
@@ -65,8 +65,13 @@ if smtp_tls_cert:
     with open(smtp_tls_cert_fd, 'w') as f:
         f.write(f"{smtp_tls_cert}\n{smtp_tls_key}\n")
 
-tls_context = smtplib.ssl.SSLContext()
-tls_context.load_cert_chain(smtp_tls_cert_file, smtp_tls_key_file)
+tls_context = smtplib.ssl.create_default_context(
+    cadata = smtp_tls_ca_cert,
+    cafile = smtp_tls_ca_cert_file,
+)
+
+if smtp_tls_cert_file and smtp_tls_key_file:
+    tls_context.load_cert_chain(smtp_tls_cert_file, smtp_tls_key_file)
 
 j2env = jinja2.Environment(
     loader = jinja2.FileSystemLoader([
@@ -741,4 +746,7 @@ def send_notification_email(
         port = smtp_port,
     ) as smtp:
         smtp.starttls(context = tls_context)
+        if smtp_user and smtp_user_password:
+            smtp.login(smtp_user, smtp_user_password)
         smtp.sendmail(smtp_from, to, msg.as_string())
+        smtp.quit()

@@ -61,7 +61,14 @@ odo config set --env SMTP_HOST="mx00.opentlc.com"
 odo config set --env SMTP_PORT="19587"
 ----------------------------------------------------
 +
-Set `SMTP_TLS_CERT` and `SMTP_TLS_KEY`:
+Set `SMTP_USER` and `SMTP_USER_PASSWORD` (optional):
++
+-----------------------------------
+odo config set --env SMTP_USER="smtp_user_name@smtpserver.org"
+odo config set --env SMTP_USER_PASSWORD="****************"
+-----------------------------------
++
+Set `SMTP_TLS_CERT` and `SMTP_TLS_KEY` (optional):
 +
 -----------------------------------
 sed -i devfile.yaml -e "/- name: SMTP_TLS_CERT/{n;s|value: .*|value: $(jq -Rs . < client.crt | sed 's/\\/\\\\/g')|}"
