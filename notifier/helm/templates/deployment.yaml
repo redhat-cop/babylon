@@ -27,15 +27,17 @@ spec:
           value: {{ required ".Values.smtp.host is required!" .Values.smtp.host | quote }}
         - name: SMTP_PORT
           value: {{ required ".Values.smtp.port is required!" .Values.smtp.port | quote }}
-        {{- if .Values.smtp.tls }}
+        {{- if (.Values.smtp.tls).crt }}
         - name: SMTP_TLS_CERT_FILE
           value: /smtp-tls/tls.crt
+        {{- end }}
+        {{- if (.Values.smtp.tls).key }}
         - name: SMTP_TLS_KEY_FILE
           value: /smtp-tls/tls.key
         {{- end }}
-        {{- if .Values.smtp.tlsca }}
+        {{- if (.Values.smtp.tls).ca }}
         - name: SMTP_TLS_CA_CERT_FILE
-          value: /smtp-tls-ca/tls-ca.crt
+          value: /smtp-tls/ca.crt
         {{- end }}
         {{- if .Values.smtp.account }}
         - name: SMTP_USER
@@ -75,11 +77,6 @@ spec:
           mountPath: /smtp-tls
           readOnly: true
         {{- end }}
-        {{- if .Values.smtp.tlsca }}
-        - name: smtp-tls-ca
-          mountPath: /smtp-tls-ca
-          readOnly: true
-        {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -105,11 +102,5 @@ spec:
         secret:
           defaultMode: 0440
           secretName: {{ include "babylon-notifier.name" . }}-tls
-      {{- end }}
-      {{- if .Values.smtp.tlsca }}
-      - name: smtp-tls-ca
-        secret:
-          defaultMode: 0440
-          secretName: {{ include "babylon-notifier.name" . }}-tls-ca
       {{- end }}
 {{ end }}

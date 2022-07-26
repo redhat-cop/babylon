@@ -37,15 +37,23 @@ smtp:
   host:
   port: 25
   #tls:
+  #  ca:
+  #    -----BEGIN CERTIFICATE-----
+  #    ...
+  #    -----END CERTIFICATE-----
   #  crt:
+  #    -----BEGIN CERTIFICATE-----
+  #    ...
+  #    -----END CERTIFICATE-----
   #  key:
-  # tlsca:
-    # crt:
-  # account:
-    # generateSecret: false
-    # secretName: # default use chart name + '-smtp-credentials'
-    # username:
-    # password:
+  #    -----BEGIN RSA PRIVATE KEY-----
+  #    ...
+  #    -----END RSA PRIVATE KEY-----
+  #account:
+  #  generateSecret: false
+  #  secretName: # default use chart name + '-smtp-credentials'
+  #  username:
+  #  password:
 
 resources:
   limits:
