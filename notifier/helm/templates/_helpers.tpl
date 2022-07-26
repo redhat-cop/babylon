@@ -113,3 +113,14 @@ Image for redis
      {{- .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}
   {{- end }}
 {{- end -}}
+
+{{/*
+Generate SMTP secret name if not defined
+*/}}
+{{- define "babylon-notifier.smtpSecret" -}}
+  {{- if .Values.smtp.account.secretName }}
+    {{- .Values.smtp.account.secretName }}
+  {{- else }}
+    {{- include "babylon-notifier.name" . }}-smtp-credentials
+  {{- end }}
+{{- end -}}

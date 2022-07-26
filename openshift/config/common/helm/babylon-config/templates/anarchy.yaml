@@ -52,6 +52,8 @@ kind: Secret
 metadata:
   name: babylon-tower
   namespace: {{ $anarchyNamespace.name }}
+  labels:
+    babylon.gpte.redhat.com/ansible-control-plane: {{ $babylonTower.hostname }}
 type: Opaque
 data:
   hostname: {{ $babylonTower.hostname | b64enc }}
