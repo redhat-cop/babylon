@@ -79,8 +79,8 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
     }
   });
   const sanitize_opt = {
-    ADD_TAGS: [] as any,
-    ADD_ATTR: [] as any,
+    ADD_TAGS: [],
+    ADD_ATTR: [],
   };
   if (options.allowIFrame) {
     sanitize_opt.ADD_TAGS.push('iframe');

@@ -1,6 +1,5 @@
-import { BABYLON_DOMAIN } from '@app/util';
 import { AccessControl, CatalogItem } from '@app/types';
-import { formatDuration } from '@app/util';
+import { BABYLON_DOMAIN, formatDuration } from '@app/util';
 import { Ops } from '@app/Admin/CatalogItemAdmin';
 
 export function getProvider(catalogItem: CatalogItem): string {
