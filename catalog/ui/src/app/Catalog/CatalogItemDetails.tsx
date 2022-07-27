@@ -24,7 +24,7 @@ import {
 } from '@patternfly/react-core';
 import { apiPaths, createServiceRequest, fetcherItemsInAllPages } from '@app/api';
 import { selectCatalogNamespace } from '@app/store';
-import { CatalogItem, CatalogNamespace, ResourceClaim } from '@app/types';
+import { CatalogItem, ResourceClaim } from '@app/types';
 import { displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import LoadingIcon from '@app/components/LoadingIcon';
 import CatalogItemIcon from './CatalogItemIcon';
@@ -57,7 +57,7 @@ enum CatalogItemAccess {
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
   const history = useHistory();
   const { email, userNamespace, isAdmin, groups } = useSession().getSession();
-  const catalogNamespace: CatalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
+  const catalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
   const { userImpersonated } = useImpersonateUser();
   const { provisionTimeEstimate, termsOfService, parameters, accessControl } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
@@ -91,7 +91,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
-  const accessCheckResult: string = checkAccessControl(accessControl, groups);
+  const accessCheckResult = checkAccessControl(accessControl, groups);
   const catalogItemAccess: CatalogItemAccess = isAdmin
     ? CatalogItemAccess.Allow
     : accessCheckResult === 'deny'
@@ -129,7 +129,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem: catalogItem,
-        catalogNamespace: catalogNamespace,
+        catalogNamespaceName: catalogNamespace.displayName,
+        groups,
+        userNamespace,
       });
       history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }

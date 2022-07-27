@@ -1,5 +1,5 @@
 import { BABYLON_DOMAIN } from '@app/util';
-import { CatalogItem } from '@app/types';
+import { AccessControl, CatalogItem } from '@app/types';
 import { formatDuration } from '@app/util';
 import { Ops } from '@app/Admin/CatalogItemAdmin';
 
@@ -100,7 +100,7 @@ export function formatString(string: string): string {
 export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage'];
 export const HIDDEN_ANNOTATIONS = ['ops', 'displayNameComponent0', 'displayNameComponent1'];
 
-export function checkAccessControl(accessConfig: any, groups: string[]): string {
+export function checkAccessControl(accessConfig: AccessControl, groups: string[]): 'allow' | 'viewOnly' | 'deny' {
   if (!accessConfig) {
     return 'allow';
   }

@@ -78,8 +78,13 @@ export interface CatalogItemList {
   metadata: K8sObjectListMeta;
 }
 
+export type AccessControl = {
+  denyGroups: string[];
+  allowGroups: string[];
+  viewOnlyGroups: string[];
+};
 export interface CatalogItemSpec {
-  accessControl?: any;
+  accessControl?: AccessControl;
   bookbag?: any;
   messageTemplates?: any;
   multiuser?: boolean;

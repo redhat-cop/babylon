@@ -2,14 +2,6 @@ import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descripti
 import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
 import { CostTracker, K8sObject, ResourceClaim } from '@app/types';
 
-// Force all links to target new window and not pass unsafe attributes
-dompurify.addHook('afterSanitizeAttributes', function (node) {
-  if (node.tagName == 'A' && node.getAttribute('href')) {
-    node.setAttribute('target', '_blank');
-    node.setAttribute('rel', 'noopener noreferrer');
-  }
-});
-
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
 export function displayName(item: any): string {
@@ -62,6 +54,7 @@ export function randomString(length: number): string {
   return text;
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 export function recursiveAssign(target: object, source: object): any {
   for (const [k, v] of Object.entries(source)) {
     if (v !== null && typeof v === 'object' && k in target && target[k] !== null && typeof target[k] === 'object') {
@@ -78,6 +71,13 @@ interface RenderContentOpt {
 }
 
 export function renderContent(content: string, options: RenderContentOpt = {}): string {
+  // Force all links to target new window and not pass unsafe attributes
+  dompurify.addHook('afterSanitizeAttributes', function (node) {
+    if (node.tagName == 'A' && node.getAttribute('href')) {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
   const sanitize_opt = {
     ADD_TAGS: [] as any,
     ADD_ATTR: [] as any,

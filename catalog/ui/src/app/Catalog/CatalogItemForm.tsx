@@ -47,7 +47,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
   catalogItemName,
 }) => {
   const history = useHistory();
-  const { isAdmin, groups, roles, workshopNamespaces } = useSession().getSession();
+  const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
     fetcher
@@ -131,9 +131,11 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
       history.push(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
     } else {
       const resourceClaim = await createServiceRequest({
-        catalogItem: catalogItem,
-        catalogNamespace: namespace,
-        parameterValues: parameterValues,
+        catalogItem,
+        catalogNamespaceName: namespace,
+        userNamespace,
+        groups,
+        parameterValues,
       });
 
       history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);

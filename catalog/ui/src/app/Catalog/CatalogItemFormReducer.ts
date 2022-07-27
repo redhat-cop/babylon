@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter } from '@app/types';
 import { checkCondition, ConditionValues } from './catalog-utils';
