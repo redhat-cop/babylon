@@ -286,9 +286,16 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                   }
                   value={formState.workshop.accessPassword}
                 />
-                <Tooltip position="right" content={<p>Password used by the attendants to grab their credentials.</p>}>
+                <Tooltip
+                  position="right"
+                  content={
+                    <p>
+                      Password used by the attendants to grab their credentials, if empty no password will be required..
+                    </p>
+                  }
+                >
                   <OutlinedQuestionCircleIcon
-                    aria-label="Password used by the attendants to grab their credentials"
+                    aria-label="Password used by the attendants to grab their credentials, if empty no password will be required."
                     className="tooltip-icon-only"
                   />
                 </Tooltip>

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter } from '@app/types';
 import { checkCondition, ConditionValues } from './catalog-utils';
@@ -29,7 +29,6 @@ type FormState = {
   workshop?: WorkshopProps;
   error: string;
 };
-
 type ParameterProps = {
   name: string;
   isValid: boolean;
