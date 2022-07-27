@@ -4,6 +4,14 @@ import { AccessControl, CostTracker, K8sObject, ResourceClaim } from '@app/types
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
+// Force all links to target new window and not pass unsafe attributes
+dompurify.addHook('afterSanitizeAttributes', function (node) {
+  if (node.tagName == 'A' && node.getAttribute('href')) {
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
+});
+
 export function displayName(item: any): string {
   if (!item) {
     return '';
@@ -71,13 +79,6 @@ type RenderContentOpt = {
 };
 
 export function renderContent(content: string, options: RenderContentOpt = {}): string {
-  // Force all links to target new window and not pass unsafe attributes
-  dompurify.addHook('afterSanitizeAttributes', function (node) {
-    if (node.tagName == 'A' && node.getAttribute('href')) {
-      node.setAttribute('target', '_blank');
-      node.setAttribute('rel', 'noopener noreferrer');
-    }
-  });
   const sanitize_opt = {
     ADD_TAGS: [],
     ADD_ATTR: [],
