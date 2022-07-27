@@ -27,12 +27,33 @@ serviceAccount:
   name:
 
 smtp:
+  # account - Specifies account details for SMTP server authentication (optional)
+  # account.generateSecret - Whether new secret with SMTP username/password will be generated.
+  #                  Will try to mount secret with "secretName" if generateSecret == false
+  # account.secretName - Override default secret name (chart name + '-smtp-credentials')
+  # account.username - Account used for the SMTP server authentication
+  # account.password - Password used for the SMTP Server authentication
   from:
   host:
   port: 25
   #tls:
+  #  ca:
+  #    -----BEGIN CERTIFICATE-----
+  #    ...
+  #    -----END CERTIFICATE-----
   #  crt:
+  #    -----BEGIN CERTIFICATE-----
+  #    ...
+  #    -----END CERTIFICATE-----
   #  key:
+  #    -----BEGIN RSA PRIVATE KEY-----
+  #    ...
+  #    -----END RSA PRIVATE KEY-----
+  #account:
+  #  generateSecret: false
+  #  secretName: # default use chart name + '-smtp-credentials'
+  #  username:
+  #  password:
 
 resources:
   limits:
