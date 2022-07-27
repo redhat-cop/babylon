@@ -1,15 +1,14 @@
 import '@testing-library/jest-dom';
-import * as React from 'react';
-import { render, waitFor, fireEvent } from '../utils/test-utils';
-import { within } from '@testing-library/dom';
+import React from 'react';
+import { render, waitFor, fireEvent, within } from '../utils/test-utils';
 import Catalog from './Catalog';
 import catalogItemsObj from '../__mocks__/catalogItems.json';
-import { CatalogItemList, CatalogNamespace } from '@app/types';
+import { CatalogItem, CatalogNamespace } from '@app/types';
 import { createMemoryHistory } from 'history';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
-  fetcher: jest.fn(() => Promise.resolve(catalogItemsObj as CatalogItemList)),
+  fetcherItemsInAllPages: jest.fn(() => Promise.resolve(catalogItemsObj.items as CatalogItem[])),
 }));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

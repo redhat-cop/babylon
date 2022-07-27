@@ -1,17 +1,35 @@
 import '@testing-library/jest-dom';
-import * as React from 'react';
+import React from 'react';
 import { render, fireEvent, waitFor } from '../utils/test-utils';
-import CatalogItemRequestForm from './CatalogItemRequestForm';
+import CatalogItemForm from './CatalogItemForm';
 import catalogItemObj from '../__mocks__/catalogItem.json';
 import userEvent from '@testing-library/user-event';
+import { CatalogItem } from '@app/types';
 
-describe('CatalogItemRequestForm Component', () => {
+jest.mock('@app/api', () => ({
+  ...jest.requireActual('@app/api'),
+  fetcher: jest.fn(() => Promise.resolve(catalogItemObj as CatalogItem)),
+}));
+const mockGoBack = jest.fn();
+const mockPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useParams: () => ({ namespace: 'fakeNamespace', catalogItem: 'fakeCatalogItem' }),
+  useRouteMatch: () => ({
+    url: '/catalog/fakeNamespace/order/fakeCatalogItem',
+    params: { namespace: 'fakeNamespace', catalogItem: 'fakeCatalogItem' },
+  }),
+  useHistory: () => ({
+    goBack: mockGoBack,
+    push: mockPush,
+  }),
+}));
+
+describe('CatalogItemForm Component', () => {
   test("When renders should display 'CatalogItem' properties and parameters", async () => {
-    const { getByText, getByLabelText } = render(
-      <CatalogItemRequestForm catalogItem={catalogItemObj} onCancel={jest.fn} />
-    );
+    const { getByText, getByLabelText } = render(<CatalogItemForm />);
 
-    const catalogItemDisplayName = await waitFor(() => getByText('Request Test Config'));
+    const catalogItemDisplayName = await waitFor(() => getByText('Order Test Config'));
     const sfidLabel = getByLabelText('Salesforce ID');
     const purposeLabel = getByText('Purpose');
     const purposePlaceholder = '- Select Purpose -';
@@ -24,17 +42,16 @@ describe('CatalogItemRequestForm Component', () => {
     expect(termsOfServiceLabel.closest('.catalog-terms-of-service').textContent).toContain(termsOfServiceAck);
   });
 
-  test('When Cancel button is clicked the onCancel function is called', async () => {
-    const handleClick = jest.fn();
-    const { getByText } = render(<CatalogItemRequestForm catalogItem={catalogItemObj} onCancel={handleClick} />);
+  test('When Cancel button is clicked the history goBack function is called', async () => {
+    const { getByText } = render(<CatalogItemForm />);
     const button = await waitFor(() => getByText('Cancel'));
     fireEvent.click(button);
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(mockGoBack).toHaveBeenCalled();
   });
 
   test('Submit button disabled until required fields are filled', async () => {
-    const { getByText } = render(<CatalogItemRequestForm catalogItem={catalogItemObj} onCancel={jest.fn} />);
-    const button = await waitFor(() => getByText('Request'));
+    const { getByText } = render(<CatalogItemForm />);
+    const button = await waitFor(() => getByText('Order'));
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
@@ -51,9 +68,7 @@ describe('CatalogItemRequestForm Component', () => {
   });
 
   test('Description should be visible when hovering', async () => {
-    const { queryByText, getByLabelText } = render(
-      <CatalogItemRequestForm catalogItem={catalogItemObj} onCancel={jest.fn} />
-    );
+    const { queryByText, getByLabelText } = render(<CatalogItemForm />);
 
     const sfidLabel = await waitFor(() => getByLabelText('Salesforce ID'));
     const sfidDescriptionText = 'Salesforce Opportunity ID, Campaign ID, or Partner Registration';

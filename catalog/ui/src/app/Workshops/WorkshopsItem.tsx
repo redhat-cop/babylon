@@ -26,11 +26,12 @@ import {
   deleteResourceClaim,
   deleteWorkshop,
   fetcher,
+  fetcherItemsInAllPages,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
 import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
-import { NamespaceList, ResourceClaim, ResourceClaimList, ServiceNamespace, Workshop } from '@app/types';
+import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
 import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import WorkshopActions from './WorkshopActions';
 import WorkshopsItemDetails from './WorkshopsItemDetails';
@@ -43,7 +44,6 @@ import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
 import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
 import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
 import useSWR from 'swr';
-import useSWRInfinite from 'swr/infinite';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 
 import './workshops-item.css';
@@ -105,76 +105,58 @@ const WorkshopsItemComponent: React.FC<{
     { refreshInterval: 8000 }
   );
   const {
-    data: resourceClaimsPages,
-    mutate,
-    size,
-    setSize,
+    data: resourceClaims,
     error,
+    mutate,
     isValidating,
-  } = useSWRInfinite<ResourceClaimList>(
-    (index, previousPageData: ResourceClaimList) => {
-      if (previousPageData && !previousPageData.metadata?.continue) {
-        return null;
-      }
-      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
-      return apiPaths.RESOURCE_CLAIMS({
-        namespace: serviceNamespaceName,
-        labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
-        limit: FETCH_BATCH_LIMIT,
-        continueId,
-      });
-    },
-    fetcher,
+  } = useSWR<ResourceClaim[]>(
+    apiPaths.RESOURCE_CLAIMS({
+      namespace: serviceNamespaceName,
+      labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+      limit: FETCH_BATCH_LIMIT,
+    }),
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.RESOURCE_CLAIMS({
+          namespace: serviceNamespaceName,
+          labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        })
+      ),
     {
       refreshInterval: 8000,
-      revalidateFirstPage: true,
-      revalidateAll: true,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       compare: (currentData: any, newData: any) => {
         if (currentData === newData) return true;
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
-        for (let i = 0; i < currentData.length; i++) {
-          if (!compareK8sObjects(currentData[i].items, newData[i].items)) return false;
-        }
+        if (!compareK8sObjects(currentData, newData)) return false;
         return true;
       },
     }
   );
-  useErrorHandler(error?.status === 404 ? error : null);
 
-  const resourceClaims: ResourceClaim[] = useMemo(
-    () => [].concat(...resourceClaimsPages.map((page) => page.items)) || [],
-    [resourceClaimsPages]
-  );
+  useErrorHandler(error?.status === 404 ? error : null);
 
   const revalidate = useCallback(
     ({ updatedItems, action }: { updatedItems: ResourceClaim[]; action: 'update' | 'delete' }) => {
-      const resourceClaimsPagesCpy = JSON.parse(JSON.stringify(resourceClaimsPages));
-      let p: ResourceClaimList;
-      let i: number;
-      for ([i, p] of resourceClaimsPagesCpy.entries()) {
-        for (const updatedItem of updatedItems) {
-          const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
-          if (foundIndex > -1) {
-            if (action === 'update') {
-              resourceClaimsPagesCpy[i].items[foundIndex] = updatedItem;
-            } else if (action === 'delete') {
-              resourceClaimsPagesCpy[i].items.splice(foundIndex, 1);
-            }
-            mutate(resourceClaimsPagesCpy);
+      const resourceClaimsCpy = [...resourceClaims];
+      for (const updatedItem of updatedItems) {
+        const foundIndex = resourceClaims.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+        if (foundIndex > -1) {
+          if (action === 'update') {
+            resourceClaimsCpy[foundIndex] = updatedItem;
+          } else if (action === 'delete') {
+            resourceClaimsCpy.splice(foundIndex, 1);
           }
+          mutate(resourceClaimsCpy);
         }
       }
     },
-    [mutate, resourceClaimsPages]
+    [mutate, resourceClaims]
   );
-
-  // Fetch all pages
-  if (resourceClaimsPages.length > 0 && resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue) {
-    setSize(size + 1);
-  }
 
   async function onServiceDeleteConfirm(): Promise<void> {
     const deleteResourceClaims: ResourceClaim[] = modalState.resourceClaim

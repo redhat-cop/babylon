@@ -27,6 +27,7 @@ import {
   WorkshopSpecUserAssignment,
   UserList,
   Session,
+  Nullable,
 } from '@app/types';
 import { store } from '@app/store';
 import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
@@ -71,6 +72,7 @@ export interface K8sObjectListOpt extends K8sObjectListCommonOpt {
   plural: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export async function apiFetch(path: string, opt?: object): Promise<any> {
   const session = await getApiSession();
 
@@ -105,9 +107,22 @@ export async function apiFetch(path: string, opt?: object): Promise<any> {
   return resp;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export async function fetcher(path: string, opt?: object): Promise<any> {
   const response = await apiFetch(path, opt);
   return response.json();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
+export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: object): Promise<any[]> {
+  const items = [];
+  let continueId: Nullable<string> = null;
+  while (continueId || continueId === null) {
+    const res: { metadata: { continue: string }; items: unknown[] } = await fetcher(pathFn(continueId), opts);
+    continueId = res.metadata.continue || '';
+    items.push(...res.items);
+  }
+  return items;
 }
 
 export async function assignWorkshopUser({

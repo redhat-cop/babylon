@@ -22,10 +22,10 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import useSWR from 'swr';
-import { apiPaths, fetcher } from '@app/api';
+import useSWRImmutable from 'swr/immutable';
+import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { selectCatalogNamespaces, selectUserGroups } from '@app/store';
-import { CatalogItem, CatalogItemList, CatalogNamespace, Nullable } from '@app/types';
+import { CatalogItem, CatalogNamespace } from '@app/types';
 import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import CatalogCategorySelector from './CatalogCategorySelector';
@@ -225,16 +225,9 @@ function saveFilter(urlParams: URLSearchParams) {
 
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
-    const catalogItems: CatalogItem[] = [];
-    let continueId: Nullable<string> = null;
-    while (continueId || continueId === null) {
-      const res: CatalogItemList = await fetcher(
-        apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
-      );
-      continueId = res.metadata.continue;
-      catalogItems.push(...res.items);
-    }
-    return catalogItems;
+    return await fetcherItemsInAllPages((continueId) =>
+      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+    );
   }
   const catalogItems: CatalogItem[] = [];
   const namespacesPromises = [];
@@ -282,8 +275,8 @@ const Catalog: React.FC = () => {
     [userGroups]
   );
 
-  const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
-    apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName }),
+  const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
+    apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
 
