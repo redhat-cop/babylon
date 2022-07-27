@@ -1,18 +1,12 @@
 import React from 'react';
 import { BABYLON_DOMAIN } from '@app/util';
-import { PackageIcon } from '@patternfly/react-icons';
 import { CatalogItem } from '@app/types';
 import openshiftIcon from './icons/openshift.png';
+import { PackageIcon } from '@patternfly/react-icons';
 
 const icons = {
   openshift: openshiftIcon,
 };
-
-interface IconConfig {
-  url: string;
-  alt: string;
-  style?: any;
-}
 
 const CatalogItemIcon: React.FC<{
   catalogItem: CatalogItem;
@@ -22,13 +16,17 @@ const CatalogItemIcon: React.FC<{
   if (!iconValue) {
     return <PackageIcon className="catalog-item-icon" />;
   } else if (iconValue.startsWith('{')) {
-    const iconConfig: IconConfig = JSON.parse(iconValue);
+    const iconConfig: {
+      url: string;
+      alt: string;
+      style?: Record<string, unknown>;
+    } = JSON.parse(iconValue);
     return <img className="catalog-item-icon" alt={iconConfig.alt} src={iconConfig.url} style={iconConfig.style} />;
   } else if (iconValue in icons) {
     return <img className="catalog-item-icon" alt={iconValue} src={icons[iconValue]} />;
-  } else {
-    return <PackageIcon className="catalog-item-icon" />;
   }
+
+  return <PackageIcon className="catalog-item-icon" />;
 };
 
 export default CatalogItemIcon;
