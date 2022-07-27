@@ -12,43 +12,6 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
-export function checkAccessControl(accessConfig: any, groups: string[]): string {
-  if (!accessConfig) {
-    return 'allow';
-  }
-  if ((accessConfig.denyGroups || []).filter((group) => groups.includes(group)).length > 0) {
-    return 'deny';
-  }
-  if ((accessConfig.allowGroups || []).filter((group) => groups.includes(group)).length > 0) {
-    return 'allow';
-  }
-  if ((accessConfig.viewOnlyGroups || []).filter((group) => groups.includes(group)).length > 0) {
-    return 'viewOnly';
-  }
-  return 'deny';
-}
-
-export interface ConditionValues {
-  [name: string]: boolean | number | string | string[] | undefined;
-}
-
-export function checkCondition(condition: string, vars: ConditionValues): boolean {
-  const checkFunction = new Function(
-    Object.entries(vars)
-      .map(([k, v]) => 'const ' + k + ' = ' + JSON.stringify(v) + ';')
-      .join('\n') +
-      'return (' +
-      condition +
-      ');'
-  );
-  const ret: boolean | Error = checkFunction();
-  if (ret instanceof Error) {
-    throw ret;
-  } else {
-    return Boolean(ret);
-  }
-}
-
 export function displayName(item: any): string {
   if (!item) {
     return '';

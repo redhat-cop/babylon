@@ -25,7 +25,7 @@ import {
 import { apiPaths, createServiceRequest, fetcherItemsInAllPages } from '@app/api';
 import { selectCatalogNamespace } from '@app/store';
 import { CatalogItem, CatalogNamespace, ResourceClaim } from '@app/types';
-import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import { displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import LoadingIcon from '@app/components/LoadingIcon';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -39,6 +39,7 @@ import {
   HIDDEN_LABELS,
   getIncidentUrl,
   formatString,
+  checkAccessControl,
 } from './catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
