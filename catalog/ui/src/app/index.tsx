@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { SWRConfig } from 'swr';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import '@patternfly/react-core/dist/styles/base.css';
 
+import { SWRConfig } from 'swr';
+import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import AppLayout from '@app/AppLayout/AppLayout';
 import Workshop from '@app/Workshop/Workshop';
 import { AppRoutes } from '@app/routes';
