@@ -58,7 +58,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
         </Title>
         <div className="catalog-item-card__description">
           {description
-            ? stripHtml(renderContent(description, { format: descriptionFormat }))
+            ? stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)
             : 'No description available.'}
         </div>
       </CardBody>
