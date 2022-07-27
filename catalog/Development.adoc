@@ -70,6 +70,16 @@ Build React UI:
 oc start-build --follow babylon-catalog-ui --from-dir=..
 --------------------------------------------------------
 
+Build Catalog API:
+--------------------------------------------------------
+oc start-build -n babylon-catalog babylon-catalog-api --from-dir=. --follow
+--------------------------------------------------------
+
+Patch deployment from built images:
+--------------------------------------------------------
+oc patch -n babylon-catalog deployment babylon-catalog-api -p '{"spec":{"template":{"spec":{"containers":[{"name": "api", "image": "'$(oc get imagestream -n babylon-catalog babylon-catalog-api -o jsonpath={.status.tags[0].items[0].dockerImageReference})'"}]}}}}'
+--------------------------------------------------------
+
 Process and deploy from built images:
 
 --------------------------------------------------------------------------------
