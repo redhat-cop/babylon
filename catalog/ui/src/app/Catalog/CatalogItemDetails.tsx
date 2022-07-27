@@ -22,11 +22,14 @@ import {
   Title,
   Label,
 } from '@patternfly/react-core';
+import useSWR from 'swr';
 import { apiPaths, createServiceRequest, fetcherItemsInAllPages } from '@app/api';
 import { selectCatalogNamespace } from '@app/store';
 import { CatalogItem, ResourceClaim } from '@app/types';
-import { displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import LoadingIcon from '@app/components/LoadingIcon';
+import StatusPageIcons from '@app/components/StatusPageIcons';
+import useSession from '@app/utils/useSession';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
@@ -41,10 +44,7 @@ import {
   formatString,
   checkAccessControl,
 } from './catalog-utils';
-import StatusPageIcons from '@app/components/StatusPageIcons';
-import useSession from '@app/utils/useSession';
-import useImpersonateUser from '@app/utils/useImpersonateUser';
-import useSWR from 'swr';
+import { displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 
 import './catalog-item-details.css';
 

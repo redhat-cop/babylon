@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react';
 import { Checkbox, Form, FormGroup } from '@patternfly/react-core';
-import { BABYLON_DOMAIN } from '@app/util';
 import { CatalogItem } from '@app/types';
 import { formatString, HIDDEN_LABELS } from './catalog-utils';
+import { BABYLON_DOMAIN } from '@app/util';
 
 import './catalog-label-selector.css';
 interface CatalogLabelValues {

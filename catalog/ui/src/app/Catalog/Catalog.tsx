@@ -22,9 +22,10 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
+import { AsyncParser } from 'json2csv';
+import { DownloadIcon, ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
-import { displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
@@ -32,6 +33,7 @@ import CatalogItemCard from './CatalogItemCard';
 import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
+import useSession from '@app/utils/useSession';
 import {
   checkAccessControl,
   formatString,
@@ -41,10 +43,8 @@ import {
   HIDDEN_LABELS,
   setLastFilter,
 } from './catalog-utils';
-import { DownloadIcon, ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
-import { AsyncParser } from 'json2csv';
 import CatalogItemListItem from './CatalogItemListItem';
-import useSession from '@app/utils/useSession';
+import { displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 
 import './catalog.css';
 
