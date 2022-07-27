@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
 import { SWRConfig } from 'swr';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
+import '@patternfly/react-core/dist/styles/base.css';
+
 import AppLayout from '@app/AppLayout/AppLayout';
 import Workshop from '@app/Workshop/Workshop';
 import { AppRoutes } from '@app/routes';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useScript from '@app/utils/useScript';
 
-import '@patternfly/react-core/dist/styles/base.css';
 import '@app/app.css';
 
 const isMonitorEnabled = process.env.MONITOR_ENABLED === 'true';
