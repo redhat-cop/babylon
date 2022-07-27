@@ -2,7 +2,7 @@ import React from 'react';
 import { BABYLON_DOMAIN } from '@app/util';
 import { CatalogItem } from '@app/types';
 import openshiftIcon from './icons/openshift.png';
-import { PackageIcon } from '@patternfly/react-icons/dist/esm/icons';
+import { PackageIcon } from '@patternfly/react-icons';
 
 const icons = {
   openshift: openshiftIcon,
