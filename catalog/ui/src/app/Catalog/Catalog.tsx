@@ -26,16 +26,10 @@ import { AsyncParser } from 'json2csv';
 import { DownloadIcon, ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
-import KeywordSearchInput from '@app/components/KeywordSearchInput';
-import CatalogCategorySelector from './CatalogCategorySelector';
-import CatalogInterfaceDescription from './CatalogInterfaceDescription';
-import CatalogItemCard from './CatalogItemCard';
-import CatalogItemDetails from './CatalogItemDetails';
-import CatalogLabelSelector from './CatalogLabelSelector';
-import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import useSession from '@app/utils/useSession';
+import KeywordSearchInput from '@app/components/KeywordSearchInput';
+import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import {
-  checkAccessControl,
   formatString,
   getCategory,
   getLastFilter,
@@ -43,8 +37,13 @@ import {
   HIDDEN_LABELS,
   setLastFilter,
 } from './catalog-utils';
+import CatalogCategorySelector from './CatalogCategorySelector';
+import CatalogInterfaceDescription from './CatalogInterfaceDescription';
+import CatalogItemCard from './CatalogItemCard';
+import CatalogItemDetails from './CatalogItemDetails';
+import CatalogLabelSelector from './CatalogLabelSelector';
+import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogItemListItem from './CatalogItemListItem';
-import { displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 
 import './catalog.css';
 

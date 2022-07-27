@@ -32,8 +32,14 @@ import {
 } from '@app/types';
 import { store } from '@app/store';
 import { selectImpersonationUser } from '@app/store';
-import { checkAccessControl } from '@app/Catalog/catalog-utils';
-import { displayName, recursiveAssign, BABYLON_DOMAIN, getCostTracker, compareStringDates } from '@app/util';
+import {
+  checkAccessControl,
+  displayName,
+  recursiveAssign,
+  BABYLON_DOMAIN,
+  getCostTracker,
+  compareStringDates,
+} from '@app/util';
 
 declare const window: Window &
   typeof globalThis & {

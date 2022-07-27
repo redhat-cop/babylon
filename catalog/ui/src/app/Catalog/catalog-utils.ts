@@ -1,4 +1,4 @@
-import { AccessControl, CatalogItem } from '@app/types';
+import { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN, formatDuration } from '@app/util';
 import { Ops } from '@app/Admin/CatalogItemAdmin';
 
@@ -98,22 +98,6 @@ export function formatString(string: string): string {
 }
 export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage'];
 export const HIDDEN_ANNOTATIONS = ['ops', 'displayNameComponent0', 'displayNameComponent1'];
-
-export function checkAccessControl(accessConfig: AccessControl, groups: string[]): 'allow' | 'viewOnly' | 'deny' {
-  if (!accessConfig) {
-    return 'allow';
-  }
-  if ((accessConfig.denyGroups || []).filter((group) => groups.includes(group)).length > 0) {
-    return 'deny';
-  }
-  if ((accessConfig.allowGroups || []).filter((group) => groups.includes(group)).length > 0) {
-    return 'allow';
-  }
-  if ((accessConfig.viewOnlyGroups || []).filter((group) => groups.includes(group)).length > 0) {
-    return 'viewOnly';
-  }
-  return 'deny';
-}
 
 export interface ConditionValues {
   [name: string]: boolean | number | string | string[] | undefined;

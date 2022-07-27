@@ -30,9 +30,7 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
-import CatalogItemIcon from './CatalogItemIcon';
-import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
-import CatalogItemRating from './CatalogItemRating';
+import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import {
   getProvider,
   getDescription,
@@ -42,9 +40,10 @@ import {
   HIDDEN_LABELS,
   getIncidentUrl,
   formatString,
-  checkAccessControl,
 } from './catalog-utils';
-import { displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import CatalogItemIcon from './CatalogItemIcon';
+import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
+import CatalogItemRating from './CatalogItemRating';
 
 import './catalog-item-details.css';
 
