@@ -375,11 +375,13 @@ export type Session = {
   impersonateUser: string;
   admin: boolean;
   consoleURL: string;
-  groups: string[] | [];
+  groups: string[];
+  roles: string[];
   interface: string;
   user: string;
   catalogNamespaces: CatalogNamespace[];
-  serviceNamespaces: CatalogNamespace[];
+  serviceNamespaces: ServiceNamespace[];
+  workshopNamespaces: ServiceNamespace[];
   userNamespace: UserNamespace;
 };
 export type CostTracker = {

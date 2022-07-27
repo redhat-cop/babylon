@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useHistory, useLocation, useRouteMatch } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import {
   Backdrop,
   Button,
@@ -24,8 +23,7 @@ import {
 } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
-import { selectCatalogNamespaces, selectUserGroups } from '@app/store';
-import { CatalogItem, CatalogNamespace } from '@app/types';
+import { CatalogItem } from '@app/types';
 import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import CatalogCategorySelector from './CatalogCategorySelector';
@@ -45,6 +43,7 @@ import {
 import { DownloadIcon, ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
 import { AsyncParser } from 'json2csv';
 import CatalogItemListItem from './CatalogItemListItem';
+import useSession from '@app/utils/useSession';
 
 import './catalog.css';
 
@@ -242,6 +241,7 @@ const Catalog: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
   const routeMatch = useRouteMatch<{ namespace: string }>('/catalog/:namespace?');
+  const { catalogNamespaces, groups } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
   const catalogNamespaceName: string = routeMatch.params.namespace;
   const urlSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -267,13 +267,9 @@ const Catalog: React.FC = () => {
   const selectedLabels: { [label: string]: string[] } = urlSearchParams.has('labels')
     ? JSON.parse(urlSearchParams.get('labels'))
     : null;
-  const catalogNamespaces: CatalogNamespace[] = useSelector(selectCatalogNamespaces);
+
   const catalogNamespaceNames: string[] = catalogNamespaces.map((ci) => ci.name);
-  const userGroups: string[] = useSelector(selectUserGroups);
-  const filterFunction = useMemo(
-    () => (item: CatalogItem) => filterCatalogItemByAccessControl(item, userGroups),
-    [userGroups]
-  );
+  const filterFunction = useMemo(() => (item: CatalogItem) => filterCatalogItemByAccessControl(item, groups), [groups]);
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),

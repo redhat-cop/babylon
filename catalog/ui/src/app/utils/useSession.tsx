@@ -10,11 +10,12 @@ import {
   selectUserGroups,
   selectUserIsAdmin,
   selectUserNamespace,
+  selectUserRoles,
   selectWorkshopNamespaces,
 } from '@app/store';
 import { useDispatch, useSelector } from 'react-redux';
 import { AnyAction, Dispatch } from 'redux';
-import { CatalogNamespace, UserNamespace } from '@app/types';
+import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 import useImpersonateUser from './useImpersonateUser';
 
 async function getSessionFn(dispatch: Dispatch<AnyAction>) {
@@ -25,6 +26,7 @@ async function getSessionFn(dispatch: Dispatch<AnyAction>) {
       admin: session.admin || false,
       consoleURL: session.consoleURL,
       groups: session.groups || [],
+      roles: session.roles || [],
       interface: session.interface,
       user: session.user,
       catalogNamespaces: session.catalogNamespaces,
@@ -39,11 +41,12 @@ export default function useSession(): {
     email: string;
     isAdmin: boolean;
     groups: string[];
+    roles: string[];
     catalogNamespaces: CatalogNamespace[];
     consoleUrl: string;
     userInterface: string;
-    serviceNamespaces: UserNamespace[];
-    workshopNamespaces: UserNamespace[];
+    serviceNamespaces: ServiceNamespace[];
+    workshopNamespaces: ServiceNamespace[];
     userNamespace: UserNamespace;
   };
 } {
@@ -51,6 +54,7 @@ export default function useSession(): {
   const email = useSelector(selectUser);
   const isAdmin = useSelector(selectUserIsAdmin);
   const groups = useSelector(selectUserGroups);
+  const roles = useSelector(selectUserRoles);
   const catalogNamespaces = useSelector(selectCatalogNamespaces);
   const consoleUrl = useSelector(selectConsoleURL);
   const userInterface = useSelector(selectInterface);
@@ -78,6 +82,7 @@ export default function useSession(): {
       email,
       isAdmin,
       groups,
+      roles,
       catalogNamespaces,
       consoleUrl,
       userInterface,
@@ -90,6 +95,7 @@ export default function useSession(): {
     isAdmin,
     promise,
     groups,
+    roles,
     catalogNamespaces,
     consoleUrl,
     userInterface,

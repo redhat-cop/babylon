@@ -23,8 +23,8 @@ import {
   Label,
 } from '@patternfly/react-core';
 import { apiPaths, createServiceRequest, fetcherItemsInAllPages } from '@app/api';
-import { selectCatalogNamespace, selectUserGroups, selectUserIsAdmin, selectUserNamespace } from '@app/store';
-import { CatalogItem, CatalogNamespace, ResourceClaim, ServiceNamespace } from '@app/types';
+import { selectCatalogNamespace } from '@app/store';
+import { CatalogItem, CatalogNamespace, ResourceClaim } from '@app/types';
 import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import LoadingIcon from '@app/components/LoadingIcon';
 import CatalogItemIcon from './CatalogItemIcon';
@@ -55,7 +55,8 @@ enum CatalogItemAccess {
 
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
   const history = useHistory();
-  const { email } = useSession().getSession();
+  const { email, userNamespace, isAdmin, groups } = useSession().getSession();
+  const catalogNamespace: CatalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
   const { userImpersonated } = useImpersonateUser();
   const { provisionTimeEstimate, termsOfService, parameters, accessControl } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
@@ -63,10 +64,6 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
-  const catalogNamespace: CatalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
-  const userGroups: string[] = useSelector(selectUserGroups);
-  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
-  const userNamespace: ServiceNamespace = useSelector(selectUserNamespace);
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
     userNamespace.name
       ? apiPaths.RESOURCE_CLAIMS({
@@ -93,10 +90,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
-
-  const accessCheckResult: string = checkAccessControl(accessControl, userGroups);
-
-  const catalogItemAccess: CatalogItemAccess = userIsAdmin
+  const accessCheckResult: string = checkAccessControl(accessControl, groups);
+  const catalogItemAccess: CatalogItemAccess = isAdmin
     ? CatalogItemAccess.Allow
     : accessCheckResult === 'deny'
     ? CatalogItemAccess.Deny
@@ -138,6 +133,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
   }
+
   function requestInformation() {
     const user = userImpersonated ? userImpersonated : email;
     if (user.includes('@redhat.com')) {
@@ -178,12 +174,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 key="order-catalog-item"
                 onClick={orderCatalogItem}
                 variant="primary"
-                isDisabled={userIsAdmin ? false : isDisabled}
+                isDisabled={isAdmin ? false : isDisabled}
                 className="catalog-item-details__main-btn"
               >
                 Order
               </Button>
-              {userIsAdmin ? (
+              {isAdmin ? (
                 <Button
                   key="catalog-item-admin"
                   onClick={() => history.push(`/admin/catalogitems/${namespace}/${name}`)}

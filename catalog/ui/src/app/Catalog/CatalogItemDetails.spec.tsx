@@ -1,15 +1,19 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, fireEvent, waitFor } from '../utils/test-utils';
+import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import CatalogItemDetails from './CatalogItemDetails';
 import catalogItemObj from '../__mocks__/catalogItem.json';
-import { CatalogItem } from '@app/types';
+import { ResourceClaim } from '@app/types';
 
-jest.mock('swr', () =>
-  jest.fn().mockReturnValue({
-    data: [] as CatalogItem[],
-  })
+jest.mock('@app/api', () => ({
+  ...jest.requireActual('@app/api'),
+  fetcherItemsInAllPages: jest.fn(() => Promise.resolve([] as ResourceClaim[])),
+}));
+jest.mock('@app/utils/useSession', () =>
+  jest.fn(() => ({
+    getSession: () => generateSession({}),
+  }))
 );
 
 describe('CatalogItemDetails Component', () => {

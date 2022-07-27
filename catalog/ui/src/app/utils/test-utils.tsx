@@ -7,6 +7,7 @@ import { createMemoryHistory, MemoryHistory } from 'history';
 import { EmptyState, EmptyStateIcon, PageSection } from '@patternfly/react-core';
 import LoadingIcon from '@app/components/LoadingIcon';
 import { SWRConfig } from 'swr';
+import { CatalogNamespace } from '@app/types';
 
 const AllTheProviders = ({ children, history }) => {
   return (
@@ -50,3 +51,40 @@ export * from '@testing-library/react';
 
 // override render method
 export { customRender as render };
+
+const defaultWorkshopNamespaces = [
+  {
+    displayName: 'User test-redhat.com',
+    name: 'user-test-redhat-com',
+  },
+];
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const generateSession = ({
+  email = 'test@redhat.com',
+  isAdmin = false,
+  workshopNamespaces = defaultWorkshopNamespaces,
+}) => ({
+  email,
+  isAdmin,
+  catalogNamespaces: [
+    {
+      name: 'fake.catalog',
+      description: 'Fake Catalog description',
+      displayName: 'Fake Catalog',
+    } as CatalogNamespace,
+  ],
+  serviceNamespaces: [
+    {
+      displayName: 'User test-redhat.com',
+      name: 'user-test-redhat-com',
+    },
+  ],
+  userNamespace: {
+    displayName: 'User test-redhat.com',
+    name: 'user-test-redhat-com',
+    requester: 'test-redhat.com',
+  },
+  workshopNamespaces,
+  groups: [],
+  roles: [],
+});

@@ -31,15 +31,14 @@ import {
   createWorkshopProvision,
   fetcher,
 } from '@app/api';
-import { CatalogItem, ServiceNamespace } from '@app/types';
+import { CatalogItem } from '@app/types';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useSelector } from 'react-redux';
-import { selectUserGroups, selectUserIsAdmin, selectUserRoles, selectWorkshopNamespaces } from '@app/store';
 import { displayName, randomString } from '@app/util';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import PatientNumberInput from '@app/components/PatientNumberInput';
+import useSession from '@app/utils/useSession';
 
 import './catalog-item-form.css';
 
@@ -48,15 +47,12 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
   catalogItemName,
 }) => {
   const history = useHistory();
-  const userGroups: string[] = useSelector(selectUserGroups);
-  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
-  const userRoles: string[] = useSelector(selectUserRoles);
+  const { isAdmin, groups, roles, workshopNamespaces } = useSession().getSession();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
     fetcher
   );
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
-  const workshopNamespaces: ServiceNamespace[] = useSelector(selectWorkshopNamespaces);
   const workshopInitialProps = useMemo(
     () => ({
       userRegistration: 'open',
@@ -75,7 +71,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
     reduceFormState(null, {
       type: 'init',
       catalogItem,
-      user: { groups: userGroups, roles: userRoles, isAdmin: userIsAdmin },
+      user: { groups, roles, isAdmin },
     })
   );
   const submitRequestEnabled = checkEnableSubmit(formState);
@@ -379,7 +375,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                     </Tooltip>
                   </div>
                 </FormGroup>
-                {userIsAdmin ? (
+                {isAdmin ? (
                   <>
                     <FormGroup
                       key="provisionConcurrency"
