@@ -242,17 +242,17 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                 isContentLeftAligned={true}
                 content={
                   catalogItem.spec.multiuser ? (
-                    <p>Setup a user interface for the workshop attendants to grab their credentials.</p>
+                    <p>Setup a user interface for the workshop attendants to access their credentials.</p>
                   ) : (
                     <ul>
                       <li>- Provision independent services for each seat in the workshop.</li>
-                      <li>- Setup a user interface for the workshop attendants to grab their credentials.</li>
+                      <li>- Setup a user interface for the workshop attendants to access their credentials.</li>
                     </ul>
                   )
                 }
               >
                 <OutlinedQuestionCircleIcon
-                  aria-label="Setup a user interface for the attendants to grab their credentials"
+                  aria-label="Setup a user interface for the attendants to access their credentials"
                   className="tooltip-icon-only"
                 />
               </Tooltip>
@@ -290,14 +290,10 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                 />
                 <Tooltip
                   position="right"
-                  content={
-                    <p>
-                      Password used by the attendants to grab their credentials, if empty no password will be required..
-                    </p>
-                  }
+                  content={<p>Password to access credentials, if left empty no password will be required.</p>}
                 >
                   <OutlinedQuestionCircleIcon
-                    aria-label="Password used by the attendants to grab their credentials, if empty no password will be required."
+                    aria-label="Password to access credentials, if left empty no password will be required"
                     className="tooltip-icon-only"
                   />
                 </Tooltip>
@@ -329,21 +325,15 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                   isContentLeftAligned={true}
                   content={
                     <ul>
+                      <li>- Open registration: Only the password will be required to access the credentials.</li>
                       <li>
-                        - Open registration: Only the password will be required for the attendants to grab their
-                        credentials.
-                      </li>
-                      <li>
-                        - Pre-registration: Emails needs to be provided before the attendant can grab their credentials,
-                        an email and password will be required to grab the credentials.
+                        - Pre-registration: Emails need to be provided before the attendant can access their
+                        credentials, an email and password will be required to access the credentials.
                       </li>
                     </ul>
                   }
                 >
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Type of attendant registration"
-                    className="tooltip-icon-only"
-                  />
+                  <OutlinedQuestionCircleIcon aria-label="Type of registration" className="tooltip-icon-only" />
                 </Tooltip>
               </div>
             </FormGroup>
