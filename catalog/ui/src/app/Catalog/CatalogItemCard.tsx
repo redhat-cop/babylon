@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import { Badge, CardBody, CardHeader, Split, SplitItem, Title } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
@@ -6,12 +6,17 @@ import { displayName, renderContent, stripHtml } from '@app/util';
 import CatalogItemIcon from './CatalogItemIcon';
 import { formatString, getDescription, getIsDisabled, getProvider, getStage, getStatus } from './catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
+import SlaIcon, { SUPPORT_LEVELS } from '@app/components/SlaIcon';
 
 import './catalog-item-card.css';
 
 const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
   const location = useLocation();
   const routeMatch = useRouteMatch<{ namespace: string }>('/catalog/:namespace?');
+  const level = useMemo(() => {
+    const randomNumber = Math.floor(Math.random() * SUPPORT_LEVELS.length);
+    return SUPPORT_LEVELS[randomNumber];
+  }, []);
   const urlSearchParams = new URLSearchParams(location.search);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const provider = getProvider(catalogItem);
@@ -41,6 +46,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
             ) : null}
           </SplitItem>
           <SplitItem className="catalog-item-card__badges" isFilled>
+            <SlaIcon level={level} />
             {stage === 'dev' ? (
               <Badge className="catalog-item-card__badges--dev">development</Badge>
             ) : stage === 'test' ? (

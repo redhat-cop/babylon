@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import * as React from 'react';
+import React from 'react';
 import { render, fireEvent, waitFor } from '../utils/test-utils';
 import CatalogItemRequestForm from './CatalogItemRequestForm';
 import catalogItemObj from '../__mocks__/catalogItem.json';
@@ -21,7 +21,7 @@ describe('CatalogItemRequestForm Component', () => {
     expect(catalogItemDisplayName).toBeInTheDocument();
     expect(sfidLabel).toBeInTheDocument();
     expect(purposeLabel.closest('.pf-c-form__group').textContent).toContain(purposePlaceholder);
-    expect(termsOfServiceLabel.closest('.catalog-terms-of-service').textContent).toContain(termsOfServiceAck);
+    expect(termsOfServiceLabel.closest('.terms-of-service').textContent).toContain(termsOfServiceAck);
   });
 
   test('When Cancel button is clicked the onCancel function is called', async () => {
