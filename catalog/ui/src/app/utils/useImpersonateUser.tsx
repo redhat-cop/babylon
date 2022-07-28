@@ -4,8 +4,13 @@ import { actionClearImpersonation, actionSetImpersonation, selectImpersonationUs
 import { useDispatch, useSelector } from 'react-redux';
 import { AnyAction, Dispatch } from 'redux';
 
+const KEY = 'impersonateUser';
+
 async function setImpersonateUserFn(dispatch: Dispatch<AnyAction>, impersonateUserName: string) {
-  sessionStorage.setItem('impersonateUser', impersonateUserName);
+  if (sessionStorage.getItem(KEY) !== impersonateUserName) {
+    sessionStorage.setItem(KEY, impersonateUserName);
+    window.location.reload(); // Reload full page to refresh caches
+  }
   const userInfo = await getUserInfo(impersonateUserName);
   dispatch(
     actionSetImpersonation({
@@ -31,11 +36,12 @@ const useImpersonateUser = (): {
   );
   const clearImpersonation = useCallback(() => {
     dispatch(actionClearImpersonation());
+    window.location.reload(); // Reload full page to refresh caches
   }, [dispatch]);
 
   return {
     setImpersonation,
-    userImpersonated: sessionStorage.getItem('impersonateUser') || userImpersonated,
+    userImpersonated: sessionStorage.getItem(KEY) || userImpersonated,
     clearImpersonation,
   };
 };
