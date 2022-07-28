@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import {
@@ -22,20 +22,15 @@ import {
   Title,
   Label,
 } from '@patternfly/react-core';
-import { apiPaths, createServiceRequest, fetcher } from '@app/api';
-import {
-  selectCatalogNamespace,
-  selectUserGroups,
-  selectUserIsAdmin,
-  selectUserNamespace,
-  selectWorkshopNamespaces,
-} from '@app/store';
-import { CatalogItem, CatalogNamespace, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
-import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import useSWR from 'swr';
+import { apiPaths, createServiceRequest, fetcherItemsInAllPages } from '@app/api';
+import { selectCatalogNamespace } from '@app/store';
+import { CatalogItem, ResourceClaim } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
-import CatalogItemIcon from './CatalogItemIcon';
-import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
-import CatalogItemRating from './CatalogItemRating';
+import StatusPageIcons from '@app/components/StatusPageIcons';
+import useSession from '@app/utils/useSession';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
+import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import {
   getProvider,
   getDescription,
@@ -46,8 +41,9 @@ import {
   getIncidentUrl,
   formatString,
 } from './catalog-utils';
-import StatusPageIcons from '@app/components/StatusPageIcons';
-import useSWRInfinite from 'swr/infinite';
+import CatalogItemIcon from './CatalogItemIcon';
+import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
+import CatalogItemRating from './CatalogItemRating';
 
 import './catalog-item-details.css';
 
@@ -59,69 +55,43 @@ enum CatalogItemAccess {
 
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
   const history = useHistory();
+  const { email, userNamespace, isAdmin, groups } = useSession().getSession();
+  const catalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
+  const { userImpersonated } = useImpersonateUser();
   const { provisionTimeEstimate, termsOfService, parameters, accessControl } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
-  const catalogNamespace: CatalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
-  const userGroups: string[] = useSelector(selectUserGroups);
-  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
-  const userNamespace: ServiceNamespace = useSelector(selectUserNamespace);
-  const workshopNamespaces: ServiceNamespace[] = useSelector(selectWorkshopNamespaces);
-  const {
-    data: resourceClaimsPages,
-    size,
-    setSize,
-  } = useSWRInfinite<ResourceClaimList>(
-    (index, previousPageData: ResourceClaimList) => {
-      if (!userNamespace.name) {
-        return null;
-      }
-      if (previousPageData && !previousPageData.metadata?.continue) {
-        return null;
-      }
-      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
-      return apiPaths.RESOURCE_CLAIMS({
-        namespace: userNamespace.name,
-        limit: FETCH_BATCH_LIMIT,
-        continueId,
-      });
-    },
-    fetcher,
-    {
-      fallbackData: [
-        {
-          items: [],
-          metadata: {
-            continue: '',
-          },
-        },
-      ],
-    }
+  const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
+    userNamespace.name
+      ? apiPaths.RESOURCE_CLAIMS({
+          namespace: userNamespace.name,
+          limit: FETCH_BATCH_LIMIT,
+        })
+      : null,
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.RESOURCE_CLAIMS({
+          namespace: userNamespace.name,
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        })
+      )
   );
 
-  const userResourceClaims: ResourceClaim[] = useMemo(
-    () => [].concat(...resourceClaimsPages.map((page) => page.items)) || [],
-    [resourceClaimsPages]
-  );
   const userHasInstanceOfCatalogItem = userResourceClaims.some(
     (rc) =>
       namespace === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`] &&
       name === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
   );
-  // Fetch all pages
-  if (resourceClaimsPages.length > 0 && resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue) {
-    setSize(size + 1);
-  }
+
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
-
-  const accessCheckResult: string = checkAccessControl(accessControl, userGroups);
-
-  const catalogItemAccess: CatalogItemAccess = userIsAdmin
+  const accessCheckResult = checkAccessControl(accessControl, groups);
+  const catalogItemAccess: CatalogItemAccess = isAdmin
     ? CatalogItemAccess.Allow
     : accessCheckResult === 'deny'
     ? CatalogItemAccess.Deny
@@ -151,21 +121,28 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     }
   }
 
-  async function requestCatalogItem(): Promise<void> {
+  async function orderCatalogItem(): Promise<void> {
     // Either direct user to request form or immediately request if form would be empty.
     if (termsOfService || (parameters || []).length > 0) {
-      history.push(`/catalog/${namespace}/order/${name}?request=service`);
+      history.push(`/catalog/${namespace}/order/${name}`);
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem: catalogItem,
-        catalogNamespace: catalogNamespace,
+        catalogNamespaceName: catalogNamespace.displayName,
+        groups,
+        userNamespace,
       });
       history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
   }
 
-  function requestWorkshop(): void {
-    history.push(`/catalog/${namespace}/order/${name}?request=workshop`);
+  function requestInformation() {
+    const user = userImpersonated ? userImpersonated : email;
+    if (user.includes('@redhat.com')) {
+      window.open('https://red.ht/rhpds-help', '_blank');
+      return;
+    }
+    window.open('https://red.ht/open-support', '_blank');
   }
 
   return (
@@ -196,24 +173,15 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           {catalogItemAccess === CatalogItemAccess.Allow ? (
             <>
               <Button
-                key="request-service"
-                onClick={requestCatalogItem}
+                key="order-catalog-item"
+                onClick={orderCatalogItem}
                 variant="primary"
-                isDisabled={userIsAdmin ? false : isDisabled}
+                isDisabled={isAdmin ? false : isDisabled}
+                className="catalog-item-details__main-btn"
               >
-                Request Service
+                Order
               </Button>
-              {workshopNamespaces.length > 0 ? (
-                <Button
-                  key="request-workshop"
-                  onClick={requestWorkshop}
-                  variant="primary"
-                  isDisabled={userIsAdmin ? false : isDisabled}
-                >
-                  Request Workshop
-                </Button>
-              ) : null}
-              {userIsAdmin ? (
+              {isAdmin ? (
                 <Button
                   key="catalog-item-admin"
                   onClick={() => history.push(`/admin/catalogitems/${namespace}/${name}`)}
@@ -245,15 +213,15 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
             </>
           ) : catalogItemAccess === CatalogItemAccess.Deny ? (
             <>
-              <Button key="button" isDisabled variant="primary">
-                Request Service
+              <Button key="button" isDisabled variant="primary" className="catalog-item-details__main-btn">
+                Order
               </Button>
               <div key="reason" className="catalog-item-details__access-deny-reason">
                 {catalogItemAccessDenyReason}
               </div>
             </>
           ) : catalogItemAccess === CatalogItemAccess.RequestInformation ? (
-            <Button onClick={requestCatalogItem} variant="primary">
+            <Button onClick={requestInformation} variant="primary" className="catalog-item-details__main-btn">
               Request Information
             </Button>
           ) : (

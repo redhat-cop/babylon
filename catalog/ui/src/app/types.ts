@@ -78,8 +78,13 @@ export interface CatalogItemList {
   metadata: K8sObjectListMeta;
 }
 
+export type AccessControl = {
+  denyGroups: string[];
+  allowGroups: string[];
+  viewOnlyGroups: string[];
+};
 export interface CatalogItemSpec {
-  accessControl?: any;
+  accessControl?: AccessControl;
   bookbag?: any;
   messageTemplates?: any;
   multiuser?: boolean;
@@ -375,11 +380,13 @@ export type Session = {
   impersonateUser: string;
   admin: boolean;
   consoleURL: string;
-  groups: string[] | [];
+  groups: string[];
+  roles: string[];
   interface: string;
   user: string;
   catalogNamespaces: CatalogNamespace[];
-  serviceNamespaces: CatalogNamespace[];
+  serviceNamespaces: ServiceNamespace[];
+  workshopNamespaces: ServiceNamespace[];
   userNamespace: UserNamespace;
 };
 export type CostTracker = {

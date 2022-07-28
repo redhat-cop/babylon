@@ -1,6 +1,8 @@
 import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
 import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
-import { CostTracker, K8sObject, ResourceClaim } from '@app/types';
+import { AccessControl, CostTracker, K8sObject, ResourceClaim } from '@app/types';
+
+export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
 // Force all links to target new window and not pass unsafe attributes
 dompurify.addHook('afterSanitizeAttributes', function (node) {
@@ -9,45 +11,6 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
     node.setAttribute('rel', 'noopener noreferrer');
   }
 });
-
-export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
-
-export function checkAccessControl(accessConfig: any, groups: string[]): string {
-  if (!accessConfig) {
-    return 'allow';
-  }
-  if ((accessConfig.denyGroups || []).filter((group) => groups.includes(group)).length > 0) {
-    return 'deny';
-  }
-  if ((accessConfig.allowGroups || []).filter((group) => groups.includes(group)).length > 0) {
-    return 'allow';
-  }
-  if ((accessConfig.viewOnlyGroups || []).filter((group) => groups.includes(group)).length > 0) {
-    return 'viewOnly';
-  }
-  return 'deny';
-}
-
-export interface ConditionValues {
-  [name: string]: boolean | number | string | string[] | undefined;
-}
-
-export function checkCondition(condition: string, vars: ConditionValues): boolean {
-  const checkFunction = new Function(
-    Object.entries(vars)
-      .map(([k, v]) => 'const ' + k + ' = ' + JSON.stringify(v) + ';')
-      .join('\n') +
-      'return (' +
-      condition +
-      ');'
-  );
-  const ret: boolean | Error = checkFunction();
-  if (ret instanceof Error) {
-    throw ret;
-  } else {
-    return Boolean(ret);
-  }
-}
 
 export function displayName(item: any): string {
   if (!item) {
@@ -99,6 +62,7 @@ export function randomString(length: number): string {
   return text;
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 export function recursiveAssign(target: object, source: object): any {
   for (const [k, v] of Object.entries(source)) {
     if (v !== null && typeof v === 'object' && k in target && target[k] !== null && typeof target[k] === 'object') {
@@ -109,15 +73,15 @@ export function recursiveAssign(target: object, source: object): any {
   }
 }
 
-interface RenderContentOpt {
+type RenderContentOpt = {
   allowIFrame?: boolean;
   format?: 'asciidoc' | 'html';
-}
+};
 
 export function renderContent(content: string, options: RenderContentOpt = {}): string {
   const sanitize_opt = {
-    ADD_TAGS: [] as any,
-    ADD_ATTR: [] as any,
+    ADD_TAGS: [],
+    ADD_ATTR: [],
   };
   if (options.allowIFrame) {
     sanitize_opt.ADD_TAGS.push('iframe');
@@ -129,6 +93,22 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
     const asciidoctor = AsciiDoctor();
     return dompurify.sanitize(asciidoctor.convert(content).toString(), sanitize_opt);
   }
+}
+
+export function checkAccessControl(accessConfig: AccessControl, groups: string[]): 'allow' | 'viewOnly' | 'deny' {
+  if (!accessConfig) {
+    return 'allow';
+  }
+  if ((accessConfig.denyGroups || []).filter((group) => groups.includes(group)).length > 0) {
+    return 'deny';
+  }
+  if ((accessConfig.allowGroups || []).filter((group) => groups.includes(group)).length > 0) {
+    return 'allow';
+  }
+  if ((accessConfig.viewOnlyGroups || []).filter((group) => groups.includes(group)).length > 0) {
+    return 'viewOnly';
+  }
+  return 'deny';
 }
 
 export function checkResourceClaimCanStart(resourceClaim: ResourceClaim): boolean {

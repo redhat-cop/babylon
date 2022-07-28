@@ -2,7 +2,7 @@ jest.mock('../api');
 import '@testing-library/jest-dom';
 
 import React from 'react';
-import { render, waitFor } from '../utils/test-utils';
+import { generateSession, render, waitFor } from '../utils/test-utils';
 import CatalogItemAdmin from './CatalogItemAdmin';
 import catalogItemObj from '../__mocks__/catalogItem--disabled.json';
 import { CatalogItem } from '@app/types';
@@ -27,27 +27,11 @@ jest.mock('react-router-dom', () => ({
     params: { namespace: namespaceName, name: ciName },
   }),
 }));
-jest.mock('@app/utils/useSession', () => {
-  return jest.fn(() => ({
-    getSession: () => ({
-      email: 'test@redhat.com',
-      isAdmin: false,
-      serviceNamespaces: [
-        {
-          displayName: 'User test-redhat.com',
-          name: 'user-test-redhat-com',
-          requester: 'test-redhat.com',
-        },
-      ],
-      userNamespace: {
-        displayName: 'User test-redhat.com',
-        name: 'user-test-redhat-com',
-        requester: 'test-redhat.com',
-      },
-      workshopNamespaces: [],
-    }),
-  }));
-});
+jest.mock('@app/utils/useSession', () =>
+  jest.fn(() => ({
+    getSession: () => generateSession({ isAdmin: true }),
+  }))
+);
 
 describe('CatalogItemAdmin Component', () => {
   test('When renders should show the current values', async () => {

@@ -2,10 +2,10 @@ import React from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import { Badge, Card, CardBody, CardHeader, Title } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
-import { displayName, renderContent, stripHtml } from '@app/util';
+import StatusPageIcons from '@app/components/StatusPageIcons';
 import CatalogItemIcon from './CatalogItemIcon';
 import { formatString, getDescription, getIsDisabled, getProvider, getStage, getStatus } from './catalog-utils';
-import StatusPageIcons from '@app/components/StatusPageIcons';
+import { displayName, renderContent, stripHtml } from '@app/util';
 
 import './catalog-item-list-item.css';
 

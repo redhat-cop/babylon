@@ -2,10 +2,10 @@ import React from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import { Badge, CardBody, CardHeader, Split, SplitItem, Title } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
-import { displayName, renderContent, stripHtml } from '@app/util';
 import CatalogItemIcon from './CatalogItemIcon';
 import { formatString, getDescription, getIsDisabled, getProvider, getStage, getStatus } from './catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
+import { displayName, renderContent, stripHtml } from '@app/util';
 
 import './catalog-item-card.css';
 
@@ -58,7 +58,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
         </Title>
         <div className="catalog-item-card__description">
           {description
-            ? stripHtml(renderContent(description, { format: descriptionFormat }))
+            ? stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)
             : 'No description available.'}
         </div>
       </CardBody>

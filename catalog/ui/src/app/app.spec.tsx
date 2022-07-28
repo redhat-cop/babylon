@@ -1,28 +1,12 @@
 import React from 'react';
 import App from '@app/index';
-import { render, fireEvent } from './utils/test-utils';
+import { render, fireEvent, generateSession } from './utils/test-utils';
 
-jest.mock('@app/utils/useSession', () => {
-  return jest.fn(() => ({
-    getSession: () => ({
-      email: 'test@redhat.com',
-      isAdmin: false,
-      serviceNamespaces: [
-        {
-          displayName: 'User test-redhat.com',
-          name: 'user-test-redhat-com',
-          requester: 'test-redhat.com',
-        },
-      ],
-      userNamespace: {
-        displayName: 'User test-redhat.com',
-        name: 'user-test-redhat-com',
-        requester: 'test-redhat.com',
-      },
-      workshopNamespaces: [],
-    }),
-  }));
-});
+jest.mock('@app/utils/useSession', () =>
+  jest.fn(() => ({
+    getSession: () => generateSession({}),
+  }))
+);
 
 describe('App tests', () => {
   it.only('should render a nav-toggle button', () => {

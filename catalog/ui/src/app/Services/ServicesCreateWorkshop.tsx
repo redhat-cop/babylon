@@ -8,11 +8,11 @@ const ServicesCreateWorkshop: React.FC<{
   resourceClaim?: ResourceClaim;
   setOnConfirmCb?: (_: any) => Promise<void>;
 }> = ({ resourceClaim, setOnConfirmCb }) => {
-  const [userRegistrationValue, setUserRegistrationValue] = useState<string>('open');
-  const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState<boolean>(false);
-  const [workshopAccessPassword, setWorkshopAccessPassword] = useState<string>(randomString(8));
-  const [workshopDescription, setWorkshopDescription] = useState<string>('');
-  const [workshopDisplayName, setWorkshopDisplayName] = useState<string>(displayName(resourceClaim));
+  const [userRegistrationValue, setUserRegistrationValue] = useState('open');
+  const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
+  const [workshopAccessPassword, setWorkshopAccessPassword] = useState(randomString(8));
+  const [workshopDescription, setWorkshopDescription] = useState('');
+  const [workshopDisplayName, setWorkshopDisplayName] = useState(displayName(resourceClaim));
 
   useEffect(() => {
     function _createWorkshopForMultiuserService() {

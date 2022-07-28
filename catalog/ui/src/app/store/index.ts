@@ -16,6 +16,7 @@ export interface ActionStartSession {
   consoleURL: string;
   user: string;
   groups: string[];
+  roles: string[];
   interface: string;
   catalogNamespaces: CatalogNamespace[];
   serviceNamespaces: ServiceNamespace[];

@@ -71,7 +71,7 @@ const CatalogItemAdmin: React.FC = () => {
     apiPaths.CATALOG_ITEM({ namespace: routeMatch.params.namespace, name: routeMatch.params.name }),
     fetcher
   );
-  const userEmail = useSession().getSession().email;
+  const { email: userEmail } = useSession().getSession();
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
