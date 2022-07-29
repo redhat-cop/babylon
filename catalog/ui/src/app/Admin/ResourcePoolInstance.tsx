@@ -260,12 +260,12 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                       </span>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
-                  <DescriptionListGroup>
+                  {/*<DescriptionListGroup>
                     <DescriptionListTerm>Minimum Available</DescriptionListTerm>
                     <DescriptionListDescription>
                       <ResourcePoolMinAvailableInput resourcePool={resourcePool} />
                     </DescriptionListDescription>
-                  </DescriptionListGroup>
+                  </DescriptionListGroup>*/}
                   <DescriptionListGroup>
                     <DescriptionListTerm>Default Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>

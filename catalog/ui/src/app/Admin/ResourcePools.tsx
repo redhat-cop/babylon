@@ -243,7 +243,7 @@ const ResourcePools: React.FC = () => {
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
           <SelectableTable
-            columns={['Name', 'Minimum Available', 'ResourceProvider(s)', 'Created At']}
+            columns={['Name', /*'Minimum Available',*/ 'ResourceProvider(s)', 'Created At']}
             onSelectAll={(isSelected) => {
               if (isSelected) {
                 reduceSelectedUids({ type: 'set', items: resourcePools });
@@ -260,9 +260,9 @@ const ResourcePools: React.FC = () => {
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={resourcePool} />
                   </>,
-                  <>
+                  /*<>
                     <ResourcePoolMinAvailableInput onChange={onResourcePoolChange} resourcePool={resourcePool} />
-                  </>,
+                  </>,*/
                   <>
                     {resourcePool.spec.resources.map((resourcePoolSpecResource, idx) => (
                       <div key={idx}>
