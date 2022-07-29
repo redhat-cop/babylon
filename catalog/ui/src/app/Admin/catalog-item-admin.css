@@ -27,7 +27,7 @@
   width: 100%;
 }
 .catalog-item-admin__add-comment {
-  max-width: 560px;
+  max-width: var(--babylon-form-width--wider);
 }
 .catalog-item-admin__form .select-wrapper .pf-c-select__toggle-text,
 .catalog-item-admin__form .select-wrapper .pf-c-select__menu-item {

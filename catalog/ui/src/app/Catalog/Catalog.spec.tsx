@@ -1,31 +1,25 @@
 import '@testing-library/jest-dom';
-import * as React from 'react';
-import { render, waitFor, fireEvent } from '../utils/test-utils';
-import { within } from '@testing-library/dom';
+import React from 'react';
+import { render, waitFor, fireEvent, within, generateSession } from '../utils/test-utils';
 import Catalog from './Catalog';
 import catalogItemsObj from '../__mocks__/catalogItems.json';
-import { CatalogItemList, CatalogNamespace } from '@app/types';
+import { CatalogItem } from '@app/types';
 import { createMemoryHistory } from 'history';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
-  fetcher: jest.fn(() => Promise.resolve(catalogItemsObj as CatalogItemList)),
+  fetcherItemsInAllPages: jest.fn(() => Promise.resolve(catalogItemsObj.items as CatalogItem[])),
 }));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ namespace: 'fakeNamespace' }),
   useRouteMatch: () => ({ url: '/catalog/fakeNamespace', params: { namespace: 'fakeNamespace' } }),
 }));
-jest.mock('react-redux', () => ({
-  ...jest.requireActual('react-redux'),
-  useSelector: jest.fn().mockReturnValue([
-    {
-      name: 'fakeNamespace',
-      description: 'fakeNamespace description',
-      displayName: 'fakeNamespace',
-    } as CatalogNamespace,
-  ]),
-}));
+jest.mock('@app/utils/useSession', () =>
+  jest.fn(() => ({
+    getSession: () => generateSession({}),
+  }))
+);
 
 describe('Catalog Component', () => {
   afterEach(() => {

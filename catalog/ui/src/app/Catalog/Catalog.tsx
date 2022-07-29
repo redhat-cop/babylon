@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useHistory, useLocation, useRouteMatch } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import {
   Backdrop,
   Button,
@@ -22,18 +21,14 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import useSWR from 'swr';
-import { apiPaths, fetcher } from '@app/api';
-import { selectCatalogNamespaces, selectUserGroups } from '@app/store';
-import { CatalogItem, CatalogItemList, CatalogNamespace, Nullable } from '@app/types';
-import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import useSWRImmutable from 'swr/immutable';
+import { AsyncParser } from 'json2csv';
+import { DownloadIcon, ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
+import { apiPaths, fetcherItemsInAllPages } from '@app/api';
+import { CatalogItem } from '@app/types';
+import useSession from '@app/utils/useSession';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
-import CatalogCategorySelector from './CatalogCategorySelector';
-import CatalogInterfaceDescription from './CatalogInterfaceDescription';
-import CatalogItemCard from './CatalogItemCard';
-import CatalogItemDetails from './CatalogItemDetails';
-import CatalogLabelSelector from './CatalogLabelSelector';
-import CatalogNamespaceSelect from './CatalogNamespaceSelect';
+import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import {
   formatString,
   getCategory,
@@ -42,8 +37,12 @@ import {
   HIDDEN_LABELS,
   setLastFilter,
 } from './catalog-utils';
-import { DownloadIcon, ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
-import { AsyncParser } from 'json2csv';
+import CatalogCategorySelector from './CatalogCategorySelector';
+import CatalogInterfaceDescription from './CatalogInterfaceDescription';
+import CatalogItemCard from './CatalogItemCard';
+import CatalogItemDetails from './CatalogItemDetails';
+import CatalogLabelSelector from './CatalogLabelSelector';
+import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogItemListItem from './CatalogItemListItem';
 
 import './catalog.css';
@@ -225,16 +224,9 @@ function saveFilter(urlParams: URLSearchParams) {
 
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
-    const catalogItems: CatalogItem[] = [];
-    let continueId: Nullable<string> = null;
-    while (continueId || continueId === null) {
-      const res: CatalogItemList = await fetcher(
-        apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
-      );
-      continueId = res.metadata.continue;
-      catalogItems.push(...res.items);
-    }
-    return catalogItems;
+    return await fetcherItemsInAllPages((continueId) =>
+      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+    );
   }
   const catalogItems: CatalogItem[] = [];
   const namespacesPromises = [];
@@ -249,6 +241,7 @@ const Catalog: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
   const routeMatch = useRouteMatch<{ namespace: string }>('/catalog/:namespace?');
+  const { catalogNamespaces, groups } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
   const catalogNamespaceName: string = routeMatch.params.namespace;
   const urlSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -274,16 +267,12 @@ const Catalog: React.FC = () => {
   const selectedLabels: { [label: string]: string[] } = urlSearchParams.has('labels')
     ? JSON.parse(urlSearchParams.get('labels'))
     : null;
-  const catalogNamespaces: CatalogNamespace[] = useSelector(selectCatalogNamespaces);
-  const catalogNamespaceNames: string[] = catalogNamespaces.map((ci) => ci.name);
-  const userGroups: string[] = useSelector(selectUserGroups);
-  const filterFunction = useMemo(
-    () => (item: CatalogItem) => filterCatalogItemByAccessControl(item, userGroups),
-    [userGroups]
-  );
 
-  const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
-    apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName }),
+  const catalogNamespaceNames: string[] = catalogNamespaces.map((ci) => ci.name);
+  const filterFunction = useMemo(() => (item: CatalogItem) => filterCatalogItemByAccessControl(item, groups), [groups]);
+
+  const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
+    apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
 

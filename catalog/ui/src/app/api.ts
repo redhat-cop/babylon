@@ -27,9 +27,11 @@ import {
   WorkshopSpecUserAssignment,
   UserList,
   Session,
+  Nullable,
+  UserNamespace,
 } from '@app/types';
 import { store } from '@app/store';
-import { selectImpersonationUser, selectUserGroups, selectUserNamespace } from '@app/store';
+import { selectImpersonationUser } from '@app/store';
 import {
   checkAccessControl,
   displayName,
@@ -45,8 +47,10 @@ declare const window: Window &
   };
 
 export interface CreateServiceRequestOpt {
-  catalogItem: any;
-  catalogNamespace: any;
+  catalogItem: CatalogItem;
+  catalogNamespaceName: string;
+  userNamespace: UserNamespace;
+  groups: string[];
   parameterValues?: CreateServiceRequestParameterValues;
 }
 
@@ -71,6 +75,7 @@ export interface K8sObjectListOpt extends K8sObjectListCommonOpt {
   plural: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export async function apiFetch(path: string, opt?: object): Promise<any> {
   const session = await getApiSession();
 
@@ -105,9 +110,22 @@ export async function apiFetch(path: string, opt?: object): Promise<any> {
   return resp;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export async function fetcher(path: string, opt?: object): Promise<any> {
   const response = await apiFetch(path, opt);
   return response.json();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
+export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: object): Promise<any[]> {
+  const items = [];
+  let continueId: Nullable<string> = null;
+  while (continueId || continueId === null) {
+    const res: { metadata: { continue: string }; items: unknown[] } = await fetcher(pathFn(continueId), opts);
+    continueId = res.metadata.continue || '';
+    items.push(...res.items);
+  }
+  return items;
 }
 
 export async function assignWorkshopUser({
@@ -267,7 +285,7 @@ export async function createK8sObject<Type extends K8sObject>(definition: Type):
   return await resp.json();
 }
 
-export async function createResourceClaim(definition, opt: any = {}): Promise<ResourceClaim> {
+export async function createResourceClaim(definition: ResourceClaim): Promise<ResourceClaim> {
   return await createK8sObject<ResourceClaim>(definition);
 }
 
@@ -277,21 +295,21 @@ export async function createResourcePool(definition: ResourcePool): Promise<Reso
 
 export async function createServiceRequest({
   catalogItem,
-  catalogNamespace,
+  catalogNamespaceName,
+  userNamespace,
+  groups,
   parameterValues,
 }: CreateServiceRequestOpt): Promise<any> {
-  const baseUrl = window.location.href.replace(/^([^/]+\/\/[^\/]+)\/.*/, '$1');
+  const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
-  const userGroups = selectUserGroups(store.getState());
-  const userNamespace = selectUserNamespace(store.getState());
-  const access = checkAccessControl(catalogItem.spec.accessControl, userGroups);
+  const access = checkAccessControl(catalogItem.spec.accessControl, groups);
 
   const requestResourceClaim: ResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     kind: 'ResourceClaim',
     metadata: {
       annotations: {
-        [`${BABYLON_DOMAIN}/catalogDisplayName`]: catalogNamespace?.displayName || catalogItem.metadata.namespace,
+        [`${BABYLON_DOMAIN}/catalogDisplayName`]: catalogNamespaceName || catalogItem.metadata.namespace,
         [`${BABYLON_DOMAIN}/catalogItemDisplayName`]: displayName(catalogItem),
         [`${BABYLON_DOMAIN}/requester`]: session.user,
         [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}`,
@@ -676,7 +694,7 @@ export async function getK8sObject<Type extends K8sObject>({
   return await resp.json();
 }
 
-export async function getResourceClaim(namespace, name): Promise<ResourceClaim> {
+export async function getResourceClaim(namespace: string, name: string): Promise<ResourceClaim> {
   return (await getNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
@@ -716,7 +734,7 @@ export async function getResourceProvider(name: string): Promise<ResourceProvide
   )) as ResourceProvider;
 }
 
-export async function getUserInfo(user): Promise<any> {
+export async function getUserInfo(user: string): Promise<any> {
   const session = await getApiSession(true);
   const resp = await fetch(`/auth/users/${user}`, {
     headers: {
@@ -854,7 +872,7 @@ export async function listWorkshopProvisions(opt?: K8sObjectListCommonOpt): Prom
   })) as WorkshopProvisionList;
 }
 
-export async function scalePool(resourcepool, minAvailable): Promise<any> {
+export async function scalePool(resourcepool: K8sObject, minAvailable: number): Promise<any> {
   try {
     const session = await getApiSession(true);
     const response = await fetch(
@@ -1003,7 +1021,7 @@ export async function patchK8sObject<Type extends K8sObject>({
   jsonPatch?: JSONPatch;
   name: string;
   namespace?: string;
-  patch?: object;
+  patch?: Record<string, unknown>;
   plural: string;
 }): Promise<Type> {
   const path = namespace
@@ -1024,7 +1042,7 @@ export async function patchK8sObjectByPath<Type extends K8sObject>({
   patch,
   path,
 }: {
-  patch: object;
+  patch: Record<string, unknown>;
   path: string;
 }): Promise<Type> {
   const resp = await apiFetch(path, {
@@ -1040,8 +1058,7 @@ export async function patchK8sObjectByPath<Type extends K8sObject>({
 export async function patchResourceClaim(
   namespace: string,
   name: string,
-  patch: object,
-  opt: any = {}
+  patch: Record<string, unknown>
 ): Promise<ResourceClaim> {
   return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
@@ -1073,7 +1090,7 @@ export async function patchWorkshop({
   name: string;
   namespace: string;
   jsonPatch?: JSONPatch;
-  patch?: object;
+  patch?: Record<string, unknown>;
 }): Promise<Workshop> {
   return patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -1094,7 +1111,7 @@ export async function patchWorkshopProvision({
   name: string;
   namespace: string;
   jsonPatch?: JSONPatch;
-  patch?: object;
+  patch?: Record<string, unknown>;
 }): Promise<WorkshopProvision> {
   return patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -1197,7 +1214,7 @@ export async function startAllResourcesInResourceClaim(resourceClaim: ResourceCl
   )) as ResourceClaim;
 }
 
-export async function stopAllResourcesInResourceClaim(resourceClaim): Promise<ResourceClaim> {
+export async function stopAllResourcesInResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
   const stopDate = new Date();
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
@@ -1216,14 +1233,26 @@ export async function stopAllResourcesInResourceClaim(resourceClaim): Promise<Re
   )) as ResourceClaim;
 }
 
-export async function deleteNamespacedCustomObject(group, version, namespace, plural, name): Promise<K8sObject> {
+export async function deleteNamespacedCustomObject(
+  group: string,
+  version: string,
+  namespace: string,
+  plural: string,
+  name: string
+): Promise<K8sObject> {
   const resp = await apiFetch(`/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`, {
     method: 'DELETE',
   });
   return await resp.json();
 }
 
-export async function getNamespacedCustomObject(group, version, namespace, plural, name): Promise<K8sObject> {
+export async function getNamespacedCustomObject(
+  group: string,
+  version: string,
+  namespace: string,
+  plural: string,
+  name: string
+): Promise<K8sObject> {
   const resp = await apiFetch(`/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`);
   return await resp.json();
 }
@@ -1270,12 +1299,12 @@ export async function listNamespaces(opt?: K8sObjectListCommonOpt): Promise<Name
 }
 
 export async function patchNamespacedCustomObject(
-  group,
-  version,
-  namespace,
-  plural,
-  name,
-  patch,
+  group: string,
+  version: string,
+  namespace: string,
+  plural: string,
+  name: string,
+  patch: Record<string, unknown>,
   patchType = 'merge'
 ): Promise<K8sObject> {
   const resp = await apiFetch(`/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`, {
@@ -1288,14 +1317,18 @@ export async function patchNamespacedCustomObject(
   return await resp.json();
 }
 
-export async function getOpenStackServersForResourceClaim(resourceClaim): Promise<any> {
+export async function getOpenStackServersForResourceClaim(resourceClaim: ResourceClaim): Promise<any> {
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/servers`
   );
   return await resp.json();
 }
 
-export async function rebootOpenStackServer(resourceClaim, projectId, serverId): Promise<any> {
+export async function rebootOpenStackServer(
+  resourceClaim: ResourceClaim,
+  projectId: string,
+  serverId: string
+): Promise<any> {
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/reboot`,
     {
@@ -1309,7 +1342,11 @@ export async function rebootOpenStackServer(resourceClaim, projectId, serverId):
   return await resp.json();
 }
 
-export async function startOpenStackServer(resourceClaim, projectId, serverId): Promise<any> {
+export async function startOpenStackServer(
+  resourceClaim: ResourceClaim,
+  projectId: string,
+  serverId: string
+): Promise<any> {
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/start`,
     {
@@ -1323,7 +1360,11 @@ export async function startOpenStackServer(resourceClaim, projectId, serverId): 
   return await resp.json();
 }
 
-export async function stopOpenStackServer(resourceClaim, projectId, serverId): Promise<any> {
+export async function stopOpenStackServer(
+  resourceClaim: ResourceClaim,
+  projectId: string,
+  serverId: string
+): Promise<any> {
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/stop`,
     {
@@ -1337,7 +1378,11 @@ export async function stopOpenStackServer(resourceClaim, projectId, serverId): P
   return await resp.json();
 }
 
-export async function startOpenStackServerConsoleSession(resourceClaim, projectId, serverId): Promise<any> {
+export async function startOpenStackServerConsoleSession(
+  resourceClaim: ResourceClaim,
+  projectId: string,
+  serverId: string
+): Promise<any> {
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/console`,
     {

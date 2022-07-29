@@ -1,6 +1,5 @@
-import { BABYLON_DOMAIN } from '@app/util';
 import { CatalogItem } from '@app/types';
-import { formatDuration } from '@app/util';
+import { BABYLON_DOMAIN, formatDuration } from '@app/util';
 import { Ops } from '@app/Admin/CatalogItemAdmin';
 
 export function getProvider(catalogItem: CatalogItem): string {
@@ -99,3 +98,24 @@ export function formatString(string: string): string {
 }
 export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage'];
 export const HIDDEN_ANNOTATIONS = ['ops', 'displayNameComponent0', 'displayNameComponent1'];
+
+export interface ConditionValues {
+  [name: string]: boolean | number | string | string[] | undefined;
+}
+
+export function checkCondition(condition: string, vars: ConditionValues): boolean {
+  const checkFunction = new Function(
+    Object.entries(vars)
+      .map(([k, v]) => 'const ' + k + ' = ' + JSON.stringify(v) + ';')
+      .join('\n') +
+      'return (' +
+      condition +
+      ');'
+  );
+  const ret: boolean | Error = checkFunction();
+  if (ret instanceof Error) {
+    throw ret;
+  } else {
+    return Boolean(ret);
+  }
+}

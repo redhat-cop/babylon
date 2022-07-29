@@ -17,7 +17,10 @@ const KeywordSearchInput: React.FC<
       aria-label="Search"
       placeholder={placeholder}
       onChange={(v) => setValue(v)}
-      onClear={() => setValue('')}
+      onClear={() => {
+        setValue('');
+        onSearch(null);
+      }}
       onSearch={() => {
         const trimmedValue = value.trim();
         if (trimmedValue === '') {

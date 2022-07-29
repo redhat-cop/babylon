@@ -5,7 +5,9 @@ const ServicesItem = React.lazy(() => import('@app/Services/ServicesItem'));
 const ServicesList = React.lazy(() => import('@app/Services/ServicesList'));
 
 const Services: React.FC = () => {
-  const routeMatch = useRouteMatch<any>('/services/:namespace?/:name?/:tab?');
+  const routeMatch = useRouteMatch<{ namespace?: string; name?: string; tab?: string }>(
+    '/services/:namespace?/:name?/:tab?'
+  );
   if (routeMatch.params.name) {
     return (
       <ServicesItem
