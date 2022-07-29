@@ -408,7 +408,8 @@ const ServicesItemComponent: React.FC<{
                 </DescriptionListGroup>
               </DescriptionList>
               {resourceClaim.spec.resources.map((resourceSpec, idx) => {
-                const resourceStatus = resourceClaim.status?.resources[idx];
+                console.log(resourceClaim.status);
+                const resourceStatus = resourceClaim.status?.resources?.[idx];
                 const resourceState = resourceStatus?.state;
                 const componentDisplayName =
                   resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||

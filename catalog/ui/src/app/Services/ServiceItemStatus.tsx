@@ -151,7 +151,7 @@ const ServiceItemStatus: React.FC<{
         </SplitItem>
       </Split>
       {resourceClaim.spec.resources.map((resourceSpec, idx) => {
-        const resourceStatus = resourceClaim.status?.resources[idx];
+        const resourceStatus = resourceClaim.status?.resources?.[idx];
         const resourceState = resourceStatus?.state;
 
         if (!resourceState.status?.supportedActions?.status) {
