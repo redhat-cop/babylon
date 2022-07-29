@@ -135,7 +135,7 @@
       api_version: anarchy.gpte.redhat.com/v1
     register: r_subject
 
-  - when: r_subject.resources[0].spec.vars.current_state | default('unknown') == 'provision-failed'
+  - when: r_subject.resources[0].spec.vars.current_state.endswith('-failed') | default('unknown')
     block:
       - debug:
           msg: "ERROR: Service current_state == 'provision-failed', cannot run {{ desired_state }} function."
