@@ -15,7 +15,10 @@ const enterpriseIconPath =
 const eventIconPath =
   'M29 8.25H7a.76.76 0 0 0-.75.75v15.05a.58.58 0 0 0 0 .19v.08a1 1 0 0 0 .15.21l5 5a.78.78 0 0 0 .24.16.72.72 0 0 0 .29.06H29a.76.76 0 0 0 .75-.75V9a.76.76 0 0 0-.75-.75ZM11.25 27.19l-2.44-2.44h2.44Zm17 1.06h-15.5V24a.76.76 0 0 0-.75-.75H7.75v-9.5h2.5V15a.75.75 0 0 0 1.5 0v-1.25h12.5V15a.75.75 0 0 0 1.5 0v-1.25h2.5Zm0-16h-2.5V11a.75.75 0 0 0-1.5 0v1.25h-12.5V11a.75.75 0 0 0-1.5 0v1.25h-2.5v-2.5h20.5Z';
 
-const SlaIcon: React.FC<{ level: typeof SUPPORT_LEVELS[number] }> = ({ level, ...props }) => {
+const SlaIcon: React.FC<{ level: typeof SUPPORT_LEVELS[number] } & React.HTMLAttributes<HTMLOrSVGElement>> = ({
+  level,
+  ...props
+}) => {
   let path = '';
   let displayName = '';
   switch (level) {

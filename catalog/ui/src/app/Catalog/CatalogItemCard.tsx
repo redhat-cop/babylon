@@ -5,11 +5,8 @@ import { CatalogItem } from '@app/types';
 import CatalogItemIcon from './CatalogItemIcon';
 import { formatString, getDescription, getIsDisabled, getProvider, getStage, getStatus } from './catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
-<<<<<<< HEAD
 import SlaIcon, { SUPPORT_LEVELS } from '@app/components/SlaIcon';
-=======
 import { displayName, renderContent, stripHtml } from '@app/util';
->>>>>>> main
 
 import './catalog-item-card.css';
 
@@ -49,12 +46,13 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
             ) : null}
           </SplitItem>
           <SplitItem className="catalog-item-card__badges" isFilled>
-            <SlaIcon level={level} />
             {stage === 'dev' ? (
               <Badge className="catalog-item-card__badges--dev">development</Badge>
             ) : stage === 'test' ? (
               <Badge className="catalog-item-card__badges--test">test</Badge>
-            ) : null}
+            ) : (
+              <SlaIcon level={level} className="catalog-item-card__sla-icon" />
+            )}
           </SplitItem>
         </Split>
       </CardHeader>

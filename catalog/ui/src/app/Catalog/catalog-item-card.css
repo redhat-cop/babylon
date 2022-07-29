@@ -104,3 +104,9 @@
   display: flex;
   align-items: flex-start;
 }
+
+.catalog-item-card__sla-icon {
+  max-width: 32px;
+  width: 100%;
+  position: relative !important;
+}
