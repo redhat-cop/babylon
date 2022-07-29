@@ -1,3 +1,4 @@
+import { Tooltip } from '@patternfly/react-core';
 import React from 'react';
 
 export const SUPPORT_LEVELS = ['community', 'standard', 'enterprise', 'event'] as const;
@@ -16,29 +17,36 @@ const eventIconPath =
 
 const SlaIcon: React.FC<{ level: typeof SUPPORT_LEVELS[number] }> = ({ level, ...props }) => {
   let path = '';
+  let displayName = '';
   switch (level) {
     case 'standard':
-      path = communityIconPath;
+      path = standardIconPath;
+      displayName = 'Enterprise | Standard';
       break;
     case 'enterprise':
       path = enterpriseIconPath;
+      displayName = 'Enterprise | Premium';
       break;
     case 'event':
       path = eventIconPath;
+      displayName = 'Pre Scheduled Events (min 2 weeks)';
       break;
     default:
-      path = standardIconPath;
+      path = communityIconPath;
+      displayName = 'Community Content';
       break;
   }
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" {...props}>
-      <path
-        style={{
-          fill: '#e00',
-        }}
-        d={path}
-      />
-    </svg>
+    <Tooltip content={<p>{displayName}</p>}>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" {...props}>
+        <path
+          style={{
+            fill: '#e00',
+          }}
+          d={path}
+        />
+      </svg>
+    </Tooltip>
   );
 };
 
