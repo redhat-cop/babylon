@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import {
   Backdrop,
@@ -8,7 +8,9 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  DrawerPanelContent,
   EmptyState,
+  EmptyStateIcon,
   PageSection,
   PageSectionVariants,
   Sidebar,
@@ -44,6 +46,7 @@ import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogItemListItem from './CatalogItemListItem';
+import LoadingIcon from '@app/components/LoadingIcon';
 
 import './catalog.css';
 
@@ -369,7 +372,21 @@ const Catalog: React.FC = () => {
     <Drawer isExpanded={openCatalogItem ? true : false}>
       <DrawerContent
         panelContent={
-          openCatalogItem ? <CatalogItemDetails catalogItem={openCatalogItem} onClose={closeCatalogItem} /> : null
+          openCatalogItem ? (
+            <Suspense
+              fallback={
+                <DrawerPanelContent widths={{ default: 'width_75', lg: 'width_75', xl: 'width_66', '2xl': 'width_50' }}>
+                  <PageSection variant={PageSectionVariants.light}>
+                    <EmptyState variant="full">
+                      <EmptyStateIcon icon={LoadingIcon} />
+                    </EmptyState>
+                  </PageSection>
+                </DrawerPanelContent>
+              }
+            >
+              <CatalogItemDetails catalogItem={openCatalogItem} onClose={closeCatalogItem} />
+            </Suspense>
+          ) : null
         }
       >
         {openCatalogItem ? <Backdrop /> : null}
