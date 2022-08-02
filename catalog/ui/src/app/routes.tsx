@@ -1,6 +1,8 @@
 import React, { Suspense } from 'react';
 import { Route, RouteComponentProps, Switch } from 'react-router-dom';
-import { EmptyState, EmptyStateIcon, PageSection } from '@patternfly/react-core';
+import { useDocumentTitle } from '@app/utils/useDocumentTitle';
+import useSession from '@app/utils/useSession';
+import LoadingSection from './components/LoadingSection';
 
 const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
@@ -23,9 +25,7 @@ const ResourcePoolInstance = React.lazy(() => import('@app/Admin/ResourcePoolIns
 const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'));
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 const CatalogItemAdmin = React.lazy(() => import('@app/Admin/CatalogItemAdmin'));
-import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-import useSession from '@app/utils/useSession';
-import LoadingIcon from '@app/components/LoadingIcon';
+
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -237,15 +237,7 @@ const AppRoutes = (): React.ReactElement => {
   const { isAdmin, userInterface } = useSession().getSession();
 
   return (
-    <Suspense
-      fallback={
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      }
-    >
+    <Suspense fallback={<LoadingSection />}>
       <Switch>
         {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
           const pageTitle =

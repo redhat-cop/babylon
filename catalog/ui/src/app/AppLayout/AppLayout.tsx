@@ -1,9 +1,9 @@
 import React, { useState, Suspense } from 'react';
 import useStatusPageEmbed from './useStatusPageEmbed';
-import { EmptyState, EmptyStateIcon, Page, PageSection, PageSidebar } from '@patternfly/react-core';
+import { Page, PageSidebar } from '@patternfly/react-core';
 import Navigation from './Navigation';
 import Header from '@app/Header/Header';
-import LoadingIcon from '@app/components/LoadingIcon';
+import LoadingSection from '@app/components/LoadingSection';
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isNavOpen, setIsNavOpen] = useState(true);
@@ -34,15 +34,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 
   return (
-    <Suspense
-      fallback={
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      }
-    >
+    <Suspense fallback={<LoadingSection />}>
       <Page
         className="app-layout"
         mainContainerId="primary-app-container"

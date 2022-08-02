@@ -8,13 +8,12 @@ import { AppRoutes } from '@app/routes';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useScript from '@app/utils/useScript';
 import { ErrorBoundary } from 'react-error-boundary';
-import { EmptyState, EmptyStateIcon, PageSection } from '@patternfly/react-core';
 import NotFound from './NotFound/NotFound';
-import LoadingIcon from './components/LoadingIcon';
 
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
 
 import '@app/app.css';
+import LoadingSection from './components/LoadingSection';
 
 const isMonitorEnabled = process.env.MONITOR_ENABLED === 'true';
 
@@ -37,23 +36,15 @@ const App: React.FC = () => {
       <BrowserRouter>
         <Switch>
           <Route path="/workshop/:workshopId">
-            <Suspense
-              fallback={
-                <PageSection>
-                  <EmptyState variant="full">
-                    <EmptyStateIcon icon={LoadingIcon} />
-                  </EmptyState>
-                </PageSection>
-              }
-            >
-              <ErrorBoundary fallbackRender={() => <NotFound />}>
+            <Suspense fallback={<LoadingSection />}>
+              <ErrorBoundary FallbackComponent={NotFound}>
                 <Workshop />
               </ErrorBoundary>
             </Suspense>
           </Route>
           <Route path="/">
             <AppLayout>
-              <ErrorBoundary fallbackRender={() => <NotFound />}>
+              <ErrorBoundary FallbackComponent={NotFound}>
                 <AppRoutes />
               </ErrorBoundary>
             </AppLayout>
