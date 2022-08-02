@@ -135,6 +135,19 @@
       api_version: anarchy.gpte.redhat.com/v1
     register: r_subject
 
+  - when: r_subject.resources[0].spec.vars.current_state.endswith('-failed') | default('unknown')
+    block:
+      - debug:
+          msg: "ERROR: Service current_state == 'provision-failed', cannot run {{ desired_state }} function."
+
+      - name: Write tower information to yaml file
+        copy:
+          dest: "{{ output_dir }}/results.rc"
+          content: |
+            export SKIP_TOWER_LOGS=yes
+
+      - meta: end_play
+
   - when: r_subject.resources[0].spec.vars.current_state | default('unknown') == desired_state
     block:
       - debug:
