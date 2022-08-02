@@ -1,10 +1,6 @@
 import React from 'react';
-import { useState } from 'react';
-
 import yaml from 'js-yaml';
-
 import {
-  ActionGroup,
   Bullseye,
   DescriptionList,
   DescriptionListDescription,
@@ -14,29 +10,23 @@ import {
   PageSectionVariants,
   Stack,
   StackItem,
-  Text,
   Title,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-
 import { WorkshopSpecUserAssignment } from '@app/types';
 import { renderContent } from '@app/util';
-import { WorkshopDetails } from './workshopAPI';
+import { WorkshopDetails } from './workshopApi';
 
-interface WorkshopAccessProps {
+const WorkshopAccess: React.FC<{
   workshop: WorkshopDetails;
-}
-
-const WorkshopAccess: React.FunctionComponent<WorkshopAccessProps> = ({ workshop }) => {
+}> = ({ workshop }) => {
   const description: string = workshop.description;
   const displayName: string = workshop.displayName || 'Workshop';
-  const [accessPassword, setAccessPassword] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
   const userAssignment: WorkshopSpecUserAssignment = workshop.assignment;
 
   return (
-    <PageSection variant={PageSectionVariants.light}>
-      <Stack>
+    <PageSection variant={PageSectionVariants.light} className="workshop">
+      <Stack hasGutter={true}>
         <StackItem>
           <Bullseye>
             <Title headingLevel="h2">{displayName}</Title>
@@ -54,7 +44,7 @@ const WorkshopAccess: React.FunctionComponent<WorkshopAccessProps> = ({ workshop
                 <DescriptionListGroup>
                   <DescriptionListTerm>Lab User Interface</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <a href={userAssignment.labUserInterface.url} target="_blank">
+                    <a href={userAssignment.labUserInterface.url} target="_blank" rel="noreferrer">
                       {userAssignment.labUserInterface.url} <ExternalLinkAltIcon />
                     </a>
                   </DescriptionListDescription>
