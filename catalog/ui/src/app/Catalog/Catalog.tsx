@@ -244,7 +244,7 @@ const Catalog: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
   const routeMatch = useRouteMatch<{ namespace: string }>('/catalog/:namespace?');
-  const { catalogNamespaces, groups } = useSession().getSession();
+  const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
   const catalogNamespaceName: string = routeMatch.params.namespace;
   const urlSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -454,17 +454,19 @@ const Catalog: React.FC = () => {
                                     </Button>
                                   </Tooltip>
                                 </li>
-                                <li>
-                                  <Tooltip content="Export to CSV">
-                                    <Button
-                                      variant="plain"
-                                      aria-label="Export to CSV"
-                                      onClick={() => handleExportCsv(catalogItems)}
-                                    >
-                                      <DownloadIcon />
-                                    </Button>
-                                  </Tooltip>
-                                </li>
+                                {isAdmin ? (
+                                  <li>
+                                    <Tooltip content="Export to CSV">
+                                      <Button
+                                        variant="plain"
+                                        aria-label="Export to CSV"
+                                        onClick={() => handleExportCsv(catalogItems)}
+                                      >
+                                        <DownloadIcon />
+                                      </Button>
+                                    </Tooltip>
+                                  </li>
+                                ) : null}
                               </ul>
                             </StackItem>
                             <StackItem>
