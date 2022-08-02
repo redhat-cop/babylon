@@ -17,7 +17,7 @@ jest.mock('react-router-dom', () => ({
 }));
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
-    getSession: () => generateSession({}),
+    getSession: () => generateSession({ isAdmin: true }),
   }))
 );
 
