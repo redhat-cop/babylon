@@ -3,6 +3,7 @@ anarchy:
   apiGroup: anarchy.gpte.redhat.com
   namespaces:
   - name: anarchy-operator
+    create: true
   secrets: []
 
 poolboy:
