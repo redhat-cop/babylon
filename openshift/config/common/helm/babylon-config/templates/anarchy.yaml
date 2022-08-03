@@ -1,5 +1,5 @@
 {{ range $anarchyNamespace := .Values.anarchy.namespaces }}
-  {{- if $anarchyNamespace.create }}
+  {{- if or ($anarchyNamespace.create) (eq ($anarchyNamespace.create | toString) "<nil>") }}
 ---
 apiVersion: v1
 kind: Namespace
