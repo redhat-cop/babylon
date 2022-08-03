@@ -1,8 +1,14 @@
 ---
+#
+# New namespace will be created if anarchy.namespaces[].create is boolean 'true' or
+# not defined. 
+
+
 anarchy:
   apiGroup: anarchy.gpte.redhat.com
   namespaces:
   - name: anarchy-operator
+    create: true
   secrets: []
 
 poolboy:
