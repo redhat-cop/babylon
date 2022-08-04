@@ -1,5 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -17,7 +16,6 @@ import { ExclamationTriangleIcon, TrashIcon } from '@patternfly/react-icons';
 import { apiPaths, deleteWorkshop, fetcher } from '@app/api';
 import { NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
 import { compareK8sObjects, displayName } from '@app/util';
-import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
@@ -29,6 +27,8 @@ import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
+import useSession from '@app/utils/useSession';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './workshops-list.css';
 
@@ -60,13 +60,11 @@ const WorkshopsList: React.FC<{
         .split(/ +/)
         .filter((w) => w != '')
     : null;
-
-  const sessionServiceNamespaces = useSelector(selectServiceNamespaces);
-  const userIsAdmin = useSelector(selectUserIsAdmin);
-  const enableFetchUserNamespaces: boolean = userIsAdmin; // As admin we need to fetch service namespaces for the service namespace dropdown
-  const [modalState, setModalState] = React.useState<{ action?: string; workshop?: Workshop }>({});
-  const [selectedUids, setSelectedUids] = React.useState([]);
-
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const enableFetchUserNamespaces = isAdmin; // As admin we need to fetch service namespaces for the service namespace dropdown
+  const [modalState, setModalState] = useState<{ action?: string; workshop?: Workshop }>({});
+  const [selectedUids, setSelectedUids] = useState([]);
+  const matchMutate = useMatchMutate();
   const showModal = useCallback(
     ({ action, workshop }: { action: string; workshop?: Workshop }) => {
       setModalState({ action, workshop });
@@ -148,8 +146,11 @@ const WorkshopsList: React.FC<{
           }
         }
       }
+      if (action === 'delete') {
+        matchMutate(/^\/apis\//); // clear caches that can have this deleted item
+      }
     },
-    [mutate, workshopsPages]
+    [matchMutate, mutate, workshopsPages]
   );
   const filterWorkshop = useCallback(
     (workshop: Workshop): boolean => {
@@ -348,7 +349,7 @@ const WorkshopsList: React.FC<{
                       <Link key="workshops" to={`/workshops/${workshop.metadata.namespace}`}>
                         {workshopServiceNamespace?.displayName || workshop.metadata.namespace}
                       </Link>
-                      {userIsAdmin ? (
+                      {isAdmin ? (
                         <OpenshiftConsoleLink key="console" resource={workshop} linkToNamespace={true} />
                       ) : null}
                     </>,
@@ -368,7 +369,7 @@ const WorkshopsList: React.FC<{
                   >
                     {displayName(workshop)}
                   </Link>
-                  {userIsAdmin ? <OpenshiftConsoleLink key="console" resource={workshop} /> : null}
+                  {isAdmin ? <OpenshiftConsoleLink key="console" resource={workshop} /> : null}
                 </>,
                 // Registration
                 <>{workshop.spec.openRegistration === false ? 'Pre-registration' : 'Open'}</>,

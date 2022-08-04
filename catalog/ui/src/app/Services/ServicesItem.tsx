@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
-import { useSelector } from 'react-redux';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { BABYLON_DOMAIN, getCostTracker } from '@app/util';
@@ -39,7 +38,6 @@ import {
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
 import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
 import { displayName, renderContent } from '@app/util';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
@@ -61,6 +59,8 @@ import ServiceUsers from './ServiceUsers';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';
+import useSession from '@app/utils/useSession';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './services-item.css';
 
@@ -71,8 +71,8 @@ const ServicesItemComponent: React.FC<{
 }> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => {
   const history = useHistory();
   const location = useLocation();
-  const sessionServiceNamespaces = useSelector(selectServiceNamespaces);
-  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const matchMutate = useMatchMutate();
   const [modalState, setModalState] = useState<{
     action?: string;
     resourceClaim?: ResourceClaim;
@@ -95,7 +95,7 @@ const ServicesItemComponent: React.FC<{
   );
   useErrorHandler(error?.status === 404 ? error : null);
   // As admin we need to fetch service namespaces for the service namespace dropdown
-  const enableFetchUserNamespaces: boolean = userIsAdmin;
+  const enableFetchUserNamespaces = isAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
@@ -184,6 +184,7 @@ const ServicesItemComponent: React.FC<{
     if (modalState.action === 'delete') {
       deleteResourceClaim(resourceClaim);
       history.push(`/services/${serviceNamespaceName}`);
+      await matchMutate(/^\/apis\//);
     } else {
       const resourceClaimUpdate: ResourceClaim =
         modalState.action === 'start'
@@ -248,7 +249,7 @@ const ServicesItemComponent: React.FC<{
           resourceClaim={resourceClaim}
         />
       </Modal>
-      {userIsAdmin || serviceNamespaces.length > 1 ? (
+      {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-item__topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
             currentNamespaceName={serviceNamespaceName}
@@ -266,7 +267,7 @@ const ServicesItemComponent: React.FC<{
       <PageSection key="head" className="services-item__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
-            {userIsAdmin || serviceNamespaces.length > 1 ? (
+            {isAdmin || serviceNamespaces.length > 1 ? (
               <Breadcrumb>
                 <BreadcrumbItem
                   render={({ className }) => (
@@ -313,7 +314,7 @@ const ServicesItemComponent: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
-      {resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' && !userIsAdmin ? (
+      {resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' && !isAdmin ? (
         <PageSection
           key="body"
           variant={PageSectionVariants.light}
@@ -336,7 +337,7 @@ const ServicesItemComponent: React.FC<{
                   <DescriptionListTerm>Name</DescriptionListTerm>
                   <DescriptionListDescription>
                     {resourceClaim.metadata.name}
-                    {userIsAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
+                    {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 {labUserInterfaceUrl ? (
@@ -394,7 +395,7 @@ const ServicesItemComponent: React.FC<{
                 <DescriptionListGroup>
                   <DescriptionListTerm>GUID</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {userIsAdmin && resourceClaim?.status?.resourceHandle ? (
+                    {isAdmin && resourceClaim?.status?.resourceHandle ? (
                       <>
                         <Link key="admin" to={`/admin/resourcehandles/${resourceClaim.status.resourceHandle.name}`}>
                           <code>{resourceClaim.status.resourceHandle.name.substring(5)}</code>
@@ -541,7 +542,7 @@ const ServicesItemComponent: React.FC<{
                               <DescriptionListDescription>-</DescriptionListDescription>
                             </DescriptionListGroup>
                           )}
-                          {userIsAdmin && resourceState ? (
+                          {isAdmin && resourceState ? (
                             <>
                               <DescriptionListGroup key="anarchy-namespace">
                                 <DescriptionListTerm>Anarchy Namespace</DescriptionListTerm>

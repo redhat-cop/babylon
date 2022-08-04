@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -30,7 +29,6 @@ import {
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
 import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
 import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import WorkshopActions from './WorkshopActions';
@@ -45,6 +43,8 @@ import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
 import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
 import useSWR from 'swr';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
+import useSession from '@app/utils/useSession';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './workshops-item.css';
 export interface ModalState {
@@ -59,12 +59,12 @@ const WorkshopsItemComponent: React.FC<{
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => {
   const history = useHistory();
   const location = useLocation();
-  const sessionServiceNamespaces = useSelector(selectServiceNamespaces);
-  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
   const [modalGetCost, openModalGetCost] = useModal();
+  const matchMutate = useMatchMutate();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
   const showModal = useCallback(
     ({ action, resourceClaim }: ModalState) => {
@@ -79,7 +79,7 @@ const WorkshopsItemComponent: React.FC<{
     },
     [openModalAction, openModalDelete, openModalGetCost]
   );
-  const enableFetchUserNamespaces: boolean = userIsAdmin;
+  const enableFetchUserNamespaces = isAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
@@ -150,12 +150,13 @@ const WorkshopsItemComponent: React.FC<{
             resourceClaimsCpy[foundIndex] = updatedItem;
           } else if (action === 'delete') {
             resourceClaimsCpy.splice(foundIndex, 1);
+            matchMutate(/^\/apis\//);
           }
           mutate(resourceClaimsCpy);
         }
       }
     },
-    [mutate, resourceClaims]
+    [matchMutate, mutate, resourceClaims]
   );
 
   async function onServiceDeleteConfirm(): Promise<void> {
@@ -227,7 +228,7 @@ const WorkshopsItemComponent: React.FC<{
       <Modal ref={modalGetCost} onConfirm={() => null} type="ack">
         <CostTrackerDialog resourceClaim={modalState.resourceClaim} />
       </Modal>
-      {userIsAdmin || serviceNamespaces.length > 1 ? (
+      {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-item__topbar" variant={PageSectionVariants.light}>
           <ServiceNamespaceSelect
             currentNamespaceName={serviceNamespaceName}
@@ -245,7 +246,7 @@ const WorkshopsItemComponent: React.FC<{
       <PageSection key="head" className="workshops-item__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
-            {userIsAdmin || serviceNamespaces.length > 1 ? (
+            {isAdmin || serviceNamespaces.length > 1 ? (
               <Breadcrumb>
                 <BreadcrumbItem
                   render={({ className }) => (

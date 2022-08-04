@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   DescriptionList,
@@ -10,15 +9,13 @@ import {
   SelectOption,
   SelectVariant,
 } from '@patternfly/react-core';
-
 import { patchWorkshop } from '@app/api';
-import { selectUserIsAdmin } from '@app/store';
 import { Workshop } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
-
 import EditableText from '@app/components/EditableText';
 import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import useSession from '@app/utils/useSession';
 
 interface EditableWorkshopSpecFields {
   accessPassword?: string;
@@ -31,11 +28,11 @@ const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
   workshop: Workshop;
 }> = ({ onWorkshopUpdate, workshop }) => {
-  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
+  const { isAdmin } = useSession().getSession();
   const userRegistrationValue: 'open' | 'pre' = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopID: string = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
 
-  const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState<boolean>(false);
+  const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
 
   async function patchWorkshopSpec(patch: EditableWorkshopSpecFields): Promise<void> {
     onWorkshopUpdate(
@@ -53,7 +50,7 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListTerm>Name</DescriptionListTerm>
         <DescriptionListDescription>
           {workshop.metadata.name}
-          {userIsAdmin ? <OpenshiftConsoleLink resource={workshop} /> : null}
+          {isAdmin ? <OpenshiftConsoleLink resource={workshop} /> : null}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
