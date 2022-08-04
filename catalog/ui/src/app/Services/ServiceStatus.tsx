@@ -37,9 +37,6 @@ const ServiceStatus: React.FC<{
     if (resource?.kind === 'AnarchySubject') {
       let currentStateUpdated = '';
       switch (currentState) {
-        case 'provision-failed':
-          currentStateUpdated = 'new';
-          break;
         case 'start-failed':
           currentStateUpdated = 'stopped';
           break;
@@ -187,7 +184,7 @@ const ServiceStatus: React.FC<{
     return (
       <span className="service-status--failed">
         <ExclamationCircleIcon /> {currentState.replace(/-/g, ' ')}
-        {userIsAdmin ? (
+        {userIsAdmin && currentState !== 'provision-failed' ? (
           <Button
             onClick={retryHandle}
             variant="link"

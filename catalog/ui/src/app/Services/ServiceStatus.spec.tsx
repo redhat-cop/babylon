@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import anarchySubjectObj from '../__mocks__/anarchySubject.json';
-import anarchySubjectFailedObj from '../__mocks__/anarchySubject--provision-failed.json';
+import anarchySubjectFailedObj from '../__mocks__/anarchySubject--start-failed.json';
 import ServiceStatus from './ServiceStatus';
 import { render, waitFor } from '@app/utils/test-utils';
 
@@ -22,7 +22,7 @@ describe('ServiceStatus', () => {
     const { getByText } = render(
       <ServiceStatus creationTime={1} resource={anarchySubjectFailedObj} resourceTemplate={anarchySubjectFailedObj} />
     );
-    const status = getByText(/Provision Failed/i);
+    const status = getByText(/Start Failed/i);
     const retry = getByText('Retry');
     await waitFor(() => {
       expect(status).toBeInTheDocument();
