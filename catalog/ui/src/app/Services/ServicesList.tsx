@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
@@ -34,7 +33,6 @@ import {
   stopAllResourcesInResourceClaim,
 } from '@app/api';
 import { NamespaceList, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
-import { selectServiceNamespaces, selectUserIsAdmin } from '@app/store';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -59,6 +57,8 @@ import ServicesAction from './ServicesAction';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
+import useSession from '@app/utils/useSession';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './services-list.css';
 
@@ -69,6 +69,7 @@ const ServicesList: React.FC<{
 }> = ({ serviceNamespaceName }) => {
   const history = useHistory();
   const location = useLocation();
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const view = serviceNamespaceName ? 'default' : 'admin';
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search')
@@ -78,11 +79,10 @@ const ServicesList: React.FC<{
         .split(/ +/)
         .filter((w) => w != '')
     : null;
-  const sessionServiceNamespaces: ServiceNamespace[] = useSelector(selectServiceNamespaces);
-  const userIsAdmin = useSelector(selectUserIsAdmin);
+  const matchMutate = useMatchMutate();
 
   // As admin we need to fetch service namespaces for the service namespace dropdown
-  const enableFetchUserNamespaces: boolean = userIsAdmin;
+  const enableFetchUserNamespaces: boolean = isAdmin;
   const [modalState, setModalState] = useState<{
     action?: string;
     resourceClaim?: ResourceClaim;
@@ -162,8 +162,11 @@ const ServicesList: React.FC<{
           }
         }
       }
+      if (action === 'delete') {
+        matchMutate(/^\/apis\//); // clear caches that can have this deleted item
+      }
     },
-    [mutate, resourceClaimsPages]
+    [matchMutate, mutate, resourceClaimsPages]
   );
   const isReachingEnd = resourceClaimsPages && !resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue;
   const isLoadingInitialData = !resourceClaimsPages;
@@ -172,7 +175,7 @@ const ServicesList: React.FC<{
 
   const filterResourceClaim = useCallback(
     (resourceClaim: ResourceClaim) => {
-      if (!userIsAdmin && resourceClaim.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+      if (!isAdmin && resourceClaim.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
         return false;
       }
       if (!keywordFilter) {
@@ -185,7 +188,7 @@ const ServicesList: React.FC<{
       }
       return true;
     },
-    [keywordFilter, userIsAdmin]
+    [keywordFilter, isAdmin]
   );
 
   const resourceClaims: ResourceClaim[] = useMemo(
@@ -483,7 +486,7 @@ const ServicesList: React.FC<{
                   <Link key="services" to={`/services/${resourceClaim.metadata.namespace}`}>
                     {rcServiceNamespace?.displayName || resourceClaim.metadata.namespace}
                   </Link>
-                  {userIsAdmin ? (
+                  {isAdmin ? (
                     <OpenshiftConsoleLink key="console" resource={resourceClaim} linkToNamespace={true} />
                   ) : null}
                 </React.Fragment>
@@ -493,7 +496,7 @@ const ServicesList: React.FC<{
                 // GUID
                 <React.Fragment key="guid">
                   {guid ? (
-                    userIsAdmin ? (
+                    isAdmin ? (
                       [
                         <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
                           {guid}
@@ -518,7 +521,7 @@ const ServicesList: React.FC<{
                   >
                     {displayName(resourceClaim)}
                   </Link>
-                  {userIsAdmin ? <OpenshiftConsoleLink key="name__console" resource={resourceClaim} /> : null}
+                  {isAdmin ? <OpenshiftConsoleLink key="name__console" resource={resourceClaim} /> : null}
                 </React.Fragment>
               );
               const statusCell = (
