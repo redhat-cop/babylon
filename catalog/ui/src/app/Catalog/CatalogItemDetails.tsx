@@ -31,6 +31,7 @@ import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import useMatchMutate from '@app/utils/useMatchMutate';
 import {
   getProvider,
   getDescription,
@@ -58,6 +59,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { email, userNamespace, isAdmin, groups } = useSession().getSession();
   const catalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
   const { userImpersonated } = useImpersonateUser();
+  const matchMutate = useMatchMutate();
   const { provisionTimeEstimate, termsOfService, parameters, accessControl } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
@@ -126,6 +128,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     if (termsOfService || (parameters || []).length > 0) {
       history.push(`/catalog/${namespace}/order/${name}`);
     } else {
+      await matchMutate(/^\/apis\//);
       const resourceClaim = await createServiceRequest({
         catalogItem: catalogItem,
         catalogNamespaceName: catalogNamespace?.displayName || catalogItem.metadata.namespace,

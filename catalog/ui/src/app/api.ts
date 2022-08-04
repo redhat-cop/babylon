@@ -39,6 +39,7 @@ import {
   BABYLON_DOMAIN,
   getCostTracker,
   compareStringDates,
+  POOLBOY_DOMAIN,
 } from '@app/util';
 
 declare const window: Window &
@@ -305,7 +306,7 @@ export async function createServiceRequest({
   const access = checkAccessControl(catalogItem.spec.accessControl, groups);
 
   const requestResourceClaim: ResourceClaim = {
-    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    apiVersion: `${POOLBOY_DOMAIN}/v1`,
     kind: 'ResourceClaim',
     metadata: {
       annotations: {
@@ -392,7 +393,7 @@ export async function createServiceRequest({
     // the user interest in the catalog item.
     requestResourceClaim.spec.resources[0] = {
       provider: {
-        apiVersion: 'poolboy.gpte.redhat.com/v1',
+        apiVersion: `${POOLBOY_DOMAIN}/v1`,
         kind: 'ResourceProvider',
         name: 'babylon-service-request-configmap',
         namespace: 'poolboy',
@@ -516,7 +517,7 @@ export async function createWorkshopForMultiuserService({
       },
       ownerReferences: [
         {
-          apiVersion: 'poolboy.gpte.redhat.com/v1',
+          apiVersion: `${POOLBOY_DOMAIN}/v1`,
           controller: true,
           kind: 'ResourceClaim',
           name: resourceClaim.metadata.name,
@@ -695,38 +696,20 @@ export async function getK8sObject<Type extends K8sObject>({
 }
 
 export async function getResourceClaim(namespace: string, name: string): Promise<ResourceClaim> {
-  return (await getNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
-    'v1',
-    namespace,
-    'resourceclaims',
-    name
-  )) as ResourceClaim;
+  return (await getNamespacedCustomObject(POOLBOY_DOMAIN, 'v1', namespace, 'resourceclaims', name)) as ResourceClaim;
 }
 
 export async function getResourceHandle(name: string): Promise<ResourceHandle> {
-  return (await getNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
-    'v1',
-    'poolboy',
-    'resourcehandles',
-    name
-  )) as ResourceHandle;
+  return (await getNamespacedCustomObject(POOLBOY_DOMAIN, 'v1', 'poolboy', 'resourcehandles', name)) as ResourceHandle;
 }
 
 export async function getResourcePool(name: string): Promise<ResourcePool> {
-  return (await getNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
-    'v1',
-    'poolboy',
-    'resourcepools',
-    name
-  )) as ResourcePool;
+  return (await getNamespacedCustomObject(POOLBOY_DOMAIN, 'v1', 'poolboy', 'resourcepools', name)) as ResourcePool;
 }
 
 export async function getResourceProvider(name: string): Promise<ResourceProvider> {
   return (await getNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     'poolboy',
     'resourceproviders',
@@ -815,7 +798,7 @@ export async function listCatalogItems(opt?: K8sObjectListCommonOpt): Promise<Ca
 
 export async function listResourceClaims(opt?: K8sObjectListCommonOpt): Promise<ResourceClaimList> {
   return (await listK8sObjects({
-    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    apiVersion: `${POOLBOY_DOMAIN}/v1`,
     plural: 'resourceclaims',
     ...opt,
   })) as ResourceClaimList;
@@ -823,7 +806,7 @@ export async function listResourceClaims(opt?: K8sObjectListCommonOpt): Promise<
 
 export async function listResourceHandles(opt?: K8sObjectListCommonOpt): Promise<ResourceHandleList> {
   return (await listK8sObjects({
-    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    apiVersion: `${POOLBOY_DOMAIN}/v1`,
     namespace: 'poolboy',
     plural: 'resourcehandles',
     ...opt,
@@ -832,7 +815,7 @@ export async function listResourceHandles(opt?: K8sObjectListCommonOpt): Promise
 
 export async function listResourcePools(opt?: K8sObjectListCommonOpt): Promise<ResourcePoolList> {
   return (await listK8sObjects({
-    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    apiVersion: `${POOLBOY_DOMAIN}/v1`,
     namespace: 'poolboy',
     plural: 'resourcepools',
     ...opt,
@@ -841,7 +824,7 @@ export async function listResourcePools(opt?: K8sObjectListCommonOpt): Promise<R
 
 export async function listResourceProviders(opt?: K8sObjectListCommonOpt): Promise<ResourceProviderList> {
   return (await listK8sObjects({
-    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    apiVersion: `${POOLBOY_DOMAIN}/v1`,
     namespace: 'poolboy',
     plural: 'resourceproviders',
     ...opt,
@@ -876,7 +859,7 @@ export async function scalePool(resourcepool: K8sObject, minAvailable: number): 
   try {
     const session = await getApiSession(true);
     const response = await fetch(
-      `/apis/poolboy.gpte.redhat.com/v1/namespaces/${resourcepool.metadata.namespace}/resourcepools/${resourcepool.metadata.name}`,
+      `/apis/${POOLBOY_DOMAIN}/v1/namespaces/${resourcepool.metadata.namespace}/resourcepools/${resourcepool.metadata.name}`,
       {
         method: 'PATCH',
         body: JSON.stringify({ spec: { minAvailable: minAvailable } }),
@@ -951,7 +934,7 @@ export async function deleteK8sObject<Type extends K8sObject>(definition: Type):
 
 export async function deleteResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
   return (await deleteNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
@@ -961,7 +944,7 @@ export async function deleteResourceClaim(resourceClaim: ResourceClaim): Promise
 
 export async function deleteResourceHandle(resourceHandle: ResourceHandle): Promise<void> {
   await deleteNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     resourceHandle.metadata.namespace,
     'resourcehandles',
@@ -971,7 +954,7 @@ export async function deleteResourceHandle(resourceHandle: ResourceHandle): Prom
 
 export async function deleteResourcePool(resourcePool: ResourcePool): Promise<void> {
   await deleteNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     resourcePool.metadata.namespace,
     'resourcepools',
@@ -981,7 +964,7 @@ export async function deleteResourcePool(resourcePool: ResourcePool): Promise<vo
 
 export async function deleteResourceProvider(resourceProvider: ResourceProvider): Promise<void> {
   await deleteNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     resourceProvider.metadata.namespace,
     'resourcehandles',
@@ -1061,7 +1044,7 @@ export async function patchResourceClaim(
   patch: Record<string, unknown>
 ): Promise<ResourceClaim> {
   return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     namespace,
     'resourceclaims',
@@ -1072,7 +1055,7 @@ export async function patchResourceClaim(
 
 export async function patchResourcePool(name: string, patch: any): Promise<ResourcePool> {
   return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     'poolboy',
     'resourcepools',
@@ -1135,7 +1118,7 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim)
     }
   }
   return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
@@ -1157,7 +1140,7 @@ export async function scheduleStopForAllResourcesInResourceClaim(
   }
 
   return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
@@ -1179,7 +1162,7 @@ export async function setLifespanEndForResourceClaim(resourceClaim: ResourceClai
   }
 
   return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
@@ -1205,7 +1188,7 @@ export async function startAllResourcesInResourceClaim(resourceClaim: ResourceCl
   }
 
   return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
@@ -1224,7 +1207,7 @@ export async function stopAllResourcesInResourceClaim(resourceClaim: ResourceCla
   }
 
   return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
+    POOLBOY_DOMAIN,
     'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
@@ -1482,11 +1465,11 @@ export const apiPaths = {
     continueId?: string;
     labelSelector?: string;
   }): string =>
-    `/apis/poolboy.gpte.redhat.com/v1${namespace ? `/namespaces/${namespace}` : ''}/resourceclaims?limit=${limit}${
+    `/apis/${POOLBOY_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/resourceclaims?limit=${limit}${
       continueId ? `&continue=${continueId}` : ''
     }${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
   RESOURCE_CLAIM: ({ namespace, resourceClaimName }: { namespace: string; resourceClaimName: string }): string =>
-    `/apis/poolboy.gpte.redhat.com/v1/namespaces/${namespace}/resourceclaims/${resourceClaimName}`,
+    `/apis/${POOLBOY_DOMAIN}/v1/namespaces/${namespace}/resourceclaims/${resourceClaimName}`,
   NAMESPACES: ({
     labelSelector,
     limit,

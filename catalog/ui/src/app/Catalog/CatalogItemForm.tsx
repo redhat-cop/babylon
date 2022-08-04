@@ -39,6 +39,7 @@ import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './catalog-item-form.css';
 
@@ -52,6 +53,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
     fetcher
   );
+  const matchMutate = useMatchMutate();
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const workshopInitialProps = useMemo(
     () => ({
@@ -98,6 +100,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         parameterValues[parameterState.name] = parameterState.value;
       }
     }
+    await matchMutate(/^\/apis\//);
 
     if (formState.workshop) {
       const {

@@ -39,20 +39,18 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
+import { POOLBOY_DOMAIN } from '@app/util';
 
 import './admin.css';
 
-interface RouteMatchParams {
-  name: string;
-  tab?: string;
-}
-
-const ResourcePoolInstance: React.FunctionComponent = () => {
+const ResourcePoolInstance: React.FC = () => {
   const history = useHistory();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/resourcepools/:name/:tab?');
+  const routeMatch = useRouteMatch<{
+    name: string;
+    tab?: string;
+  }>('/admin/resourcepools/:name/:tab?');
   const resourcePoolName = routeMatch.params.name;
   const activeTab = routeMatch.params.tab || 'details';
 
@@ -86,7 +84,7 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
 
   async function fetchResourceHandles(): Promise<void> {
     const resourceHandleList: ResourceHandleList = await listResourceHandles({
-      labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
+      labelSelector: `${POOLBOY_DOMAIN}/resource-pool-name=${resourcePoolName}`,
     });
     if (!resourceHandlesFetchState.activity.canceled) {
       reduceResourceHandlesFetchState({

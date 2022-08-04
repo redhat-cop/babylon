@@ -15,7 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { ResourceClaim, ResourceHandle } from '@app/types';
 import { createResourcePool, getResourcePool } from '@app/api';
-import { BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN, POOLBOY_DOMAIN } from '@app/util';
 import yaml from 'js-yaml';
 
 const CreateResourcePoolFromResourceHandleModal: React.FC<{
@@ -63,7 +63,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
 
   async function onConfirm() {
     await createResourcePool({
-      apiVersion: 'poolboy.gpte.redhat.com/v1',
+      apiVersion: `${POOLBOY_DOMAIN}/v1`,
       kind: 'ResourcePool',
       metadata: {
         name: resourcePoolName,
