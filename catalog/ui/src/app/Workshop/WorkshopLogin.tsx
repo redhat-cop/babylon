@@ -1,7 +1,5 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { HelpIcon } from '@patternfly/react-icons';
-
 import {
   ActionGroup,
   Bullseye,
@@ -17,27 +15,26 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
+import { WorkshopDetails } from './workshopApi';
 
-import { WorkshopDetails } from './workshopAPI';
-
-interface WorkshopLoginProps {
-  loginFailureMessage?: string;
+const WorkshopLogin: React.FC<{
+  loginFailureMessage: string;
   onLogin: (email: string, accessPassword: string) => void;
   workshop: WorkshopDetails;
-}
-
-const WorkshopLogin: React.FunctionComponent<WorkshopLoginProps> = ({ loginFailureMessage, onLogin, workshop }) => {
-  const displayName: string = workshop.displayName || 'Workshop';
-  const [accessPassword, setAccessPassword] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
+}> = ({ loginFailureMessage, onLogin, workshop }) => {
+  const displayName = workshop.displayName || 'Workshop';
+  const [accessPassword, setAccessPassword] = useState('');
+  const [email, setEmail] = useState('');
   const submitDisabled = !email || (workshop.accessPasswordRequired && !accessPassword);
 
   return (
     <PageSection variant={PageSectionVariants.light}>
-      <Stack>
+      <Stack hasGutter={true}>
         <StackItem>
           <Bullseye>
-            <Title headingLevel="h2">{displayName}</Title>
+            <Title headingLevel="h1" style={{ padding: 'var(--pf-global--spacer--lg) 0' }}>
+              {displayName}
+            </Title>
           </Bullseye>
         </StackItem>
         <StackItem>
@@ -49,11 +46,8 @@ const WorkshopLogin: React.FunctionComponent<WorkshopLoginProps> = ({ loginFailu
                 label="Email"
                 labelIcon={
                   <Popover
-                    bodyContent={
-                      'Only used for identification purposes during this workshop. ' +
-                      'No email messages will be sent to this address.'
-                    }
-                    headerContent={'Email Address'}
+                    bodyContent="Only used for identification purposes during this workshop. No email messages will be sent to this address."
+                    headerContent="Email Address"
                   >
                     <Button variant="plain">
                       <HelpIcon />
@@ -67,11 +61,11 @@ const WorkshopLogin: React.FunctionComponent<WorkshopLoginProps> = ({ loginFailu
                 <FormGroup
                   fieldId="accessPassword"
                   isRequired={true}
-                  label="Access Password"
+                  label="Password"
                   labelIcon={
                     <Popover
-                      bodyContent={'Access password will be provided by your workshop facilitator.'}
-                      headerContent={'Access Password'}
+                      bodyContent="Password will be provided by your workshop facilitator."
+                      headerContent="Password"
                     >
                       <Button variant="plain">
                         <HelpIcon />

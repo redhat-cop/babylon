@@ -4,27 +4,16 @@ import { Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from '@app/store';
 import { createMemoryHistory, MemoryHistory } from 'history';
-import { EmptyState, EmptyStateIcon, PageSection } from '@patternfly/react-core';
-import LoadingIcon from '@app/components/LoadingIcon';
 import { SWRConfig } from 'swr';
 import { CatalogNamespace } from '@app/types';
+import LoadingSection from '@app/components/LoadingSection';
 
 const AllTheProviders = ({ children, history }) => {
   return (
     <Provider store={store}>
       <SWRConfig value={{ suspense: true }}>
         <Router history={history}>
-          <Suspense
-            fallback={
-              <PageSection>
-                <EmptyState variant="full">
-                  <EmptyStateIcon icon={LoadingIcon} />
-                </EmptyState>
-              </PageSection>
-            }
-          >
-            {children}
-          </Suspense>
+          <Suspense fallback={<LoadingSection />}>{children}</Suspense>
         </Router>
         <div id="modal-root"></div>
       </SWRConfig>

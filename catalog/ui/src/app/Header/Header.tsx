@@ -89,21 +89,18 @@ const Header: React.FC<{
   }
 
   function LogoImg() {
-    function handleClick() {
-      history.push('/');
-    }
     if (userInterface == 'summit') {
       return (
         <img
           src={summitLogo}
-          onClick={handleClick}
+          onClick={() => history.push('/')}
           alt="Red Hat Summit"
           className="summit-logo"
           style={{ height: '48px' }}
         />
       );
     }
-    return <UserInterfaceLogo onClick={handleClick} style={{ width: '278px' }} />;
+    return <UserInterfaceLogo onClick={() => history.push('/')} style={{ width: '278px' }} />;
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();

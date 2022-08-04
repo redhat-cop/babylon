@@ -2,14 +2,14 @@
   height: 60px;
 }
 
-.workshop.pf-c-page__header .rhpds-logo {
-  height: 50px;
-}
-
 .workshop-login-failure {
   color: var(--pf-global--danger-color--200);
 }
 
 .workshop-login-form.pf-c-form {
   width: 300px;
+}
+.workshop .pf-c-description-list__group {
+  padding: var(--pf-global--spacer--md);
+  background-color: var(--pf-global--palette--black-200);
 }
