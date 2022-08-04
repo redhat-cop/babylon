@@ -157,8 +157,8 @@
       "babylon_username": "None",
       "provision_message_body": ["GUID is 4jt84", "Some random string ENhQkaRJgiHfBXS"],
       "babylon_user_fullname": "None",
-      "current_state": "provision-failed",
-      "desired_state": "stopped",
+      "current_state": "start-failed",
+      "desired_state": "running",
       "job_vars": {
         "guid": "4jt84",
         "uuid": "f2fe636b-d663-530b-990d-c13a43f3feaf"
