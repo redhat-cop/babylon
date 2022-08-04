@@ -128,7 +128,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem: catalogItem,
-        catalogNamespaceName: catalogNamespace.displayName,
+        catalogNamespaceName: catalogNamespace?.displayName || catalogItem.metadata.namespace,
         groups,
         userNamespace,
       });

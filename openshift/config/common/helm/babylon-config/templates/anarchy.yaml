@@ -1,10 +1,11 @@
 {{ range $anarchyNamespace := .Values.anarchy.namespaces }}
+  {{- if or $anarchyNamespace.create (not (hasKey $anarchyNamespace "create")) }}
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ $anarchyNamespace.name }}
-  {{- with $anarchyCommune := $anarchyNamespace.commune }}
+    {{- with $anarchyCommune := $anarchyNamespace.commune }}
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: {{ $anarchyNamespace.name }}
@@ -23,23 +24,24 @@ spec:
   namespace:
     create: false
     name: {{ $anarchyNamespace.name }}
-  {{- $anarchyCommune | toYaml | nindent 2 }}
+    {{- $anarchyCommune | toYaml | nindent 2 }}
   replicaCount: {{ $anarchyCommune.replicaCount | default 1 }}
   runners:
-    {{- range $anarchyRunner := ($anarchyCommune.runners | default (list (dict "name" "default"))) }}
+      {{- range $anarchyRunner := ($anarchyCommune.runners | default (list (dict "name" "default"))) }}
   - name: default
     minReplicas: {{ $anarchyRunner.minReplicas | default 1 }}
     resources:
-      {{- with $anarchyRunnerResources := ($anarchyRunner.resources | default (dict "_" "_")) }}
+        {{- with $anarchyRunnerResources := ($anarchyRunner.resources | default (dict "_" "_")) }}
       limits:
-        {{- with $anarchyRunnerResourceLimits := ($anarchyRunnerResources.limits | default (dict "_" "_")) }}
+          {{- with $anarchyRunnerResourceLimits := ($anarchyRunnerResources.limits | default (dict "_" "_")) }}
         cpu: "{{ $anarchyRunnerResourceLimits.cpu | default "1" }}"
         memory: "{{ $anarchyRunnerResourceLimits.memory | default "512Mi" }}"
-        {{- end }}
+          {{- end }}
       requests:
-        {{- with $anarchyRunnerResourceRequests := ($anarchyRunnerResources.requests | default (dict "_" "_")) }}
+          {{- with $anarchyRunnerResourceRequests := ($anarchyRunnerResources.requests | default (dict "_" "_")) }}
         cpu: "{{ $anarchyRunnerResourceRequests.cpu | default "500m" }}"
         memory: "{{ $anarchyRunnerResourceRequests.memory | default "256Mi" }}"
+          {{- end }}
         {{- end }}
       {{- end }}
     {{- end }}
