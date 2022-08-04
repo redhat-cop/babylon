@@ -39,6 +39,7 @@ import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './catalog-item-form.css';
 
@@ -48,6 +49,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 }) => {
   const history = useHistory();
   const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
+  const matchMutate = useMatchMutate();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
     fetcher
@@ -98,6 +100,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         parameterValues[parameterState.name] = parameterState.value;
       }
     }
+    await matchMutate(/^\/apis\//);
 
     if (formState.workshop) {
       const {
