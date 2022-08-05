@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import {
   Breadcrumb,
@@ -58,7 +58,6 @@ import ServicesScheduleAction from './ServicesScheduleAction';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
-import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './services-list.css';
 
@@ -72,6 +71,7 @@ const ServicesList: React.FC<{
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const view = serviceNamespaceName ? 'default' : 'admin';
   const urlSearchParams = new URLSearchParams(location.search);
+  const { cache } = useSWRConfig();
   const keywordFilter = urlSearchParams.has('search')
     ? urlSearchParams
         .get('search')
@@ -79,7 +79,6 @@ const ServicesList: React.FC<{
         .split(/ +/)
         .filter((w) => w != '')
     : null;
-  const matchMutate = useMatchMutate();
 
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const enableFetchUserNamespaces: boolean = isAdmin;
@@ -162,11 +161,8 @@ const ServicesList: React.FC<{
           }
         }
       }
-      if (action === 'delete') {
-        matchMutate(/^\/apis\//); // clear caches that can have this deleted item
-      }
     },
-    [matchMutate, mutate, resourceClaimsPages]
+    [mutate, resourceClaimsPages]
   );
   const isReachingEnd = resourceClaimsPages && !resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue;
   const isLoadingInitialData = !resourceClaimsPages;
@@ -219,6 +215,12 @@ const ServicesList: React.FC<{
   const performModalActionForResourceClaim = useCallback(
     async (resourceClaim: ResourceClaim): Promise<ResourceClaim> => {
       if (modalState.action === 'delete') {
+        cache.delete(
+          apiPaths.RESOURCE_CLAIM({
+            namespace: resourceClaim.metadata.namespace,
+            resourceClaimName: resourceClaim.metadata.name,
+          })
+        );
         return await deleteResourceClaim(resourceClaim);
       } else if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
         return await startAllResourcesInResourceClaim(resourceClaim);
@@ -229,7 +231,7 @@ const ServicesList: React.FC<{
         return resourceClaim;
       }
     },
-    [modalState.action]
+    [cache, modalState.action]
   );
 
   const onModalAction = useCallback(async (): Promise<void> => {

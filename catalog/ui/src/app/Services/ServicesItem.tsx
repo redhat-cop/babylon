@@ -57,10 +57,9 @@ import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
 import Modal, { useModal } from '@app/Modal/Modal';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';
 import useSession from '@app/utils/useSession';
-import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './services-item.css';
 
@@ -72,7 +71,7 @@ const ServicesItemComponent: React.FC<{
   const history = useHistory();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
-  const matchMutate = useMatchMutate();
+  const { cache } = useSWRConfig();
   const [modalState, setModalState] = useState<{
     action?: string;
     resourceClaim?: ResourceClaim;
@@ -183,8 +182,8 @@ const ServicesItemComponent: React.FC<{
   async function onModalAction(): Promise<void> {
     if (modalState.action === 'delete') {
       deleteResourceClaim(resourceClaim);
+      cache.delete(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }));
       history.push(`/services/${serviceNamespaceName}`);
-      await matchMutate(/^\/apis\//);
     } else {
       const resourceClaimUpdate: ResourceClaim =
         modalState.action === 'start'
