@@ -66,7 +66,7 @@ export const DateTimePicker: React.FC<{
   const [isTimeOpen, setIsTimeOpen] = useState(false);
   const dateTime = new Date(defaultTimestamp);
   const defaultTime = `${('00' + dateTime.getHours()).slice(-2)}:${('00' + dateTime.getMinutes()).slice(-2)}`;
-  const defaultDate = dateFormat(dateTime, false);
+  const defaultDate = dateTime.toISOString();
   const [valueDate, setValueDate] = useState(defaultDate);
   const [valueTime, setValueTime] = useState(defaultTime);
 
@@ -89,11 +89,10 @@ export const DateTimePicker: React.FC<{
   };
 
   const onSelectCalendar = (newValueDate: Date) => {
-    const newValue = dateFormat(newValueDate, false);
-    setValueDate(newValue);
+    setValueDate(newValueDate.toISOString());
     setIsCalendarOpen(!isCalendarOpen);
     setIsTimeOpen(!isTimeOpen);
-    _onSelect(newValue, valueTime);
+    _onSelect(newValueDate.toISOString(), valueTime);
   };
 
   const onSelectTime = (ev: React.SyntheticEvent<HTMLDivElement>) => {
