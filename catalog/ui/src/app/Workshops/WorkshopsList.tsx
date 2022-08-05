@@ -25,10 +25,9 @@ import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
 import WorkshopActions from './WorkshopActions';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import Modal, { useModal } from '@app/Modal/Modal';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import useSession from '@app/utils/useSession';
-import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './workshops-list.css';
 
@@ -64,7 +63,7 @@ const WorkshopsList: React.FC<{
   const enableFetchUserNamespaces = isAdmin; // As admin we need to fetch service namespaces for the service namespace dropdown
   const [modalState, setModalState] = useState<{ action?: string; workshop?: Workshop }>({});
   const [selectedUids, setSelectedUids] = useState([]);
-  const matchMutate = useMatchMutate();
+  const { cache } = useSWRConfig();
   const showModal = useCallback(
     ({ action, workshop }: { action: string; workshop?: Workshop }) => {
       setModalState({ action, workshop });
@@ -146,11 +145,8 @@ const WorkshopsList: React.FC<{
           }
         }
       }
-      if (action === 'delete') {
-        matchMutate(/^\/apis\//); // clear caches that can have this deleted item
-      }
     },
-    [matchMutate, mutate, workshopsPages]
+    [mutate, workshopsPages]
   );
   const filterWorkshop = useCallback(
     (workshop: Workshop): boolean => {
@@ -193,6 +189,12 @@ const WorkshopsList: React.FC<{
       for (const workshop of workshops) {
         if (selectedUids.includes(workshop.metadata.uid)) {
           await deleteWorkshop(workshop);
+          cache.delete(
+            apiPaths.WORKSHOP({
+              namespace: workshop.metadata.namespace,
+              workshopName: workshop.metadata.name,
+            })
+          );
           deletedWorkshops.push(workshop);
         }
       }

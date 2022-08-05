@@ -41,10 +41,9 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
 import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
 import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
-import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './workshops-item.css';
 export interface ModalState {
@@ -64,7 +63,7 @@ const WorkshopsItemComponent: React.FC<{
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
   const [modalGetCost, openModalGetCost] = useModal();
-  const matchMutate = useMatchMutate();
+  const { cache } = useSWRConfig();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
   const showModal = useCallback(
     ({ action, resourceClaim }: ModalState) => {
@@ -150,13 +149,12 @@ const WorkshopsItemComponent: React.FC<{
             resourceClaimsCpy[foundIndex] = updatedItem;
           } else if (action === 'delete') {
             resourceClaimsCpy.splice(foundIndex, 1);
-            matchMutate(/^\/apis\//);
           }
           mutate(resourceClaimsCpy);
         }
       }
     },
-    [matchMutate, mutate, resourceClaims]
+    [mutate, resourceClaims]
   );
 
   async function onServiceDeleteConfirm(): Promise<void> {
@@ -165,6 +163,8 @@ const WorkshopsItemComponent: React.FC<{
       : selectedResourceClaims;
     for (const resourceClaim of deleteResourceClaims) {
       await deleteResourceClaim(resourceClaim);
+      const { namespace, name: resourceClaimName } = resourceClaim.metadata;
+      cache.delete(apiPaths.RESOURCE_CLAIM({ namespace, resourceClaimName }));
     }
     revalidate({ updatedItems: deleteResourceClaims, action: 'delete' });
   }
@@ -194,6 +194,7 @@ const WorkshopsItemComponent: React.FC<{
   async function onWorkshopDeleteConfirm(): Promise<void> {
     await deleteWorkshop(workshop);
     mutateWorkshop(null);
+    mutate(null);
     history.push(`/workshops/${serviceNamespaceName}`);
   }
 
