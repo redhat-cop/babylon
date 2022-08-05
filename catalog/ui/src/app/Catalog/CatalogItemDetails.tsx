@@ -30,7 +30,14 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
-import { checkAccessControl, displayName, renderContent, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import {
+  checkAccessControl,
+  displayName,
+  renderContent,
+  BABYLON_DOMAIN,
+  FETCH_BATCH_LIMIT,
+  isLabDeveloper,
+} from '@app/util';
 import {
   getProvider,
   getDescription,
@@ -91,18 +98,19 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups);
-  const catalogItemAccess: CatalogItemAccess = isAdmin
-    ? CatalogItemAccess.Allow
-    : accessCheckResult === 'deny'
-    ? CatalogItemAccess.Deny
-    : userHasInstanceOfCatalogItem
-    ? CatalogItemAccess.Deny
-    : userResourceClaims.length >= 3
-    ? CatalogItemAccess.Deny
-    : accessCheckResult === 'allow'
-    ? CatalogItemAccess.Allow
-    : CatalogItemAccess.RequestInformation;
-  const catalogItemAccessDenyReason: string =
+  const catalogItemAccess: CatalogItemAccess =
+    isAdmin || isLabDeveloper(groups)
+      ? CatalogItemAccess.Allow
+      : accessCheckResult === 'deny'
+      ? CatalogItemAccess.Deny
+      : userHasInstanceOfCatalogItem
+      ? CatalogItemAccess.Deny
+      : userResourceClaims.length >= 3
+      ? CatalogItemAccess.Deny
+      : accessCheckResult === 'allow'
+      ? CatalogItemAccess.Allow
+      : CatalogItemAccess.RequestInformation;
+  const catalogItemAccessDenyReason =
     catalogItemAccess !== CatalogItemAccess.Deny
       ? null
       : userHasInstanceOfCatalogItem

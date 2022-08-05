@@ -2,10 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { ResourceClaim } from '@app/types';
-import { displayName } from '@app/util';
-import { useSelector } from 'react-redux';
-import { selectUserIsAdmin } from '@app/store';
+import { displayName, isLabDeveloper } from '@app/util';
 import { DateTimePicker } from '@app/components/DateTimePicker';
+import useSession from '@app/utils/useSession';
 
 const ServicesScheduleAction: React.FC<{
   action: 'retirement' | 'stop';
@@ -13,7 +12,7 @@ const ServicesScheduleAction: React.FC<{
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
   setState?: React.Dispatch<React.SetStateAction<Date>>;
 }> = ({ action, resourceClaim, setTitle, setState }) => {
-  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
+  const { isAdmin, groups } = useSession().getSession();
   const currentActionDate: Date = useMemo(
     () =>
       new Date(
@@ -79,7 +78,7 @@ const ServicesScheduleAction: React.FC<{
     minDate: Date.now(),
     maxDate,
   };
-  if (userIsAdmin) {
+  if (isAdmin || isLabDeveloper(groups)) {
     minMaxProps.maxDate = null;
   }
 

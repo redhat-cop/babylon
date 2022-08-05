@@ -237,3 +237,7 @@ export function getLang(): string {
   if (navigator.languages != undefined) return navigator.languages[0];
   return navigator.language || 'en-US';
 }
+
+export function isLabDeveloper(groups: string[]): boolean {
+  return groups.includes('rhpds-devs');
+}
