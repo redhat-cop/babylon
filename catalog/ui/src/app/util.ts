@@ -241,3 +241,22 @@ export function getLang(): string {
 export function isLabDeveloper(groups: string[]): boolean {
   return groups.includes('rhpds-devs');
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+export function debounce(inner: any, ms = 0): (...args: any[]) => Promise<unknown> {
+  let timer = null;
+  let resolves = [];
+
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      // Get the result of the inner function, then apply it to the resolve function of
+      // each promise that has been created since the last time the inner function was run
+      const result = inner(...args);
+      resolves.forEach((r) => r(result));
+      resolves = [];
+    }, ms);
+
+    return new Promise((r) => resolves.push(r));
+  };
+}
