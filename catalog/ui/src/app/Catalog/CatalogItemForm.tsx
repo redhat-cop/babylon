@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useState } from 'react';
 import { useHistory, useRouteMatch } from 'react-router-dom';
 import {
   ActionList,
@@ -34,7 +34,8 @@ import {
 } from '@app/api';
 import { CatalogItem } from '@app/types';
 import { ErrorBoundary } from 'react-error-boundary';
-import { debounce, displayName, randomString } from '@app/util';
+import { displayName, randomString } from '@app/util';
+import useDebounce from '@app/utils/useDebounce';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
@@ -48,7 +49,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
   catalogItemName,
 }) => {
   const history = useHistory();
-  const debouncedApiFetchRef = useRef(debounce(apiFetch, 1000));
+  const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
@@ -80,9 +81,9 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
-      checkConditionsInFormState(formState, dispatchFormState, debouncedApiFetchRef.current);
+      checkConditionsInFormState(formState, dispatchFormState, debouncedApiFetch);
     }
-  }, [dispatchFormState, formState]);
+  }, [dispatchFormState, formState, debouncedApiFetch]);
 
   async function submitRequest(): Promise<void> {
     if (!submitRequestEnabled) {

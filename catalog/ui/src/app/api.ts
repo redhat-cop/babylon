@@ -258,7 +258,7 @@ export async function bulkAssignWorkshopUsers({
 
 export async function checkSalesforceId(
   id: string,
-  debouncedApiFetch: (url: string) => Promise<unknown>
+  debouncedApiFetch: (path: string) => Promise<unknown>
 ): Promise<boolean> {
   if (!id) {
     return false;
