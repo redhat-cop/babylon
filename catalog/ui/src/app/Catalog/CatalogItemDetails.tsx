@@ -93,6 +93,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       namespace === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`] &&
       name === rc.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
   );
+  const userDistinctCatalogItems = [
+    ...new Set(userResourceClaims.map((item) => item.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`])),
+  ];
 
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
@@ -105,19 +108,33 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       ? CatalogItemAccess.Deny
       : userHasInstanceOfCatalogItem
       ? CatalogItemAccess.Deny
-      : userResourceClaims.length >= 3
+      : userDistinctCatalogItems.length >= 3
       ? CatalogItemAccess.Deny
       : accessCheckResult === 'allow'
       ? CatalogItemAccess.Allow
       : CatalogItemAccess.RequestInformation;
   const catalogItemAccessDenyReason =
-    catalogItemAccess !== CatalogItemAccess.Deny
-      ? null
-      : userHasInstanceOfCatalogItem
-      ? 'You already have an instance of this catalog item. You will not be able to request another instance of this application until you retire the existing service. If you feel this is an error, please contact rhpds-help@redhat.com.'
-      : userResourceClaims.length >= 3
-      ? 'You have reached your quota of 3 services. You will not be able to request any new applications until you retire existing services. If you feel this is an error, please contact rhpds-help@redhat.com.'
-      : 'Access denied by catalog item configuration.';
+    catalogItemAccess !== CatalogItemAccess.Deny ? null : userHasInstanceOfCatalogItem ? (
+      <p>
+        You already have an instance of this catalog item. You will not be able to request another instance of this
+        application until you retire the existing service. If you feel this is an error, please{' '}
+        <a href={getHelpLink()} target="_blank" rel="noopener noreferrer">
+          contact us
+        </a>
+        .
+      </p>
+    ) : userDistinctCatalogItems.length >= 3 ? (
+      <p>
+        You have reached your quota of 3 services. You will not be able to request any new applications until you retire
+        existing services. If you feel this is an error, please{' '}
+        <a href={getHelpLink()} target="_blank" rel="noopener noreferrer">
+          contact us
+        </a>
+        .
+      </p>
+    ) : (
+      <p>Access denied by catalog item configuration.</p>
+    );
 
   const attributes: { [attr: string]: string } = {};
   for (const [label, value] of Object.entries(labels || {})) {
@@ -144,13 +161,16 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     }
   }
 
-  function requestInformation() {
+  function getHelpLink() {
     const user = userImpersonated ? userImpersonated : email;
     if (user.includes('@redhat.com')) {
-      window.open('https://red.ht/rhpds-help', '_blank');
-      return;
+      return 'https://red.ht/rhpds-help';
     }
-    window.open('https://red.ht/open-support', '_blank');
+    return 'https://red.ht/open-support';
+  }
+
+  function requestInformation() {
+    window.open(getHelpLink(), '_blank');
   }
 
   return (
