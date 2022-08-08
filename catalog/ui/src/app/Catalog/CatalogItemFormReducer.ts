@@ -1,8 +1,10 @@
 import React from 'react';
 import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter } from '@app/types';
-import { checkCondition, ConditionValues } from './catalog-utils';
 
+type ConditionValues = {
+  [name: string]: boolean | number | string | string[] | undefined;
+};
 type UserProps = {
   groups: string[];
   isAdmin: boolean;
@@ -66,8 +68,29 @@ type FormStateParameterGroup = {
   parameters: FormStateParameter[];
 };
 
+export function checkCondition(condition: string, vars: ConditionValues): boolean {
+  const checkFunction = new Function(
+    Object.entries(vars)
+      .map(([k, v]) => 'const ' + k + ' = ' + JSON.stringify(v) + ';')
+      .join('\n') +
+      'return (' +
+      condition +
+      ');'
+  );
+  const ret: boolean | Error = checkFunction();
+  if (ret instanceof Error) {
+    throw ret;
+  } else {
+    return Boolean(ret);
+  }
+}
+
 // Because salesforce checks are asynchronous they need to be resolved before checking the condition logic
-async function _checkCondition(condition: string, vars: ConditionValues): Promise<boolean> {
+async function _checkCondition(
+  condition: string,
+  vars: ConditionValues,
+  debouncedApiFetch: (path: string) => Promise<unknown>
+): Promise<boolean> {
   const checkSalesforceIdRegex = /\bcheck_salesforce_id\(\s*(\w+)\s*\)/g;
   const checkSalesforceIds: string[] = [];
   condition.replace(checkSalesforceIdRegex, (match, name) => {
@@ -76,7 +99,7 @@ async function _checkCondition(condition: string, vars: ConditionValues): Promis
   });
   const checkResults: boolean[] = [];
   for (const name of checkSalesforceIds) {
-    checkResults.push(await checkSalesforceId(vars[name] as string));
+    checkResults.push(await checkSalesforceId(vars[name] as string, debouncedApiFetch));
   }
   return checkCondition(
     condition.replace(checkSalesforceIdRegex, () => (checkResults.shift() ? 'true' : 'false')),
@@ -85,7 +108,8 @@ async function _checkCondition(condition: string, vars: ConditionValues): Promis
 }
 export async function checkConditionsInFormState(
   initialState: FormState,
-  dispatchFn: React.Dispatch<FormStateAction>
+  dispatchFn: React.Dispatch<FormStateAction>,
+  debouncedApiFetch: (path: string) => Promise<unknown>
 ): Promise<void> {
   const parameters = Object.assign({}, initialState.parameters);
   const conditionValues: ConditionValues = {
@@ -103,19 +127,31 @@ export async function checkConditionsInFormState(
       const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
 
       if (parameterSpec.formDisableCondition) {
-        parameterState.isDisabled = await _checkCondition(parameterSpec.formDisableCondition, conditionValues);
+        parameterState.isDisabled = await _checkCondition(
+          parameterSpec.formDisableCondition,
+          conditionValues,
+          debouncedApiFetch
+        );
       } else {
         parameterState.isDisabled = false;
       }
 
       if (parameterSpec.formHideCondition) {
-        parameterState.isHidden = await _checkCondition(parameterSpec.formHideCondition, conditionValues);
+        parameterState.isHidden = await _checkCondition(
+          parameterSpec.formHideCondition,
+          conditionValues,
+          debouncedApiFetch
+        );
       } else {
         parameterState.isHidden = false;
       }
 
       if (parameterSpec.formRequireCondition) {
-        parameterState.isRequired = await _checkCondition(parameterSpec.formRequireCondition, conditionValues);
+        parameterState.isRequired = await _checkCondition(
+          parameterSpec.formRequireCondition,
+          conditionValues,
+          debouncedApiFetch
+        );
       } else {
         parameterState.isRequired = parameterSpec.required;
       }
@@ -123,7 +159,11 @@ export async function checkConditionsInFormState(
       if (parameterSpec.validation) {
         if (parameterState.value || parameterSpec.required) {
           try {
-            parameterState.validationResult = await _checkCondition(parameterSpec.validation, conditionValues);
+            parameterState.validationResult = await _checkCondition(
+              parameterSpec.validation,
+              conditionValues,
+              debouncedApiFetch
+            );
             parameterState.validationMessage = undefined;
           } catch (error) {
             parameterState.validationResult = false;

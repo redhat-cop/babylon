@@ -256,12 +256,15 @@ export async function bulkAssignWorkshopUsers({
   }
 }
 
-export async function checkSalesforceId(id: string): Promise<boolean> {
-  if (!id || !id.match(/^\d{7,}$/)) {
+export async function checkSalesforceId(
+  id: string,
+  debouncedApiFetch: (path: string) => Promise<unknown>
+): Promise<boolean> {
+  if (!id) {
     return false;
   }
   try {
-    await apiFetch(`/api/salesforce/opportunity/${id}`);
+    await debouncedApiFetch(`/api/salesforce/opportunity/${id}`);
   } catch (error) {
     return false;
   }

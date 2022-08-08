@@ -24,6 +24,7 @@ import {
 import useSWR from 'swr';
 import { ExclamationCircleIcon, ExclamationTriangleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
+  apiFetch,
   apiPaths,
   createServiceRequest,
   CreateServiceRequestParameterValues,
@@ -34,6 +35,7 @@ import {
 import { CatalogItem } from '@app/types';
 import { ErrorBoundary } from 'react-error-boundary';
 import { displayName, randomString } from '@app/util';
+import useDebounce from '@app/utils/useDebounce';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
@@ -47,6 +49,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
   catalogItemName,
 }) => {
   const history = useHistory();
+  const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
@@ -78,9 +81,9 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
-      checkConditionsInFormState(formState, dispatchFormState);
+      checkConditionsInFormState(formState, dispatchFormState, debouncedApiFetch);
     }
-  }, [dispatchFormState, formState]);
+  }, [dispatchFormState, formState, debouncedApiFetch]);
 
   async function submitRequest(): Promise<void> {
     if (!submitRequestEnabled) {
