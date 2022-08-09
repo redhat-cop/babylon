@@ -1174,11 +1174,49 @@ export async function setLifespanEndForResourceClaim(resourceClaim: ResourceClai
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
-
+  let updatedMaxDate: Nullable<string> = null;
+  let updatedRelativeMaxDate: Nullable<string> = null;
+  if (resourceClaim.status?.lifespan?.maximum) {
+    const maxDate = new Date(resourceClaim.metadata.creationTimestamp);
+    maxDate.setDate(maxDate.getDate() + parseInt(resourceClaim.status.lifespan.maximum.slice(0, -1), 10));
+    if (date.getTime() > maxDate.getTime()) {
+      updatedMaxDate =
+        Math.ceil(
+          (date.getTime() - new Date(resourceClaim.metadata.creationTimestamp).getTime()) / (1000 * 60 * 60 * 24)
+        ) +
+        1 +
+        'd';
+    }
+  }
+  if (resourceClaim.status?.lifespan?.relativeMaximum) {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + parseInt(resourceClaim.status.lifespan.relativeMaximum.slice(0, -1), 10));
+    if (date.getTime() > maxDate.getTime()) {
+      updatedRelativeMaxDate = Math.ceil((date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) + 1 + 'd';
+    }
+  }
   if (data.spec.lifespan) {
     data.spec.lifespan.end = endTimestamp;
   } else {
     data.spec.lifespan = { end: endTimestamp };
+  }
+
+  if (updatedMaxDate || updatedRelativeMaxDate) {
+    (await patchNamespacedCustomObject(
+      'poolboy.gpte.redhat.com',
+      'v1',
+      resourceClaim.status.resourceHandle.namespace,
+      'resourcehandles',
+      resourceClaim.status.resourceHandle.name,
+      {
+        spec: {
+          lifespan: {
+            ...(updatedMaxDate ? { maximum: updatedMaxDate } : {}),
+            ...(updatedRelativeMaxDate ? { relativeMaximum: updatedRelativeMaxDate } : {}),
+          },
+        },
+      }
+    )) as ResourceHandle;
   }
 
   return (await patchNamespacedCustomObject(
