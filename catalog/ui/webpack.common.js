@@ -117,7 +117,6 @@ module.exports = (env) => {
         patterns: [
           { from: path.resolve(__dirname, 'src/favicon.ico'), to: 'images' },
           { from: path.resolve(__dirname, 'src/public'), to: '' },
-          { from: path.resolve(__dirname, 'src/app/TechnicalSupportPage/incidents_technical_support.csv'), to: '' },
         ],
       }),
     ],

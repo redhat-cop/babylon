@@ -8,7 +8,6 @@ import LoadingSection from './components/LoadingSection';
 const Dashboard = React.lazy(() => import('@app/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
-const TechnicalSupportPage = React.lazy(() => import('@app/TechnicalSupportPage'));
 const Services = React.lazy(() => import('@app/Services/Services'));
 const Workshops = React.lazy(() => import('@app/Workshops/Workshops'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
@@ -249,16 +248,6 @@ const appRoutes: IAppRoute[] = [
 ];
 
 const publicRoutes: IAppRoute[] = [
-  {
-    component: TechnicalSupportPage,
-    path: '/technical-support/:supportType',
-    title: 'Technical Support | Babylon',
-  },
-  {
-    component: TechnicalSupportPage,
-    path: '/technical-support',
-    title: 'Technical Support | Babylon',
-  },
   {
     component: Workshop,
     path: '/workshop/:workshopId',
