@@ -1553,6 +1553,4 @@ export const apiPaths = {
     }${continueId ? `&continue=${continueId}` : ''}`,
   ANARCHY_SUBJECT: ({ namespace, anarchySubjectName }: { namespace: string; anarchySubjectName: string }): string =>
     `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchysubjects/${anarchySubjectName}`,
-
-  WORKSHOP_UI: ({ workshopId }: { workshopId: string }): string => `/api/workshop/${workshopId}`,
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Checkbox,
@@ -24,7 +24,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
   resourceClaim?: ResourceClaim;
   resourceHandle: ResourceHandle;
 }> = ({ isOpen, onClose, resourceClaim, resourceHandle }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [resourcePoolName, setResourcePoolName] = useState<string>(
     resourceClaim
       ? resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/externalPlatformUrl`] &&
@@ -94,7 +94,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         ],
       },
     });
-    history.push(`/admin/resourcepools/${resourcePoolName}`);
+    navigate(`/admin/resourcepools/${resourcePoolName}`);
   }
 
   useEffect(() => {

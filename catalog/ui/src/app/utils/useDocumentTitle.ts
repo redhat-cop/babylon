@@ -4,7 +4,9 @@ import { useEffect } from 'react';
 function useDocumentTitle(title: string): void {
   useEffect(() => {
     const originalTitle = document.title;
-    document.title = title;
+    if (title) {
+      document.title = title;
+    }
 
     return () => {
       document.title = originalTitle;

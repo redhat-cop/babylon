@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useHistory, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   EmptyState,
   EmptyStateIcon,
@@ -77,7 +77,7 @@ function pruneResourcePool(resourcePool: ResourcePool): ResourcePool {
 }
 
 const ResourcePools: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
   const urlSearchParams = new URLSearchParams(location.search);
@@ -209,7 +209,7 @@ const ResourcePools: React.FC = () => {
                 } else if (urlSearchParams.has('search')) {
                   urlSearchParams.delete('search');
                 }
-                history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
               }}
             />
           </SplitItem>

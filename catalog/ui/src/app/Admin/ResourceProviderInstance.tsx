@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
@@ -38,18 +38,11 @@ import TimeInterval from '@app/components/TimeInterval';
 
 import './admin.css';
 
-interface RouteMatchParams {
-  name: string;
-  tab?: string;
-}
-
 const ResourceProviderInstance: React.FunctionComponent = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/resourceproviders/:name/:tab?');
-  const resourceProviderName = routeMatch.params.name;
-  const activeTab = routeMatch.params.tab || 'details';
+  const { name: resourceProviderName, tab: activeTab = 'details' } = useParams();
 
   const [resourceProviderFetchState, reduceResourceProviderFetchState] = useReducer(k8sFetchStateReducer, null);
 
@@ -58,7 +51,7 @@ const ResourceProviderInstance: React.FunctionComponent = () => {
   async function confirmThenDelete() {
     if (confirm(`Delete ResourceProvider ${resourceProviderName}?`)) {
       await deleteResourceProvider(resourceProvider);
-      history.push('/admin/resourceproviders');
+      navigate('/admin/resourceproviders');
     }
   }
 
@@ -184,7 +177,7 @@ const ResourceProviderInstance: React.FunctionComponent = () => {
       <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
         <Tabs
           activeKey={activeTab}
-          onSelect={(e, tabIndex) => history.push(`/admin/resourceproviders/${resourceProviderName}/${tabIndex}`)}
+          onSelect={(e, tabIndex) => navigate(`/admin/resourceproviders/${resourceProviderName}/${tabIndex}`)}
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>

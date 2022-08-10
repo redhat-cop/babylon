@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
@@ -49,12 +49,10 @@ interface RouteMatchParams {
 }
 
 const ResourcePoolInstance: React.FunctionComponent = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<RouteMatchParams>('/admin/resourcepools/:name/:tab?');
-  const resourcePoolName = routeMatch.params.name;
-  const activeTab = routeMatch.params.tab || 'details';
+  const { name: resourcePoolName, tab: activeTab = 'details' } = useParams();
 
   const [resourceHandlesFetchState, reduceResourceHandlesFetchState] = useReducer(k8sFetchStateReducer, null);
   const [resourcePoolFetchState, reduceResourcePoolFetchState] = useReducer(k8sFetchStateReducer, null);
@@ -66,7 +64,7 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourcePool ${resourcePoolName}?`)) {
       await deleteResourcePool(resourcePool);
-      history.push('/admin/resourcepools');
+      navigate('/admin/resourcepools');
     }
   }
 
@@ -238,7 +236,7 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
       <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
         <Tabs
           activeKey={activeTab}
-          onSelect={(e, tabIndex) => history.push(`/admin/resourcepools/${resourcePoolName}/${tabIndex}`)}
+          onSelect={(e, tabIndex) => navigate(`/admin/resourcepools/${resourcePoolName}/${tabIndex}`)}
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <Stack hasGutter>

@@ -13,7 +13,6 @@ const TechnicalSupportPage: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
   const { data } = useSWRImmutable('./incidents_technical_support.csv', fetcher);
   const dataArr = CSVToArray(data);
-  console.log(dataArr);
   const columns = [];
   const rows = [];
   return (

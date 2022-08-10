@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
@@ -40,17 +40,10 @@ import { selectConsoleURL } from '@app/store';
 import './admin.css';
 
 const AnarchyRunInstance: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<{
-    name: string;
-    namespace: string;
-    tab?: string;
-  }>('/admin/anarchyruns/:namespace/:name/:tab?');
-  const anarchyRunName = routeMatch.params.name;
-  const anarchyRunNamespace = routeMatch.params.namespace;
-  const activeTab = routeMatch.params.tab || 'details';
+  const { name: anarchyRunName, namespace: anarchyRunNamespace, tab: activeTab = 'details' } = useParams();
 
   const [anarchyRunFetchState, reduceAnarchyRunFetchState] = useReducer(k8sFetchStateReducer, null);
 
@@ -59,7 +52,7 @@ const AnarchyRunInstance: React.FC = () => {
   async function confirmThenDelete() {
     if (confirm(`Delete AnarchyRun ${anarchyRunName}?`)) {
       await deleteAnarchyRun(anarchyRun);
-      history.push(`/admin/anarchyruns/${anarchyRunNamespace}`);
+      navigate(`/admin/anarchyruns/${anarchyRunNamespace}`);
     }
   }
 
@@ -193,7 +186,7 @@ const AnarchyRunInstance: React.FC = () => {
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) =>
-            history.push(`/admin/anarchyruns/${anarchyRunNamespace}/${anarchyRunName}/${tabIndex}`)
+            navigate(`/admin/anarchyruns/${anarchyRunNamespace}/${anarchyRunName}/${tabIndex}`)
           }
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>

@@ -1,4 +1,4 @@
-import React, { ReactElement, Suspense } from 'react';
+import React, { ReactElement, Suspense, useLayoutEffect, useState } from 'react';
 import { render, RenderOptions, queries, RenderResult } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -9,10 +9,17 @@ import { CatalogNamespace } from '@app/types';
 import LoadingSection from '@app/components/LoadingSection';
 
 const AllTheProviders = ({ children, history }) => {
+  const [state, setState] = useState({
+    action: history.action,
+    location: history.location,
+  });
+
+  useLayoutEffect(() => history.listen(setState), [history]);
+
   return (
     <Provider store={store}>
       <SWRConfig value={{ suspense: true }}>
-        <Router history={history}>
+        <Router location={state.location} navigationType={state.action} navigator={history}>
           <Suspense fallback={<LoadingSection />}>{children}</Suspense>
         </Router>
         <div id="modal-root"></div>
@@ -23,9 +30,9 @@ const AllTheProviders = ({ children, history }) => {
 
 const customRender = (
   ui: ReactElement,
-  options?: { history: MemoryHistory<unknown> } & Omit<RenderOptions, 'queries'>
+  options?: { history: MemoryHistory } & Omit<RenderOptions, 'queries'>
 ): RenderResult<typeof queries> => {
-  function getOptions({ history = createMemoryHistory(), ...rest }) {
+  function getOptions({ history = createMemoryHistory({ initialEntries: ['/'] }), ...rest }) {
     return { rest, history };
   }
   const { history, ...rest } = getOptions(options || {});

@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
@@ -51,17 +51,10 @@ import AnarchyRunsTable from './AnarchyRunsTable';
 import './admin.css';
 
 const AnarchySubjectInstance: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<{
-    name: string;
-    namespace: string;
-    tab?: string;
-  }>('/admin/anarchysubjects/:namespace/:name/:tab?');
-  const anarchySubjectName = routeMatch.params.name;
-  const anarchySubjectNamespace = routeMatch.params.namespace;
-  const activeTab = routeMatch.params.tab || 'details';
+  const { name: anarchySubjectName, namespace: anarchySubjectNamespace, tab: activeTab = 'details' } = useParams();
 
   const [anarchyActionsFetchState, reduceAnarchyActionsFetchState] = useReducer(k8sFetchStateReducer, null);
   const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(k8sFetchStateReducer, null);
@@ -76,7 +69,7 @@ const AnarchySubjectInstance: React.FC = () => {
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchySubject ${anarchySubjectName}?`)) {
       await deleteAnarchySubject(anarchySubject);
-      history.push(`/admin/anarchysubjects/${anarchySubjectNamespace}`);
+      navigate(`/admin/anarchysubjects/${anarchySubjectNamespace}`);
     }
   }
 
@@ -87,7 +80,7 @@ const AnarchySubjectInstance: React.FC = () => {
       )
     ) {
       await forceDeleteAnarchySubject(anarchySubject);
-      history.push(`/admin/anarchysubjects/${anarchySubjectNamespace}`);
+      navigate(`/admin/anarchysubjects/${anarchySubjectNamespace}`);
     }
   }
 
@@ -324,7 +317,7 @@ const AnarchySubjectInstance: React.FC = () => {
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) =>
-            history.push(`/admin/anarchysubjects/${anarchySubjectNamespace}/${anarchySubjectName}/${tabIndex}`)
+            navigate(`/admin/anarchysubjects/${anarchySubjectNamespace}/${anarchySubjectName}/${tabIndex}`)
           }
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>

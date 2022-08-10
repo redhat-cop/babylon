@@ -12,8 +12,7 @@ jest.mock('@app/api', () => ({
 }));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ namespace: 'fakeNamespace' }),
-  useRouteMatch: () => ({ url: '/catalog/fakeNamespace', params: { namespace: 'fakeNamespace' } }),
+  useParams: () => ({ namespace: 'babylon-catalog-test' }),
 }));
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({

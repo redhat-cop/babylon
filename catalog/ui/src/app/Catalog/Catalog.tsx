@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
-import { useHistory, useLocation, useRouteMatch } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   Backdrop,
   Button,
@@ -241,12 +241,11 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
 }
 
 const Catalog: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const location = useLocation();
-  const routeMatch = useRouteMatch<{ namespace: string }>('/catalog/:namespace?');
+  const { namespace: catalogNamespaceName } = useParams();
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
-  const catalogNamespaceName: string = routeMatch.params.namespace;
   const urlSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const openCatalogItemParam: string | null = urlSearchParams.has('item') ? urlSearchParams.get('item') : null;
   const openCatalogItemNamespaceName: string | null = openCatalogItemParam
@@ -289,9 +288,9 @@ const Catalog: React.FC = () => {
   useEffect(() => {
     const lastCatalogQuery = getLastFilter();
     if (!urlSearchParams.toString() && lastCatalogQuery) {
-      history.push(`${location.pathname}?${lastCatalogQuery}`);
+      navigate(`${location.pathname}?${lastCatalogQuery}`);
     }
-  }, [history, location.pathname, urlSearchParams]);
+  }, [navigate, location.pathname, urlSearchParams]);
 
   const categoryFilteredCatalogItems: CatalogItem[] = selectedCategory
     ? catalogItems.filter((catalogItem) => filterCatalogItemByCategory(catalogItem, selectedCategory))
@@ -313,7 +312,7 @@ const Catalog: React.FC = () => {
 
   function closeCatalogItem(): void {
     urlSearchParams.delete('item');
-    history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
   function onKeywordSearchChange(value: string[]): void {
@@ -323,14 +322,14 @@ const Catalog: React.FC = () => {
       urlSearchParams.delete('search');
     }
     saveFilter(urlSearchParams);
-    history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
   function onSelectCatalogNamespace(namespaceName: string | null): void {
     if (namespaceName) {
-      history.push(`/catalog/${namespaceName}${location.search}`);
+      navigate(`/catalog/${namespaceName}${location.search}`);
     } else {
-      history.push(`/catalog${location.search}`);
+      navigate(`/catalog${location.search}`);
     }
   }
 
@@ -341,7 +340,7 @@ const Catalog: React.FC = () => {
       urlSearchParams.delete('category');
     }
     saveFilter(urlSearchParams);
-    history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
   function onSelectLabels(labels: { [label: string]: string[] } | null): void {
@@ -351,12 +350,12 @@ const Catalog: React.FC = () => {
       urlSearchParams.delete('labels');
     }
     saveFilter(urlSearchParams);
-    history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
   }
 
   function onClearFilters() {
     saveFilter(new URLSearchParams());
-    history.push(`${location.pathname}`);
+    navigate(`${location.pathname}`);
   }
 
   const getInitialKeywordFilter = () => {

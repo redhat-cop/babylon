@@ -3,7 +3,7 @@ import '@patternfly/react-core/dist/styles/base.css';
 
 import { SWRConfig } from 'swr';
 import { BrowserRouter } from 'react-router-dom';
-import RoutesSwitch from '@app/routes';
+import Routes from '@app/routes';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useScript from '@app/utils/useScript';
 import LoadingSection from './components/LoadingSection';
@@ -30,7 +30,7 @@ const App: React.FC = () => {
     >
       <BrowserRouter>
         <Suspense fallback={<LoadingSection />}>
-          <RoutesSwitch />
+          <Routes />
         </Suspense>
       </BrowserRouter>
     </SWRConfig>
