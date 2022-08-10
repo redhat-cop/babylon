@@ -1,3 +1,5 @@
+import { RouteComponentProps } from 'react-router-dom';
+
 export interface AnarchyAction extends K8sObject {
   spec: any;
   status?: any;
@@ -396,3 +398,11 @@ export type CostTracker = {
 };
 
 export type Nullable<T> = T | null;
+
+export type IAppRoute = {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  component: React.LazyExoticComponent<React.FC<any>>;
+  exact?: boolean;
+  path: string;
+  title: string;
+};

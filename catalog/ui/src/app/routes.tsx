@@ -1,14 +1,18 @@
-import React, { Suspense } from 'react';
-import { Route, RouteComponentProps, Switch } from 'react-router-dom';
-import { useDocumentTitle } from '@app/utils/useDocumentTitle';
-import useSession from '@app/utils/useSession';
-import LoadingSection from './components/LoadingSection';
+import React from 'react';
+import { Route, Switch } from 'react-router-dom';
+import useDocumentTitle from '@app/utils/useDocumentTitle';
+import { IAppRoute } from './types';
+import useSession from './utils/useSession';
+import AppLayout from './AppLayout/AppLayout';
+import { ErrorBoundary } from 'react-error-boundary';
 
-const Dashboard = React.lazy(() => import('@app/Dashboard/Dashboard'));
+const Dashboard = React.lazy(() => import('@app/Dashboard'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
+const TechnicalSupportPage = React.lazy(() => import('@app/TechnicalSupportPage'));
 const Services = React.lazy(() => import('@app/Services/Services'));
 const Workshops = React.lazy(() => import('@app/Workshops/Workshops'));
+const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 const AnarchyActionInstance = React.lazy(() => import('@app/Admin/AnarchyActionInstance'));
 const AnarchyActions = React.lazy(() => import('@app/Admin/AnarchyActions'));
@@ -26,80 +30,51 @@ const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 const CatalogItemAdmin = React.lazy(() => import('@app/Admin/CatalogItemAdmin'));
 
-export interface IAppRoute {
-  label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  component: React.ComponentType<RouteComponentProps<any>> | React.ComponentType<any>;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-  exact?: boolean;
-  path: string;
-  title: string;
-  isAsync?: boolean;
-  routes?: undefined;
-  adminRoutes?: undefined;
+function getPageTitle(title: string, userInterface: string): string {
+  return userInterface === 'summit'
+    ? title.replace('Babylon', 'Red Hat Summit')
+    : userInterface === 'rhpds'
+    ? title.replace('Babylon', 'RHPDS')
+    : title;
 }
-
-export interface IAppRouteGroup {
-  label: string;
-  routes: IAppRoute[];
-  adminRoutes: IAppRoute[];
-}
-
-export type AppRouteConfig = IAppRoute | IAppRouteGroup;
-
-const routes: AppRouteConfig[] = [
+const appRoutes: IAppRoute[] = [
   {
     component: Dashboard,
     exact: true,
-    //label: 'Dashboard',
     path: '/',
     title: 'Babylon | Dashboard',
   },
   {
-    label: 'Catalog',
     component: CatalogItemForm,
+    exact: true,
     path: '/catalog/:namespace/order/:catalogItem',
     title: 'Babylon | Catalog',
   },
   {
-    label: 'Catalog',
     component: Catalog,
-    path: '/catalog',
+    path: '/catalog/:namespace?',
     title: 'Babylon | Catalog',
   },
   {
-    label: 'Services',
     component: Services,
     exact: true,
     path: '/services/:namespace/:name?/:tab?',
     title: 'Babylon | Services',
   },
   {
-    label: 'All Services',
     component: Services,
     exact: true,
     path: '/services',
     title: 'Babylon | Services',
   },
   {
-    label: 'Workshops',
     component: Workshops,
     path: '/workshops',
     title: 'Babylon | Workshops',
   },
-  /*
-  {
-    component: Support,
-    exact: true,
-    isAsync: true,
-    label: 'Support',
-    path: '/support',
-    title: 'Babylon | Support Page',
-  },
-*/
 ];
 
-const adminRoutes: AppRouteConfig[] = [
+const adminRoutes: IAppRoute[] = [
   {
     component: AnarchyActionInstance,
     path: '/admin/anarchyactions/:namespace/:name',
@@ -111,7 +86,6 @@ const adminRoutes: AppRouteConfig[] = [
     title: 'Babylon | Admin',
   },
   {
-    label: 'AnarchyActions',
     exact: true,
     component: AnarchyActions,
     path: '/admin/anarchyactions',
@@ -128,7 +102,6 @@ const adminRoutes: AppRouteConfig[] = [
     title: 'Babylon | Admin',
   },
   {
-    label: 'AnarchyGovernors',
     exact: true,
     component: AnarchyGovernors,
     path: '/admin/anarchygovernors',
@@ -145,7 +118,6 @@ const adminRoutes: AppRouteConfig[] = [
     title: 'Babylon | Admin',
   },
   {
-    label: 'AnarchyRuns',
     exact: true,
     component: AnarchyRuns,
     path: '/admin/anarchyruns',
@@ -162,7 +134,6 @@ const adminRoutes: AppRouteConfig[] = [
     title: 'Babylon | Admin',
   },
   {
-    label: 'AnarchySubjects',
     component: AnarchySubjects,
     path: '/admin/anarchysubjects',
     title: 'Babylon | Admin',
@@ -173,7 +144,6 @@ const adminRoutes: AppRouteConfig[] = [
     title: 'Babylon | Admin',
   },
   {
-    label: 'ResourceHandles',
     component: ResourceHandles,
     path: '/admin/resourcehandles',
     title: 'Babylon | Admin',
@@ -184,7 +154,6 @@ const adminRoutes: AppRouteConfig[] = [
     title: 'Babylon | Admin',
   },
   {
-    label: 'ResourcePools',
     component: ResourcePools,
     path: '/admin/resourcepools',
     title: 'Babylon | Admin',
@@ -195,7 +164,6 @@ const adminRoutes: AppRouteConfig[] = [
     title: 'Babylon | Admin',
   },
   {
-    label: 'ResourceProviders',
     component: ResourceProviders,
     path: '/admin/resourceproviders',
     title: 'Babylon | Admin',
@@ -207,80 +175,73 @@ const adminRoutes: AppRouteConfig[] = [
   },
 ];
 
-const RouteWithTitleUpdates = ({ component: Component, isAsync = false, title, ...rest }: IAppRoute) => {
+const publicRoutes: IAppRoute[] = [
+  {
+    component: TechnicalSupportPage,
+    exact: true,
+    path: '/technical-support/:supportType?',
+    title: 'Technical Support | Babylon',
+  },
+  {
+    component: Workshop,
+    exact: true,
+    path: '/workshop/:workshopId',
+    title: 'Workshop | Babylon',
+  },
+];
+
+const RouteWithTitleUpdates = ({ children, title, path, exact, ...rest }: any): JSX.Element => {
   useDocumentTitle(title);
-
-  function routeWithTitle(routeProps: RouteComponentProps) {
-    return <Component {...rest} {...routeProps} />;
-  }
-
-  return <Route render={routeWithTitle} />;
+  return (
+    <Route exact={exact} path={path} {...rest}>
+      {children}
+    </Route>
+  );
 };
 
-const PageNotFound = ({ title }: { title: string }) => {
+const PageNotFound = ({ title }: { title: string }): JSX.Element => {
   useDocumentTitle(title);
   return <Route component={NotFound} />;
 };
 
-const flattenedRoutes: IAppRoute[] = routes.reduce(
-  (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])] as any,
-  [] as IAppRoute[]
-);
-
-const adminFlattenedRoutes: IAppRoute[] = adminRoutes.reduce(
-  (adminFlattenedRoutes, route) =>
-    [...adminFlattenedRoutes, ...(route.adminRoutes ? route.adminRoutes : [route])] as any,
-  [] as IAppRoute[]
-);
-
-const AppRoutes = (): React.ReactElement => {
+const RoutesSwitch: React.FC = () => {
   const { isAdmin, userInterface } = useSession().getSession();
-
   return (
-    <Suspense fallback={<LoadingSection />}>
-      <Switch>
-        {flattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
-          const pageTitle =
-            userInterface === 'summit'
-              ? title.replace('Babylon', 'Red Hat Summit')
-              : userInterface === 'rhpds'
-              ? title.replace('Babylon', 'RHPDS')
-              : title;
-          return (
-            <RouteWithTitleUpdates
-              path={path}
-              exact={exact}
-              component={component}
-              key={idx}
-              title={pageTitle}
-              isAsync={isAsync}
-            />
-          );
-        })}
-        {isAdmin
-          ? adminFlattenedRoutes.map(({ path, exact, component, title, isAsync }: any, idx) => {
-              const pageTitle =
-                userInterface === 'summit'
-                  ? title.replace('Babylon', 'Red Hat Summit')
-                  : userInterface === 'rhpds'
-                  ? title.replace('Babylon', 'RHPDS')
-                  : title;
-              return (
-                <RouteWithTitleUpdates
-                  path={path}
-                  exact={exact}
-                  component={component}
-                  key={idx}
-                  title={pageTitle}
-                  isAsync={isAsync}
-                />
-              );
-            })
-          : null}
-        <PageNotFound title="404 Page Not Found" />
-      </Switch>
-    </Suspense>
+    <Switch>
+      {publicRoutes.map(({ path, exact, component, title }: IAppRoute, idx) => {
+        const pageTitle = getPageTitle(title, userInterface);
+        return <RouteWithTitleUpdates path={path} exact={exact} component={component} key={idx} title={pageTitle} />;
+      })}
+      {appRoutes.map(({ path, exact, component: Component, title }: IAppRoute, idx) => {
+        const pageTitle = getPageTitle(title, userInterface);
+        return (
+          <RouteWithTitleUpdates path={path} exact={exact} key={idx} title={pageTitle}>
+            <AppLayout key={`app-routes-${idx}`}>
+              <ErrorBoundary FallbackComponent={NotFound}>
+                <Component />
+              </ErrorBoundary>
+            </AppLayout>
+          </RouteWithTitleUpdates>
+        );
+      })}
+
+      {isAdmin
+        ? adminRoutes.map(({ path, exact, component: Component, title }: IAppRoute, idx) => {
+            const pageTitle = getPageTitle(title, userInterface);
+            return (
+              <RouteWithTitleUpdates path={path} exact={exact} key={idx} title={pageTitle}>
+                <AppLayout key={`admin-routes-${idx}`}>
+                  <ErrorBoundary FallbackComponent={NotFound}>
+                    <Component />
+                  </ErrorBoundary>
+                </AppLayout>
+              </RouteWithTitleUpdates>
+            );
+          })
+        : null}
+      <PageNotFound title="404 Page Not Found" />
+    </Switch>
   );
 };
 
-export { AppRoutes, routes, adminRoutes };
+export default RoutesSwitch;

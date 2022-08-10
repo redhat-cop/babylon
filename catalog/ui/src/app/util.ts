@@ -1,6 +1,6 @@
 import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
 import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
-import { AccessControl, CostTracker, K8sObject, ResourceClaim } from '@app/types';
+import { AccessControl, CostTracker, K8sObject, Nullable, ResourceClaim } from '@app/types';
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
@@ -240,4 +240,27 @@ export function getLang(): string {
 
 export function isLabDeveloper(groups: string[]): boolean {
   return groups.includes('rhpds-devs');
+}
+
+export function CSVToArray(strData: string, strDelimiter = ','): string[][] {
+  const objPattern = new RegExp(
+    '(\\' + strDelimiter + '|\\r?\\n|\\r|^)' + '(?:"([^"]*(?:""[^"]*)*)"|' + '([^"\\' + strDelimiter + '\\r\\n]*))',
+    'gi'
+  );
+  const arrData: string[][] = [[]];
+  let arrMatches = null;
+  while ((arrMatches = objPattern.exec(strData))) {
+    const strMatchedDelimiter = arrMatches[1];
+    if (strMatchedDelimiter.length && strMatchedDelimiter !== strDelimiter) {
+      arrData.push([]);
+    }
+    let strMatchedValue: Nullable<string> = null;
+    if (arrMatches[2]) {
+      strMatchedValue = arrMatches[2].replace(new RegExp('""', 'g'), '"');
+    } else {
+      strMatchedValue = arrMatches[3];
+    }
+    arrData[arrData.length - 1].push(strMatchedValue);
+  }
+  return arrData;
 }
