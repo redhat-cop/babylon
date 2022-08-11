@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef, useState } from 'react';
-import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
@@ -44,15 +44,10 @@ import CreateResourcePoolFromResourceHandleModal from './CreateResourcePoolFromR
 import './admin.css';
 
 const ResourceHandleInstance: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<{
-    name: string;
-    tab?: string;
-  }>('/admin/resourcehandles/:name/:tab?');
-  const resourceHandleName = routeMatch.params.name;
-  const activeTab = routeMatch.params.tab || 'details';
+  const { name: resourceHandleName, tab: activeTab = 'details' } = useParams();
 
   const [createResourcePoolFromResourceHandleModalIsOpen, setCreateResourcePoolFromResourceHandleModalIsOpen] =
     useState(false);
@@ -65,7 +60,7 @@ const ResourceHandleInstance: React.FC = () => {
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourceHandle ${resourceHandleName}?`)) {
       await deleteResourceHandle(resourceHandle);
-      history.push('/admin/resourcehandles');
+      navigate('/admin/resourcehandles');
     }
   }
 
@@ -254,7 +249,7 @@ const ResourceHandleInstance: React.FC = () => {
       <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
         <Tabs
           activeKey={activeTab}
-          onSelect={(e, tabIndex) => history.push(`/admin/resourcehandles/${resourceHandleName}/${tabIndex}`)}
+          onSelect={(e, tabIndex) => navigate(`/admin/resourcehandles/${resourceHandleName}/${tabIndex}`)}
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <Stack hasGutter>

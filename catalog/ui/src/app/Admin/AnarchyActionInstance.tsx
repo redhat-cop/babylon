@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
@@ -23,36 +23,25 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-
-import { deleteAnarchyAction, deleteAnarchyRun, getAnarchyAction, listAnarchyRuns } from '@app/api';
-
+import { deleteAnarchyAction, getAnarchyAction, listAnarchyRuns } from '@app/api';
 import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchyAction, AnarchyRun, AnarchyRunList } from '@app/types';
-
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-
 import AnarchyRunsTable from './AnarchyRunsTable';
 
 import './admin.css';
 
 const AnarchyActionInstance: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<{
-    name: string;
-    namespace: string;
-    tab?: string;
-  }>('/admin/anarchyactions/:namespace/:name/:tab?');
-  const anarchyActionName = routeMatch.params.name;
-  const anarchyActionNamespace = routeMatch.params.namespace;
-  const activeTab = routeMatch.params.tab || 'details';
+  const { namespace: anarchyActionNamespace, name: anarchyActionName, tab: activeTab = 'details' } = useParams();
 
   const [anarchyActionFetchState, reduceAnarchyActionFetchState] = useReducer(k8sFetchStateReducer, null);
   const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(k8sFetchStateReducer, null);
@@ -64,7 +53,7 @@ const AnarchyActionInstance: React.FC = () => {
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchyAction ${anarchyActionName}?`)) {
       await deleteAnarchyAction(anarchyAction);
-      history.push(`/admin/anarchyactions/${anarchyActionNamespace}`);
+      navigate(`/admin/anarchyactions/${anarchyActionNamespace}`);
     }
   }
 
@@ -243,7 +232,7 @@ const AnarchyActionInstance: React.FC = () => {
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) =>
-            history.push(`/admin/anarchyactions/${anarchyActionNamespace}/${anarchyActionName}/${tabIndex}`)
+            navigate(`/admin/anarchyactions/${anarchyActionNamespace}/${anarchyActionName}/${tabIndex}`)
           }
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>

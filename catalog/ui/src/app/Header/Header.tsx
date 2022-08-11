@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { listUsers } from '@app/api';
 import { User, UserList } from '@app/types';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   ApplicationLauncher,
   ApplicationLauncherItem,
@@ -40,7 +40,7 @@ const Header: React.FC<{
     matchCount: 0,
     value: '',
   });
-  const history = useHistory();
+  const navigate = useNavigate();
   const { isAdmin, email, userInterface } = useSession().getSession();
 
   useEffect(() => {
@@ -55,7 +55,7 @@ const Header: React.FC<{
 
   function applyUserImpersonation() {
     setImpersonation(userImpersonationDialogState.value);
-    history.push('/');
+    navigate('/');
   }
 
   function openUserImpersonationDialog() {
@@ -93,14 +93,14 @@ const Header: React.FC<{
       return (
         <img
           src={summitLogo}
-          onClick={() => history.push('/')}
+          onClick={() => navigate('/')}
           alt="Red Hat Summit"
           className="summit-logo"
           style={{ height: '48px' }}
         />
       );
     }
-    return <UserInterfaceLogo onClick={() => history.push('/')} style={{ width: '278px' }} />;
+    return <UserInterfaceLogo onClick={() => navigate('/')} style={{ width: '278px' }} />;
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();

@@ -75,8 +75,8 @@ export interface K8sObjectListOpt extends K8sObjectListCommonOpt {
   plural: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
-export async function apiFetch(path: string, opt?: object): Promise<any> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function apiFetch(path: string, opt?: Record<string, unknown>): Promise<any> {
   const session = await getApiSession();
 
   const options = opt ? JSON.parse(JSON.stringify(opt)) : {};
@@ -110,14 +110,19 @@ export async function apiFetch(path: string, opt?: object): Promise<any> {
   return resp;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
-export async function fetcher(path: string, opt?: object): Promise<any> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetcher(path: string, opt?: Record<string, unknown>): Promise<any> {
   const response = await apiFetch(path, opt);
+  const contentType = response.headers.get('Content-Type');
+  if (contentType?.includes('text/')) return response.text();
   return response.json();
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
-export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: object): Promise<any[]> {
+export async function fetcherItemsInAllPages(
+  pathFn: (continueId: string) => string,
+  opts?: Record<string, unknown>
+): Promise<any[]> {
   const items = [];
   let continueId: Nullable<string> = null;
   while (continueId || continueId === null) {
@@ -1548,6 +1553,4 @@ export const apiPaths = {
     }${continueId ? `&continue=${continueId}` : ''}`,
   ANARCHY_SUBJECT: ({ namespace, anarchySubjectName }: { namespace: string; anarchySubjectName: string }): string =>
     `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchysubjects/${anarchySubjectName}`,
-
-  WORKSHOP_UI: ({ workshopId }: { workshopId: string }): string => `/api/workshop/${workshopId}`,
 };

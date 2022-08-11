@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef, useState } from 'react';
-import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   EmptyState,
   EmptyStateIcon,
@@ -113,11 +113,10 @@ function pruneAnarchyRun(anarchyRun: AnarchyRun) {
 */
 
 const AnarchyRuns: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<any>('/admin/anarchyruns/:namespace?');
-  const anarchyNamespace = routeMatch.params.namespace;
+  const { namespace: anarchyNamespace } = useParams();
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search')
     ? urlSearchParams
@@ -301,7 +300,7 @@ const AnarchyRuns: React.FC = () => {
                 } else if (urlSearchParams.has('search')) {
                   urlSearchParams.delete('searchs');
                 }
-                history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
               }}
             />
           </SplitItem>
@@ -314,7 +313,7 @@ const AnarchyRuns: React.FC = () => {
                 } else if (urlSearchParams.has('state')) {
                   urlSearchParams.delete('state');
                 }
-                history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
               }}
             />
           </SplitItem>
@@ -323,9 +322,9 @@ const AnarchyRuns: React.FC = () => {
               namespace={anarchyNamespace}
               onSelect={(namespaceName) => {
                 if (namespaceName) {
-                  history.push(`/admin/anarchyruns/${namespaceName}${location.search}`);
+                  navigate(`/admin/anarchyruns/${namespaceName}${location.search}`);
                 } else {
-                  history.push(`/admin/anarchyruns${location.search}`);
+                  navigate(`/admin/anarchyruns${location.search}`);
                 }
               }}
             />

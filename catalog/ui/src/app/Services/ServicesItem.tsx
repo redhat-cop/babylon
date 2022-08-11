@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
-import { useHistory, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { BABYLON_DOMAIN, getCostTracker } from '@app/util';
 import Editor from '@monaco-editor/react';
@@ -68,7 +68,7 @@ const ServicesItemComponent: React.FC<{
   resourceClaimName: string;
   serviceNamespaceName: string;
 }> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { cache } = useSWRConfig();
@@ -183,7 +183,7 @@ const ServicesItemComponent: React.FC<{
     if (modalState.action === 'delete') {
       deleteResourceClaim(resourceClaim);
       cache.delete(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }));
-      history.push(`/services/${serviceNamespaceName}`);
+      navigate(`/services/${serviceNamespaceName}`);
     } else {
       const resourceClaimUpdate: ResourceClaim =
         modalState.action === 'start'
@@ -255,9 +255,9 @@ const ServicesItemComponent: React.FC<{
             serviceNamespaces={serviceNamespaces}
             onSelect={(namespaceName) => {
               if (namespaceName) {
-                history.push(`/services/${namespaceName}${location.search}`);
+                navigate(`/services/${namespaceName}${location.search}`);
               } else {
-                history.push(`/services${location.search}`);
+                navigate(`/services${location.search}`);
               }
             }}
           />
@@ -326,9 +326,7 @@ const ServicesItemComponent: React.FC<{
         <PageSection key="body" variant={PageSectionVariants.light} className="services-item__body">
           <Tabs
             activeKey={activeTab || 'details'}
-            onSelect={(e, tabIndex) =>
-              history.push(`/services/${serviceNamespaceName}/${resourceClaimName}/${tabIndex}`)
-            }
+            onSelect={(e, tabIndex) => navigate(`/services/${serviceNamespaceName}/${resourceClaimName}/${tabIndex}`)}
           >
             <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
               <DescriptionList isHorizontal>

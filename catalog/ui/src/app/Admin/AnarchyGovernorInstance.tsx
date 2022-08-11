@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
@@ -42,17 +42,10 @@ import AnarchySubjectsTable from './AnarchySubjectsTable';
 import './admin.css';
 
 const AnarchyGovernorInstance: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<{
-    name: string;
-    namespace: string;
-    tab?: string;
-  }>('/admin/anarchygovernors/:namespace/:name/:tab?');
-  const anarchyGovernorName = routeMatch.params.name;
-  const anarchyGovernorNamespace = routeMatch.params.namespace;
-  const activeTab = routeMatch.params.tab || 'details';
+  const { name: anarchyGovernorName, namespace: anarchyGovernorNamespace, tab: activeTab = 'details' } = useParams();
 
   const [anarchyGovernorFetchState, reduceAnarchyGovernorFetchState] = useReducer(k8sFetchStateReducer, null);
   const [anarchySubjectsFetchState, reduceAnarchySubjectsFetchState] = useReducer(k8sFetchStateReducer, null);
@@ -64,7 +57,7 @@ const AnarchyGovernorInstance: React.FC = () => {
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchyGovernor ${anarchyGovernorName}?`)) {
       await deleteAnarchyGovernor(anarchyGovernor);
-      history.push(`/admin/anarchygovernors/${anarchyGovernorNamespace}`);
+      navigate(`/admin/anarchygovernors/${anarchyGovernorNamespace}`);
     }
   }
 
@@ -241,7 +234,7 @@ const AnarchyGovernorInstance: React.FC = () => {
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) =>
-            history.push(`/admin/anarchygovernors/${anarchyGovernorNamespace}/${anarchyGovernorName}/${tabIndex}`)
+            navigate(`/admin/anarchygovernors/${anarchyGovernorNamespace}/${anarchyGovernorName}/${tabIndex}`)
           }
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
-import { useHistory, useRouteMatch } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   ActionList,
   ActionListItem,
@@ -48,7 +48,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
   namespace,
   catalogItemName,
 }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWR<CatalogItem>(
@@ -131,7 +131,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         workshop: workshop,
       });
 
-      history.push(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
+      navigate(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem,
@@ -141,7 +141,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         parameterValues,
       });
 
-      history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
+      navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
   }
 
@@ -444,7 +444,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
             </Button>
           </ActionListItem>
           <ActionListItem>
-            <Button variant="secondary" onClick={history.goBack}>
+            <Button variant="secondary" onClick={() => navigate(-1)}>
               Cancel
             </Button>
           </ActionListItem>
@@ -455,10 +455,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 };
 
 const CatalogItemForm: React.FC = () => {
-  const routeMatch = useRouteMatch<{ namespace: string; catalogItem: string }>(
-    '/catalog/:namespace/order/:catalogItem'
-  );
-  const { catalogItem: catalogItemName, namespace }: { catalogItem: string; namespace: string } = routeMatch.params;
+  const { namespace, name: catalogItemName } = useParams();
   return (
     <ErrorBoundary
       fallbackRender={() => (

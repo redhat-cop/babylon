@@ -1,23 +1,15 @@
 import React from 'react';
-import { useRouteMatch } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 const ServicesItem = React.lazy(() => import('@app/Services/ServicesItem'));
 const ServicesList = React.lazy(() => import('@app/Services/ServicesList'));
 
 const Services: React.FC = () => {
-  const routeMatch = useRouteMatch<{ namespace?: string; name?: string; tab?: string }>(
-    '/services/:namespace?/:name?/:tab?'
-  );
-  if (routeMatch.params.name) {
-    return (
-      <ServicesItem
-        activeTab={routeMatch.params.tab || 'details'}
-        resourceClaimName={routeMatch.params.name}
-        serviceNamespaceName={routeMatch.params.namespace}
-      />
-    );
+  const { namespace, name, tab = 'details' } = useParams();
+  if (name) {
+    return <ServicesItem activeTab={tab} resourceClaimName={name} serviceNamespaceName={namespace} />;
   }
-  return <ServicesList serviceNamespaceName={routeMatch.params.namespace} />;
+  return <ServicesList serviceNamespaceName={namespace} />;
 };
 
 export default Services;

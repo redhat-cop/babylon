@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -48,7 +48,7 @@ function keywordMatch(workshop: Workshop, keyword: string): boolean {
 const WorkshopsList: React.FC<{
   serviceNamespaceName: string;
 }> = ({ serviceNamespaceName }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const location = useLocation();
   const [modalAction, openModalAction] = useModal();
   const urlSearchParams = new URLSearchParams(location.search);
@@ -217,7 +217,7 @@ const WorkshopsList: React.FC<{
   }
 
   if (serviceNamespaces.length === 1 && !serviceNamespaceName) {
-    return <Redirect to={`/workshops/${serviceNamespaces[0].name}`} />;
+    return <Navigate to={`/workshops/${serviceNamespaces[0].name}`} />;
   }
 
   return (
@@ -238,9 +238,9 @@ const WorkshopsList: React.FC<{
             serviceNamespaces={serviceNamespaces}
             onSelect={(namespaceName) => {
               if (namespaceName) {
-                history.push(`/workshops/${namespaceName}${location.search}`);
+                navigate(`/workshops/${namespaceName}${location.search}`);
               } else {
-                history.push(`/workshops${location.search}`);
+                navigate(`/workshops${location.search}`);
               }
             }}
           />
@@ -276,7 +276,7 @@ const WorkshopsList: React.FC<{
                 } else if (urlSearchParams.has('search')) {
                   urlSearchParams.delete('search');
                 }
-                history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
               }}
             />
           </SplitItem>

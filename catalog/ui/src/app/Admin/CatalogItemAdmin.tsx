@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useHistory, useRouteMatch } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
   ActionList,
@@ -62,15 +62,9 @@ export type Ops = {
 };
 
 const CatalogItemAdmin: React.FC = () => {
-  const routeMatch = useRouteMatch<{
-    namespace: string;
-    name: string;
-  }>('/admin/catalogitems/:namespace/:name');
-  const history = useHistory();
-  const { data: catalogItem, mutate } = useSWR<CatalogItem>(
-    apiPaths.CATALOG_ITEM({ namespace: routeMatch.params.namespace, name: routeMatch.params.name }),
-    fetcher
-  );
+  const { namespace, name } = useParams();
+  const navigate = useNavigate();
+  const { data: catalogItem, mutate } = useSWR<CatalogItem>(apiPaths.CATALOG_ITEM({ namespace, name }), fetcher);
   const { email: userEmail } = useSession().getSession();
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -114,8 +108,8 @@ const CatalogItemAdmin: React.FC = () => {
     mutate(
       (await patchK8sObjectByPath({
         path: apiPaths.CATALOG_ITEM({
-          namespace: routeMatch.params.namespace,
-          name: routeMatch.params.name,
+          namespace,
+          name,
         }),
         patch,
       })) as CatalogItem
@@ -153,14 +147,14 @@ const CatalogItemAdmin: React.FC = () => {
     mutate(
       (await patchK8sObjectByPath({
         path: apiPaths.CATALOG_ITEM({
-          namespace: routeMatch.params.namespace,
-          name: routeMatch.params.name,
+          namespace,
+          name,
         }),
         patch,
       })) as CatalogItem
     );
     setIsLoading(false);
-    history.push('/catalog');
+    navigate('/catalog');
   }
 
   return (
@@ -292,7 +286,7 @@ const CatalogItemAdmin: React.FC = () => {
             </Button>
           </ActionListItem>
           <ActionListItem>
-            <Button variant="secondary" onClick={() => history.push(`/catalog`)}>
+            <Button variant="secondary" onClick={() => navigate(`/catalog`)}>
               Cancel
             </Button>
           </ActionListItem>

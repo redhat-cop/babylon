@@ -9,22 +9,14 @@ import useSession from '@app/utils/useSession';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
-  fetcher: jest.fn(() => Promise.resolve(catalogItemObj as CatalogItem)),
+  fetcher: () => Promise.resolve(catalogItemObj as CatalogItem),
 }));
 
-const mockGoBack = jest.fn();
-const mockPush = jest.fn();
+const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ namespace: 'fakeNamespace', catalogItem: 'fakeCatalogItem' }),
-  useRouteMatch: () => ({
-    url: '/catalog/fakeNamespace/order/fakeCatalogItem',
-    params: { namespace: 'fakeNamespace', catalogItem: 'fakeCatalogItem' },
-  }),
-  useHistory: () => ({
-    goBack: mockGoBack,
-    push: mockPush,
-  }),
+  useParams: () => ({ namespace: 'babylon-catalog-test', name: 'tests.test-empty-config.prod' }),
+  useNavigate: () => mockNavigate,
 }));
 
 jest.mock('@app/utils/useSession', () =>
@@ -53,7 +45,7 @@ describe('CatalogItemForm Component', () => {
     const { getByText } = render(<CatalogItemForm />);
     const button = await waitFor(() => getByText('Cancel'));
     fireEvent.click(button);
-    expect(mockGoBack).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalled();
   });
 
   test('Submit button disabled until required fields are filled', async () => {
