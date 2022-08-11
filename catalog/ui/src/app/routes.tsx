@@ -36,7 +36,7 @@ const appRoutes: IAppRoute[] = [
   },
   {
     component: CatalogItemForm,
-    path: '/catalog/:namespace/order/:catalogItem',
+    path: '/catalog/:namespace/order/:name',
     title: 'Babylon | Catalog',
   },
   {
