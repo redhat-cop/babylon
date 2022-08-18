@@ -182,11 +182,11 @@ class ResourceClaim:
         for resource in self.definition['status']['resources']:
             state = resource.get('state')
             if not state:
-                return False
+                continue
             if state['kind'] == 'AnarchySubject':
-                if not state.get('status', {}).get('towerJobs', {}).get('provision', {}):
-                    return False
-        return True
+                if state.get('status', {}).get('towerJobs', {}).get('provision', {}):
+                    return True
+        return False
 
     @property
     def retirement_timestamp(self):
