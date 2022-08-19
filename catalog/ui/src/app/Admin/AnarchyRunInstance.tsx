@@ -271,8 +271,10 @@ const AnarchyRunInstance: React.FC = () => {
             </DescriptionList>
           </Tab>
           <Tab eventKey="log" title={<TabTitleText>Ansible Log</TabTitleText>}>
-            {anarchyRun.spec?.result?.ansibleRun ? (
-              <AnsibleRunLog ansibleRun={anarchyRun.spec.result.ansibleRun} />
+            {anarchyRun.spec?.result?.ansibleRun || anarchyRun.status?.result?.ansibleRun ? (
+              <AnsibleRunLog
+                ansibleRun={anarchyRun.spec?.result?.ansibleRun || anarchyRun.status?.result?.ansibleRun}
+              />
             ) : (
               <EmptyState variant="full">
                 <EmptyStateIcon icon={ExclamationTriangleIcon} />
