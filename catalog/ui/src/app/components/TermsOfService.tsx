@@ -1,18 +1,14 @@
-import * as React from 'react';
-
+import React from 'react';
 import { Checkbox, FormGroup } from '@patternfly/react-core';
-
 import { renderContent } from '@app/util';
 
-export interface TermsOfServiceProps {
+const TermsOfService: React.FC<{
   agreed: boolean;
   onChange: (checked: boolean, event: React.FormEvent<HTMLInputElement>) => void;
   text?: string;
-}
-
-const TermsOfService: React.FunctionComponent<TermsOfServiceProps> = ({ agreed, onChange, text }) => {
+}> = ({ agreed, onChange, text }) => {
   return (
-    <FormGroup fieldId="" label="IMPORTANT PLEASE READ" className="catalog-terms-of-service">
+    <FormGroup fieldId="" label="IMPORTANT PLEASE READ" className="terms-of-service">
       <div dangerouslySetInnerHTML={{ __html: renderContent(text, { format: 'html' }) }} />
       <Checkbox
         label="I confirm that I understand the above warnings."

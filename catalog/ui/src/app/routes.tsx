@@ -6,6 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import LoadingSection from './components/LoadingSection';
 
 const Dashboard = React.lazy(() => import('@app/Dashboard'));
+const TechnicalSupportPage = React.lazy(() => import('@app/TechnicalSupportPage'));
 const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
 const Services = React.lazy(() => import('@app/Services/Services'));
@@ -252,6 +253,11 @@ const publicRoutes: IAppRoute[] = [
     component: Workshop,
     path: '/workshop/:workshopId',
     title: 'Workshop | Babylon',
+  },
+  {
+    component: TechnicalSupportPage,
+    path: '/support',
+    title: 'Support | Babylon',
   },
 ];
 

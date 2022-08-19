@@ -1,3 +1,13 @@
+.catalog-item-card__wrapper {
+  position: relative;
+}
+.catalog-item-card__support {
+  position: absolute;
+  top: var(--pf-global--spacer--lg);
+  right: var(--pf-global--spacer--lg);
+  z-index: 10;
+}
+
 .catalog-item-card {
   color: var(--pf-global--Color--100);
   display: flex;
@@ -75,11 +85,7 @@
   right: 0;
 }
 
-.catalog-item-card__badges--dev {
-  background-color: var(--pf-global--danger-color--100);
-}
-
-.catalog-item-card__badges--test {
+.catalog-item-card__badges > .pf-c-badge {
   background-color: var(--pf-global--danger-color--100);
 }
 
@@ -103,4 +109,10 @@
   height: 46px;
   display: flex;
   align-items: flex-start;
+}
+
+.catalog-item-card__sla-icon {
+  max-width: 32px;
+  width: 100%;
+  position: relative !important;
 }

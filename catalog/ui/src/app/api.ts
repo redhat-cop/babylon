@@ -118,6 +118,17 @@ export async function fetcher(path: string, opt?: Record<string, unknown>): Prom
   return response.json();
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function publicFetcher(path: string, opt?: Record<string, unknown>): Promise<any> {
+  const response = await window.fetch(path, opt);
+  if (response.status >= 400 && response.status < 600) {
+    throw response;
+  }
+  const contentType = response.headers.get('Content-Type');
+  if (contentType?.includes('text/')) return response.text();
+  return response.json();
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export async function fetcherItemsInAllPages(
   pathFn: (continueId: string) => string,

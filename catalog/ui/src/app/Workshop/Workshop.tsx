@@ -6,7 +6,8 @@ import WorkshopAccess from './WorkshopAccess';
 import WorkshopHeader from './WorkshopHeader';
 import WorkshopLogin from './WorkshopLogin';
 import useSWRImmutable from 'swr/immutable';
-import { apiPaths, fetcher } from './workshop-utils';
+import { apiPaths } from './workshop-utils';
+import { publicFetcher } from '@app/api';
 
 import './workshop.css';
 
@@ -15,7 +16,7 @@ const Workshop: React.FC = () => {
   const [loginFailureMessage, setLoginFailureMessage] = useState('');
   const { data: workshop } = useSWRImmutable<WorkshopDetails>(
     workshopId ? apiPaths.WORKSHOP({ workshopId }) : null,
-    fetcher
+    publicFetcher
   );
   const [workshopPrivateInfo, setWorkshopPrivateInfo] = useState(workshop);
 
