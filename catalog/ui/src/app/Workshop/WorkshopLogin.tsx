@@ -61,12 +61,9 @@ const WorkshopLogin: React.FC<{
                 <FormGroup
                   fieldId="accessPassword"
                   isRequired={true}
-                  label="Password"
+                  label="Workshop Password"
                   labelIcon={
-                    <Popover
-                      bodyContent="Password will be provided by your workshop facilitator."
-                      headerContent="Password"
-                    >
+                    <Popover bodyContent="Password will be provided by your workshop facilitator.">
                       <Button variant="plain">
                         <HelpIcon />
                       </Button>
@@ -89,7 +86,7 @@ const WorkshopLogin: React.FC<{
               ) : null}
               <ActionGroup>
                 <Button isDisabled={submitDisabled} onClick={() => onLogin(email, accessPassword)}>
-                  Login
+                  Access
                 </Button>
               </ActionGroup>
               {loginFailureMessage ? <Text className="workshop-login-failure">{loginFailureMessage}</Text> : null}

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Link, Redirect, useHistory, useLocation } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import useSWR, { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import {
@@ -66,7 +66,7 @@ const FETCH_BATCH_LIMIT = 50;
 const ServicesList: React.FC<{
   serviceNamespaceName: string;
 }> = ({ serviceNamespaceName }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const view = serviceNamespaceName ? 'default' : 'admin';
@@ -309,7 +309,7 @@ const ServicesList: React.FC<{
   }
 
   if (serviceNamespaces.length === 1 && !serviceNamespaceName) {
-    return <Redirect to={`/services/${serviceNamespaces[0].name}`} />;
+    return <Navigate to={`/services/${serviceNamespaces[0].name}`} />;
   }
 
   return (
@@ -338,9 +338,9 @@ const ServicesList: React.FC<{
             serviceNamespaces={serviceNamespaces}
             onSelect={(namespaceName) => {
               if (namespaceName) {
-                history.push(`/services/${namespaceName}${location.search}`);
+                navigate(`/services/${namespaceName}${location.search}`);
               } else {
-                history.push(`/services${location.search}`);
+                navigate(`/services${location.search}`);
               }
             }}
           />
@@ -376,7 +376,7 @@ const ServicesList: React.FC<{
                 } else if (urlSearchParams.has('search')) {
                   urlSearchParams.delete('search');
                 }
-                history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
               }}
             />
           </SplitItem>

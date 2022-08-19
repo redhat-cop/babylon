@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation, useRouteMatch } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { Badge, CardBody, CardHeader, Split, SplitItem, Title } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
 import CatalogItemIcon from './CatalogItemIcon';
@@ -11,7 +11,7 @@ import './catalog-item-card.css';
 
 const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
   const location = useLocation();
-  const routeMatch = useRouteMatch<{ namespace: string }>('/catalog/:namespace?');
+  const { namespace } = useParams();
   const urlSearchParams = new URLSearchParams(location.search);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const provider = getProvider(catalogItem);
@@ -20,7 +20,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const { code: status } = getStatus(catalogItem);
 
   if (!urlSearchParams.has('item')) {
-    if (routeMatch.params.namespace) {
+    if (namespace) {
       urlSearchParams.set('item', catalogItem.metadata.name);
     } else {
       urlSearchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);

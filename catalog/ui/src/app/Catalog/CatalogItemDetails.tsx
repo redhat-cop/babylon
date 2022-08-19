@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   DescriptionList,
@@ -61,7 +61,7 @@ enum CatalogItemAccess {
 }
 
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const { email, userNamespace, isAdmin, groups } = useSession().getSession();
   const catalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
   const { userImpersonated } = useImpersonateUser();
@@ -149,7 +149,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   async function orderCatalogItem(): Promise<void> {
     // Either direct user to request form or immediately request if form would be empty.
     if (termsOfService || (parameters || []).length > 0) {
-      history.push(`/catalog/${namespace}/order/${name}`);
+      navigate(`/catalog/${namespace}/order/${name}`);
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem: catalogItem,
@@ -157,7 +157,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         groups,
         userNamespace,
       });
-      history.push(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
+      navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
   }
 
@@ -212,7 +212,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               {isAdmin ? (
                 <Button
                   key="catalog-item-admin"
-                  onClick={() => history.push(`/admin/catalogitems/${namespace}/${name}`)}
+                  onClick={() => navigate(`/admin/catalogitems/${namespace}/${name}`)}
                   variant="secondary"
                 >
                   Admin

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
-import { useHistory, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
@@ -56,7 +56,7 @@ const WorkshopsItemComponent: React.FC<{
   serviceNamespaceName: string;
   workshopName: string;
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const [modalState, setModalState] = useState<ModalState>({});
@@ -195,7 +195,7 @@ const WorkshopsItemComponent: React.FC<{
     await deleteWorkshop(workshop);
     mutateWorkshop(null);
     mutate(null);
-    history.push(`/workshops/${serviceNamespaceName}`);
+    navigate(`/workshops/${serviceNamespaceName}`);
   }
 
   return (
@@ -236,9 +236,9 @@ const WorkshopsItemComponent: React.FC<{
             serviceNamespaces={serviceNamespaces}
             onSelect={(namespaceName) => {
               if (namespaceName) {
-                history.push(`/workshops/${namespaceName}${location.search}`);
+                navigate(`/workshops/${namespaceName}${location.search}`);
               } else {
-                history.push(`/workshops${location.search}`);
+                navigate(`/workshops${location.search}`);
               }
             }}
           />
@@ -302,7 +302,7 @@ const WorkshopsItemComponent: React.FC<{
       <PageSection key="body" variant={PageSectionVariants.light} className="workshops-item__body">
         <Tabs
           activeKey={activeTab || 'details'}
-          onSelect={(e, tabIndex) => history.push(`/workshops/${serviceNamespaceName}/${workshopName}/${tabIndex}`)}
+          onSelect={(e, tabIndex) => navigate(`/workshops/${serviceNamespaceName}/${workshopName}/${tabIndex}`)}
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <WorkshopsItemDetails

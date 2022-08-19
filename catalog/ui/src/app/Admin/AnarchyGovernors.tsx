@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   EmptyState,
   EmptyStateIcon,
@@ -64,11 +64,10 @@ function pruneAnarchyGovernor(anarchyGovernor: AnarchyGovernor) {
 */
 
 const AnarchyGovernors: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const location = useLocation();
   const componentWillUnmount = useRef(false);
-  const routeMatch = useRouteMatch<any>('/admin/anarchygovernors/:namespace?');
-  const anarchyNamespace = routeMatch.params.namespace;
+  const { namespace: anarchyNamespace } = useParams();
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search')
     ? urlSearchParams
@@ -193,7 +192,7 @@ const AnarchyGovernors: React.FC = () => {
                 } else if (urlSearchParams.has('search')) {
                   urlSearchParams.delete('search');
                 }
-                history.push(`${location.pathname}?${urlSearchParams.toString()}`);
+                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
               }}
             />
           </SplitItem>
@@ -202,9 +201,9 @@ const AnarchyGovernors: React.FC = () => {
               namespace={anarchyNamespace}
               onSelect={(namespaceName) => {
                 if (namespaceName) {
-                  history.push(`/admin/anarchygovernors/${namespaceName}${location.search}`);
+                  navigate(`/admin/anarchygovernors/${namespaceName}${location.search}`);
                 } else {
-                  history.push(`/admin/anarchygovernors${location.search}`);
+                  navigate(`/admin/anarchygovernors${location.search}`);
                 }
               }}
             />
