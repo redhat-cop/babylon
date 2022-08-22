@@ -30,7 +30,7 @@ type FormState = {
   termsOfServiceRequired: boolean;
   workshop?: WorkshopProps;
   error: string;
-  usePoolIfAvailable?: boolean;
+  usePoolIfAvailable: boolean;
 };
 type ParameterProps = {
   name: string;
