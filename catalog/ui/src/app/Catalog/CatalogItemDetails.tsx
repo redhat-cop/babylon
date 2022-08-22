@@ -156,6 +156,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         catalogNamespaceName: catalogNamespace?.displayName || catalogItem.metadata.namespace,
         groups,
         userNamespace,
+        usePoolIfAvailable: true,
       });
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
