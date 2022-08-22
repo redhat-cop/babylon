@@ -19,7 +19,7 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import './service-item-status.css';
 
 function getCheckStatusStateFromResource(resourceState: any, resourceTemplate: any): string | null {
-  const resourceStateVars = resourceState.spec?.vars;
+  const resourceStateVars = resourceState?.spec?.vars;
   const resourceTemplateVars = resourceTemplate.spec?.vars;
   if (resourceStateVars?.check_status_state && resourceStateVars.check_status_state != 'successful') {
     return resourceStateVars.check_status_state;
@@ -154,7 +154,7 @@ const ServiceItemStatus: React.FC<{
         const resourceStatus = resourceClaim.status?.resources?.[idx];
         const resourceState = resourceStatus?.state;
 
-        if (!resourceState.status?.supportedActions?.status) {
+        if (!resourceState?.status?.supportedActions?.status) {
           return null;
         }
 
