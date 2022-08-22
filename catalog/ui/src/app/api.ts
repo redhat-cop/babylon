@@ -52,6 +52,7 @@ export interface CreateServiceRequestOpt {
   userNamespace: UserNamespace;
   groups: string[];
   parameterValues?: CreateServiceRequestParameterValues;
+  usePoolIfAvailable: boolean;
 }
 
 export interface CreateServiceRequestParameterValues {
@@ -307,6 +308,7 @@ export async function createServiceRequest({
   userNamespace,
   groups,
   parameterValues,
+  usePoolIfAvailable,
 }: CreateServiceRequestOpt): Promise<any> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
@@ -333,6 +335,10 @@ export async function createServiceRequest({
       resources: [],
     },
   };
+
+  if (usePoolIfAvailable === false) {
+    requestResourceClaim.metadata.annotations['poolboy.gpte.redhat.com/resource-pool-name'] = 'disable';
+  }
 
   if (catalogItem.spec.userData) {
     requestResourceClaim.metadata.annotations[`${BABYLON_DOMAIN}/userData`] = JSON.stringify(catalogItem.spec.userData);

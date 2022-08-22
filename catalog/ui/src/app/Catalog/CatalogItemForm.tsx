@@ -139,6 +139,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         userNamespace,
         groups,
         parameterValues,
+        usePoolIfAvailable: formState.usePoolIfAvailable,
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
@@ -422,6 +423,24 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               </>
             )}
           </div>
+        ) : isAdmin ? (
+          <FormGroup key="pooling-switch" fieldId="pooling-switch">
+            <div className="catalog-item-form__group-control--single">
+              <Switch
+                id="pooling-switch"
+                aria-label="Use pool if available"
+                label="Use pool if available (only visible to admins)"
+                isChecked={formState.usePoolIfAvailable}
+                hasCheckIcon
+                onChange={(isChecked) =>
+                  dispatchFormState({
+                    type: 'usePoolIfAvailable',
+                    usePoolIfAvailable: isChecked,
+                  })
+                }
+              />
+            </div>
+          </FormGroup>
         ) : null}
 
         {catalogItem.spec.termsOfService ? (
