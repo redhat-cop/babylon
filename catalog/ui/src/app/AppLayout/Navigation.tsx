@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { LinkProps, NavLink, useLocation, useMatch, useResolvedPath } from 'react-router-dom';
 import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
@@ -47,7 +47,7 @@ const Navigation: React.FC = () => {
           <ExactNavLink to="/services">All Services</ExactNavLink>
         </NavItem>
       </NavExpandable>
-    ) : (
+    ) : userNamespace ? (
       <NavItem>
         <NavLink
           className={locationStartsWith(`/services/${userNamespace.name}`) ? 'pf-m-current' : ''}
@@ -56,7 +56,7 @@ const Navigation: React.FC = () => {
           Services
         </NavLink>
       </NavItem>
-    );
+    ) : null;
 
   const workshopNavigation =
     isAdmin || workshopNamespaces.length > 1 ? (
