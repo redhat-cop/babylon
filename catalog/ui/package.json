@@ -79,7 +79,7 @@
     "@patternfly/react-table": "^4.83.1",
     "@reduxjs/toolkit": "^1.8.5",
     "asciidoctor": "^2.2.6",
-    "dompurify": "^2.3.10",
+    "dompurify": "^2.3.12",
     "js-yaml": "^3.14.1",
     "json2csv": "^5.0.7",
     "parse-duration": "^1.0.2",
