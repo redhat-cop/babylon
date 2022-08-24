@@ -30,6 +30,7 @@ type FormState = {
   termsOfServiceRequired: boolean;
   workshop?: WorkshopProps;
   error: string;
+  usePoolIfAvailable: boolean;
 };
 type ParameterProps = {
   name: string;
@@ -38,7 +39,7 @@ type ParameterProps = {
 };
 
 export type FormStateAction = {
-  type: 'init' | 'parameterUpdate' | 'termsOfServiceAgreed' | 'workshop' | 'complete';
+  type: 'init' | 'parameterUpdate' | 'termsOfServiceAgreed' | 'workshop' | 'usePoolIfAvailable' | 'complete';
   catalogItem?: CatalogItem;
   user?: UserProps;
   parameter?: ParameterProps;
@@ -46,6 +47,7 @@ export type FormStateAction = {
   error?: string;
   parameters?: { [name: string]: FormStateParameter };
   workshop?: WorkshopProps;
+  usePoolIfAvailable?: boolean;
 };
 
 export type FormStateParameter = {
@@ -243,6 +245,7 @@ function reduceFormStateInit(catalogItem: CatalogItem, { isAdmin, groups, roles 
     termsOfServiceRequired: catalogItem.spec.termsOfService ? true : false,
     workshop: null,
     error: '',
+    usePoolIfAvailable: true,
   };
 }
 
@@ -292,6 +295,13 @@ function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProp
   };
 }
 
+function reduceFormStateUsePoolIfAvailable(initialState: FormState, usePoolIfAvailable = true): FormState {
+  return {
+    ...initialState,
+    usePoolIfAvailable,
+  };
+}
+
 export function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'init':
@@ -306,6 +316,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
     case 'workshop':
       return reduceFormStateWorkshop(state, action.workshop);
+    case 'usePoolIfAvailable':
+      return reduceFormStateUsePoolIfAvailable(state, action.usePoolIfAvailable);
     case 'complete':
       return reduceFormStateComplete(state, { error: action.error, parameters: action.parameters });
     default:
