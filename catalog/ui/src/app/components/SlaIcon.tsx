@@ -1,5 +1,5 @@
-import { Tooltip } from '@patternfly/react-core';
 import React from 'react';
+import { Tooltip } from '@patternfly/react-core';
 
 export const SUPPORT_LEVELS = ['community', 'standard', 'enterprise', 'event'] as const;
 
