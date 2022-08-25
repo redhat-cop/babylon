@@ -19,9 +19,9 @@ import useSWRImmutable from 'swr/immutable';
 import { CSVToArray } from '@app/util';
 import { publicFetcher } from '@app/api';
 import PublicHeader from '@app/Header/PublicHeader';
+import SlaIcon, { SUPPORT_LEVELS } from '@app/components/SlaIcon';
 
 import './technical-support-page.css';
-import SlaIcon, { SUPPORT_LEVELS } from '@app/components/SlaIcon';
 
 const TechnicalSupportPage: React.FC = () => {
   const { data } = useSWRImmutable('./incidents_technical_support.csv', publicFetcher);
