@@ -14,16 +14,16 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
+import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import useSWRImmutable from 'swr/immutable';
 import { CSVToArray } from '@app/util';
-import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import PublicHeader from '@app/Header/PublicHeader';
 import { publicFetcher } from '@app/api';
+import PublicHeader from '@app/Header/PublicHeader';
 
 import './technical-support-page.css';
 import SlaIcon, { SUPPORT_LEVELS } from '@app/components/SlaIcon';
 
-const TechnicalSupportPage: React.FC<{}> = () => {
+const TechnicalSupportPage: React.FC = () => {
   const { data } = useSWRImmutable('./incidents_technical_support.csv', publicFetcher);
   const dataArr = CSVToArray(data);
   function getHelpLink() {
