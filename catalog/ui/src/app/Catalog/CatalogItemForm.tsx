@@ -43,8 +43,8 @@ import { displayName, randomString } from '@app/util';
 import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
-// import { DateTimePicker } from '@app/components/DateTimePicker';
-import { useModal } from '@app/Modal/Modal';
+import { DateTimePicker } from '@app/components/DateTimePicker';
+import Modal, { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
@@ -158,6 +158,22 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
+      <Modal ref={scheduleModal} onConfirm={submitRequest} title="Schedule for" confirmText="Schedule">
+        <Form className="catalog-item-form__schedule-form" isHorizontal>
+          <FormGroup fieldId="schedule-field" label="Start Date">
+            <DateTimePicker
+              defaultTimestamp={Date.now()}
+              onSelect={(date) =>
+                dispatchFormState({
+                  type: 'startDate',
+                  startDate: date,
+                })
+              }
+              minDate={Date.now()}
+            />
+          </FormGroup>
+        </Form>
+      </Modal>
       <Title headingLevel="h1" size="lg">
         Order {displayName(catalogItem)}
       </Title>
