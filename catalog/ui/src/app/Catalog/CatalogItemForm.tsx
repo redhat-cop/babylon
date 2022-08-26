@@ -23,7 +23,7 @@ import {
 } from '@patternfly/react-core';
 import useSWR from 'swr';
 import {
-  CalendarAltIcon,
+  // CalendarAltIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   OutlinedQuestionCircleIcon,
@@ -137,7 +137,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         parameters: parameterValues,
         startDelay: provisionStartDelay,
         workshop: workshop,
-        ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
+        // ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
       });
 
       navigate(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
@@ -149,7 +149,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         groups,
         parameterValues,
         usePoolIfAvailable: formState.usePoolIfAvailable,
-        ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
+        // ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
@@ -494,7 +494,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                 isAriaDisabled={!submitRequestEnabled}
                 isDisabled={!submitRequestEnabled}
                 onClick={openScheduleModal}
-                icon={<CalendarAltIcon />}
+                //                icon={<CalendarAltIcon />}
               >
                 Schedule
               </Button>
