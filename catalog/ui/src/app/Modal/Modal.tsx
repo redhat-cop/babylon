@@ -115,7 +115,18 @@ const _Modal: ForwardRefRenderFunction<
 
   const childrenWithProps = React.Children.map(children, (child) => {
     if (passModifiers && React.isValidElement(child)) {
-      return React.cloneElement(child, { setTitle, setState, setOnConfirmCb });
+      return React.cloneElement(
+        child as React.ReactElement<{
+          setTitle: React.Dispatch<React.SetStateAction<string>>;
+          setState: React.Dispatch<unknown>;
+          setOnConfirmCb: React.Dispatch<React.SetStateAction<() => Promise<void>>>;
+        }>,
+        {
+          setTitle,
+          setState,
+          setOnConfirmCb,
+        }
+      );
     }
     return child;
   });
