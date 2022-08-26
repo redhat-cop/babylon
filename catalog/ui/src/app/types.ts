@@ -213,6 +213,7 @@ export interface ResourceClaimSpec {
 
 export interface ResourceClaimSpecLifespan {
   end?: string;
+  start?: string;
 }
 
 export interface ResourceClaimSpecResource {

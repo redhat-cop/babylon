@@ -47,33 +47,42 @@ declare const window: Window &
     sessionPromiseInstance?: Promise<Session>;
   };
 
-export interface CreateServiceRequestOpt {
+type CreateServiceRequestOpt = {
   catalogItem: CatalogItem;
   catalogNamespaceName: string;
   userNamespace: UserNamespace;
   groups: string[];
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
-  startDate?: Date;
-}
+  start?: {
+    date: Date;
+    type: 'lifespan' | 'resource';
+  };
+};
 
-export interface CreateServiceRequestParameterValues {
+type CreateWorkshopPovisionOpt = {
+  catalogItem: CatalogItem;
+  concurrency: number;
+  count: number;
+  parameters: any;
+  startDelay: number;
+  workshop: Workshop;
+  start?: { date: Date; type: 'lifespan' };
+};
+
+export type CreateServiceRequestParameterValues = {
   [name: string]: boolean | number | string;
-}
+};
 
-export interface K8sApiFetchOpt {
-  disableImpersonation?: boolean;
-}
-
-export interface K8sObjectListCommonOpt {
+type K8sObjectListCommonOpt = {
   continue?: string;
   disableImpersonation?: boolean;
   labelSelector?: string;
   limit?: number;
   namespace?: string;
-}
+};
 
-export interface K8sObjectListOpt extends K8sObjectListCommonOpt {
+interface K8sObjectListOpt extends K8sObjectListCommonOpt {
   apiVersion: string;
   plural: string;
 }
@@ -311,14 +320,8 @@ export async function createServiceRequest({
   groups,
   parameterValues,
   usePoolIfAvailable,
-  startDate,
+  start,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setTime(tomorrow.getTime() + 14 * 60 * 60 * 1000);
-  if (!startDate) {
-    startDate = tomorrow;
-  }
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
   const access = checkAccessControl(catalogItem.spec.accessControl, groups);
@@ -332,26 +335,26 @@ export async function createServiceRequest({
         [`${BABYLON_DOMAIN}/catalogItemDisplayName`]: displayName(catalogItem),
         [`${BABYLON_DOMAIN}/requester`]: session.user,
         [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}`,
+        ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
+        ...(catalogItem.spec.userData
+          ? { [`${BABYLON_DOMAIN}/userData`]: JSON.stringify(catalogItem.spec.userData) }
+          : {}),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        ...(catalogItem.spec.bookbag ? { [`${BABYLON_DOMAIN}/labUserInterface`]: 'bookbag' } : {}),
       },
       name: catalogItem.metadata.name,
       namespace: userNamespace.name,
     },
     spec: {
       resources: [],
+      ...(start && start.type === 'lifespan'
+        ? { lifespan: { start: start.date.toISOString().split('.')[0] + 'Z' } }
+        : {}),
     },
   };
-
-  if (usePoolIfAvailable === false) {
-    requestResourceClaim.metadata.annotations['poolboy.gpte.redhat.com/resource-pool-name'] = 'disable';
-  }
-
-  if (catalogItem.spec.userData) {
-    requestResourceClaim.metadata.annotations[`${BABYLON_DOMAIN}/userData`] = JSON.stringify(catalogItem.spec.userData);
-  }
 
   if (access === 'allow') {
     // Once created the ResourceClaim is completely independent of the catalog item.
@@ -362,48 +365,21 @@ export async function createServiceRequest({
     // Copy resources from catalog item to ResourceClaim
     requestResourceClaim.spec.resources = JSON.parse(JSON.stringify(catalogItem.spec.resources));
 
+    // Add resources start time (if present)
+    if (start && start.type === 'resource') {
+      const startTimestamp = start.date.toISOString().split('.')[0] + 'Z';
+      for (const resource of requestResourceClaim.spec.resources) {
+        recursiveAssign(resource, {
+          template: { spec: { vars: { action_schedule: { start: startTimestamp } } } },
+        });
+      }
+    }
+
     // Add display name annotations for components
     for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
       if (key.startsWith(`${BABYLON_DOMAIN}/displayNameComponent`)) {
         requestResourceClaim.metadata.annotations[key] = value;
       }
-    }
-
-    // Add bookbag label
-    if (catalogItem.spec.bookbag) {
-      requestResourceClaim.metadata.labels[`${BABYLON_DOMAIN}/labUserInterface`] = 'bookbag';
-    }
-
-    // Add start time (if present)
-    if (startDate) {
-      const startTimestamp = startDate.toISOString().split('.')[0] + 'Z';
-      let defaultLifespan = parseDuration('2d');
-      for (const resource of requestResourceClaim.spec.resources) {
-        const resourceProvider: ResourceProvider = null;
-        /*try {
-          resourceProvider = await getResourceProvider(resource.name);
-        } catch {
-          //
-        }*/
-        const defaultRuntime = parseDuration(
-          resourceProvider?.spec?.override?.spec?.vars?.action_schedule?.default_runtime || '4h'
-        );
-        const stopDate = new Date(startDate.getTime() + defaultRuntime);
-        const stopTimestamp = stopDate.toISOString().split('.')[0] + 'Z';
-        recursiveAssign(resource, {
-          template: { spec: { vars: { action_schedule: { start: startTimestamp, stop: stopTimestamp } } } },
-        });
-        const resourceLifespan = parseDuration(resourceProvider?.spec?.lifespan?.relativeMaximum || '2d');
-        if (resourceLifespan < defaultLifespan) {
-          defaultLifespan = resourceLifespan;
-        }
-      }
-      const endDate = new Date(startDate.getTime() + defaultLifespan);
-      const endTimestamp = endDate.toISOString().split('.')[0] + 'Z';
-      recursiveAssign(requestResourceClaim, {
-        spec: { lifespan: { end: endTimestamp } },
-      });
-      requestResourceClaim.metadata.creationTimestamp = startTimestamp;
     }
 
     // Copy all parameter values into the ResourceClaim
@@ -626,14 +602,8 @@ export async function createWorkshopProvision({
   parameters,
   startDelay,
   workshop,
-}: {
-  catalogItem: CatalogItem;
-  concurrency: number;
-  count: number;
-  parameters: any;
-  startDelay: number;
-  workshop: Workshop;
-}): Promise<WorkshopProvision> {
+  start,
+}: CreateWorkshopPovisionOpt): Promise<WorkshopProvision> {
   const definition: WorkshopProvision = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'WorkshopProvision',
@@ -664,11 +634,13 @@ export async function createWorkshopProvision({
       parameters: parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
+      ...(start && start.type === 'lifespan'
+        ? { lifespan: { start: start.date.toISOString().split('.')[0] + 'Z' } }
+        : {}),
     },
   };
 
-  const workshopProvision: WorkshopProvision = await createK8sObject<WorkshopProvision>(definition);
-  return workshopProvision;
+  return await createK8sObject<WorkshopProvision>(definition);
 }
 
 export async function getAnarchyAction(namespace: string, name: string): Promise<AnarchyAction> {
