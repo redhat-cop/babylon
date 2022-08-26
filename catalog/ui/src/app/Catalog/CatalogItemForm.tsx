@@ -43,7 +43,7 @@ import { displayName, randomString } from '@app/util';
 import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
-import { DateTimePicker } from '@app/components/DateTimePicker';
+// import { DateTimePicker } from '@app/components/DateTimePicker';
 import Modal, { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
@@ -161,16 +161,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
       <Modal ref={scheduleModal} onConfirm={submitRequest} title="Schedule for" confirmText="Schedule">
         <Form className="catalog-item-form__schedule-form" isHorizontal>
           <FormGroup fieldId="schedule-field" label="Start Date">
-            <DateTimePicker
-              defaultTimestamp={Date.now()}
-              onSelect={(date) =>
-                dispatchFormState({
-                  type: 'startDate',
-                  startDate: date,
-                })
-              }
-              minDate={Date.now()}
-            />
+            fdsa
           </FormGroup>
         </Form>
       </Modal>
