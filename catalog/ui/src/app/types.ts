@@ -41,6 +41,7 @@ export interface AnarchyRunnerList {
 export interface AnarchySubject extends K8sObject {
   spec: AnarchySubjectSpec;
   status?: AnarchySubjectStatus;
+  data?: any;
 }
 
 export interface AnarchySubjectSpec {
@@ -60,12 +61,24 @@ export interface AnarchySubjectList {
   metadata: K8sObjectListMeta;
 }
 
+export type AnarchySubjectSupportedActions = {
+  start?: unknown;
+  stop?: unknown;
+  status?: unknown;
+  destroy?: unknown;
+  provision?: unknown;
+};
 export interface AnarchySubjectStatus {
   towerJobs?: { [jobName: string]: AnarchySubjectStatusTowerJob };
+  supportedActions?: AnarchySubjectSupportedActions;
+  diffBase?: string;
+  pendingActions?: any[];
+  runs?: any;
 }
 
 export interface AnarchySubjectStatusTowerJob {
   towerJobURL?: string;
+  completeTimestamp?: string;
 }
 
 export interface CatalogItem extends K8sObject {

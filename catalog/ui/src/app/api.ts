@@ -39,6 +39,7 @@ import {
   BABYLON_DOMAIN,
   getCostTracker,
   compareStringDates,
+  canExecuteAction,
 } from '@app/util';
 
 declare const window: Window &
@@ -53,6 +54,7 @@ export interface CreateServiceRequestOpt {
   groups: string[];
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
+  startDate?: Date;
 }
 
 export interface CreateServiceRequestParameterValues {
@@ -309,7 +311,14 @@ export async function createServiceRequest({
   groups,
   parameterValues,
   usePoolIfAvailable,
-}: CreateServiceRequestOpt): Promise<any> {
+  startDate,
+}: CreateServiceRequestOpt): Promise<ResourceClaim> {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setTime(tomorrow.getTime() + 14 * 60 * 60 * 1000);
+  if (!startDate) {
+    startDate = tomorrow;
+  }
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
   const access = checkAccessControl(catalogItem.spec.accessControl, groups);
@@ -363,6 +372,38 @@ export async function createServiceRequest({
     // Add bookbag label
     if (catalogItem.spec.bookbag) {
       requestResourceClaim.metadata.labels[`${BABYLON_DOMAIN}/labUserInterface`] = 'bookbag';
+    }
+
+    // Add start time (if present)
+    if (startDate) {
+      const startTimestamp = startDate.toISOString().split('.')[0] + 'Z';
+      let defaultLifespan = parseDuration('2d');
+      for (const resource of requestResourceClaim.spec.resources) {
+        const resourceProvider: ResourceProvider = null;
+        /*try {
+          resourceProvider = await getResourceProvider(resource.name);
+        } catch {
+          //
+        }*/
+        const defaultRuntime = parseDuration(
+          resourceProvider?.spec?.override?.spec?.vars?.action_schedule?.default_runtime || '4h'
+        );
+        const stopDate = new Date(startDate.getTime() + defaultRuntime);
+        const stopTimestamp = stopDate.toISOString().split('.')[0] + 'Z';
+        recursiveAssign(resource, {
+          template: { spec: { vars: { action_schedule: { start: startTimestamp, stop: stopTimestamp } } } },
+        });
+        const resourceLifespan = parseDuration(resourceProvider?.spec?.lifespan?.relativeMaximum || '2d');
+        if (resourceLifespan < defaultLifespan) {
+          defaultLifespan = resourceLifespan;
+        }
+      }
+      const endDate = new Date(startDate.getTime() + defaultLifespan);
+      const endTimestamp = endDate.toISOString().split('.')[0] + 'Z';
+      recursiveAssign(requestResourceClaim, {
+        spec: { lifespan: { end: endTimestamp } },
+      });
+      requestResourceClaim.metadata.creationTimestamp = startTimestamp;
     }
 
     // Copy all parameter values into the ResourceClaim
@@ -1137,14 +1178,22 @@ export async function patchWorkshopProvision({
   });
 }
 
-export async function requestStatusForAllResourcesInResourceClaim(resourceClaim): Promise<ResourceClaim> {
+export async function requestStatusForAllResourcesInResourceClaim(
+  resourceClaim: ResourceClaim
+): Promise<ResourceClaim> {
   const requestDate = new Date();
   const requestTimestamp: string = requestDate.toISOString().split('.')[0] + 'Z';
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
+  const resourcesToRequestStatus = [];
+  for (const resource of resourceClaim.status?.resources) {
+    if (canExecuteAction(resource.state, 'status')) {
+      resourcesToRequestStatus.push(resource.name);
+    }
+  }
   for (let i = 0; i < data.spec.resources.length; ++i) {
-    if (resourceClaim.status?.resources?.[i]?.state?.status?.supportedActions?.status) {
+    if (resourcesToRequestStatus.includes(data.spec.resources[i].name)) {
       data.spec.resources[i].template.spec.vars.check_status_request_timestamp = requestTimestamp;
     }
   }
@@ -1166,8 +1215,49 @@ export async function scheduleStopForAllResourcesInResourceClaim(
   const patch = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
+  const resourcesToStop = [];
+  for (const resource of resourceClaim.status?.resources) {
+    if (canExecuteAction(resource.state, 'stop')) {
+      resourcesToStop.push(resource.name);
+    }
+  }
   for (let i = 0; i < patch.spec.resources.length; ++i) {
-    patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+    if (resourcesToStop.includes(patch.spec.resources[i].name)) {
+      patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+    }
+  }
+
+  return (await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com',
+    'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    patch
+  )) as ResourceClaim;
+}
+
+export async function scheduleStartForAllResourcesInResourceClaim(
+  resourceClaim: ResourceClaim,
+  date: Date,
+  stopDate: Date
+): Promise<ResourceClaim> {
+  const startTimestamp = date.toISOString().split('.')[0] + 'Z';
+  const stopTimestamp = stopDate.toISOString().split('.')[0] + 'Z';
+  const patch = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
+  };
+  const resourcesToStart = [];
+  for (const resource of resourceClaim.status?.resources) {
+    if (canExecuteAction(resource, 'start')) {
+      resourcesToStart.push(resource.name);
+    }
+  }
+  for (let i = 0; i < patch.spec.resources.length; ++i) {
+    if (resourcesToStart.includes(patch.spec.resources[i].name)) {
+      patch.spec.resources[i].template.spec.vars.action_schedule.start = startTimestamp;
+      patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+    }
   }
 
   return (await patchNamespacedCustomObject(
@@ -1248,41 +1338,12 @@ export async function startAllResourcesInResourceClaim(resourceClaim: ResourceCl
   );
   const startDate = new Date();
   const stopDate = new Date(Date.now() + defaultRuntime);
-  const data = {
-    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
-  };
-  for (let i = 0; i < data.spec.resources.length; ++i) {
-    data.spec.resources[i].template.spec.vars.action_schedule.start = startDate.toISOString().split('.')[0] + 'Z';
-    data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + 'Z';
-  }
-
-  return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
-    'v1',
-    resourceClaim.metadata.namespace,
-    'resourceclaims',
-    resourceClaim.metadata.name,
-    data
-  )) as ResourceClaim;
+  return scheduleStartForAllResourcesInResourceClaim(resourceClaim, startDate, stopDate);
 }
 
 export async function stopAllResourcesInResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
   const stopDate = new Date();
-  const data = {
-    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
-  };
-  for (let i = 0; i < data.spec.resources.length; ++i) {
-    data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + 'Z';
-  }
-
-  return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
-    'v1',
-    resourceClaim.metadata.namespace,
-    'resourceclaims',
-    resourceClaim.metadata.name,
-    data
-  )) as ResourceClaim;
+  return scheduleStopForAllResourcesInResourceClaim(resourceClaim, stopDate);
 }
 
 export async function deleteNamespacedCustomObject(
