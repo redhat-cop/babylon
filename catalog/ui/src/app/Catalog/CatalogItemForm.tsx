@@ -51,6 +51,17 @@ import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from '
 
 import './catalog-item-form.css';
 
+const ScheduleModal: React.FC<{ onSelect: (date: Date) => void }> = ({ onSelect }) => {
+  const now = Date.now();
+  return (
+    <Form className="catalog-item-form__schedule-form" isHorizontal>
+      <FormGroup fieldId="schedule-field" label="Start Date">
+        <DateTimePicker defaultTimestamp={now} onSelect={(date) => onSelect(date)} minDate={now} />
+      </FormGroup>
+    </Form>
+  );
+};
+
 const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string }> = ({
   namespace,
   catalogItemName,
@@ -63,7 +74,6 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
     fetcher
   );
-  const now = Date.now();
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const workshopInitialProps = useMemo(
     () => ({
@@ -160,20 +170,14 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
       <Modal ref={scheduleModal} onConfirm={submitRequest} title="Schedule for" confirmText="Schedule">
-        <Form className="catalog-item-form__schedule-form" isHorizontal>
-          <FormGroup fieldId="schedule-field" label="Start Date">
-            <DateTimePicker
-              defaultTimestamp={now}
-              onSelect={(date) =>
-                dispatchFormState({
-                  type: 'startDate',
-                  startDate: date,
-                })
-              }
-              minDate={now}
-            />
-          </FormGroup>
-        </Form>
+        <ScheduleModal
+          onSelect={(date) =>
+            dispatchFormState({
+              type: 'startDate',
+              startDate: date,
+            })
+          }
+        />
       </Modal>
       <Title headingLevel="h1" size="lg">
         Order {displayName(catalogItem)}

@@ -35,7 +35,6 @@ function formatAmPm(timeStr: string): string {
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours %= 12;
   hours = hours || 12;
-
   return `${('00' + hours).slice(-2)}:${('00' + minutes).slice(-2)} ${ampm}`;
 }
 function formatHHMM(timeStr: string): string {
