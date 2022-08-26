@@ -63,7 +63,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
     fetcher
   );
-  const now = Date.now();
+  // const now = Date.now();
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const workshopInitialProps = useMemo(
     () => ({
@@ -162,16 +162,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
       <Modal ref={scheduleModal} onConfirm={submitRequest} title="Schedule for" confirmText="Schedule">
         <Form className="catalog-item-form__schedule-form" isHorizontal>
           <FormGroup fieldId="schedule-field" label="Start Date">
-            <DateTimePicker
-              defaultTimestamp={now}
-              onSelect={(date) =>
-                dispatchFormState({
-                  type: 'startDate',
-                  startDate: date,
-                })
-              }
-              minDate={now}
-            />
+            <DateTimePicker defaultTimestamp={1661534674816} onSelect={() => null} />
           </FormGroup>
         </Form>
       </Modal>
