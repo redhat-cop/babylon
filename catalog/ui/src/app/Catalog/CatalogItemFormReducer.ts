@@ -312,8 +312,8 @@ function reduceFormStateUsePoolIfAvailable(initialState: FormState, usePoolIfAva
 }
 
 function reduceFormStateStartDate(initialState: FormState, startDate: Date): FormState {
-  const FIFTEEN_MINUTES = Date.now() + 900000;
-  if (startDate && startDate.getTime() > FIFTEEN_MINUTES) {
+  const minThreshold = Date.now() + 900000; // 15 mins
+  if (startDate && startDate.getTime() > minThreshold) {
     return {
       ...initialState,
       startDate,
