@@ -47,7 +47,7 @@ function formatHHMM(timeStr: string): string {
   return `${('00' + hours).slice(-2)}:${('00' + minutes).slice(-2)}`;
 }
 
-export const DateTimePicker: React.FC<{
+const DateTimePicker: React.FC<{
   defaultTimestamp: number;
   isDisabled?: boolean;
   onSelect: (date: Date) => void;
@@ -188,3 +188,5 @@ export const DateTimePicker: React.FC<{
     </div>
   );
 };
+
+export default DateTimePicker;
