@@ -25,7 +25,7 @@ import useSWR from 'swr';
 import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  // OutlinedCalendarAltIcon,
+  OutlinedCalendarAltIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
 import {
@@ -44,7 +44,7 @@ import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
 // import { DateTimePicker } from '@app/components/DateTimePicker';
-// import Modal, { useModal } from '@app/Modal/Modal';
+import { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
@@ -57,7 +57,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 }) => {
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
-  // const [scheduleModal, openScheduleModal] = useModal();
+  const [scheduleModal, openScheduleModal] = useModal();
   const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
@@ -472,6 +472,18 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               Order
             </Button>
           </ActionListItem>
+          {formState.workshop ? (
+            <ActionListItem>
+              <Button
+                isAriaDisabled={!submitRequestEnabled}
+                isDisabled={!submitRequestEnabled}
+                onClick={openScheduleModal}
+                icon={<OutlinedCalendarAltIcon />}
+              >
+                Schedule
+              </Button>
+            </ActionListItem>
+          ) : null}
           <ActionListItem>
             <Button variant="secondary" onClick={() => navigate(-1)}>
               Cancel
