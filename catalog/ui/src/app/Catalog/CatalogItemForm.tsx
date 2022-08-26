@@ -23,9 +23,9 @@ import {
 } from '@patternfly/react-core';
 import useSWR from 'swr';
 import {
-  // CalendarAltIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
+  // OutlinedCalendarAltIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
 import {
@@ -41,13 +41,13 @@ import { CatalogItem } from '@app/types';
 import { ErrorBoundary } from 'react-error-boundary';
 import { displayName, randomString } from '@app/util';
 import useDebounce from '@app/utils/useDebounce';
+import PatientNumberInput from '@app/components/PatientNumberInput';
+import useSession from '@app/utils/useSession';
+// import { DateTimePicker } from '@app/components/DateTimePicker';
+// import Modal, { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
-import PatientNumberInput from '@app/components/PatientNumberInput';
-import useSession from '@app/utils/useSession';
-import { DateTimePicker } from '@app/components/DateTimePicker';
-import Modal, { useModal } from '@app/Modal/Modal';
 
 import './catalog-item-form.css';
 
@@ -57,7 +57,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 }) => {
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
-  const [scheduleModal, openScheduleModal] = useModal();
+  // const [scheduleModal, openScheduleModal] = useModal();
   const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
@@ -137,7 +137,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         parameters: parameterValues,
         startDelay: provisionStartDelay,
         workshop: workshop,
-        // ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
+        ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
       });
 
       navigate(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
@@ -149,7 +149,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         groups,
         parameterValues,
         usePoolIfAvailable: formState.usePoolIfAvailable,
-        // ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
+        ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
@@ -158,22 +158,6 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
-      <Modal ref={scheduleModal} onConfirm={submitRequest} title="Schedule for" confirmText="Schedule">
-        <Form className="catalog-item-form__schedule-form" isHorizontal>
-          <FormGroup key="schedule-field" fieldId="schedule-field" label="Start Date">
-            <DateTimePicker
-              defaultTimestamp={Date.now()}
-              onSelect={(date) =>
-                dispatchFormState({
-                  type: 'startDate',
-                  startDate: date,
-                })
-              }
-              minDate={Date.now()}
-            />
-          </FormGroup>
-        </Form>
-      </Modal>
       <Title headingLevel="h1" size="lg">
         Order {displayName(catalogItem)}
       </Title>
@@ -488,18 +472,6 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               Order
             </Button>
           </ActionListItem>
-          {formState.workshop ? (
-            <ActionListItem>
-              <Button
-                isAriaDisabled={!submitRequestEnabled}
-                isDisabled={!submitRequestEnabled}
-                onClick={openScheduleModal}
-                //                icon={<CalendarAltIcon />}
-              >
-                Schedule
-              </Button>
-            </ActionListItem>
-          ) : null}
           <ActionListItem>
             <Button variant="secondary" onClick={() => navigate(-1)}>
               Cancel
