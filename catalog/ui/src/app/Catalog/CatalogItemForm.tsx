@@ -107,7 +107,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
     }
   }, [dispatchFormState, formState, debouncedApiFetch]);
 
-  async function submitRequest(): Promise<void> {
+  async function submitRequest({ scheduled = false }): Promise<void> {
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
     }
@@ -151,7 +151,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         parameters: parameterValues,
         startDelay: provisionStartDelay,
         workshop: workshop,
-        ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
+        ...(scheduled && formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
       });
 
       navigate(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
@@ -163,7 +163,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         groups,
         parameterValues,
         usePoolIfAvailable: formState.usePoolIfAvailable,
-        ...(formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
+        ...(scheduled && formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
@@ -172,7 +172,12 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
-      <Modal ref={scheduleModal} onConfirm={submitRequest} title="Schedule for" confirmText="Schedule">
+      <Modal
+        ref={scheduleModal}
+        onConfirm={() => submitRequest({ scheduled: true })}
+        title="Schedule for"
+        confirmText="Schedule"
+      >
         <ScheduleModal
           defaultTimestamp={formState.startDate?.getTime() || Date.now()}
           onSelect={(date) =>
