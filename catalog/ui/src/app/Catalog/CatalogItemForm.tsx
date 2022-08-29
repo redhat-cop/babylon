@@ -51,12 +51,15 @@ import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from '
 
 import './catalog-item-form.css';
 
-const ScheduleModal: React.FC<{ onSelect: (date: Date) => void }> = ({ onSelect }) => {
+const ScheduleModal: React.FC<{ defaultTimestamp: number; onSelect: (date: Date) => void }> = ({
+  defaultTimestamp,
+  onSelect,
+}) => {
   const now = Date.now();
   return (
     <Form className="catalog-item-form__schedule-form" isHorizontal>
       <FormGroup fieldId="schedule-field" label="Start Date">
-        <DateTimePicker defaultTimestamp={now} onSelect={(date) => onSelect(date)} minDate={now} />
+        <DateTimePicker defaultTimestamp={defaultTimestamp} onSelect={(date) => onSelect(date)} minDate={now} />
       </FormGroup>
     </Form>
   );
@@ -171,6 +174,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
       <Modal ref={scheduleModal} onConfirm={submitRequest} title="Schedule for" confirmText="Schedule">
         <ScheduleModal
+          defaultTimestamp={formState.startDate?.getTime() || Date.now()}
           onSelect={(date) =>
             dispatchFormState({
               type: 'startDate',

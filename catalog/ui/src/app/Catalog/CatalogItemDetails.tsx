@@ -85,7 +85,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           limit: FETCH_BATCH_LIMIT,
           continueId,
         })
-      )
+      ),
+    {
+      refreshInterval: 8000,
+    }
   );
 
   const userHasInstanceOfCatalogItem = userResourceClaims.some(
