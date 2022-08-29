@@ -186,7 +186,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         confirmText="Schedule"
       >
         <ScheduleModal
-          defaultTimestamp={formState.startDate?.getTime() || Date.now()}
+          defaultTimestamp={Date.now()}
           onSelect={(date) =>
             dispatchFormState({
               type: 'startDate',
