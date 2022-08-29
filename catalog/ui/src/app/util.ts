@@ -1,6 +1,6 @@
 import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
 import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
-import { AccessControl, CostTracker, K8sObject, Nullable, ResourceClaim } from '@app/types';
+import { AccessControl, AnarchySubject, CostTracker, K8sObject, Nullable, ResourceClaim } from '@app/types';
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 
@@ -118,6 +118,9 @@ export function checkResourceClaimCanStart(resourceClaim: ResourceClaim): boolea
     if (!state || !template) {
       return false;
     }
+    if (!canExecuteAction(state, 'start')) {
+      return false;
+    }
     const currentState = state?.spec?.vars?.current_state;
     if (currentState && (currentState.endsWith('-failed') || currentState === 'provision-canceled')) {
       return false;
@@ -139,6 +142,9 @@ export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean
     const state = r.state;
     const template = resourceClaim.spec.resources[idx]?.template;
     if (!state || !template) {
+      return false;
+    }
+    if (!canExecuteAction(state, 'stop')) {
       return false;
     }
     const currentState = state?.spec?.vars?.current_state;
@@ -263,4 +269,16 @@ export function CSVToArray(strData: string, strDelimiter = ','): string[][] {
     arrData[arrData.length - 1].push(strMatchedValue);
   }
   return arrData;
+}
+
+export function canExecuteAction(
+  anarchySubject: AnarchySubject,
+  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy'
+): boolean {
+  if (action === 'status') {
+    if (!anarchySubject?.status?.towerJobs?.provision?.completeTimestamp) {
+      return false;
+    }
+  }
+  return anarchySubject?.status?.supportedActions && action in anarchySubject.status.supportedActions;
 }

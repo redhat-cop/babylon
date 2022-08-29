@@ -39,6 +39,7 @@ import {
   BABYLON_DOMAIN,
   getCostTracker,
   compareStringDates,
+  canExecuteAction,
 } from '@app/util';
 
 declare const window: Window &
@@ -46,32 +47,42 @@ declare const window: Window &
     sessionPromiseInstance?: Promise<Session>;
   };
 
-export interface CreateServiceRequestOpt {
+type CreateServiceRequestOpt = {
   catalogItem: CatalogItem;
   catalogNamespaceName: string;
   userNamespace: UserNamespace;
   groups: string[];
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
-}
+  start?: {
+    date: Date;
+    type: 'lifespan' | 'resource';
+  };
+};
 
-export interface CreateServiceRequestParameterValues {
+type CreateWorkshopPovisionOpt = {
+  catalogItem: CatalogItem;
+  concurrency: number;
+  count: number;
+  parameters: any;
+  startDelay: number;
+  workshop: Workshop;
+  start?: { date: Date; type: 'lifespan' };
+};
+
+export type CreateServiceRequestParameterValues = {
   [name: string]: boolean | number | string;
-}
+};
 
-export interface K8sApiFetchOpt {
-  disableImpersonation?: boolean;
-}
-
-export interface K8sObjectListCommonOpt {
+type K8sObjectListCommonOpt = {
   continue?: string;
   disableImpersonation?: boolean;
   labelSelector?: string;
   limit?: number;
   namespace?: string;
-}
+};
 
-export interface K8sObjectListOpt extends K8sObjectListCommonOpt {
+interface K8sObjectListOpt extends K8sObjectListCommonOpt {
   apiVersion: string;
   plural: string;
 }
@@ -309,7 +320,8 @@ export async function createServiceRequest({
   groups,
   parameterValues,
   usePoolIfAvailable,
-}: CreateServiceRequestOpt): Promise<any> {
+  start,
+}: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
   const access = checkAccessControl(catalogItem.spec.accessControl, groups);
@@ -323,26 +335,26 @@ export async function createServiceRequest({
         [`${BABYLON_DOMAIN}/catalogItemDisplayName`]: displayName(catalogItem),
         [`${BABYLON_DOMAIN}/requester`]: session.user,
         [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}`,
+        ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
+        ...(catalogItem.spec.userData
+          ? { [`${BABYLON_DOMAIN}/userData`]: JSON.stringify(catalogItem.spec.userData) }
+          : {}),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        ...(catalogItem.spec.bookbag ? { [`${BABYLON_DOMAIN}/labUserInterface`]: 'bookbag' } : {}),
       },
       name: catalogItem.metadata.name,
       namespace: userNamespace.name,
     },
     spec: {
       resources: [],
+      ...(start && start.type === 'lifespan'
+        ? { lifespan: { start: start.date.toISOString().split('.')[0] + 'Z' } }
+        : {}),
     },
   };
-
-  if (usePoolIfAvailable === false) {
-    requestResourceClaim.metadata.annotations['poolboy.gpte.redhat.com/resource-pool-name'] = 'disable';
-  }
-
-  if (catalogItem.spec.userData) {
-    requestResourceClaim.metadata.annotations[`${BABYLON_DOMAIN}/userData`] = JSON.stringify(catalogItem.spec.userData);
-  }
 
   if (access === 'allow') {
     // Once created the ResourceClaim is completely independent of the catalog item.
@@ -353,16 +365,21 @@ export async function createServiceRequest({
     // Copy resources from catalog item to ResourceClaim
     requestResourceClaim.spec.resources = JSON.parse(JSON.stringify(catalogItem.spec.resources));
 
+    // Add resources start time (if present)
+    if (start && start.type === 'resource') {
+      const startTimestamp = start.date.toISOString().split('.')[0] + 'Z';
+      for (const resource of requestResourceClaim.spec.resources) {
+        recursiveAssign(resource, {
+          template: { spec: { vars: { action_schedule: { start: startTimestamp } } } },
+        });
+      }
+    }
+
     // Add display name annotations for components
     for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
       if (key.startsWith(`${BABYLON_DOMAIN}/displayNameComponent`)) {
         requestResourceClaim.metadata.annotations[key] = value;
       }
-    }
-
-    // Add bookbag label
-    if (catalogItem.spec.bookbag) {
-      requestResourceClaim.metadata.labels[`${BABYLON_DOMAIN}/labUserInterface`] = 'bookbag';
     }
 
     // Copy all parameter values into the ResourceClaim
@@ -585,14 +602,8 @@ export async function createWorkshopProvision({
   parameters,
   startDelay,
   workshop,
-}: {
-  catalogItem: CatalogItem;
-  concurrency: number;
-  count: number;
-  parameters: any;
-  startDelay: number;
-  workshop: Workshop;
-}): Promise<WorkshopProvision> {
+  start,
+}: CreateWorkshopPovisionOpt): Promise<WorkshopProvision> {
   const definition: WorkshopProvision = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'WorkshopProvision',
@@ -623,11 +634,13 @@ export async function createWorkshopProvision({
       parameters: parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
+      ...(start && start.type === 'lifespan'
+        ? { lifespan: { start: start.date.toISOString().split('.')[0] + 'Z' } }
+        : {}),
     },
   };
 
-  const workshopProvision: WorkshopProvision = await createK8sObject<WorkshopProvision>(definition);
-  return workshopProvision;
+  return await createK8sObject<WorkshopProvision>(definition);
 }
 
 export async function getAnarchyAction(namespace: string, name: string): Promise<AnarchyAction> {
@@ -1137,14 +1150,22 @@ export async function patchWorkshopProvision({
   });
 }
 
-export async function requestStatusForAllResourcesInResourceClaim(resourceClaim): Promise<ResourceClaim> {
+export async function requestStatusForAllResourcesInResourceClaim(
+  resourceClaim: ResourceClaim
+): Promise<ResourceClaim> {
   const requestDate = new Date();
   const requestTimestamp: string = requestDate.toISOString().split('.')[0] + 'Z';
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
+  const resourcesToRequestStatus = [];
+  for (const resource of resourceClaim.status?.resources) {
+    if (canExecuteAction(resource.state, 'status')) {
+      resourcesToRequestStatus.push(resource.name);
+    }
+  }
   for (let i = 0; i < data.spec.resources.length; ++i) {
-    if (resourceClaim.status?.resources?.[i]?.state?.status?.supportedActions?.status) {
+    if (resourcesToRequestStatus.includes(data.spec.resources[i].name)) {
       data.spec.resources[i].template.spec.vars.check_status_request_timestamp = requestTimestamp;
     }
   }
@@ -1166,8 +1187,49 @@ export async function scheduleStopForAllResourcesInResourceClaim(
   const patch = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
+  const resourcesToStop = [];
+  for (const resource of resourceClaim.status?.resources) {
+    if (canExecuteAction(resource.state, 'stop')) {
+      resourcesToStop.push(resource.name);
+    }
+  }
   for (let i = 0; i < patch.spec.resources.length; ++i) {
-    patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+    if (resourcesToStop.includes(patch.spec.resources[i].name)) {
+      patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+    }
+  }
+
+  return (await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com',
+    'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    patch
+  )) as ResourceClaim;
+}
+
+export async function scheduleStartForAllResourcesInResourceClaim(
+  resourceClaim: ResourceClaim,
+  date: Date,
+  stopDate: Date
+): Promise<ResourceClaim> {
+  const startTimestamp = date.toISOString().split('.')[0] + 'Z';
+  const stopTimestamp = stopDate.toISOString().split('.')[0] + 'Z';
+  const patch = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
+  };
+  const resourcesToStart = [];
+  for (const resource of resourceClaim.status?.resources) {
+    if (canExecuteAction(resource, 'start')) {
+      resourcesToStart.push(resource.name);
+    }
+  }
+  for (let i = 0; i < patch.spec.resources.length; ++i) {
+    if (resourcesToStart.includes(patch.spec.resources[i].name)) {
+      patch.spec.resources[i].template.spec.vars.action_schedule.start = startTimestamp;
+      patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+    }
   }
 
   return (await patchNamespacedCustomObject(
@@ -1248,41 +1310,12 @@ export async function startAllResourcesInResourceClaim(resourceClaim: ResourceCl
   );
   const startDate = new Date();
   const stopDate = new Date(Date.now() + defaultRuntime);
-  const data = {
-    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
-  };
-  for (let i = 0; i < data.spec.resources.length; ++i) {
-    data.spec.resources[i].template.spec.vars.action_schedule.start = startDate.toISOString().split('.')[0] + 'Z';
-    data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + 'Z';
-  }
-
-  return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
-    'v1',
-    resourceClaim.metadata.namespace,
-    'resourceclaims',
-    resourceClaim.metadata.name,
-    data
-  )) as ResourceClaim;
+  return scheduleStartForAllResourcesInResourceClaim(resourceClaim, startDate, stopDate);
 }
 
 export async function stopAllResourcesInResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
   const stopDate = new Date();
-  const data = {
-    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
-  };
-  for (let i = 0; i < data.spec.resources.length; ++i) {
-    data.spec.resources[i].template.spec.vars.action_schedule.stop = stopDate.toISOString().split('.')[0] + 'Z';
-  }
-
-  return (await patchNamespacedCustomObject(
-    'poolboy.gpte.redhat.com',
-    'v1',
-    resourceClaim.metadata.namespace,
-    'resourceclaims',
-    resourceClaim.metadata.name,
-    data
-  )) as ResourceClaim;
+  return scheduleStopForAllResourcesInResourceClaim(resourceClaim, stopDate);
 }
 
 export async function deleteNamespacedCustomObject(

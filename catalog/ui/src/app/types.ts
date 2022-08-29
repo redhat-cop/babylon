@@ -60,12 +60,24 @@ export interface AnarchySubjectList {
   metadata: K8sObjectListMeta;
 }
 
+export type AnarchySubjectSupportedActions = {
+  start?: unknown;
+  stop?: unknown;
+  status?: unknown;
+  destroy?: unknown;
+  provision?: unknown;
+};
 export interface AnarchySubjectStatus {
   towerJobs?: { [jobName: string]: AnarchySubjectStatusTowerJob };
+  supportedActions?: AnarchySubjectSupportedActions;
+  diffBase?: string;
+  pendingActions?: unknown[];
+  runs?: unknown;
 }
 
 export interface AnarchySubjectStatusTowerJob {
   towerJobURL?: string;
+  completeTimestamp?: string;
 }
 
 export interface CatalogItem extends K8sObject {
@@ -200,6 +212,7 @@ export interface ResourceClaimSpec {
 
 export interface ResourceClaimSpecLifespan {
   end?: string;
+  start?: string;
 }
 
 export interface ResourceClaimSpecResource {

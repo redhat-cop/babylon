@@ -9,7 +9,7 @@ import React, {
   useLayoutEffect,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { Button, Modal, ModalVariant } from '@patternfly/react-core';
+import { Button, Modal, ModalVariant, Spinner } from '@patternfly/react-core';
 import useModal from './useModal';
 
 import './modal.css';
@@ -28,6 +28,7 @@ const _Modal: ForwardRefRenderFunction<
     isDisabled?: boolean;
     passModifiers?: boolean;
     type?: 'action' | 'ack';
+    confirmText?: string;
   }
 > = (
   {
@@ -38,6 +39,7 @@ const _Modal: ForwardRefRenderFunction<
     isDisabled = false,
     passModifiers = false,
     type = 'action',
+    confirmText = 'Confirm',
   },
   ref
 ): ReactPortal => {
@@ -47,6 +49,7 @@ const _Modal: ForwardRefRenderFunction<
   const close = useCallback(() => setIsOpen(false), []);
   const [_title, setTitle] = useState(title);
   const [domReady, setDomReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setDomReady(true);
@@ -100,14 +103,30 @@ const _Modal: ForwardRefRenderFunction<
   }, [handleEscape, isOpen, handleClick]);
 
   const handleOnConfirm = useCallback(async () => {
-    onConfirmCb && (await onConfirmCb());
-    onConfirm(state);
-    close();
+    setIsLoading(true);
+    try {
+      onConfirmCb && (await onConfirmCb());
+      await onConfirm(state);
+      close();
+    } catch {
+      setIsLoading(false);
+    }
   }, [close, onConfirm, onConfirmCb, state]);
 
   const childrenWithProps = React.Children.map(children, (child) => {
     if (passModifiers && React.isValidElement(child)) {
-      return React.cloneElement(child, { setTitle, setState, setOnConfirmCb });
+      return React.cloneElement(
+        child as React.ReactElement<{
+          setTitle: React.Dispatch<React.SetStateAction<string>>;
+          setState: React.Dispatch<unknown>;
+          setOnConfirmCb: React.Dispatch<React.SetStateAction<() => Promise<void>>>;
+        }>,
+        {
+          setTitle,
+          setState,
+          setOnConfirmCb,
+        }
+      );
     }
     return child;
   });
@@ -125,15 +144,26 @@ const _Modal: ForwardRefRenderFunction<
             actions={
               type === 'action'
                 ? [
-                    <Button key="confirm" variant="primary" onClick={handleOnConfirm} isDisabled={isDisabled}>
-                      Confirm
+                    <Button
+                      key="confirm"
+                      variant="primary"
+                      onClick={handleOnConfirm}
+                      isDisabled={isDisabled || isLoading}
+                      icon={isLoading ? <Spinner isSVG size="sm" /> : null}
+                    >
+                      {confirmText}
                     </Button>,
                     <Button key="cancel" variant="link" onClick={close}>
                       Cancel
                     </Button>,
                   ]
                 : [
-                    <Button key="confirm" variant="primary" onClick={handleOnConfirm} isDisabled={isDisabled}>
+                    <Button
+                      key="confirm"
+                      variant="primary"
+                      onClick={handleOnConfirm}
+                      isDisabled={isDisabled || isLoading}
+                    >
                       Close
                     </Button>,
                   ]

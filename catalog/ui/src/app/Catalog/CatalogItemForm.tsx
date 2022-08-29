@@ -22,7 +22,12 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import useSWR from 'swr';
-import { ExclamationCircleIcon, ExclamationTriangleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import {
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+  OutlinedCalendarAltIcon,
+  OutlinedQuestionCircleIcon,
+} from '@patternfly/react-icons';
 import {
   apiFetch,
   apiPaths,
@@ -35,14 +40,30 @@ import {
 import { CatalogItem } from '@app/types';
 import { ErrorBoundary } from 'react-error-boundary';
 import { displayName, randomString } from '@app/util';
+import DateTimePicker from '@app/components/DateTimePicker';
+import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
+import PatientNumberInput from '@app/components/PatientNumberInput';
+import Modal, { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
-import PatientNumberInput from '@app/components/PatientNumberInput';
-import useSession from '@app/utils/useSession';
 
 import './catalog-item-form.css';
+
+const ScheduleModal: React.FC<{ defaultTimestamp: number; onSelect: (date: Date) => void }> = ({
+  defaultTimestamp,
+  onSelect,
+}) => {
+  const now = Date.now();
+  return (
+    <Form className="catalog-item-form__schedule-form" isHorizontal>
+      <FormGroup fieldId="schedule-field" label="Start Date">
+        <DateTimePicker defaultTimestamp={defaultTimestamp} onSelect={(date) => onSelect(date)} minDate={now} />
+      </FormGroup>
+    </Form>
+  );
+};
 
 const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string }> = ({
   namespace,
@@ -50,6 +71,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 }) => {
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
+  const [scheduleModal, openScheduleModal] = useModal();
   const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
@@ -85,7 +107,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
     }
   }, [dispatchFormState, formState, debouncedApiFetch]);
 
-  async function submitRequest(): Promise<void> {
+  async function submitRequest({ scheduled = false }): Promise<void> {
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
     }
@@ -129,6 +151,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         parameters: parameterValues,
         startDelay: provisionStartDelay,
         workshop: workshop,
+        ...(scheduled && formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
       });
 
       navigate(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
@@ -140,6 +163,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         groups,
         parameterValues,
         usePoolIfAvailable: formState.usePoolIfAvailable,
+        ...(scheduled && formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
@@ -148,6 +172,22 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
+      <Modal
+        ref={scheduleModal}
+        onConfirm={() => submitRequest({ scheduled: true })}
+        title="Schedule for"
+        confirmText="Schedule"
+      >
+        <ScheduleModal
+          defaultTimestamp={formState.startDate?.getTime() || Date.now()}
+          onSelect={(date) =>
+            dispatchFormState({
+              type: 'startDate',
+              startDate: date,
+            })
+          }
+        />
+      </Modal>
       <Title headingLevel="h1" size="lg">
         Order {displayName(catalogItem)}
       </Title>
@@ -458,10 +498,26 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 
         <ActionList>
           <ActionListItem>
-            <Button isAriaDisabled={!submitRequestEnabled} isDisabled={!submitRequestEnabled} onClick={submitRequest}>
+            <Button
+              isAriaDisabled={!submitRequestEnabled}
+              isDisabled={!submitRequestEnabled}
+              onClick={() => submitRequest({ scheduled: false })}
+            >
               Order
             </Button>
           </ActionListItem>
+          {formState.workshop ? (
+            <ActionListItem>
+              <Button
+                isAriaDisabled={!submitRequestEnabled}
+                isDisabled={!submitRequestEnabled}
+                onClick={openScheduleModal}
+                icon={<OutlinedCalendarAltIcon />}
+              >
+                Schedule
+              </Button>
+            </ActionListItem>
+          ) : null}
           <ActionListItem>
             <Button variant="secondary" onClick={() => navigate(-1)}>
               Cancel
