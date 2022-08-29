@@ -498,7 +498,11 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 
         <ActionList>
           <ActionListItem>
-            <Button isAriaDisabled={!submitRequestEnabled} isDisabled={!submitRequestEnabled} onClick={submitRequest}>
+            <Button
+              isAriaDisabled={!submitRequestEnabled}
+              isDisabled={!submitRequestEnabled}
+              onClick={() => submitRequest({ scheduled: false })}
+            >
               Order
             </Button>
           </ActionListItem>
