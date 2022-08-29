@@ -1221,7 +1221,7 @@ export async function scheduleStartForAllResourcesInResourceClaim(
   };
   const resourcesToStart = [];
   for (const resource of resourceClaim.status?.resources) {
-    if (canExecuteAction(resource, 'start')) {
+    if (canExecuteAction(resource.state, 'start')) {
       resourcesToStart.push(resource.name);
     }
   }

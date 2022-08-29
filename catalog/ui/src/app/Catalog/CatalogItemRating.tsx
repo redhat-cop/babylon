@@ -1,14 +1,13 @@
-import * as React from 'react';
-
+import React from 'react';
 import StarRatings from 'react-star-ratings';
 
 const CatalogItemRating: React.FC<{
-  catalogItem: any;
+  rating: number;
   starDimension: string;
-}> = ({ catalogItem, starDimension }) => {
+}> = ({ rating, starDimension }) => {
   return (
     <StarRatings
-      rating={catalogItem.status.rating}
+      rating={rating}
       numberOfStars={5}
       starDimension={starDimension}
       starEmptyColor="#dddddd"
