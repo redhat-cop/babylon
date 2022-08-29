@@ -41,12 +41,31 @@ export interface AnarchyRunnerList {
 export interface AnarchySubject extends K8sObject {
   spec: AnarchySubjectSpec;
   status?: AnarchySubjectStatus;
+  data?: any;
 }
 
+export interface AnarchySubjectSpecActionSchedule {
+  default_runtime?: string;
+  maximum_runtime?: string;
+  start?: string;
+  stop?: string;
+}
 export interface AnarchySubjectSpec {
   governor?: string;
   varSecrets?: VarSecret[];
-  vars?: any;
+  vars?: {
+    action_schedule?: AnarchySubjectSpecActionSchedule;
+    current_state: string;
+    desired_state: string;
+    provision_data?: any;
+    status_messages?: string[];
+    status_data?: any;
+    job_vars?: {
+      guid: string;
+      uuid: string;
+    };
+    healthy?: boolean;
+  };
 }
 
 export interface VarSecret {
@@ -82,7 +101,6 @@ export interface AnarchySubjectStatusTowerJob {
 
 export interface CatalogItem extends K8sObject {
   spec: CatalogItemSpec;
-  status?: any;
 }
 
 export interface CatalogItemList {
@@ -105,6 +123,7 @@ export interface CatalogItemSpec {
   resources?: any[];
   termsOfService?: string;
   userData?: any;
+  lifespan?: ResourceProviderSpecLifespan;
 }
 
 export interface CatalogItemSpecParameter {
@@ -195,9 +214,18 @@ export interface NamespaceList {
   metadata: K8sObjectListMeta;
 }
 
+export interface ResourceHandleResource {
+  name: string;
+  provider: K8sObjectReference;
+  state: AnarchySubject;
+}
 export interface ResourceClaim extends K8sObject {
   spec: ResourceClaimSpec;
-  status?: any;
+  status?: {
+    lifespan: ResourceClaimStatusLifespan;
+    resourceHandle: K8sObjectReference;
+    resources: ResourceHandleResource[];
+  };
 }
 
 export interface ResourceClaimList {
@@ -303,7 +331,11 @@ export interface ResourceProviderSpecLifespan {
   default: string;
   maximum: string;
   relativeMaximum: string;
+  end?: string;
+  start?: string;
 }
+
+export type ResourceClaimStatusLifespan = ResourceProviderSpecLifespan;
 
 export interface ResourceProviderSpecTemplate {
   enable?: boolean;

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import parseDuration from 'parse-duration';
 import {
   ActionList,
   ActionListItem,
@@ -51,15 +52,21 @@ import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from '
 
 import './catalog-item-form.css';
 
-const ScheduleModal: React.FC<{ defaultTimestamp: number; onSelect: (date: Date) => void }> = ({
+const ScheduleModal: React.FC<{ defaultTimestamp: number; onSelect: (date: Date) => void; maxDate?: number }> = ({
   defaultTimestamp,
   onSelect,
+  maxDate,
 }) => {
   const now = Date.now();
   return (
     <Form className="catalog-item-form__schedule-form" isHorizontal>
       <FormGroup fieldId="schedule-field" label="Start Date">
-        <DateTimePicker defaultTimestamp={defaultTimestamp} onSelect={(date) => onSelect(date)} minDate={now} />
+        <DateTimePicker
+          defaultTimestamp={defaultTimestamp}
+          onSelect={(date) => onSelect(date)}
+          minDate={now}
+          maxDate={maxDate}
+        />
       </FormGroup>
     </Form>
   );
@@ -163,7 +170,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         groups,
         parameterValues,
         usePoolIfAvailable: formState.usePoolIfAvailable,
-        ...(scheduled && formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
+        ...(scheduled && formState.startDate ? { start: { date: formState.startDate, type: 'resource' } } : {}),
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
@@ -185,6 +192,14 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               type: 'startDate',
               startDate: date,
             })
+          }
+          maxDate={
+            formState.workshop || !catalogItem.spec.lifespan
+              ? null
+              : Math.min(
+                  Date.now() + parseDuration(catalogItem.spec.lifespan.maximum),
+                  Date.now() + parseDuration(catalogItem.spec.lifespan.relativeMaximum)
+                )
           }
         />
       </Modal>
@@ -506,18 +521,16 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               Order
             </Button>
           </ActionListItem>
-          {formState.workshop ? (
-            <ActionListItem>
-              <Button
-                isAriaDisabled={!submitRequestEnabled}
-                isDisabled={!submitRequestEnabled}
-                onClick={openScheduleModal}
-                icon={<OutlinedCalendarAltIcon />}
-              >
-                Schedule
-              </Button>
-            </ActionListItem>
-          ) : null}
+          <ActionListItem>
+            <Button
+              isAriaDisabled={!submitRequestEnabled}
+              isDisabled={!submitRequestEnabled}
+              onClick={openScheduleModal}
+              icon={<OutlinedCalendarAltIcon />}
+            >
+              Schedule
+            </Button>
+          </ActionListItem>
           <ActionListItem>
             <Button variant="secondary" onClick={() => navigate(-1)}>
               Cancel
