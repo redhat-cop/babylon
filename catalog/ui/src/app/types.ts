@@ -101,6 +101,10 @@ export interface AnarchySubjectStatusTowerJob {
 
 export interface CatalogItem extends K8sObject {
   spec: CatalogItemSpec;
+  status?: {
+    rating?: number;
+    provisionHistory?: { result?: string }[];
+  };
 }
 
 export interface CatalogItemList {
