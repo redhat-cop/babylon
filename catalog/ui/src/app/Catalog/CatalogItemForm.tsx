@@ -186,7 +186,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         confirmText="Schedule"
       >
         <ScheduleModal
-          defaultTimestamp={Date.now()}
+          defaultTimestamp={formState.startDate?.getTime() || Date.now()}
           onSelect={(date) =>
             dispatchFormState({
               type: 'startDate',
@@ -525,7 +525,13 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
             <Button
               isAriaDisabled={!submitRequestEnabled}
               isDisabled={!submitRequestEnabled}
-              onClick={openScheduleModal}
+              onClick={() => {
+                dispatchFormState({
+                  type: 'startDate',
+                  startDate: new Date(),
+                });
+                openScheduleModal();
+              }}
               icon={<OutlinedCalendarAltIcon />}
             >
               Schedule
