@@ -170,7 +170,17 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         groups,
         parameterValues,
         usePoolIfAvailable: formState.usePoolIfAvailable,
-        ...(scheduled && formState.startDate ? { start: { date: formState.startDate, type: 'resource' } } : {}),
+        ...(scheduled && formState.startDate
+          ? {
+              start: {
+                date: formState.startDate,
+                type: 'resource',
+                autoStop: new Date(
+                  formState.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h')
+                ),
+              },
+            }
+          : {}),
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
