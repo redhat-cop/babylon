@@ -348,6 +348,7 @@ export type CatalogItemSpecRuntime = {
   default: string;
   maximum: string;
 };
+
 export interface ResourceProviderSpecTemplate {
   enable?: boolean;
 }

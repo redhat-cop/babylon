@@ -27,14 +27,16 @@ spec:
     spec:
       vars:
         babylon_user_email: >-
-          {{ "{{: requester_identity.extra.email | default(None) if requester_identity else None :}}" }}
+          {{ "{{ requester_identity.extra.email | default(None) if requester_identity else None }}" }}
         babylon_user_fullname: >-
-          {{ "{{: requester_identity.extra.name | default(None) if requester_identity else None :}}" }}
+          {{ "{{ requester_identity.extra.name | default(None) if requester_identity else None }}" }}
         babylon_username: >-
-          {{ "{{: requester_user.metadata.name | default(None) if requester_user else None :}}" }}
+          {{ "{{ requester_user.metadata.name | default(None) if requester_user else None }}" }}
         job_vars:
           guid: >-
-            {{ "{{: resource_handle.metadata.name[5:] if resource_handle.metadata.name.startswith('guid-') else resource_handle.metadata.name :}}" }}
+            {{ "{{ resource_handle.metadata.name[5:] if resource_handle.metadata.name.startswith('guid-') else resource_handle.metadata.name }}" }}
+  template:
+    enable: true
   updateFilters:
   - pathMatch: /spec/vars/desired_state
   validation:
