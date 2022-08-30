@@ -46,7 +46,10 @@ const _Modal: ForwardRefRenderFunction<
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
   const [onConfirmCb, setOnConfirmCb] = useState<() => Promise<void>>(null);
-  const close = useCallback(() => setIsOpen(false), []);
+  const close = useCallback(() => {
+    setIsLoading(false);
+    setIsOpen(false);
+  }, []);
   const [_title, setTitle] = useState(title);
   const [domReady, setDomReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

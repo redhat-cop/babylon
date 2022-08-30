@@ -27,7 +27,7 @@ const WorkshopActions: React.FC<{
       <ActionDropdownItem
         key="deleteServices"
         isDisabled={!actionHandlers.deleteService}
-        label={`Delete Selected Services`}
+        label="Delete Selected Services"
         onSelect={actionHandlers.deleteService}
       />
     );
@@ -36,7 +36,7 @@ const WorkshopActions: React.FC<{
       <ActionDropdownItem
         key="startServices"
         isDisabled={!actionHandlers.startService}
-        label={`Start Selected Services`}
+        label="Start Selected Services"
         onSelect={actionHandlers.startService}
       />
     );
@@ -45,7 +45,7 @@ const WorkshopActions: React.FC<{
       <ActionDropdownItem
         key="stopServices"
         isDisabled={!actionHandlers.stopService}
-        label={`Stop Selected Services`}
+        label="Stop Selected Services"
         onSelect={actionHandlers.stopService}
       />
     );
