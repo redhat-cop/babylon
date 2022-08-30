@@ -47,6 +47,16 @@ declare const window: Window &
     sessionPromiseInstance?: Promise<Session>;
   };
 
+type CreateServiceRequestOptScheduleStart = {
+  date: Date;
+};
+interface CreateServiceRequestOptScheduleStartLifespan extends CreateServiceRequestOptScheduleStart {
+  type: 'lifespan';
+}
+interface CreateServiceRequestOptScheduleStartResource extends CreateServiceRequestOptScheduleStart {
+  type: 'resource';
+  autoStop: Date;
+}
 type CreateServiceRequestOpt = {
   catalogItem: CatalogItem;
   catalogNamespaceName: string;
@@ -54,10 +64,7 @@ type CreateServiceRequestOpt = {
   groups: string[];
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
-  start?: {
-    date: Date;
-    type: 'lifespan' | 'resource';
-  };
+  start?: CreateServiceRequestOptScheduleStartLifespan | CreateServiceRequestOptScheduleStartResource;
 };
 
 type CreateWorkshopPovisionOpt = {
@@ -218,6 +225,10 @@ export async function assignWorkshopUser({
   return updatedWorkshop;
 }
 
+function dateToApiString(date: Date): string {
+  return date.toISOString().split('.')[0] + 'Z';
+}
+
 export async function bulkAssignWorkshopUsers({
   emails,
   workshop,
@@ -350,9 +361,7 @@ export async function createServiceRequest({
     },
     spec: {
       resources: [],
-      ...(start && start.type === 'lifespan'
-        ? { lifespan: { start: start.date.toISOString().split('.')[0] + 'Z' } }
-        : {}),
+      ...(start && start.type === 'lifespan' ? { lifespan: { start: dateToApiString(start.date) } } : {}),
     },
   };
 
@@ -367,10 +376,14 @@ export async function createServiceRequest({
 
     // Add resources start time (if present)
     if (start && start.type === 'resource') {
-      const startTimestamp = start.date.toISOString().split('.')[0] + 'Z';
+      if (!start.autoStop) {
+        throw new Error('Auto-stop data is missing when scheduling a resource start');
+      }
+      const startTimestamp = dateToApiString(start.date);
+      const stopTimestamp = dateToApiString(start.autoStop);
       for (const resource of requestResourceClaim.spec.resources) {
         recursiveAssign(resource, {
-          template: { spec: { vars: { action_schedule: { start: startTimestamp } } } },
+          template: { spec: { vars: { action_schedule: { start: startTimestamp, stop: stopTimestamp } } } },
         });
       }
     }
@@ -634,9 +647,7 @@ export async function createWorkshopProvision({
       parameters: parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
-      ...(start && start.type === 'lifespan'
-        ? { lifespan: { start: start.date.toISOString().split('.')[0] + 'Z' } }
-        : {}),
+      ...(start && start.type === 'lifespan' ? { lifespan: { start: dateToApiString(start.date) } } : {}),
     },
   };
 
@@ -1154,7 +1165,7 @@ export async function requestStatusForAllResourcesInResourceClaim(
   resourceClaim: ResourceClaim
 ): Promise<ResourceClaim> {
   const requestDate = new Date();
-  const requestTimestamp: string = requestDate.toISOString().split('.')[0] + 'Z';
+  const requestTimestamp = dateToApiString(requestDate);
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
@@ -1183,7 +1194,7 @@ export async function scheduleStopForAllResourcesInResourceClaim(
   resourceClaim: ResourceClaim,
   date: Date
 ): Promise<ResourceClaim> {
-  const stopTimestamp = date.toISOString().split('.')[0] + 'Z';
+  const stopTimestamp = dateToApiString(date);
   const patch = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
@@ -1214,8 +1225,8 @@ export async function scheduleStartForAllResourcesInResourceClaim(
   date: Date,
   stopDate: Date
 ): Promise<ResourceClaim> {
-  const startTimestamp = date.toISOString().split('.')[0] + 'Z';
-  const stopTimestamp = stopDate.toISOString().split('.')[0] + 'Z';
+  const startTimestamp = dateToApiString(date);
+  const stopTimestamp = dateToApiString(stopDate);
   const patch = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
@@ -1243,7 +1254,7 @@ export async function scheduleStartForAllResourcesInResourceClaim(
 }
 
 export async function setLifespanEndForResourceClaim(resourceClaim: ResourceClaim, date: Date): Promise<ResourceClaim> {
-  const endTimestamp = date.toISOString().split('.')[0] + 'Z';
+  const endTimestamp = dateToApiString(date);
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };

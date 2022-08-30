@@ -127,7 +127,8 @@ export interface CatalogItemSpec {
   resources?: any[];
   termsOfService?: string;
   userData?: any;
-  lifespan?: ResourceProviderSpecLifespan;
+  lifespan?: CatalogItemSpecLifespan;
+  runtime?: CatalogItemSpecRuntime;
 }
 
 export interface CatalogItemSpecParameter {
@@ -340,6 +341,13 @@ export interface ResourceProviderSpecLifespan {
 }
 
 export type ResourceClaimStatusLifespan = ResourceProviderSpecLifespan;
+
+export type CatalogItemSpecLifespan = ResourceProviderSpecLifespan;
+
+export type CatalogItemSpecRuntime = {
+  default: string;
+  maximum: string;
+};
 
 export interface ResourceProviderSpecTemplate {
   enable?: boolean;
