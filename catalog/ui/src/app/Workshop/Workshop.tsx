@@ -39,13 +39,13 @@ const Workshop: React.FC = () => {
 
   if (workshopPrivateInfo.assignment) {
     return (
-      <Page header={<WorkshopHeader />}>
+      <Page header={<WorkshopHeader />} className="workshop__page">
         <WorkshopAccess workshop={workshopPrivateInfo} />
       </Page>
     );
   } else {
     return (
-      <Page header={<WorkshopHeader />}>
+      <Page header={<WorkshopHeader />} className="workshop__page">
         <WorkshopLogin
           loginFailureMessage={loginFailureMessage}
           onLogin={(email, accessPassword) => attemptLogin(email, accessPassword)}
