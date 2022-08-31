@@ -4,7 +4,7 @@ import {
   ResourceClaimSpecResource,
   ResourceClaimSpecResourceTemplate,
 } from '@app/types';
-import { codeProps, getStatus } from './ServiceStatus';
+import { phaseProps, getStatus } from './ServiceStatus';
 
 export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim): {
   resource: AnarchySubject;
@@ -19,7 +19,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
   if (resources.length === 1)
     return { resource: resources[0].state, template: getSpecResourceByName(resources[0].name)?.template };
 
-  const resourcesStatus: { index: number; status: string; code: codeProps }[] = [];
+  const resourcesStatus: { index: number; phase: phaseProps }[] = [];
   for (const [i, resource] of resources.entries()) {
     const resourceK8s = resource.state;
     const currentState = resourceK8s?.kind === 'AnarchySubject' ? resourceK8s?.spec?.vars?.current_state : 'available';
@@ -34,18 +34,18 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
 
     resourcesStatus.push({
       index: i,
-      ...getStatus(
+      phase: getStatus(
         currentState,
         desiredState,
         Date.parse(resourceClaim.metadata.creationTimestamp),
         startTime,
         stopTime
-      ),
+      ).phase,
     });
   }
   const codeLevels = ['failed', 'in-progress', 'stopped', 'running', 'available'];
-  function cmp(a: { code: codeProps }, b: { code: codeProps }): number {
-    return codeLevels.indexOf(a.code) > codeLevels.indexOf(b.code) ? 1 : -1;
+  function cmp(a: { phase: phaseProps }, b: { phase: phaseProps }): number {
+    return codeLevels.indexOf(a.phase) > codeLevels.indexOf(b.phase) ? 1 : -1;
   }
   const mostRelevantResourceIndex = resourcesStatus.sort(cmp)[0].index;
 

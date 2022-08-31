@@ -5,7 +5,7 @@ import { AnarchySubject, ResourceClaimSpecResourceTemplate } from '@app/types';
 
 import './service-status.css';
 
-export type codeProps = 'unknown' | 'available' | 'running' | 'in-progress' | 'failed' | 'stopped';
+export type phaseProps = 'unknown' | 'available' | 'running' | 'in-progress' | 'failed' | 'stopped';
 
 export function getStatus(
   currentState: string,
@@ -13,50 +13,50 @@ export function getStatus(
   creationTime: number,
   startTime: number,
   stopTime: number
-): { status: string; code: codeProps } {
+): { statusName: string; phase: phaseProps } {
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
-      return { status: 'Requested', code: 'unknown' };
+      return { statusName: 'Requested', phase: 'unknown' };
     } else {
-      return { status: 'Unknown', code: 'unknown' };
+      return { statusName: 'Unknown', phase: 'unknown' };
     }
   } else if (currentState === 'available') {
-    return { status: 'Available', code: 'available' };
+    return { statusName: 'Available', phase: 'available' };
   } else if (currentState === 'new') {
-    return { status: 'New', code: 'in-progress' };
+    return { statusName: 'New', phase: 'in-progress' };
   } else if (currentState === 'provision-pending') {
-    return { status: 'Provision Pending', code: 'in-progress' };
+    return { statusName: 'Provision Pending', phase: 'in-progress' };
   } else if (currentState === 'provisioning') {
-    return { status: 'Provisioning', code: 'in-progress' };
+    return { statusName: 'Provisioning', phase: 'in-progress' };
   } else if (currentState === 'start-pending') {
-    return { status: 'Start Pending', code: 'in-progress' };
+    return { statusName: 'Start Pending', phase: 'in-progress' };
   } else if (currentState === 'started' && desiredState === 'stopped') {
-    return { status: 'Stop Requested', code: 'in-progress' };
+    return { statusName: 'Stop Requested', phase: 'in-progress' };
   } else if (currentState === 'started' && stopTime && startTime && (stopTime < Date.now() || startTime > Date.now())) {
-    return { status: 'Stop Scheduled', code: 'in-progress' };
+    return { statusName: 'Stop Scheduled', phase: 'in-progress' };
   } else if (currentState === 'started') {
-    return { status: 'Running', code: 'running' };
+    return { statusName: 'Running', phase: 'running' };
   } else if (currentState === 'starting') {
-    return { status: 'Starting', code: 'in-progress' };
+    return { statusName: 'Starting', phase: 'in-progress' };
   } else if (currentState === 'stop-pending') {
-    return { status: 'Stop Pending', code: 'in-progress' };
+    return { statusName: 'Stop Pending', phase: 'in-progress' };
   } else if (currentState === 'stopped' && desiredState === 'started') {
-    return { status: 'Start Requested', code: 'in-progress' };
+    return { statusName: 'Start Requested', phase: 'in-progress' };
   } else if (currentState === 'stopped' && stopTime && startTime && stopTime > Date.now() && startTime <= Date.now()) {
-    return { status: 'Start Scheduled', code: 'in-progress' };
+    return { statusName: 'Start Scheduled', phase: 'in-progress' };
   } else if (currentState === 'stopped') {
-    return { status: 'Stopped', code: 'stopped' };
+    return { statusName: 'Stopped', phase: 'stopped' };
   } else if (currentState === 'stopping') {
-    return { status: 'Stopping', code: 'in-progress' };
+    return { statusName: 'Stopping', phase: 'in-progress' };
   } else if (currentState.endsWith('-failed')) {
-    return { status: currentState.replace(/-/g, ' '), code: 'failed' };
+    return { statusName: currentState.replace(/-/g, ' '), phase: 'failed' };
   } else {
-    return { status: currentState, code: 'unknown' };
+    return { statusName: currentState, phase: 'unknown' };
   }
 }
 
-const Icon: React.FC<{ code: codeProps }> = ({ code }) => {
-  switch (code) {
+const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
+  switch (phase) {
     case 'unknown':
       return <QuestionCircleIcon />;
     case 'in-progress':
@@ -94,11 +94,11 @@ const ServiceStatus: React.FC<{
       </span>
     );
   }
-  const { status, code } = getStatus(currentState, desiredState, creationTime, startTime, stopTime);
+  const { statusName, phase } = getStatus(currentState, desiredState, creationTime, startTime, stopTime);
 
   return (
-    <span className={`service-status--${code}`}>
-      <Icon code={code} /> {status}
+    <span className={`service-status--${phase}`}>
+      <Icon phase={phase} /> {statusName}
     </span>
   );
 };
