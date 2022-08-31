@@ -13,12 +13,15 @@ import {
 import { BABYLON_DOMAIN } from '@app/util';
 import { RedoIcon } from '@patternfly/react-icons';
 import yaml from 'js-yaml';
-import { ResourceClaim } from '@app/types';
+import { AnarchySubject, ResourceClaim, ResourceClaimSpecResourceTemplate } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 
 import './service-item-status.css';
 
-function getCheckStatusStateFromResource(resourceState: any, resourceTemplate: any): string | null {
+function getCheckStatusStateFromResource(
+  resourceState: AnarchySubject,
+  resourceTemplate: ResourceClaimSpecResourceTemplate
+): string | null {
   const resourceStateVars = resourceState?.spec?.vars;
   const resourceTemplateVars = resourceTemplate.spec?.vars;
   if (resourceStateVars?.check_status_state && resourceStateVars.check_status_state != 'successful') {

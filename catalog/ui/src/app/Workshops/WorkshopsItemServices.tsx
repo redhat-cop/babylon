@@ -1,15 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  DescriptionList,
-  DescriptionListTerm,
-  DescriptionListGroup,
-  DescriptionListDescription,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Title,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { DollarSignIcon, ExclamationTriangleIcon, StopIcon, PlayIcon, TrashIcon } from '@patternfly/react-icons';
 import { K8sObjectReference, ResourceClaim } from '@app/types';
 import {
@@ -29,6 +20,7 @@ import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import { ModalState } from './WorkshopsItem';
 import { selectUserIsAdmin } from '@app/store';
 import { useSelector } from 'react-redux';
+import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
 
 import './workshops-item-services.css';
 
@@ -37,8 +29,7 @@ const WorkshopsItemServices: React.FC<{
   resourceClaims: ResourceClaim[];
   showModal: (modalState: ModalState) => void;
   setSelectedResourceClaims: (resourceClaims: ResourceClaim[]) => void;
-  isValidating?: boolean;
-}> = ({ showModal, resourceClaims, setSelectedResourceClaims, isValidating = false }) => {
+}> = ({ showModal, resourceClaims, setSelectedResourceClaims }) => {
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
   const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
 
@@ -139,43 +130,20 @@ const WorkshopsItemServices: React.FC<{
                 <p>-</p>
               )}
             </>,
+
             // Status
-            specResources.length > 1 ? (
-              <div>
-                <DescriptionList isHorizontal>
-                  {specResources.map((specResource, i) => {
-                    const componentDisplayName =
-                      resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${i}`] ||
-                      specResource.name ||
-                      specResource.provider?.name;
-                    return (
-                      <DescriptionListGroup key={i}>
-                        <DescriptionListTerm key="term">{componentDisplayName}</DescriptionListTerm>
-                        <DescriptionListDescription key="description">
-                          <ServiceStatus
-                            creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                            resource={resources?.[i]}
-                            resourceTemplate={specResource.template}
-                            isValidating={isValidating}
-                          />
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    );
-                  })}
-                </DescriptionList>
-              </div>
-            ) : specResources.length === 1 ? (
-              <div>
+            <>
+              {specResources.length >= 1 ? (
                 <ServiceStatus
                   creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                  resource={resources?.[0]}
-                  resourceTemplate={specResources[0].template}
-                  isValidating={isValidating}
+                  resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
+                  resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
                 />
-              </div>
-            ) : (
-              <p>...</p>
-            ),
+              ) : (
+                <p>...</p>
+              )}
+            </>,
+
             // Created
             <>
               <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
