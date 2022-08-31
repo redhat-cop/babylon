@@ -107,7 +107,6 @@ const WorkshopsItemComponent: React.FC<{
     data: resourceClaims,
     error,
     mutate,
-    isValidating,
   } = useSWR<ResourceClaim[]>(
     apiPaths.RESOURCE_CLAIMS({
       namespace: serviceNamespaceName,
@@ -319,7 +318,6 @@ const WorkshopsItemComponent: React.FC<{
               showModal={showModal}
               setSelectedResourceClaims={setSelectedResourceClaims}
               resourceClaims={resourceClaims}
-              isValidating={isValidating}
             />
           </Tab>
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>

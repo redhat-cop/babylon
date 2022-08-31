@@ -65,6 +65,7 @@ export interface AnarchySubjectSpec {
       uuid: string;
     };
     healthy?: boolean;
+    check_status_state?: string;
   };
 }
 
@@ -97,6 +98,7 @@ export interface AnarchySubjectStatus {
 export interface AnarchySubjectStatusTowerJob {
   towerJobURL?: string;
   completeTimestamp?: string;
+  startTimestamp?: string;
 }
 
 export interface CatalogItem extends K8sObject {
@@ -248,10 +250,27 @@ export interface ResourceClaimSpecLifespan {
   start?: string;
 }
 
+export type ResourceClaimSpecResourceActionSchedule = {
+  start?: string;
+  stop?: string;
+};
+
+export type ResourceClaimSpecResourceTemplate = {
+  spec?: {
+    vars?: {
+      action_schedule?: ResourceClaimSpecResourceActionSchedule;
+      check_status_request_timestamp?: string;
+      desired_state?: string;
+    };
+  };
+  metadata?: any;
+  data?: any;
+};
+
 export interface ResourceClaimSpecResource {
   name?: string;
   provider?: K8sObjectReference;
-  template: any;
+  template: ResourceClaimSpecResourceTemplate;
 }
 
 export interface ResourceHandle extends K8sObject {

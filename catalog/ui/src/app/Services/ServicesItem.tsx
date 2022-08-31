@@ -84,7 +84,6 @@ const ServicesItemComponent: React.FC<{
     data: resourceClaim,
     mutate,
     error,
-    isValidating,
   } = useSWR<ResourceClaim>(
     apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }),
     (path) => fetchWithUpdatedCostTracker({ path, initialResourceClaim: resourceClaim }),
@@ -230,6 +229,8 @@ const ServicesItemComponent: React.FC<{
     },
     [openModalAction, openModalCreateWorkshop, openModalScheduleAction]
   );
+
+  const costTracker = getCostTracker(resourceClaim);
 
   return (
     <>
@@ -401,6 +402,21 @@ const ServicesItemComponent: React.FC<{
                     )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+                {costTracker ? (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Amount spent</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {costTracker.estimatedCost ? (
+                        <p>
+                          <CurrencyAmount amount={costTracker.estimatedCost} />{' '}
+                          <span className="services-item__estimated-cost-label">(Estimated by the cloud provider)</span>
+                        </p>
+                      ) : (
+                        'No data available'
+                      )}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                ) : null}
               </DescriptionList>
               {resourceClaim.spec.resources.map((resourceSpec, idx) => {
                 const resourceStatus = resourceClaim.status?.resources?.[idx];
@@ -455,7 +471,7 @@ const ServicesItemComponent: React.FC<{
                     : null;
                 const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
                 const startDate = startTime ? new Date(startTime) : null;
-                const costTracker = getCostTracker(resourceClaim);
+
                 return (
                   <div key={idx} className="services-item__body-resource">
                     {resourceClaim.spec.resources.length > 1 ? <h2>{componentDisplayName}</h2> : null}
@@ -475,27 +491,9 @@ const ServicesItemComponent: React.FC<{
                                 creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                                 resource={resourceState}
                                 resourceTemplate={resourceSpec.template}
-                                isValidating={isValidating}
                               />
                             </DescriptionListDescription>
                           </DescriptionListGroup>
-                          {costTracker ? (
-                            <DescriptionListGroup>
-                              <DescriptionListTerm>Amount spent</DescriptionListTerm>
-                              <DescriptionListDescription>
-                                {costTracker.estimatedCost ? (
-                                  <p>
-                                    <CurrencyAmount amount={costTracker.estimatedCost} />{' '}
-                                    <span className="services-item__estimated-cost-label">
-                                      (Estimated by the cloud provider)
-                                    </span>
-                                  </p>
-                                ) : (
-                                  'No data available'
-                                )}
-                              </DescriptionListDescription>
-                            </DescriptionListGroup>
-                          ) : null}
                           {externalPlatformUrl ? null : startDate && Number(startDate) > Date.now() ? (
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
