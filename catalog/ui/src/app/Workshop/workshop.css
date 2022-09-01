@@ -4,7 +4,6 @@
 .workshop-login-failure {
   color: var(--pf-global--danger-color--200);
 }
-
 .workshop-login-form.pf-c-form {
   width: 300px;
 }

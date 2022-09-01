@@ -1,13 +1,10 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { PageHeader } from '@patternfly/react-core';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import redHatLogo from '@app/bgimages/RedHat-Logo.svg';
 
-const WorkshopHeader: React.FC = () => {
-  const { search } = useLocation();
-  const userInterface = new URLSearchParams(search).get('userInterface');
+const WorkshopHeader: React.FC<{ userInterface: string }> = ({ userInterface }) => {
   function LogoImg() {
     if (userInterface === 'summit') {
       return (
