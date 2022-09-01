@@ -31,6 +31,7 @@ type FormState = {
   workshop?: WorkshopProps;
   error: string;
   usePoolIfAvailable: boolean;
+  startDate?: Date;
 };
 type ParameterProps = {
   name: string;
@@ -39,7 +40,14 @@ type ParameterProps = {
 };
 
 export type FormStateAction = {
-  type: 'init' | 'parameterUpdate' | 'termsOfServiceAgreed' | 'workshop' | 'usePoolIfAvailable' | 'complete';
+  type:
+    | 'init'
+    | 'parameterUpdate'
+    | 'termsOfServiceAgreed'
+    | 'startDate'
+    | 'workshop'
+    | 'usePoolIfAvailable'
+    | 'complete';
   catalogItem?: CatalogItem;
   user?: UserProps;
   parameter?: ParameterProps;
@@ -48,6 +56,7 @@ export type FormStateAction = {
   parameters?: { [name: string]: FormStateParameter };
   workshop?: WorkshopProps;
   usePoolIfAvailable?: boolean;
+  startDate?: Date;
 };
 
 export type FormStateParameter = {
@@ -302,6 +311,20 @@ function reduceFormStateUsePoolIfAvailable(initialState: FormState, usePoolIfAva
   };
 }
 
+function reduceFormStateStartDate(initialState: FormState, startDate: Date): FormState {
+  const minThreshold = Date.now() + 900000; // 15 mins
+  if (startDate && startDate.getTime() > minThreshold) {
+    return {
+      ...initialState,
+      startDate,
+    };
+  }
+  return {
+    ...initialState,
+    startDate: null,
+  };
+}
+
 export function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'init':
@@ -312,6 +335,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         value: action.parameter.value,
         isValid: action.parameter.isValid,
       });
+    case 'startDate':
+      return reduceFormStateStartDate(state, action.startDate);
     case 'termsOfServiceAgreed':
       return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
     case 'workshop':

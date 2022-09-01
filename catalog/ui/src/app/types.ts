@@ -41,12 +41,32 @@ export interface AnarchyRunnerList {
 export interface AnarchySubject extends K8sObject {
   spec: AnarchySubjectSpec;
   status?: AnarchySubjectStatus;
+  data?: any;
 }
 
+export interface AnarchySubjectSpecActionSchedule {
+  default_runtime?: string;
+  maximum_runtime?: string;
+  start?: string;
+  stop?: string;
+}
 export interface AnarchySubjectSpec {
   governor?: string;
   varSecrets?: VarSecret[];
-  vars?: any;
+  vars?: {
+    action_schedule?: AnarchySubjectSpecActionSchedule;
+    current_state: string;
+    desired_state: string;
+    provision_data?: any;
+    status_messages?: string[];
+    status_data?: any;
+    job_vars?: {
+      guid: string;
+      uuid: string;
+    };
+    healthy?: boolean;
+    check_status_state?: string;
+  };
 }
 
 export interface VarSecret {
@@ -60,17 +80,33 @@ export interface AnarchySubjectList {
   metadata: K8sObjectListMeta;
 }
 
+export type AnarchySubjectSupportedActions = {
+  start?: unknown;
+  stop?: unknown;
+  status?: unknown;
+  destroy?: unknown;
+  provision?: unknown;
+};
 export interface AnarchySubjectStatus {
   towerJobs?: { [jobName: string]: AnarchySubjectStatusTowerJob };
+  supportedActions?: AnarchySubjectSupportedActions;
+  diffBase?: string;
+  pendingActions?: unknown[];
+  runs?: unknown;
 }
 
 export interface AnarchySubjectStatusTowerJob {
   towerJobURL?: string;
+  completeTimestamp?: string;
+  startTimestamp?: string;
 }
 
 export interface CatalogItem extends K8sObject {
   spec: CatalogItemSpec;
-  status?: any;
+  status?: {
+    rating?: number;
+    provisionHistory?: { result?: string }[];
+  };
 }
 
 export interface CatalogItemList {
@@ -93,6 +129,8 @@ export interface CatalogItemSpec {
   resources?: any[];
   termsOfService?: string;
   userData?: any;
+  lifespan?: CatalogItemSpecLifespan;
+  runtime?: CatalogItemSpecRuntime;
 }
 
 export interface CatalogItemSpecParameter {
@@ -183,9 +221,18 @@ export interface NamespaceList {
   metadata: K8sObjectListMeta;
 }
 
+export interface ResourceHandleResource {
+  name: string;
+  provider: K8sObjectReference;
+  state: AnarchySubject;
+}
 export interface ResourceClaim extends K8sObject {
   spec: ResourceClaimSpec;
-  status?: any;
+  status?: {
+    lifespan: ResourceClaimStatusLifespan;
+    resourceHandle: K8sObjectReference;
+    resources: ResourceHandleResource[];
+  };
 }
 
 export interface ResourceClaimList {
@@ -200,12 +247,30 @@ export interface ResourceClaimSpec {
 
 export interface ResourceClaimSpecLifespan {
   end?: string;
+  start?: string;
 }
+
+export type ResourceClaimSpecResourceActionSchedule = {
+  start?: string;
+  stop?: string;
+};
+
+export type ResourceClaimSpecResourceTemplate = {
+  spec?: {
+    vars?: {
+      action_schedule?: ResourceClaimSpecResourceActionSchedule;
+      check_status_request_timestamp?: string;
+      desired_state?: string;
+    };
+  };
+  metadata?: any;
+  data?: any;
+};
 
 export interface ResourceClaimSpecResource {
   name?: string;
   provider?: K8sObjectReference;
-  template: any;
+  template: ResourceClaimSpecResourceTemplate;
 }
 
 export interface ResourceHandle extends K8sObject {
@@ -290,7 +355,18 @@ export interface ResourceProviderSpecLifespan {
   default: string;
   maximum: string;
   relativeMaximum: string;
+  end?: string;
+  start?: string;
 }
+
+export type ResourceClaimStatusLifespan = ResourceProviderSpecLifespan;
+
+export type CatalogItemSpecLifespan = ResourceProviderSpecLifespan;
+
+export type CatalogItemSpecRuntime = {
+  default: string;
+  maximum: string;
+};
 
 export interface ResourceProviderSpecTemplate {
   enable?: boolean;

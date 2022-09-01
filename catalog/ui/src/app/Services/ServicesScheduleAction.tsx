@@ -3,7 +3,7 @@ import parseDuration from 'parse-duration';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { ResourceClaim } from '@app/types';
 import { displayName } from '@app/util';
-import { DateTimePicker } from '@app/components/DateTimePicker';
+import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
 
 const ServicesScheduleAction: React.FC<{

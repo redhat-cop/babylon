@@ -85,7 +85,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           limit: FETCH_BATCH_LIMIT,
           continueId,
         })
-      )
+      ),
+    {
+      refreshInterval: 8000,
+    }
   );
 
   const userHasInstanceOfCatalogItem = userResourceClaims.some(
@@ -266,7 +269,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <DescriptionListGroup>
                   <DescriptionListTerm>Rating</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <CatalogItemRating catalogItem={catalogItem} starDimension="20px" />
+                    <CatalogItemRating rating={catalogItem.status.rating} starDimension="20px" />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
@@ -274,7 +277,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <DescriptionListGroup>
                   <DescriptionListTerm>Health</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <CatalogItemHealthDisplay catalogItem={catalogItem} />
+                    <CatalogItemHealthDisplay provisionHistory={catalogItem.status.provisionHistory} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}

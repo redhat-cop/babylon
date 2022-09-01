@@ -1,8 +1,8 @@
 import React from 'react';
 
 const CatalogItemHealthDisplay: React.FunctionComponent<{
-  catalogItem: any;
-}> = ({ catalogItem }) => {
+  provisionHistory: { result?: string }[];
+}> = ({ provisionHistory }) => {
   return (
     <div
       style={{
@@ -13,7 +13,7 @@ const CatalogItemHealthDisplay: React.FunctionComponent<{
         width: '100px',
       }}
     >
-      {catalogItem.status.provisionHistory.map((provision, idx) => {
+      {provisionHistory.map((provision, idx) => {
         if (provision.result === 'success') {
           return <div key={idx} style={{ backgroundColor: '#5ba352' }}></div>;
         } else {

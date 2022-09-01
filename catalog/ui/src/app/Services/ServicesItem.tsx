@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon, OutlinedClockIcon } from '@patternfly/react-icons';
-import { BABYLON_DOMAIN, getCostTracker } from '@app/util';
+import { BABYLON_DOMAIN, canExecuteAction, getCostTracker } from '@app/util';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import {
@@ -38,7 +38,7 @@ import {
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
+import { AnarchySubject, K8sObject, NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
 import { displayName, renderContent } from '@app/util';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -84,7 +84,6 @@ const ServicesItemComponent: React.FC<{
     data: resourceClaim,
     mutate,
     error,
-    isValidating,
   } = useSWR<ResourceClaim>(
     apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }),
     (path) => fetchWithUpdatedCostTracker({ path, initialResourceClaim: resourceClaim }),
@@ -114,12 +113,9 @@ const ServicesItemComponent: React.FC<{
     displayName: serviceNamespaceName,
   };
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
-  const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
+  const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state: K8sObject }) => r.state);
   const userData = JSON.parse(resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/userData`] || 'null');
-  const statusEnabled = resources.find(
-    (resource) =>
-      resource?.status?.supportedActions?.status && resource?.status?.towerJobs?.provision?.completeTimestamp
-  )
+  const statusEnabled = resourcesK8sObj.find((resource: AnarchySubject) => canExecuteAction(resource, 'status'))
     ? true
     : false;
 
@@ -131,7 +127,7 @@ const ServicesItemComponent: React.FC<{
     delete: () => showModal({ action: 'delete', modal: 'action' }),
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction' }),
   };
-  if (resources.find((r) => r?.kind === 'AnarchySubject')) {
+  if (resourcesK8sObj.find((r: K8sObject) => r?.kind === 'AnarchySubject')) {
     actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction' });
     actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action' });
     actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action' });
@@ -141,7 +137,7 @@ const ServicesItemComponent: React.FC<{
   // associated with the provisioned service.
   const labUserInterfaceData =
     resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
-    resources
+    resourcesK8sObj
       .map((r) =>
         r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
       )
@@ -150,14 +146,14 @@ const ServicesItemComponent: React.FC<{
 
   const labUserInterfaceMethod =
     resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
-    resources
+    resourcesK8sObj
       .map((r) =>
         r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
       )
       .find((u) => u != null);
   const labUserInterfaceUrl =
     resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
-    resources
+    resourcesK8sObj
       .map((r) => {
         const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
         return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
@@ -233,6 +229,8 @@ const ServicesItemComponent: React.FC<{
     },
     [openModalAction, openModalCreateWorkshop, openModalScheduleAction]
   );
+
+  const costTracker = getCostTracker(resourceClaim);
 
   return (
     <>
@@ -404,6 +402,21 @@ const ServicesItemComponent: React.FC<{
                     )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+                {costTracker ? (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Amount spent</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {costTracker.estimatedCost ? (
+                        <p>
+                          <CurrencyAmount amount={costTracker.estimatedCost} />{' '}
+                          <span className="services-item__estimated-cost-label">(Estimated by the cloud provider)</span>
+                        </p>
+                      ) : (
+                        'No data available'
+                      )}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                ) : null}
               </DescriptionList>
               {resourceClaim.spec.resources.map((resourceSpec, idx) => {
                 const resourceStatus = resourceClaim.status?.resources?.[idx];
@@ -458,7 +471,7 @@ const ServicesItemComponent: React.FC<{
                     : null;
                 const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
                 const startDate = startTime ? new Date(startTime) : null;
-                const costTracker = getCostTracker(resourceClaim);
+
                 return (
                   <div key={idx} className="services-item__body-resource">
                     {resourceClaim.spec.resources.length > 1 ? <h2>{componentDisplayName}</h2> : null}
@@ -478,27 +491,9 @@ const ServicesItemComponent: React.FC<{
                                 creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                                 resource={resourceState}
                                 resourceTemplate={resourceSpec.template}
-                                isValidating={isValidating}
                               />
                             </DescriptionListDescription>
                           </DescriptionListGroup>
-                          {costTracker ? (
-                            <DescriptionListGroup>
-                              <DescriptionListTerm>Amount spent</DescriptionListTerm>
-                              <DescriptionListDescription>
-                                {costTracker.estimatedCost ? (
-                                  <p>
-                                    <CurrencyAmount amount={costTracker.estimatedCost} />{' '}
-                                    <span className="services-item__estimated-cost-label">
-                                      (Estimated by the cloud provider)
-                                    </span>
-                                  </p>
-                                ) : (
-                                  'No data available'
-                                )}
-                              </DescriptionListDescription>
-                            </DescriptionListGroup>
-                          ) : null}
                           {externalPlatformUrl ? null : startDate && Number(startDate) > Date.now() ? (
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Start</DescriptionListTerm>

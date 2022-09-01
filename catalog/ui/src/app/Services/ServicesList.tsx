@@ -58,6 +58,7 @@ import ServicesScheduleAction from './ServicesScheduleAction';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
+import { getMostRelevantResourceAndTemplate } from './service-utils';
 
 import './services-list.css';
 
@@ -115,7 +116,6 @@ const ServicesList: React.FC<{
     mutate,
     size,
     setSize,
-    isValidating,
   } = useSWRInfinite<ResourceClaimList>(
     (index, previousPageData: ResourceClaimList) => {
       if (previousPageData && !previousPageData.metadata?.continue) {
@@ -532,9 +532,8 @@ const ServicesList: React.FC<{
                   {specResources.length >= 1 ? (
                     <ServiceStatus
                       creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                      resource={resources?.[specResources.length - 1]}
-                      resourceTemplate={specResources[specResources.length - 1].template}
-                      isValidating={isValidating}
+                      resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
+                      resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
                     />
                   ) : (
                     <p>...</p>
