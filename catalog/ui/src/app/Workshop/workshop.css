@@ -1,7 +1,6 @@
 .workshop.pf-c-page__header .pf-c-page__header-brand {
   height: 60px;
 }
-
 .workshop-login-failure {
   color: var(--pf-global--danger-color--200);
 }
