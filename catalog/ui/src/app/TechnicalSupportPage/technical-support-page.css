@@ -1,0 +1,9 @@
+.technical-support-page {
+  padding: 0;
+}
+.technical-support-page > * {
+  padding: 0 var(--pf-c-page__main-section--PaddingRight) 0 var(--pf-c-page__main-section--PaddingLeft);
+}
+.technical-support-page > *:last-child {
+  padding-bottom: var(--pf-c-page__main-section--PaddingBottom);
+}

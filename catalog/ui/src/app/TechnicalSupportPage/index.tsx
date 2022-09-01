@@ -13,6 +13,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarPanel,
+  Breadcrumb,
+  BreadcrumbItem,
 } from '@patternfly/react-core';
 import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import useSWRImmutable from 'swr/immutable';
@@ -20,6 +22,8 @@ import { CSVToArray } from '@app/util';
 import { publicFetcher } from '@app/api';
 import PublicHeader from '@app/Header/PublicHeader';
 import SlaIcon, { SUPPORT_LEVELS } from '@app/components/SlaIcon';
+import heroImg from '@app/bgimages/hero-img.jpeg';
+import Hero from '@app/components/Hero';
 
 import './technical-support-page.css';
 
@@ -71,9 +75,17 @@ const TechnicalSupportPage: React.FC = () => {
   return (
     <Page mainContainerId="primary-app-container" header={<PublicHeader />}>
       <PageSection variant={PageSectionVariants.light} className="technical-support-page">
-        <Title headingLevel="h1" size="lg">
-          RHPDS Solution Support: 24x7 engineering support
-        </Title>
+        <Hero image={heroImg}>
+          <Title headingLevel="h1" size="xl" style={{ fontSize: '40px' }}>
+            <b>RHPDS Solution Support:</b> SLAs
+          </Title>
+        </Hero>
+        <Breadcrumb style={{ paddingBottom: 'var(--pf-global--spacer--xl)' }}>
+          <BreadcrumbItem to="/">Home</BreadcrumbItem>
+          <BreadcrumbItem to="#" isActive>
+            RHPDS Solution Support: SLAs
+          </BreadcrumbItem>
+        </Breadcrumb>
         <Sidebar hasGutter style={{ height: 'auto' }}>
           <SidebarPanel style={{ marginTop: 'auto', marginBottom: 'auto' }}>
             <div
@@ -84,11 +96,16 @@ const TechnicalSupportPage: React.FC = () => {
               }}
             >
               <em>
-                “When I think of Red Hat, the first thing that comes to mind is trust. We trusted them because we had
-                seen their product. And whenever we needed help, support was available. The more support we got, the
-                more trust we had. And that’s how the relationship has grown.”
+                “We ran a pretty intense DevSecOps 1 day-workshop for one of our Premier Partners in Germany with 8
+                attendees. The workshop required to have a cluster per attendee, which was a lot of hassle for us to set
+                up in the past. With RHPDS support we were able to focus on running the workshop and not on the
+                infrastructure. Highly appreciated!”
               </em>
-              <br /> <p style={{ marginTop: 'var(--pf-global--spacer--xs)' }}>Kersi Tavadia CIO, BSE</p>
+              <br />
+              <p style={{ marginTop: 'var(--pf-global--spacer--xs)' }}>
+                Goetz Rieger,
+                <br /> Principal Solution Architect
+              </p>
             </div>
           </SidebarPanel>
           <SidebarContent>
@@ -99,7 +116,7 @@ const TechnicalSupportPage: React.FC = () => {
               <Text>
                 RHPDS (Red Hat Product Demo System) is the platform which enables stakeholders, both internal and
                 external (specified Partners) with the ability to run demonstrations, hands-on workshops and personal
-                sandbox environments for definite time periods to showcase Red Hat’s portfolio of solutions.{' '}
+                sandbox environments for definite time periods to showcase Red Hat’s portfolio of solutions.
               </Text>
             </PageSection>
             <PageSection>
@@ -112,18 +129,18 @@ const TechnicalSupportPage: React.FC = () => {
               >
                 <TextListItem>
                   <b>Speedy restoration</b> to get your business back up and running due to Red Hat’s fast response
-                  time, in the event of a production-critical issue{' '}
+                  time, in the event of a production-critical issue
                 </TextListItem>
                 <TextListItem>
                   <b>Increased confidence</b> because of restoration and resolution service-level agreements (SLAs) that
-                  guarantee restoration in 4 hours1 and resolution in 20 days in Severity 1 incidents{' '}
+                  guarantee restoration and resolution
                 </TextListItem>
                 <TextListItem>
                   <b>Efficient issue resolution</b> with direct access to senior technical engineers who are familiar
                   with your environment
                 </TextListItem>
                 <TextListItem>
-                  <b>High availability of help</b> through a designated contact phone number, available 24x7
+                  <b>High availability of help</b> through a designated support channel
                 </TextListItem>
               </TextList>
             </PageSection>
