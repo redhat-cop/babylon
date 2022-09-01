@@ -66,6 +66,7 @@ export interface AnarchySubjectSpec {
     };
     healthy?: boolean;
     check_status_state?: string;
+    provision_messages?: string[];
   };
 }
 
@@ -168,6 +169,7 @@ export interface K8sObject {
   apiVersion: string;
   kind: string;
   metadata: K8sObjectMeta;
+  data?: any;
 }
 
 export interface K8sObjectList {
@@ -180,11 +182,11 @@ export interface K8sObjectListMeta {
 }
 
 export interface K8sObjectMeta {
-  annotations?: object;
+  annotations?: Record<string, string>;
   creationTimestamp?: string;
   deletionTimestamp?: string;
   finalizers?: string[];
-  labels?: object;
+  labels?: Record<string, string>;
   name: string;
   namespace?: string;
   ownerReferences?: K8sOwnerReference[];

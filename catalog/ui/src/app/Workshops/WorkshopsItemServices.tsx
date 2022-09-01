@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
-import { DollarSignIcon, ExclamationTriangleIcon, StopIcon, PlayIcon, TrashIcon } from '@patternfly/react-icons';
+import {
+  DollarSignIcon,
+  ExclamationTriangleIcon,
+  StopIcon,
+  PlayIcon,
+  TrashIcon,
+  RedoIcon,
+} from '@patternfly/react-icons';
 import { K8sObjectReference, ResourceClaim } from '@app/types';
 import {
   displayName,
@@ -161,24 +168,10 @@ const WorkshopsItemServices: React.FC<{
                 className="workshops-item-services__actions"
               >
                 <ButtonCircleIcon
-                  isDisabled={!checkResourceClaimCanStart(resourceClaim)}
-                  onClick={actionHandlers.start}
-                  description="Start"
-                  icon={PlayIcon}
-                  key="actions__start"
-                />
-                <ButtonCircleIcon
-                  isDisabled={!checkResourceClaimCanStop(resourceClaim)}
-                  onClick={actionHandlers.stop}
-                  description="Stop"
-                  icon={StopIcon}
-                  key="actions__stop"
-                />
-                <ButtonCircleIcon
                   key="actions__delete"
                   onClick={actionHandlers.delete}
-                  description="Delete"
-                  icon={TrashIcon}
+                  description="Delete (will start a new service)"
+                  icon={RedoIcon}
                 />
                 {costTracker ? (
                   <ButtonCircleIcon

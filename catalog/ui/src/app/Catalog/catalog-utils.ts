@@ -18,7 +18,8 @@ export function getDescription(catalogItem: CatalogItem): {
 } {
   return {
     description: catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/description`],
-    descriptionFormat: catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/descriptionFormat`] || 'asciidoc',
+    descriptionFormat:
+      (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/descriptionFormat`] as 'html' | 'asciidoc') || 'asciidoc',
   };
 }
 export function getStage(catalogItem: CatalogItem): string | null {

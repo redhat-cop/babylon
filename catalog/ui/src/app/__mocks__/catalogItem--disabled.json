@@ -16,7 +16,7 @@
       "babylon.gpte.redhat.com/category": "Other",
       "babylon.gpte.redhat.com/stage": "prod",
       "generated_by": "agnosticv",
-      "babylon.gpte.redhat.com/disabled": true
+      "babylon.gpte.redhat.com/disabled": "true"
     },
     "managedFields": [
       {

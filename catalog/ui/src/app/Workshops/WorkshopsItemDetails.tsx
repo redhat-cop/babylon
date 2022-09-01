@@ -30,7 +30,7 @@ const WorkshopsItemDetails: React.FC<{
 }> = ({ onWorkshopUpdate, workshop }) => {
   const { isAdmin } = useSession().getSession();
   const userRegistrationValue: 'open' | 'pre' = workshop.spec.openRegistration === false ? 'pre' : 'open';
-  const workshopID: string = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+  const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
 
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
 
@@ -56,11 +56,11 @@ const WorkshopsItemDetails: React.FC<{
       <DescriptionListGroup>
         <DescriptionListTerm>Workshop URL</DescriptionListTerm>
         <DescriptionListDescription>
-          {workshopID ? (
-            <Link to={`/workshop/${workshopID}`} target="_blank" rel="noopener">
+          {workshopId ? (
+            <Link to={`/workshop/${workshopId}`} target="_blank" rel="noopener">
               {window.location.protocol}
               {'//'}
-              {window.location.host}/workshop/{workshopID}
+              {window.location.host}/workshop/{workshopId}
             </Link>
           ) : (
             <LoadingIcon />

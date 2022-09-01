@@ -72,13 +72,6 @@ const ServicesItemComponent: React.FC<{
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { cache } = useSWRConfig();
-  const [modalState, setModalState] = useState<{
-    action?: string;
-    resourceClaim?: ResourceClaim;
-  }>({});
-  const [modalAction, openModalAction] = useModal();
-  const [modalScheduleAction, openModalScheduleAction] = useModal();
-  const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
 
   const {
     data: resourceClaim,
@@ -86,12 +79,27 @@ const ServicesItemComponent: React.FC<{
     error,
   } = useSWR<ResourceClaim>(
     apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }),
-    (path) => fetchWithUpdatedCostTracker({ path, initialResourceClaim: resourceClaim }),
+    (path) =>
+      fetchWithUpdatedCostTracker({
+        path,
+        initialResourceClaim: cache.get(
+          apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName })
+        ),
+      }),
     {
       refreshInterval: 8000,
     }
   );
   useErrorHandler(error?.status === 404 ? error : null);
+
+  const [modalAction, openModalAction] = useModal();
+  const [modalScheduleAction, openModalScheduleAction] = useModal();
+  const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
+  const [modalState, setModalState] = useState<{
+    action?: string;
+    resourceClaim?: ResourceClaim;
+  }>({});
+
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const enableFetchUserNamespaces = isAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
@@ -114,8 +122,11 @@ const ServicesItemComponent: React.FC<{
   };
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state: K8sObject }) => r.state);
+  const anarchySubjects = resourcesK8sObj
+    .filter((r: K8sObject) => r?.kind === 'AnarchySubject')
+    .map((r) => r as AnarchySubject);
   const userData = JSON.parse(resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/userData`] || 'null');
-  const statusEnabled = resourcesK8sObj.find((resource: AnarchySubject) => canExecuteAction(resource, 'status'))
+  const statusEnabled = anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'status'))
     ? true
     : false;
 
@@ -127,10 +138,12 @@ const ServicesItemComponent: React.FC<{
     delete: () => showModal({ action: 'delete', modal: 'action' }),
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction' }),
   };
-  if (resourcesK8sObj.find((r: K8sObject) => r?.kind === 'AnarchySubject')) {
-    actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction' });
+  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
     actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action' });
+  }
+  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
     actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action' });
+    actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction' });
   }
 
   // Find lab user interface information either in the resource claim or inside resources
@@ -138,24 +151,36 @@ const ServicesItemComponent: React.FC<{
   const labUserInterfaceData =
     resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
     resourcesK8sObj
-      .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
-      )
+      .map((r) => {
+        if (r?.kind === 'AnarchySubject') {
+          const anarchySubject = r as AnarchySubject;
+          return anarchySubject.spec?.vars?.provision_data?.lab_ui_data;
+        }
+        return r?.data?.labUserInterfaceData;
+      })
       .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
       .find((u) => u != null);
 
   const labUserInterfaceMethod =
     resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
     resourcesK8sObj
-      .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
-      )
+      .map((r) => {
+        if (r?.kind === 'AnarchySubject') {
+          const anarchySubject = r as AnarchySubject;
+          return anarchySubject.spec?.vars?.provision_data?.lab_ui_method;
+        }
+        return r?.data?.labUserInterfaceMethod;
+      })
       .find((u) => u != null);
   const labUserInterfaceUrl =
     resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
     resourcesK8sObj
       .map((r) => {
-        const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
+        let data = r?.data;
+        if (r?.kind === 'AnarchySubject') {
+          const anarchySubject = r as AnarchySubject;
+          data = anarchySubject.spec?.vars?.provision_data;
+        }
         return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
       })
       .find((u) => u != null);
@@ -166,8 +191,8 @@ const ServicesItemComponent: React.FC<{
     ? true
     : false;
 
-  const workshopName: string = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
-  const workshopProvisionName: string = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
+  const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
+  const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
 
   const { data: workshop, mutate: mutateWorkshop } = useSWR<Workshop>(
     workshopName ? apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }) : null,
@@ -651,32 +676,13 @@ const ServicesItemComponent: React.FC<{
             {workshopName && !workshopProvisionName ? (
               [
                 <Tab eventKey="workshop" key="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
-                  {workshop ? (
-                    <WorkshopsItemDetails
-                      onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)}
-                      workshop={workshop}
-                    />
-                  ) : (
-                    <PageSection>
-                      <EmptyState variant="full">
-                        <EmptyStateIcon icon={LoadingIcon} />
-                      </EmptyState>
-                    </PageSection>
-                  )}
+                  <WorkshopsItemDetails onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)} workshop={workshop} />
                 </Tab>,
                 <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
-                  {workshop ? (
-                    <WorkshopsItemUserAssignments
-                      onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)}
-                      workshop={workshop}
-                    />
-                  ) : (
-                    <PageSection>
-                      <EmptyState variant="full">
-                        <EmptyStateIcon icon={LoadingIcon} />
-                      </EmptyState>
-                    </PageSection>
-                  )}
+                  <WorkshopsItemUserAssignments
+                    onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)}
+                    workshop={workshop}
+                  />
                 </Tab>,
               ]
             ) : serviceHasUsers ? (
@@ -688,7 +694,7 @@ const ServicesItemComponent: React.FC<{
                       showModal({ modal: 'createWorkshop' });
                     }}
                   >
-                    Create Workshop Interface
+                    Enable workshop user interface
                   </Button>
                 ) : null}
                 <ServiceUsers resourceClaim={resourceClaim} />
