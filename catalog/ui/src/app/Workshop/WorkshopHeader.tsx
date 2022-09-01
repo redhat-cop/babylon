@@ -11,7 +11,7 @@ const WorkshopHeader: React.FC = () => {
   function LogoImg() {
     if (userInterface === 'summit') {
       return (
-        <a href="https://summit.demo.redhat.com/" style={{ height: '38px', display: 'flex' }}>
+        <a href="https://summit.demo.redhat.com/" style={{ display: 'flex', width: '70px' }}>
           <img src={summitLogo} alt="Red Hat Summit" />
         </a>
       );
