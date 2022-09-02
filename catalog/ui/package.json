@@ -76,7 +76,7 @@
     "@patternfly/patternfly": "4.194.4",
     "@patternfly/react-core": "4.214.1",
     "@patternfly/react-icons": "4.82.8",
-    "@patternfly/react-styles": "4.64.1",
+    "@patternfly/react-styles": "4.85.7",
     "@patternfly/react-table": "4.83.1",
     "@reduxjs/toolkit": "^1.8.5",
     "asciidoctor": "^2.2.6",
