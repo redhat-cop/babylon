@@ -103,6 +103,7 @@ module.exports = (env) => {
       filename: '[name].[contenthash:4].bundle.js',
       chunkFilename: '[name].[contenthash:4].bundle.js',
       publicPath: ASSET_PATH,
+      assetModuleFilename: 'fonts/[hash][ext][query]',
     },
     plugins: [
       new Dotenv({
