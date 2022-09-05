@@ -43,7 +43,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
       ).phase,
     });
   }
-  const codeLevels = ['failed', 'in-progress', 'stopped', 'running', 'available'];
+  const codeLevels = ['failed', 'stopped', 'in-progress', 'running', 'available'];
   function cmp(a: { phase: phaseProps }, b: { phase: phaseProps }): number {
     return codeLevels.indexOf(a.phase) > codeLevels.indexOf(b.phase) ? 1 : -1;
   }
