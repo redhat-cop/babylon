@@ -144,7 +144,7 @@ export async function publicFetcher(path: string, opt?: Record<string, unknown>)
     throw response;
   }
   const contentType = response.headers.get('Content-Type');
-  if (contentType?.includes('text/')) return response.text();
+  if (contentType?.includes('text/') || contentType?.includes('application/octet-stream')) return response.text();
   return response.json();
 }
 
