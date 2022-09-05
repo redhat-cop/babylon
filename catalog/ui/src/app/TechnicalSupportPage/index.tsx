@@ -28,7 +28,7 @@ import Hero from '@app/components/Hero';
 import './technical-support-page.css';
 
 const TechnicalSupportPage: React.FC = () => {
-  const { data } = useSWRImmutable('./incidents_technical_support.csv', publicFetcher);
+  const { data } = useSWRImmutable('./public/incidents_technical_support.csv', publicFetcher);
   const dataArr = CSVToArray(data);
   function getHelpLink() {
     return 'https://red.ht/open-support';
