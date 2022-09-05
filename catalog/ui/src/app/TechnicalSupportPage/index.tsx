@@ -38,7 +38,7 @@ const TechnicalSupportPage: React.FC = () => {
     if (typeof label === 'undefined' || label === null) {
       label = dataLabel;
     }
-    return [label, ...dataArr.find((i) => i[0].startsWith(dataLabel)).slice(1)];
+    return [label, ...dataArr.find((i) => i[0].startsWith(dataLabel))?.slice(1)];
   }
   const types = createRowFromArr('Types', '');
   const columns = types;
