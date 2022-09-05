@@ -13,16 +13,15 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { WorkshopSpecUserAssignment } from '@app/types';
 import { renderContent } from '@app/util';
 import { WorkshopDetails } from './workshopApi';
 
 const WorkshopAccess: React.FC<{
   workshop: WorkshopDetails;
 }> = ({ workshop }) => {
-  const description: string = workshop.description;
-  const displayName: string = workshop.displayName || 'Workshop';
-  const userAssignment: WorkshopSpecUserAssignment = workshop.assignment;
+  const description = workshop.description;
+  const displayName = workshop.displayName || 'Workshop';
+  const userAssignment = workshop.assignment;
 
   return (
     <PageSection variant={PageSectionVariants.light} className="workshop">
