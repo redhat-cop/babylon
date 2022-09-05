@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { Page } from '@patternfly/react-core';
 import { workshopLogin, WorkshopDetails } from './workshopApi';
 import WorkshopAccess from './WorkshopAccess';
@@ -8,11 +8,15 @@ import WorkshopLogin from './WorkshopLogin';
 import useSWRImmutable from 'swr/immutable';
 import { apiPaths } from './workshop-utils';
 import { publicFetcher } from '@app/api';
+import Footer from '@app/components/Footer';
+import summitLogo from '@app/bgimages/Summit-Logo.svg';
 
 import './workshop.css';
 
 const Workshop: React.FC = () => {
   const { workshopId } = useParams();
+  const { search } = useLocation();
+  const userInterface = new URLSearchParams(search).get('userInterface');
   const [loginFailureMessage, setLoginFailureMessage] = useState('');
   const { data: workshop } = useSWRImmutable<WorkshopDetails>(
     workshopId ? apiPaths.WORKSHOP({ workshopId }) : null,
@@ -38,23 +42,28 @@ const Workshop: React.FC = () => {
     }
   }
 
-  if (workshopPrivateInfo.assignment) {
-    return (
-      <Page header={<WorkshopHeader />}>
+  return (
+    <Page header={<WorkshopHeader userInterface={userInterface} />} style={{ backgroundColor: '#fff' }}>
+      {workshopPrivateInfo.assignment ? (
         <WorkshopAccess workshop={workshopPrivateInfo} />
-      </Page>
-    );
-  } else {
-    return (
-      <Page header={<WorkshopHeader />}>
+      ) : (
         <WorkshopLogin
           loginFailureMessage={loginFailureMessage}
           onLogin={(email, accessPassword) => attemptLogin(email, accessPassword)}
           workshop={workshop}
         />
-      </Page>
-    );
-  }
+      )}
+      <Footer
+        rightElement={
+          userInterface === 'summit' ? (
+            <a href="https://www.redhat.com/summit">
+              <img src={summitLogo} alt="Red Hat Summit" width="72px" />
+            </a>
+          ) : null
+        }
+      />
+    </Page>
+  );
 };
 
 export default Workshop;
