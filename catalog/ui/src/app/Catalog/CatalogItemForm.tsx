@@ -11,6 +11,8 @@ import {
   Form,
   FormGroup,
   FormHelperText,
+  HelperText,
+  HelperTextItem,
   PageSection,
   PageSectionVariants,
   Select,
@@ -26,6 +28,7 @@ import useSWR from 'swr';
 import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
+  InfoIcon,
   OutlinedCalendarAltIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
@@ -40,7 +43,7 @@ import {
 } from '@app/api';
 import { CatalogItem } from '@app/types';
 import { ErrorBoundary } from 'react-error-boundary';
-import { displayName, randomString } from '@app/util';
+import { displayName, isLabDeveloper, randomString } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
@@ -212,6 +215,13 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                 )
           }
         />
+        {formState.workshop ? (
+          <HelperText style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
+            <HelperTextItem icon={<InfoIcon />}>
+              Services will launch at the specified date and take some time to be available.
+            </HelperTextItem>
+          </HelperText>
+        ) : null}
       </Modal>
       <Title headingLevel="h1" size="lg">
         Order {displayName(catalogItem)}
@@ -531,22 +541,24 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               Order
             </Button>
           </ActionListItem>
-          <ActionListItem>
-            <Button
-              isAriaDisabled={!submitRequestEnabled}
-              isDisabled={!submitRequestEnabled}
-              onClick={() => {
-                dispatchFormState({
-                  type: 'startDate',
-                  startDate: new Date(),
-                });
-                openScheduleModal();
-              }}
-              icon={<OutlinedCalendarAltIcon />}
-            >
-              Schedule
-            </Button>
-          </ActionListItem>
+          {isAdmin || isLabDeveloper(groups) ? (
+            <ActionListItem>
+              <Button
+                isAriaDisabled={!submitRequestEnabled}
+                isDisabled={!submitRequestEnabled}
+                onClick={() => {
+                  dispatchFormState({
+                    type: 'startDate',
+                    startDate: new Date(),
+                  });
+                  openScheduleModal();
+                }}
+                icon={<OutlinedCalendarAltIcon />}
+              >
+                Schedule
+              </Button>
+            </ActionListItem>
+          ) : null}
           <ActionListItem>
             <Button variant="secondary" onClick={() => navigate(-1)}>
               Cancel
