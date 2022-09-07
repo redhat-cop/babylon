@@ -458,7 +458,7 @@ def salesforce_validation(salesforce_id):
                                             "  Id, Name, AccountId, IsClosed, "
                                             "  CloseDate, StageName, OpportunityNumber__c "
                                             "FROM Opportunity "
-                                            "WHERE OpportunityNumber__c = {} OR Id = {}", salesforce_id, salesforce_id)
+                                            "WHERE OpportunityNumber__c = {}", salesforce_id)
 
         try:
             opp_results = salesforce_api.query(opportunity_query)
