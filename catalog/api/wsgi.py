@@ -423,30 +423,42 @@ def salesforce_connection():
 
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
-def get_salesforce_opportunity(opportunity_id):
+def salesforce_validation(salesforce_id):
     opportunity_info = {}
-    is_campaign = False
+    salesforce_id = str(salesforce_id).strip()
+    salesforce_type = 'opportunity'
+
     if redis_connection:
-        opportunity_json = redis_connection.get(opportunity_id)
+        opportunity_json = redis_connection.get("salesforce_" + salesforce_id)
         if opportunity_json:
             opportunity_info = json.loads(opportunity_json)
-            is_campaign = opportunity_info.get('is_campaign', False)
+            salesforce_type = opportunity_info.get('salesforce_type', 'opportunity')
+
     if not opportunity_info:
         salesforce_api = salesforce_connection()
 
+        # if opportunity_id starts with PR it's a project id
+        if salesforce_id.startswith('PR'):
+            salesforce_type = 'project'
+            opportunity_query = format_soql("SELECT Id, pse__Start_Date__c, pse__End_Date__c, "
+                                            "pse__Is_Active__c, pse__Project_ID__c "
+                                            "FROM pse__Proj__c "
+                                            "WHERE pse__Is_Active__c = true AND pse__Project_ID__c = {}",
+                                            salesforce_id)
         # If opportunity_id starts with 701 it's a campaign number/id
-        if opportunity_id.startswith('701'):
-            is_campaign = True
+        elif salesforce_id.startswith('701'):
+            salesforce_type = 'campaign'
             opportunity_query = format_soql("SELECT "
                                             "  Id, StartDate, EndDate, IsActive "
                                             "FROM Campaign "
-                                            "WHERE Id = {}", str(opportunity_id).strip())
+                                            "WHERE Id = {}", salesforce_id)
         else:
+            salesforce_type = 'opportunity'
             opportunity_query = format_soql("SELECT "
                                             "  Id, Name, AccountId, IsClosed, "
                                             "  CloseDate, StageName, OpportunityNumber__c "
                                             "FROM Opportunity "
-                                            "WHERE OpportunityNumber__c = {}", str(opportunity_id).strip())
+                                            "WHERE OpportunityNumber__c = {} OR Id = {}", salesforce_id, salesforce_id)
 
         try:
             opp_results = salesforce_api.query(opportunity_query)
@@ -455,29 +467,31 @@ def get_salesforce_opportunity(opportunity_id):
                 if 'attributes' in i:
                     del i['attributes']
                 opportunity_info.update(i)
-                if is_campaign:
-                    opportunity_info['is_campaign'] = True
-                else:
+                opportunity_info['salesforce_type'] = salesforce_type
+                if salesforce_type == 'opportunity':
                     # Rename custom field to be readable
                     opportunity_info['Number'] = opportunity_info.pop('OpportunityNumber__c')
-                    opportunity_info['is_campaign'] = False
 
         except SalesforceMalformedRequest:
-            flask.abort(404,  description='Invalid SalesForce Request')
+            flask.abort(404, description='Invalid SalesForce Request')
 
-    opportunity_valid = opportunity_info.get('totalSize', 0)
+    saleforce_valid = opportunity_info.get('totalSize', 0)
 
     if redis_connection:
-        redis_connection.setex(opportunity_id, session_lifetime, json.dumps(opportunity_info))
+        redis_connection.setex("salesforce_" + salesforce_id, session_lifetime, json.dumps(opportunity_info))
 
     # If the opportunity not found in SFDC that means its invalid opportunity number
-    if opportunity_valid == 0:
+    if saleforce_valid == 0:
         return False
     else:
-        if is_campaign:
+        if salesforce_type == 'campaign':
             # Business rules for a invalid Campaign
             # if IsActive is false
             is_active = opportunity_info.get('IsActive', False)
+            if not is_active:
+                return False
+        elif salesforce_type == 'project':
+            is_active = opportunity_info.get('pse__Is_Active__c', False)
             if not is_active:
                 return False
         else:
@@ -722,7 +736,7 @@ def apis_proxy(path):
 
 @application.route("/api/salesforce/opportunity/<opportunity_id>", methods=['GET'])
 def salesforce_opportunity(opportunity_id):
-    if get_salesforce_opportunity(opportunity_id):
+    if salesforce_validation(opportunity_id):
         return flask.jsonify({"success": True})
     flask.abort(404)
 
