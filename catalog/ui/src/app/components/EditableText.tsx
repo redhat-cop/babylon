@@ -13,7 +13,7 @@ const EditableText: React.FC<{
   value: string;
 }> = ({ 'aria-label': ariaLabel, componentType, onChange, placeholder, updating, value }) => {
   const [editing, setEditing] = useState(false);
-  const [editedValue, setEditedValue] = useState(value);
+  const [editedValue, setEditedValue] = useState(value || '');
 
   function abortEditing(): void {
     setEditedValue(value);
