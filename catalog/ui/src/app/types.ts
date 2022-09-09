@@ -425,6 +425,10 @@ export interface WorkshopProvisionSpec {
   parameters: any;
   startDelay?: number;
   workshopName: string;
+  lifespan?: {
+    start?: string;
+    end?: string;
+  };
 }
 
 export interface WorkshopSpec {
@@ -435,6 +439,9 @@ export interface WorkshopSpec {
   openRegistration?: boolean;
   provisionDisabled?: boolean;
   userAssignments: WorkshopSpecUserAssignment[];
+  lifespan?: {
+    end?: string;
+  };
 }
 
 export interface WorkshopSpecUserAssignment {

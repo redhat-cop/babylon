@@ -41,7 +41,6 @@ import {
 import { AnarchySubject, K8sObject, NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
 import { displayName, renderContent } from '@app/util';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
-import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
@@ -106,7 +105,7 @@ const ServicesItemComponent: React.FC<{
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
   );
-  const serviceNamespaces: ServiceNamespace[] = useMemo(() => {
+  const serviceNamespaces = useMemo(() => {
     return enableFetchUserNamespaces
       ? userNamespaceList.items.map((ns): ServiceNamespace => {
           return {
@@ -116,11 +115,12 @@ const ServicesItemComponent: React.FC<{
         })
       : sessionServiceNamespaces;
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
-  const serviceNamespace: ServiceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
+  const serviceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
     name: serviceNamespaceName,
     displayName: serviceNamespaceName,
   };
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
+  const isPartOfWorkshop = resourceClaim.metadata?.labels?.[`babylon.gpte.redhat.com/workshop-provision`];
   const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state: K8sObject }) => r.state);
   const anarchySubjects = resourcesK8sObj
     .filter((r: K8sObject) => r?.kind === 'AnarchySubject')
@@ -185,7 +185,7 @@ const ServicesItemComponent: React.FC<{
       })
       .find((u) => u != null);
 
-  const serviceHasUsers: boolean = (resourceClaim.status?.resources || []).find(
+  const serviceHasUsers = (resourceClaim.status?.resources || []).find(
     (r) => r.state?.spec?.vars?.provision_data?.users
   )
     ? true
@@ -206,7 +206,7 @@ const ServicesItemComponent: React.FC<{
       cache.delete(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }));
       navigate(`/services/${serviceNamespaceName}`);
     } else {
-      const resourceClaimUpdate: ResourceClaim =
+      const resourceClaimUpdate =
         modalState.action === 'start'
           ? await startAllResourcesInResourceClaim(resourceClaim)
           : await stopAllResourcesInResourceClaim(resourceClaim);
@@ -215,7 +215,7 @@ const ServicesItemComponent: React.FC<{
   }
 
   async function onModalScheduleAction(date: Date): Promise<void> {
-    const resourceClaimUpdate: ResourceClaim =
+    const resourceClaimUpdate =
       modalState.action === 'retirement'
         ? await setLifespanEndForResourceClaim(resourceClaim, date)
         : await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
@@ -228,7 +228,7 @@ const ServicesItemComponent: React.FC<{
   }
 
   async function onCheckStatusRequest(): Promise<void> {
-    const resourceClaimUpdate: ResourceClaim = await requestStatusForAllResourcesInResourceClaim(resourceClaim);
+    const resourceClaimUpdate = await requestStatusForAllResourcesInResourceClaim(resourceClaim);
     mutate(resourceClaimUpdate);
   }
 
@@ -378,7 +378,7 @@ const ServicesItemComponent: React.FC<{
                     <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-                {!externalPlatformUrl && resourceClaim?.status?.lifespan?.end ? (
+                {!externalPlatformUrl && !isPartOfWorkshop && resourceClaim?.status?.lifespan?.end ? (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
                     {resourceClaim.status?.lifespan?.end ? (
@@ -519,7 +519,8 @@ const ServicesItemComponent: React.FC<{
                               />
                             </DescriptionListDescription>
                           </DescriptionListGroup>
-                          {externalPlatformUrl ? null : startDate && Number(startDate) > Date.now() ? (
+                          {externalPlatformUrl || isPartOfWorkshop ? null : startDate &&
+                            Number(startDate) > Date.now() ? (
                             <DescriptionListGroup>
                               <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
                               <DescriptionListDescription>

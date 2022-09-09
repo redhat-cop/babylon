@@ -1,111 +1,32 @@
-import React, { useEffect, useReducer, useRef } from 'react';
-
+import React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-
-import { listWorkshopProvisions } from '@app/api';
-import { Workshop, WorkshopProvision, WorkshopProvisionList } from '@app/types';
-import { BABYLON_DOMAIN } from '@app/util';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
-
-import LoadingIcon from '@app/components/LoadingIcon';
+import { WorkshopProvision } from '@app/types';
 
 import WorkshopsItemProvisioningItem from './WorkshopsItemProvisioningItem';
 
-const FETCH_BATCH_LIMIT = 30;
-
 const WorkshopsItemProvisioning: React.FC<{
-  workshop: Workshop;
-}> = ({ workshop }) => {
-  const componentWillUnmount = useRef(false);
-  const [workshopProvisionsFetchState, reduceWorkshopProvisionsFetchState] = useReducer(k8sFetchStateReducer, null);
-  const workshopProvisions: WorkshopProvision[] = (workshopProvisionsFetchState?.items as WorkshopProvision[]) || [];
-
-  async function fetchWorkshopProvisions(): Promise<void> {
-    const workshopProvisionList: WorkshopProvisionList = await listWorkshopProvisions({
-      continue: workshopProvisionsFetchState.continue,
-      labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
-      limit: FETCH_BATCH_LIMIT,
-      namespace: workshopProvisionsFetchState.namespace,
-    });
-    if (!workshopProvisionsFetchState.activity.canceled) {
-      reduceWorkshopProvisionsFetchState({
-        type: 'post',
-        k8sObjectList: workshopProvisionList,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceWorkshopProvisionsFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  // Track unmount for other effect cleanups
-  useEffect(() => {
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  // Start fetching WorkshopProvisions
-  useEffect(() => {
-    reduceWorkshopProvisionsFetchState({
-      type: 'startFetch',
-      limit: FETCH_BATCH_LIMIT,
-      namespaces: [workshop.metadata.namespace],
-    });
-  }, [workshop.metadata.namespace, workshop.metadata.name]);
-
-  // Fetch or continue fetching WorkshopProvisions
-  useEffect(() => {
-    if (
-      workshopProvisionsFetchState?.canContinue &&
-      (workshopProvisionsFetchState.refreshing ||
-        workshopProvisionsFetchState.filteredItems.length < workshopProvisionsFetchState.limit)
-    ) {
-      fetchWorkshopProvisions();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(workshopProvisionsFetchState);
-      }
-    };
-  }, [workshopProvisionsFetchState]);
-
-  if (workshopProvisions.length === 0) {
-    if (workshopProvisionsFetchState?.finished) {
-      return (
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            No WorkshopProvisions found!
-          </Title>
-          <EmptyStateBody>
-            This indicates an error has occurred. A WorkshopProvision should have been created when this Workshop was
-            created.
-          </EmptyStateBody>
-        </EmptyState>
-      );
-    } else {
-      return (
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      );
-    }
+  workshopProvisions?: WorkshopProvision[];
+}> = ({ workshopProvisions }) => {
+  if (!workshopProvisions || workshopProvisions.length === 0) {
+    return (
+      <EmptyState variant="full">
+        <EmptyStateIcon icon={ExclamationTriangleIcon} />
+        <Title headingLevel="h1" size="lg">
+          No WorkshopProvisions found!
+        </Title>
+        <EmptyStateBody>
+          This indicates an error has occurred. A WorkshopProvision should have been created when this Workshop was
+          created.
+        </EmptyStateBody>
+      </EmptyState>
+    );
   }
 
   return (
     <>
       {workshopProvisions.map((workshopProvision) => (
-        <WorkshopsItemProvisioningItem
-          key={workshopProvision.metadata.uid}
-          onWorkshopProvisionUpdate={(workshopProvision: WorkshopProvision) =>
-            reduceWorkshopProvisionsFetchState({ type: 'updateItems', items: [workshopProvision] })
-          }
-          workshop={workshop}
-          workshopProvision={workshopProvision}
-        />
+        <WorkshopsItemProvisioningItem key={workshopProvision.metadata.uid} workshopProvision={workshopProvision} />
       ))}
     </>
   );

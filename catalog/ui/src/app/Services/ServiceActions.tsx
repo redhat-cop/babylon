@@ -14,10 +14,11 @@ const ServiceActions: React.FC<{
   iconOnly?: boolean;
 }> = ({ actionHandlers, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
   const actionDropdownItems: any[] = [];
+  const isPartOfWorkshop = resourceClaim?.metadata?.labels?.[`babylon.gpte.redhat.com/workshop-provision`];
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : true;
   const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : true;
 
-  if (actionHandlers.runtime) {
+  if (!isPartOfWorkshop && actionHandlers.runtime) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="runtime"
@@ -29,7 +30,7 @@ const ServiceActions: React.FC<{
       />
     );
   }
-  if (actionHandlers.lifespan) {
+  if (!isPartOfWorkshop && actionHandlers.lifespan) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="lifespan"
@@ -48,7 +49,7 @@ const ServiceActions: React.FC<{
       />
     );
   }
-  if (actionHandlers.start) {
+  if (!isPartOfWorkshop && actionHandlers.start) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="start"
@@ -58,7 +59,7 @@ const ServiceActions: React.FC<{
       />
     );
   }
-  if (actionHandlers.stop) {
+  if (!isPartOfWorkshop && actionHandlers.stop) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="stop"

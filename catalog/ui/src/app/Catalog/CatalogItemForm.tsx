@@ -150,7 +150,6 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         // FIXME - Allow selecting service namespace
         serviceNamespace: workshopNamespaces[0],
       });
-
       await createWorkshopProvision({
         catalogItem: catalogItem,
         concurrency: provisionConcurrency,

@@ -1,0 +1,4 @@
+.workshops-item-details__status--running,
+.workshops-item-details__status--scheduled {
+  color: var(--pf-global--success-color--100);
+}

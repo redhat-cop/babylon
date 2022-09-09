@@ -1,22 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
-import {
-  DollarSignIcon,
-  ExclamationTriangleIcon,
-  StopIcon,
-  PlayIcon,
-  TrashIcon,
-  RedoIcon,
-} from '@patternfly/react-icons';
+import { DollarSignIcon, ExclamationTriangleIcon, TrashIcon } from '@patternfly/react-icons';
 import { K8sObjectReference, ResourceClaim } from '@app/types';
-import {
-  displayName,
-  BABYLON_DOMAIN,
-  checkResourceClaimCanStart,
-  checkResourceClaimCanStop,
-  getCostTracker,
-} from '@app/util';
+import { displayName, BABYLON_DOMAIN, getCostTracker } from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
@@ -25,9 +12,8 @@ import ServiceStatus from '@app/Services/ServiceStatus';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import { ModalState } from './WorkshopsItem';
-import { selectUserIsAdmin } from '@app/store';
-import { useSelector } from 'react-redux';
 import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
+import useSession from '@app/utils/useSession';
 
 import './workshops-item-services.css';
 
@@ -38,7 +24,7 @@ const WorkshopsItemServices: React.FC<{
   setSelectedResourceClaims: (resourceClaims: ResourceClaim[]) => void;
 }> = ({ showModal, resourceClaims, setSelectedResourceClaims }) => {
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
-  const userIsAdmin: boolean = useSelector(selectUserIsAdmin);
+  const { isAdmin } = useSession().getSession();
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
@@ -78,10 +64,8 @@ const WorkshopsItemServices: React.FC<{
           const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
           const costTracker = getCostTracker(resourceClaim);
           const actionHandlers = {
-            delete: () => showModal({ action: 'deleteService', resourceClaim: resourceClaim }),
-            start: () => showModal({ action: 'startService', resourceClaim: resourceClaim }),
-            stop: () => showModal({ action: 'stopService', resourceClaim: resourceClaim }),
-            getCost: () => showModal({ action: 'getCost', resourceClaim: resourceClaim }),
+            delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
+            getCost: () => showModal({ action: 'getCost', resourceClaims: [resourceClaim] }),
           };
           // Find lab user interface information either in the resource claim or inside resources
           // associated with the provisioned service.
@@ -118,12 +102,12 @@ const WorkshopsItemServices: React.FC<{
               <Link key="services" to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}>
                 {displayName(resourceClaim)}
               </Link>
-              {userIsAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
+              {isAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
             </>,
             // GUID
             <>
               {guid ? (
-                userIsAdmin ? (
+                isAdmin ? (
                   [
                     <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
                       {guid}
@@ -171,7 +155,7 @@ const WorkshopsItemServices: React.FC<{
                   key="actions__delete"
                   onClick={actionHandlers.delete}
                   description="Delete (will start a new service)"
-                  icon={RedoIcon}
+                  icon={TrashIcon}
                 />
                 {costTracker ? (
                   <ButtonCircleIcon
