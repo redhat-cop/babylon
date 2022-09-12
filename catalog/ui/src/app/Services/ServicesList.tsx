@@ -222,14 +222,18 @@ const ServicesList: React.FC<{
           })
         );
         return await deleteResourceClaim(resourceClaim);
-      } else if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
-        return await startAllResourcesInResourceClaim(resourceClaim);
-      } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
-        return await stopAllResourcesInResourceClaim(resourceClaim);
       } else {
-        console.warn(`Unkown action ${modalState.action}`);
-        return resourceClaim;
+        const isPartOfWorkshop = resourceClaim.metadata?.labels?.[`babylon.gpte.redhat.com/workshop-provision`];
+        if (isPartOfWorkshop) return resourceClaim; // If has a workshopProvision -> Do nothing.
+        if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
+          return await startAllResourcesInResourceClaim(resourceClaim);
+        } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
+          return await stopAllResourcesInResourceClaim(resourceClaim);
+        }
       }
+
+      console.warn(`Unkown action ${modalState.action}`);
+      return resourceClaim;
     },
     [cache, modalState.action]
   );
@@ -430,7 +434,8 @@ const ServicesList: React.FC<{
               const specResources = resourceClaim.spec.resources || [];
               const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
               const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
-              const rcServiceNamespace: ServiceNamespace = serviceNamespaces.find(
+              const isPartOfWorkshop = resourceClaim.metadata?.labels?.[`babylon.gpte.redhat.com/workshop-provision`];
+              const rcServiceNamespace = serviceNamespaces.find(
                 (ns: ServiceNamespace) => ns.name === resourceClaim.metadata.namespace
               );
               // Find lab user interface information either in the resource claim or inside resources
@@ -550,7 +555,7 @@ const ServicesList: React.FC<{
               const autoStopCell = (
                 // Auto-stop
                 <span key="auto-stop">
-                  {resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
+                  {!isPartOfWorkshop && resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
                     <Button
                       variant="control"
                       icon={<OutlinedClockIcon />}
@@ -592,7 +597,7 @@ const ServicesList: React.FC<{
               const autoDestroyCell = (
                 // Auto-destroy
                 <span key="auto-destroy">
-                  {resourceClaim.status?.lifespan ? (
+                  {!isPartOfWorkshop && resourceClaim.status?.lifespan ? (
                     <Button
                       variant="control"
                       isDisabled={!resourceClaim.status?.lifespan}
@@ -623,20 +628,24 @@ const ServicesList: React.FC<{
                       gap: 'var(--pf-global--spacer--sm)',
                     }}
                   >
-                    <ButtonCircleIcon
-                      isDisabled={!checkResourceClaimCanStart(resourceClaim)}
-                      onClick={actionHandlers.start}
-                      description="Start"
-                      icon={PlayIcon}
-                      key="actions__start"
-                    />
-                    <ButtonCircleIcon
-                      isDisabled={!checkResourceClaimCanStop(resourceClaim)}
-                      onClick={actionHandlers.stop}
-                      description="Stop"
-                      icon={StopIcon}
-                      key="actions__stop"
-                    />
+                    {!resourceClaim.metadata.labels[`babylon.gpte.redhat.com/workshop-provision`] ? (
+                      <>
+                        <ButtonCircleIcon
+                          isDisabled={!checkResourceClaimCanStart(resourceClaim)}
+                          onClick={actionHandlers.start}
+                          description="Start"
+                          icon={PlayIcon}
+                          key="actions__start"
+                        />
+                        <ButtonCircleIcon
+                          isDisabled={!checkResourceClaimCanStop(resourceClaim)}
+                          onClick={actionHandlers.stop}
+                          description="Stop"
+                          icon={StopIcon}
+                          key="actions__stop"
+                        />
+                      </>
+                    ) : null}
                     <ButtonCircleIcon
                       key="actions__delete"
                       onClick={actionHandlers.delete}

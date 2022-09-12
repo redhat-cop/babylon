@@ -225,7 +225,7 @@ export async function assignWorkshopUser({
   return updatedWorkshop;
 }
 
-function dateToApiString(date: Date): string {
+export function dateToApiString(date: Date): string {
   return date.toISOString().split('.')[0] + 'Z';
 }
 
@@ -520,8 +520,7 @@ export async function createWorkshop({
   let n = 0;
   while (true) {
     try {
-      const workshop: Workshop = await createK8sObject<Workshop>(definition);
-      return workshop;
+      return await createK8sObject<Workshop>(definition);
     } catch (error: any) {
       if (error.status === 409) {
         n++;
@@ -617,6 +616,16 @@ export async function createWorkshopProvision({
   workshop,
   start,
 }: CreateWorkshopPovisionOpt): Promise<WorkshopProvision> {
+  let endDate = null;
+  if (catalogItem.spec.lifespan) {
+    const refrenceTime = start?.date ? start.date.getTime() : Date.now();
+    endDate = new Date(
+      Math.min(
+        refrenceTime + parseDuration(catalogItem.spec.lifespan.maximum),
+        refrenceTime + parseDuration(catalogItem.spec.lifespan.relativeMaximum)
+      )
+    );
+  }
   const definition: WorkshopProvision = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'WorkshopProvision',
@@ -647,7 +656,10 @@ export async function createWorkshopProvision({
       parameters: parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
-      ...(start && start.type === 'lifespan' ? { lifespan: { start: dateToApiString(start.date) } } : {}),
+      lifespan: {
+        ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
+        ...(endDate ? { end: dateToApiString(endDate) } : {}),
+      },
     },
   };
 
@@ -1253,7 +1265,11 @@ export async function scheduleStartForAllResourcesInResourceClaim(
   )) as ResourceClaim;
 }
 
-export async function setLifespanEndForResourceClaim(resourceClaim: ResourceClaim, date: Date): Promise<ResourceClaim> {
+export async function setLifespanEndForResourceClaim(
+  resourceClaim: ResourceClaim,
+  date: Date,
+  updateResourceHandle = true
+): Promise<ResourceClaim> {
   const endTimestamp = dateToApiString(date);
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
@@ -1285,7 +1301,7 @@ export async function setLifespanEndForResourceClaim(resourceClaim: ResourceClai
     data.spec.lifespan = { end: endTimestamp };
   }
 
-  if (updatedMaxDate || updatedRelativeMaxDate) {
+  if (updateResourceHandle && (updatedMaxDate || updatedRelativeMaxDate)) {
     (await patchNamespacedCustomObject(
       'poolboy.gpte.redhat.com',
       'v1',
@@ -1603,4 +1619,18 @@ export const apiPaths = {
     }${continueId ? `&continue=${continueId}` : ''}`,
   ANARCHY_SUBJECT: ({ namespace, anarchySubjectName }: { namespace: string; anarchySubjectName: string }): string =>
     `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchysubjects/${anarchySubjectName}`,
+  WORKSHOP_PROVISIONS: ({
+    workshopName,
+    namespace,
+    limit,
+    continueId,
+  }: {
+    workshopName: string;
+    namespace: string;
+    limit?: number;
+    continueId?: string;
+  }): string =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopprovisions?labelSelector=babylon.gpte.redhat.com/workshop=${workshopName}${
+      limit ? `&limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}`,
 };

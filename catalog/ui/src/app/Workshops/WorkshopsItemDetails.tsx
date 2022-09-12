@@ -8,33 +8,43 @@ import {
   Select,
   SelectOption,
   SelectVariant,
+  Button,
 } from '@patternfly/react-core';
 import { patchWorkshop } from '@app/api';
-import { Workshop } from '@app/types';
+import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
 import EditableText from '@app/components/EditableText';
 import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import useSession from '@app/utils/useSession';
+import { CheckCircleIcon, OutlinedClockIcon, QuestionCircleIcon, StopCircleIcon } from '@patternfly/react-icons';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import TimeInterval from '@app/components/TimeInterval';
+import { ModalState } from './WorkshopsItem';
+import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
 
-interface EditableWorkshopSpecFields {
-  accessPassword?: string;
-  description?: string;
-  displayName?: string;
-  openRegistration?: boolean;
-}
+import './workshops-item-details.css';
 
 const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
   workshop: Workshop;
-}> = ({ onWorkshopUpdate, workshop }) => {
+  resourceClaims?: ResourceClaim[];
+  workshopProvisions?: WorkshopProvision[];
+  showModal?: ({ action, resourceClaims }: ModalState) => void;
+}> = ({ onWorkshopUpdate, workshopProvisions, resourceClaims, workshop, showModal }) => {
   const { isAdmin } = useSession().getSession();
-  const userRegistrationValue: 'open' | 'pre' = workshop.spec.openRegistration === false ? 'pre' : 'open';
-  const workshopID: string = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
-
+  const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
+  const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
+  const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, workshopProvisions);
+  const autoStopTime = getWorkshopAutoStopTime(resourceClaims);
 
-  async function patchWorkshopSpec(patch: EditableWorkshopSpecFields): Promise<void> {
+  async function patchWorkshopSpec(patch: {
+    accessPassword?: string;
+    description?: string;
+    displayName?: string;
+    openRegistration?: boolean;
+  }): Promise<void> {
     onWorkshopUpdate(
       await patchWorkshop({
         name: workshop.metadata.name,
@@ -56,11 +66,11 @@ const WorkshopsItemDetails: React.FC<{
       <DescriptionListGroup>
         <DescriptionListTerm>Workshop URL</DescriptionListTerm>
         <DescriptionListDescription>
-          {workshopID ? (
-            <Link to={`/workshop/${workshopID}`} target="_blank" rel="noopener">
+          {workshopId ? (
+            <Link to={`/workshop/${workshopId}`} target="_blank" rel="noopener">
               {window.location.protocol}
               {'//'}
-              {window.location.host}/workshop/{workshopID}
+              {window.location.host}/workshop/{workshopId}
             </Link>
           ) : (
             <LoadingIcon />
@@ -123,7 +133,7 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
-        <DescriptionListTerm>User Assignments</DescriptionListTerm>
+        <DescriptionListTerm>Seats Assigned</DescriptionListTerm>
         {workshop.spec.userAssignments ? (
           <DescriptionListDescription>
             {workshop.spec.userAssignments.filter((item) => item.assignment).length} /{' '}
@@ -132,6 +142,100 @@ const WorkshopsItemDetails: React.FC<{
         ) : (
           <DescriptionListDescription>-</DescriptionListDescription>
         )}
+      </DescriptionListGroup>
+
+      <DescriptionListGroup>
+        <DescriptionListTerm>Status</DescriptionListTerm>
+        <DescriptionListDescription>
+          {autoStartTime && autoStartTime > Date.now() ? (
+            <span className="workshops-item-details__status--scheduled">
+              <CheckCircleIcon /> Scheduled
+            </span>
+          ) : checkWorkshopCanStop(resourceClaims) ? (
+            <span className="workshops-item-details__status--running">
+              <CheckCircleIcon /> Running
+            </span>
+          ) : workshopProvisions.length > 0 ? (
+            <span className="workshops-item-details__status--stopped">
+              <StopCircleIcon /> Stopped
+            </span>
+          ) : (
+            <span className="workshops-item-details__status--unknown">
+              <QuestionCircleIcon /> No workshop provision
+            </span>
+          )}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+
+      {autoStartTime && autoStartTime > Date.now() ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Start Date</DescriptionListTerm>
+          <DescriptionListDescription>
+            <Button
+              key="auto-start"
+              variant="control"
+              onClick={() => {
+                showModal({ resourceClaims: [], action: 'scheduleStart' });
+              }}
+              icon={<OutlinedClockIcon />}
+              iconPosition="right"
+              className="workshops-item__schedule-btn"
+            >
+              <LocalTimestamp timestamp={new Date(autoStartTime).toISOString()} />
+              <span style={{ padding: '0 6px' }}>
+                (<TimeInterval toTimestamp={new Date(autoStartTime).toISOString()} />)
+              </span>
+            </Button>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
+
+      {checkWorkshopCanStop(resourceClaims) ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Auto-Stop Services</DescriptionListTerm>
+          <DescriptionListDescription>
+            <Button
+              key="auto-stop"
+              variant="control"
+              icon={<OutlinedClockIcon />}
+              iconPosition="right"
+              onClick={() => showModal({ action: 'scheduleStop', resourceClaims })}
+              className="workshops-item__schedule-btn"
+            >
+              <LocalTimestamp timestamp={new Date(autoStopTime).toISOString()} />
+              <span style={{ padding: '0 6px' }}>
+                (<TimeInterval toTimestamp={new Date(autoStopTime).toISOString()} />)
+              </span>
+            </Button>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
+
+      <DescriptionListGroup>
+        <DescriptionListTerm>Auto-Destroy</DescriptionListTerm>
+        <DescriptionListDescription>
+          <Button
+            key="auto-destroy"
+            variant="control"
+            onClick={() => {
+              showModal({ resourceClaims, action: 'scheduleDelete' });
+            }}
+            icon={<OutlinedClockIcon />}
+            iconPosition="right"
+            className="workshops-item__schedule-btn"
+          >
+            {autoDestroyTime ? (
+              <>
+                <LocalTimestamp timestamp={new Date(autoDestroyTime).toISOString()} />
+                <span style={{ padding: '0 6px' }}>
+                  (<TimeInterval toTimestamp={new Date(autoDestroyTime).toISOString()} />)
+                </span>
+              </>
+            ) : (
+              <span style={{ marginRight: 'var(--pf-global--spacer--sm)' }}>- Not defined -</span>
+            )}
+          </Button>
+        </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>
   );

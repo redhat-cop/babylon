@@ -6,8 +6,8 @@ const WorkshopActions: React.FC<{
   actionHandlers: {
     delete: () => void;
     deleteService?: () => void | null;
-    startService?: () => void | null;
-    stopService?: () => void | null;
+    start?: () => void | null;
+    stop?: () => void | null;
   };
   className?: string;
   isDisabled?: boolean;
@@ -31,22 +31,22 @@ const WorkshopActions: React.FC<{
         onSelect={actionHandlers.deleteService}
       />
     );
-  actionHandlers.startService &&
+  actionHandlers.start &&
     actionDropdownItems.push(
       <ActionDropdownItem
         key="startServices"
-        isDisabled={!actionHandlers.startService}
-        label="Start Selected Services"
-        onSelect={actionHandlers.startService}
+        isDisabled={!actionHandlers.start}
+        label="Start All Services"
+        onSelect={actionHandlers.start}
       />
     );
-  actionHandlers.stopService &&
+  actionHandlers.stop &&
     actionDropdownItems.push(
       <ActionDropdownItem
         key="stopServices"
-        isDisabled={!actionHandlers.stopService}
-        label="Stop Selected Services"
-        onSelect={actionHandlers.stopService}
+        isDisabled={!actionHandlers.stop}
+        label="Stop All Services"
+        onSelect={actionHandlers.stop}
       />
     );
 

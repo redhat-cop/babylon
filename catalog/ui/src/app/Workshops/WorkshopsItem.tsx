@@ -22,14 +22,19 @@ import {
 } from '@patternfly/react-core';
 import {
   apiPaths,
+  dateToApiString,
   deleteResourceClaim,
   deleteWorkshop,
   fetcher,
   fetcherItemsInAllPages,
+  patchWorkshop,
+  patchWorkshopProvision,
+  scheduleStopForAllResourcesInResourceClaim,
+  setLifespanEndForResourceClaim,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
+import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvision } from '@app/types';
 import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import WorkshopActions from './WorkshopActions';
 import WorkshopsItemDetails from './WorkshopsItemDetails';
@@ -39,16 +44,27 @@ import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
-import ResourceClaimStartModal from '@app/components/ResourceClaimStartModal';
-import ResourceClaimStopModal from '@app/components/ResourceClaimStopModal';
 import useSWR, { useSWRConfig } from 'swr';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
+import WorkshopScheduleAction from './WorkshopScheduleAction';
+import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopStarted } from './workshops-utils';
+import WorkshopActionModal from '@app/components/WorkshopActionModal';
 
 import './workshops-item.css';
+
 export interface ModalState {
-  action?: 'delete' | 'deleteService' | 'startService' | 'stopService' | 'getCost';
-  resourceClaim?: ResourceClaim;
+  action?:
+    | 'delete'
+    | 'deleteService'
+    | 'startServices'
+    | 'stopServices'
+    | 'getCost'
+    | 'scheduleDelete'
+    | 'scheduleStop'
+    | 'scheduleStart'
+    | 'startWorkshop';
+  resourceClaims?: ResourceClaim[];
 }
 
 const WorkshopsItemComponent: React.FC<{
@@ -63,27 +79,35 @@ const WorkshopsItemComponent: React.FC<{
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
   const [modalGetCost, openModalGetCost] = useModal();
+  const [modalSchedule, openModalSchedule] = useModal();
   const { cache } = useSWRConfig();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
   const showModal = useCallback(
-    ({ action, resourceClaim }: ModalState) => {
-      setModalState({ action, resourceClaim });
+    ({ action, resourceClaims }: ModalState) => {
+      setModalState({ action, resourceClaims });
       if (action === 'delete') {
         openModalDelete();
-      } else if (action === 'deleteService' || action === 'startService' || action === 'stopService') {
+      } else if (
+        action === 'deleteService' ||
+        action === 'startServices' ||
+        action === 'stopServices' ||
+        action === 'startWorkshop'
+      ) {
         openModalAction();
       } else if (action === 'getCost') {
         openModalGetCost();
+      } else if (action === 'scheduleDelete' || action === 'scheduleStop' || action === 'scheduleStart') {
+        openModalSchedule();
       }
     },
-    [openModalAction, openModalDelete, openModalGetCost]
+    [openModalAction, openModalDelete, openModalGetCost, openModalSchedule]
   );
   const enableFetchUserNamespaces = isAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
   );
-  const serviceNamespaces: ServiceNamespace[] = useMemo(() => {
+  const serviceNamespaces = useMemo(() => {
     return enableFetchUserNamespaces
       ? userNamespaceList.items.map((ns): ServiceNamespace => {
           return {
@@ -93,21 +117,39 @@ const WorkshopsItemComponent: React.FC<{
         })
       : sessionServiceNamespaces;
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
-  const serviceNamespace: ServiceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
+  const serviceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
     name: serviceNamespaceName,
     displayName: serviceNamespaceName,
   };
 
-  const { data: workshop, mutate: mutateWorkshop } = useSWR<Workshop>(
+  const {
+    data: workshop,
+    mutate: mutateWorkshop,
+    error,
+  } = useSWR<Workshop>(
     workshopName ? apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }) : null,
     fetcher,
     { refreshInterval: 8000 }
   );
-  const {
-    data: resourceClaims,
-    error,
-    mutate,
-  } = useSWR<ResourceClaim[]>(
+  useErrorHandler(error);
+
+  const { data: workshopProvisions, mutate: mutateWorkshopProvisions } = useSWR<WorkshopProvision[]>(
+    apiPaths.WORKSHOP_PROVISIONS({
+      workshopName: workshop.metadata.name,
+      namespace: workshop.metadata.namespace,
+    }),
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.WORKSHOP_PROVISIONS({
+          workshopName: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        })
+      )
+  );
+
+  const { data: resourceClaims, mutate } = useSWR<ResourceClaim[]>(
     apiPaths.RESOURCE_CLAIMS({
       namespace: serviceNamespaceName,
       labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
@@ -136,8 +178,6 @@ const WorkshopsItemComponent: React.FC<{
     }
   );
 
-  useErrorHandler(error?.status === 404 ? error : null);
-
   const revalidate = useCallback(
     ({ updatedItems, action }: { updatedItems: ResourceClaim[]; action: 'update' | 'delete' }) => {
       const resourceClaimsCpy = [...resourceClaims];
@@ -157,9 +197,7 @@ const WorkshopsItemComponent: React.FC<{
   );
 
   async function onServiceDeleteConfirm(): Promise<void> {
-    const deleteResourceClaims: ResourceClaim[] = modalState.resourceClaim
-      ? [modalState.resourceClaim]
-      : selectedResourceClaims;
+    const deleteResourceClaims = modalState.resourceClaims;
     for (const resourceClaim of deleteResourceClaims) {
       await deleteResourceClaim(resourceClaim);
       const { namespace, name: resourceClaimName } = resourceClaim.metadata;
@@ -170,20 +208,30 @@ const WorkshopsItemComponent: React.FC<{
 
   async function onServiceStartConfirm(): Promise<void> {
     const updatedResourceClaims: ResourceClaim[] = [];
-    const startResourceClaims: ResourceClaim[] = modalState.resourceClaim
-      ? [modalState.resourceClaim]
-      : selectedResourceClaims;
+    const startResourceClaims = modalState.resourceClaims;
     for (const resourceClaim of startResourceClaims) {
       updatedResourceClaims.push(await startAllResourcesInResourceClaim(resourceClaim));
     }
     revalidate({ updatedItems: updatedResourceClaims, action: 'update' });
   }
 
+  async function onWorkshopStartConfirm(): Promise<void> {
+    const workshopProvisionsUpdated = [];
+    for (const workshopProvision of workshopProvisions) {
+      workshopProvisionsUpdated.push(
+        await patchWorkshopProvision({
+          name: workshopProvision.metadata.name,
+          namespace: workshopProvision.metadata.namespace,
+          patch: { spec: { lifespan: { start: dateToApiString(new Date()) } } },
+        })
+      );
+    }
+    mutateWorkshopProvisions(workshopProvisionsUpdated);
+  }
+
   async function onServiceStopConfirm(): Promise<void> {
     const updatedResourceClaims: ResourceClaim[] = [];
-    const stopResourceClaims: ResourceClaim[] = modalState.resourceClaim
-      ? [modalState.resourceClaim]
-      : selectedResourceClaims;
+    const stopResourceClaims = modalState.resourceClaims;
     for (const resourceClaim of stopResourceClaims) {
       updatedResourceClaims.push(await stopAllResourcesInResourceClaim(resourceClaim));
     }
@@ -193,8 +241,45 @@ const WorkshopsItemComponent: React.FC<{
   async function onWorkshopDeleteConfirm(): Promise<void> {
     await deleteWorkshop(workshop);
     mutateWorkshop(null);
+    mutateWorkshopProvisions(null);
     mutate(null);
     navigate(`/workshops/${serviceNamespaceName}`);
+  }
+
+  async function onModalScheduleAction(date: Date): Promise<void> {
+    if (modalState.action === 'scheduleDelete') {
+      const resourceClaimsUpdated = [];
+      const patch = { spec: { lifespan: { end: dateToApiString(date) } } };
+      const workshopUpdated = await patchWorkshop({
+        name: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        patch,
+      });
+      mutateWorkshop(workshopUpdated);
+      for (const resourceClaim of modalState.resourceClaims) {
+        resourceClaimsUpdated.push(await setLifespanEndForResourceClaim(resourceClaim, date, false));
+      }
+      revalidate({ updatedItems: resourceClaimsUpdated, action: 'update' });
+    } else if (modalState.action === 'scheduleStop') {
+      const resourceClaimsUpdated = [];
+      for (const resourceClaim of modalState.resourceClaims) {
+        resourceClaimsUpdated.push(await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date));
+      }
+      revalidate({ updatedItems: resourceClaimsUpdated, action: 'update' });
+    } else if (modalState.action === 'scheduleStart') {
+      const workshopProvisionsUpdated = [];
+      const patch = { spec: { lifespan: { start: dateToApiString(date) } } };
+      for (const workshopProvision of workshopProvisions) {
+        workshopProvisionsUpdated.push(
+          await patchWorkshopProvision({
+            name: workshopProvision.metadata.name,
+            namespace: workshopProvision.metadata.namespace,
+            patch,
+          })
+        );
+      }
+      mutateWorkshopProvisions(workshopProvisionsUpdated);
+    }
   }
 
   return (
@@ -209,24 +294,31 @@ const WorkshopsItemComponent: React.FC<{
 
       <Modal ref={modalAction} passModifiers={true} onConfirm={() => null}>
         {modalState?.action === 'deleteService' ? (
-          <ResourceClaimDeleteModal
-            onConfirm={onServiceDeleteConfirm}
-            resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
-          />
-        ) : modalState?.action === 'startService' ? (
-          <ResourceClaimStartModal
-            onConfirm={onServiceStartConfirm}
-            resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
-          />
-        ) : modalState?.action === 'stopService' ? (
-          <ResourceClaimStopModal
-            onConfirm={onServiceStopConfirm}
-            resourceClaims={modalState.resourceClaim ? [modalState.resourceClaim] : selectedResourceClaims}
-          />
+          <ResourceClaimDeleteModal onConfirm={onServiceDeleteConfirm} resourceClaims={modalState.resourceClaims} />
+        ) : modalState?.action === 'startServices' ? (
+          <WorkshopActionModal onConfirm={onServiceStartConfirm} action="start" />
+        ) : modalState?.action === 'stopServices' ? (
+          <WorkshopActionModal onConfirm={onServiceStopConfirm} action="stop" />
+        ) : modalState?.action === 'startWorkshop' ? (
+          <WorkshopActionModal onConfirm={onWorkshopStartConfirm} action="start" />
         ) : null}
       </Modal>
       <Modal ref={modalGetCost} onConfirm={() => null} type="ack">
-        <CostTrackerDialog resourceClaim={modalState.resourceClaim} />
+        <CostTrackerDialog resourceClaim={modalState.resourceClaims?.[0]} />
+      </Modal>
+      <Modal ref={modalSchedule} onConfirm={onModalScheduleAction} passModifiers={true} title={workshopName}>
+        <WorkshopScheduleAction
+          action={
+            modalState.action === 'scheduleDelete'
+              ? 'retirement'
+              : modalState.action === 'scheduleStart'
+              ? 'start'
+              : 'stop'
+          }
+          workshop={workshop}
+          resourceClaims={resourceClaims}
+          workshopProvisions={workshopProvisions}
+        />
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-item__topbar" variant={PageSectionVariants.light}>
@@ -288,10 +380,20 @@ const WorkshopsItemComponent: React.FC<{
                 actionHandlers={{
                   delete: () => showModal({ action: 'delete' }),
                   deleteService:
-                    selectedResourceClaims.length === 0 ? null : () => showModal({ action: 'deleteService' }),
-                  startService:
-                    selectedResourceClaims.length === 0 ? null : () => showModal({ action: 'startService' }),
-                  stopService: selectedResourceClaims.length === 0 ? null : () => showModal({ action: 'stopService' }),
+                    selectedResourceClaims.length === 0
+                      ? null
+                      : () => showModal({ action: 'deleteService', resourceClaims: selectedResourceClaims }),
+                  start:
+                    resourceClaims.length === 0
+                      ? isWorkshopStarted(workshopProvisions)
+                        ? null
+                        : () => showModal({ action: 'startWorkshop', resourceClaims: [] })
+                      : checkWorkshopCanStart(resourceClaims)
+                      ? () => showModal({ action: 'startServices', resourceClaims })
+                      : null,
+                  stop: checkWorkshopCanStop(resourceClaims)
+                    ? () => showModal({ action: 'stopServices', resourceClaims })
+                    : null,
                 }}
               />
             </Bullseye>
@@ -307,10 +409,13 @@ const WorkshopsItemComponent: React.FC<{
             <WorkshopsItemDetails
               onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
               workshop={workshop}
+              showModal={showModal}
+              resourceClaims={resourceClaims}
+              workshopProvisions={workshopProvisions}
             />
           </Tab>
           <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
-            <WorkshopsItemProvisioning workshop={workshop} />
+            <WorkshopsItemProvisioning workshopProvisions={workshopProvisions} />
           </Tab>
           <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
             <WorkshopsItemServices
