@@ -52,9 +52,9 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
 
 import './catalog-item-form.css';
-import useImpersonateUser from '@app/utils/useImpersonateUser';
 
 const ScheduleModal: React.FC<{ defaultTimestamp: number; onSelect: (date: Date) => void; maxDate?: number }> = ({
   defaultTimestamp,
