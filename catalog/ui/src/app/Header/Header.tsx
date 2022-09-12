@@ -119,7 +119,7 @@ const Header: React.FC<{
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="status-page-link"
-      href="https://rhpds-demos.statuspage.io/"
+      href="https://rhpds.statuspage.io/"
       target="_blank"
       rel="noreferrer nofollow"
       isExternal
