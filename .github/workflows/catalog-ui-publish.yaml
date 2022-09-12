@@ -69,7 +69,7 @@ jobs:
           context: catalog/ui
           file: catalog/ui/Dockerfile
           build-args: |
-            STATUS_PAGE_ID=m7thn7y0z176
+            STATUS_PAGE_ID=05mhm9ljgsqq
             MONITOR_ENABLED=true
             GTM_ID=GTM-PGZCQBB
           push: true
