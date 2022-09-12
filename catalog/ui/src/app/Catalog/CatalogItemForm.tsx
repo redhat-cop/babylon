@@ -52,6 +52,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
 
 import './catalog-item-form.css';
 
@@ -83,6 +84,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [scheduleModal, openScheduleModal] = useModal();
   const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
+  const { userImpersonated } = useImpersonateUser();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
     fetcher
@@ -540,7 +542,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               Order
             </Button>
           </ActionListItem>
-          {isAdmin || isLabDeveloper(groups) ? (
+          {isAdmin || isLabDeveloper(groups) || userImpersonated ? (
             <ActionListItem>
               <Button
                 isAriaDisabled={!submitRequestEnabled}
