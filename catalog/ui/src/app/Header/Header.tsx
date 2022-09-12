@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ApplicationLauncher,
   ApplicationLauncherItem,
+  Button,
   Dropdown,
   DropdownItem,
   DropdownPosition,
@@ -13,7 +14,7 @@ import {
   PageHeaderTools,
   SearchInput,
 } from '@patternfly/react-core';
-import { CaretDownIcon, QuestionCircleIcon } from '@patternfly/react-icons';
+import { CaretDownIcon, CommentIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
@@ -118,7 +119,7 @@ const Header: React.FC<{
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="status-page-link"
-      href="https://rhpds-demos.statuspage.io/"
+      href="https://rhpds.statuspage.io/"
       target="_blank"
       rel="noreferrer nofollow"
       isExternal
@@ -161,8 +162,28 @@ const Header: React.FC<{
         isOpen={isUserHelpDropdownOpen}
         items={UserHelpDropdownItems}
         position={DropdownPosition.right}
-        toggleIcon={<QuestionCircleIcon />}
+        toggleIcon={
+          <div
+            style={{ display: 'flex', gap: 'var(--pf-global--spacer--xs)', flexDirection: 'row', alignItems: 'center' }}
+          >
+            <QuestionCircleIcon />
+            Help
+          </div>
+        }
       />
+      <Button
+        variant="link"
+        icon={<CommentIcon />}
+        style={{ color: '#fff' }}
+        onClick={() =>
+          window.open(
+            'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
+            '_blank'
+          )
+        }
+      >
+        Feedback
+      </Button>
       <Dropdown
         className={`header-component__user-controls${
           userImpersonated ? ' header-component__user-controls--warning' : ''
