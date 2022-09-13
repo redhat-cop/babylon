@@ -1633,4 +1633,6 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopprovisions?labelSelector=babylon.gpte.redhat.com/workshop=${workshopName}${
       limit ? `&limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
+  RESOURCE_HANDLE: ({ resourceHandleName }: { resourceHandleName: string }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcehandles/${resourceHandleName}`,
 };

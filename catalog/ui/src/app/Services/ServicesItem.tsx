@@ -604,6 +604,25 @@ const ServicesItemComponent: React.FC<{
                           ) : null}
                         </>
                       ) : null}
+                      {provisionMessages ? (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Provision Messages</DescriptionListTerm>
+                          <DescriptionListDescription>
+                            <div
+                              dangerouslySetInnerHTML={{
+                                __html: renderContent(
+                                  (typeof provisionMessages === 'string'
+                                    ? provisionMessages
+                                    : provisionMessages.join('\n')
+                                  )
+                                    .replace(/^\s+|\s+$/g, '')
+                                    .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
+                                ),
+                              }}
+                            />
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      ) : null}
                       {provisionDataEntries && provisionDataEntries.length > 0 ? (
                         <DescriptionListGroup>
                           <DescriptionListTerm>Provision Data</DescriptionListTerm>
@@ -630,25 +649,6 @@ const ServicesItemComponent: React.FC<{
                                   </DescriptionListGroup>
                                 ))}
                             </DescriptionList>
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      ) : null}
-                      {provisionMessages ? (
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Provision Messages</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: renderContent(
-                                  (typeof provisionMessages === 'string'
-                                    ? provisionMessages
-                                    : provisionMessages.join('\n')
-                                  )
-                                    .replace(/^\s+|\s+$/g, '')
-                                    .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
-                                ),
-                              }}
-                            />
                           </DescriptionListDescription>
                         </DescriptionListGroup>
                       ) : null}
