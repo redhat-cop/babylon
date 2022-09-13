@@ -1635,4 +1635,18 @@ export const apiPaths = {
     }${continueId ? `&continue=${continueId}` : ''}`,
   RESOURCE_HANDLE: ({ resourceHandleName }: { resourceHandleName: string }): string =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcehandles/${resourceHandleName}`,
+  RESOURCE_POOL: ({ resourcePoolName }: { resourcePoolName: string }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepools/${resourcePoolName}`,
+  RESOURCE_HANDLES: ({
+    labelSelector,
+    limit,
+    continueId,
+  }: {
+    labelSelector?: string;
+    limit?: number;
+    continueId?: string;
+  }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcehandles?${
+      labelSelector ? `labelSelector=${labelSelector}` : ''
+    }${limit ? `&limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
 };

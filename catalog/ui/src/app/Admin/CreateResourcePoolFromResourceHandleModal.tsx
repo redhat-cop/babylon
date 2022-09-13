@@ -33,6 +33,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
   const [minAvailable, setMinAvailable] = useState(1);
   const [stopAfterProvision, setStopAfterProvision] = useState(true);
   const [unclaimed, setUnclaimed] = useState(7);
+  const [resourcePoolDescription, setResourcePoolDescription] = useState('');
   const [resources, setResources] = useState(
     resourceHandle.spec.resources.map((resource) => ({
       name: resource.name,
@@ -71,6 +72,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
       metadata: {
         name: resourcePoolName,
         namespace: 'poolboy',
+        [`${BABYLON_DOMAIN}/description`]: resourcePoolDescription,
       },
       spec: {
         lifespan: {
@@ -98,7 +100,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
       },
     });
     navigate(`/admin/resourcepools/${resourcePoolName}`);
-  }, [minAvailable, navigate, resourceHandle, resourcePoolName, resources, unclaimed]);
+  }, [minAvailable, navigate, resourceHandle, resourcePoolName, resources, unclaimed, resourcePoolDescription]);
 
   useEffect(() => {
     checkForNameConflict(resourcePoolName);
@@ -129,6 +131,20 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
             validated={!nameConflict && poolNameValidated ? 'success' : 'error'}
           />
           <Tooltip position="right" content={<div>ResourcePool Name must be unique</div>}>
+            <OutlinedQuestionCircleIcon aria-label="More info" className="tooltip-icon-only" />
+          </Tooltip>
+        </div>
+      </FormGroup>
+      <FormGroup label="ResourcePool Description" fieldId="resoucePoolDescription">
+        <div style={formFieldStyle}>
+          <TextArea
+            id="resoucePoolDescription"
+            name="resoucePoolDescription"
+            onChange={setResourcePoolDescription}
+            value={resourcePoolDescription}
+          />
+
+          <Tooltip position="right" content={<div>Used only for operational and identification pruposes.</div>}>
             <OutlinedQuestionCircleIcon aria-label="More info" className="tooltip-icon-only" />
           </Tooltip>
         </div>
