@@ -282,3 +282,7 @@ export function canExecuteAction(
   }
   return anarchySubject?.status?.supportedActions && action in anarchySubject.status.supportedActions;
 }
+
+export function escapeRegex(string: string): string {
+  return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+}

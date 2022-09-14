@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useRef } from 'react';
+import React, { useReducer } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -25,152 +25,89 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-
-import { deleteResourceHandle, deleteResourcePool, getResourcePool, listResourceHandles } from '@app/api';
-
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { apiPaths, deleteResourceHandle, deleteResourcePool, fetcher, fetcherItemsInAllPages } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
 import { selectConsoleURL } from '@app/store';
-import { ResourceHandle, ResourceHandleList, ResourcePool } from '@app/types';
-
+import { ResourceHandle, ResourcePool } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
+import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
+import useSWR from 'swr';
+import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './admin.css';
 
-interface RouteMatchParams {
-  name: string;
-  tab?: string;
-}
-
-const ResourcePoolInstance: React.FunctionComponent = () => {
+const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; activeTab: string }> = ({
+  resourcePoolName,
+  activeTab,
+}) => {
   const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
-  const componentWillUnmount = useRef(false);
-  const { name: resourcePoolName, tab: activeTab = 'details' } = useParams();
-
-  const [resourceHandlesFetchState, reduceResourceHandlesFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [resourcePoolFetchState, reduceResourcePoolFetchState] = useReducer(k8sFetchStateReducer, null);
+  const matchMutate = useMatchMutate();
   const [selectedResourceHandleUids, reduceResourceHandleSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const resourceHandles = (resourceHandlesFetchState?.items as ResourceHandle[]) || [];
-  const resourcePool: ResourcePool | null = resourcePoolFetchState?.item as ResourcePool | null;
+  const {
+    data: resourcePool,
+    error,
+    mutate,
+  } = useSWR<ResourcePool>(
+    apiPaths.RESOURCE_POOL({
+      resourcePoolName,
+    }),
+    fetcher,
+    {
+      refreshInterval: 8000,
+    }
+  );
+  useErrorHandler(error?.status === 404 ? error : null);
+
+  const { data: resourceHandles, mutate: mutateResourceHandles } = useSWR<ResourceHandle[]>(
+    resourcePool
+      ? apiPaths.RESOURCE_HANDLES({
+          labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePool.metadata.name}`,
+          limit: FETCH_BATCH_LIMIT,
+        })
+      : null,
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.RESOURCE_HANDLES({
+          labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePool.metadata.name}`,
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        })
+      )
+  );
+
+  function mutateResourcePoolsList() {
+    matchMutate([{ name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data: undefined }]);
+  }
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourcePool ${resourcePoolName}?`)) {
       await deleteResourcePool(resourcePool);
+      mutate(undefined);
+      mutateResourceHandles(undefined);
+      mutateResourcePoolsList();
       navigate('/admin/resourcepools');
     }
   }
 
   async function confirmThenDeleteSelectedHandles(): Promise<void> {
     if (confirm('Delete selected ResourceHandles?')) {
-      const removedResourceHandles: ResourceHandle[] = [];
+      const updatedResourceHandles: ResourceHandle[] = [];
       for (const resourceHandle of resourceHandles) {
         if (selectedResourceHandleUids.includes(resourceHandle.metadata.uid)) {
           await deleteResourceHandle(resourceHandle);
-          removedResourceHandles.push(resourceHandle);
+        } else {
+          updatedResourceHandles.push(resourceHandle);
         }
       }
-      reduceResourceHandleSelectedUids({ type: 'clear' });
-      reduceResourceHandlesFetchState({ type: 'removeItems', items: removedResourceHandles });
-    }
-  }
-
-  async function fetchResourceHandles(): Promise<void> {
-    const resourceHandleList: ResourceHandleList = await listResourceHandles({
-      labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
-    });
-    if (!resourceHandlesFetchState.activity.canceled) {
-      reduceResourceHandlesFetchState({
-        type: 'post',
-        k8sObjectList: resourceHandleList,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceResourceHandlesFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  async function fetchResourcePool(): Promise<void> {
-    let resourcePool: ResourcePool = null;
-    try {
-      resourcePool = await getResourcePool(resourcePoolName);
-    } catch (error) {
-      if (!(error instanceof Response) || error.status !== 404) {
-        throw error;
-      }
-    }
-    if (!resourcePoolFetchState.activity.canceled) {
-      reduceResourcePoolFetchState({
-        type: 'post',
-        item: resourcePool,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceResourcePoolFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  // First render and detect unmount
-  useEffect(() => {
-    reduceResourceHandlesFetchState({ type: 'startFetch' });
-    reduceResourcePoolFetchState({ type: 'startFetch' });
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (resourceHandlesFetchState?.canContinue) {
-      fetchResourceHandles();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(resourceHandlesFetchState);
-      }
-    };
-  }, [resourceHandlesFetchState]);
-
-  useEffect(() => {
-    if (resourcePoolFetchState?.canContinue) {
-      fetchResourcePool();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(resourcePoolFetchState);
-      }
-    };
-  }, [resourcePoolFetchState]);
-
-  if (!resourcePool) {
-    if (resourcePoolFetchState?.finished) {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              ResourcePool not found
-            </Title>
-            <EmptyStateBody>ResourcePool {resourcePoolName} was not found.</EmptyStateBody>
-          </EmptyState>
-        </PageSection>
-      );
-    } else {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      );
+      mutateResourceHandles(updatedResourceHandles);
     }
   }
 
@@ -249,6 +186,14 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                       <OpenshiftConsoleLink resource={resourcePool} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Description</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {resourcePool.metadata.annotations?.[`${BABYLON_DOMAIN}/description`] || <p>-</p>}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+
                   <DescriptionListGroup>
                     <DescriptionListTerm>Created At</DescriptionListTerm>
                     <DescriptionListDescription>
@@ -258,32 +203,23 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                       </span>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
-                  {/*<DescriptionListGroup>
+
+                  <DescriptionListGroup>
                     <DescriptionListTerm>Minimum Available</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <ResourcePoolMinAvailableInput resourcePool={resourcePool} />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>*/}
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Default Lifespan</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.default || <p>-</p>}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Maximum Lifespan</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.maximum || <p>-</p>}
+                      <ResourcePoolMinAvailableInput
+                        resourcePoolName={resourcePool.metadata.name}
+                        minAvailable={resourcePool.spec.minAvailable}
+                        mutateFn={(updatedResourcePool: ResourcePool) => {
+                          mutate(updatedResourcePool);
+                          mutateResourcePoolsList();
+                        }}
+                      />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Relative Maximum Lifespan</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.relativeMaximum || <p>-</p>}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Unclaimed Handle Lifespan</DescriptionListTerm>
+                    <DescriptionListTerm>Unclaimed Lifespan</DescriptionListTerm>
                     <DescriptionListDescription>
                       {resourcePool.spec.lifespan?.unclaimed || <p>-</p>}
                     </DescriptionListDescription>
@@ -297,7 +233,7 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                     <Title headingLevel="h3">
                       {resourceName === 'babylon'
                         ? 'Babylon Legacy CloudForms Integration'
-                        : `Resource ${resourceName}`}
+                        : `Resource: ${resourceName}`}
                     </Title>
                     <DescriptionList isHorizontal>
                       <DescriptionListGroup>
@@ -309,6 +245,15 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
                           <OpenshiftConsoleLink reference={resourcePoolSpecResource.provider} />
                         </DescriptionListDescription>
                       </DescriptionListGroup>
+
+                      {resourcePoolSpecResource.template?.spec?.vars?.job_vars ? (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Job Vars</DescriptionListTerm>
+                          <DescriptionListDescription style={{ whiteSpace: 'pre-wrap' }}>
+                            {yaml.dump(resourcePoolSpecResource.template.spec.vars.job_vars)}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      ) : null}
                     </DescriptionList>
                   </StackItem>
                 );
@@ -317,18 +262,12 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
           </Tab>
           <Tab eventKey="resourcehandles" title={<TabTitleText>ResourceHandles</TabTitleText>}>
             {resourceHandles.length === 0 ? (
-              resourceHandlesFetchState?.finished ? (
-                <EmptyState variant="full">
-                  <EmptyStateIcon icon={ExclamationTriangleIcon} />
-                  <Title headingLevel="h1" size="lg">
-                    No ResourceHandles found.
-                  </Title>
-                </EmptyState>
-              ) : (
-                <EmptyState variant="full">
-                  <EmptyStateIcon icon={LoadingIcon} />
-                </EmptyState>
-              )
+              <EmptyState variant="full">
+                <EmptyStateIcon icon={ExclamationTriangleIcon} />
+                <Title headingLevel="h1" size="lg">
+                  No ResourceHandles found.
+                </Title>
+              </EmptyState>
             ) : (
               <SelectableTable
                 columns={['Name', 'Service Namespace', 'ResourceClaim', 'Created At']}
@@ -414,6 +353,26 @@ const ResourcePoolInstance: React.FunctionComponent = () => {
         </Tabs>
       </PageSection>
     </>
+  );
+};
+
+const NotFoundComponent: React.FC<{
+  resourcePoolName: string;
+}> = ({ resourcePoolName }) => (
+  <EmptyState variant="full">
+    <EmptyStateIcon icon={ExclamationTriangleIcon} />
+    <Title headingLevel="h1" size="lg">
+      ResourcePool not found
+    </Title>
+    <EmptyStateBody>ResourcePool {resourcePoolName} was not found.</EmptyStateBody>
+  </EmptyState>
+);
+const ResourcePoolInstance: React.FC = () => {
+  const { name: resourcePoolName, tab: activeTab = 'details' } = useParams();
+  return (
+    <ErrorBoundary fallbackRender={() => <NotFoundComponent resourcePoolName={resourcePoolName} />}>
+      <ResourcePoolInstanceComponent activeTab={activeTab} resourcePoolName={resourcePoolName} />
+    </ErrorBoundary>
   );
 };
 

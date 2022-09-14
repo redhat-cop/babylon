@@ -34,7 +34,3 @@
   max-height: 10em;
   overflow-y: scroll;
 }
-
-textarea.admin-yaml-display.pf-c-form-control {
-  min-height: 8em;
-}

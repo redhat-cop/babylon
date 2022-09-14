@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useRef, useState } from 'react';
+import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -25,37 +25,28 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-
-import { deleteResourceHandle, getResourceClaim, getResourceHandle } from '@app/api';
+import { apiPaths, deleteResourceHandle, fetcher } from '@app/api';
 import { BABYLON_DOMAIN } from '@app/util';
-
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectConsoleURL } from '@app/store';
 import { ResourceClaim, ResourceHandle } from '@app/types';
-
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-
 import CreateResourcePoolFromResourceHandleModal from './CreateResourcePoolFromResourceHandleModal';
+import Modal, { useModal } from '@app/Modal/Modal';
+import useSWR from 'swr';
+import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 
 import './admin.css';
 
-const ResourceHandleInstance: React.FC = () => {
+const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; activeTab?: string }> = ({
+  resourceHandleName,
+  activeTab,
+}) => {
   const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
-  const componentWillUnmount = useRef(false);
-  const { name: resourceHandleName, tab: activeTab = 'details' } = useParams();
-
-  const [createResourcePoolFromResourceHandleModalIsOpen, setCreateResourcePoolFromResourceHandleModalIsOpen] =
-    useState(false);
-  const [resourceClaimFetchState, reduceResourceClaimFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [resourceHandleFetchState, reduceResourceHandleFetchState] = useReducer(k8sFetchStateReducer, null);
-
-  const resourceClaim: ResourceClaim | null = resourceClaimFetchState?.item as ResourceClaim | null;
-  const resourceHandle: ResourceHandle | null = resourceHandleFetchState?.item as ResourceHandle | null;
+  const [createResourcePoolFromResourceHandleModal, openCreateResourcePoolFromResourceHandleModal] = useModal();
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourceHandle ${resourceHandleName}?`)) {
@@ -64,123 +55,40 @@ const ResourceHandleInstance: React.FC = () => {
     }
   }
 
-  async function fetchResourceClaim(): Promise<void> {
-    let resourceClaim: ResourceClaim = null;
-    try {
-      resourceClaim = await getResourceClaim(
-        resourceHandle.spec.resourceClaim.namespace,
-        resourceHandle.spec.resourceClaim.name
-      );
-    } catch (error) {
-      if (!(error instanceof Response) || error.status !== 404) {
-        throw error;
-      }
+  const { data: resourceHandle, error } = useSWR<ResourceHandle>(
+    apiPaths.RESOURCE_HANDLE({
+      resourceHandleName,
+    }),
+    fetcher,
+    {
+      refreshInterval: 8000,
     }
-    if (!resourceClaimFetchState.activity.canceled) {
-      reduceResourceClaimFetchState({
-        type: 'post',
-        item: resourceClaim,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceResourceClaimFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
+  );
+  useErrorHandler(error?.status === 404 ? error : null);
 
-  async function fetchResourceHandle(): Promise<void> {
-    let resourceHandle: ResourceHandle = null;
-    try {
-      resourceHandle = await getResourceHandle(resourceHandleName);
-    } catch (error) {
-      if (!(error instanceof Response) || error.status !== 404) {
-        throw error;
-      }
+  const { data: resourceClaim } = useSWR<ResourceClaim>(
+    resourceHandle.spec.resourceClaim
+      ? apiPaths.RESOURCE_CLAIM({
+          namespace: resourceHandle.spec.resourceClaim.namespace,
+          resourceClaimName: resourceHandle.spec.resourceClaim.name,
+        })
+      : null,
+    fetcher,
+    {
+      refreshInterval: 8000,
     }
-    if (!resourceHandleFetchState.activity.canceled) {
-      reduceResourceHandleFetchState({
-        type: 'post',
-        item: resourceHandle,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceResourceHandleFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  // First render and detect unmount
-  useEffect(() => {
-    reduceResourceHandleFetchState({ type: 'startFetch' });
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  // Start fetching ResourceClaim when it is defined
-  useEffect(() => {
-    if (resourceHandle?.spec.resourceClaim?.namespace && resourceHandle?.spec.resourceClaim?.name) {
-      reduceResourceClaimFetchState({ type: 'startFetch' });
-    }
-  }, [resourceHandle?.spec.resourceClaim?.namespace, resourceHandle?.spec.resourceClaim?.name]);
-
-  useEffect(() => {
-    if (resourceClaimFetchState?.canContinue) {
-      fetchResourceClaim();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(resourceClaimFetchState);
-      }
-    };
-  }, [resourceClaimFetchState]);
-
-  useEffect(() => {
-    if (resourceHandleFetchState?.canContinue) {
-      fetchResourceHandle();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(resourceHandleFetchState);
-      }
-    };
-  }, [resourceHandleFetchState]);
-
-  if (!resourceHandle) {
-    if (resourceHandleFetchState?.finished) {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              ResourceHandle not found
-            </Title>
-            <EmptyStateBody>ResourceHandle {resourceHandleName} was not found.</EmptyStateBody>
-          </EmptyState>
-        </PageSection>
-      );
-    } else {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      );
-    }
-  }
+  );
 
   return (
     <>
-      {createResourcePoolFromResourceHandleModalIsOpen ? (
-        <CreateResourcePoolFromResourceHandleModal
-          key="createResourcePoolModal"
-          isOpen
-          onClose={() => setCreateResourcePoolFromResourceHandleModalIsOpen(false)}
-          resourceClaim={resourceClaim}
-          resourceHandle={resourceHandle}
-        />
-      ) : null}
+      <Modal
+        ref={createResourcePoolFromResourceHandleModal}
+        title="Create ResourcePool from ResourceHandle"
+        passModifiers={true}
+        onConfirm={null}
+      >
+        <CreateResourcePoolFromResourceHandleModal resourceClaim={resourceClaim} resourceHandle={resourceHandle} />
+      </Modal>
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Breadcrumb>
           <BreadcrumbItem
@@ -227,7 +135,7 @@ const ResourceHandleInstance: React.FC = () => {
                       : false
                   }
                   label="Create ResourcePool from ResourceHandle"
-                  onSelect={() => setCreateResourcePoolFromResourceHandleModalIsOpen(true)}
+                  onSelect={openCreateResourcePoolFromResourceHandleModal}
                 />,
                 <ActionDropdownItem
                   key="openInOpenShift"
@@ -441,6 +349,26 @@ const ResourceHandleInstance: React.FC = () => {
         </Tabs>
       </PageSection>
     </>
+  );
+};
+
+const NotFoundComponent: React.FC<{
+  resourceHandleName: string;
+}> = ({ resourceHandleName }) => (
+  <EmptyState variant="full">
+    <EmptyStateIcon icon={ExclamationTriangleIcon} />
+    <Title headingLevel="h1" size="lg">
+      ResourceHandle not found
+    </Title>
+    <EmptyStateBody>ResourceHandle {resourceHandleName} was not found.</EmptyStateBody>
+  </EmptyState>
+);
+const ResourceHandleInstance: React.FC = () => {
+  const { name: resourceHandleName, tab: activeTab = 'details' } = useParams();
+  return (
+    <ErrorBoundary fallbackRender={() => <NotFoundComponent resourceHandleName={resourceHandleName} />}>
+      <ResourceHandleInstanceComponent activeTab={activeTab} resourceHandleName={resourceHandleName} />
+    </ErrorBoundary>
   );
 };
 

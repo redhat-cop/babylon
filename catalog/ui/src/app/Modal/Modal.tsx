@@ -51,6 +51,7 @@ const _Modal: ForwardRefRenderFunction<
     setIsOpen(false);
   }, []);
   const [_title, setTitle] = useState(title);
+  const [_isDisabled, setIsDisabled] = useState(isDisabled);
   const [domReady, setDomReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -61,6 +62,10 @@ const _Modal: ForwardRefRenderFunction<
   useLayoutEffect(() => {
     setTitle(title);
   }, [title]);
+
+  useLayoutEffect(() => {
+    setIsDisabled(isDisabled);
+  }, [isDisabled]);
 
   useImperativeHandle(
     ref,
@@ -123,11 +128,13 @@ const _Modal: ForwardRefRenderFunction<
           setTitle: React.Dispatch<React.SetStateAction<string>>;
           setState: React.Dispatch<unknown>;
           setOnConfirmCb: React.Dispatch<React.SetStateAction<() => Promise<void>>>;
+          setIsDisabled: React.Dispatch<React.SetStateAction<boolean>>;
         }>,
         {
           setTitle,
           setState,
           setOnConfirmCb,
+          setIsDisabled,
         }
       );
     }
@@ -151,7 +158,7 @@ const _Modal: ForwardRefRenderFunction<
                       key="confirm"
                       variant="primary"
                       onClick={handleOnConfirm}
-                      isDisabled={isDisabled || isLoading}
+                      isDisabled={_isDisabled || isLoading}
                       icon={isLoading ? <Spinner isSVG size="sm" /> : null}
                     >
                       {confirmText}

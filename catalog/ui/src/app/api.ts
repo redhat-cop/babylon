@@ -29,6 +29,7 @@ import {
   Session,
   Nullable,
   UserNamespace,
+  ResourceType,
 } from '@app/types';
 import { store } from '@app/store';
 import { selectImpersonationUser } from '@app/store';
@@ -1566,7 +1567,8 @@ export async function fetchWithUpdatedCostTracker({
   return await fetcher(path);
 }
 
-export const apiPaths = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
   CATALOG_ITEMS: ({
@@ -1633,4 +1635,24 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopprovisions?labelSelector=babylon.gpte.redhat.com/workshop=${workshopName}${
       limit ? `&limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
+  RESOURCE_HANDLE: ({ resourceHandleName }: { resourceHandleName: string }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcehandles/${resourceHandleName}`,
+  RESOURCE_HANDLES: ({
+    labelSelector,
+    limit,
+    continueId,
+  }: {
+    labelSelector?: string;
+    limit?: number;
+    continueId?: string;
+  }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcehandles?${
+      labelSelector ? `labelSelector=${labelSelector}` : ''
+    }${limit ? `&limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
+  RESOURCE_POOL: ({ resourcePoolName }: { resourcePoolName: string }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepools/${resourcePoolName}`,
+  RESOURCE_POOLS: ({ limit, continueId }: { limit: number; continueId?: string }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepools?${limit ? `limit=${limit}` : ''}${
+      continueId ? `&continue=${continueId}` : ''
+    }`,
 };

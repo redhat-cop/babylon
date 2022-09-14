@@ -1,31 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { CSSProperties, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Button,
-  Checkbox,
-  Form,
-  FormGroup,
-  Modal,
-  ModalVariant,
-  NumberInput,
-  Select,
-  SelectOption,
-  TextArea,
-  TextInput,
-} from '@patternfly/react-core';
+import { Checkbox, Form, FormGroup, NumberInput, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
 import { ResourceClaim, ResourceHandle } from '@app/types';
 import { createResourcePool, getResourcePool } from '@app/api';
-import { BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import yaml from 'js-yaml';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import useMatchMutate from '@app/utils/useMatchMutate';
+
+const formFieldStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'row',
+  gap: 'var(--pf-global--spacer--sm)',
+  alignItems: 'center',
+};
 
 const CreateResourcePoolFromResourceHandleModal: React.FC<{
-  isOpen: any;
-  onClose: any;
   resourceClaim?: ResourceClaim;
   resourceHandle: ResourceHandle;
-}> = ({ isOpen, onClose, resourceClaim, resourceHandle }) => {
+  setOnConfirmCb?: (_: any) => Promise<void>;
+  setIsDisabled?: React.Dispatch<React.SetStateAction<boolean>>;
+}> = ({ resourceClaim, resourceHandle, setOnConfirmCb, setIsDisabled }) => {
   const navigate = useNavigate();
-  const [resourcePoolName, setResourcePoolName] = useState<string>(
+  const matchMutate = useMatchMutate();
+  const [resourcePoolName, setResourcePoolName] = useState(
     resourceClaim
       ? resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/externalPlatformUrl`] &&
         resourceClaim.metadata.name.match(/-[0-9a-f]{4}$/)
@@ -33,59 +31,71 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         : resourceClaim.metadata.name.replace(/-[0-9]+$/, '')
       : resourceHandle.spec.resources[0].provider.name
   );
-  const [nameConflict, setNameConflict] = useState<boolean | null>(null);
-  const [minAvailable, setMinAvailable] = useState<number>(1);
-  const [stopAfterProvision, setStopAfterProvision] = useState<boolean>(true);
-  const [defaultLifespan, setDefaultLifespan] = useState<string>('7d');
-  const [defaultLifespanIsOpen, setDefaultLifespanIsOpen] = useState<boolean>(false);
-  const [maximumLifespan, setMaximumLifespan] = useState<string>('14d');
-  const [maximumLifespanIsOpen, setMaximumLifespanIsOpen] = useState<boolean>(false);
-  const [relativeMaximumLifespan, setRelativeMaximumLifespan] = useState<string>('7d');
-  const [relativeMaximumLifespanIsOpen, setRelativeMaximumLifespanIsOpen] = useState<boolean>(false);
-  const unclaimedLifespan = '7d';
+  const [nameConflict, setNameConflict] = useState(false);
+  const [minAvailable, setMinAvailable] = useState(1);
+  const [stopAfterProvision, setStopAfterProvision] = useState(true);
+  const [unclaimed, setUnclaimed] = useState(7);
+  const [resourcePoolDescription, setResourcePoolDescription] = useState('');
+  const { lifespan } = resourceHandle.spec;
+  const [resources, setResources] = useState(
+    resourceHandle.spec.resources.map((resource) => ({
+      name: resource.name,
+      jobVars: resource.template.spec.vars?.job_vars ? yaml.dump(resource.template.spec.vars.job_vars) : '',
+      provider: resource.provider,
+    }))
+  );
 
-  const poolNameValidated: boolean = resourcePoolName.match(/^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$/) !== null;
+  const poolNameValidated = resourcePoolName.match(/^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$/) !== null;
 
-  async function checkForNameConflict(checkName: string) {
-    try {
-      const existingResourcePool = await getResourcePool(checkName);
-      if (existingResourcePool) {
-        setNameConflict(true);
+  const checkForNameConflict = useCallback(
+    async (checkName: string) => {
+      try {
+        setIsDisabled(true);
+        const existingResourcePool = await getResourcePool(checkName);
+        if (existingResourcePool) {
+          setNameConflict(true);
+          setIsDisabled(true);
+        }
+      } catch (error) {
+        if (error instanceof Response && error.status === 404) {
+          setNameConflict(false);
+          setIsDisabled(!poolNameValidated);
+        } else {
+          throw error;
+        }
       }
-    } catch (error) {
-      if (error instanceof Response && error.status === 404) {
-        setNameConflict(false);
-      } else {
-        throw error;
-      }
-    }
-  }
+    },
+    [poolNameValidated, setIsDisabled]
+  );
 
-  async function onConfirm() {
-    await createResourcePool({
+  const onConfirm = useCallback(async () => {
+    const resourcePool = await createResourcePool({
       apiVersion: 'poolboy.gpte.redhat.com/v1',
       kind: 'ResourcePool',
       metadata: {
         name: resourcePoolName,
         namespace: 'poolboy',
+        annotations: {
+          [`${BABYLON_DOMAIN}/description`]: resourcePoolDescription,
+        },
       },
       spec: {
         lifespan: {
-          default: defaultLifespan,
-          maximum: maximumLifespan,
-          relativeMaximum: relativeMaximumLifespan,
-          unclaimed: unclaimedLifespan,
+          default: lifespan?.default || '7d',
+          maximum: lifespan?.maximum || '14d',
+          relativeMaximum: lifespan?.relativeMaximum || '7d',
+          unclaimed: `${unclaimed}d`,
         },
         minAvailable: minAvailable,
         resources: [
-          ...resourceHandle.spec.resources.map((resource) => {
+          ...resources.map((resource) => {
             return {
               name: resource.name,
               provider: resource.provider,
               template: {
                 spec: {
                   vars: {
-                    job_vars: resource.template.spec.vars?.job_vars,
+                    job_vars: yaml.load(resource.jobVars),
                   },
                 },
               },
@@ -94,36 +104,31 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         ],
       },
     });
+    matchMutate([
+      { name: 'RESOURCE_POOL', arguments: { resourcePoolName }, data: resourcePool },
+      { name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data: undefined },
+    ]);
     navigate(`/admin/resourcepools/${resourcePoolName}`);
-  }
+  }, [resourcePoolName, resourcePoolDescription, lifespan, unclaimed, minAvailable, resources, matchMutate, navigate]);
 
   useEffect(() => {
     checkForNameConflict(resourcePoolName);
-    setMinAvailable(1);
-    setStopAfterProvision(true);
-  }, [resourceHandle.metadata.uid, resourceClaim?.metadata.uid]);
+  }, [checkForNameConflict, resourcePoolName]);
 
   useEffect(() => {
-    checkForNameConflict(resourcePoolName);
-  }, [resourcePoolName]);
+    setOnConfirmCb(() => onConfirm);
+  }, [onConfirm, setOnConfirmCb]);
+
+  const setResourceJobVars = (idx: number, value: string) => {
+    const resourcesCpy = [...resources];
+    resourcesCpy[idx].jobVars = value;
+    setResources(resourcesCpy);
+  };
 
   return (
-    <Modal
-      variant={ModalVariant.medium}
-      title="Create ResourcePool from ResourceHandle"
-      isOpen={isOpen}
-      onClose={onClose}
-      actions={[
-        <Button key="confirm" variant="primary" isDisabled={nameConflict || !poolNameValidated} onClick={onConfirm}>
-          Confirm
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onClose}>
-          Cancel
-        </Button>,
-      ]}
-    >
-      <Form>
-        <FormGroup isRequired label="ResourcePool Name" fieldId="resourcePoolName">
+    <Form>
+      <FormGroup isRequired label="ResourcePool Name" fieldId="resourcePoolName">
+        <div style={formFieldStyle}>
           <TextInput
             isRequired
             id="resourcePoolName"
@@ -134,23 +139,59 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
             }}
             validated={!nameConflict && poolNameValidated ? 'success' : 'error'}
           />
-        </FormGroup>
-        <FormGroup label="Minimum Available" fieldId="minAvailable">
+          <Tooltip position="right" content={<div>ResourcePool Name must be unique</div>}>
+            <OutlinedQuestionCircleIcon aria-label="More info" className="tooltip-icon-only" />
+          </Tooltip>
+        </div>
+      </FormGroup>
+      <FormGroup label="ResourcePool Description" fieldId="resoucePoolDescription">
+        <div style={formFieldStyle}>
+          <TextArea
+            id="resoucePoolDescription"
+            name="resoucePoolDescription"
+            onChange={setResourcePoolDescription}
+            value={resourcePoolDescription}
+          />
+
+          <Tooltip position="right" content={<div>Used only for operational and identification pruposes.</div>}>
+            <OutlinedQuestionCircleIcon aria-label="More info" className="tooltip-icon-only" />
+          </Tooltip>
+        </div>
+      </FormGroup>
+      <FormGroup label="Minimum Available" fieldId="minAvailable">
+        <div style={formFieldStyle}>
           <NumberInput
             id="minAvailable"
             max={99}
             min={0}
             name="minAvailable"
             value={minAvailable}
-            onChange={(event: any) => {
-              const n = isNaN(event.target.value) ? 10 : event.target.value;
-              setMinAvailable(n < 0 ? 0 : n > 99 ? 99 : n);
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const value = parseInt(event.currentTarget.value);
+              if (isNaN(value)) {
+                return;
+              }
+              setMinAvailable(value < 0 ? 0 : value > 99 ? 99 : value);
             }}
             onMinus={() => setMinAvailable(minAvailable - 1)}
             onPlus={() => setMinAvailable(minAvailable + 1)}
           />
-        </FormGroup>
-        <FormGroup label="Stop after provision" fieldId="stopAfterProvision">
+          <Tooltip
+            position="right"
+            isContentLeftAligned={true}
+            content={
+              <div>
+                Defines how many unassigned ResourceHandles should be maintained in the pool. <br /> Increasing this
+                number will cause Poolboy to provision more ResourceHandles.
+              </div>
+            }
+          >
+            <OutlinedQuestionCircleIcon aria-label="More info" className="tooltip-icon-only" />
+          </Tooltip>
+        </div>
+      </FormGroup>
+      <FormGroup label="Stop after provision" fieldId="stopAfterProvision">
+        <div style={formFieldStyle}>
           <Checkbox
             id="stopAfterProvision"
             label="enabled"
@@ -158,126 +199,80 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
             isChecked={stopAfterProvision}
             onChange={(checked) => setStopAfterProvision(checked)}
           />
-        </FormGroup>
-        <FormGroup label="Default Lifespan" fieldId="defaultLifespan">
-          <Select
-            className="admin-lifespan-select"
-            id="defaultLifespan"
-            isOpen={defaultLifespanIsOpen}
-            onSelect={(event, value) => {
-              setDefaultLifespan(value as string);
-              setDefaultLifespanIsOpen(false);
-            }}
-            onToggle={() => setDefaultLifespanIsOpen((v) => !v)}
-            selections={defaultLifespan}
+
+          <Tooltip
+            position="right"
+            content={
+              <div>
+                When enabled the ResourceHandle created will default into a `stopped` state upon provisioning
+                completion. While most catalog items should be capable of being idled, there are some that might not be
+                able to - such as the Ansible workshops. Analysis and risk assessment should be done before employing
+                these idling options on pooled resources.
+              </div>
+            }
           >
-            <SelectOption value="2h" />
-            <SelectOption value="3h" />
-            <SelectOption value="4h" />
-            <SelectOption value="6h" />
-            <SelectOption value="8h" />
-            <SelectOption value="12h" />
-            <SelectOption value="18h" />
-            <SelectOption value="1d" />
-            <SelectOption value="2d" />
-            <SelectOption value="3d" />
-            <SelectOption value="4d" />
-            <SelectOption value="5d" />
-            <SelectOption value="6d" />
-            <SelectOption value="7d" />
-            <SelectOption value="8d" />
-            <SelectOption value="9d" />
-            <SelectOption value="10d" />
-            <SelectOption value="12d" />
-            <SelectOption value="14d" />
-            <SelectOption value="1000d" />
-          </Select>
-        </FormGroup>
-        <FormGroup label="Maximum Lifespan" fieldId="maximumLifespan">
-          <Select
-            className="admin-lifespan-select"
-            id="maximumLifespan"
-            isOpen={maximumLifespanIsOpen}
-            onSelect={(event, value) => {
-              setMaximumLifespan(value as string);
-              setMaximumLifespanIsOpen(false);
+            <OutlinedQuestionCircleIcon aria-label="More info" className="tooltip-icon-only" />
+          </Tooltip>
+        </div>
+      </FormGroup>
+      <FormGroup label="Unclaimed lifespan" fieldId="unclaimed">
+        <div style={formFieldStyle}>
+          <NumberInput
+            id="unclaimed"
+            max={99}
+            min={0}
+            name="unclaimed"
+            value={unclaimed}
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const value = parseInt(event.currentTarget.value);
+              if (isNaN(value)) {
+                return;
+              }
+              setUnclaimed(value < 0 ? 0 : value);
             }}
-            onToggle={() => setMaximumLifespanIsOpen((v) => !v)}
-            selections={maximumLifespan}
+            onMinus={() => setUnclaimed(unclaimed - 1)}
+            onPlus={() => setUnclaimed(unclaimed + 1)}
+          />
+          <Tooltip
+            position="right"
+            content={
+              <div>Defines how many days an unclaimed ResourceHandle can be in the pool before being retired.</div>
+            }
           >
-            <SelectOption value="2h" />
-            <SelectOption value="3h" />
-            <SelectOption value="4h" />
-            <SelectOption value="6h" />
-            <SelectOption value="8h" />
-            <SelectOption value="12h" />
-            <SelectOption value="18h" />
-            <SelectOption value="1d" />
-            <SelectOption value="2d" />
-            <SelectOption value="3d" />
-            <SelectOption value="4d" />
-            <SelectOption value="5d" />
-            <SelectOption value="6d" />
-            <SelectOption value="7d" />
-            <SelectOption value="8d" />
-            <SelectOption value="9d" />
-            <SelectOption value="10d" />
-            <SelectOption value="12d" />
-            <SelectOption value="14d" />
-            <SelectOption value="1000d" />
-          </Select>
-        </FormGroup>
-        <FormGroup label="Relative Maximum Lifespan" fieldId="relativeMaximumLifespan">
-          <Select
-            className="admin-lifespan-select"
-            id="relativeMaximumLifespan"
-            isOpen={relativeMaximumLifespanIsOpen}
-            onSelect={(event, value) => {
-              setRelativeMaximumLifespan(value as string);
-              setRelativeMaximumLifespanIsOpen(false);
-            }}
-            onToggle={() => setRelativeMaximumLifespanIsOpen((v) => !v)}
-            selections={relativeMaximumLifespan}
-          >
-            <SelectOption value="2h" />
-            <SelectOption value="3h" />
-            <SelectOption value="4h" />
-            <SelectOption value="6h" />
-            <SelectOption value="8h" />
-            <SelectOption value="12h" />
-            <SelectOption value="18h" />
-            <SelectOption value="1d" />
-            <SelectOption value="2d" />
-            <SelectOption value="3d" />
-            <SelectOption value="4d" />
-            <SelectOption value="5d" />
-            <SelectOption value="6d" />
-            <SelectOption value="7d" />
-            <SelectOption value="8d" />
-            <SelectOption value="9d" />
-            <SelectOption value="10d" />
-            <SelectOption value="12d" />
-            <SelectOption value="14d" />
-            <SelectOption value="1000d" />
-          </Select>
-        </FormGroup>
-        {resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => {
-          const resourceName = resourceHandleSpecResource.name || resourceHandleSpecResource.provider.name;
-          const resourceLabel =
-            resourceName === 'babylon' ? 'Babylon Legacy CloudForms Integration' : `Resource ${resourceName}`;
-          return (
-            <FormGroup key={idx} label={`${resourceLabel} job vars`} fieldId={`resource${idx}`}>
+            <OutlinedQuestionCircleIcon aria-label="More info" className="tooltip-icon-only" />
+          </Tooltip>
+        </div>
+      </FormGroup>
+      {resources.map((resource, idx) => {
+        const resourceName = resource.name || resource.provider.name;
+        const resourceLabel =
+          resourceName === 'babylon' ? 'Babylon Legacy CloudForms Integration' : `Resource: ${resourceName}`;
+        return (
+          <FormGroup key={idx} label={`${resourceLabel} - Job vars`} fieldId={`resource-${idx}`}>
+            <div style={formFieldStyle}>
               <TextArea
-                className="admin-yaml-display"
-                id={`resource${idx}`}
-                name={`resource${idx}`}
-                value={yaml.dump(resourceHandleSpecResource.template?.spec?.vars?.job_vars || {})}
+                id={`resource-${idx}`}
+                name={`resource-${idx}`}
+                onChange={(value) => setResourceJobVars(idx, value)}
+                value={resource.jobVars}
               />
-            </FormGroup>
-          );
-        })}
-      </Form>
-    </Modal>
+
+              <Tooltip
+                position="right"
+                content={
+                  <div>
+                    If your pool doesn't match the exact variables that the intended requester is going to use, then
+                    your pool will not be used at all.
+                  </div>
+                }
+              >
+                <OutlinedQuestionCircleIcon aria-label="More info" className="tooltip-icon-only" />
+              </Tooltip>
+            </div>
+          </FormGroup>
+        );
+      })}
+    </Form>
   );
 };
 

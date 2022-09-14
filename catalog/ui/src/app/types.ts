@@ -490,3 +490,18 @@ export type IAppRoute = {
   title: string;
   accessControl?: IAppRouteAccessControl;
 };
+
+export type ResourceType =
+  | 'CATALOG_ITEM'
+  | 'CATALOG_ITEMS'
+  | 'RESOURCE_CLAIMS'
+  | 'RESOURCE_CLAIM'
+  | 'NAMESPACES'
+  | 'WORKSHOP'
+  | 'WORKSHOPS'
+  | 'ANARCHY_SUBJECT'
+  | 'WORKSHOP_PROVISIONS'
+  | 'RESOURCE_HANDLE'
+  | 'RESOURCE_HANDLES'
+  | 'RESOURCE_POOL'
+  | 'RESOURCE_POOLS';
