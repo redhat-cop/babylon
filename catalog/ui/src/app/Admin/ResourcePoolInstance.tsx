@@ -38,6 +38,7 @@ import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import useSWR from 'swr';
 import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './admin.css';
 
@@ -47,6 +48,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
 }) => {
   const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
+  const matchMutate = useMatchMutate();
   const [selectedResourceHandleUids, reduceResourceHandleSelectedUids] = useReducer(selectedUidsReducer, []);
 
   const {
@@ -81,24 +83,31 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
       )
   );
 
+  function mutateResourcePoolsList() {
+    matchMutate([{ name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data: undefined }]);
+  }
+
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourcePool ${resourcePoolName}?`)) {
       await deleteResourcePool(resourcePool);
-      mutate(null);
+      mutate(undefined);
+      mutateResourceHandles(undefined);
+      mutateResourcePoolsList();
       navigate('/admin/resourcepools');
     }
   }
 
   async function confirmThenDeleteSelectedHandles(): Promise<void> {
     if (confirm('Delete selected ResourceHandles?')) {
-      const removedResourceHandles: ResourceHandle[] = [];
+      const updatedResourceHandles: ResourceHandle[] = [];
       for (const resourceHandle of resourceHandles) {
         if (selectedResourceHandleUids.includes(resourceHandle.metadata.uid)) {
           await deleteResourceHandle(resourceHandle);
-          removedResourceHandles.push(resourceHandle);
+        } else {
+          updatedResourceHandles.push(resourceHandle);
         }
       }
-      mutateResourceHandles(removedResourceHandles);
+      mutateResourceHandles(updatedResourceHandles);
     }
   }
 
@@ -181,7 +190,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   <DescriptionListGroup>
                     <DescriptionListTerm>Description</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.metadata[`${BABYLON_DOMAIN}/description`] || <p>-</p>}
+                      {resourcePool.metadata.annotations?.[`${BABYLON_DOMAIN}/description`] || <p>-</p>}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
@@ -198,7 +207,14 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   <DescriptionListGroup>
                     <DescriptionListTerm>Minimum Available</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <ResourcePoolMinAvailableInput resourcePool={resourcePool} />
+                      <ResourcePoolMinAvailableInput
+                        resourcePoolName={resourcePool.metadata.name}
+                        minAvailable={resourcePool.spec.minAvailable}
+                        mutateFn={(updatedResourcePool: ResourcePool) => {
+                          mutate(updatedResourcePool);
+                          mutateResourcePoolsList();
+                        }}
+                      />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 

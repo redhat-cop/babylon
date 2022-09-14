@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
 import { NumberInput, Spinner } from '@patternfly/react-core';
-import { ResourcePool } from '@app/types';
 import { patchResourcePool } from '@app/api';
+import { ResourcePool } from '@app/types';
 
 const ResourcePoolMinAvailableInput: React.FC<{
-  onChange?: (resourcePool: ResourcePool) => void;
-  resourcePool: ResourcePool;
-}> = ({ onChange, resourcePool }) => {
-  const [minAvailable, setMinAvailable] = useState(resourcePool.spec.minAvailable);
+  resourcePoolName: string;
+  minAvailable: number;
+  mutateFn?: (resourcePool: ResourcePool) => void;
+}> = ({ resourcePoolName, minAvailable: defaultMinAvailable, mutateFn }) => {
+  const [minAvailable, setMinAvailable] = useState(defaultMinAvailable);
   const [minAvailableInputTimeout, setMinAvailableInputTimeout] = useState(null);
   const [minAvailableUpdating, setMinAvailableUpdating] = useState(false);
+
+  function handleInputChange(event: React.FormEvent<HTMLInputElement>) {
+    const n = parseInt(event.currentTarget.value);
+    if (isNaN(n)) return;
+    return queueMinAvailableUpdate(n);
+  }
 
   function queueMinAvailableUpdate(n: number) {
     setMinAvailable(n);
@@ -29,12 +36,11 @@ const ResourcePoolMinAvailableInput: React.FC<{
 
   async function updateMinAvailable(n: number) {
     setMinAvailableUpdating(true);
-    await patchResourcePool(resourcePool.metadata.name, { spec: { minAvailable: n } });
-    resourcePool.spec.minAvailable = n;
+    const updatedResourcePool = await patchResourcePool(resourcePoolName, { spec: { minAvailable: n } });
     setMinAvailable(n);
     setMinAvailableUpdating(false);
-    if (onChange) {
-      onChange(resourcePool);
+    if (mutateFn) {
+      mutateFn(updatedResourcePool);
     }
   }
 
@@ -43,7 +49,7 @@ const ResourcePoolMinAvailableInput: React.FC<{
       <NumberInput
         min={0}
         max={99}
-        onChange={(event: any) => queueMinAvailableUpdate(parseInt(event.target.value))}
+        onChange={handleInputChange}
         onMinus={() => queueMinAvailableUpdate(minAvailable - 1)}
         onPlus={() => queueMinAvailableUpdate(minAvailable + 1)}
         value={minAvailable}

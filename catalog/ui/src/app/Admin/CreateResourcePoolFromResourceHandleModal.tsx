@@ -1,11 +1,12 @@
 import React, { CSSProperties, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Checkbox, Flex, Form, FormGroup, NumberInput, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
+import { Checkbox, Form, FormGroup, NumberInput, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
 import { ResourceClaim, ResourceHandle } from '@app/types';
 import { createResourcePool, getResourcePool } from '@app/api';
-import { BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import yaml from 'js-yaml';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 const formFieldStyle: CSSProperties = {
   display: 'flex',
@@ -21,6 +22,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
   setIsDisabled?: React.Dispatch<React.SetStateAction<boolean>>;
 }> = ({ resourceClaim, resourceHandle, setOnConfirmCb, setIsDisabled }) => {
   const navigate = useNavigate();
+  const matchMutate = useMatchMutate();
   const [resourcePoolName, setResourcePoolName] = useState(
     resourceClaim
       ? resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/externalPlatformUrl`] &&
@@ -34,6 +36,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
   const [stopAfterProvision, setStopAfterProvision] = useState(true);
   const [unclaimed, setUnclaimed] = useState(7);
   const [resourcePoolDescription, setResourcePoolDescription] = useState('');
+  const { lifespan } = resourceHandle.spec;
   const [resources, setResources] = useState(
     resourceHandle.spec.resources.map((resource) => ({
       name: resource.name,
@@ -66,19 +69,21 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
   );
 
   const onConfirm = useCallback(async () => {
-    await createResourcePool({
+    const resourcePool = await createResourcePool({
       apiVersion: 'poolboy.gpte.redhat.com/v1',
       kind: 'ResourcePool',
       metadata: {
         name: resourcePoolName,
         namespace: 'poolboy',
-        [`${BABYLON_DOMAIN}/description`]: resourcePoolDescription,
+        annotations: {
+          [`${BABYLON_DOMAIN}/description`]: resourcePoolDescription,
+        },
       },
       spec: {
         lifespan: {
-          default: resourceHandle.spec.lifespan?.default || '7d',
-          maximum: resourceHandle.spec.lifespan?.maximum || '14d',
-          relativeMaximum: resourceHandle.spec.lifespan?.relativeMaximum || '7d',
+          default: lifespan?.default || '7d',
+          maximum: lifespan?.maximum || '14d',
+          relativeMaximum: lifespan?.relativeMaximum || '7d',
           unclaimed: `${unclaimed}d`,
         },
         minAvailable: minAvailable,
@@ -99,8 +104,12 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         ],
       },
     });
+    matchMutate([
+      { name: 'RESOURCE_POOL', arguments: { resourcePoolName }, data: resourcePool },
+      { name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data: undefined },
+    ]);
     navigate(`/admin/resourcepools/${resourcePoolName}`);
-  }, [minAvailable, navigate, resourceHandle, resourcePoolName, resources, unclaimed, resourcePoolDescription]);
+  }, [resourcePoolName, resourcePoolDescription, lifespan, unclaimed, minAvailable, resources, matchMutate, navigate]);
 
   useEffect(() => {
     checkForNameConflict(resourcePoolName);
