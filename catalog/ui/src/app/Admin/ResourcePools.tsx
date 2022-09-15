@@ -20,7 +20,6 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
 import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 
@@ -216,7 +215,7 @@ const ResourcePools: React.FC = () => {
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
           <SelectableTable
-            columns={['Name', 'Minimum Available', 'ResourceProvider(s)', 'Created At']}
+            columns={['Name', 'ResourceProvider(s)', 'Created At']}
             onSelectAll={(isSelected) => {
               if (isSelected) {
                 reduceSelectedUids({ type: 'set', items: resourcePools });
@@ -232,15 +231,6 @@ const ResourcePools: React.FC = () => {
                       {resourcePool.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={resourcePool} />
-                  </>,
-                  <>
-                    <ResourcePoolMinAvailableInput
-                      resourcePoolName={resourcePool.metadata.name}
-                      minAvailable={resourcePool.spec.minAvailable}
-                      mutateFn={(resourcePoolUpdated) =>
-                        revalidate({ updatedItems: [resourcePoolUpdated], action: 'update' })
-                      }
-                    />
                   </>,
                   <>
                     {resourcePool.spec.resources.map((resourcePoolSpecResource, idx) => (
