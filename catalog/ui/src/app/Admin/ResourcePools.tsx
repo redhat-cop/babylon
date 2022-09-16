@@ -22,7 +22,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 import ResourcePoolStats from './ResourcePoolStats';
-import VirtualSelectableTable from '@app/components/VirtualSelectTable';
+import SelectableTableWithPagination from '@app/components/SelectableTableWithPagination';
 
 import './admin.css';
 
@@ -157,9 +157,8 @@ const ResourcePools: React.FC = () => {
   };
 
   async function confirmThenDelete(): Promise<void> {
-    console.log(selectedUids);
     if (confirm('Deleted selected ResourcePools?')) {
-      /*const removedResourcePools: ResourcePool[] = [];
+      const removedResourcePools: ResourcePool[] = [];
       for (const resourcePoolsPage of resourcePoolsPages) {
         for (const resourcePool of resourcePoolsPage.items) {
           if (selectedUids.includes(resourcePool.metadata.uid)) {
@@ -169,7 +168,7 @@ const ResourcePools: React.FC = () => {
         }
       }
       reduceSelectedUids({ type: 'clear' });
-      revalidate({ action: 'delete', updatedItems: removedResourcePools });*/
+      revalidate({ action: 'delete', updatedItems: removedResourcePools });
     }
   }
 
@@ -216,7 +215,7 @@ const ResourcePools: React.FC = () => {
         </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-          <VirtualSelectableTable
+          <SelectableTableWithPagination
             columns={['Name', 'Created At', 'Status']}
             onSelectAll={(isSelected) => {
               if (isSelected) {
