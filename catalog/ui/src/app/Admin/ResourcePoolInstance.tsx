@@ -1,4 +1,4 @@
-import React, { useReducer, useState } from 'react';
+import React, { useReducer } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -26,14 +26,7 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-import {
-  apiPaths,
-  deleteResourceHandle,
-  deleteResourcePool,
-  fetcher,
-  fetcherItemsInAllPages,
-  getAnarchySubject,
-} from '@app/api';
+import { apiPaths, deleteResourceHandle, deleteResourcePool, fetcher, fetcherItemsInAllPages } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
 import { selectConsoleURL } from '@app/store';
 import { ResourceHandle, ResourcePool, ResourcePoolList } from '@app/types';
