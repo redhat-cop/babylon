@@ -47,9 +47,9 @@ import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import useSWR from 'swr';
 import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
+import usePoolStatus from './usePoolStatus';
 
 import './admin.css';
-import usePoolStatus from './usePoolStatus';
 
 function fetchResourceHandlesFromResourcePool(resourcePoolName: string) {
   return fetcherItemsInAllPages((continueId) =>
