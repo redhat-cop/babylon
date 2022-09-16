@@ -18,10 +18,11 @@ import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdo
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
+import ResourcePoolStats from './ResourcePoolStats';
+import VirtualSelectableTable from '@app/components/VirtualSelectTable';
 
 import './admin.css';
 
@@ -156,8 +157,9 @@ const ResourcePools: React.FC = () => {
   };
 
   async function confirmThenDelete(): Promise<void> {
+    console.log(selectedUids);
     if (confirm('Deleted selected ResourcePools?')) {
-      const removedResourcePools: ResourcePool[] = [];
+      /*const removedResourcePools: ResourcePool[] = [];
       for (const resourcePoolsPage of resourcePoolsPages) {
         for (const resourcePool of resourcePoolsPage.items) {
           if (selectedUids.includes(resourcePool.metadata.uid)) {
@@ -167,7 +169,7 @@ const ResourcePools: React.FC = () => {
         }
       }
       reduceSelectedUids({ type: 'clear' });
-      revalidate({ action: 'delete', updatedItems: removedResourcePools });
+      revalidate({ action: 'delete', updatedItems: removedResourcePools });*/
     }
   }
 
@@ -214,8 +216,8 @@ const ResourcePools: React.FC = () => {
         </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-          <SelectableTable
-            columns={['Name', 'ResourceProvider(s)', 'Created At']}
+          <VirtualSelectableTable
+            columns={['Name', 'Created At', 'Status']}
             onSelectAll={(isSelected) => {
               if (isSelected) {
                 reduceSelectedUids({ type: 'set', items: resourcePools });
@@ -223,7 +225,7 @@ const ResourcePools: React.FC = () => {
                 reduceSelectedUids({ type: 'clear' });
               }
             }}
-            rows={resourcePools.map((resourcePool: ResourcePool) => {
+            rows={resourcePools.map((resourcePool) => {
               return {
                 cells: [
                   <>
@@ -233,27 +235,24 @@ const ResourcePools: React.FC = () => {
                     <OpenshiftConsoleLink key="console" resource={resourcePool} />
                   </>,
                   <>
-                    {resourcePool.spec.resources.map((resourcePoolSpecResource, idx) => (
-                      <div key={idx}>
-                        <Link key="admin" to={`/admin/resourceproviders/${resourcePoolSpecResource.provider.name}`}>
-                          {resourcePoolSpecResource.provider.name}
-                        </Link>
-                        <OpenshiftConsoleLink key="console" reference={resourcePoolSpecResource.provider} />
-                      </div>
-                    ))}
-                  </>,
-                  <>
                     <LocalTimestamp key="timestamp" timestamp={resourcePool.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={resourcePool.metadata.creationTimestamp} />)
                     </span>
                   </>,
+                  <>
+                    <ResourcePoolStats
+                      resourcePoolName={resourcePool.metadata.name}
+                      minAvailable={resourcePool.spec.minAvailable}
+                    />
+                  </>,
                 ],
-                onSelect: (isSelected: string) =>
+                onSelect: (isSelected: boolean) => {
                   reduceSelectedUids({
                     type: isSelected ? 'add' : 'remove',
                     items: [resourcePool],
-                  }),
+                  });
+                },
                 selected: selectedUids.includes(resourcePool.metadata.uid),
               };
             })}

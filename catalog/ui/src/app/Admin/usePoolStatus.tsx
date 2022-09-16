@@ -1,9 +1,10 @@
 import { getAnarchySubject } from '@app/api';
 import { ResourceHandle } from '@app/types';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 function usePoolStatus(resourceHandles: ResourceHandle[]): { available: number; total: number; taken: number } {
   const [available, setAvailable] = useState(-1);
+  const isMounted = useRef(true);
   const total = resourceHandles.length;
   let taken = 0;
   const resourceHandlePromises = [];
@@ -40,8 +41,14 @@ function usePoolStatus(resourceHandles: ResourceHandle[]): { available: number; 
     }
   }
   Promise.all(resourceHandlePromises).then((values) => {
-    setAvailable(values.reduce((a, b) => a + b, 0));
+    if (isMounted.current) setAvailable(values.reduce((a, b) => a + b, 0));
   });
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   return {
     available,
