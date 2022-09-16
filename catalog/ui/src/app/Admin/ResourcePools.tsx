@@ -18,11 +18,11 @@ import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdo
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
 import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
+import ResourcePoolStats from './ResourcePoolStats';
+import SelectableTableWithPagination from '@app/components/SelectableTableWithPagination';
 
 import './admin.css';
 
@@ -215,8 +215,8 @@ const ResourcePools: React.FC = () => {
         </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-          <SelectableTable
-            columns={['Name', 'Minimum Available', 'ResourceProvider(s)', 'Created At']}
+          <SelectableTableWithPagination
+            columns={['Name', 'Created At', 'Status']}
             onSelectAll={(isSelected) => {
               if (isSelected) {
                 reduceSelectedUids({ type: 'set', items: resourcePools });
@@ -224,7 +224,7 @@ const ResourcePools: React.FC = () => {
                 reduceSelectedUids({ type: 'clear' });
               }
             }}
-            rows={resourcePools.map((resourcePool: ResourcePool) => {
+            rows={resourcePools.map((resourcePool) => {
               return {
                 cells: [
                   <>
@@ -234,36 +234,24 @@ const ResourcePools: React.FC = () => {
                     <OpenshiftConsoleLink key="console" resource={resourcePool} />
                   </>,
                   <>
-                    <ResourcePoolMinAvailableInput
-                      resourcePoolName={resourcePool.metadata.name}
-                      minAvailable={resourcePool.spec.minAvailable}
-                      mutateFn={(resourcePoolUpdated) =>
-                        revalidate({ updatedItems: [resourcePoolUpdated], action: 'update' })
-                      }
-                    />
-                  </>,
-                  <>
-                    {resourcePool.spec.resources.map((resourcePoolSpecResource, idx) => (
-                      <div key={idx}>
-                        <Link key="admin" to={`/admin/resourceproviders/${resourcePoolSpecResource.provider.name}`}>
-                          {resourcePoolSpecResource.provider.name}
-                        </Link>
-                        <OpenshiftConsoleLink key="console" reference={resourcePoolSpecResource.provider} />
-                      </div>
-                    ))}
-                  </>,
-                  <>
                     <LocalTimestamp key="timestamp" timestamp={resourcePool.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={resourcePool.metadata.creationTimestamp} />)
                     </span>
                   </>,
+                  <>
+                    <ResourcePoolStats
+                      resourcePoolName={resourcePool.metadata.name}
+                      minAvailable={resourcePool.spec.minAvailable}
+                    />
+                  </>,
                 ],
-                onSelect: (isSelected: string) =>
+                onSelect: (isSelected: boolean) => {
                   reduceSelectedUids({
                     type: isSelected ? 'add' : 'remove',
                     items: [resourcePool],
-                  }),
+                  });
+                },
                 selected: selectedUids.includes(resourcePool.metadata.uid),
               };
             })}

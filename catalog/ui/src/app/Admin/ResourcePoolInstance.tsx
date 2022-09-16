@@ -21,6 +21,7 @@ import {
   Tab,
   TabTitleText,
   Title,
+  Spinner,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
@@ -28,7 +29,7 @@ import yaml from 'js-yaml';
 import { apiPaths, deleteResourceHandle, deleteResourcePool, fetcher, fetcherItemsInAllPages } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
 import { selectConsoleURL } from '@app/store';
-import { ResourceHandle, ResourcePool } from '@app/types';
+import { ResourceHandle, ResourcePool, ResourcePoolList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
@@ -39,8 +40,19 @@ import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import useSWR from 'swr';
 import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
+import usePoolStatus from './usePoolStatus';
 
 import './admin.css';
+
+function fetchResourceHandlesFromResourcePool(resourcePoolName: string) {
+  return fetcherItemsInAllPages((continueId) =>
+    apiPaths.RESOURCE_HANDLES({
+      labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
+      limit: FETCH_BATCH_LIMIT,
+      continueId,
+    })
+  );
+}
 
 const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; activeTab: string }> = ({
   resourcePoolName,
@@ -69,22 +81,16 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
   const { data: resourceHandles, mutate: mutateResourceHandles } = useSWR<ResourceHandle[]>(
     resourcePool
       ? apiPaths.RESOURCE_HANDLES({
-          labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePool.metadata.name}`,
+          labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
           limit: FETCH_BATCH_LIMIT,
         })
       : null,
-    () =>
-      fetcherItemsInAllPages((continueId) =>
-        apiPaths.RESOURCE_HANDLES({
-          labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePool.metadata.name}`,
-          limit: FETCH_BATCH_LIMIT,
-          continueId,
-        })
-      )
+    () => fetchResourceHandlesFromResourcePool(resourcePoolName)
   );
+  const { total, taken, available } = usePoolStatus(resourceHandles);
 
-  function mutateResourcePoolsList() {
-    matchMutate([{ name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data: undefined }]);
+  function mutateResourcePoolsList(data: ResourcePoolList) {
+    matchMutate([{ name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data }]);
   }
 
   async function confirmThenDelete(): Promise<void> {
@@ -92,7 +98,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
       await deleteResourcePool(resourcePool);
       mutate(undefined);
       mutateResourceHandles(undefined);
-      mutateResourcePoolsList();
+      mutateResourcePoolsList(undefined);
       navigate('/admin/resourcepools');
     }
   }
@@ -122,12 +128,12 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
               </Link>
             )}
           />
-          <BreadcrumbItem>{resourcePool.metadata.name}</BreadcrumbItem>
+          <BreadcrumbItem>{resourcePoolName}</BreadcrumbItem>
         </Breadcrumb>
         <Split>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
-              ResourcePool {resourcePool.metadata.name}
+              ResourcePool {resourcePoolName}
             </Title>
           </SplitItem>
           <SplitItem>
@@ -182,7 +188,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.metadata.name}
+                      {resourcePoolName}
                       <OpenshiftConsoleLink resource={resourcePool} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
@@ -205,24 +211,42 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
+                    <DescriptionListTerm>Unclaimed Lifespan</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {resourcePool.spec.lifespan?.unclaimed || <p>-</p>}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+
+                  <DescriptionListGroup>
                     <DescriptionListTerm>Minimum Available</DescriptionListTerm>
                     <DescriptionListDescription>
                       <ResourcePoolMinAvailableInput
-                        resourcePoolName={resourcePool.metadata.name}
+                        resourcePoolName={resourcePoolName}
                         minAvailable={resourcePool.spec.minAvailable}
                         mutateFn={(updatedResourcePool: ResourcePool) => {
                           mutate(updatedResourcePool);
-                          mutateResourcePoolsList();
+                          mutateResourceHandles(fetchResourceHandlesFromResourcePool(resourcePoolName));
+                          mutateResourcePoolsList(undefined);
                         }}
                       />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Unclaimed Lifespan</DescriptionListTerm>
+                    <DescriptionListTerm>Total</DescriptionListTerm>
+                    <DescriptionListDescription>{total}</DescriptionListDescription>
+                  </DescriptionListGroup>
+
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Available</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourcePool.spec.lifespan?.unclaimed || <p>-</p>}
+                      {available === -1 ? <Spinner key="spinner" isSVG size="md" /> : available}
                     </DescriptionListDescription>
+                  </DescriptionListGroup>
+
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Taken</DescriptionListTerm>
+                    <DescriptionListDescription>{taken}</DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
               </StackItem>
