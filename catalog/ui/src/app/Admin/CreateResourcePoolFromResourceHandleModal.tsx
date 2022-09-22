@@ -27,9 +27,9 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
     resourceClaim
       ? resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/externalPlatformUrl`] &&
         resourceClaim.metadata.name.match(/-[0-9a-f]{4}$/)
-        ? resourceClaim.metadata.name.substring(0, resourceClaim.metadata.name.length - 5)
-        : resourceClaim.metadata.name.replace(/-[0-9]+$/, '')
-      : resourceHandle.spec.resources[0].provider.name
+        ? resourceClaim.metadata.name.substring(0, resourceClaim.metadata.name.length - 5).substring(0, 63)
+        : resourceClaim.metadata.name.replace(/-[0-9]+$/, '').substring(0, 63)
+      : resourceHandle.spec.resources[0].provider.name.substring(0, 63)
   );
   const [nameConflict, setNameConflict] = useState(false);
   const [minAvailable, setMinAvailable] = useState(1);
@@ -131,6 +131,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         <div style={formFieldStyle}>
           <TextInput
             isRequired
+            maxLength={63}
             id="resourcePoolName"
             name="resourcePoolName"
             value={resourcePoolName}
