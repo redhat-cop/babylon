@@ -1,6 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { getAnarchySubject } from '@app/api';
 import { ResourceHandle } from '@app/types';
-import { useEffect, useRef, useState } from 'react';
 
 function usePoolStatus(resourceHandles: ResourceHandle[]): { available: number; total: number; taken: number } {
   const [available, setAvailable] = useState(-1);

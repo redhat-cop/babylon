@@ -32,16 +32,16 @@ const ResourcePoolStats: React.FC<{ resourcePoolName: string; minAvailable: numb
   return (
     <ul style={{ display: 'flex', flexDirection: 'row', gap: 'var(--pf-global--spacer--xs)' }}>
       <li>
-        <b>Total:</b> {total} /
+        <b>Total:</b> {String(total)} /
       </li>
       <li>
-        <b>Min available:</b> {minAvailable} /
+        <b>Min available:</b> {String(minAvailable)} /
       </li>
       <li>
-        <b>Available:</b> {available === -1 ? <Spinner key="spinner" isSVG size="md" /> : available} /
+        <b>Available:</b> {available === -1 ? <Spinner key="spinner" isSVG size="md" /> : String(available)} /
       </li>
       <li>
-        <b>Taken:</b> {taken}
+        <b>Taken:</b> {String(taken)}
       </li>
     </ul>
   );
