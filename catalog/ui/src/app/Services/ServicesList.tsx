@@ -597,7 +597,7 @@ const ServicesList: React.FC<{
               const autoDestroyCell = (
                 // Auto-destroy
                 <span key="auto-destroy">
-                  {!isPartOfWorkshop && resourceClaim.status?.lifespan ? (
+                  {!isPartOfWorkshop && resourceClaim.status?.lifespan?.end ? (
                     <Button
                       variant="control"
                       isDisabled={!resourceClaim.status?.lifespan}
