@@ -91,6 +91,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     }
   );
 
+  const services = userResourceClaims.filter(
+    (rc) => !rc.metadata.labels?.['babylon.gpte.redhat.com/workshop-provision']
+  );
+
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
@@ -100,13 +104,13 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       ? CatalogItemAccess.Allow
       : accessCheckResult === 'deny'
       ? CatalogItemAccess.Deny
-      : userResourceClaims.length >= 5
+      : services.length >= 5
       ? CatalogItemAccess.Deny
       : accessCheckResult === 'allow'
       ? CatalogItemAccess.Allow
       : CatalogItemAccess.RequestInformation;
   const catalogItemAccessDenyReason =
-    catalogItemAccess !== CatalogItemAccess.Deny ? null : userResourceClaims.length >= 5 ? (
+    catalogItemAccess !== CatalogItemAccess.Deny ? null : services.length >= 5 ? (
       <p>
         You have reached your quota of 5 services. You will not be able to request any new applications until you retire
         existing services. If you feel this is an error, please{' '}
