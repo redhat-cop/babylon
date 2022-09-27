@@ -95,6 +95,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
               template: {
                 spec: {
                   vars: {
+                    ...(stopAfterProvision ? { desired_state: 'stopped' } : {}),
                     job_vars: yaml.load(resource.jobVars),
                   },
                 },
