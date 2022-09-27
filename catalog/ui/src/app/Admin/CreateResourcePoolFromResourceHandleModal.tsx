@@ -95,6 +95,9 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
               template: {
                 spec: {
                   vars: {
+                    ...(stopAfterProvision
+                      ? { action_schedule: { start: '2000-01-01T00:00:00Z', stop: '2000-01-01T00:00:00Z' } }
+                      : {}),
                     job_vars: yaml.load(resource.jobVars),
                   },
                 },
@@ -109,7 +112,17 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
       { name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data: undefined },
     ]);
     navigate(`/admin/resourcepools/${resourcePoolName}`);
-  }, [resourcePoolName, resourcePoolDescription, lifespan, unclaimed, minAvailable, resources, matchMutate, navigate]);
+  }, [
+    resourcePoolName,
+    resourcePoolDescription,
+    lifespan,
+    unclaimed,
+    minAvailable,
+    resources,
+    matchMutate,
+    navigate,
+    stopAfterProvision,
+  ]);
 
   useEffect(() => {
     checkForNameConflict(resourcePoolName);
