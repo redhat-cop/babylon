@@ -9,11 +9,10 @@ import {
   SplitItem,
   Title,
 } from '@patternfly/react-core';
-import useSWRInfinite from 'swr/infinite';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { apiPaths, deleteResourcePool, fetcher } from '@app/api';
+import { apiPaths, deleteResourcePool, fetcherItemsInAllPages } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { ResourcePool, ResourcePoolList } from '@app/types';
+import { ResourcePool } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -23,6 +22,7 @@ import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 import ResourcePoolStats from './ResourcePoolStats';
 import SelectableTableWithPagination from '@app/components/SelectableTableWithPagination';
+import useSWR from 'swr';
 
 import './admin.css';
 
@@ -64,33 +64,24 @@ const ResourcePools: React.FC = () => {
     : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const {
-    data: resourcePoolsPages,
-    mutate,
-    size,
-    setSize,
-  } = useSWRInfinite<ResourcePoolList>(
-    (index, previousPageData: ResourcePoolList) => {
-      if (previousPageData && !previousPageData.metadata?.continue) {
-        return null;
-      }
-      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
-      return apiPaths.RESOURCE_POOLS({ limit: FETCH_BATCH_LIMIT, continueId });
-    },
-    fetcher,
+  const { data: resourcePools, mutate } = useSWR<ResourcePool[]>(
+    apiPaths.RESOURCE_POOLS({ limit: FETCH_BATCH_LIMIT }),
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.RESOURCE_POOLS({
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        })
+      ),
     {
       refreshInterval: 8000,
-      revalidateFirstPage: true,
-      revalidateAll: true,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       compare: (currentData: any, newData: any) => {
         if (currentData === newData) return true;
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
-        for (let i = 0; i < currentData.length; i++) {
-          if (!compareK8sObjects(currentData[i].items, newData[i].items)) return false;
-        }
+        if (!compareK8sObjects(currentData, newData)) return false;
         return true;
       },
     }
@@ -98,73 +89,53 @@ const ResourcePools: React.FC = () => {
 
   const revalidate = useCallback(
     ({ updatedItems, action }: { updatedItems: ResourcePool[]; action: 'update' | 'delete' }) => {
-      const resourcePoolsPagesCpy: ResourcePoolList[] = JSON.parse(JSON.stringify(resourcePoolsPages));
-      let p: ResourcePoolList;
-      let i: number;
-      for ([i, p] of resourcePoolsPagesCpy.entries()) {
-        for (const updatedItem of updatedItems) {
-          const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
-          if (foundIndex > -1) {
-            if (action === 'delete') {
-              resourcePoolsPagesCpy[i].items.splice(foundIndex, 1);
-              matchMutate([
-                {
-                  name: 'RESOURCE_POOL',
-                  arguments: { resourcePoolName: resourcePoolsPagesCpy[i].items[foundIndex].metadata.name },
-                  data: undefined,
-                },
-              ]);
-            } else if (action === 'update') {
-              resourcePoolsPagesCpy[i].items[foundIndex] = updatedItem;
-              matchMutate([
-                {
-                  name: 'RESOURCE_POOL',
-                  arguments: { resourcePoolName: resourcePoolsPagesCpy[i].items[foundIndex].metadata.name },
-                  data: updatedItem,
-                },
-              ]);
-            }
-            mutate(resourcePoolsPagesCpy);
+      const resourcePoolsCpy = [...resourcePools];
+      for (const updatedItem of updatedItems) {
+        const foundIndex = resourcePools.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+        if (foundIndex > -1) {
+          if (action === 'update') {
+            matchMutate([
+              {
+                name: 'RESOURCE_POOL',
+                arguments: { resourcePoolName: resourcePoolsCpy[foundIndex].metadata.name },
+                data: updatedItem,
+              },
+            ]);
+            resourcePoolsCpy[foundIndex] = updatedItem;
+          } else if (action === 'delete') {
+            matchMutate([
+              {
+                name: 'RESOURCE_POOL',
+                arguments: { resourcePoolName: resourcePoolsCpy[foundIndex].metadata.name },
+                data: undefined,
+              },
+            ]);
+            resourcePoolsCpy.splice(foundIndex, 1);
           }
+          mutate(resourcePoolsCpy);
         }
       }
     },
-    [matchMutate, mutate, resourcePoolsPages]
+    [matchMutate, mutate, resourcePools]
   );
 
-  const isReachingEnd = resourcePoolsPages && !resourcePoolsPages[resourcePoolsPages.length - 1].metadata.continue;
-  const isLoadingInitialData = !resourcePoolsPages;
-  const isLoadingMore =
-    isLoadingInitialData || (size > 0 && resourcePoolsPages && typeof resourcePoolsPages[size - 1] === 'undefined');
-
   const filterFunction = useCallback(
-    (resourcePool: ResourcePool): boolean => filterResourcePool(resourcePool, keywordFilter),
+    (resourcePool: ResourcePool) => filterResourcePool(resourcePool, keywordFilter),
     [keywordFilter]
   );
 
-  const resourcePools: ResourcePool[] = useMemo(
-    () => [].concat(...resourcePoolsPages.map((page) => page.items)).filter(filterFunction) || [],
-    [filterFunction, resourcePoolsPages]
+  const _resourcePools: ResourcePool[] = useMemo(
+    () => [].concat(...resourcePools.filter(filterFunction)) || [],
+    [filterFunction, resourcePools]
   );
-
-  // Trigger continue fetching more resource claims on scroll.
-  const scrollHandler = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollable = e.currentTarget;
-    const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && !isReachingEnd && !isLoadingMore) {
-      setSize(size + 1);
-    }
-  };
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm('Deleted selected ResourcePools?')) {
       const removedResourcePools: ResourcePool[] = [];
-      for (const resourcePoolsPage of resourcePoolsPages) {
-        for (const resourcePool of resourcePoolsPage.items) {
-          if (selectedUids.includes(resourcePool.metadata.uid)) {
-            await deleteResourcePool(resourcePool);
-            removedResourcePools.push(resourcePool);
-          }
+      for (const resourcePool of resourcePools) {
+        if (selectedUids.includes(resourcePool.metadata.uid)) {
+          await deleteResourcePool(resourcePool);
+          removedResourcePools.push(resourcePool);
         }
       }
       reduceSelectedUids({ type: 'clear' });
@@ -173,7 +144,7 @@ const ResourcePools: React.FC = () => {
   }
 
   return (
-    <div onScroll={scrollHandler} style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
@@ -204,7 +175,7 @@ const ResourcePools: React.FC = () => {
           </SplitItem>
         </Split>
       </PageSection>
-      {resourcePools.length === 0 ? (
+      {_resourcePools.length === 0 ? (
         <PageSection>
           <EmptyState variant="full">
             <EmptyStateIcon icon={ExclamationTriangleIcon} />
@@ -219,12 +190,12 @@ const ResourcePools: React.FC = () => {
             columns={['Name', 'Created At', 'Status']}
             onSelectAll={(isSelected) => {
               if (isSelected) {
-                reduceSelectedUids({ type: 'set', items: resourcePools });
+                reduceSelectedUids({ type: 'set', items: _resourcePools });
               } else {
                 reduceSelectedUids({ type: 'clear' });
               }
             }}
-            rows={resourcePools.map((resourcePool) => {
+            rows={_resourcePools.map((resourcePool) => {
               return {
                 cells: [
                   <>
