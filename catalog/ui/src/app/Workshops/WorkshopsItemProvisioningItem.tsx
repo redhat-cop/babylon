@@ -84,6 +84,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
             </CodeBlock>
           </DescriptionListDescription>
         </DescriptionListGroup>
+
         <DescriptionListGroup>
           <DescriptionListTerm>Workshop Seats</DescriptionListTerm>
           <DescriptionListDescription>
