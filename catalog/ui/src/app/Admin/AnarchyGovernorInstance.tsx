@@ -23,21 +23,18 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-
 import { deleteAnarchyGovernor, deleteAnarchySubject, getAnarchyGovernor, listAnarchySubjects } from '@app/api';
-
 import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchyGovernor, AnarchySubject, AnarchySubjectList } from '@app/types';
-
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-
 import AnarchySubjectsTable from './AnarchySubjectsTable';
+import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -276,6 +273,7 @@ const AnarchyGovernorInstance: React.FC = () => {
           </Tab>
         </Tabs>
       </PageSection>
+      <Footer />
     </>
   );
 };

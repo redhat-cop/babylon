@@ -1,5 +1,6 @@
 .workshops-item__body.pf-c-page__main-section {
   padding-top: 0px;
+  flex-grow: 1;
 }
 
 .workshops-item__body.pf-c-page__main-section .pf-c-tabs {
