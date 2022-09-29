@@ -50,6 +50,7 @@ import useSession from '@app/utils/useSession';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
 import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopStarted } from './workshops-utils';
 import WorkshopActionModal from '@app/components/WorkshopActionModal';
+import Footer from '@app/components/Footer';
 
 import './workshops-item.css';
 
@@ -467,13 +468,19 @@ const WorkshopsItem: React.FC<{
   workshopName: string;
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => (
   <ErrorBoundary
-    fallbackRender={() => <NotFoundComponent workshopName={workshopName} serviceNamespaceName={serviceNamespaceName} />}
+    fallbackRender={() => (
+      <>
+        <NotFoundComponent workshopName={workshopName} serviceNamespaceName={serviceNamespaceName} />
+        <Footer />
+      </>
+    )}
   >
     <WorkshopsItemComponent
       activeTab={activeTab}
       workshopName={workshopName}
       serviceNamespaceName={serviceNamespaceName}
     />
+    <Footer />
   </ErrorBoundary>
 );
 

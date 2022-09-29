@@ -47,6 +47,7 @@ import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogItemListItem from './CatalogItemListItem';
 import LoadingIcon from '@app/components/LoadingIcon';
+import Footer from '@app/components/Footer';
 
 import './catalog.css';
 
@@ -513,6 +514,7 @@ const Catalog: React.FC = () => {
               </CardBody>
             </Card>
           </PageSection>
+          <Footer />
         </DrawerContentBody>
       </DrawerContent>
     </Drawer>

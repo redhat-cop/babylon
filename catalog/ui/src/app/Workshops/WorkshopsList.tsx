@@ -28,6 +28,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR, { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import useSession from '@app/utils/useSession';
+import Footer from '@app/components/Footer';
 
 import './workshops-list.css';
 
@@ -204,15 +205,18 @@ const WorkshopsList: React.FC<{
 
   if (serviceNamespaces.length === 0) {
     return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            No Service Access
-          </Title>
-          <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
-        </EmptyState>
-      </PageSection>
+      <>
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No Service Access
+            </Title>
+            <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+        <Footer />
+      </>
     );
   }
 
@@ -309,7 +313,7 @@ const WorkshopsList: React.FC<{
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" className="workshops-list" variant={PageSectionVariants.light}>
+        <PageSection key="body" className="workshops-list__body" variant={PageSectionVariants.light}>
           <SelectableTable
             columns={(serviceNamespaceName ? [] : ['Project']).concat([
               'Name',
@@ -421,6 +425,7 @@ const WorkshopsList: React.FC<{
           />
         </PageSection>
       )}
+      <Footer />
     </div>
   );
 };

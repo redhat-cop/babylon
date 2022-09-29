@@ -3,7 +3,7 @@ import redHatLogo from '@app/bgimages/RedHat-Logo.svg';
 
 import './footer.css';
 
-const Footer: React.FC<{ rightElement: ReactNode }> = ({ rightElement }) => (
+const Footer: React.FC<{ rightElement?: ReactNode }> = ({ rightElement }) => (
   <section className="footer-component">
     <div className="footer__container">
       <div className="footer__left">
@@ -12,7 +12,7 @@ const Footer: React.FC<{ rightElement: ReactNode }> = ({ rightElement }) => (
         </a>
       </div>
       <div id="legal" className="footer__legal">
-        <div className="copyright">© 2022 Red Hat, Inc.</div>
+        <div className="copyright">Copyright © 2022 Red Hat, Inc.</div>
         <div>
           <ul className="menu">
             <li className="first leaf">

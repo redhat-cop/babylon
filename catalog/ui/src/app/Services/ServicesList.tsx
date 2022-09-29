@@ -59,6 +59,7 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
 import { getMostRelevantResourceAndTemplate } from './service-utils';
+import Footer from '@app/components/Footer';
 
 import './services-list.css';
 
@@ -300,15 +301,18 @@ const ServicesList: React.FC<{
 
   if (serviceNamespaces.length === 0) {
     return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            No Service Access
-          </Title>
-          <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
-        </EmptyState>
-      </PageSection>
+      <>
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No Service Access
+            </Title>
+            <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+        <Footer />
+      </>
     );
   }
 
@@ -716,6 +720,7 @@ const ServicesList: React.FC<{
           ) : null}
         </PageSection>
       )}
+      <Footer />
     </div>
   );
 };

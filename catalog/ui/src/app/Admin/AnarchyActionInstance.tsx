@@ -34,6 +34,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
 import AnarchyRunsTable from './AnarchyRunsTable';
+import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -318,6 +319,7 @@ const AnarchyActionInstance: React.FC = () => {
           </Tab>
         </Tabs>
       </PageSection>
+      <Footer />
     </>
   );
 };

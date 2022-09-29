@@ -59,6 +59,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR, { useSWRConfig } from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';
 import useSession from '@app/utils/useSession';
+import Footer from '@app/components/Footer';
 
 import './services-item.css';
 
@@ -738,7 +739,10 @@ const ServicesItem: React.FC<{
 }> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => (
   <ErrorBoundary
     fallbackRender={() => (
-      <NotFoundComponent resourceClaimName={resourceClaimName} serviceNamespaceName={serviceNamespaceName} />
+      <>
+        <NotFoundComponent resourceClaimName={resourceClaimName} serviceNamespaceName={serviceNamespaceName} />
+        <Footer />
+      </>
     )}
   >
     <ServicesItemComponent
@@ -746,6 +750,7 @@ const ServicesItem: React.FC<{
       resourceClaimName={resourceClaimName}
       serviceNamespaceName={serviceNamespaceName}
     />
+    <Footer />
   </ErrorBoundary>
 );
 

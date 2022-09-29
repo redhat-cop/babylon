@@ -23,7 +23,6 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-
 import {
   deleteAnarchyAction,
   deleteAnarchyRun,
@@ -33,20 +32,18 @@ import {
   listAnarchyActions,
   listAnarchyRuns,
 } from '@app/api';
-
 import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchyAction, AnarchyActionList, AnarchyRun, AnarchyRunList, AnarchySubject } from '@app/types';
-
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { selectConsoleURL } from '@app/store';
-
 import AnarchyActionsTable from './AnarchyActionsTable';
 import AnarchyRunsTable from './AnarchyRunsTable';
+import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -436,21 +433,23 @@ const AnarchySubjectInstance: React.FC = () => {
                   TowerJobs
                 </Title>
                 <DescriptionList isHorizontal key="tower-jobs">
-                  {Object.entries(anarchySubject.status.towerJobs).map(([jobName, jobDetails]) => {
-                    const jobUrl = jobDetails.towerJobURL.startsWith('https://')
-                      ? jobDetails.towerJobURL
-                      : `https://${jobDetails.towerJobURL}`;
-                    return (
-                      <DescriptionListGroup key={jobName}>
-                        <DescriptionListTerm>{jobName}</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          <a href={jobUrl} target="_blank" rel="noreferrer">
-                            {jobUrl}
-                          </a>
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    );
-                  })}
+                  {Object.entries(anarchySubject.status.towerJobs)
+                    .filter(([, jobDetails]) => jobDetails.towerJobURL)
+                    .map(([jobName, jobDetails]) => {
+                      const jobUrl = jobDetails.towerJobURL.startsWith('https://')
+                        ? jobDetails.towerJobURL
+                        : `https://${jobDetails.towerJobURL}`;
+                      return (
+                        <DescriptionListGroup key={jobName}>
+                          <DescriptionListTerm>{jobName}</DescriptionListTerm>
+                          <DescriptionListDescription>
+                            <a href={jobUrl} target="_blank" rel="noreferrer">
+                              {jobUrl}
+                            </a>
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      );
+                    })}
                 </DescriptionList>
               </>
             ) : null}
@@ -482,6 +481,7 @@ const AnarchySubjectInstance: React.FC = () => {
           </Tab>
         </Tabs>
       </PageSection>
+      <Footer />
     </>
   );
 };

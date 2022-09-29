@@ -23,6 +23,7 @@ import RefreshButton from '@app/components/RefreshButton';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import AnarchyNamespaceSelect from './AnarchyNamespaceSelect';
+import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -285,6 +286,7 @@ const AnarchyGovernors: React.FC = () => {
           ) : null}
         </PageSection>
       )}
+      <Footer />
     </>
   );
 };
