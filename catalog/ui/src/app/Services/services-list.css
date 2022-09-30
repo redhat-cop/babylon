@@ -1,6 +1,5 @@
 .services-list.pf-c-page__main-section {
   padding-top: var(--pf-global--spacer--md);
-  flex-grow: 1;
 }
 
 .services-list .pf-c-table thead th {

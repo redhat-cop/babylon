@@ -41,7 +41,6 @@ import useSWR from 'swr';
 import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 import usePoolStatus from './usePoolStatus';
-import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -395,16 +394,8 @@ const NotFoundComponent: React.FC<{
 const ResourcePoolInstance: React.FC = () => {
   const { name: resourcePoolName, tab: activeTab = 'details' } = useParams();
   return (
-    <ErrorBoundary
-      fallbackRender={() => (
-        <>
-          <NotFoundComponent resourcePoolName={resourcePoolName} />
-          <Footer />
-        </>
-      )}
-    >
+    <ErrorBoundary fallbackRender={() => <NotFoundComponent resourcePoolName={resourcePoolName} />}>
       <ResourcePoolInstanceComponent activeTab={activeTab} resourcePoolName={resourcePoolName} />
-      <Footer />
     </ErrorBoundary>
   );
 };

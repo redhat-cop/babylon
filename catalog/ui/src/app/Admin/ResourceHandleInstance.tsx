@@ -37,7 +37,6 @@ import CreateResourcePoolFromResourceHandleModal from './CreateResourcePoolFromR
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
-import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -367,16 +366,8 @@ const NotFoundComponent: React.FC<{
 const ResourceHandleInstance: React.FC = () => {
   const { name: resourceHandleName, tab: activeTab = 'details' } = useParams();
   return (
-    <ErrorBoundary
-      fallbackRender={() => (
-        <>
-          <NotFoundComponent resourceHandleName={resourceHandleName} />
-          <Footer />
-        </>
-      )}
-    >
+    <ErrorBoundary fallbackRender={() => <NotFoundComponent resourceHandleName={resourceHandleName} />}>
       <ResourceHandleInstanceComponent activeTab={activeTab} resourceHandleName={resourceHandleName} />
-      <Footer />
     </ErrorBoundary>
   );
 };

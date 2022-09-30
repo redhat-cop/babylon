@@ -24,7 +24,6 @@ import TimeInterval from '@app/components/TimeInterval';
 import RefreshButton from '@app/components/RefreshButton';
 import AnarchyNamespaceSelect from './AnarchyNamespaceSelect';
 import AnarchySubjectStateSelect from './AnarchySubjectStateSelect';
-import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -358,7 +357,6 @@ const AnarchySubjects: React.FC = () => {
           ) : null}
         </PageSection>
       )}
-      <Footer />
     </>
   );
 };

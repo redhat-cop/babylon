@@ -24,7 +24,6 @@ import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import AnarchyNamespaceSelect from './AnarchyNamespaceSelect';
 import AnarchyRunnerStateSelect from './AnarchyRunnerStateSelect';
-import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -430,7 +429,6 @@ const AnarchyRuns: React.FC = () => {
           ) : null}
         </PageSection>
       )}
-      <Footer />
     </>
   );
 };

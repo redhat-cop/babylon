@@ -53,7 +53,6 @@ import DynamicFormInput from '@app/components/DynamicFormInput';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
-import Footer from '@app/components/Footer';
 
 import './catalog-item-form.css';
 
@@ -577,24 +576,20 @@ const CatalogItemForm: React.FC = () => {
   return (
     <ErrorBoundary
       fallbackRender={() => (
-        <>
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={ExclamationTriangleIcon} />
-              <Title headingLevel="h1" size="lg">
-                Catalog item not found.
-              </Title>
-              <EmptyStateBody>
-                CatalogItem {catalogItemName} was not found in {namespace}
-              </EmptyStateBody>
-            </EmptyState>
-          </PageSection>
-          <Footer />
-        </>
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              Catalog item not found.
+            </Title>
+            <EmptyStateBody>
+              CatalogItem {catalogItemName} was not found in {namespace}
+            </EmptyStateBody>
+          </EmptyState>
+        </PageSection>
       )}
     >
       <CatalogItemFormData catalogItemName={catalogItemName} namespace={namespace} />
-      <Footer />
     </ErrorBoundary>
   );
 };

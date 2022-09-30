@@ -22,7 +22,6 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import RefreshButton from '@app/components/RefreshButton';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -264,7 +263,6 @@ const ResourceProviders: React.FC = () => {
           ) : null}
         </PageSection>
       )}
-      <Footer />
     </>
   );
 };
