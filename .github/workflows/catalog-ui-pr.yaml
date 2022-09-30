@@ -74,7 +74,7 @@ jobs:
           build-args: |
             STATUS_PAGE_ID=m7thn7y0z176
             MONITOR_ENABLED=false
-            GTM_ID=GTM-PGZCQBB
+            TRACKING_ENABLED=false
           push: true
           tags: ${{ env.IMAGE_TAGS }}
       - name: Log in to OpenShift

@@ -105,7 +105,7 @@ module.exports = (env) => {
       }),
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, 'src', 'index.html'),
-        GTM_ID: process.env.GTM_ID,
+        TRACKING_ENABLED: process.env.TRACKING_ENABLED,
       }),
       new CopyPlugin({
         patterns: [
