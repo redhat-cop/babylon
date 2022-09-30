@@ -69,6 +69,10 @@
   width: 90px;
   margin-right: var(--pf-global--spacer--md) !important;
 }
+.catalog-item-details__main-btn--expanded {
+  width: auto;
+  margin-right: var(--pf-global--spacer--md) !important;
+}
 
 .catalog-item-details__header-text {
   display: flex;

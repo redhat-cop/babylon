@@ -237,7 +237,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               </div>
             </>
           ) : catalogItemAccess === CatalogItemAccess.RequestInformation ? (
-            <Button onClick={requestInformation} variant="primary" className="catalog-item-details__main-btn">
+            <Button onClick={requestInformation} variant="primary" className="catalog-item-details__main-btn--expanded">
               Request Information
             </Button>
           ) : (
