@@ -3,7 +3,7 @@ USER root
 WORKDIR /build
 ARG STATUS_PAGE_ID
 ARG MONITOR_ENABLED
-ARG GTM_ID
+ARG TRACKING_ENABLED
 
 COPY package.json package-lock.json ./
 RUN npm ci && npm cache clean --force

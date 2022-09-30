@@ -71,6 +71,6 @@ jobs:
           build-args: |
             STATUS_PAGE_ID=05mhm9ljgsqq
             MONITOR_ENABLED=true
-            GTM_ID=GTM-PGZCQBB
+            TRACKING_ENABLED=true
           push: true
           tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
