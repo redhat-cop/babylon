@@ -1,18 +1,18 @@
 import React, { ReactNode } from 'react';
-import redHatLogo from '@app/bgimages/RedHat-Logo.svg';
+import RedHatLogo from './RedHatLogo';
 
 import './footer.css';
 
-const Footer: React.FC<{ rightElement: ReactNode }> = ({ rightElement }) => (
+const Footer: React.FC<{ rightElement?: ReactNode }> = ({ rightElement }) => (
   <section className="footer-component">
     <div className="footer__container">
       <div className="footer__left">
-        <a href="https://www.redhat.com">
-          <img src={redHatLogo} title="Red Hat" width={138} />
+        <a href="https://www.redhat.com" style={{ width: '138px', display: 'block' }}>
+          <RedHatLogo title="Red Hat" />
         </a>
       </div>
       <div id="legal" className="footer__legal">
-        <div className="copyright">© 2022 Red Hat, Inc.</div>
+        <div className="copyright">Copyright © 2022 Red Hat, Inc.</div>
         <div>
           <ul className="menu">
             <li className="first leaf">

@@ -1655,4 +1655,10 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepools?${limit ? `limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
     }`,
+  RESOURCE_PROVIDERS: ({ limit, continueId }: { limit: number; continueId?: string }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders?${limit ? `limit=${limit}` : ''}${
+      continueId ? `&continue=${continueId}` : ''
+    }`,
+  RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }): string =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders/${resourceProviderName}`,
 };

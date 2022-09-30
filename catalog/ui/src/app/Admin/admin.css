@@ -1,5 +1,6 @@
 .admin-body.pf-c-page__main-section {
   padding-top: 0px;
+  flex-grow: 1;
 }
 
 .admin-body.pf-c-page__main-section .pf-c-description-list {

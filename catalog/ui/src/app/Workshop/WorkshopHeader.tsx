@@ -2,7 +2,7 @@ import React from 'react';
 import { PageHeader } from '@patternfly/react-core';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
-import redHatLogo from '@app/bgimages/RedHat-Logo.svg';
+import RedHatLogo from '@app/components/RedHatLogo';
 
 const WorkshopHeader: React.FC<{ userInterface: string }> = ({ userInterface }) => {
   function LogoImg() {
@@ -28,7 +28,7 @@ const WorkshopHeader: React.FC<{ userInterface: string }> = ({ userInterface }) 
         headerTools={
           userInterface === 'summit' ? (
             <a href="https://redhat.com/" style={{ width: '138px', marginLeft: 'auto', display: 'flex' }}>
-              <img src={redHatLogo} alt="Red Hat" />
+              <RedHatLogo title="Red Hat" />
             </a>
           ) : null
         }

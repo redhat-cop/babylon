@@ -23,6 +23,7 @@ import useMatchMutate from '@app/utils/useMatchMutate';
 import ResourcePoolStats from './ResourcePoolStats';
 import SelectableTableWithPagination from '@app/components/SelectableTableWithPagination';
 import useSWR from 'swr';
+import Footer from '@app/components/Footer';
 
 import './admin.css';
 
@@ -229,6 +230,7 @@ const ResourcePools: React.FC = () => {
           />
         </PageSection>
       )}
+      <Footer />
     </div>
   );
 };

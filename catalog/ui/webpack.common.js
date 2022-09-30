@@ -5,7 +5,7 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
 const BG_IMAGES_DIRNAME = 'bgimages';
 const ASSET_PATH = process.env.ASSET_PATH || '/';
-module.exports = (env) => {
+module.exports = () => {
   return {
     module: {
       rules: [
@@ -27,20 +27,6 @@ module.exports = (env) => {
         },
         {
           test: /\.svg$/,
-          include: (input) => input.indexOf('background-filter.svg') > 1,
-          use: [
-            {
-              loader: 'url-loader',
-              options: {
-                limit: 5000,
-                outputPath: 'svgs',
-                name: '[name].[ext]',
-              },
-            },
-          ],
-        },
-        {
-          test: /\.svg$/,
           // only process SVG modules with this loader if they live under a 'bgimages' directory
           // this is primarily useful when applying a CSS background using an SVG
           include: (input) => input.indexOf(BG_IMAGES_DIRNAME) > -1,
@@ -55,10 +41,7 @@ module.exports = (env) => {
           // only process SVG modules with this loader when they don't live under a 'bgimages',
           // 'fonts', or 'pficon' directory, those are handled with other loaders
           include: (input) =>
-            input.indexOf(BG_IMAGES_DIRNAME) === -1 &&
-            input.indexOf('fonts') === -1 &&
-            input.indexOf('background-filter') === -1 &&
-            input.indexOf('pficon') === -1,
+            input.indexOf(BG_IMAGES_DIRNAME) === -1 && input.indexOf('fonts') === -1 && input.indexOf('pficon') === -1,
           use: {
             loader: 'raw-loader',
             options: {},
