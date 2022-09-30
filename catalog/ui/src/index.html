@@ -14,6 +14,8 @@
 
   <body>
     <noscript>Enabling JavaScript is required to run this app.</noscript>
+    <div id="modal-root"></div>
+    <div id="root"></div>
     <% if (htmlWebpackPlugin.options.TRACKING_ENABLED == 'true') { %>
     <script type="text/javascript">
       if ('undefined' !== typeof _satellite && 'function' === typeof _satellite.pageBottom) {
