@@ -15,7 +15,7 @@ import {
 import { ExclamationTriangleIcon, TrashIcon } from '@patternfly/react-icons';
 import { apiPaths, deleteWorkshop, fetcher } from '@app/api';
 import { NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
-import { compareK8sObjects, displayName } from '@app/util';
+import { compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
@@ -28,10 +28,9 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR, { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import useSession from '@app/utils/useSession';
+import Footer from '@app/components/Footer';
 
 import './workshops-list.css';
-
-const FETCH_BATCH_LIMIT = 50;
 
 function keywordMatch(workshop: Workshop, keyword: string): boolean {
   const keywordLowerCased = keyword.toLowerCase();
@@ -204,15 +203,18 @@ const WorkshopsList: React.FC<{
 
   if (serviceNamespaces.length === 0) {
     return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            No Service Access
-          </Title>
-          <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
-        </EmptyState>
-      </PageSection>
+      <>
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No Service Access
+            </Title>
+            <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+        <Footer />
+      </>
     );
   }
 
@@ -309,7 +311,7 @@ const WorkshopsList: React.FC<{
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" className="workshops-list" variant={PageSectionVariants.light}>
+        <PageSection key="body" className="workshops-list__body" variant={PageSectionVariants.light}>
           <SelectableTable
             columns={(serviceNamespaceName ? [] : ['Project']).concat([
               'Name',
@@ -421,6 +423,7 @@ const WorkshopsList: React.FC<{
           />
         </PageSection>
       )}
+      <Footer />
     </div>
   );
 };

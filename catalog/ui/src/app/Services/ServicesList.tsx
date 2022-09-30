@@ -46,6 +46,7 @@ import {
   keywordMatch,
   compareK8sObjects,
   getCostTracker,
+  FETCH_BATCH_LIMIT,
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
@@ -59,10 +60,9 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
 import { getMostRelevantResourceAndTemplate } from './service-utils';
+import Footer from '@app/components/Footer';
 
 import './services-list.css';
-
-const FETCH_BATCH_LIMIT = 50;
 
 const ServicesList: React.FC<{
   serviceNamespaceName: string;
@@ -300,15 +300,18 @@ const ServicesList: React.FC<{
 
   if (serviceNamespaces.length === 0) {
     return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            No Service Access
-          </Title>
-          <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
-        </EmptyState>
-      </PageSection>
+      <>
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No Service Access
+            </Title>
+            <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+        <Footer />
+      </>
     );
   }
 
@@ -716,6 +719,7 @@ const ServicesList: React.FC<{
           ) : null}
         </PageSection>
       )}
+      <Footer />
     </div>
   );
 };

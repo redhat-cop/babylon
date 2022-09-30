@@ -1,3 +1,7 @@
+.catalog-item-form {
+  flex-grow: 1;
+}
+
 .catalog-item-form__form {
   margin: var(--pf-global--spacer--lg) 0;
 }
