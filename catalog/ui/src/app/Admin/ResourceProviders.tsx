@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useRef } from 'react';
+import React, { useCallback, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   EmptyState,
@@ -10,23 +10,22 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { deleteResourceProvider, listResourceProviders } from '@app/api';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { apiPaths, deleteResourceProvider, fetcher } from '@app/api';
+import useSWRInfinite from 'swr/infinite';
 import { selectedUidsReducer } from '@app/reducers';
-import { K8sObject, ResourceProvider, ResourceProviderList } from '@app/types';
+import { ResourceProvider, ResourceProviderList } from '@app/types';
+import Footer from '@app/components/Footer';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import RefreshButton from '@app/components/RefreshButton';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import Footer from '@app/components/Footer';
+import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './admin.css';
-
-const FETCH_BATCH_LIMIT = 50;
 
 function keywordMatch(resourceProvider: ResourceProvider, keyword: string): boolean {
   if (resourceProvider.metadata.name.includes(keyword)) {
@@ -35,38 +34,10 @@ function keywordMatch(resourceProvider: ResourceProvider, keyword: string): bool
   return false;
 }
 
-function filterResourceProvider(resourceProvider: ResourceProvider, keywordFilter: string[]): boolean {
-  if (!keywordFilter) {
-    return true;
-  }
-  for (const keyword of keywordFilter) {
-    if (!keywordMatch(resourceProvider, keyword)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function pruneResourceProvider(resourceProvider: ResourceProvider) {
-  return {
-    apiVersion: resourceProvider.apiVersion,
-    kind: resourceProvider.kind,
-    metadata: {
-      creationTimestamp: resourceProvider.metadata.creationTimestamp,
-      name: resourceProvider.metadata.name,
-      namespace: resourceProvider.metadata.namespace,
-      uid: resourceProvider.metadata.uid,
-    },
-    spec: {
-      override: resourceProvider.spec.override,
-    },
-  };
-}
-
 const ResourceProviders: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const componentWillUnmount = useRef(false);
+  const matchMutate = useMatchMutate();
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search')
     ? urlSearchParams
@@ -76,25 +47,108 @@ const ResourceProviders: React.FC = () => {
         .filter((w) => w != '')
     : null;
 
-  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
+  const {
+    data: resourceProvidersPages,
+    mutate,
+    size,
+    setSize,
+  } = useSWRInfinite<ResourceProviderList>(
+    (index, previousPageData: ResourceProviderList) => {
+      if (previousPageData && !previousPageData.metadata?.continue) {
+        return null;
+      }
+      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
+      return apiPaths.RESOURCE_PROVIDERS({ limit: FETCH_BATCH_LIMIT, continueId });
+    },
+    fetcher,
+    {
+      refreshInterval: 8000,
+      revalidateFirstPage: true,
+      revalidateAll: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      compare: (currentData: any, newData: any) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.length === 0) return false;
+        if (!newData || newData.length === 0) return false;
+        if (currentData.length !== newData.length) return false;
+        for (let i = 0; i < currentData.length; i++) {
+          if (!compareK8sObjects(currentData[i].items, newData[i].items)) return false;
+        }
+        return true;
+      },
+    }
+  );
+
+  const revalidate = useCallback(
+    ({ updatedItems, action }: { updatedItems: ResourceProvider[]; action: 'update' | 'delete' }) => {
+      const resourceProvidersPagesCpy = JSON.parse(JSON.stringify(resourceProvidersPages));
+      let p: ResourceProviderList;
+      let i: number;
+      for ([i, p] of resourceProvidersPagesCpy.entries()) {
+        for (const updatedItem of updatedItems) {
+          const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+          if (foundIndex > -1) {
+            if (action === 'update') {
+              matchMutate([
+                {
+                  name: 'RESOURCE_POOL',
+                  arguments: { resourceProviderName: resourceProvidersPagesCpy[i].items[foundIndex].metadata.name },
+                  data: updatedItem,
+                },
+              ]);
+              resourceProvidersPagesCpy[i].items[foundIndex] = updatedItem;
+            } else if (action === 'delete') {
+              matchMutate([
+                {
+                  name: 'RESOURCE_PROVIDER',
+                  arguments: { resourceProviderName: resourceProvidersPagesCpy[i].items[foundIndex].metadata.name },
+                  data: undefined,
+                },
+              ]);
+              resourceProvidersPagesCpy[i].items.splice(foundIndex, 1);
+            }
+            mutate(resourceProvidersPagesCpy);
+          }
+        }
+      }
+    },
+    [matchMutate, mutate, resourceProvidersPages]
+  );
+
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
+  const isReachingEnd =
+    resourceProvidersPages && !resourceProvidersPages[resourceProvidersPages.length - 1].metadata.continue;
+  const isLoadingInitialData = !resourceProvidersPages;
+  const isLoadingMore =
+    isLoadingInitialData ||
+    (size > 0 && resourceProvidersPages && typeof resourceProvidersPages[size - 1] === 'undefined');
 
-  const resourceProviders: ResourceProvider[] = (fetchState?.filteredItems as ResourceProvider[]) || [];
+  const filterFunction = useCallback(
+    (resourceProvider: ResourceProvider) => {
+      if (!keywordFilter) {
+        return true;
+      }
+      for (const keyword of keywordFilter) {
+        if (!keywordMatch(resourceProvider, keyword)) {
+          return false;
+        }
+      }
+      return true;
+    },
+    [keywordFilter]
+  );
 
-  const filterFunction = keywordFilter
-    ? (resourceProvider: K8sObject): boolean =>
-        filterResourceProvider(resourceProvider as ResourceProvider, keywordFilter)
-    : null;
+  const resourceProviders: ResourceProvider[] = useMemo(
+    () => [].concat(...resourceProvidersPages.map((page) => page.items)).filter(filterFunction) || [],
+    [filterFunction, resourceProvidersPages]
+  );
 
-  const primaryAppContainer = document.getElementById('primary-app-container');
-  primaryAppContainer.onscroll = (e) => {
-    const scrollable = e.target as any;
+  // Trigger continue fetching more resource claims on scroll.
+  const scrollHandler = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollable = e.currentTarget;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && !fetchState?.finished && fetchState.limit <= resourceProviders.length) {
-      reduceFetchState({
-        type: 'modify',
-        limit: fetchState.limit + FETCH_BATCH_LIMIT,
-      });
+    if (scrollRemaining < 500 && !isReachingEnd && !isLoadingMore) {
+      setSize(size + 1);
     }
   };
 
@@ -108,78 +162,35 @@ const ResourceProviders: React.FC = () => {
         }
       }
       reduceSelectedUids({ type: 'clear' });
-      reduceFetchState({ type: 'removeItems', items: removedResourceProviders });
+      revalidate({ updatedItems: removedResourceProviders, action: 'delete' });
     }
   }
 
-  async function fetchResourceProviders(): Promise<void> {
-    const resourceProviderList: ResourceProviderList = await listResourceProviders({
-      continue: fetchState.continue,
-      limit: FETCH_BATCH_LIMIT,
-    });
-    if (!fetchState.activity.canceled) {
-      reduceFetchState({
-        type: 'post',
-        k8sObjectList: resourceProviderList,
-        refreshInterval: 60000,
-        refresh: (): void => {
-          reduceFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  function reloadResourceProviders(): void {
-    reduceFetchState({
-      type: 'startFetch',
-      filter: filterFunction,
-      limit: FETCH_BATCH_LIMIT,
-      prune: pruneResourceProvider,
-    });
-    reduceSelectedUids({ type: 'clear' });
-  }
-
-  // First render and detect unmount
-  useEffect(() => {
-    reloadResourceProviders();
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  // Fetch or continue fetching
-  useEffect(() => {
-    if (fetchState?.canContinue && (fetchState.refreshing || fetchState.filteredItems.length < fetchState.limit)) {
-      fetchResourceProviders();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(fetchState);
+  // Fetch all if keywordFilter is defined.
+  if (
+    keywordFilter &&
+    resourceProvidersPages.length > 0 &&
+    resourceProvidersPages[resourceProvidersPages.length - 1].metadata.continue
+  ) {
+    if (!isLoadingMore) {
+      if (resourceProviders.length > 0) {
+        setTimeout(() => {
+          setSize(size + 1);
+        }, 5000);
+      } else {
+        setSize(size + 1);
       }
-    };
-  }, [fetchState]);
-
-  // Handle keyword filter change
-  useEffect(() => {
-    if (fetchState) {
-      reduceFetchState({
-        type: 'modify',
-        filter: filterFunction,
-      });
     }
-  }, [JSON.stringify(keywordFilter)]);
+  }
 
   return (
-    <>
+    <div onScroll={scrollHandler} style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
               ResourceProviders
             </Title>
-          </SplitItem>
-          <SplitItem>
-            <RefreshButton onClick={() => reloadResourceProviders()} />
           </SplitItem>
           <SplitItem>
             <KeywordSearchInput
@@ -205,27 +216,19 @@ const ResourceProviders: React.FC = () => {
         </Split>
       </PageSection>
       {resourceProviders.length === 0 ? (
-        fetchState?.finished ? (
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={ExclamationTriangleIcon} />
-              <Title headingLevel="h1" size="lg">
-                No ResourceProviders found
-              </Title>
-            </EmptyState>
-          </PageSection>
-        ) : (
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={LoadingIcon} />
-            </EmptyState>
-          </PageSection>
-        )
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No ResourceProviders found
+            </Title>
+          </EmptyState>
+        </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
           <SelectableTable
             columns={['Name', 'Created At']}
-            onSelectAll={(isSelected) => {
+            onSelectAll={(isSelected: boolean) => {
               if (isSelected) {
                 reduceSelectedUids({ type: 'set', items: resourceProviders });
               } else {
@@ -248,7 +251,7 @@ const ResourceProviders: React.FC = () => {
                     </span>
                   </>,
                 ],
-                onSelect: (isSelected) =>
+                onSelect: (isSelected: boolean) =>
                   reduceSelectedUids({
                     type: isSelected ? 'add' : 'remove',
                     items: [resourceProvider],
@@ -257,7 +260,7 @@ const ResourceProviders: React.FC = () => {
               };
             })}
           />
-          {fetchState?.canContinue ? (
+          {!isReachingEnd ? (
             <EmptyState variant="full">
               <EmptyStateIcon icon={LoadingIcon} />
             </EmptyState>
@@ -265,7 +268,7 @@ const ResourceProviders: React.FC = () => {
         </PageSection>
       )}
       <Footer />
-    </>
+    </div>
   );
 };
 

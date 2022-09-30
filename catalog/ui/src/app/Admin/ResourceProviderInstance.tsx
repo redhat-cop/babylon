@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useRef } from 'react';
+import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -23,97 +23,48 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-import { deleteResourceProvider, getResourceProvider } from '@app/api';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { apiPaths, deleteResourceProvider, fetcher } from '@app/api';
 import { selectConsoleURL } from '@app/store';
-import { ResourceProvider } from '@app/types';
+import { ResourceProvider, ResourceProviderList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import Footer from '@app/components/Footer';
+import useSWR from 'swr';
+import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
+import { FETCH_BATCH_LIMIT } from '@app/util';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './admin.css';
 
-const ResourceProviderInstance: React.FunctionComponent = () => {
+const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string; activeTab: string }> = ({
+  resourceProviderName,
+  activeTab,
+}) => {
   const navigate = useNavigate();
   const consoleURL = useSelector(selectConsoleURL);
-  const componentWillUnmount = useRef(false);
-  const { name: resourceProviderName, tab: activeTab = 'details' } = useParams();
+  const matchMutate = useMatchMutate();
 
-  const [resourceProviderFetchState, reduceResourceProviderFetchState] = useReducer(k8sFetchStateReducer, null);
+  const {
+    data: resourceProvider,
+    error,
+    mutate,
+  } = useSWR<ResourceProvider>(apiPaths.RESOURCE_PROVIDER({ resourceProviderName }), fetcher, {
+    refreshInterval: 8000,
+  });
+  useErrorHandler(error?.status === 404 ? error : null);
 
-  const resourceProvider: ResourceProvider | null = resourceProviderFetchState?.item as ResourceProvider | null;
+  function mutateResourceProvidersList(data: ResourceProviderList) {
+    matchMutate([{ name: 'RESOURCE_PROVIDERS', arguments: { limit: FETCH_BATCH_LIMIT }, data }]);
+  }
 
   async function confirmThenDelete() {
     if (confirm(`Delete ResourceProvider ${resourceProviderName}?`)) {
       await deleteResourceProvider(resourceProvider);
+      mutate(undefined);
+      mutateResourceProvidersList(undefined);
       navigate('/admin/resourceproviders');
-    }
-  }
-
-  async function fetchResourceProvider(): Promise<void> {
-    let resourceProvider: ResourceProvider = null;
-    try {
-      resourceProvider = await getResourceProvider(resourceProviderName);
-    } catch (error) {
-      if (!(error instanceof Response) || error.status !== 404) {
-        throw error;
-      }
-    }
-    if (!resourceProviderFetchState.activity.canceled) {
-      reduceResourceProviderFetchState({
-        type: 'post',
-        item: resourceProvider,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceResourceProviderFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  // First render and detect unmount
-  useEffect(() => {
-    reduceResourceProviderFetchState({ type: 'startFetch' });
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (resourceProviderFetchState?.canContinue) {
-      fetchResourceProvider();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(resourceProviderFetchState);
-      }
-    };
-  }, [resourceProviderFetchState]);
-
-  if (!resourceProvider) {
-    if (resourceProviderFetchState?.finished) {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              ResourceProvider not found
-            </Title>
-            <EmptyStateBody>ResourceProvider {resourceProviderName} was not found.</EmptyStateBody>
-          </EmptyState>
-        </PageSection>
-      );
-    } else {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      );
     }
   }
 
@@ -226,8 +177,35 @@ const ResourceProviderInstance: React.FunctionComponent = () => {
           </Tab>
         </Tabs>
       </PageSection>
-      <Footer />
     </>
+  );
+};
+
+const NotFoundComponent: React.FC<{
+  resourceProviderName: string;
+}> = ({ resourceProviderName }) => (
+  <EmptyState variant="full">
+    <EmptyStateIcon icon={ExclamationTriangleIcon} />
+    <Title headingLevel="h1" size="lg">
+      ResourceProvider not found
+    </Title>
+    <EmptyStateBody>ResourceProvider {resourceProviderName} was not found.</EmptyStateBody>
+  </EmptyState>
+);
+const ResourceProviderInstance: React.FC = () => {
+  const { name: resourceProviderName, tab: activeTab = 'details' } = useParams();
+  return (
+    <ErrorBoundary
+      fallbackRender={() => (
+        <>
+          <NotFoundComponent resourceProviderName={resourceProviderName} />
+          <Footer />
+        </>
+      )}
+    >
+      <ResourceProviderInstanceComponent activeTab={activeTab} resourceProviderName={resourceProviderName} />
+      <Footer />
+    </ErrorBoundary>
   );
 };
 

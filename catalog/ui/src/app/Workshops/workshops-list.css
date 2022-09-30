@@ -1,3 +1,7 @@
+.workshops-list__body.pf-c-page__main-section {
+  flex-grow: 1;
+}
+
 .workshops-list__head.pf-c-page__main-section {
   padding-top: var(--pf-global--spacer--md);
   padding-bottom: var(--pf-global--spacer--md);
@@ -30,7 +34,4 @@
 
 .workshops-list .pf-c-table tbody > tr > * {
   vertical-align: middle !important;
-}
-.workshops-list__body.pf-c-page__main-section {
-  flex-grow: 1;
 }

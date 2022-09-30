@@ -15,7 +15,7 @@ import {
 import { ExclamationTriangleIcon, TrashIcon } from '@patternfly/react-icons';
 import { apiPaths, deleteWorkshop, fetcher } from '@app/api';
 import { NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
-import { compareK8sObjects, displayName } from '@app/util';
+import { compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
@@ -31,8 +31,6 @@ import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 
 import './workshops-list.css';
-
-const FETCH_BATCH_LIMIT = 50;
 
 function keywordMatch(workshop: Workshop, keyword: string): boolean {
   const keywordLowerCased = keyword.toLowerCase();

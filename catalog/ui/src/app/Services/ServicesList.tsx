@@ -46,6 +46,7 @@ import {
   keywordMatch,
   compareK8sObjects,
   getCostTracker,
+  FETCH_BATCH_LIMIT,
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
@@ -62,8 +63,6 @@ import { getMostRelevantResourceAndTemplate } from './service-utils';
 import Footer from '@app/components/Footer';
 
 import './services-list.css';
-
-const FETCH_BATCH_LIMIT = 50;
 
 const ServicesList: React.FC<{
   serviceNamespaceName: string;
