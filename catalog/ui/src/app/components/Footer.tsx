@@ -30,11 +30,18 @@ const Footer: React.FC<{ rightElement?: ReactNode }> = ({ rightElement }) => (
                 All policies and guidelines
               </a>
             </li>
+            <li className="leaf">
+              <a id="teconsent"></a>
+            </li>
           </ul>
         </div>
       </div>
       <div className="footer__right">{rightElement ? rightElement : null}</div>
     </div>
+    <div
+      id="consent_blackbar"
+      style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 5, padding: '10px' }}
+    ></div>
   </section>
 );
 
