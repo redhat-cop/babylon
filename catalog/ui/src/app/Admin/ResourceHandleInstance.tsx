@@ -87,6 +87,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
         title="Create ResourcePool from ResourceHandle"
         passModifiers={true}
         onConfirm={null}
+        className="create-resourcepool"
       >
         <CreateResourcePoolFromResourceHandleModal resourceClaim={resourceClaim} resourceHandle={resourceHandle} />
       </Modal>

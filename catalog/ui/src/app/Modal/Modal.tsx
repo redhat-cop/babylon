@@ -29,6 +29,7 @@ const _Modal: ForwardRefRenderFunction<
     passModifiers?: boolean;
     type?: 'action' | 'ack';
     confirmText?: string;
+    className?: string;
   }
 > = (
   {
@@ -40,6 +41,7 @@ const _Modal: ForwardRefRenderFunction<
     passModifiers = false,
     type = 'action',
     confirmText = 'Confirm',
+    className,
   },
   ref
 ): ReactPortal => {
@@ -145,7 +147,7 @@ const _Modal: ForwardRefRenderFunction<
     ? createPortal(
         isOpen ? (
           <Modal
-            className="modal-component"
+            className={`modal-component${className ? ' ' + className : ''}`}
             variant={ModalVariant.small}
             title={_title}
             onClose={close}
