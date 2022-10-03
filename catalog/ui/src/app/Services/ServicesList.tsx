@@ -22,6 +22,7 @@ import {
   StopIcon,
   PlayIcon,
   TrashIcon,
+  CogIcon,
 } from '@patternfly/react-icons';
 import {
   apiPaths,
@@ -223,7 +224,8 @@ const ServicesList: React.FC<{
         );
         return await deleteResourceClaim(resourceClaim);
       } else {
-        const isPartOfWorkshop = resourceClaim.metadata?.labels?.[`babylon.gpte.redhat.com/workshop-provision`];
+        const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
+        const isPartOfWorkshop = !!workshopProvisionName;
         if (isPartOfWorkshop) return resourceClaim; // If has a workshopProvision -> Do nothing.
         if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
           return await startAllResourcesInResourceClaim(resourceClaim);
@@ -437,7 +439,9 @@ const ServicesList: React.FC<{
               const specResources = resourceClaim.spec.resources || [];
               const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
               const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
-              const isPartOfWorkshop = resourceClaim.metadata?.labels?.[`babylon.gpte.redhat.com/workshop-provision`];
+              const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
+              const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
+              const isPartOfWorkshop = !!workshopProvisionName;
               const rcServiceNamespace = serviceNamespaces.find(
                 (ns: ServiceNamespace) => ns.name === resourceClaim.metadata.namespace
               );
@@ -480,6 +484,7 @@ const ServicesList: React.FC<{
                 start: null,
                 stop: null,
                 getCost: null,
+                manageWorkshop: null,
               };
               if (resources.find((r) => r?.kind === 'AnarchySubject')) {
                 actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
@@ -488,6 +493,10 @@ const ServicesList: React.FC<{
               }
               if (costTracker) {
                 actionHandlers['getCost'] = () => showModal({ modal: 'getCost', resourceClaim });
+              }
+              if (isPartOfWorkshop) {
+                actionHandlers['manageWorkshop'] = () =>
+                  navigate(`/workshops/${serviceNamespace.name}/${workshopName}`);
               }
 
               const projectCell = (
@@ -558,12 +567,12 @@ const ServicesList: React.FC<{
               const autoStopCell = (
                 // Auto-stop
                 <span key="auto-stop">
-                  {!isPartOfWorkshop && resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
+                  {resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
                     <Button
                       variant="control"
                       icon={<OutlinedClockIcon />}
                       iconPosition="right"
-                      isDisabled={!checkResourceClaimCanStop(resourceClaim)}
+                      isDisabled={!checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop}
                       onClick={actionHandlers.runtime}
                       className="services-list__schedule-btn"
                       isSmall={true}
@@ -600,10 +609,10 @@ const ServicesList: React.FC<{
               const autoDestroyCell = (
                 // Auto-destroy
                 <span key="auto-destroy">
-                  {!isPartOfWorkshop && resourceClaim.status?.lifespan?.end ? (
+                  {resourceClaim.status?.lifespan?.end ? (
                     <Button
                       variant="control"
-                      isDisabled={!resourceClaim.status?.lifespan}
+                      isDisabled={!resourceClaim.status?.lifespan || isPartOfWorkshop}
                       onClick={actionHandlers.lifespan}
                       icon={<OutlinedClockIcon />}
                       iconPosition="right"
@@ -631,7 +640,7 @@ const ServicesList: React.FC<{
                       gap: 'var(--pf-global--spacer--sm)',
                     }}
                   >
-                    {!resourceClaim.metadata.labels[`babylon.gpte.redhat.com/workshop-provision`] ? (
+                    {!isPartOfWorkshop ? (
                       <>
                         <ButtonCircleIcon
                           isDisabled={!checkResourceClaimCanStart(resourceClaim)}
@@ -648,7 +657,14 @@ const ServicesList: React.FC<{
                           key="actions__stop"
                         />
                       </>
-                    ) : null}
+                    ) : (
+                      <ButtonCircleIcon
+                        onClick={actionHandlers.manageWorkshop}
+                        description="Manage Workshop"
+                        icon={CogIcon}
+                        key="actions__manage-workshop"
+                      />
+                    )}
                     <ButtonCircleIcon
                       key="actions__delete"
                       onClick={actionHandlers.delete}

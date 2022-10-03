@@ -8,6 +8,10 @@
   row-gap: 5pt;
 }
 
+.create-resourcepool .pf-c-modal-box__body {
+  overflow-y: auto !important;
+}
+
 .admin-body.pf-c-page__main-section .pf-c-tabs {
   margin-left: -100px;
   padding-left: 100px;

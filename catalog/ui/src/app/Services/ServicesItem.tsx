@@ -120,8 +120,10 @@ const ServicesItemComponent: React.FC<{
     name: serviceNamespaceName,
     displayName: serviceNamespaceName,
   };
+  const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
+  const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
-  const isPartOfWorkshop = resourceClaim.metadata?.labels?.[`babylon.gpte.redhat.com/workshop-provision`];
+  const isPartOfWorkshop = !!workshopProvisionName;
   const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state: K8sObject }) => r.state);
   const anarchySubjects = resourcesK8sObj
     .filter((r: K8sObject) => r?.kind === 'AnarchySubject')
@@ -145,6 +147,9 @@ const ServicesItemComponent: React.FC<{
   if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
     actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action' });
     actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction' });
+  }
+  if (isPartOfWorkshop) {
+    actionHandlers['manageWorkshop'] = () => navigate(`/workshops/${serviceNamespace.name}/${workshopName}`);
   }
 
   // Find lab user interface information either in the resource claim or inside resources
@@ -191,9 +196,6 @@ const ServicesItemComponent: React.FC<{
   )
     ? true
     : false;
-
-  const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
-  const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
 
   const { data: workshop, mutate: mutateWorkshop } = useSWR<Workshop>(
     workshopName ? apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }) : null,

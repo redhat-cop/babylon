@@ -75,6 +75,12 @@ const ServiceActions: React.FC<{
       <ActionDropdownItem key="getCost" label="Get amount spent" onSelect={actionHandlers.getCost} />
     );
   }
+
+  if (actionHandlers.manageWorkshop) {
+    actionDropdownItems.push(
+      <ActionDropdownItem key="manageWorkshop" label="Manage Workshop" onSelect={actionHandlers.manageWorkshop} />
+    );
+  }
   return (
     <ActionDropdown
       actionDropdownItems={actionDropdownItems}
