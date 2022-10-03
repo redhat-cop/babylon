@@ -155,7 +155,7 @@ const WorkshopsItemDetails: React.FC<{
             <span className="workshops-item-details__status--running">
               <CheckCircleIcon /> Running
             </span>
-          ) : workshopProvisions.length > 0 ? (
+          ) : workshopProvisions && workshopProvisions.length > 0 ? (
             <span className="workshops-item-details__status--stopped">
               <StopCircleIcon /> Stopped
             </span>

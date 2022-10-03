@@ -47,13 +47,13 @@ export function getWorkshopAutoStopTime(resourceClaims: ResourceClaim[]): number
   return resourcesTime.length > 0 ? Math.min(...resourcesTime) : null;
 }
 
-export function checkWorkshopCanStop(resourceClaims: ResourceClaim[]): boolean {
+export function checkWorkshopCanStop(resourceClaims: ResourceClaim[] = []): boolean {
   const resourceClaimsCanStop = resourceClaims.filter((resourceClaim) => checkResourceClaimCanStop(resourceClaim));
 
   return resourceClaimsCanStop && resourceClaimsCanStop.length > 0;
 }
 
-export function checkWorkshopCanStart(resourceClaims: ResourceClaim[]): boolean {
+export function checkWorkshopCanStart(resourceClaims: ResourceClaim[] = []): boolean {
   const resourceClaimsCanStart = resourceClaims.filter((resourceClaim) => checkResourceClaimCanStart(resourceClaim));
 
   return resourceClaimsCanStart && resourceClaimsCanStart.length > 0;
