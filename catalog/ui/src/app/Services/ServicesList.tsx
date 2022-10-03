@@ -496,7 +496,9 @@ const ServicesList: React.FC<{
               }
               if (isPartOfWorkshop) {
                 actionHandlers['manageWorkshop'] = () =>
-                  navigate(`/workshops/${serviceNamespace.name}/${workshopName}`);
+                  navigate(
+                    `/workshops/${rcServiceNamespace?.displayName || resourceClaim.metadata.namespace}/${workshopName}`
+                  );
               }
 
               const projectCell = (
