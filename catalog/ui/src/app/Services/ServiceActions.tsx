@@ -14,7 +14,7 @@ const ServiceActions: React.FC<{
   iconOnly?: boolean;
 }> = ({ actionHandlers, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
   const actionDropdownItems: any[] = [];
-  const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
+  const workshopProvisionName = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
   const isPartOfWorkshop = !!workshopProvisionName;
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : true;
   const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : true;
