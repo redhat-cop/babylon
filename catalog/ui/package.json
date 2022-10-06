@@ -89,7 +89,7 @@
     "react-dom": "^17.0.2",
     "react-error-boundary": "^3.1.4",
     "react-redux": "^8.0.4",
-    "react-router-dom": "^6.4.1",
+    "react-router-dom": "^6.4.2",
     "react-star-ratings": "^2.3.0",
     "redux": "^4.2.0",
     "reselect": "^4.1.5",
