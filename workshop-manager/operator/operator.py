@@ -1139,7 +1139,7 @@ class WorkshopProvision:
             else:
                 raise
         if not self.owner_references or not workshop_label in self.labels:
-            logger.info("Setting ownerReferences and workshop label for WorkshopProvision {self.name} in namespace {self.namespace}")
+            logger.info(f"Setting ownerReferences and workshop label for WorkshopProvision {self.name} in namespace {self.namespace}")
             custom_objects_api.patch_namespaced_custom_object(
                 babylon_domain, babylon_api_version,
                 self.namespace, 'workshopprovisions', self.name,
