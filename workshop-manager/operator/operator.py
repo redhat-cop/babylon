@@ -1139,7 +1139,7 @@ class WorkshopProvision:
             else:
                 raise
         if not self.owner_references or not workshop_label in self.labels:
-            logger.info("Setting ownerReferences and workshop label for WorkshopProvision {self.name} in namespace {self.namespace}")
+            logger.info(f"Setting ownerReferences and workshop label for WorkshopProvision {self.name} in namespace {self.namespace}")
             custom_objects_api.patch_namespaced_custom_object(
                 babylon_domain, babylon_api_version,
                 self.namespace, 'workshopprovisions', self.name,
@@ -1249,7 +1249,7 @@ async def workshop_daemon(logger, stopped, **kwargs):
     try:
         while not stopped:
             if workshop.lifespan_end and workshop.lifespan_end < datetime.now(timezone.utc):
-                logger.info("Deleting Workshop {workshop.name} in {workshop.namespace} for lifespan end")
+                logger.info(f"Deleting Workshop {workshop.name} in {workshop.namespace} for lifespan end")
                 workshop.delete(logger=logger)
                 break
             workshop.manage(logger=logger)
@@ -1285,7 +1285,7 @@ async def workshop_provision(logger, stopped, **kwargs):
     try:
         while not stopped:
             if workshop_provision.lifespan_end and workshop_provision.lifespan_end < datetime.now(timezone.utc):
-                logger.info("Deleting WorkshopProvision {workshop_provision.name} in {workshop_provision.namespace} for lifespan end")
+                logger.info(f"Deleting WorkshopProvision {workshop_provision.name} in {workshop_provision.namespace} for lifespan end")
                 workshop_provision.delete(logger=logger)
                 break
             else:
