@@ -45,6 +45,15 @@ rules:
   - list
   - watch
 - apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - workshops
+  - workshopprovisions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - {{ .Values.poolboy.apiGroup }}
   resources:
   - resourceclaims
