@@ -28,7 +28,7 @@ const EditableText: React.FC<{
   }
 
   function finishEditing(): void {
-    onChange(editedValue.trim());
+    onChange(editedValue ? editedValue.trim() : '');
     setEditing(false);
   }
 
