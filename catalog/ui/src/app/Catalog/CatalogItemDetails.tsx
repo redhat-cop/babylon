@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -91,8 +91,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     }
   );
 
-  const services = userResourceClaims.filter(
-    (rc) => !rc.metadata.labels?.['babylon.gpte.redhat.com/workshop-provision']
+  const services: ResourceClaim[] = useMemo(
+    () =>
+      [].concat(
+        ...userResourceClaims.filter((rc) => !rc.metadata.labels?.['babylon.gpte.redhat.com/workshop-provision'])
+      ) || [],
+    [userResourceClaims]
   );
 
   const isDisabled = getIsDisabled(catalogItem);
