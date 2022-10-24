@@ -326,7 +326,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                     <p>Setup a user interface for the workshop attendants to access their credentials.</p>
                   ) : (
                     <ul>
-                      <li>- Provision independent services for each seat in the workshop.</li>
+                      <li>- Provision independent services for each attendant in the workshop.</li>
                       <li>- Setup a user interface for the workshop attendants to access their credentials.</li>
                     </ul>
                   )
@@ -437,7 +437,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
             </FormGroup>
             {catalogItem.spec.multiuser ? null : (
               <>
-                <FormGroup key="provisionCount" fieldId="workshopProvisionCount" label="Workshop seats">
+                <FormGroup key="provisionCount" fieldId="workshopProvisionCount" label="Workshop User Count">
                   <div className="catalog-item-form__group-control--single">
                     <PatientNumberInput
                       min={0}
@@ -447,9 +447,9 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                       }
                       value={formState.workshop.provisionCount}
                     />
-                    <Tooltip position="right" content={<p>Number of reserved seats for the workshop.</p>}>
+                    <Tooltip position="right" content={<p>Number of independent services for the workshop.</p>}>
                       <OutlinedQuestionCircleIcon
-                        aria-label="Number of reserved seats for the workshop"
+                        aria-label="Number of independent services for the workshop"
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
