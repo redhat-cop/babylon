@@ -25,6 +25,12 @@ body,
 .pf-c-page {
   --pf-c-page__header--MinHeight: 4.5rem;
 }
+
+#primary-app-container > .pf-c-drawer .pf-c-drawer__body {
+  display: flex;
+  flex-direction: column;
+}
+
 .tooltip-icon-only {
   opacity: 0.45;
   transition: opacity 0.3s;

@@ -23,7 +23,7 @@ const ResourcePoolStats: React.FC<{ resourcePoolName: string; minAvailable: numb
   const { data: resourceHandles } = useSWR<ResourceHandle[]>(
     apiPaths.RESOURCE_HANDLES({
       labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
-      limit: FETCH_BATCH_LIMIT,
+      limit: 'ALL',
     }),
     () => fetchResourceHandlesFromResourcePool(resourcePoolName)
   );

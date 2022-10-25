@@ -85,7 +85,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Workshop Seats</DescriptionListTerm>
+          <DescriptionListTerm>Workshop User Count</DescriptionListTerm>
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
@@ -94,9 +94,9 @@ const WorkshopsItemProvisioningItem: React.FC<{
               value={workshopProvision.spec.count}
               style={{ paddingRight: 'var(--pf-global--spacer--md)' }}
             />
-            <Tooltip position="right" content={<p>Number of reserved seats for the workshop.</p>}>
+            <Tooltip position="right" content={<p>Number of independent services for the workshop.</p>}>
               <OutlinedQuestionCircleIcon
-                aria-label="Number of reserved seats for the workshop"
+                aria-label="Number of independent services for the workshop"
                 className="tooltip-icon-only"
               />
             </Tooltip>

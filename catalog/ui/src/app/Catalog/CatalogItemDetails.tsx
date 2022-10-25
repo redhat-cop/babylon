@@ -75,7 +75,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     userNamespace.name
       ? apiPaths.RESOURCE_CLAIMS({
           namespace: userNamespace.name,
-          limit: FETCH_BATCH_LIMIT,
+          limit: 'ALL',
         })
       : null,
     () =>
