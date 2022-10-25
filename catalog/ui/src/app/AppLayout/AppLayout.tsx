@@ -46,7 +46,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
 
   return (
     <Suspense fallback={<LoadingSection />}>
-      <div>
+      <div style={{ height: '100%' }}>
         <Page
           className="app-layout"
           mainContainerId="primary-app-container"
