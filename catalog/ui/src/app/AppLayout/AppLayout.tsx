@@ -55,6 +55,10 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       >
         {children}
       </Page>
+      <div
+        id="consent_blackbar"
+        style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 5, padding: '10px' }}
+      ></div>
     </Suspense>
   );
 };
