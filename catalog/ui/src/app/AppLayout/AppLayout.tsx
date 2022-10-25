@@ -46,19 +46,21 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
 
   return (
     <Suspense fallback={<LoadingSection />}>
-      <Page
-        className="app-layout"
-        mainContainerId="primary-app-container"
-        header={_Header}
-        sidebar={Sidebar}
-        onPageResize={onPageResize}
-      >
-        {children}
-      </Page>
-      <div
-        id="consent_blackbar"
-        style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 5, padding: '10px' }}
-      ></div>
+      <div>
+        <Page
+          className="app-layout"
+          mainContainerId="primary-app-container"
+          header={_Header}
+          sidebar={Sidebar}
+          onPageResize={onPageResize}
+        >
+          {children}
+        </Page>
+        <div
+          id="consent_blackbar"
+          style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 5, padding: '10px' }}
+        ></div>
+      </div>
     </Suspense>
   );
 };
