@@ -133,7 +133,7 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
-        <DescriptionListTerm>Seats Assigned</DescriptionListTerm>
+        <DescriptionListTerm>Workshop Users Assigned</DescriptionListTerm>
         {workshop.spec.userAssignments ? (
           <DescriptionListDescription>
             {workshop.spec.userAssignments.filter((item) => item.assignment).length} /{' '}
