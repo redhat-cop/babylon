@@ -66,7 +66,7 @@ const ResourcePools: React.FC = () => {
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
   const { data: resourcePools, mutate } = useSWR<ResourcePool[]>(
-    apiPaths.RESOURCE_POOLS({ limit: FETCH_BATCH_LIMIT }),
+    apiPaths.RESOURCE_POOLS({ limit: 'ALL' }),
     () =>
       fetcherItemsInAllPages((continueId) =>
         apiPaths.RESOURCE_POOLS({
