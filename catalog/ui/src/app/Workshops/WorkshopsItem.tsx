@@ -138,6 +138,7 @@ const WorkshopsItemComponent: React.FC<{
     apiPaths.WORKSHOP_PROVISIONS({
       workshopName: workshop.metadata.name,
       namespace: workshop.metadata.namespace,
+      limit: 'ALL',
     }),
     () =>
       fetcherItemsInAllPages((continueId) =>
@@ -154,7 +155,7 @@ const WorkshopsItemComponent: React.FC<{
     apiPaths.RESOURCE_CLAIMS({
       namespace: serviceNamespaceName,
       labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
-      limit: FETCH_BATCH_LIMIT,
+      limit: 'ALL',
     }),
     () =>
       fetcherItemsInAllPages((continueId) =>
