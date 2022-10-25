@@ -165,13 +165,13 @@ export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean
 }
 
 export function formatDuration(ms: number): string {
-  if (ms < 0) ms = -ms;
+  const absoluteMs = Math.abs(ms);
   const time = {
-    day: Math.floor(ms / 86400000),
-    hour: Math.floor(ms / 3600000) % 24,
-    minute: Math.floor(ms / 60000) % 60,
-    second: Math.floor(ms / 1000) % 60,
-    millisecond: Math.floor(ms) % 1000,
+    day: Math.floor(absoluteMs / 86400000),
+    hour: Math.floor(absoluteMs / 3600000) % 24,
+    minute: Math.floor(absoluteMs / 60000) % 60,
+    second: Math.floor(absoluteMs / 1000) % 60,
+    millisecond: Math.floor(absoluteMs) % 1000,
   };
   return Object.entries(time)
     .filter((val) => val[1] !== 0)
