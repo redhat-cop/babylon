@@ -38,10 +38,6 @@ const Footer: React.FC<{ rightElement?: ReactNode }> = ({ rightElement }) => (
       </div>
       <div className="footer__right">{rightElement ? rightElement : null}</div>
     </div>
-    <div
-      id="consent_blackbar"
-      style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 5, padding: '10px' }}
-    ></div>
   </section>
 );
 
