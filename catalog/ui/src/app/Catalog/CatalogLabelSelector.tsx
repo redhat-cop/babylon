@@ -1,19 +1,27 @@
-import React, { useCallback } from 'react';
-import { Checkbox, Form, FormGroup } from '@patternfly/react-core';
+import React, { useCallback, useState } from 'react';
+import {
+  Checkbox,
+  ExpandableSection,
+  Form,
+  FormFieldGroupExpandable,
+  FormFieldGroupHeader,
+  FormGroup,
+} from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
-import { formatString, HIDDEN_LABELS } from './catalog-utils';
 import { BABYLON_DOMAIN } from '@app/util';
+import { formatString, HIDDEN_LABELS } from './catalog-utils';
 
 import './catalog-label-selector.css';
-interface CatalogLabelValues {
+
+type CatalogLabelValues = {
   displayName: string;
   values: { [value: string]: CatalogLabelValueItemCount };
-}
+};
 
-interface CatalogLabelValueItemCount {
+type CatalogLabelValueItemCount = {
   count: number;
   displayName: string;
-}
+};
 
 const CatalogLabelSelector: React.FC<{
   catalogItems: CatalogItem[];
@@ -21,6 +29,7 @@ const CatalogLabelSelector: React.FC<{
   onSelect: (labels: { [label: string]: string[] }) => void;
   selected: { [label: string]: string[] };
 }> = ({ catalogItems, filteredCatalogItems, onSelect, selected }) => {
+  const [expandedLabels, setExpandedLabels] = useState<{ [label: string]: boolean }>({});
   const labels: { [label: string]: CatalogLabelValues } = {};
   for (const catalogItem of catalogItems || []) {
     if (!catalogItem.metadata.labels) continue;
@@ -89,11 +98,13 @@ const CatalogLabelSelector: React.FC<{
       {Object.entries(labels)
         .sort()
         .map(([attrKey, attr]: [string, CatalogLabelValues]) => (
-          <FormGroup key={attrKey} fieldId={attrKey}>
-            <fieldset>
-              <legend className="pf-c-form__label">
-                <span className="pf-c-form__label-text">{attr.displayName}</span>
-              </legend>
+          <ExpandableSection
+            key={attrKey}
+            isExpanded={expandedLabels[attrKey] || false}
+            toggleText={attr.displayName}
+            onToggle={(isExpanded: boolean) => setExpandedLabels({ ...expandedLabels, [attrKey]: isExpanded })}
+          >
+            <FormGroup>
               {Object.entries(attr.values)
                 .sort()
                 .map(([valueKey, value]: [string, CatalogLabelValueItemCount]) => (
@@ -105,8 +116,8 @@ const CatalogLabelSelector: React.FC<{
                     onChange={(checked) => onChange(checked, attrKey, valueKey)}
                   />
                 ))}
-            </fieldset>
-          </FormGroup>
+            </FormGroup>
+          </ExpandableSection>
         ))}
     </Form>
   );
