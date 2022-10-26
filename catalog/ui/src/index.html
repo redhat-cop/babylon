@@ -36,6 +36,7 @@
     <div id="modal-root"></div>
     <div id="root"></div>
     <% if (htmlWebpackPlugin.options.TRACKING_ENABLED == 'true') { %>
+    <div id="consent_blackbar" style="position: fixed; bottom: 0; width: 100%; z-index: 5; padding: 10px"></div>
     <script type="text/javascript">
       if ('undefined' !== typeof _satellite && 'function' === typeof _satellite.pageBottom) {
         _satellite.pageBottom();
