@@ -567,7 +567,7 @@ const ServicesList: React.FC<{
               const autoStopCell = (
                 // Auto-stop
                 <span key="auto-stop">
-                  {resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
+                  {resourceClaim.status?.resources?.some((r) => r.state?.spec?.vars?.action_schedule) ? (
                     <Button
                       variant="control"
                       icon={<OutlinedClockIcon />}
@@ -581,12 +581,9 @@ const ServicesList: React.FC<{
                         date={
                           new Date(
                             Math.min(
-                              ...resourceClaim.spec.resources
-                                .map((specResource, idx) => {
-                                  const statusResource = resourceClaim.status.resources[idx];
-                                  const stopTimestamp =
-                                    specResource.template?.spec?.vars?.action_schedule?.stop ||
-                                    statusResource.state.spec.vars.action_schedule.stop;
+                              ...resourceClaim.status.resources
+                                .map((statusResource) => {
+                                  const stopTimestamp = statusResource.state?.spec?.vars?.action_schedule?.stop;
                                   if (stopTimestamp) {
                                     return Date.parse(stopTimestamp);
                                   } else {
