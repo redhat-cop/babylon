@@ -174,13 +174,11 @@ const WorkshopsItemDetails: React.FC<{
             <Button
               key="auto-start"
               variant="control"
-              onClick={() => {
-                showModal ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null;
-              }}
+              onClick={() => (showModal ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null)}
               icon={<OutlinedClockIcon />}
               iconPosition="right"
               className="workshops-item__schedule-btn"
-              isDisabled={!!showModal}
+              isDisabled={!showModal}
             >
               <LocalTimestamp timestamp={new Date(autoStartTime).toISOString()} />
               <span style={{ padding: '0 6px' }}>
@@ -201,7 +199,7 @@ const WorkshopsItemDetails: React.FC<{
               icon={<OutlinedClockIcon />}
               iconPosition="right"
               onClick={() => (showModal ? showModal({ action: 'scheduleStop', resourceClaims }) : null)}
-              isDisabled={!!showModal}
+              isDisabled={!showModal}
               className="workshops-item__schedule-btn"
             >
               <LocalTimestamp timestamp={new Date(autoStopTime).toISOString()} />
@@ -224,7 +222,7 @@ const WorkshopsItemDetails: React.FC<{
             }}
             icon={<OutlinedClockIcon />}
             iconPosition="right"
-            isDisabled={!!showModal}
+            isDisabled={!showModal}
             className="workshops-item__schedule-btn"
           >
             {autoDestroyTime ? (
