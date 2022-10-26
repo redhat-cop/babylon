@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { ResourceClaim } from '@app/types';
-import { displayName } from '@app/util';
+import { canExecuteAction, displayName } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
 
@@ -19,12 +19,10 @@ const ServicesScheduleAction: React.FC<{
         action === 'retirement'
           ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end)
           : Math.min(
-              ...resourceClaim.spec.resources
-                .map((specResource, idx) => {
-                  const statusResource = resourceClaim.status?.resources?.[idx];
-                  const stopTimestamp =
-                    specResource.template?.spec?.vars?.action_schedule?.stop ||
-                    statusResource.state.spec.vars.action_schedule.stop;
+              ...resourceClaim.status.resources
+                .map((statusResource) => {
+                  if (!canExecuteAction(statusResource.state, 'stop')) return null;
+                  const stopTimestamp = statusResource.state?.spec?.vars?.action_schedule?.stop;
                   if (stopTimestamp) {
                     return Date.parse(stopTimestamp);
                   } else {
@@ -34,13 +32,7 @@ const ServicesScheduleAction: React.FC<{
                 .filter((time) => time !== null)
             )
       ),
-    [
-      action,
-      resourceClaim.spec.lifespan?.end,
-      resourceClaim.spec.resources,
-      resourceClaim.status.lifespan.end,
-      resourceClaim.status?.resources,
-    ]
+    [action, resourceClaim.spec.lifespan?.end, resourceClaim.status.lifespan.end, resourceClaim.status.resources]
   );
 
   const [selectedDate, setSelectedDate] = useState(currentActionDate);
