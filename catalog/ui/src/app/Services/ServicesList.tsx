@@ -48,6 +48,7 @@ import {
   compareK8sObjects,
   getCostTracker,
   FETCH_BATCH_LIMIT,
+  canExecuteAction,
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
@@ -567,7 +568,7 @@ const ServicesList: React.FC<{
               const autoStopCell = (
                 // Auto-stop
                 <span key="auto-stop">
-                  {resourceClaim.status?.resources?.[0]?.state?.spec?.vars?.action_schedule ? (
+                  {resourceClaim.status?.resources?.some((r) => r.state?.spec?.vars?.action_schedule) ? (
                     <Button
                       variant="control"
                       icon={<OutlinedClockIcon />}
@@ -581,12 +582,10 @@ const ServicesList: React.FC<{
                         date={
                           new Date(
                             Math.min(
-                              ...resourceClaim.spec.resources
-                                .map((specResource, idx) => {
-                                  const statusResource = resourceClaim.status.resources[idx];
-                                  const stopTimestamp =
-                                    specResource.template?.spec?.vars?.action_schedule?.stop ||
-                                    statusResource.state.spec.vars.action_schedule.stop;
+                              ...resourceClaim.status.resources
+                                .map((statusResource) => {
+                                  if (!canExecuteAction(statusResource.state, 'stop')) return null;
+                                  const stopTimestamp = statusResource.state?.spec?.vars?.action_schedule?.stop;
                                   if (stopTimestamp) {
                                     return Date.parse(stopTimestamp);
                                   } else {
@@ -632,79 +631,78 @@ const ServicesList: React.FC<{
 
               const actionsCell = (
                 // Actions
-                <React.Fragment key="actions">
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      gap: 'var(--pf-global--spacer--sm)',
-                    }}
-                  >
-                    {!isPartOfWorkshop ? (
-                      <>
-                        <ButtonCircleIcon
-                          isDisabled={!checkResourceClaimCanStart(resourceClaim)}
-                          onClick={actionHandlers.start}
-                          description="Start"
-                          icon={PlayIcon}
-                          key="actions__start"
-                        />
-                        <ButtonCircleIcon
-                          isDisabled={!checkResourceClaimCanStop(resourceClaim)}
-                          onClick={actionHandlers.stop}
-                          description="Stop"
-                          icon={StopIcon}
-                          key="actions__stop"
-                        />
-                      </>
-                    ) : (
-                      <ButtonCircleIcon
-                        onClick={actionHandlers.manageWorkshop}
-                        description="Manage Workshop"
-                        icon={CogIcon}
-                        key="actions__manage-workshop"
-                      />
-                    )}
+                <div
+                  key="actions"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    gap: 'var(--pf-global--spacer--sm)',
+                  }}
+                >
+                  {!isPartOfWorkshop ? (
                     <ButtonCircleIcon
-                      key="actions__delete"
-                      onClick={actionHandlers.delete}
-                      description="Delete"
-                      icon={TrashIcon}
+                      isDisabled={!checkResourceClaimCanStart(resourceClaim)}
+                      onClick={actionHandlers.start}
+                      description="Start"
+                      icon={PlayIcon}
+                      key="actions__start"
                     />
-                    {actionHandlers.getCost ? (
-                      <ButtonCircleIcon
-                        key="actions__cost"
-                        onClick={actionHandlers.getCost}
-                        description="Get amount spent"
-                        icon={DollarSignIcon}
+                  ) : null}
+                  {!isPartOfWorkshop ? (
+                    <ButtonCircleIcon
+                      isDisabled={!checkResourceClaimCanStop(resourceClaim)}
+                      onClick={actionHandlers.stop}
+                      description="Stop"
+                      icon={StopIcon}
+                      key="actions__stop"
+                    />
+                  ) : null}
+                  {!isPartOfWorkshop ? (
+                    <ButtonCircleIcon
+                      onClick={actionHandlers.manageWorkshop}
+                      description="Manage Workshop"
+                      icon={CogIcon}
+                      key="actions__manage-workshop"
+                    />
+                  ) : null}
+                  <ButtonCircleIcon
+                    key="actions__delete"
+                    onClick={actionHandlers.delete}
+                    description="Delete"
+                    icon={TrashIcon}
+                  />
+                  {actionHandlers.getCost ? (
+                    <ButtonCircleIcon
+                      key="actions__cost"
+                      onClick={actionHandlers.getCost}
+                      description="Get amount spent"
+                      icon={DollarSignIcon}
+                    />
+                  ) : null}
+                  {
+                    // Lab Interface
+                    labUserInterfaceUrl ? (
+                      <LabInterfaceLink
+                        key="actions__lab-interface"
+                        url={labUserInterfaceUrl}
+                        data={labUserInterfaceData}
+                        method={labUserInterfaceMethod}
+                        variant="circle"
                       />
-                    ) : null}
-                    {
-                      // Lab Interface
-                      labUserInterfaceUrl ? (
-                        <LabInterfaceLink
-                          key="actions__lab-interface"
-                          url={labUserInterfaceUrl}
-                          data={labUserInterfaceData}
-                          method={labUserInterfaceMethod}
-                          variant="circle"
-                        />
-                      ) : null
-                    }
-                  </div>
-                </React.Fragment>
+                    ) : null
+                  }
+                </div>
               );
 
               const adminActionsCell = (
                 // Actions
-                <React.Fragment key="admin-actions">
-                  <ServiceActions
-                    position="right"
-                    resourceClaim={resourceClaim}
-                    actionHandlers={actionHandlers}
-                    iconOnly={true}
-                  />
-                </React.Fragment>
+                <ServiceActions
+                  position="right"
+                  resourceClaim={resourceClaim}
+                  actionHandlers={actionHandlers}
+                  iconOnly={true}
+                  key="admin-actions"
+                />
               );
 
               return {
@@ -712,7 +710,7 @@ const ServicesList: React.FC<{
                   view === 'admin'
                     ? [projectCell, nameCell, guidCell, statusCell, createdAtCell, adminActionsCell]
                     : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
-                onSelect: (isSelected) =>
+                onSelect: (isSelected: boolean) =>
                   setSelectedUids((uids) => {
                     if (isSelected) {
                       if (uids.includes(resourceClaim.metadata.uid)) {

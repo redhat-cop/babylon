@@ -1,12 +1,12 @@
 import React, { useState, Suspense } from 'react';
-import useStatusPageEmbed from './useStatusPageEmbed';
 import { Page, PageSidebar } from '@patternfly/react-core';
-import Navigation from './Navigation';
+import { IAppRouteAccessControl } from '@app/types';
 import Header from '@app/Header/Header';
 import LoadingSection from '@app/components/LoadingSection';
 import useDocumentTitle from '@app/utils/useDocumentTitle';
 import useSession from '@app/utils/useSession';
-import { IAppRouteAccessControl } from '@app/types';
+import useStatusPageEmbed from './useStatusPageEmbed';
+import Navigation from './Navigation';
 
 const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessControl?: IAppRouteAccessControl }> = ({
   children,
@@ -55,10 +55,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       >
         {children}
       </Page>
-      <div
-        id="consent_blackbar"
-        style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 5, padding: '10px' }}
-      ></div>
     </Suspense>
   );
 };

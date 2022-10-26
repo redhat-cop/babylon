@@ -15,6 +15,10 @@
   text-align: center;
 }
 
+.catalog-item-details .pf-c-drawer__body {
+  min-height: auto !important;
+}
+
 .catalog-item-details__body {
   border-top: 1px solid var(--pf-global--palette--black-300);
   padding-top: var(--pf-global--spacer--md) !important;
