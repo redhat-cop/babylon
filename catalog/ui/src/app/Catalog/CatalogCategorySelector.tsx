@@ -1,8 +1,8 @@
 import React from 'react';
 import { Tab, Tabs, TabTitleText, Tooltip } from '@patternfly/react-core';
+import { InfoAltIcon } from '@patternfly/react-icons';
 import { CatalogItem } from '@app/types';
 import { formatString, getCategory } from './catalog-utils';
-import { InfoAltIcon } from '@patternfly/react-icons';
 
 import './catalog-category-selector.css';
 

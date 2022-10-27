@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { Button, Checkbox, ExpandableSection, Form, FormGroup, Tooltip } from '@patternfly/react-core';
+import { FilterAltIcon } from '@patternfly/react-icons';
 import { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
 import { formatString, HIDDEN_LABELS } from './catalog-utils';
-import { FilterAltIcon } from '@patternfly/react-icons';
 
 import './catalog-label-selector.css';
 
