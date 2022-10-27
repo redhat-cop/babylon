@@ -1,17 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import {
-  Checkbox,
-  ExpandableSection,
-  Form,
-  FormFieldGroupExpandable,
-  FormFieldGroupHeader,
-  FormGroup,
-} from '@patternfly/react-core';
+import { Button, Checkbox, ExpandableSection, Form, FormGroup, Tooltip } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
 import { formatString, HIDDEN_LABELS } from './catalog-utils';
 
 import './catalog-label-selector.css';
+import { FilterAltIcon } from '@patternfly/react-icons';
 
 type CatalogLabelValues = {
   displayName: string;
@@ -93,32 +87,67 @@ const CatalogLabelSelector: React.FC<{
     [onSelect, selected]
   );
 
+  const onClearFilter = useCallback(
+    (filterName) => {
+      const updated: { [label: string]: string[] } = {};
+      for (const [label, values] of Object.entries(selected || {})) {
+        if (label !== filterName) {
+          updated[label] = values;
+        }
+      }
+      onSelect(Object.keys(updated).length === 0 ? null : updated);
+    },
+    [onSelect, selected]
+  );
+
+  const labelsSorted = Object.entries(labels).sort();
+  const featuredIndex = labelsSorted.findIndex(([x]) => x.toLowerCase() === 'sales_play_demos');
+  const featuredLabel = labelsSorted[featuredIndex];
+  labelsSorted.splice(featuredIndex, 1);
+  labelsSorted.unshift(featuredLabel);
+
   return (
     <Form className="catalog-label-selector">
-      {Object.entries(labels)
-        .sort()
-        .map(([attrKey, attr]: [string, CatalogLabelValues]) => (
-          <ExpandableSection
-            key={attrKey}
-            isExpanded={expandedLabels[attrKey] || false}
-            toggleText={attr.displayName}
-            onToggle={(isExpanded: boolean) => setExpandedLabels({ ...expandedLabels, [attrKey]: isExpanded })}
-          >
-            <FormGroup>
-              {Object.entries(attr.values)
-                .sort()
-                .map(([valueKey, value]: [string, CatalogLabelValueItemCount]) => (
-                  <Checkbox
-                    id={attrKey + '/' + valueKey}
-                    key={attrKey + '/' + valueKey}
-                    label={value.displayName + ' (' + value.count + ')'}
-                    isChecked={(selected?.[attrKey] || []).includes(valueKey)}
-                    onChange={(checked) => onChange(checked, attrKey, valueKey)}
-                  />
-                ))}
-            </FormGroup>
-          </ExpandableSection>
-        ))}
+      {labelsSorted.map(([attrKey, attr]: [string, CatalogLabelValues]) => (
+        <ExpandableSection
+          key={attrKey}
+          isExpanded={expandedLabels[attrKey] || false}
+          toggleContent={
+            <div style={{ display: 'flex', flexDirection: 'row' }}>
+              <p>{attr.displayName}</p>
+              {Object.entries(attr.values).some(([valueKey]) => (selected?.[attrKey] || []).includes(valueKey)) ? (
+                <Tooltip content={<div>Clear filter</div>}>
+                  <Button
+                    variant="plain"
+                    style={{ marginRight: 0, marginLeft: 'auto', padding: 0 }}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      onClearFilter(attrKey);
+                    }}
+                  >
+                    <FilterAltIcon />
+                  </Button>
+                </Tooltip>
+              ) : null}
+            </div>
+          }
+          onToggle={(isExpanded: boolean) => setExpandedLabels({ ...expandedLabels, [attrKey]: isExpanded })}
+        >
+          <FormGroup>
+            {Object.entries(attr.values)
+              .sort()
+              .map(([valueKey, value]: [string, CatalogLabelValueItemCount]) => (
+                <Checkbox
+                  id={attrKey + '/' + valueKey}
+                  key={attrKey + '/' + valueKey}
+                  label={value.displayName + ' (' + value.count + ')'}
+                  isChecked={(selected?.[attrKey] || []).includes(valueKey)}
+                  onChange={(checked) => onChange(checked, attrKey, valueKey)}
+                />
+              ))}
+          </FormGroup>
+        </ExpandableSection>
+      ))}
     </Form>
   );
 };
