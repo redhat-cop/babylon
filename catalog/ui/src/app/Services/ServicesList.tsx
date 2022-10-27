@@ -568,7 +568,7 @@ const ServicesList: React.FC<{
               const autoStopCell = (
                 // Auto-stop
                 <span key="auto-stop">
-                  {resourceClaim.status?.resources?.some((r) => r.state?.spec?.vars?.action_schedule) ? (
+                  {resourceClaim.status?.resources?.some((r) => r.state?.spec?.vars?.action_schedule?.stop) ? (
                     <Button
                       variant="control"
                       icon={<OutlinedClockIcon />}

@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ExclamationTriangleIcon, OutlinedClockIcon } from '@patternfly/react-icons';
-import { BABYLON_DOMAIN, canExecuteAction, getCostTracker } from '@app/util';
+import { BABYLON_DOMAIN, canExecuteAction, checkResourceClaimCanStop, getCostTracker } from '@app/util';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import {
@@ -26,6 +26,11 @@ import {
   Tab,
   TabTitleText,
   Title,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionToggle,
+  ExpandableSection,
 } from '@patternfly/react-core';
 import {
   apiPaths,
@@ -38,7 +43,15 @@ import {
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-import { AnarchySubject, K8sObject, NamespaceList, ResourceClaim, ServiceNamespace, Workshop } from '@app/types';
+import {
+  AnarchySubject,
+  K8sObject,
+  NamespaceList,
+  ResourceClaim,
+  ResourceClaimSpecResource,
+  ServiceNamespace,
+  Workshop,
+} from '@app/types';
 import { displayName, renderContent } from '@app/util';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -60,8 +73,166 @@ import useSWR, { useSWRConfig } from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
+import ConditionalWrapper from '@app/components/ConditionalWrapper';
+import { getMostRelevantResourceAndTemplate } from './service-utils';
 
 import './services-item.css';
+
+const ComponentDetailsList: React.FC<{
+  resourceState: AnarchySubject;
+  isAdmin: boolean;
+  resourceClaim: ResourceClaim;
+  resourceSpec: ResourceClaimSpecResource;
+  externalPlatformUrl: string;
+  isPartOfWorkshop: boolean;
+  startDate: Date;
+  startTimestamp: string;
+  stopDate: Date;
+  currentState: string;
+  provisionMessages: any;
+  provisionDataEntries: [string, unknown][];
+}> = ({
+  resourceState,
+  isAdmin,
+  resourceClaim,
+  resourceSpec,
+  externalPlatformUrl,
+  isPartOfWorkshop,
+  startDate,
+  startTimestamp,
+  stopDate,
+  currentState,
+  provisionMessages,
+  provisionDataEntries,
+}) => (
+  <DescriptionList isHorizontal>
+    {resourceState?.kind === 'AnarchySubject' ? (
+      <>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Status</DescriptionListTerm>
+          <DescriptionListDescription>
+            <ServiceStatus
+              creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+              resource={resourceState}
+              resourceTemplate={resourceSpec.template}
+            />
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > Date.now() ? (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
+            <DescriptionListDescription>
+              <LocalTimestamp timestamp={startTimestamp} />
+              <span style={{ padding: '0 6px' }}>
+                (<TimeInterval toTimestamp={startTimestamp} />)
+              </span>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ) : stopDate && Number(stopDate) > Date.now() ? null : currentState !== 'stopped' ? (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
+            <DescriptionListDescription>Now</DescriptionListDescription>
+          </DescriptionListGroup>
+        ) : null}
+        {provisionMessages ? (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Provision Messages</DescriptionListTerm>
+            <DescriptionListDescription>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: renderContent(
+                    (typeof provisionMessages === 'string' ? provisionMessages : provisionMessages.join('\n'))
+                      .replace(/^\s+|\s+$/g, '')
+                      .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
+                  ),
+                }}
+              />
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ) : null}
+        <ExpandableSection toggleText="Advanced settings">
+          {provisionDataEntries && provisionDataEntries.length > 0 ? (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Provision Data</DescriptionListTerm>
+              <DescriptionListDescription>
+                <DescriptionList isHorizontal className="services-item__provision-data">
+                  {provisionDataEntries
+                    .sort((a, b) => a[0].localeCompare(b[0]))
+                    .map(([key, value]) => (
+                      <DescriptionListGroup key={key}>
+                        <DescriptionListTerm>{key}</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          {typeof value === 'string' ? (
+                            value.startsWith('https://') ? (
+                              <a href={value}>
+                                <code>{value}</code>
+                              </a>
+                            ) : (
+                              <code>{value}</code>
+                            )
+                          ) : (
+                            <code>{JSON.stringify(value)}</code>
+                          )}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ))}
+                </DescriptionList>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ) : null}
+          {isAdmin ? (
+            <DescriptionListGroup>
+              <DescriptionListTerm>UUID</DescriptionListTerm>
+              <DescriptionListDescription>
+                {resourceState?.spec?.vars?.job_vars?.uuid || <p>-</p>}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ) : null}
+          {isAdmin && resourceState ? (
+            <DescriptionListGroup key="anarchy-namespace">
+              <DescriptionListTerm>Anarchy Namespace</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Link to={`/admin/anarchysubjects/${resourceState.metadata.namespace}`}>
+                  {resourceState.metadata.namespace}
+                </Link>
+                <OpenshiftConsoleLink resource={resourceState} linkToNamespace />
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ) : null}
+          {isAdmin && resourceState ? (
+            <DescriptionListGroup key="anarchy-governor">
+              <DescriptionListTerm>AnarchyGovernor</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Link to={`/admin/anarchygovernors/${resourceState.metadata.namespace}/${resourceState.spec.governor}`}>
+                  {resourceState.spec.governor}
+                </Link>
+                <OpenshiftConsoleLink
+                  reference={{
+                    apiVersion: 'anarchy.gpte.redhat.com/v1',
+                    kind: 'AnarchyGovernor',
+                    name: resourceState.spec.governor,
+                    namespace: resourceState.metadata.namespace,
+                  }}
+                />
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ) : null}
+          {isAdmin && resourceState ? (
+            <DescriptionListGroup key="anarchy-subject">
+              <DescriptionListTerm>AnarchySubject</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Link to={`/admin/anarchysubjects/${resourceState.metadata.namespace}/${resourceState.metadata.name}`}>
+                  {resourceState.metadata.name}
+                </Link>
+                <OpenshiftConsoleLink resource={resourceState} />
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ) : null}
+        </ExpandableSection>
+      </>
+    ) : null}
+  </DescriptionList>
+);
 
 const ServicesItemComponent: React.FC<{
   activeTab: string;
@@ -72,6 +243,7 @@ const ServicesItemComponent: React.FC<{
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { cache } = useSWRConfig();
+  const [expanded, setExpanded] = React.useState([]);
 
   const {
     data: resourceClaim,
@@ -260,6 +432,32 @@ const ServicesItemComponent: React.FC<{
 
   const costTracker = getCostTracker(resourceClaim);
 
+  const stopTimestamp = new Date(
+    Math.min(
+      ...resourceClaim.spec.resources
+        .map((specResource, idx) => {
+          const statusResource = resourceClaim.status.resources[idx];
+          if (!canExecuteAction(statusResource.state, 'stop')) return null;
+          const stopTimestamp =
+            specResource.template?.spec?.vars?.action_schedule?.stop ||
+            statusResource.state.spec.vars.action_schedule.stop;
+          if (stopTimestamp) {
+            return Date.parse(stopTimestamp);
+          } else {
+            return null;
+          }
+        })
+        .filter((time) => time !== null)
+    )
+  );
+
+  const toggle = (id: string) => {
+    const index = expanded.indexOf(id);
+    const newExpanded: string[] =
+      index >= 0 ? [...expanded.slice(0, index), ...expanded.slice(index + 1, expanded.length)] : [...expanded, id];
+    setExpanded(newExpanded);
+  };
+
   return (
     <>
       <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
@@ -376,11 +574,53 @@ const ServicesItemComponent: React.FC<{
                   </DescriptionListGroup>
                 ) : null}
                 <DescriptionListGroup>
+                  <DescriptionListTerm>GUID</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {isAdmin && resourceClaim?.status?.resourceHandle ? (
+                      <>
+                        <Link key="admin" to={`/admin/resourcehandles/${resourceClaim.status.resourceHandle.name}`}>
+                          <code>{resourceClaim.status.resourceHandle.name.substring(5)}</code>
+                        </Link>
+                        <OpenshiftConsoleLink key="console" reference={resourceClaim.status.resourceHandle} />
+                      </>
+                    ) : (
+                      <code>{resourceClaim?.status?.resourceHandle?.name.substring(5) || '...'}</code>
+                    )}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
                   <DescriptionListTerm>Requested On</DescriptionListTerm>
                   <DescriptionListDescription>
                     <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Auto-stop</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {resourceClaim.status?.resources?.some((r) => r.state?.spec?.vars?.action_schedule?.stop) ? (
+                      <Button
+                        key="auto-stop"
+                        variant="control"
+                        icon={<OutlinedClockIcon />}
+                        iconPosition="right"
+                        isDisabled={!checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop}
+                        onClick={() => {
+                          showModal({ action: 'stop', modal: 'scheduleAction' });
+                        }}
+                        className="services-item__schedule-btn"
+                      >
+                        <LocalTimestamp date={stopTimestamp} />
+                        <span style={{ padding: '0 6px' }}>
+                          (<TimeInterval toDate={stopTimestamp} />)
+                        </span>
+                      </Button>
+                    ) : (
+                      <p>-</p>
+                    )}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+
                 {!externalPlatformUrl && !isPartOfWorkshop && resourceClaim?.status?.lifespan?.end ? (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
@@ -415,21 +655,7 @@ const ServicesItemComponent: React.FC<{
                     )}
                   </DescriptionListGroup>
                 ) : null}
-                <DescriptionListGroup>
-                  <DescriptionListTerm>GUID</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {isAdmin && resourceClaim?.status?.resourceHandle ? (
-                      <>
-                        <Link key="admin" to={`/admin/resourcehandles/${resourceClaim.status.resourceHandle.name}`}>
-                          <code>{resourceClaim.status.resourceHandle.name.substring(5)}</code>
-                        </Link>
-                        <OpenshiftConsoleLink key="console" reference={resourceClaim.status.resourceHandle} />
-                      </>
-                    ) : (
-                      <code>{resourceClaim?.status?.resourceHandle?.name.substring(5) || '...'}</code>
-                    )}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
+
                 {costTracker ? (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Amount spent</DescriptionListTerm>
@@ -445,220 +671,137 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 ) : null}
-              </DescriptionList>
-              {resourceClaim.spec.resources.map((resourceSpec, idx) => {
-                const resourceStatus = resourceClaim.status?.resources?.[idx];
-                const resourceState = resourceStatus?.state;
-                const componentDisplayName =
-                  resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||
-                  resourceSpec.name ||
-                  resourceSpec.provider?.name;
-                const currentState =
-                  resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.current_state : 'available';
-                const provisionData =
-                  resourceState?.kind === 'AnarchySubject'
-                    ? resourceState.spec.vars?.provision_data
-                    : JSON.parse(resourceState?.data?.userData || '{}');
-                const provisionMessages =
-                  resourceState?.kind === 'AnarchySubject'
-                    ? resourceState?.spec?.vars?.provision_messages
-                    : provisionData?.msg;
-                const provisionDataEntries = provisionData
-                  ? Object.entries(provisionData).filter(([key]) => {
-                      if (
-                        key === 'bookbag_url' ||
-                        key === 'lab_ui_url' ||
-                        key === 'labUserInterfaceUrl' ||
-                        key === 'msg' ||
-                        key === 'users'
-                      ) {
-                        return false;
-                      }
-                      if (userData) {
-                        if (userData[key]) {
-                          return true;
-                        } else {
-                          return false;
-                        }
-                      } else {
-                        return true;
-                      }
-                    })
-                  : null;
-                const stopTimestamp =
-                  resourceState?.kind === 'AnarchySubject'
-                    ? resourceSpec.template?.spec.vars?.action_schedule?.stop ||
-                      resourceState?.spec.vars.action_schedule?.stop
-                    : null;
-                const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
-                const stopDate = stopTime ? new Date(stopTime) : null;
-                const startTimestamp =
-                  resourceState?.kind == 'AnarchySubject'
-                    ? resourceSpec.template?.spec.vars?.action_schedule?.start ||
-                      resourceState?.spec.vars.action_schedule?.start
-                    : null;
-                const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
-                const startDate = startTime ? new Date(startTime) : null;
 
-                return (
-                  <div key={idx} className="services-item__body-resource">
-                    {resourceClaim.spec.resources.length > 1 ? <h2>{componentDisplayName}</h2> : null}
-                    <DescriptionList isHorizontal>
-                      {resourceState?.kind === 'AnarchySubject' ? (
-                        <>
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>UUID</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {resourceState?.spec?.vars?.job_vars?.uuid || <p>-</p>}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>Status</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              <ServiceStatus
-                                creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                                resource={resourceState}
-                                resourceTemplate={resourceSpec.template}
-                              />
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                          {externalPlatformUrl || isPartOfWorkshop ? null : startDate &&
-                            Number(startDate) > Date.now() ? (
-                            <DescriptionListGroup>
-                              <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
-                              <DescriptionListDescription>
-                                <LocalTimestamp timestamp={startTimestamp} />
-                                <span style={{ padding: '0 6px' }}>
-                                  (<TimeInterval toTimestamp={startTimestamp} />)
-                                </span>
-                              </DescriptionListDescription>
-                            </DescriptionListGroup>
-                          ) : stopDate && Number(stopDate) > Date.now() ? (
-                            <DescriptionListGroup>
-                              <DescriptionListTerm>Auto-Stop</DescriptionListTerm>
-                              <DescriptionListDescription>
-                                <Button
-                                  key="auto-stop"
-                                  variant="control"
-                                  icon={<OutlinedClockIcon />}
-                                  iconPosition="right"
-                                  onClick={() => showModal({ action: 'stop', modal: 'scheduleAction' })}
-                                  className="services-item__schedule-btn"
-                                >
-                                  <LocalTimestamp timestamp={stopTimestamp} />
-                                  <span style={{ padding: '0 6px' }}>
-                                    (<TimeInterval toTimestamp={stopTimestamp} />)
-                                  </span>
-                                </Button>
-                              </DescriptionListDescription>
-                            </DescriptionListGroup>
-                          ) : currentState !== 'stopped' ? (
-                            <DescriptionListGroup>
-                              <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
-                              <DescriptionListDescription>Now</DescriptionListDescription>
-                            </DescriptionListGroup>
-                          ) : (
-                            <DescriptionListGroup>
-                              <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
-                              <DescriptionListDescription>-</DescriptionListDescription>
-                            </DescriptionListGroup>
+                {resourceClaim.spec.resources.length > 1 ? (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Status</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ServiceStatus
+                        creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                        resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
+                        resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
+                      />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                ) : null}
+
+                <ConditionalWrapper
+                  condition={resourceClaim.spec.resources.length > 1}
+                  wrapper={(children) => (
+                    <section>
+                      <header>
+                        <h3
+                          style={{
+                            fontSize: 'var(--pf-global--FontSize--sm)',
+                            fontWeight: 'var(--pf-global--FontWeight--bold)',
+                            lineHeight: 'var(--pf-global--LineHeight--sm)',
+                            marginBottom: 'var(--pf-global--spacer--sm)',
+                          }}
+                        >
+                          Components
+                        </h3>
+                      </header>
+                      <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
+                        {children}
+                      </Accordion>
+                    </section>
+                  )}
+                >
+                  <div>
+                    {resourceClaim.spec.resources.map((resourceSpec, idx) => {
+                      const resourceStatus = resourceClaim.status?.resources?.[idx];
+                      const resourceState = resourceStatus?.state;
+                      const componentDisplayName =
+                        resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||
+                        resourceSpec.name ||
+                        resourceSpec.provider?.name;
+                      const currentState =
+                        resourceState?.kind === 'AnarchySubject' ? resourceState.spec.vars?.current_state : 'available';
+                      const stopTimestamp =
+                        resourceState?.kind === 'AnarchySubject'
+                          ? resourceSpec.template?.spec.vars?.action_schedule?.stop ||
+                            resourceState?.spec.vars.action_schedule?.stop
+                          : null;
+                      const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+                      const stopDate = stopTime ? new Date(stopTime) : null;
+                      const provisionData =
+                        resourceState?.kind === 'AnarchySubject'
+                          ? resourceState.spec.vars?.provision_data
+                          : JSON.parse(resourceState?.data?.userData || '{}');
+                      const provisionMessages =
+                        resourceState?.kind === 'AnarchySubject'
+                          ? resourceState?.spec?.vars?.provision_messages
+                          : provisionData?.msg;
+                      const provisionDataEntries = provisionData
+                        ? Object.entries(provisionData).filter(([key]) => {
+                            if (
+                              key === 'bookbag_url' ||
+                              key === 'lab_ui_url' ||
+                              key === 'labUserInterfaceUrl' ||
+                              key === 'msg' ||
+                              key === 'users'
+                            ) {
+                              return false;
+                            }
+                            if (userData) {
+                              if (userData[key]) {
+                                return true;
+                              } else {
+                                return false;
+                              }
+                            } else {
+                              return true;
+                            }
+                          })
+                        : null;
+
+                      const startTimestamp =
+                        resourceState?.kind == 'AnarchySubject'
+                          ? resourceSpec.template?.spec.vars?.action_schedule?.start ||
+                            resourceState?.spec.vars.action_schedule?.start
+                          : null;
+                      const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
+                      const startDate = startTime ? new Date(startTime) : null;
+
+                      return (
+                        <ConditionalWrapper
+                          key={idx}
+                          condition={resourceClaim.spec.resources.length > 1}
+                          wrapper={(children) => (
+                            <AccordionItem>
+                              <AccordionToggle
+                                isExpanded={expanded.includes(`item-${idx}`)}
+                                id={`item-${idx}`}
+                                onClick={() => toggle(`item-${idx}`)}
+                              >
+                                {componentDisplayName}
+                              </AccordionToggle>
+                              <AccordionContent isHidden={!expanded.includes(`item-${idx}`)} id={`item-${idx}`}>
+                                {children}
+                              </AccordionContent>
+                            </AccordionItem>
                           )}
-                          {isAdmin && resourceState ? (
-                            <>
-                              <DescriptionListGroup key="anarchy-namespace">
-                                <DescriptionListTerm>Anarchy Namespace</DescriptionListTerm>
-                                <DescriptionListDescription>
-                                  <Link to={`/admin/anarchysubjects/${resourceState.metadata.namespace}`}>
-                                    {resourceState.metadata.namespace}
-                                  </Link>
-                                  <OpenshiftConsoleLink resource={resourceState} linkToNamespace />
-                                </DescriptionListDescription>
-                              </DescriptionListGroup>
-                              <DescriptionListGroup key="anarchy-governor">
-                                <DescriptionListTerm>AnarchyGovernor</DescriptionListTerm>
-                                <DescriptionListDescription>
-                                  <Link
-                                    to={`/admin/anarchygovernors/${resourceState.metadata.namespace}/${resourceState.spec.governor}`}
-                                  >
-                                    {resourceState.spec.governor}
-                                  </Link>
-                                  <OpenshiftConsoleLink
-                                    reference={{
-                                      apiVersion: 'anarchy.gpte.redhat.com/v1',
-                                      kind: 'AnarchyGovernor',
-                                      name: resourceState.spec.governor,
-                                      namespace: resourceState.metadata.namespace,
-                                    }}
-                                  />
-                                </DescriptionListDescription>
-                              </DescriptionListGroup>
-                              <DescriptionListGroup key="anarchy-subject">
-                                <DescriptionListTerm>AnarchySubject</DescriptionListTerm>
-                                <DescriptionListDescription>
-                                  <Link
-                                    to={`/admin/anarchysubjects/${resourceState.metadata.namespace}/${resourceState.metadata.name}`}
-                                  >
-                                    {resourceState.metadata.name}
-                                  </Link>
-                                  <OpenshiftConsoleLink resource={resourceState} />
-                                </DescriptionListDescription>
-                              </DescriptionListGroup>
-                            </>
-                          ) : null}
-                        </>
-                      ) : null}
-                      {provisionMessages ? (
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Provision Messages</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: renderContent(
-                                  (typeof provisionMessages === 'string'
-                                    ? provisionMessages
-                                    : provisionMessages.join('\n')
-                                  )
-                                    .replace(/^\s+|\s+$/g, '')
-                                    .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
-                                ),
-                              }}
-                            />
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      ) : null}
-                      {provisionDataEntries && provisionDataEntries.length > 0 ? (
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Provision Data</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            <DescriptionList isHorizontal className="services-item__provision-data">
-                              {provisionDataEntries
-                                .sort((a, b) => a[0].localeCompare(b[0]))
-                                .map(([key, value]) => (
-                                  <DescriptionListGroup key={key}>
-                                    <DescriptionListTerm>{key}</DescriptionListTerm>
-                                    <DescriptionListDescription>
-                                      {typeof value === 'string' ? (
-                                        value.startsWith('https://') ? (
-                                          <a href={value}>
-                                            <code>{value}</code>
-                                          </a>
-                                        ) : (
-                                          <code>{value}</code>
-                                        )
-                                      ) : (
-                                        <code>{JSON.stringify(value)}</code>
-                                      )}
-                                    </DescriptionListDescription>
-                                  </DescriptionListGroup>
-                                ))}
-                            </DescriptionList>
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      ) : null}
-                    </DescriptionList>
+                        >
+                          <ComponentDetailsList
+                            resourceState={resourceState}
+                            isAdmin={isAdmin}
+                            resourceClaim={resourceClaim}
+                            resourceSpec={resourceSpec}
+                            externalPlatformUrl={externalPlatformUrl}
+                            isPartOfWorkshop={isPartOfWorkshop}
+                            startDate={startDate}
+                            startTimestamp={startTimestamp}
+                            stopDate={stopDate}
+                            currentState={currentState}
+                            provisionDataEntries={provisionDataEntries}
+                            provisionMessages={provisionMessages}
+                          />
+                        </ConditionalWrapper>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </ConditionalWrapper>
+              </DescriptionList>
             </Tab>
             {statusEnabled ? (
               <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
