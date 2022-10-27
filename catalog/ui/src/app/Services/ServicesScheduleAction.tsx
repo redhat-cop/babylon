@@ -19,10 +19,14 @@ const ServicesScheduleAction: React.FC<{
         action === 'retirement'
           ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end)
           : Math.min(
-              ...resourceClaim.status.resources
-                .map((statusResource) => {
+              ...resourceClaim.spec.resources
+                .map((specResource, idx) => {
+                  const statusResource = resourceClaim.status?.resources?.[idx];
                   if (!canExecuteAction(statusResource.state, 'stop')) return null;
-                  const stopTimestamp = statusResource.state?.spec?.vars?.action_schedule?.stop;
+                  const stopTimestamp =
+                    specResource.template?.spec?.vars?.action_schedule?.stop ||
+                    statusResource.state.spec.vars.action_schedule.stop;
+
                   if (stopTimestamp) {
                     return Date.parse(stopTimestamp);
                   } else {
@@ -32,7 +36,13 @@ const ServicesScheduleAction: React.FC<{
                 .filter((time) => time !== null)
             )
       ),
-    [action, resourceClaim.spec.lifespan?.end, resourceClaim.status.lifespan.end, resourceClaim.status.resources]
+    [
+      action,
+      resourceClaim.spec.lifespan?.end,
+      resourceClaim.spec.resources,
+      resourceClaim.status.lifespan.end,
+      resourceClaim.status?.resources,
+    ]
   );
 
   const [selectedDate, setSelectedDate] = useState(currentActionDate);
