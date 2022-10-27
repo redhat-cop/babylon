@@ -2,9 +2,9 @@ import React from 'react';
 import { Tab, Tabs, TabTitleText, Tooltip } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
 import { formatString, getCategory } from './catalog-utils';
+import { InfoAltIcon } from '@patternfly/react-icons';
 
 import './catalog-category-selector.css';
-import { InfoAltIcon } from '@patternfly/react-icons';
 
 const CATEGORIES_DEFINITIONS = {
   labs: "Environments used to increase user's skills and knowledge",

@@ -3,9 +3,9 @@ import { Button, Checkbox, ExpandableSection, Form, FormGroup, Tooltip } from '@
 import { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
 import { formatString, HIDDEN_LABELS } from './catalog-utils';
+import { FilterAltIcon } from '@patternfly/react-icons';
 
 import './catalog-label-selector.css';
-import { FilterAltIcon } from '@patternfly/react-icons';
 
 type CatalogLabelValues = {
   displayName: string;
