@@ -5,6 +5,7 @@ module.exports = {
   // Global vairable to be used in jest config
   globals: {
     'ts-jest': {
+      babelConfig: require('./babel.config.js'),
       diagnostics: {
         warnOnly: true, // TODO: supress all the ts-jest errors and executes the scripts with them errors as warning
       },
@@ -41,4 +42,6 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/test-setup.js'],
 
   testEnvironment: 'jsdom',
+
+  transformIgnorePatterns: ['/node_modules/(?!@patternfly|@popperjs|lodash|monaco-editor|react-monaco-editor)'],
 };

@@ -5,7 +5,7 @@ import anarchySubjectFailedObj from '../__mocks__/anarchySubject--start-failed.j
 import ServiceStatus from './ServiceStatus';
 import { render, waitFor } from '@app/utils/test-utils';
 
-jest.mock('react-redux', () => ({
+jest.doMock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
   useSelector: jest.fn().mockReturnValue(true),
 }));

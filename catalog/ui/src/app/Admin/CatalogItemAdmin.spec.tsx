@@ -1,4 +1,4 @@
-jest.mock('../api');
+jest.doMock('../api');
 import '@testing-library/jest-dom';
 
 import React from 'react';
@@ -13,13 +13,13 @@ import { BABYLON_DOMAIN } from '@app/util';
 const namespaceName = 'fakeNamespace';
 const ciName = 'ci-name';
 
-jest.mock('@app/api', () => ({
+jest.doMock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcher: jest.fn(() => Promise.resolve(catalogItemObj as CatalogItem)),
   patchK8sObjectByPath: jest.fn(),
 }));
 
-jest.mock('react-router-dom', () => ({
+jest.doMock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ namespace: namespaceName, name: ciName }),
   useRouteMatch: () => ({
@@ -27,7 +27,7 @@ jest.mock('react-router-dom', () => ({
     params: { namespace: namespaceName, name: ciName },
   }),
 }));
-jest.mock('@app/utils/useSession', () =>
+jest.doMock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({ isAdmin: true }),
   }))

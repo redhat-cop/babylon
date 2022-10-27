@@ -6,15 +6,15 @@ import catalogItemsObj from '../__mocks__/catalogItems.json';
 import { CatalogItem } from '@app/types';
 import { createMemoryHistory } from 'history';
 
-jest.mock('@app/api', () => ({
+jest.doMock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcherItemsInAllPages: jest.fn(() => Promise.resolve(catalogItemsObj.items as CatalogItem[])),
 }));
-jest.mock('react-router-dom', () => ({
+jest.doMock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ namespace: 'babylon-catalog-test' }),
 }));
-jest.mock('@app/utils/useSession', () =>
+jest.doMock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({ isAdmin: true }),
   }))

@@ -6,11 +6,11 @@ import CatalogItemDetails from './CatalogItemDetails';
 import catalogItemObj from '../__mocks__/catalogItem.json';
 import { ResourceClaim } from '@app/types';
 
-jest.mock('@app/api', () => ({
+jest.doMock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcherItemsInAllPages: jest.fn(() => Promise.resolve([] as ResourceClaim[])),
 }));
-jest.mock('@app/utils/useSession', () =>
+jest.doMock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({}),
   }))

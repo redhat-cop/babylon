@@ -1,11 +1,11 @@
-jest.mock('../api');
+jest.doMock('../api');
 import '@testing-library/jest-dom';
 
 import React from 'react';
 import { render, waitFor, fireEvent } from '../utils/test-utils';
 import AppLayout from './AppLayout';
 
-jest.mock('@app/utils/useSession', () => {
+jest.doMock('@app/utils/useSession', () => {
   return jest.fn(() => ({
     getSession: () => ({
       email: 'test@redhat.com',
