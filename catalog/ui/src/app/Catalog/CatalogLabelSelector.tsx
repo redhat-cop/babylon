@@ -102,9 +102,11 @@ const CatalogLabelSelector: React.FC<{
 
   const labelsSorted = Object.entries(labels).sort();
   const featuredIndex = labelsSorted.findIndex(([x]) => x.toLowerCase() === 'sales_play_demos');
-  const featuredLabel = labelsSorted[featuredIndex];
-  labelsSorted.splice(featuredIndex, 1);
-  labelsSorted.unshift(featuredLabel);
+  if (featuredIndex !== -1) {
+    const featuredLabel = labelsSorted[featuredIndex];
+    labelsSorted.splice(featuredIndex, 1);
+    labelsSorted.unshift(featuredLabel);
+  }
 
   return (
     <Form className="catalog-label-selector">
