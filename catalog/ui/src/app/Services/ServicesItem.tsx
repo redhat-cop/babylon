@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { ExclamationTriangleIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { BABYLON_DOMAIN, canExecuteAction, checkResourceClaimCanStop, getCostTracker } from '@app/util';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
@@ -32,6 +31,8 @@ import {
   AccordionToggle,
   ExpandableSection,
 } from '@patternfly/react-core';
+import OutlinedClockIcon from '@patternfly/react-icons/dist/esm/icons/outlined-clock-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import {
   apiPaths,
   deleteResourceClaim,

@@ -7,19 +7,15 @@ const BG_IMAGES_DIRNAME = 'bgimages';
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 module.exports = () => {
   return {
+    optimization: {
+      sideEffects: true,
+    },
     module: {
       rules: [
         {
-          test: /\.(tsx|ts|jsx)?$/,
-          use: [
-            {
-              loader: 'ts-loader',
-              options: {
-                transpileOnly: false,
-                experimentalWatchApi: true,
-              },
-            },
-          ],
+          test: /\.(js|jsx|tsx|ts)$/,
+          exclude: /node_modules/,
+          loader: 'babel-loader',
         },
         {
           test: /\.(woff|woff2|eot|ttf|otf)$/i,
