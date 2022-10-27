@@ -1,19 +1,21 @@
-import React, { useCallback } from 'react';
-import { Checkbox, Form, FormGroup } from '@patternfly/react-core';
+import React, { useCallback, useState } from 'react';
+import { Button, Checkbox, ExpandableSection, Form, FormGroup, Tooltip } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
-import { formatString, HIDDEN_LABELS } from './catalog-utils';
 import { BABYLON_DOMAIN } from '@app/util';
+import { formatString, HIDDEN_LABELS } from './catalog-utils';
 
 import './catalog-label-selector.css';
-interface CatalogLabelValues {
+import { FilterAltIcon } from '@patternfly/react-icons';
+
+type CatalogLabelValues = {
   displayName: string;
   values: { [value: string]: CatalogLabelValueItemCount };
-}
+};
 
-interface CatalogLabelValueItemCount {
+type CatalogLabelValueItemCount = {
   count: number;
   displayName: string;
-}
+};
 
 const CatalogLabelSelector: React.FC<{
   catalogItems: CatalogItem[];
@@ -21,6 +23,7 @@ const CatalogLabelSelector: React.FC<{
   onSelect: (labels: { [label: string]: string[] }) => void;
   selected: { [label: string]: string[] };
 }> = ({ catalogItems, filteredCatalogItems, onSelect, selected }) => {
+  const [expandedLabels, setExpandedLabels] = useState<{ [label: string]: boolean }>({});
   const labels: { [label: string]: CatalogLabelValues } = {};
   for (const catalogItem of catalogItems || []) {
     if (!catalogItem.metadata.labels) continue;
@@ -84,30 +87,69 @@ const CatalogLabelSelector: React.FC<{
     [onSelect, selected]
   );
 
+  const onClearFilter = useCallback(
+    (filterName) => {
+      const updated: { [label: string]: string[] } = {};
+      for (const [label, values] of Object.entries(selected || {})) {
+        if (label !== filterName) {
+          updated[label] = values;
+        }
+      }
+      onSelect(Object.keys(updated).length === 0 ? null : updated);
+    },
+    [onSelect, selected]
+  );
+
+  const labelsSorted = Object.entries(labels).sort();
+  const featuredIndex = labelsSorted.findIndex(([x]) => x.toLowerCase() === 'sales_play_demos');
+  if (featuredIndex !== -1) {
+    const featuredLabel = labelsSorted[featuredIndex];
+    labelsSorted.splice(featuredIndex, 1);
+    labelsSorted.unshift(featuredLabel);
+  }
+
   return (
     <Form className="catalog-label-selector">
-      {Object.entries(labels)
-        .sort()
-        .map(([attrKey, attr]: [string, CatalogLabelValues]) => (
-          <FormGroup key={attrKey} fieldId={attrKey}>
-            <fieldset>
-              <legend className="pf-c-form__label">
-                <span className="pf-c-form__label-text">{attr.displayName}</span>
-              </legend>
-              {Object.entries(attr.values)
-                .sort()
-                .map(([valueKey, value]: [string, CatalogLabelValueItemCount]) => (
-                  <Checkbox
-                    id={attrKey + '/' + valueKey}
-                    key={attrKey + '/' + valueKey}
-                    label={value.displayName + ' (' + value.count + ')'}
-                    isChecked={(selected?.[attrKey] || []).includes(valueKey)}
-                    onChange={(checked) => onChange(checked, attrKey, valueKey)}
-                  />
-                ))}
-            </fieldset>
+      {labelsSorted.map(([attrKey, attr]: [string, CatalogLabelValues]) => (
+        <ExpandableSection
+          key={attrKey}
+          isExpanded={expandedLabels[attrKey] || false}
+          toggleContent={
+            <div style={{ display: 'flex', flexDirection: 'row' }}>
+              <p>{attr.displayName}</p>
+              {Object.entries(attr.values).some(([valueKey]) => (selected?.[attrKey] || []).includes(valueKey)) ? (
+                <Tooltip content={<div>Clear filter</div>}>
+                  <Button
+                    variant="plain"
+                    style={{ marginRight: 0, marginLeft: 'auto', padding: 0 }}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      onClearFilter(attrKey);
+                    }}
+                  >
+                    <FilterAltIcon />
+                  </Button>
+                </Tooltip>
+              ) : null}
+            </div>
+          }
+          onToggle={(isExpanded: boolean) => setExpandedLabels({ ...expandedLabels, [attrKey]: isExpanded })}
+        >
+          <FormGroup>
+            {Object.entries(attr.values)
+              .sort()
+              .map(([valueKey, value]: [string, CatalogLabelValueItemCount]) => (
+                <Checkbox
+                  id={attrKey + '/' + valueKey}
+                  key={attrKey + '/' + valueKey}
+                  label={value.displayName + ' (' + value.count + ')'}
+                  isChecked={(selected?.[attrKey] || []).includes(valueKey)}
+                  onChange={(checked) => onChange(checked, attrKey, valueKey)}
+                />
+              ))}
           </FormGroup>
-        ))}
+        </ExpandableSection>
+      ))}
     </Form>
   );
 };

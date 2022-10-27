@@ -1,9 +1,17 @@
 import React from 'react';
-import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
+import { Tab, Tabs, TabTitleText, Tooltip } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
 import { formatString, getCategory } from './catalog-utils';
 
 import './catalog-category-selector.css';
+import { InfoAltIcon } from '@patternfly/react-icons';
+
+const CATEGORIES_DEFINITIONS = {
+  labs: "Environments used to increase user's skills and knowledge",
+  demos: 'Environments used to showcase and demonstrate solutions to customers',
+  workshops: 'Environments used to provide a hands-on experience to our customers with our solutions',
+  open_environments: 'Environments allowing access to different cloud providers with a Chargeback component',
+};
 
 const CatalogCategorySelector: React.FC<{
   catalogItems: CatalogItem[];
@@ -40,9 +48,28 @@ const CatalogCategorySelector: React.FC<{
         '2xl': 'insetNone',
       }}
     >
-      <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
+      <Tab key="all" eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
       {categories.map((category) => (
-        <Tab key={category} eventKey={category} title={<TabTitleText>{formatString(category)}</TabTitleText>}></Tab>
+        <Tab
+          key={category}
+          eventKey={category}
+          title={
+            <TabTitleText>
+              {formatString(category)}
+              {category.toLowerCase() in CATEGORIES_DEFINITIONS ? (
+                <Tooltip content={CATEGORIES_DEFINITIONS[category.toLowerCase()]}>
+                  <InfoAltIcon
+                    style={{
+                      paddingTop: 'var(--pf-global--spacer--xs)',
+                      marginLeft: 'var(--pf-global--spacer--sm)',
+                      width: 'var(--pf-global--icon--FontSize--sm)',
+                    }}
+                  />
+                </Tooltip>
+              ) : null}
+            </TabTitleText>
+          }
+        ></Tab>
       ))}
     </Tabs>
   );

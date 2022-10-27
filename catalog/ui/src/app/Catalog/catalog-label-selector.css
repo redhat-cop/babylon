@@ -1,5 +1,5 @@
 .catalog-label-selector {
-  gap: var(--pf-global--spacer--md);
+  gap: var(--pf-global--spacer--xs);
 }
 .catalog-label-selector .pf-c-check__label {
   font-size: var(--pf-global--FontSize--sm) !important;
@@ -7,16 +7,21 @@
   padding-bottom: var(--pf-global--spacer--xs);
 }
 
-.catalog-label-selector .pf-c-form__group {
+.catalog-label-selector .pf-c-expandable-section {
   margin-left: var(--pf-global--spacer--sm);
 }
 
-.catalog-label-selector .pf-c-form__group fieldset {
-  border: none;
+.catalog-label-selector .pf-c-expandable-section__content {
+  margin-left: var(--pf-global--spacer--md);
+  margin-bottom: var(--pf-global--spacer--md);
+  margin-top: var(--pf-global--spacer--sm);
 }
 
-.catalog-label-selector legend.pf-c-form__label {
-  font-size: var(--pf-global--FontSize--md) !important;
-  font-weight: bold;
-  margin-bottom: var(--pf-global--spacer--xs);
+.catalog-label-selector .pf-c-expandable-section__toggle,
+.catalog-label-selector .pf-c-expandable-section__toggle-icon {
+  color: var(--pf-global--palette--black-800);
+}
+.catalog-label-selector .pf-c-expandable-section__toggle,
+.catalog-label-selector .pf-c-expandable-section__toggle-text {
+  width: 100%;
 }
