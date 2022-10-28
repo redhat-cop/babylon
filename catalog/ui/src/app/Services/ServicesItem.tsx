@@ -151,85 +151,91 @@ const ComponentDetailsList: React.FC<{
             </DescriptionListDescription>
           </DescriptionListGroup>
         ) : null}
-        <ExpandableSection toggleText="Advanced settings">
-          {provisionDataEntries && provisionDataEntries.length > 0 ? (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Provision Data</DescriptionListTerm>
-              <DescriptionListDescription>
-                <DescriptionList isHorizontal className="services-item__provision-data">
-                  {provisionDataEntries
-                    .sort((a, b) => a[0].localeCompare(b[0]))
-                    .map(([key, value]) => (
-                      <DescriptionListGroup key={key}>
-                        <DescriptionListTerm>{key}</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          {typeof value === 'string' ? (
-                            value.startsWith('https://') ? (
-                              <a href={value}>
+        {isAdmin || (provisionDataEntries && provisionDataEntries.length > 0) ? (
+          <ExpandableSection toggleText="Advanced settings">
+            {provisionDataEntries && provisionDataEntries.length > 0 ? (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Provision Data</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <DescriptionList isHorizontal className="services-item__provision-data">
+                    {provisionDataEntries
+                      .sort((a, b) => a[0].localeCompare(b[0]))
+                      .map(([key, value]) => (
+                        <DescriptionListGroup key={key}>
+                          <DescriptionListTerm>{key}</DescriptionListTerm>
+                          <DescriptionListDescription>
+                            {typeof value === 'string' ? (
+                              value.startsWith('https://') ? (
+                                <a href={value}>
+                                  <code>{value}</code>
+                                </a>
+                              ) : (
                                 <code>{value}</code>
-                              </a>
+                              )
                             ) : (
-                              <code>{value}</code>
-                            )
-                          ) : (
-                            <code>{JSON.stringify(value)}</code>
-                          )}
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ))}
-                </DescriptionList>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : null}
-          {isAdmin ? (
-            <DescriptionListGroup>
-              <DescriptionListTerm>UUID</DescriptionListTerm>
-              <DescriptionListDescription>
-                {resourceState?.spec?.vars?.job_vars?.uuid || <p>-</p>}
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : null}
-          {isAdmin && resourceState ? (
-            <DescriptionListGroup key="anarchy-namespace">
-              <DescriptionListTerm>Anarchy Namespace</DescriptionListTerm>
-              <DescriptionListDescription>
-                <Link to={`/admin/anarchysubjects/${resourceState.metadata.namespace}`}>
-                  {resourceState.metadata.namespace}
-                </Link>
-                <OpenshiftConsoleLink resource={resourceState} linkToNamespace />
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : null}
-          {isAdmin && resourceState ? (
-            <DescriptionListGroup key="anarchy-governor">
-              <DescriptionListTerm>AnarchyGovernor</DescriptionListTerm>
-              <DescriptionListDescription>
-                <Link to={`/admin/anarchygovernors/${resourceState.metadata.namespace}/${resourceState.spec.governor}`}>
-                  {resourceState.spec.governor}
-                </Link>
-                <OpenshiftConsoleLink
-                  reference={{
-                    apiVersion: 'anarchy.gpte.redhat.com/v1',
-                    kind: 'AnarchyGovernor',
-                    name: resourceState.spec.governor,
-                    namespace: resourceState.metadata.namespace,
-                  }}
-                />
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : null}
-          {isAdmin && resourceState ? (
-            <DescriptionListGroup key="anarchy-subject">
-              <DescriptionListTerm>AnarchySubject</DescriptionListTerm>
-              <DescriptionListDescription>
-                <Link to={`/admin/anarchysubjects/${resourceState.metadata.namespace}/${resourceState.metadata.name}`}>
-                  {resourceState.metadata.name}
-                </Link>
-                <OpenshiftConsoleLink resource={resourceState} />
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : null}
-        </ExpandableSection>
+                              <code>{JSON.stringify(value)}</code>
+                            )}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      ))}
+                  </DescriptionList>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null}
+            {isAdmin ? (
+              <DescriptionListGroup>
+                <DescriptionListTerm>UUID</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {resourceState?.spec?.vars?.job_vars?.uuid || <p>-</p>}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null}
+            {isAdmin && resourceState ? (
+              <DescriptionListGroup key="anarchy-namespace">
+                <DescriptionListTerm>Anarchy Namespace</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <Link to={`/admin/anarchysubjects/${resourceState.metadata.namespace}`}>
+                    {resourceState.metadata.namespace}
+                  </Link>
+                  <OpenshiftConsoleLink resource={resourceState} linkToNamespace />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null}
+            {isAdmin && resourceState ? (
+              <DescriptionListGroup key="anarchy-governor">
+                <DescriptionListTerm>AnarchyGovernor</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <Link
+                    to={`/admin/anarchygovernors/${resourceState.metadata.namespace}/${resourceState.spec.governor}`}
+                  >
+                    {resourceState.spec.governor}
+                  </Link>
+                  <OpenshiftConsoleLink
+                    reference={{
+                      apiVersion: 'anarchy.gpte.redhat.com/v1',
+                      kind: 'AnarchyGovernor',
+                      name: resourceState.spec.governor,
+                      namespace: resourceState.metadata.namespace,
+                    }}
+                  />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null}
+            {isAdmin && resourceState ? (
+              <DescriptionListGroup key="anarchy-subject">
+                <DescriptionListTerm>AnarchySubject</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <Link
+                    to={`/admin/anarchysubjects/${resourceState.metadata.namespace}/${resourceState.metadata.name}`}
+                  >
+                    {resourceState.metadata.name}
+                  </Link>
+                  <OpenshiftConsoleLink resource={resourceState} />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null}
+          </ExpandableSection>
+        ) : null}
       </>
     ) : null}
   </DescriptionList>
