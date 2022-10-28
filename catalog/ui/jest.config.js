@@ -3,19 +3,9 @@
 
 module.exports = {
   transform: {
-    '^.+\\.(ts|tsx)?$': 'ts-jest',
-    '^.+\\.(js|jsx)$': 'ts-jest',
-    /*'/.(tsx|ts)$/': [
-      'ts-jest',
-      {
-        babelConfig: require('./babel.config.js'),
-        diagnostics: {
-          warnOnly: true, // TODO: supress all the ts-jest errors and executes the scripts with them errors as warning
-        },
-        isolatedModules: true,
-      },
-    ],*/
+    '/.(js|jsx|tsx|ts)$/': 'ts-jest',
   },
+
   verbose: true,
 
   // Automatically clear mock calls and instances between every test
@@ -47,6 +37,4 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/test-setup.ts'],
 
   testEnvironment: 'jsdom',
-
-  // transformIgnorePatterns: ['node_modules/(?!@patternfly)'],
 };

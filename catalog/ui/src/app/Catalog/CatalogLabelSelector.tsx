@@ -87,7 +87,26 @@ const CatalogLabelSelector: React.FC<{
     [onSelect, selected]
   );
 
+  const onClearFilter = useCallback(
+    (filterName) => {
+      const updated: { [label: string]: string[] } = {};
+      for (const [label, values] of Object.entries(selected || {})) {
+        if (label !== filterName) {
+          updated[label] = values;
+        }
+      }
+      onSelect(Object.keys(updated).length === 0 ? null : updated);
+    },
+    [onSelect, selected]
+  );
+
   const labelsSorted = Object.entries(labels).sort();
+  const featuredIndex = labelsSorted.findIndex(([x]) => x.toLowerCase() === 'sales_play_demos');
+  if (featuredIndex !== -1) {
+    const featuredLabel = labelsSorted[featuredIndex];
+    labelsSorted.splice(featuredIndex, 1);
+    labelsSorted.unshift(featuredLabel);
+  }
 
   return (
     <Form className="catalog-label-selector">
@@ -103,7 +122,10 @@ const CatalogLabelSelector: React.FC<{
                   <Button
                     variant="plain"
                     style={{ marginRight: 0, marginLeft: 'auto', padding: 0 }}
-                    onClick={() => null}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      onClearFilter(attrKey);
+                    }}
                   >
                     <FilterAltIcon />
                   </Button>
