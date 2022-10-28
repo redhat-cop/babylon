@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { HelpIcon } from '@patternfly/react-icons';
 import {
   ActionGroup,
   Bullseye,
@@ -15,6 +14,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
+import HelpIcon from '@patternfly/react-icons/dist/js/icons/help-icon';
 import { WorkshopDetails } from './workshopApi';
 
 const WorkshopLogin: React.FC<{

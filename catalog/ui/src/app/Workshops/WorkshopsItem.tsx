@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import {
@@ -20,6 +19,7 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
   apiPaths,
   dateToApiString,

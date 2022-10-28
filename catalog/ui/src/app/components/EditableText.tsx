@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Spinner, Text, TextArea, TextInput, TextVariants } from '@patternfly/react-core';
-import { PencilAltIcon } from '@patternfly/react-icons';
+import PencilAltIcon from '@patternfly/react-icons/dist/js/icons/pencil-alt-icon';
 
 import './editable-text.css';
 

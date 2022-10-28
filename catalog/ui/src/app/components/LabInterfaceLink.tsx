@@ -1,7 +1,7 @@
 import React from 'react';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { useSelector } from 'react-redux';
 import { Button } from '@patternfly/react-core';
+import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import { selectUser } from '@app/store';
 import ButtonCircleIcon from './ButtonCircleIcon';
 

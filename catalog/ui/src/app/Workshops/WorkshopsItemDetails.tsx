@@ -10,6 +10,10 @@ import {
   SelectVariant,
   Button,
 } from '@patternfly/react-core';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
+import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-icon';
+import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
+import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import { patchWorkshop } from '@app/api';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
@@ -17,7 +21,6 @@ import EditableText from '@app/components/EditableText';
 import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import useSession from '@app/utils/useSession';
-import { CheckCircleIcon, OutlinedClockIcon, QuestionCircleIcon, StopCircleIcon } from '@patternfly/react-icons';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
 import { ModalState } from './WorkshopsItem';

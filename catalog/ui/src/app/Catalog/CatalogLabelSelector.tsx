@@ -1,11 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import { Button, Checkbox, ExpandableSection, Form, FormGroup, Tooltip } from '@patternfly/react-core';
+import FilterAltIcon from '@patternfly/react-icons/dist/js/icons/filter-alt-icon';
 import { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
 import { formatString, HIDDEN_LABELS } from './catalog-utils';
 
 import './catalog-label-selector.css';
-import { FilterAltIcon } from '@patternfly/react-icons';
 
 type CatalogLabelValues = {
   displayName: string;

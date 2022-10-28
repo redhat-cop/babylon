@@ -10,6 +10,7 @@ import {
   DescriptionListDescription,
   Tooltip,
 } from '@patternfly/react-core';
+import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { apiPaths, fetcher, patchWorkshopProvision } from '@app/api';
 import { CatalogItem, WorkshopProvision } from '@app/types';
 import { displayName } from '@app/util';
@@ -17,7 +18,6 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
 import useSWR, { useSWRConfig } from 'swr';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
 const WorkshopsItemProvisioningItem: React.FC<{
   workshopProvision: WorkshopProvision;

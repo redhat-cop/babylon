@@ -1,6 +1,6 @@
 import React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { WorkshopProvision } from '@app/types';
 
 import WorkshopsItemProvisioningItem from './WorkshopsItemProvisioningItem';

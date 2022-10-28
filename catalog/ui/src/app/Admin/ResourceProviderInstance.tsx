@@ -20,7 +20,7 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import { apiPaths, deleteResourceProvider, fetcher } from '@app/api';

@@ -1,11 +1,11 @@
 import React, { Suspense } from 'react';
 import { ResourceClaim } from '@app/types';
+import { EmptyState, EmptyStateIcon } from '@patternfly/react-core';
+import ErrorCircleOIcon from '@patternfly/react-icons/dist/js/icons/error-circle-o-icon';
 import { getCostTracker } from '@app/util';
 import useSWR from 'swr';
 import { apiPaths, fetchWithUpdatedCostTracker } from '@app/api';
-import { EmptyState, EmptyStateIcon } from '@patternfly/react-core';
 import LoadingIcon from '@app/components/LoadingIcon';
-import { ErrorCircleOIcon } from '@patternfly/react-icons';
 import CurrencyAmount from './CurrencyAmount';
 
 const CostTrackerDialogData: React.FC<{

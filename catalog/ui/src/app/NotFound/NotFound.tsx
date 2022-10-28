@@ -1,6 +1,6 @@
 import React from 'react';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { PageSection, Title, Button, EmptyState, EmptyStateIcon, EmptyStateBody } from '@patternfly/react-core';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import useDocumentTitle from '@app/utils/useDocumentTitle';
 
 const NotFound: React.FC<{ title?: string }> = ({ title }) => {

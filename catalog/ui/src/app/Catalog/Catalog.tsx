@@ -23,9 +23,12 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
+import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
+import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
+import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
+import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
 import useSWRImmutable from 'swr/immutable';
 import { AsyncParser } from 'json2csv';
-import { DownloadIcon, ListIcon, ThIcon, TimesIcon } from '@patternfly/react-icons';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
@@ -494,7 +497,7 @@ const Catalog: React.FC = () => {
                     ) : (
                       <PageSection variant={PageSectionVariants.default} className="catalog__content-box--empty">
                         <EmptyState variant="full">
-                          { catalogItems.length > 0 ? (
+                          {catalogItems.length > 0 ? (
                             <p>
                               No catalog items match filters.{' '}
                               <Button
@@ -510,13 +513,15 @@ const Catalog: React.FC = () => {
                           ) : groups.includes('salesforce-partner') ? (
                             <p>
                               Sorry! The new Red Hat Product Demo System (RHPDS) is not yet available for partners.
-                              Please continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or <a href="https://rhpds.redhat.com/">rhpds.redhat.com</a> for demos.
+                              Please continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
+                              <a href="https://rhpds.redhat.com/">rhpds.redhat.com</a> for demos.
                             </p>
                           ) : (
                             <p>
-                              Sorry! You do not have access to the Red Hat Product Demo System.
-                              This system is only available for Red Hat associates at this time.
-                              Red Hat partners may access <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or <a href="https://rhpds.redhat.com/">rhpds.redhat.com</a> for demos.
+                              Sorry! You do not have access to the Red Hat Product Demo System. This system is only
+                              available for Red Hat associates at this time. Red Hat partners may access{' '}
+                              <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
+                              <a href="https://rhpds.redhat.com/">rhpds.redhat.com</a> for demos.
                             </p>
                           )}
                         </EmptyState>

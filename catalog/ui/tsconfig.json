@@ -30,6 +30,6 @@
     ],
     "resolveJsonModule": true,
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js", "./test-setup.ts"],
   "exclude": ["node_modules"]
 }

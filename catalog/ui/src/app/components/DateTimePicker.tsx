@@ -9,8 +9,9 @@ import {
   Button,
   Popover,
 } from '@patternfly/react-core';
+import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
+import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import { getLang } from '@app/util';
-import { OutlinedCalendarAltIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 
 import './date-time-picker.css';
 

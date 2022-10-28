@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
-import { DollarSignIcon, ExclamationTriangleIcon, TrashIcon } from '@patternfly/react-icons';
+import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-icon';
+import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { K8sObjectReference, ResourceClaim } from '@app/types';
 import { displayName, BABYLON_DOMAIN, getCostTracker } from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';

@@ -12,7 +12,8 @@ import {
   SplitItem,
   Title,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon, TrashIcon } from '@patternfly/react-icons';
+import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteWorkshop, fetcher } from '@app/api';
 import { NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
 import { compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';

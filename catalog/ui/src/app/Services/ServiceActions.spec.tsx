@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import React from 'react';
 import { render, waitFor, screen, fireEvent } from '@testing-library/react';
 import ServiceActions from './ServiceActions';

@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import React from 'react';
 import { render, waitFor, fireEvent, within, generateSession } from '../utils/test-utils';
 import Catalog from './Catalog';

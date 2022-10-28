@@ -1,12 +1,10 @@
 import React from 'react';
 import { Button } from '@patternfly/react-core';
-import { RedoIcon } from '@patternfly/react-icons';
+import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 
-export interface RefreshButtonProps {
+const RefreshButton: React.FunctionComponent<{
   onClick: () => void;
-}
-
-const RefreshButton: React.FunctionComponent<RefreshButtonProps> = ({ onClick }) => {
+}> = ({ onClick }) => {
   return (
     <Button icon={<RedoIcon />} onClick={() => onClick()} variant="tertiary">
       Refresh

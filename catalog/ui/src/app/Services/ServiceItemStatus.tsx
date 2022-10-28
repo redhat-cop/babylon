@@ -10,8 +10,8 @@ import {
   SplitItem,
   Title,
 } from '@patternfly/react-core';
+import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 import { BABYLON_DOMAIN } from '@app/util';
-import { RedoIcon } from '@patternfly/react-icons';
 import yaml from 'js-yaml';
 import { AnarchySubject, ResourceClaim, ResourceClaimSpecResourceTemplate } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';

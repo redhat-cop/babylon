@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import React from 'react';
 import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';

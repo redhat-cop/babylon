@@ -2,14 +2,10 @@
 // https://jestjs.io/docs/en/configuration.html
 
 module.exports = {
-  // Global vairable to be used in jest config
-  globals: {
-    'ts-jest': {
-      diagnostics: {
-        warnOnly: true, // TODO: supress all the ts-jest errors and executes the scripts with them errors as warning
-      },
-    },
+  transform: {
+    '/.(js|jsx|tsx|ts)$/': 'ts-jest',
   },
+
   verbose: true,
 
   // Automatically clear mock calls and instances between every test
@@ -38,7 +34,7 @@ module.exports = {
   preset: 'ts-jest/presets/js-with-ts',
 
   // The path to a module that runs some code to configure or set up the testing framework before each test
-  setupFilesAfterEnv: ['<rootDir>/test-setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/test-setup.ts'],
 
   testEnvironment: 'jsdom',
 };

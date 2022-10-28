@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import React from 'react';
 import anarchySubjectObj from '../__mocks__/anarchySubject.json';
 import anarchySubjectFailedObj from '../__mocks__/anarchySubject--start-failed.json';

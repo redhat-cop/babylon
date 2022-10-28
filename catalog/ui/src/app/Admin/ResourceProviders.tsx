@@ -9,7 +9,7 @@ import {
   SplitItem,
   Title,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteResourceProvider, fetcher } from '@app/api';
 import useSWRInfinite from 'swr/infinite';
 import { selectedUidsReducer } from '@app/reducers';

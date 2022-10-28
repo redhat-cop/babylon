@@ -1,6 +1,4 @@
 jest.mock('../api');
-import '@testing-library/jest-dom';
-
 import React from 'react';
 import { generateSession, render, waitFor } from '../utils/test-utils';
 import CatalogItemAdmin from './CatalogItemAdmin';
