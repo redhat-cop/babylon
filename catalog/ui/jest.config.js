@@ -2,14 +2,19 @@
 // https://jestjs.io/docs/en/configuration.html
 
 module.exports = {
-  // Global vairable to be used in jest config
-  globals: {
-    'ts-jest': {
-      babelConfig: require('./babel.config.js'),
-      diagnostics: {
-        warnOnly: true, // TODO: supress all the ts-jest errors and executes the scripts with them errors as warning
+  transform: {
+    '^.+\\.(ts|tsx)?$': 'ts-jest',
+    '^.+\\.(js|jsx)$': 'ts-jest',
+    /*'/.(tsx|ts)$/': [
+      'ts-jest',
+      {
+        babelConfig: require('./babel.config.js'),
+        diagnostics: {
+          warnOnly: true, // TODO: supress all the ts-jest errors and executes the scripts with them errors as warning
+        },
+        isolatedModules: true,
       },
-    },
+    ],*/
   },
   verbose: true,
 
@@ -39,9 +44,9 @@ module.exports = {
   preset: 'ts-jest/presets/js-with-ts',
 
   // The path to a module that runs some code to configure or set up the testing framework before each test
-  setupFilesAfterEnv: ['<rootDir>/test-setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/test-setup.ts'],
 
   testEnvironment: 'jsdom',
 
-  transformIgnorePatterns: ['/node_modules/(?!@patternfly|@popperjs|lodash|monaco-editor|react-monaco-editor)'],
+  // transformIgnorePatterns: ['node_modules/(?!@patternfly)'],
 };

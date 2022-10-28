@@ -15,13 +15,13 @@ import {
   Title,
   Button,
 } from '@patternfly/react-core';
-import StopIcon from '@patternfly/react-icons/dist/esm/icons/stop-icon';
-import PlayIcon from '@patternfly/react-icons/dist/esm/icons/play-icon';
-import DollarSignIcon from '@patternfly/react-icons/dist/esm/icons/dollar-sign-icon';
-import TrashIcon from '@patternfly/react-icons/dist/esm/icons/trash-icon';
-import CogIcon from '@patternfly/react-icons/dist/esm/icons/cog-icon';
-import OutlinedClockIcon from '@patternfly/react-icons/dist/esm/icons/outlined-clock-icon';
-import ExclamationTriangleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
+import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
+import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
+import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-icon';
+import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
+import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
+import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
   apiPaths,
   deleteResourceClaim,

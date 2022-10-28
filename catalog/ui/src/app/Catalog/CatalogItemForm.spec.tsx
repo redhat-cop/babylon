@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import React from 'react';
 import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils';
 import CatalogItemForm from './CatalogItemForm';
@@ -7,19 +6,19 @@ import userEvent from '@testing-library/user-event';
 import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 
-jest.doMock('@app/api', () => ({
+jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcher: () => Promise.resolve(catalogItemObj as CatalogItem),
 }));
 
 const mockNavigate = jest.fn();
-jest.doMock('react-router-dom', () => ({
+jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ namespace: 'babylon-catalog-test', name: 'tests.test-empty-config.prod' }),
   useNavigate: () => mockNavigate,
 }));
 
-jest.doMock('@app/utils/useSession', () =>
+jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({}),
   }))

@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { ResourceClaim } from '@app/types';
 import { EmptyState, EmptyStateIcon } from '@patternfly/react-core';
-import ErrorCircleOIcon from '@patternfly/react-icons/dist/esm/icons/error-circle-o-icon';
+import ErrorCircleOIcon from '@patternfly/react-icons/dist/js/icons/error-circle-o-icon';
 import { getCostTracker } from '@app/util';
 import useSWR from 'swr';
 import { apiPaths, fetchWithUpdatedCostTracker } from '@app/api';

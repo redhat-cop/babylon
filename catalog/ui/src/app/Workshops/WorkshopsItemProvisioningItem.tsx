@@ -10,7 +10,7 @@ import {
   DescriptionListDescription,
   Tooltip,
 } from '@patternfly/react-core';
-import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
+import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { apiPaths, fetcher, patchWorkshopProvision } from '@app/api';
 import { CatalogItem, WorkshopProvision } from '@app/types';
 import { displayName } from '@app/util';

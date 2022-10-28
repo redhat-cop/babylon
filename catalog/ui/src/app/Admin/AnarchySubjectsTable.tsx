@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState, EmptyStateIcon, Title } from '@patternfly/react-core';
-import ExclamationTriangleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { K8sFetchState } from '@app/K8sFetchState';
 import { AnarchySubject } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';

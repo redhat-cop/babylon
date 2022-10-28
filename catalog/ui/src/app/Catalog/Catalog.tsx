@@ -23,10 +23,10 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import DownloadIcon from '@patternfly/react-icons/dist/esm/icons/download-icon';
-import TimesIcon from '@patternfly/react-icons/dist/esm/icons/times-icon';
-import ListIcon from '@patternfly/react-icons/dist/esm/icons/list-icon';
-import ThIcon from '@patternfly/react-icons/dist/esm/icons/th-icon';
+import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
+import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
+import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
+import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
 import useSWRImmutable from 'swr/immutable';
 import { AsyncParser } from 'json2csv';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';

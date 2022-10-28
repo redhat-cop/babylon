@@ -14,7 +14,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import HelpIcon from '@patternfly/react-icons/dist/esm/icons/help-icon';
+import HelpIcon from '@patternfly/react-icons/dist/js/icons/help-icon';
 import { WorkshopDetails } from './workshopApi';
 
 const WorkshopLogin: React.FC<{

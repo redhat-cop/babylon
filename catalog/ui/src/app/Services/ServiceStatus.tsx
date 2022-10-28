@@ -1,9 +1,9 @@
 import React from 'react';
 import { Spinner } from '@patternfly/react-core';
-import QuestionCircleIcon from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
-import StopCircleIcon from '@patternfly/react-icons/dist/esm/icons/stop-circle-icon';
-import CheckCircleIcon from '@patternfly/react-icons/dist/esm/icons/check-circle-icon';
-import ExclamationCircleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
+import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-icon';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
+import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import { AnarchySubject, ResourceClaimSpecResourceTemplate } from '@app/types';
 
 import './service-status.css';

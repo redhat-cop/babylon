@@ -5,7 +5,7 @@ import { fireEvent, generateSession } from './utils/test-utils';
 import { Provider } from 'react-redux';
 import { store } from './store';
 
-jest.doMock('@app/utils/useSession', () =>
+jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({}),
   }))

@@ -1,6 +1,4 @@
-jest.doMock('../api');
-import '@testing-library/jest-dom';
-
+jest.mock('../api');
 import React from 'react';
 import { generateSession, render, waitFor } from '../utils/test-utils';
 import CatalogItemAdmin from './CatalogItemAdmin';
@@ -13,13 +11,13 @@ import { BABYLON_DOMAIN } from '@app/util';
 const namespaceName = 'fakeNamespace';
 const ciName = 'ci-name';
 
-jest.doMock('@app/api', () => ({
+jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcher: jest.fn(() => Promise.resolve(catalogItemObj as CatalogItem)),
   patchK8sObjectByPath: jest.fn(),
 }));
 
-jest.doMock('react-router-dom', () => ({
+jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ namespace: namespaceName, name: ciName }),
   useRouteMatch: () => ({
@@ -27,7 +25,7 @@ jest.doMock('react-router-dom', () => ({
     params: { namespace: namespaceName, name: ciName },
   }),
 }));
-jest.doMock('@app/utils/useSession', () =>
+jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({ isAdmin: true }),
   }))

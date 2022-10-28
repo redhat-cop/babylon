@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import React from 'react';
 import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
@@ -6,11 +5,11 @@ import CatalogItemDetails from './CatalogItemDetails';
 import catalogItemObj from '../__mocks__/catalogItem.json';
 import { ResourceClaim } from '@app/types';
 
-jest.doMock('@app/api', () => ({
+jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcherItemsInAllPages: jest.fn(() => Promise.resolve([] as ResourceClaim[])),
 }));
-jest.doMock('@app/utils/useSession', () =>
+jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({}),
   }))

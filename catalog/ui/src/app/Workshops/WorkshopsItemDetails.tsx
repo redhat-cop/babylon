@@ -10,10 +10,10 @@ import {
   SelectVariant,
   Button,
 } from '@patternfly/react-core';
-import CheckCircleIcon from '@patternfly/react-icons/dist/esm/icons/check-circle-icon';
-import StopCircleIcon from '@patternfly/react-icons/dist/esm/icons/stop-circle-icon';
-import QuestionCircleIcon from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
-import OutlinedClockIcon from '@patternfly/react-icons/dist/esm/icons/outlined-clock-icon';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
+import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-icon';
+import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
+import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import { patchWorkshop } from '@app/api';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';

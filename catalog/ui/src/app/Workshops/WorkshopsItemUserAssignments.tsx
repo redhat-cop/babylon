@@ -14,7 +14,7 @@ import {
   EmptyStateIcon,
   Text,
 } from '@patternfly/react-core';
-import ErrorCircleOIcon from '@patternfly/react-icons/dist/esm/icons/error-circle-o-icon';
+import ErrorCircleOIcon from '@patternfly/react-icons/dist/js/icons/error-circle-o-icon';
 import { TableComposable, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
 import { Workshop } from '@app/types';

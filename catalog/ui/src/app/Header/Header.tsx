@@ -14,9 +14,9 @@ import {
   PageHeaderTools,
   SearchInput,
 } from '@patternfly/react-core';
-import QuestionCircleIcon from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
-import CommentIcon from '@patternfly/react-icons/dist/esm/icons/comment-icon';
-import CaretDownIcon from '@patternfly/react-icons/dist/esm/icons/caret-down-icon';
+import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
+import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
+import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';

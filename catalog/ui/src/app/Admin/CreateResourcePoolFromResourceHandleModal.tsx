@@ -1,6 +1,6 @@
 import React, { CSSProperties, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
+import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { Checkbox, Form, FormGroup, NumberInput, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
 import { ResourceClaim, ResourceHandle } from '@app/types';
 import { createResourcePool, getResourcePool } from '@app/api';

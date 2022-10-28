@@ -1,6 +1,6 @@
 import React from 'react';
 import { DropdownPosition } from '@patternfly/react-core';
-import EllipsisVIcon from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
+import EllipsisVIcon from '@patternfly/react-icons/dist/js/icons/ellipsis-v-icon';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import { BABYLON_DOMAIN, checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 

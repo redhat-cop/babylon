@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import React from 'react';
 import { render, waitFor, fireEvent, within, generateSession } from '../utils/test-utils';
 import Catalog from './Catalog';
@@ -6,15 +5,15 @@ import catalogItemsObj from '../__mocks__/catalogItems.json';
 import { CatalogItem } from '@app/types';
 import { createMemoryHistory } from 'history';
 
-jest.doMock('@app/api', () => ({
+jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcherItemsInAllPages: jest.fn(() => Promise.resolve(catalogItemsObj.items as CatalogItem[])),
 }));
-jest.doMock('react-router-dom', () => ({
+jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ namespace: 'babylon-catalog-test' }),
 }));
-jest.doMock('@app/utils/useSession', () =>
+jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({ isAdmin: true }),
   }))
