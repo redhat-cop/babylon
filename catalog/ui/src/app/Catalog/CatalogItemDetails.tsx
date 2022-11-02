@@ -47,10 +47,12 @@ import {
   HIDDEN_LABELS,
   getIncidentUrl,
   formatString,
+  getLastUpdate,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
+import TimeInterval from '@app/components/TimeInterval';
 
 import './catalog-item-details.css';
 
@@ -68,6 +70,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { provisionTimeEstimate, termsOfService, parameters, accessControl } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
+  const lastUpdate = getLastUpdate(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
@@ -275,6 +278,14 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <DescriptionListDescription>{formatString(value)}</DescriptionListDescription>
                 </DescriptionListGroup>
               ))}
+              {lastUpdate ? (
+                <DescriptionListGroup className="catalog-item-details__last-update">
+                  <DescriptionListTerm>Last update</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <TimeInterval toTimestamp={lastUpdate.when_committer} />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
               {provisionTimeEstimate ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
