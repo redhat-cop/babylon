@@ -82,7 +82,7 @@
     "@monaco-editor/react": "^4.4.6",
     "@patternfly/react-core": "4.250.1",
     "@patternfly/react-icons": "4.92.6",
-    "@patternfly/react-styles": "4.91.6",
+    "@patternfly/react-styles": "4.91.10",
     "@patternfly/react-table": "4.104.7",
     "@reduxjs/toolkit": "^1.8.6",
     "asciidoctor": "^2.2.6",
