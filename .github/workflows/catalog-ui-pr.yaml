@@ -77,6 +77,9 @@ jobs:
             TRACKING_ENABLED=false
           push: true
           tags: ${{ env.IMAGE_TAGS }}
+          # images from a PR expire after 14d
+          labels: |
+            quay.expires-after=14d
       - name: Log in to OpenShift
         if: env.IMAGE_TAGS
         uses: redhat-actions/oc-login@v1
