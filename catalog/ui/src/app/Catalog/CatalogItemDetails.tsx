@@ -51,6 +51,7 @@ import {
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
+import TimeInterval from '@app/components/TimeInterval';
 
 import './catalog-item-details.css';
 
@@ -65,7 +66,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { email, userNamespace, isAdmin, groups } = useSession().getSession();
   const catalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
   const { userImpersonated } = useImpersonateUser();
-  const { provisionTimeEstimate, termsOfService, parameters, accessControl } = catalogItem.spec;
+  const { provisionTimeEstimate, termsOfService, parameters, accessControl, lastUpdate } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
   const catalogItemName = displayName(catalogItem);
@@ -275,6 +276,14 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <DescriptionListDescription>{formatString(value)}</DescriptionListDescription>
                 </DescriptionListGroup>
               ))}
+              {lastUpdate && lastUpdate.git ? (
+                <DescriptionListGroup className="catalog-item-details__last-update">
+                  <DescriptionListTerm>Last update</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <TimeInterval toTimestamp={lastUpdate.git.when_committer} />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
               {provisionTimeEstimate ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>

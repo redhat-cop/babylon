@@ -60,7 +60,8 @@
   text-transform: capitalize;
 }
 
-.catalog-item-details__estimated-time .pf-c-description-list__text {
+.catalog-item-details__estimated-time .pf-c-description-list__text,
+.catalog-item-details__last-update .pf-c-description-list__text {
   text-transform: initial;
 }
 

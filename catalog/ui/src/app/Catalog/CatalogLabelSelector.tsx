@@ -101,7 +101,7 @@ const CatalogLabelSelector: React.FC<{
   );
 
   const labelsSorted = Object.entries(labels).sort();
-  const featuredIndex = labelsSorted.findIndex(([x]) => x.toLowerCase() === 'sales_play_demos');
+  const featuredIndex = labelsSorted.findIndex(([x]) => x.toLowerCase() === 'sales_play');
   if (featuredIndex !== -1) {
     const featuredLabel = labelsSorted[featuredIndex];
     labelsSorted.splice(featuredIndex, 1);

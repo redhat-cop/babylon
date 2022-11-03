@@ -131,6 +131,7 @@ export interface CatalogItemSpec {
   termsOfService?: string;
   userData?: any;
   lifespan?: CatalogItemSpecLifespan;
+  lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
 }
 
@@ -364,6 +365,17 @@ export interface ResourceProviderSpecLifespan {
 export type ResourceClaimStatusLifespan = ResourceProviderSpecLifespan;
 
 export type CatalogItemSpecLifespan = ResourceProviderSpecLifespan;
+
+export type CatalogItemSpecLastUpdate = {
+  git: {
+    author: string;
+    committer: string;
+    hash: string;
+    message: string;
+    when_author: string;
+    when_committer: string;
+  };
+};
 
 export type CatalogItemSpecRuntime = {
   default: string;
