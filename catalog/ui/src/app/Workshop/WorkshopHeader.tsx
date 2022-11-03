@@ -8,15 +8,21 @@ const WorkshopHeader: React.FC<{ userInterface: string }> = ({ userInterface }) 
   function LogoImg() {
     if (userInterface === 'summit') {
       return (
-        <a href="https://summit.demo.redhat.com/" style={{ display: 'flex', width: '70px' }}>
+        <button
+          onClick={(ev: React.FormEvent<HTMLButtonElement>) => {
+            ev.stopPropagation();
+            window.open('https://summit.demo.redhat.com/');
+          }}
+          style={{ display: 'flex', width: '70px', border: 0, backgroundColor: 'transparent' }}
+        >
           <img src={summitLogo} alt="Red Hat Summit" />
-        </a>
+        </button>
       );
     }
     return (
-      <a href="/" style={{ width: '278px', display: 'flex' }}>
+      <span style={{ width: '278px', display: 'flex' }}>
         <UserInterfaceLogo />
-      </a>
+      </span>
     );
   }
   return (
