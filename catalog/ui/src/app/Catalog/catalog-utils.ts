@@ -9,19 +9,6 @@ export function getProvider(catalogItem: CatalogItem): string {
     'Red Hat'
   );
 }
-export function getLastUpdate(catalogItem: CatalogItem): {
-  author: string;
-  committer: string;
-  hash: string;
-  message: string;
-  when_author: string;
-  when_committer: string;
-} {
-  if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/last_update`]) {
-    return JSON.parse(catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/last_update`]).git;
-  }
-  return null;
-}
 export function getCategory(catalogItem: CatalogItem): string | null {
   return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`];
 }
