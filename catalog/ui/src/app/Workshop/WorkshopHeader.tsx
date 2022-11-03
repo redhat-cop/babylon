@@ -9,7 +9,7 @@ const WorkshopHeader: React.FC<{ userInterface: string }> = ({ userInterface }) 
     if (userInterface === 'summit') {
       return (
         <button
-          onClick={(ev) => {
+          onClick={(ev: React.FormEvent<HTMLButtonElement>) => {
             ev.stopPropagation();
             window.open('https://summit.demo.redhat.com/');
           }}
