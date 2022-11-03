@@ -726,9 +726,16 @@ def send_notification_email(
     else:
         message_template = catalog_item.get_message_template(kebabToCamelCase(template))
         if message_template:
-            email_body = j2env.from_string(message_template).render(**template_vars)
+            mjml_template = j2env.from_string(message_template).render(**template_vars)
         else:
-            email_body = j2env.get_template(template + '.html.j2').render(**template_vars)
+            mjml_template = j2env.get_template(template + '.html.j2').render(**template_vars)
+
+        # Call for the MJML CLI to generate final HTML
+        email_body = subprocess.run(
+                        ['mjml', '-i'], 
+                        stdout=subprocess.PIPE,
+                        input=mjml_template,
+                        encoding='ascii').stdout
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = email_subject
