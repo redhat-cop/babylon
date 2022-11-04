@@ -637,7 +637,7 @@ const ServicesList: React.FC<{
                       key="actions__stop"
                     />
                   ) : null}
-                  {!isPartOfWorkshop ? (
+                  {isPartOfWorkshop ? (
                     <ButtonCircleIcon
                       onClick={actionHandlers.manageWorkshop}
                       description="Manage Workshop"
