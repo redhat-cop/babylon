@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import parseDuration from 'parse-duration';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
-import { getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
-import { getStartTime } from '@app/Services/service-utils';
+import { getWorkshopAutoStopTime, getWorkshopLifespan, getWorkshopServicesStartTime } from './workshops-utils';
 
 const WorkshopScheduleAction: React.FC<{
   action: 'retirement' | 'stop' | 'start';
@@ -27,7 +25,7 @@ const WorkshopScheduleAction: React.FC<{
   } else {
     const autoStopTime = getWorkshopAutoStopTime(resourceClaims);
     currentActionDate = autoStopTime ? new Date(autoStopTime) : null;
-    maxDate = Math.min(...resourceClaims.flatMap(getStartTime));
+    maxDate = getWorkshopServicesStartTime(resourceClaims);
   }
 
   const [selectedDate, setSelectedDate] = useState(currentActionDate || new Date());

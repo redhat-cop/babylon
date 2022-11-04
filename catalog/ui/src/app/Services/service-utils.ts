@@ -4,8 +4,8 @@ import {
   ResourceClaimSpecResource,
   ResourceClaimSpecResourceTemplate,
 } from '@app/types';
-import { canExecuteAction } from '@app/util';
 import parseDuration from 'parse-duration';
+import { canExecuteAction } from '@app/util';
 import { phaseProps, getStatus } from './ServiceStatus';
 
 export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim): {
@@ -56,6 +56,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
     template: getSpecResourceByName(resources[mostRelevantResourceIndex].name)?.template,
   };
 }
+
 export function getAutoStopTime(resourceClaim: ResourceClaim): number {
   return Math.min(
     ...resourceClaim.spec?.resources

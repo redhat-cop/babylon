@@ -23,8 +23,8 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import useSession from '@app/utils/useSession';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
-import { ModalState } from './WorkshopsItem';
 import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
+import { ModalState } from './WorkshopsItem';
 
 import './workshops-item-details.css';
 

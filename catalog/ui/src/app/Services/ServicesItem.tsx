@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { BABYLON_DOMAIN, canExecuteAction, checkResourceClaimCanStop, getCostTracker } from '@app/util';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
+import useSWR, { useSWRConfig } from 'swr';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -53,29 +53,35 @@ import {
   ServiceNamespace,
   Workshop,
 } from '@app/types';
-import { displayName, renderContent } from '@app/util';
+import {
+  BABYLON_DOMAIN,
+  canExecuteAction,
+  checkResourceClaimCanStop,
+  getCostTracker,
+  displayName,
+  renderContent,
+} from '@app/util';
+import useSession from '@app/utils/useSession';
+import Modal, { useModal } from '@app/Modal/Modal';
+import CurrencyAmount from '@app/components/CurrencyAmount';
+import Footer from '@app/components/Footer';
+import ConditionalWrapper from '@app/components/ConditionalWrapper';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
+import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
+import ServiceStatus from './ServiceStatus';
+import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServiceItemStatus from './ServiceItemStatus';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
-import ServiceStatus from './ServiceStatus';
-import ServicesAction from './ServicesAction';
 import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
-import Modal, { useModal } from '@app/Modal/Modal';
-import useSWR, { useSWRConfig } from 'swr';
-import CurrencyAmount from '@app/components/CurrencyAmount';
-import useSession from '@app/utils/useSession';
-import Footer from '@app/components/Footer';
-import ConditionalWrapper from '@app/components/ConditionalWrapper';
-import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
 
 import './services-item.css';
 

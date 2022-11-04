@@ -48,18 +48,18 @@ import {
   FETCH_BATCH_LIMIT,
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
-import ServiceNamespaceSelect from './ServiceNamespaceSelect';
-import ServiceStatus from './ServiceStatus';
 import SelectableTable from '@app/components/SelectableTable';
-import ServiceActions from './ServiceActions';
 import Modal, { useModal } from '@app/Modal/Modal';
-import ServicesAction from './ServicesAction';
-import ServicesScheduleAction from './ServicesScheduleAction';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
-import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
 import Footer from '@app/components/Footer';
+import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
+import ServicesAction from './ServicesAction';
+import ServiceActions from './ServiceActions';
+import ServicesScheduleAction from './ServicesScheduleAction';
+import ServiceNamespaceSelect from './ServiceNamespaceSelect';
+import ServiceStatus from './ServiceStatus';
 
 import './services-list.css';
 

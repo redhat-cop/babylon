@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import parseDuration from 'parse-duration';
 import { ResourceClaim } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
-
 import { displayName } from '@app/util';
 
 const ServicesAction: React.FC<{

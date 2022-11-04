@@ -1,6 +1,6 @@
-import { getAutoStopTime } from '@app/Services/service-utils';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
+import { getAutoStopTime, getStartTime } from '@app/Services/service-utils';
 
 export function isWorkshopStarted(workshopProvisions: WorkshopProvision[]): boolean {
   const startTime = getWorkshopStartTime(workshopProvisions);
@@ -29,6 +29,9 @@ export function getWorkshopLifespan(
 export function getWorkshopAutoStopTime(resourceClaims: ResourceClaim[]): number {
   const resourcesTime = resourceClaims && resourceClaims.length > 0 ? resourceClaims.flatMap(getAutoStopTime) : [];
   return resourcesTime.length > 0 ? Math.min(...resourcesTime) : null;
+}
+export function getWorkshopServicesStartTime(resourceClaims: ResourceClaim[]): number {
+  return Math.min(...resourceClaims.flatMap(getStartTime));
 }
 
 export function checkWorkshopCanStop(resourceClaims: ResourceClaim[] = []): boolean {
