@@ -1,19 +1,28 @@
 import React from 'react';
 import { DropdownPosition } from '@patternfly/react-core';
 import EllipsisVIcon from '@patternfly/react-icons/dist/js/icons/ellipsis-v-icon';
+import { ResourceClaim } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import { BABYLON_DOMAIN, checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 
 const ServiceActions: React.FC<{
-  actionHandlers: any;
+  actionHandlers: {
+    runtime?: () => void;
+    lifespan: () => void;
+    delete: () => void;
+    start?: () => void;
+    stop?: () => void;
+    manageWorkshop?: () => void;
+    getCost?: () => void;
+  };
   className?: string;
   isDisabled?: boolean;
   position?: DropdownPosition | 'right' | 'left';
-  resourceClaim?: any;
+  resourceClaim?: ResourceClaim;
   serviceName?: string;
   iconOnly?: boolean;
 }> = ({ actionHandlers, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
-  const actionDropdownItems: any[] = [];
+  const actionDropdownItems: JSX.Element[] = [];
   const workshopProvisionName = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
   const isPartOfWorkshop = !!workshopProvisionName;
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : true;

@@ -23,8 +23,8 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import useSession from '@app/utils/useSession';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
-import { ModalState } from './WorkshopsItem';
 import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
+import { ModalState } from './WorkshopsItem';
 
 import './workshops-item-details.css';
 
@@ -183,9 +183,9 @@ const WorkshopsItemDetails: React.FC<{
               className="workshops-item__schedule-btn"
               isDisabled={!showModal}
             >
-              <LocalTimestamp timestamp={new Date(autoStartTime).toISOString()} />
+              <LocalTimestamp time={autoStartTime} />
               <span style={{ padding: '0 6px' }}>
-                (<TimeInterval toTimestamp={new Date(autoStartTime).toISOString()} />)
+                (<TimeInterval toEpochMilliseconds={autoStartTime} />)
               </span>
             </Button>
           </DescriptionListDescription>
@@ -205,9 +205,9 @@ const WorkshopsItemDetails: React.FC<{
               isDisabled={!showModal}
               className="workshops-item__schedule-btn"
             >
-              <LocalTimestamp timestamp={new Date(autoStopTime).toISOString()} />
+              <LocalTimestamp time={autoStopTime} />
               <span style={{ padding: '0 6px' }}>
-                (<TimeInterval toTimestamp={new Date(autoStopTime).toISOString()} />)
+                (<TimeInterval toEpochMilliseconds={autoStopTime} />)
               </span>
             </Button>
           </DescriptionListDescription>
@@ -230,9 +230,9 @@ const WorkshopsItemDetails: React.FC<{
           >
             {autoDestroyTime ? (
               <>
-                <LocalTimestamp timestamp={new Date(autoDestroyTime).toISOString()} />
+                <LocalTimestamp time={autoDestroyTime} />
                 <span style={{ padding: '0 6px' }}>
-                  (<TimeInterval toTimestamp={new Date(autoDestroyTime).toISOString()} />)
+                  (<TimeInterval toEpochMilliseconds={autoDestroyTime} />)
                 </span>
               </>
             ) : (

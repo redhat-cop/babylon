@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { BABYLON_DOMAIN, canExecuteAction, checkResourceClaimCanStop, getCostTracker } from '@app/util';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
+import useSWR, { useSWRConfig } from 'swr';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -53,29 +53,35 @@ import {
   ServiceNamespace,
   Workshop,
 } from '@app/types';
-import { displayName, renderContent } from '@app/util';
+import {
+  BABYLON_DOMAIN,
+  canExecuteAction,
+  checkResourceClaimCanStop,
+  getCostTracker,
+  displayName,
+  renderContent,
+} from '@app/util';
+import useSession from '@app/utils/useSession';
+import Modal, { useModal } from '@app/Modal/Modal';
+import CurrencyAmount from '@app/components/CurrencyAmount';
+import Footer from '@app/components/Footer';
+import ConditionalWrapper from '@app/components/ConditionalWrapper';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
+import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
+import ServiceStatus from './ServiceStatus';
+import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServiceItemStatus from './ServiceItemStatus';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
-import ServiceStatus from './ServiceStatus';
-import ServicesAction from './ServicesAction';
 import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
-import Modal, { useModal } from '@app/Modal/Modal';
-import useSWR, { useSWRConfig } from 'swr';
-import CurrencyAmount from '@app/components/CurrencyAmount';
-import useSession from '@app/utils/useSession';
-import Footer from '@app/components/Footer';
-import ConditionalWrapper from '@app/components/ConditionalWrapper';
-import { getMostRelevantResourceAndTemplate } from './service-utils';
 
 import './services-item.css';
 
@@ -250,7 +256,7 @@ const ServicesItemComponent: React.FC<{
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { cache } = useSWRConfig();
-  const [expanded, setExpanded] = React.useState([]);
+  const [expanded, setExpanded] = useState([]);
 
   const {
     data: resourceClaim,
@@ -438,25 +444,7 @@ const ServicesItemComponent: React.FC<{
   );
 
   const costTracker = getCostTracker(resourceClaim);
-
-  const stopTimestamp = new Date(
-    Math.min(
-      ...resourceClaim.spec.resources
-        .map((specResource, idx) => {
-          const statusResource = resourceClaim.status.resources[idx];
-          if (!canExecuteAction(statusResource.state, 'stop')) return null;
-          const stopTimestamp =
-            specResource.template?.spec?.vars?.action_schedule?.stop ||
-            statusResource.state.spec.vars.action_schedule.stop;
-          if (stopTimestamp) {
-            return Date.parse(stopTimestamp);
-          } else {
-            return null;
-          }
-        })
-        .filter((time) => time !== null)
-    )
-  );
+  const autoStopTime = getAutoStopTime(resourceClaim);
 
   const toggle = (id: string) => {
     const index = expanded.indexOf(id);
@@ -605,7 +593,7 @@ const ServicesItemComponent: React.FC<{
                 <DescriptionListGroup>
                   <DescriptionListTerm>Auto-stop</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {resourceClaim.status?.resources?.some((r) => r.state?.spec?.vars?.action_schedule?.stop) ? (
+                    {autoStopTime ? (
                       <Button
                         key="auto-stop"
                         variant="control"
@@ -617,9 +605,9 @@ const ServicesItemComponent: React.FC<{
                         }}
                         className="services-item__schedule-btn"
                       >
-                        <LocalTimestamp date={stopTimestamp} />
+                        <LocalTimestamp time={autoStopTime} />
                         <span style={{ padding: '0 6px' }}>
-                          (<TimeInterval toDate={stopTimestamp} />)
+                          (<TimeInterval toEpochMilliseconds={autoStopTime} />)
                         </span>
                       </Button>
                     ) : (

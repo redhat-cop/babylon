@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import parseDuration from 'parse-duration';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
-import { getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
+import { getWorkshopAutoStopTime, getWorkshopLifespan, getWorkshopServicesStartTime } from './workshops-utils';
 
 const WorkshopScheduleAction: React.FC<{
   action: 'retirement' | 'stop' | 'start';
@@ -26,25 +25,7 @@ const WorkshopScheduleAction: React.FC<{
   } else {
     const autoStopTime = getWorkshopAutoStopTime(resourceClaims);
     currentActionDate = autoStopTime ? new Date(autoStopTime) : null;
-    maxDate = Math.min(
-      ...resourceClaims.flatMap((resourceClaim) =>
-        resourceClaim.status.resources
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((r: any) => {
-            if (!r.state) {
-              return null;
-            }
-            const startTimestamp = r.state.spec.vars.action_schedule.start;
-            const resourceMaximumRuntime = r.state.spec.vars.action_schedule.maximum_runtime;
-            if (resourceMaximumRuntime && startTimestamp) {
-              return Date.parse(startTimestamp) + parseDuration(resourceMaximumRuntime);
-            } else {
-              return null;
-            }
-          })
-          .filter(Number)
-      )
-    );
+    maxDate = getWorkshopServicesStartTime(resourceClaims);
   }
 
   const [selectedDate, setSelectedDate] = useState(currentActionDate || new Date());
