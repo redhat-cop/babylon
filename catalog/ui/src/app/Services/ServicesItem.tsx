@@ -75,7 +75,7 @@ import CurrencyAmount from '@app/components/CurrencyAmount';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 import ConditionalWrapper from '@app/components/ConditionalWrapper';
-import { getMostRelevantResourceAndTemplate } from './service-utils';
+import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
 
 import './services-item.css';
 
@@ -250,7 +250,7 @@ const ServicesItemComponent: React.FC<{
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { cache } = useSWRConfig();
-  const [expanded, setExpanded] = React.useState([]);
+  const [expanded, setExpanded] = useState([]);
 
   const {
     data: resourceClaim,
@@ -438,25 +438,7 @@ const ServicesItemComponent: React.FC<{
   );
 
   const costTracker = getCostTracker(resourceClaim);
-
-  const stopTimestamp = new Date(
-    Math.min(
-      ...resourceClaim.spec.resources
-        .map((specResource, idx) => {
-          const statusResource = resourceClaim.status.resources[idx];
-          if (!canExecuteAction(statusResource.state, 'stop')) return null;
-          const stopTimestamp =
-            specResource.template?.spec?.vars?.action_schedule?.stop ||
-            statusResource.state.spec.vars.action_schedule.stop;
-          if (stopTimestamp) {
-            return Date.parse(stopTimestamp);
-          } else {
-            return null;
-          }
-        })
-        .filter((time) => time !== null)
-    )
-  );
+  const autoStopTime = getAutoStopTime(resourceClaim);
 
   const toggle = (id: string) => {
     const index = expanded.indexOf(id);
@@ -605,7 +587,7 @@ const ServicesItemComponent: React.FC<{
                 <DescriptionListGroup>
                   <DescriptionListTerm>Auto-stop</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {resourceClaim.status?.resources?.some((r) => r.state?.spec?.vars?.action_schedule?.stop) ? (
+                    {autoStopTime ? (
                       <Button
                         key="auto-stop"
                         variant="control"
@@ -617,9 +599,9 @@ const ServicesItemComponent: React.FC<{
                         }}
                         className="services-item__schedule-btn"
                       >
-                        <LocalTimestamp date={stopTimestamp} />
+                        <LocalTimestamp time={autoStopTime} />
                         <span style={{ padding: '0 6px' }}>
-                          (<TimeInterval toDate={stopTimestamp} />)
+                          (<TimeInterval toEpochMilliseconds={autoStopTime} />)
                         </span>
                       </Button>
                     ) : (

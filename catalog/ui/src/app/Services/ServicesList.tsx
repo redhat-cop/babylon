@@ -46,7 +46,6 @@ import {
   compareK8sObjects,
   getCostTracker,
   FETCH_BATCH_LIMIT,
-  canExecuteAction,
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
@@ -59,7 +58,7 @@ import ServicesScheduleAction from './ServicesScheduleAction';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
-import { getMostRelevantResourceAndTemplate } from './service-utils';
+import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
 import Footer from '@app/components/Footer';
 
 import './services-list.css';
@@ -498,6 +497,8 @@ const ServicesList: React.FC<{
                   navigate(`/workshops/${resourceClaim.metadata.namespace}/${workshopName}`);
               }
 
+              const autoStopTime = getAutoStopTime(resourceClaim);
+
               const projectCell = (
                 // Poject
                 <React.Fragment key="project">
@@ -566,7 +567,7 @@ const ServicesList: React.FC<{
               const autoStopCell = (
                 // Auto-stop
                 <span key="auto-stop">
-                  {resourceClaim.status?.resources?.some((r) => r.state?.spec?.vars?.action_schedule?.stop) ? (
+                  {autoStopTime ? (
                     <Button
                       variant="control"
                       icon={<OutlinedClockIcon />}
@@ -574,31 +575,9 @@ const ServicesList: React.FC<{
                       isDisabled={!checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop}
                       onClick={actionHandlers.runtime}
                       className="services-list__schedule-btn"
-                      isSmall={true}
+                      isSmall
                     >
-                      <LocalTimestamp
-                        date={
-                          new Date(
-                            Math.min(
-                              ...resourceClaim.spec.resources
-                                .map((specResource, idx) => {
-                                  const statusResource = resourceClaim.status.resources[idx];
-                                  if (!canExecuteAction(statusResource.state, 'stop')) return null;
-                                  const stopTimestamp =
-                                    specResource.template?.spec?.vars?.action_schedule?.stop ||
-                                    statusResource.state.spec.vars.action_schedule.stop;
-                                  if (stopTimestamp) {
-                                    return Date.parse(stopTimestamp);
-                                  } else {
-                                    return null;
-                                  }
-                                })
-                                .filter((time) => time !== null)
-                            )
-                          )
-                        }
-                        variant="short"
-                      />
+                      <LocalTimestamp time={autoStopTime} variant="short" />
                     </Button>
                   ) : (
                     <p>-</p>
@@ -617,7 +596,7 @@ const ServicesList: React.FC<{
                       icon={<OutlinedClockIcon />}
                       iconPosition="right"
                       className="services-list__schedule-btn"
-                      isSmall={true}
+                      isSmall
                     >
                       <LocalTimestamp
                         variant="short"

@@ -1,3 +1,4 @@
+import { getAutoStopTime } from '@app/Services/service-utils';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 
@@ -26,24 +27,7 @@ export function getWorkshopLifespan(
 }
 
 export function getWorkshopAutoStopTime(resourceClaims: ResourceClaim[]): number {
-  const resourcesTime =
-    resourceClaims && resourceClaims.length > 0
-      ? resourceClaims.flatMap((resourceClaim) =>
-          resourceClaim.spec.resources
-            .map((specResource, idx) => {
-              const statusResource = resourceClaim.status?.resources?.[idx];
-              const stopTimestamp =
-                specResource.template?.spec?.vars?.action_schedule?.stop ||
-                statusResource.state.spec.vars.action_schedule.stop;
-              if (stopTimestamp) {
-                return Date.parse(stopTimestamp);
-              } else {
-                return null;
-              }
-            })
-            .filter(Number)
-        )
-      : [];
+  const resourcesTime = resourceClaims && resourceClaims.length > 0 ? resourceClaims.flatMap(getAutoStopTime) : [];
   return resourcesTime.length > 0 ? Math.min(...resourcesTime) : null;
 }
 
