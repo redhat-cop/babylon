@@ -1,6 +1,5 @@
 import React from 'react';
 import yaml from 'js-yaml';
-import { $generateHtmlFromNodes } from '@lexical/html';
 import {
   Bullseye,
   DescriptionList,
@@ -15,8 +14,8 @@ import {
 } from '@patternfly/react-core';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import { renderContent } from '@app/util';
-import { WorkshopDetails } from './workshopApi';
 import EditorViewer from '@app/components/Editor/EditorViewer';
+import { WorkshopDetails } from './workshopApi';
 
 const WorkshopAccess: React.FC<{
   workshop: WorkshopDetails;
