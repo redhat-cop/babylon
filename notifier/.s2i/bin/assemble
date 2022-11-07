@@ -1,12 +1,6 @@
 #!/bin/bash
 
-npm install -g npm@latest
-npm install -g mjml
-
-#mkdir -p /opt/app-root/node
-#mkdir -p /opt/app-root/npm-modules
-
-#curl -s https://nodejs.org/dist/v18.12.0/node-v18.12.0-linux-x64.tar.gz \
-#  | tar zxvf - -C /opt/app-root/node --strip-components=1
+npm install -g npm@8.19.3
+npm install -g mjml@4.13.0
 
 exec /usr/libexec/s2i/assemble
