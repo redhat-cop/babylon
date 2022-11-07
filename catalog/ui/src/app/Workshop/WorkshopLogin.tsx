@@ -26,7 +26,6 @@ const WorkshopLogin: React.FC<{
   workshop: WorkshopDetails;
 }> = ({ loginFailureMessage, onLogin, workshop }) => {
   const displayName = workshop.displayName || 'Workshop';
-  const description = workshop.description;
   const [accessPassword, setAccessPassword] = useState('');
   const [email, setEmail] = useState('');
   const [emailValidated, setEmailValidated] = React.useState<validateType>('default');

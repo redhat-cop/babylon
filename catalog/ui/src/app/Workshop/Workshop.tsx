@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { Page } from '@patternfly/react-core';
+import useSWRImmutable from 'swr/immutable';
+import Footer from '@app/components/Footer';
+import summitLogo from '@app/bgimages/Summit-Logo.svg';
+import { apiPaths, fetcher } from './workshop-utils';
 import { workshopLogin, WorkshopDetails } from './workshopApi';
 import WorkshopAccess from './WorkshopAccess';
 import WorkshopHeader from './WorkshopHeader';
 import WorkshopLogin from './WorkshopLogin';
-import useSWRImmutable from 'swr/immutable';
-import { apiPaths, fetcher } from './workshop-utils';
-import Footer from '@app/components/Footer';
-import summitLogo from '@app/bgimages/Summit-Logo.svg';
 
 import './workshop.css';
 

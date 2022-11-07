@@ -3,6 +3,7 @@ import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
+import useSWR, { useSWRConfig } from 'swr';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -36,21 +37,20 @@ import {
 } from '@app/api';
 import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvision } from '@app/types';
 import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
+import useSession from '@app/utils/useSession';
+import CostTrackerDialog from '@app/components/CostTrackerDialog';
+import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
+import Modal, { useModal } from '@app/Modal/Modal';
+import Footer from '@app/components/Footer';
+import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
+import WorkshopActionModal from '@app/components/WorkshopActionModal';
 import WorkshopActions from './WorkshopActions';
 import WorkshopsItemDetails from './WorkshopsItemDetails';
 import WorkshopsItemProvisioning from './WorkshopsItemProvisioning';
 import WorkshopsItemServices from './WorkshopsItemServices';
 import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
-import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
-import Modal, { useModal } from '@app/Modal/Modal';
-import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
-import useSWR, { useSWRConfig } from 'swr';
-import CostTrackerDialog from '@app/components/CostTrackerDialog';
-import useSession from '@app/utils/useSession';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
 import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopStarted } from './workshops-utils';
-import WorkshopActionModal from '@app/components/WorkshopActionModal';
-import Footer from '@app/components/Footer';
 
 import './workshops-item.css';
 
