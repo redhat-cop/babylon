@@ -409,7 +409,8 @@ i.chevron-down {
   background-image: url(images/icons/code.svg);
 }
 
-.editor .dropdown {
+.editor .dropdown,
+body > .dropdown {
   z-index: 100;
   display: block;
   position: absolute;
@@ -420,7 +421,8 @@ i.chevron-down {
   background-color: #fff;
 }
 
-.editor .dropdown .item {
+.editor .dropdown .item,
+body > .dropdown .item {
   margin: 0 8px 0 8px;
   padding: 8px;
   color: #050505;
@@ -438,33 +440,39 @@ i.chevron-down {
   min-width: 268px;
 }
 
-.editor .dropdown .item .active {
+.editor .dropdown .item .active,
+body > .dropdown .item .active {
   display: flex;
   width: 20px;
   height: 20px;
   background-size: contain;
 }
 
-.editor .dropdown .item:first-child {
+.editor .dropdown .item:first-child,
+body > .dropdown .item:first-child {
   margin-top: 8px;
 }
 
-.editor .dropdown .item:last-child {
+.editor .dropdown .item:last-child,
+body > .dropdown .item:last-child {
   margin-bottom: 8px;
 }
 
-.editor .dropdown .item:hover {
+.editor .dropdown .item:hover,
+body > .dropdown .item:hover {
   background-color: #eee;
 }
 
-.editor .dropdown .item .text {
+.editor .dropdown .item .text,
+body > .dropdown .item .text {
   display: flex;
   line-height: 20px;
   flex-grow: 1;
   width: 200px;
 }
 
-.editor .dropdown .item .icon {
+.editor .dropdown .item .icon,
+body > .dropdown .item .icon {
   display: flex;
   width: 20px;
   height: 20px;
