@@ -25,7 +25,7 @@ module.exports = () => {
           test: /\.svg$/,
           // only process SVG modules with this loader if they live under a 'bgimages' directory
           // this is primarily useful when applying a CSS background using an SVG
-          include: (input) => input.indexOf(BG_IMAGES_DIRNAME) > -1,
+          include: (input) => input.indexOf(BG_IMAGES_DIRNAME) > -1 || input.indexOf('components') > -1,
           use: {
             loader: 'svg-url-loader',
             options: {},
@@ -35,9 +35,12 @@ module.exports = () => {
         {
           test: /\.svg$/,
           // only process SVG modules with this loader when they don't live under a 'bgimages',
-          // 'fonts', or 'pficon' directory, those are handled with other loaders
+          // 'fonts',  'pficon' or 'components' directory, those are handled with other loaders
           include: (input) =>
-            input.indexOf(BG_IMAGES_DIRNAME) === -1 && input.indexOf('fonts') === -1 && input.indexOf('pficon') === -1,
+            input.indexOf(BG_IMAGES_DIRNAME) === -1 &&
+            input.indexOf('fonts') === -1 &&
+            input.indexOf('pficon') === -1 &&
+            input.indexOf('components') === -1,
           use: {
             loader: 'raw-loader',
             options: {},

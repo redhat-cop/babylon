@@ -17,6 +17,7 @@ import {
 import HelpIcon from '@patternfly/react-icons/dist/js/icons/help-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import { WorkshopDetails } from './workshopApi';
+import EditorViewer from '@app/components/Editor/EditorViewer';
 
 type validateType = 'success' | 'warning' | 'error' | 'default';
 
@@ -26,6 +27,7 @@ const WorkshopLogin: React.FC<{
   workshop: WorkshopDetails;
 }> = ({ loginFailureMessage, onLogin, workshop }) => {
   const displayName = workshop.displayName || 'Workshop';
+  const description = workshop.description;
   const [accessPassword, setAccessPassword] = useState('');
   const [email, setEmail] = useState('');
   const [emailValidated, setEmailValidated] = React.useState<validateType>('default');

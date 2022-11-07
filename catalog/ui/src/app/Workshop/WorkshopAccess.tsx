@@ -1,5 +1,6 @@
 import React from 'react';
 import yaml from 'js-yaml';
+import { $generateHtmlFromNodes } from '@lexical/html';
 import {
   Bullseye,
   DescriptionList,
@@ -15,6 +16,7 @@ import {
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import { renderContent } from '@app/util';
 import { WorkshopDetails } from './workshopApi';
+import EditorViewer from '@app/components/Editor/EditorViewer';
 
 const WorkshopAccess: React.FC<{
   workshop: WorkshopDetails;
@@ -33,7 +35,9 @@ const WorkshopAccess: React.FC<{
         </StackItem>
         {description ? (
           <StackItem>
-            <Bullseye>{description}</Bullseye>
+            <Bullseye>
+              <EditorViewer value={description} />
+            </Bullseye>
           </StackItem>
         ) : null}
         <StackItem>
