@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import { renderContent } from '@app/util';
+import EditorViewer from '@app/components/Editor/EditorViewer';
 import { WorkshopDetails } from './workshopApi';
 
 const WorkshopAccess: React.FC<{
@@ -33,7 +34,9 @@ const WorkshopAccess: React.FC<{
         </StackItem>
         {description ? (
           <StackItem>
-            <Bullseye>{description}</Bullseye>
+            <Bullseye>
+              <EditorViewer value={description} />
+            </Bullseye>
           </StackItem>
         ) : null}
         <StackItem>

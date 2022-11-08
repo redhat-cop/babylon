@@ -13,9 +13,9 @@ import TimeInterval from '@app/components/TimeInterval';
 import ServiceStatus from '@app/Services/ServiceStatus';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
-import { ModalState } from './WorkshopsItem';
 import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
 import useSession from '@app/utils/useSession';
+import { ModalState } from './WorkshopsItem';
 
 import './workshops-item-services.css';
 

@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import useSWR, { useSWRConfig } from 'swr';
+import useSWRInfinite from 'swr/infinite';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,19 +19,17 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import { apiPaths, deleteWorkshop, fetcher } from '@app/api';
 import { NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
 import { compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
+import useSession from '@app/utils/useSession';
+import Footer from '@app/components/Footer';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
-import WorkshopActions from './WorkshopActions';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import Modal, { useModal } from '@app/Modal/Modal';
-import useSWR, { useSWRConfig } from 'swr';
-import useSWRInfinite from 'swr/infinite';
-import useSession from '@app/utils/useSession';
-import Footer from '@app/components/Footer';
+import WorkshopActions from './WorkshopActions';
 
 import './workshops-list.css';
 

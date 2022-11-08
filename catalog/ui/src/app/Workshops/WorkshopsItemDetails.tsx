@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { EditorState } from 'lexical';
 import { Link } from 'react-router-dom';
 import {
   DescriptionList,
@@ -9,18 +10,22 @@ import {
   SelectOption,
   SelectVariant,
   Button,
+  Tooltip,
 } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-icon';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
+import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { patchWorkshop } from '@app/api';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
+import useDebounce from '@app/utils/useDebounce';
+import useSession from '@app/utils/useSession';
 import EditableText from '@app/components/EditableText';
 import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import useSession from '@app/utils/useSession';
+import Editor from '@app/components/Editor/Editor';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
 import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
@@ -36,6 +41,7 @@ const WorkshopsItemDetails: React.FC<{
   showModal?: ({ action, resourceClaims }: ModalState) => void;
 }> = ({ onWorkshopUpdate, workshopProvisions, resourceClaims, workshop, showModal }) => {
   const { isAdmin } = useSession().getSession();
+  const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
@@ -48,17 +54,27 @@ const WorkshopsItemDetails: React.FC<{
     displayName?: string;
     openRegistration?: boolean;
   }): Promise<void> {
-    onWorkshopUpdate(
-      await patchWorkshop({
-        name: workshop.metadata.name,
-        namespace: workshop.metadata.namespace,
-        patch: { spec: patch },
-      })
-    );
+    if (patch.openRegistration !== null && workshop.spec.openRegistration !== patch.openRegistration) {
+      onWorkshopUpdate(
+        await patchWorkshop({
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          patch: { spec: patch },
+        })
+      );
+    } else {
+      onWorkshopUpdate(
+        await debouncedPatchWorkshop({
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          patch: { spec: patch },
+        })
+      );
+    }
   }
 
   return (
-    <DescriptionList isHorizontal>
+    <DescriptionList isHorizontal className="workshops-item-details">
       <DescriptionListGroup>
         <DescriptionListTerm>Name</DescriptionListTerm>
         <DescriptionListDescription>
@@ -92,19 +108,36 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
-        <DescriptionListTerm>Description</DescriptionListTerm>
+        <DescriptionListTerm>
+          Description{' '}
+          <Tooltip position="right" content={<p>Custom details visible after the user accesses the Workshop.</p>}>
+            <OutlinedQuestionCircleIcon
+              aria-label="Custom details visible after the user accesses the Workshop."
+              className="tooltip-icon-only"
+            />
+          </Tooltip>
+        </DescriptionListTerm>
         <DescriptionListDescription>
-          <EditableText
-            aria-label={`Edit Description`}
-            componentType="TextArea"
-            onChange={(description: string) => patchWorkshopSpec({ description: description })}
-            placeholder="No description provided."
-            value={workshop.spec.description}
+          <Editor
+            onChange={(state: EditorState) => {
+              const editorState = state.toJSON();
+              patchWorkshopSpec({ description: JSON.stringify(editorState) });
+            }}
+            placeholder="Add description"
+            defaultValue={workshop.spec.description}
           />
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
-        <DescriptionListTerm>AccessPassword</DescriptionListTerm>
+        <DescriptionListTerm>
+          Access Password{' '}
+          <Tooltip position="right" content={<p>Password the users need to introduce to access the Workshop.</p>}>
+            <OutlinedQuestionCircleIcon
+              aria-label="Password the users need to introduce to access the Workshop."
+              className="tooltip-icon-only"
+            />
+          </Tooltip>
+        </DescriptionListTerm>
         <DescriptionListDescription>
           <EditableText
             aria-label={`Edit Access Password`}

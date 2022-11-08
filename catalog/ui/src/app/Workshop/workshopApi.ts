@@ -1,6 +1,6 @@
 import { WorkshopSpecUserAssignment } from '@app/types';
 
-export class WorkshopLoginFailedError extends Error {}
+class WorkshopLoginFailedError extends Error {}
 
 export type WorkshopDetails = {
   accessPasswordRequired: boolean;
