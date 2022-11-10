@@ -120,6 +120,7 @@ const ComponentDetailsList: React.FC<{
           creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
           resource={resourceState}
           resourceTemplate={resourceSpec?.template}
+          resourceClaim={resourceClaim}
         />
       </DescriptionListDescription>
     </DescriptionListGroup>
@@ -675,6 +676,7 @@ const ServicesItemComponent: React.FC<{
                         creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                         resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
                         resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
+                        resourceClaim={resourceClaim}
                       />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
