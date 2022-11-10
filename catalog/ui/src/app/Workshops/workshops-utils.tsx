@@ -31,7 +31,7 @@ export function getWorkshopAutoStopTime(resourceClaims: ResourceClaim[]): number
   return resourcesTime.length > 0 ? Math.min(...resourcesTime) : null;
 }
 export function getWorkshopServicesStartTime(resourceClaims: ResourceClaim[]): number {
-  return Math.min(...resourceClaims.flatMap(getStartTime));
+  return resourceClaims.length > 0 ? Math.min(...resourceClaims.flatMap(getStartTime)) : null;
 }
 
 export function checkWorkshopCanStop(resourceClaims: ResourceClaim[] = []): boolean {
