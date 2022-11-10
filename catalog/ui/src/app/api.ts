@@ -1331,11 +1331,12 @@ export async function setLifespanEndForResourceClaim(
 }
 
 export async function startAllResourcesInResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
-  const defaultRuntime = Math.min(
-    ...resourceClaim.status.resources.map((r) =>
-      parseDuration(r.state.spec.vars.action_schedule?.default_runtime || '4h')
-    )
-  );
+  const defaultRuntimes = resourceClaim.status?.resources
+    ? resourceClaim.status.resources.map((r) =>
+        parseDuration(r.state.spec.vars.action_schedule?.default_runtime || '4h')
+      )
+    : [];
+  const defaultRuntime = defaultRuntimes.length > 0 ? Math.min(...defaultRuntimes) : 0;
   const startDate = new Date();
   const stopDate = new Date(Date.now() + defaultRuntime);
   return scheduleStartForAllResourcesInResourceClaim(resourceClaim, startDate, stopDate);

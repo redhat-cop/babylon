@@ -58,33 +58,41 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
 }
 
 export function getAutoStopTime(resourceClaim: ResourceClaim): number {
-  return Math.min(
-    ...resourceClaim.spec?.resources
-      ?.map((specResource, idx) => {
-        const statusResource = resourceClaim.status.resources[idx];
-        if (!canExecuteAction(statusResource.state, 'stop')) return null;
-        const stopTimestamp =
-          specResource.template?.spec?.vars?.action_schedule?.stop ||
-          statusResource.state.spec.vars.action_schedule.stop;
-        if (stopTimestamp && !isNaN(Date.parse(stopTimestamp))) return Date.parse(stopTimestamp);
-        return null;
-      })
-      .filter((time) => time !== null)
-  );
+  const autoStopTimes = resourceClaim.spec?.resources
+    ? resourceClaim.spec.resources
+        ?.map((specResource, idx) => {
+          const statusResource = resourceClaim.status?.resources?.[idx];
+          if (!canExecuteAction(statusResource?.state, 'stop')) return null;
+          const stopTimestamp =
+            specResource.template?.spec?.vars?.action_schedule?.stop ||
+            statusResource.state.spec.vars.action_schedule.stop;
+          if (stopTimestamp && !isNaN(Date.parse(stopTimestamp))) return Date.parse(stopTimestamp);
+          return null;
+        })
+        .filter((time) => time !== null)
+    : [];
+  if (autoStopTimes && autoStopTimes.length > 0) {
+    return Math.min(...autoStopTimes);
+  }
+  return null;
 }
 
 export function getStartTime(resourceClaim: ResourceClaim): number {
-  return Math.min(
-    ...resourceClaim.status.resources
-      .map((r) => {
-        if (!r.state) return null;
-        const startTimestamp = r.state.spec.vars.action_schedule.start;
-        const resourceMaximumRuntime = r.state.spec.vars.action_schedule.maximum_runtime;
-        if (resourceMaximumRuntime && startTimestamp && !isNaN(Date.parse(startTimestamp))) {
-          return Date.parse(startTimestamp) + parseDuration(resourceMaximumRuntime);
-        }
-        return null;
-      })
-      .filter((runtime) => runtime !== null)
-  );
+  const autoStartTimes = resourceClaim.status?.resources
+    ? resourceClaim.status.resources
+        .map((r) => {
+          if (!r.state) return null;
+          const startTimestamp = r.state.spec.vars.action_schedule.start;
+          const resourceMaximumRuntime = r.state.spec.vars.action_schedule.maximum_runtime;
+          if (resourceMaximumRuntime && startTimestamp && !isNaN(Date.parse(startTimestamp))) {
+            return Date.parse(startTimestamp) + parseDuration(resourceMaximumRuntime);
+          }
+          return null;
+        })
+        .filter((runtime) => runtime !== null)
+    : [];
+  if (autoStartTimes.length > 0) {
+    return Math.min(...autoStartTimes);
+  }
+  return null;
 }
