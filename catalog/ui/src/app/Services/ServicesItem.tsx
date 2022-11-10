@@ -75,13 +75,13 @@ import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssign
 import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
-import ServiceItemStatus from './ServiceItemStatus';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
 import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
 import ServiceStatus from './ServiceStatus';
+import ServiceItemStatus from './ServiceItemStatus';
 
 import './services-item.css';
 
