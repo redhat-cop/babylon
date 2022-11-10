@@ -57,11 +57,11 @@ const ServiceItemStatus: React.FC<{
     },
     undefined
   );
-  const lastRequestDate: number = lastRequestTimestamp ? Date.parse(lastRequestTimestamp) : null;
-  const lastRequestMillisecondsAgo: number = lastRequestDate ? Date.now() - lastRequestDate : null;
+  const lastRequestDate = lastRequestTimestamp ? Date.parse(lastRequestTimestamp) : null;
+  const lastRequestMillisecondsAgo = lastRequestDate ? Date.now() - lastRequestDate : null;
 
   // Extract the last status completion from resource status
-  const lastUpdateTimestamp: string = resourceClaim.status.resources.reduce((lastTimestamp, resourceStatus) => {
+  const lastUpdateTimestamp = resourceClaim.status.resources.reduce((lastTimestamp, resourceStatus) => {
     const ts = resourceStatus?.state?.status?.towerJobs?.status?.completeTimestamp;
     if (ts) {
       if (lastTimestamp) {

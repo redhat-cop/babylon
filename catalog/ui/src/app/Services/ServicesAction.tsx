@@ -12,18 +12,17 @@ const ServicesAction: React.FC<{
   const resourceClaimHasMultipleResources: boolean | null = resourceClaim?.spec?.resources
     ? resourceClaim.spec.resources.length > 1
     : null;
-  const targetDisplay: string = resourceClaim ? displayName(resourceClaim) : 'Selected Services';
-  const actionDisplay: string = action.charAt(0).toUpperCase() + action.slice(1);
+  const targetDisplay = resourceClaim ? displayName(resourceClaim) : 'Selected Services';
+  const actionDisplay = action.charAt(0).toUpperCase() + action.slice(1);
   useEffect(() => setTitle(`${actionDisplay} ${targetDisplay}`), [actionDisplay, setTitle, targetDisplay]);
 
   // Show default runtime of resource with minimum value
-  const defaultRuntime: number | null = resourceClaim?.status?.resources
-    ? Math.min(
-        ...resourceClaim.status.resources
-          .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
-          .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
-      )
-    : null;
+  const defaultRuntimes = resourceClaim?.status?.resources
+    ? resourceClaim.status.resources
+        .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
+        .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
+    : [];
+  const defaultRuntime = defaultRuntimes.length > 0 ? Math.min(...defaultRuntimes) : null;
 
   return (
     <>

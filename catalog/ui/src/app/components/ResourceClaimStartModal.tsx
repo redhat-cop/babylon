@@ -18,14 +18,13 @@ const ResourceClaimStartModal: React.FC<{
   }, [resourceClaims, setTitle]);
 
   if (resourceClaims.length === 1) {
-    const resourceClaim: ResourceClaim = resourceClaims[0];
-    const defaultRuntime: number | null = resourceClaim.status?.resources
-      ? Math.min(
-          ...resourceClaim.status.resources
-            .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
-            .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
-        )
-      : null;
+    const resourceClaim = resourceClaims[0];
+    const defaultRuntimes = resourceClaim.status?.resources
+      ? resourceClaim.status.resources
+          .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
+          .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
+      : [];
+    const defaultRuntime = defaultRuntimes.length > 0 ? Math.min(...defaultRuntimes) : null;
     return (
       <p>
         {defaultRuntime ? (
