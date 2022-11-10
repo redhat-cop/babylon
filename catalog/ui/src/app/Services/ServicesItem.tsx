@@ -571,7 +571,7 @@ const ServicesItemComponent: React.FC<{
                 <DescriptionListGroup>
                   <DescriptionListTerm>GUID</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {isAdmin && resourceClaim?.status?.resourceHandle ? (
+                    {isAdmin && resourceClaim.status?.resourceHandle ? (
                       <>
                         <Link key="admin" to={`/admin/resourcehandles/${resourceClaim.status.resourceHandle.name}`}>
                           <code>{resourceClaim.status.resourceHandle.name.substring(5)}</code>
@@ -579,7 +579,7 @@ const ServicesItemComponent: React.FC<{
                         <OpenshiftConsoleLink key="console" reference={resourceClaim.status.resourceHandle} />
                       </>
                     ) : (
-                      <code>{resourceClaim?.status?.resourceHandle?.name.substring(5) || '...'}</code>
+                      <code>{resourceClaim.status?.resourceHandle?.name.substring(5) || '...'}</code>
                     )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
@@ -616,7 +616,7 @@ const ServicesItemComponent: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
-                {!externalPlatformUrl && !isPartOfWorkshop && resourceClaim?.status?.lifespan?.end ? (
+                {!externalPlatformUrl && !isPartOfWorkshop && resourceClaim.status?.lifespan?.end ? (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
                     {resourceClaim.status?.lifespan?.end ? (
@@ -667,18 +667,16 @@ const ServicesItemComponent: React.FC<{
                   </DescriptionListGroup>
                 ) : null}
 
-                {resourceClaim.spec.resources.length > 1 ? (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Status</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <ServiceStatus
-                        creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                        resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
-                        resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
-                      />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                ) : null}
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Status</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <ServiceStatus
+                      creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                      resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
+                      resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
+                    />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
 
                 <ConditionalWrapper
                   condition={resourceClaim.spec.resources.length > 1}
@@ -703,7 +701,7 @@ const ServicesItemComponent: React.FC<{
                   )}
                 >
                   <div>
-                    {resourceClaim.spec.resources.map((resourceSpec, idx) => {
+                    {(resourceClaim.spec?.resources || []).map((resourceSpec, idx) => {
                       const resourceStatus = resourceClaim.status?.resources?.[idx];
                       const resourceState = resourceStatus?.state;
                       const componentDisplayName =
