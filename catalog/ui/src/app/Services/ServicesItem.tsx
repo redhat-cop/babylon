@@ -113,18 +113,18 @@ const ComponentDetailsList: React.FC<{
   provisionDataEntries,
 }) => (
   <DescriptionList isHorizontal>
+    <DescriptionListGroup>
+      <DescriptionListTerm>Status</DescriptionListTerm>
+      <DescriptionListDescription>
+        <ServiceStatus
+          creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+          resource={resourceState}
+          resourceTemplate={resourceSpec?.template}
+        />
+      </DescriptionListDescription>
+    </DescriptionListGroup>
     {resourceState?.kind === 'AnarchySubject' ? (
       <>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Status</DescriptionListTerm>
-          <DescriptionListDescription>
-            <ServiceStatus
-              creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-              resource={resourceState}
-              resourceTemplate={resourceSpec.template}
-            />
-          </DescriptionListDescription>
-        </DescriptionListGroup>
         {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > Date.now() ? (
           <DescriptionListGroup>
             <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
@@ -667,16 +667,18 @@ const ServicesItemComponent: React.FC<{
                   </DescriptionListGroup>
                 ) : null}
 
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Status</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <ServiceStatus
-                      creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                      resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
-                      resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
-                    />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
+                {resourceClaim.spec.resources.length > 1 ? (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Status</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ServiceStatus
+                        creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                        resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
+                        resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
+                      />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                ) : null}
 
                 <ConditionalWrapper
                   condition={resourceClaim.spec.resources.length > 1}
@@ -701,7 +703,7 @@ const ServicesItemComponent: React.FC<{
                   )}
                 >
                   <div>
-                    {(resourceClaim.spec?.resources || []).map((resourceSpec, idx) => {
+                    {resourceClaim.spec.resources.map((resourceSpec, idx) => {
                       const resourceStatus = resourceClaim.status?.resources?.[idx];
                       const resourceState = resourceStatus?.state;
                       const componentDisplayName =
