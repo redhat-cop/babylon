@@ -667,16 +667,18 @@ const ServicesItemComponent: React.FC<{
                   </DescriptionListGroup>
                 ) : null}
 
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Status</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <ServiceStatus
-                      creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                      resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
-                      resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
-                    />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
+                {resourceClaim.spec.resources.length > 1 ? (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Status</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ServiceStatus
+                        creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                        resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
+                        resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
+                      />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                ) : null}
 
                 <ConditionalWrapper
                   condition={resourceClaim.spec.resources.length > 1}
