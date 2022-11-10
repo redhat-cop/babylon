@@ -73,7 +73,6 @@ import TimeInterval from '@app/components/TimeInterval';
 import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
 import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
-import ServiceStatus from './ServiceStatus';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServiceItemStatus from './ServiceItemStatus';
@@ -82,6 +81,7 @@ import ServiceNamespaceSelect from './ServiceNamespaceSelect';
 import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
+import ServiceStatus from './ServiceStatus';
 
 import './services-item.css';
 
