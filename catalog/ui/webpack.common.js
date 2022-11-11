@@ -78,10 +78,10 @@ module.exports = () => {
     },
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: '[name].[contenthash:4].bundle.js',
-      chunkFilename: '[name].[contenthash:4].bundle.js',
+      filename: '[name].[contenthash:8].bundle.js',
+      chunkFilename: '[name].[contenthash:8].bundle.js',
       publicPath: ASSET_PATH,
-      assetModuleFilename: 'fonts/[hash][ext][query]',
+      assetModuleFilename: 'fonts/[hash:8][ext][query]',
     },
     plugins: [
       new Dotenv({
