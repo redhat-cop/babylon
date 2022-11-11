@@ -37,7 +37,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
   resource: AnarchySubject;
   template: ResourceClaimSpecResourceTemplate;
 } {
-  const { resources } = resourceClaim.status;
+  const resources = resourceClaim.status?.resources;
   const { resources: specResources } = resourceClaim.spec;
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
     return specResources.find((s) => s.name === name);
