@@ -97,7 +97,7 @@ export function getAutoStopTime(resourceClaim: ResourceClaim): number {
         .filter((time) => time !== null)
     : [];
   if (autoStopTimes && autoStopTimes.length > 0) {
-    return Math.min(...autoStopTimes);
+    return Math.max(...autoStopTimes);
   }
   return null;
 }
