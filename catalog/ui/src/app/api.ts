@@ -131,10 +131,21 @@ export async function apiFetch(path: string, opt?: Record<string, unknown>): Pro
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function publicFetcher(path: string, opt?: Record<string, unknown>): Promise<any> {
+  const response = await window.fetch(path, opt);
+  if (response.status >= 400 && response.status < 600) {
+    throw response;
+  }
+  const contentType = response.headers.get('Content-Type');
+  if (contentType?.includes('text/') || contentType?.includes('application/octet-stream')) return response.text();
+  return response.json();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetcher(path: string, opt?: Record<string, unknown>): Promise<any> {
   const response = await apiFetch(path, opt);
   const contentType = response.headers.get('Content-Type');
-  if (contentType?.includes('text/')) return response.text();
+  if (contentType?.includes('text/') || contentType?.includes('application/octet-stream')) return response.text();
   return response.json();
 }
 

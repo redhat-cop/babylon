@@ -81,6 +81,7 @@ module.exports = () => {
       filename: '[name].[contenthash:4].bundle.js',
       chunkFilename: '[name].[contenthash:4].bundle.js',
       publicPath: ASSET_PATH,
+      assetModuleFilename: 'fonts/[hash][ext][query]',
     },
     plugins: [
       new Dotenv({
@@ -94,7 +95,7 @@ module.exports = () => {
       new CopyPlugin({
         patterns: [
           { from: path.resolve(__dirname, 'src/favicon.ico'), to: 'images' },
-          { from: path.resolve(__dirname, 'src/public'), to: '' },
+          { from: path.resolve(__dirname, 'src/public'), to: 'public' },
         ],
       }),
     ],

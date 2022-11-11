@@ -12,17 +12,17 @@
   align-items: center;
 }
 
-.catalog-item-form__form .catalog-terms-of-service {
+.catalog-item-form__form .terms-of-service {
   background-color: var(--pf-global--BackgroundColor--light-300);
   padding: var(--pf-global--spacer--md);
 }
-.catalog-item-form__form .catalog-terms-of-service .pf-c-form__label {
+.catalog-item-form__form .terms-of-service .pf-c-form__label {
   cursor: default;
 }
 
 .catalog-item-form__group-control--single,
 .catalog-item-form__group-control--multi,
-.catalog-item-form__form .catalog-terms-of-service .pf-c-form__group-control {
+.catalog-item-form__form .terms-of-service .pf-c-form__group-control {
   display: flex;
   flex-direction: row;
   gap: var(--pf-global--spacer--md);
@@ -31,7 +31,7 @@
 .catalog-item-form__group-control--multi {
   padding-bottom: var(--pf-global--spacer--sm);
 }
-.catalog-item-form__form .catalog-terms-of-service .pf-c-form__group-control {
+.catalog-item-form__form .terms-of-service .pf-c-form__group-control {
   flex-direction: column;
   align-items: flex-start;
 }

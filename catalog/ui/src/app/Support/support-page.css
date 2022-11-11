@@ -1,0 +1,9 @@
+.support-page {
+  padding: 0;
+}
+.support-page > * {
+  padding: 0 var(--pf-c-page__main-section--PaddingRight) 0 var(--pf-c-page__main-section--PaddingLeft);
+}
+.support-page > *:last-child {
+  padding-bottom: var(--pf-c-page__main-section--PaddingBottom);
+}
