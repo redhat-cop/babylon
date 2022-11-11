@@ -23,9 +23,9 @@ import { publicFetcher } from '@app/api';
 import PublicHeader from '@app/Header/PublicHeader';
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
+import EnterprisePremiumIcon from './EnterprisePremiumIcon';
 
 import './support-page.css';
-import EnterprisePremiumIcon from './EnterprisePremiumIcon';
 
 const SupportPage: React.FC = () => {
   const { data } = useSWRImmutable('./public/incidents_technical_support.csv', publicFetcher);

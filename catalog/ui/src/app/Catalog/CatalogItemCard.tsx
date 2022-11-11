@@ -2,7 +2,9 @@ import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Badge, CardBody, CardHeader, Split, SplitItem, Title, Tooltip } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
-import CatalogItemIcon from './CatalogItemIcon';
+import StatusPageIcons from '@app/components/StatusPageIcons';
+import { displayName, renderContent, stripHtml } from '@app/util';
+import EnterprisePremiumIcon from '@app/Support/EnterprisePremiumIcon';
 import {
   formatString,
   getDescription,
@@ -12,11 +14,9 @@ import {
   getStatus,
   getSupportType,
 } from './catalog-utils';
-import StatusPageIcons from '@app/components/StatusPageIcons';
-import { displayName, renderContent, stripHtml } from '@app/util';
+import CatalogItemIcon from './CatalogItemIcon';
 
 import './catalog-item-card.css';
-import EnterprisePremiumIcon from '@app/Support/EnterprisePremiumIcon';
 
 const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
   const location = useLocation();
