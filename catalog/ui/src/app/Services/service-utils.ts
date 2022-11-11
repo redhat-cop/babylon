@@ -8,6 +8,31 @@ import parseDuration from 'parse-duration';
 import { canExecuteAction } from '@app/util';
 import { phaseProps, getStatus } from './ServiceStatus';
 
+export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number; stopTime: number } {
+  const { resources } = resourceClaim.status;
+  const { resources: specResources } = resourceClaim.spec;
+  function getSpecResourceByName(name: string): ResourceClaimSpecResource {
+    return specResources.find((s) => s.name === name);
+  }
+  if (!resources) return null;
+  // The start time for a multi-component service is the earliest start time of all components and the stop time is the latest stop time
+  const stopTimes = [];
+  const startTimes = [];
+  for (const [, resource] of resources.entries()) {
+    const resourceK8s = resource.state;
+    const specResource = getSpecResourceByName(resource.name);
+    const stopTimestamp =
+      specResource?.template?.spec?.vars?.action_schedule?.stop || resourceK8s?.spec?.vars?.action_schedule?.stop;
+    const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+    stopTimes.push(stopTime);
+    const startTimestamp =
+      specResource?.template?.spec?.vars?.action_schedule?.start || resourceK8s?.spec?.vars?.action_schedule?.start;
+    const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
+    startTimes.push(startTime);
+  }
+  return { stopTime: Math.max(...stopTimes), startTime: Math.min(...startTimes) };
+}
+
 export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim): {
   resource: AnarchySubject;
   template: ResourceClaimSpecResourceTemplate;

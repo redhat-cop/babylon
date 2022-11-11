@@ -1,5 +1,7 @@
 import React from 'react';
+import resourceClaimObj from '../__mocks__/resourceClaim.json';
 import { render, waitFor, screen, fireEvent } from '@testing-library/react';
+import { ResourceClaim } from '@app/types';
 import ServiceActions from './ServiceActions';
 
 describe('ServiceActions', () => {
@@ -12,7 +14,7 @@ describe('ServiceActions', () => {
     const { getByText } = render(
       <ServiceActions
         position="right"
-        resourceClaim={'resourceClaim'}
+        resourceClaim={resourceClaimObj as ResourceClaim}
         actionHandlers={{
           delete: () => openDeleteModal('resourceClaim'),
           lifespan: () => openScheduleActionModal('resourceClaim', 'retirement'),
@@ -35,7 +37,7 @@ describe('ServiceActions', () => {
     const { getByText } = render(
       <ServiceActions
         position="right"
-        resourceClaim={'resourceClaim'}
+        resourceClaim={resourceClaimObj as ResourceClaim}
         actionHandlers={{
           delete: () => openDeleteModal('resourceClaim'),
           lifespan: () => openScheduleActionModal('resourceClaim', 'retirement'),
@@ -59,7 +61,7 @@ describe('ServiceActions', () => {
     const { getByText } = render(
       <ServiceActions
         position="right"
-        resourceClaim={'resourceClaim'}
+        resourceClaim={resourceClaimObj as ResourceClaim}
         actionHandlers={{
           delete: () => openDeleteModal('resourceClaim'),
           lifespan: () => openScheduleActionModal('resourceClaim', 'retirement'),
@@ -83,7 +85,7 @@ describe('ServiceActions', () => {
     const { getByText } = render(
       <ServiceActions
         position="right"
-        resourceClaim={'resourceClaim'}
+        resourceClaim={resourceClaimObj as ResourceClaim}
         actionHandlers={{
           delete: () => openDeleteModal('resourceClaim'),
           lifespan: () => openScheduleActionModal('resourceClaim', 'retirement'),
@@ -107,7 +109,7 @@ describe('ServiceActions', () => {
     const { getByText } = render(
       <ServiceActions
         position="right"
-        resourceClaim={'resourceClaim'}
+        resourceClaim={resourceClaimObj as ResourceClaim}
         actionHandlers={{
           delete: () => openDeleteModal('resourceClaim'),
           lifespan: () => openScheduleActionModal('resourceClaim', 'retirement'),
@@ -131,7 +133,7 @@ describe('ServiceActions', () => {
     const { getByText } = render(
       <ServiceActions
         position="right"
-        resourceClaim={'resourceClaim'}
+        resourceClaim={resourceClaimObj as ResourceClaim}
         actionHandlers={{
           delete: () => openDeleteModal('resourceClaim'),
           lifespan: () => openScheduleActionModal('resourceClaim', 'retirement'),

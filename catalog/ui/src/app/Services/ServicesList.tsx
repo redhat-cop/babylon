@@ -551,6 +551,7 @@ const ServicesList: React.FC<{
                       creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                       resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
                       resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
+                      resourceClaim={resourceClaim}
                     />
                   ) : (
                     <p>...</p>

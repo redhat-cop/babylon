@@ -4,9 +4,10 @@ import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-c
 import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-icon';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
-import { AnarchySubject, ResourceClaimSpecResourceTemplate } from '@app/types';
+import { AnarchySubject, ResourceClaim, ResourceClaimSpecResourceTemplate } from '@app/types';
 
 import './service-status.css';
+import { getAutoTimes } from './service-utils';
 
 export type phaseProps = 'unknown' | 'available' | 'running' | 'in-progress' | 'failed' | 'stopped';
 
@@ -80,15 +81,19 @@ const ServiceStatus: React.FC<{
   creationTime: number;
   resource?: AnarchySubject;
   resourceTemplate?: ResourceClaimSpecResourceTemplate;
-}> = ({ creationTime, resource, resourceTemplate }) => {
+  resourceClaim: ResourceClaim;
+}> = ({ creationTime, resource, resourceTemplate, resourceClaim }) => {
   const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
   const desiredState = resourceTemplate?.spec?.vars?.desired_state;
-  const startTimestamp =
-    resourceTemplate?.spec?.vars?.action_schedule?.start || resource?.spec?.vars?.action_schedule?.start;
-  const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
-  const stopTimestamp =
-    resourceTemplate?.spec?.vars?.action_schedule?.stop || resource?.spec?.vars?.action_schedule?.stop;
-  const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+  const { startTime, stopTime } = getAutoTimes(resourceClaim);
+  const _startTime =
+    resourceTemplate?.spec?.vars?.action_schedule?.start || resource?.spec?.vars?.action_schedule?.start
+      ? startTime
+      : null;
+  const _stopTime =
+    resourceTemplate?.spec?.vars?.action_schedule?.stop || resource?.spec?.vars?.action_schedule?.stop
+      ? stopTime
+      : null;
 
   if (typeof resource === 'undefined') {
     return (
@@ -97,7 +102,7 @@ const ServiceStatus: React.FC<{
       </span>
     );
   }
-  const { statusName, phase } = getStatus(currentState, desiredState, creationTime, startTime, stopTime);
+  const { statusName, phase } = getStatus(currentState, desiredState, creationTime, _startTime, _stopTime);
 
   return (
     <span className={`service-status--${phase}`}>

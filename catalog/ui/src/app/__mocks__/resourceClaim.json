@@ -1,0 +1,84 @@
+{
+  "apiVersion": "poolboy.gpte.redhat.com/v1",
+  "kind": "ResourceClaim",
+  "metadata": {
+    "annotations": {
+      "babylon.gpte.redhat.com/catalogDisplayName": "babylon-catalog-test",
+      "babylon.gpte.redhat.com/catalogItemDisplayName": "Babylon Empty Config",
+      "babylon.gpte.redhat.com/requester": "email@redhat.com",
+      "babylon.gpte.redhat.com/url": "https://demo.redhat.com/services/user-email-redhat-com/tests.babylon-empty-config.prod",
+      "pfe.redhat.com/purpose": "Development - Catalog item creation / maintenance"
+    },
+    "creationTimestamp": "2022-11-10T18:31:47Z",
+    "generation": 1,
+    "labels": {
+      "babylon.gpte.redhat.com/catalogItemName": "tests.babylon-empty-config.prod",
+      "babylon.gpte.redhat.com/catalogItemNamespace": "babylon-catalog-test"
+    },
+    "managedFields": [
+      {
+        "apiVersion": "poolboy.gpte.redhat.com/v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:metadata": {
+            "f:annotations": {
+              ".": {},
+              "f:babylon.gpte.redhat.com/catalogDisplayName": {},
+              "f:babylon.gpte.redhat.com/catalogItemDisplayName": {},
+              "f:babylon.gpte.redhat.com/requester": {},
+              "f:babylon.gpte.redhat.com/url": {},
+              "f:pfe.redhat.com/purpose": {}
+            },
+            "f:labels": {
+              ".": {},
+              "f:babylon.gpte.redhat.com/catalogItemName": {},
+              "f:babylon.gpte.redhat.com/catalogItemNamespace": {}
+            }
+          },
+          "f:spec": { ".": {}, "f:resources": {} }
+        },
+        "manager": "OpenAPI-Generator",
+        "operation": "Update",
+        "time": "2022-11-10T18:31:47Z"
+      }
+    ],
+    "name": "tests.babylon-empty-config.prod",
+    "namespace": "user-email-redhat-com",
+    "resourceVersion": "590667463",
+    "uid": "9f357298-b10d-4469-9232-aad6dfa9e3f9"
+  },
+  "spec": {
+    "resources": [
+      {
+        "name": "babylon-empty-config",
+        "provider": {
+          "apiVersion": "poolboy.gpte.redhat.com/v1",
+          "kind": "ResourceProvider",
+          "name": "tests.babylon-empty-config.prod",
+          "namespace": "poolboy"
+        },
+        "template": {
+          "spec": {
+            "vars": {
+              "job_vars": {
+                "bookbag_deploy": false,
+                "bookbag_git_repo": "https://github.com/redhat-gpte-labs/bookbag-template.git",
+                "example_regex_validated_var": "",
+                "fail_infra": false,
+                "fail_post_infra": false,
+                "fail_post_software": false,
+                "fail_pre_infra": false,
+                "fail_pre_software": false,
+                "fail_software": false,
+                "region": "NA",
+                "test_empty_config_multi_user": false,
+                "test_empty_config_pause_post_software": false,
+                "test_empty_config_pause_post_software_seconds": 30
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
