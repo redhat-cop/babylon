@@ -477,6 +477,7 @@ const WorkshopsItem: React.FC<{
   workshopName: string;
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => (
   <ErrorBoundary
+    onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
     fallbackRender={() => (
       <>
         <NotFoundComponent workshopName={workshopName} serviceNamespaceName={serviceNamespaceName} />

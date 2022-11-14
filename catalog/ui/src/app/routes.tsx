@@ -268,7 +268,10 @@ const _Routes: React.FC = () => {
           element={
             <AppLayout title={title} accessControl={accessControl}>
               <Suspense fallback={<LoadingSection />}>
-                <ErrorBoundary FallbackComponent={NotFound}>
+                <ErrorBoundary
+                  FallbackComponent={NotFound}
+                  onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
+                >
                   <Component />
                 </ErrorBoundary>
               </Suspense>

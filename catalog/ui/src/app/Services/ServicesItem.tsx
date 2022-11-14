@@ -898,6 +898,7 @@ const ServicesItem: React.FC<{
   serviceNamespaceName: string;
 }> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => (
   <ErrorBoundary
+    onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
     fallbackRender={() => (
       <>
         <NotFoundComponent resourceClaimName={resourceClaimName} serviceNamespaceName={serviceNamespaceName} />

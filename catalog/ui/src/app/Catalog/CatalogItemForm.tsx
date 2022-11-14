@@ -574,6 +574,7 @@ const CatalogItemForm: React.FC = () => {
   const { namespace, name: catalogItemName } = useParams();
   return (
     <ErrorBoundary
+      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
       fallbackRender={() => (
         <>
           <PageSection>
