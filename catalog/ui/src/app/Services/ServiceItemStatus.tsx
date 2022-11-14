@@ -21,10 +21,10 @@ import './service-item-status.css';
 function getCheckStatusStateFromResource(
   resourceState: AnarchySubject,
   resourceTemplate: ResourceClaimSpecResourceTemplate
-): string | null {
+) {
   const resourceStateVars = resourceState?.spec?.vars;
   const resourceTemplateVars = resourceTemplate.spec?.vars;
-  if (resourceStateVars?.check_status_state && resourceStateVars.check_status_state != 'successful') {
+  if (resourceStateVars?.check_status_state && resourceStateVars.check_status_state !== 'successful') {
     return resourceStateVars.check_status_state;
   }
   if (
@@ -42,7 +42,7 @@ const ServiceItemStatus: React.FC<{
   resourceClaim: ResourceClaim;
 }> = ({ onCheckStatusRequest, resourceClaim }) => {
   // Extract the last status check request timestamp
-  const lastRequestTimestamp: string | undefined = resourceClaim.spec.resources.reduce<string | undefined>(
+  const lastRequestTimestamp = resourceClaim.spec.resources.reduce<string | undefined>(
     (lastTimestamp, resourceSpec) => {
       const ts = resourceSpec?.template?.spec?.vars?.check_status_request_timestamp;
       if (ts) {
@@ -78,7 +78,7 @@ const ServiceItemStatus: React.FC<{
   // - requested
   // - pending
   // - running
-  const checkStatusState: string | undefined = resourceClaim.spec.resources.reduce<string | undefined>(
+  const checkStatusState = resourceClaim.spec.resources.reduce<string | undefined>(
     (reducedCheckState, resourceSpec, idx) => {
       const resourceState = resourceClaim.status.resources[idx].state;
       const resourceCheckState = getCheckStatusStateFromResource(resourceState, resourceSpec.template);
@@ -166,7 +166,7 @@ const ServiceItemStatus: React.FC<{
         const resourceVars = resourceState?.spec?.vars;
 
         return (
-          <div key={idx} className="services-item-body-resource">
+          <div key={idx} className="services-item-status__resource">
             <Title headingLevel="h2" size="lg">
               {componentDisplayName}
             </Title>
