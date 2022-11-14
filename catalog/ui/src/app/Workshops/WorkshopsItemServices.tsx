@@ -52,7 +52,7 @@ const WorkshopsItemServices: React.FC<{
       <SelectableTable
         key="table"
         columns={['Name', 'GUID', 'Status', 'Created', 'Actions']}
-        onSelectAll={(isSelected) => {
+        onSelectAll={(isSelected: boolean) => {
           if (isSelected) {
             setSelectedUids(resourceClaims.map((resourceClaim) => resourceClaim.metadata.uid));
           } else {

@@ -1,6 +1,6 @@
 import React from 'react';
-import { EditorState, LexicalEditor } from 'lexical';
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from 'lexical';
+import { InitialEditorStateType, LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
@@ -26,12 +26,24 @@ const Editor: React.FC<{
   placeholder: string;
   defaultValue?: string;
 }> = ({ onChange, placeholder, defaultValue }) => {
+  let _defaultValue: InitialEditorStateType = defaultValue;
+  try {
+    JSON.parse(defaultValue);
+  } catch {
+    _defaultValue = () => {
+      const root = $getRoot();
+      root.clear();
+      const p = $createParagraphNode();
+      p.append($createTextNode(defaultValue));
+      root.append(p);
+    };
+  }
   return (
     <div className="editor">
       <LexicalComposer
         initialConfig={{
           namespace: 'editor',
-          editorState: defaultValue,
+          editorState: _defaultValue,
           theme: Theme,
           nodes: [
             HeadingNode,
