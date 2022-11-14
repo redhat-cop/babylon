@@ -402,6 +402,7 @@ const ResourcePoolInstance: React.FC = () => {
           <Footer />
         </>
       )}
+      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
     >
       <ResourcePoolInstanceComponent activeTab={activeTab} resourcePoolName={resourcePoolName} />
       <Footer />

@@ -202,6 +202,7 @@ const ResourceProviderInstance: React.FC = () => {
           <Footer />
         </>
       )}
+      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
     >
       <ResourceProviderInstanceComponent activeTab={activeTab} resourceProviderName={resourceProviderName} />
       <Footer />
