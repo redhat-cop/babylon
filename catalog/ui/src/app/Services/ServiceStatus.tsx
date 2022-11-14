@@ -5,9 +5,9 @@ import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-ic
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import { AnarchySubject, ResourceClaim, ResourceClaimSpecResourceTemplate } from '@app/types';
+import { getAutoTimes } from './service-utils';
 
 import './service-status.css';
-import { getAutoTimes } from './service-utils';
 
 export type phaseProps = 'unknown' | 'available' | 'running' | 'in-progress' | 'failed' | 'stopped';
 

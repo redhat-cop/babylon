@@ -9,7 +9,7 @@ import { canExecuteAction } from '@app/util';
 import { phaseProps, getStatus } from './ServiceStatus';
 
 export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number; stopTime: number } {
-  const { resources } = resourceClaim.status;
+  const resources = resourceClaim.status?.resources;
   const { resources: specResources } = resourceClaim.spec;
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
     return specResources.find((s) => s.name === name);
