@@ -110,9 +110,9 @@ const WorkshopsItemDetails: React.FC<{
       <DescriptionListGroup>
         <DescriptionListTerm>
           Description{' '}
-          <Tooltip position="right" content={<p>Custom details visible after the user accesses the Workshop.</p>}>
+          <Tooltip position="right" content={<p>Description text visible after the user accesses the Workshop.</p>}>
             <OutlinedQuestionCircleIcon
-              aria-label="Custom details visible after the user accesses the Workshop."
+              aria-label="Description text visible after the user accesses the Workshop."
               className="tooltip-icon-only"
             />
           </Tooltip>

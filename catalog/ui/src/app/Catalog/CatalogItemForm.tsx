@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
+import { EditorState } from 'lexical/LexicalEditorState';
 import {
   ActionList,
   ActionListItem,
@@ -19,7 +20,6 @@ import {
   SelectOption,
   SelectVariant,
   Switch,
-  TextArea,
   TextInput,
   Title,
   Tooltip,
@@ -43,6 +43,7 @@ import { CatalogItem } from '@app/types';
 import { ErrorBoundary } from 'react-error-boundary';
 import { displayName, isLabDeveloper, randomString } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
+import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
@@ -418,16 +419,24 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
             </FormGroup>
             <FormGroup fieldId="workshopDescription" label="Description">
               <div className="catalog-item-form__group-control--single">
-                <TextArea
-                  onChange={(v) =>
-                    dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, description: v } })
-                  }
-                  value={formState.workshop.description}
+                <Editor
+                  onChange={(state: EditorState) => {
+                    const editorState = state.toJSON();
+                    dispatchFormState({
+                      type: 'workshop',
+                      workshop: { ...formState.workshop, description: JSON.stringify(editorState) },
+                    });
+                  }}
+                  placeholder="Add description"
                   aria-label="Description"
+                  defaultValue={formState.workshop.description}
                 />
-                <Tooltip position="right" content={<p>Description shown in the workshop user interface.</p>}>
+                <Tooltip
+                  position="right"
+                  content={<p>Description text visible after the user accesses the Workshop.</p>}
+                >
                   <OutlinedQuestionCircleIcon
-                    aria-label="Description shown in the workshop user interface"
+                    aria-label="Description text visible after the user accesses the Workshop."
                     className="tooltip-icon-only"
                   />
                 </Tooltip>

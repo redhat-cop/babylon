@@ -13,8 +13,8 @@ module.exports = merge(common('production'), {
   },
   plugins: [
     new MiniCssExtractPlugin({
-      filename: '[name].[contenthash:4].css',
-      chunkFilename: '[name].[contenthash:4].bundle.css',
+      filename: '[name].[contenthash:8].css',
+      chunkFilename: '[name].[contenthash:8].bundle.css',
       ignoreOrder: true,
     }),
   ],

@@ -78,8 +78,8 @@ module.exports = () => {
     },
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: '[name].[contenthash:4].bundle.js',
-      chunkFilename: '[name].[contenthash:4].bundle.js',
+      filename: '[name].[contenthash:8].bundle.js',
+      chunkFilename: '[name].[contenthash:8].bundle.js',
       publicPath: ASSET_PATH,
     },
     plugins: [
