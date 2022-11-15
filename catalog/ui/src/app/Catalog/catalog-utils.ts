@@ -22,8 +22,17 @@ export function getDescription(catalogItem: CatalogItem): {
       (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/descriptionFormat`] as 'html' | 'asciidoc') || 'asciidoc',
   };
 }
+
 export function getStage(catalogItem: CatalogItem): string | null {
   return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
+}
+
+const supportedSupportTypes = ['Enterprise_Premium', 'Enterprise_Standard', 'Community'] as const;
+type SupportTypes = typeof supportedSupportTypes[number];
+export function getSupportType(catalogItem: CatalogItem): SupportTypes {
+  const supportType = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/Support_Type`] as SupportTypes;
+  if (!supportedSupportTypes.includes(supportType)) return null;
+  return supportType;
 }
 
 export function getIsDisabled(catalogItem: CatalogItem): boolean {
@@ -97,5 +106,5 @@ export function setLastFilter(filter: string): void {
 export function formatString(string: string): string {
   return (string.charAt(0).toUpperCase() + string.slice(1)).replace(/_/g, ' ');
 }
-export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage'];
+export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage', 'Support_Type'];
 export const HIDDEN_ANNOTATIONS = ['ops', 'displayNameComponent0', 'displayNameComponent1'];

@@ -11,6 +11,7 @@ const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'))
 const Services = React.lazy(() => import('@app/Services/Services'));
 const Workshops = React.lazy(() => import('@app/Workshops/Workshops'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
+const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 const AnarchyActionInstance = React.lazy(() => import('@app/Admin/AnarchyActionInstance'));
 const AnarchyActions = React.lazy(() => import('@app/Admin/AnarchyActions'));
@@ -252,6 +253,11 @@ const publicRoutes: IAppRoute[] = [
     component: Workshop,
     path: '/workshop/:workshopId',
     title: 'Workshop | Babylon',
+  },
+  {
+    component: SupportPage,
+    path: '/support',
+    title: 'Support | Babylon',
   },
 ];
 

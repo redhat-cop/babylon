@@ -42,8 +42,10 @@ spec:
         - --logout-url=/
         - --provider=openshift
         - --skip-auth-regex=^/(api/)?workshop($|/.*)
+        - --skip-auth-regex=^/support($|/)
         - --skip-auth-regex=^/fonts/.*
         - --skip-auth-regex=^/images/.*
+        - --skip-auth-regex=^/public/.*
         - --skip-auth-regex=(.js|.html|.css|.map|.txt)($|\?.*)
         - --skip-provider-button=true
         - --tls-cert=/etc/tls/private/tls.crt

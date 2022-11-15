@@ -4,7 +4,8 @@ import { Page } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
 import Footer from '@app/components/Footer';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
-import { apiPaths, fetcher } from './workshop-utils';
+import { publicFetcher } from '@app/api';
+import { apiPaths } from './workshop-utils';
 import { workshopLogin, WorkshopDetails } from './workshopApi';
 import WorkshopAccess from './WorkshopAccess';
 import WorkshopHeader from './WorkshopHeader';
@@ -19,7 +20,7 @@ const Workshop: React.FC = () => {
   const [loginFailureMessage, setLoginFailureMessage] = useState('');
   const { data: workshop } = useSWRImmutable<WorkshopDetails>(
     workshopId ? apiPaths.WORKSHOP({ workshopId }) : null,
-    fetcher
+    publicFetcher
   );
   const [workshopPrivateInfo, setWorkshopPrivateInfo] = useState(workshop);
 

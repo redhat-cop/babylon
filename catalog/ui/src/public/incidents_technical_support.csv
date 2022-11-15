@@ -1,0 +1,20 @@
+"Types (Will appear in the UI next to each CI, and will have a new web page for it)",Community Content,Enterprise- Standard,Enterprise-  Premium,Pre Scheduled Events (min 2 weeks)
+Description,Assets Created by TMM and Tech Sales,Open Environments & LPE by RHPDS,Currated Assets by RHPDS (like Epic Demo) and promoted CIs (from community to enterprise),"Customer workshops, Summit etc.."
+User prerequisites,,,,at least 2 weeks notice via ticket to pre provision and allocate resources
+Hours of Coverage,Mon-Fri during business hours,Mon-Fri during business hours,Mon-Fri during business hours,Mon-Fri during business hours
+"Support Channel (internals, partners, customers?)",Ticketing system & Chat channel with Developers,Ticketing System & Chat,Ticketing System & Chat,Ticketing System and dedicated Chat space
+Optional,,,,Dedicated Technical Support Liason: Remote or On site
+Response Time for technical support,10 business hours,10 business hours,10 business hours,30 minutes
+Restoration Time (workaround or plan B),Best effort,5 business days,2 business days,1 business hour
+Resolution Time for technical issues,20 business days,10 business days,5 business days,1 business day
+Uptime (excluding external dependencies and maintenance windows),Best effort,,,
+Pools,Min 1 per CI,Min 2 per CI,Min 5 per CI,
+Using AgD and AgV,Mandatory,Mandatory,Mandatory,
+Can come back from Idle?,Mandatory,Mandatory,Mandatory,
+QA automation for Deployment,Mandatory,Mandatory,Mandatory,
+QA automation for Content,Optional,,Mandatory,
+,,,,
+,,,,
+,,Does not include external dependencies,,
+,,Does not include Australia,,
+,,,,

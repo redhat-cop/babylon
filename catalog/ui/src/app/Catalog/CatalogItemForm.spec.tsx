@@ -37,7 +37,7 @@ describe('CatalogItemForm Component', () => {
     expect(catalogItemDisplayName).toBeInTheDocument();
     expect(sfidLabel).toBeInTheDocument();
     expect(purposeLabel.closest('.pf-c-form__group').textContent).toContain(purposePlaceholder);
-    expect(termsOfServiceLabel.closest('.catalog-terms-of-service').textContent).toContain(termsOfServiceAck);
+    expect(termsOfServiceLabel.closest('.terms-of-service').textContent).toContain(termsOfServiceAck);
   });
 
   test('When Cancel button is clicked the history goBack function is called', async () => {
