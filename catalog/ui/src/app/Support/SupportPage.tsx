@@ -46,31 +46,10 @@ const SupportPage: React.FC = () => {
   const coverageHours = createRowFromArr('Hours of Coverage');
   const supportChannel = createRowFromArr('Support Channel');
   const responseTime = createRowFromArr('Response Time for technical support');
-  const severity1 = createRowFromArr('Severity 1');
-  const severity2 = createRowFromArr('Severity 2');
-  const severity3 = createRowFromArr('Severity 3');
-  const severity4 = createRowFromArr('Severity 4');
   const restorationTime = createRowFromArr('Restoration Time');
   const resolutionTime = createRowFromArr('Resolution Time');
-  const externalDependencies = createRowFromArr('External Dependencies');
-  const deploymentFailureRate = createRowFromArr('Deployment Failure Rate');
-  const contentFailureRate = createRowFromArr('Content Failure Rate');
 
-  const rows = [
-    description,
-    coverageHours,
-    supportChannel,
-    responseTime,
-    severity1,
-    severity2,
-    severity3,
-    severity4,
-    restorationTime,
-    resolutionTime,
-    externalDependencies,
-    deploymentFailureRate,
-    contentFailureRate,
-  ];
+  const rows = [description, coverageHours, supportChannel, responseTime, restorationTime, resolutionTime];
 
   return (
     <Page mainContainerId="primary-app-container" header={<PublicHeader />}>

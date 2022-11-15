@@ -5,15 +5,8 @@ Hours of Coverage,Mon-Fri during business hours,Mon-Fri during business hours,Mo
 "Support Channel (internals, partners, customers?)",Ticketing system & Chat channel with Developers,Ticketing System & Chat,Ticketing System & Chat,Ticketing System and dedicated Chat space
 Optional,,,,Dedicated Technical Support Liason: Remote or On site
 Response Time for technical support,10 business hours,10 business hours,10 business hours,30 minutes
-Severity 1 (RHPDS is down),1 hour? (We would need a 24/7 team),,,
-Severity 2 (a specifc cloud is down/All product related demos are down),4 business hours,,,
-Severity 3 (a single demo is not available?),2 business days,1 business day,10 business hours,
-Severity 4 (a single demo or several demos are having intermittent issues),2 business days,2 business days,1 business day,
 Restoration Time (workaround or plan B),Best effort,5 business days,2 business days,1 business hour
 Resolution Time for technical issues,20 business days,10 business days,5 business days,1 business day
-External Dependencies,,Mitigate,Eliminate?,
-Deployment Failure Rate % (visible to customers),10%,7.50%,3%,1%
-Content Failure Rate% (visible to customers),Best effort,NA?,0%,Based on content SLA
 Uptime (excluding external dependencies and maintenance windows),Best effort,,,
 Pools,Min 1 per CI,Min 2 per CI,Min 5 per CI,
 Using AgD and AgV,Mandatory,Mandatory,Mandatory,
