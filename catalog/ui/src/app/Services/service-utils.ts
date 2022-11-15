@@ -14,7 +14,7 @@ export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number;
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
     return specResources.find((s) => s.name === name);
   }
-  if (!resources) return null;
+  if (!resources) return { startTime: null, stopTime: null };
   // The start time for a multi-component service is the earliest start time of all components and the stop time is the latest stop time
   const stopTimes = [];
   const startTimes = [];
