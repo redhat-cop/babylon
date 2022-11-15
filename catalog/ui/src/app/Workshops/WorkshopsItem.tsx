@@ -408,39 +408,47 @@ const WorkshopsItemComponent: React.FC<{
           onSelect={(e, tabIndex) => navigate(`/workshops/${serviceNamespaceName}/${workshopName}/${tabIndex}`)}
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
-            <WorkshopsItemDetails
-              onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
-              workshop={workshop}
-              showModal={showModal}
-              resourceClaims={resourceClaims}
-              workshopProvisions={workshopProvisions}
-            />
+            {activeTab === 'details' ? (
+              <WorkshopsItemDetails
+                onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
+                workshop={workshop}
+                showModal={showModal}
+                resourceClaims={resourceClaims}
+                workshopProvisions={workshopProvisions}
+              />
+            ) : null}
           </Tab>
           <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
-            <WorkshopsItemProvisioning workshopProvisions={workshopProvisions} />
+            {activeTab === 'provision' ? <WorkshopsItemProvisioning workshopProvisions={workshopProvisions} /> : null}
           </Tab>
           <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
-            <WorkshopsItemServices
-              modalState={modalState}
-              showModal={showModal}
-              setSelectedResourceClaims={setSelectedResourceClaims}
-              resourceClaims={resourceClaims}
-            />
+            {activeTab === 'services' ? (
+              <WorkshopsItemServices
+                modalState={modalState}
+                showModal={showModal}
+                setSelectedResourceClaims={setSelectedResourceClaims}
+                resourceClaims={resourceClaims}
+              />
+            ) : null}
           </Tab>
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
-            <WorkshopsItemUserAssignments
-              onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
-              workshop={workshop}
-            />
+            {activeTab === 'users' ? (
+              <WorkshopsItemUserAssignments
+                onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
+                workshop={workshop}
+              />
+            ) : null}
           </Tab>
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
-            <Editor
-              height="500px"
-              language="yaml"
-              options={{ readOnly: true }}
-              theme="vs-dark"
-              value={yaml.dump(workshop)}
-            />
+            {activeTab === 'yaml' ? (
+              <Editor
+                height="500px"
+                language="yaml"
+                options={{ readOnly: true }}
+                theme="vs-dark"
+                value={yaml.dump(workshop)}
+              />
+            ) : null}
           </Tab>
         </Tabs>
       </PageSection>
@@ -469,6 +477,7 @@ const WorkshopsItem: React.FC<{
   workshopName: string;
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => (
   <ErrorBoundary
+    onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
     fallbackRender={() => (
       <>
         <NotFoundComponent workshopName={workshopName} serviceNamespaceName={serviceNamespaceName} />

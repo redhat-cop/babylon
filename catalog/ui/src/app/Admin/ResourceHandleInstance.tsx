@@ -375,6 +375,7 @@ const ResourceHandleInstance: React.FC = () => {
           <Footer />
         </>
       )}
+      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
     >
       <ResourceHandleInstanceComponent activeTab={activeTab} resourceHandleName={resourceHandleName} />
       <Footer />

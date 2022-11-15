@@ -9,12 +9,12 @@ import { canExecuteAction } from '@app/util';
 import { phaseProps, getStatus } from './ServiceStatus';
 
 export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number; stopTime: number } {
-  const { resources } = resourceClaim.status;
+  const resources = resourceClaim.status?.resources;
   const { resources: specResources } = resourceClaim.spec;
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
     return specResources.find((s) => s.name === name);
   }
-  if (!resources) return null;
+  if (!resources) return { startTime: null, stopTime: null };
   // The start time for a multi-component service is the earliest start time of all components and the stop time is the latest stop time
   const stopTimes = [];
   const startTimes = [];
@@ -97,7 +97,7 @@ export function getAutoStopTime(resourceClaim: ResourceClaim): number {
         .filter((time) => time !== null)
     : [];
   if (autoStopTimes && autoStopTimes.length > 0) {
-    return Math.min(...autoStopTimes);
+    return Math.max(...autoStopTimes);
   }
   return null;
 }

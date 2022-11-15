@@ -30,22 +30,6 @@ const UserInterfaceLogo: React.FC<
         Product Demo System
       </tspan>
     </text>
-    <path
-      d="M1314.087 62.739h117.826c42.298 0 76.587 25.967 76.587 58s-34.289 58-76.587 58h-117.826c-42.298 0-76.587-25.967-76.587-58s34.289-58 76.587-58Z"
-      fill="#faeae8"
-    />
-    <text
-      data-name="Beta"
-      transform="translate(1281.5 149.739)"
-      fill="#7d1007"
-      fontSize={82}
-      fontStyle="italic"
-      fontFamily="'RedHatText', 'Overpass', overpass, helvetica, arial, sans-serif"
-    >
-      <tspan x={0} y={0} xmlSpace="preserve">
-        Beta
-      </tspan>
-    </text>
   </svg>
 );
 
