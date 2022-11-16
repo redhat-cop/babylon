@@ -80,10 +80,11 @@
   right: 0;
 }
 
-.catalog-item-card__badges--dev {
+.catalog-item-card__badges--support-type {
   background-color: var(--pf-global--danger-color--100);
 }
 
+.catalog-item-card__badges--dev,
 .catalog-item-card__badges--test {
   background-color: var(--pf-global--danger-color--100);
 }

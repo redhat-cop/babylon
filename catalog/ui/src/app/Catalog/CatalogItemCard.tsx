@@ -53,7 +53,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
             </SplitItem>
             <SplitItem className="catalog-item-card__badges" isFilled>
               {supportType && stage === 'prod' ? (
-                <Badge className="catalog-item-card__badges--support-type">{supportType.replace(/_+/g, ' ')}</Badge>
+                <Badge className="catalog-item-card__badges--support-type">{supportType.replace(/_+/g, ' | ')}</Badge>
               ) : stage === 'dev' ? (
                 <Badge className="catalog-item-card__badges--dev">development</Badge>
               ) : stage === 'test' ? (
