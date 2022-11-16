@@ -16,7 +16,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
 } from '@patternfly/react-core';
-import { ExpandableRowContent, TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import useSWRImmutable from 'swr/immutable';
 import { CSVToArray } from '@app/util';
 import { publicFetcher } from '@app/api';
