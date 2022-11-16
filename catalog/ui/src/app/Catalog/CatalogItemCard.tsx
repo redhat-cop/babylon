@@ -39,15 +39,6 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
 
   return (
     <div className="catalog-item-card__wrapper">
-      {supportType && stage === 'prod' ? (
-        <Tooltip content={<p>{supportType.replace(/_+/g, ' ')}</p>}>
-          <a href="/support" className="catalog-item-card__support-type">
-            {supportType === 'Enterprise_Premium' ? (
-              <EnterprisePremiumIcon className="catalog-iten-card__support-type-icon catalog-iten-card__support-type-icon--enterprise-premium" />
-            ) : null}
-          </a>
-        </Tooltip>
-      ) : null}
       <Link
         className={`catalog-item-card ${isDisabled ? 'catalog-item-card--disabled' : ''}`}
         to={`${location.pathname}?${urlSearchParams.toString()}`}
@@ -61,7 +52,9 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
               ) : null}
             </SplitItem>
             <SplitItem className="catalog-item-card__badges" isFilled>
-              {stage === 'dev' ? (
+              {supportType && stage === 'prod' ? (
+                <Badge className="catalog-item-card__badges--support-type">{supportType.replace(/_+/g, ' | ')}</Badge>
+              ) : stage === 'dev' ? (
                 <Badge className="catalog-item-card__badges--dev">development</Badge>
               ) : stage === 'test' ? (
                 <Badge className="catalog-item-card__badges--test">test</Badge>
