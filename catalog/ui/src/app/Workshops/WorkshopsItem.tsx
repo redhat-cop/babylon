@@ -135,11 +135,13 @@ const WorkshopsItemComponent: React.FC<{
   useErrorHandler(error);
 
   const { data: workshopProvisions, mutate: mutateWorkshopProvisions } = useSWR<WorkshopProvision[]>(
-    apiPaths.WORKSHOP_PROVISIONS({
-      workshopName: workshop.metadata.name,
-      namespace: workshop.metadata.namespace,
-      limit: 'ALL',
-    }),
+    workshop
+      ? apiPaths.WORKSHOP_PROVISIONS({
+          workshopName: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          limit: 'ALL',
+        })
+      : null,
     () =>
       fetcherItemsInAllPages((continueId) =>
         apiPaths.WORKSHOP_PROVISIONS({

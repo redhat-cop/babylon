@@ -16,11 +16,12 @@ import {
   Breadcrumb,
   BreadcrumbItem,
 } from '@patternfly/react-core';
-import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { ExpandableRowContent, TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import useSWRImmutable from 'swr/immutable';
 import { CSVToArray } from '@app/util';
 import { publicFetcher } from '@app/api';
 import PublicHeader from '@app/Header/PublicHeader';
+import Footer from '@app/components/Footer';
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
 import EnterprisePremiumIcon from './EnterprisePremiumIcon';
@@ -43,13 +44,41 @@ const SupportPage: React.FC = () => {
   const types = createRowFromArr('Types', '');
   const columns = types;
   const description = createRowFromArr('Description');
-  const coverageHours = createRowFromArr('Hours of Coverage');
-  const supportChannel = createRowFromArr('Support Channel');
-  const responseTime = createRowFromArr('Response Time for technical support');
+  const requirements = createRowFromArr('Requirements');
+  const supportTools = createRowFromArr('Customer-Facing Support Tools');
+  const responseTime = createRowFromArr('Request/Incident Response Time');
+  const resolutionTimeHeading = createRowFromArr('Incident Resolution Times');
+  const severity1 = createRowFromArr('Severity 1');
+  const severity2 = createRowFromArr('Severity 2');
+  const severity3 = createRowFromArr('Severity 3');
+  const severity4 = createRowFromArr('Severity 4');
   const restorationTime = createRowFromArr('Restoration Time');
-  const resolutionTime = createRowFromArr('Resolution Time');
+  const workaround = createRowFromArr('Workaround');
+  const resolutionTimeForRHPDS = createRowFromArr('Resolution Time for RHPDS-Supportable Issues');
+  const failureRate = createRowFromArr('Deployment Failure Rate');
+  const upTime = createRowFromArr('Catalog Item Uptime');
+  const platformUpTime = createRowFromArr('Platform Uptime');
+  const contentFailureRate = createRowFromArr('Content Failure Rate');
 
-  const rows = [description, coverageHours, supportChannel, responseTime, restorationTime, resolutionTime];
+  const rows = [
+    description,
+    requirements,
+    supportTools,
+    responseTime,
+    resolutionTimeHeading,
+    severity1,
+    severity2,
+    severity3,
+    severity4,
+    restorationTime,
+    workaround,
+    resolutionTimeForRHPDS,
+    failureRate,
+    upTime,
+    platformUpTime,
+    contentFailureRate,
+  ];
+  const headingIndex = 4;
 
   return (
     <Page mainContainerId="primary-app-container" header={<PublicHeader />}>
@@ -126,7 +155,7 @@ const SupportPage: React.FC = () => {
           </SidebarContent>
         </Sidebar>
 
-        <PageSection>
+        <PageSection style={{ paddingBottom: 'var(--pf-global--spacer--4xl)' }}>
           <TableComposable variant="compact" isStriped>
             <Thead>
               <Tr>
@@ -155,7 +184,12 @@ const SupportPage: React.FC = () => {
               {rows.map((row, rowIndex) => (
                 <Tr key={rowIndex}>
                   {columns.map((_, columnIndex) => (
-                    <Td width={10} key={`row-${columnIndex}`} dataLabel={columns[columnIndex]}>
+                    <Td
+                      width={10}
+                      key={`row-${columnIndex}`}
+                      dataLabel={columns[columnIndex]}
+                      style={{ fontWeight: rowIndex === headingIndex ? 700 : 400 }}
+                    >
                       {row[columnIndex]}
                     </Td>
                   ))}
@@ -193,6 +227,7 @@ const SupportPage: React.FC = () => {
           </TextList>
         </PageSection>
       </PageSection>
+      <Footer />
     </Page>
   );
 };
