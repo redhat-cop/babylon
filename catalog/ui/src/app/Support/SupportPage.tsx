@@ -52,8 +52,7 @@ const SupportPage: React.FC = () => {
   const severity3 = createRowFromArr('Severity 3');
   const severity4 = createRowFromArr('Severity 4');
   const restorationTime = createRowFromArr('Restoration Time');
-  const workaround = createRowFromArr('Workaround');
-  const resolutionTimeForRHPDS = createRowFromArr('Resolution Time for RHPDS-Supportable Issues');
+  const resolutionTimeForRHPDS = createRowFromArr('Resolution Time');
   const failureRate = createRowFromArr('Deployment Failure Rate');
   const upTime = createRowFromArr('Catalog Item Uptime');
   const platformUpTime = createRowFromArr('Platform Uptime');
@@ -70,7 +69,6 @@ const SupportPage: React.FC = () => {
     severity3,
     severity4,
     restorationTime,
-    workaround,
     resolutionTimeForRHPDS,
     failureRate,
     upTime,
