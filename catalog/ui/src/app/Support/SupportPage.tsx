@@ -24,7 +24,6 @@ import PublicHeader from '@app/Header/PublicHeader';
 import Footer from '@app/components/Footer';
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
-import EnterprisePremiumIcon from './EnterprisePremiumIcon';
 
 import './support-page.css';
 
@@ -171,9 +170,6 @@ const SupportPage: React.FC = () => {
                         gap: 'var(--pf-global--spacer--sm)',
                       }}
                     >
-                      {columnIndex === 3 ? (
-                        <EnterprisePremiumIcon fill="red" style={{ width: 'var(--pf-global--spacer--md)' }} />
-                      ) : null}
                       {column}
                     </Text>
                   </Th>
