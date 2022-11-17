@@ -76,8 +76,9 @@
 .catalog-item-card__badges {
   text-align: right;
   position: absolute;
-  top: 0;
-  right: 0;
+  top: var(--pf-global--spacer--md);
+  right: var(--pf-global--spacer--lg);
+  z-index: 50;
 }
 
 .catalog-item-card__badges--support-type {

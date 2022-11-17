@@ -4,7 +4,6 @@ import { Badge, CardBody, CardHeader, Split, SplitItem, Title, Tooltip } from '@
 import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
-import EnterprisePremiumIcon from '@app/Support/EnterprisePremiumIcon';
 import {
   formatString,
   getDescription,
@@ -39,6 +38,19 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
 
   return (
     <div className="catalog-item-card__wrapper">
+      <div className="catalog-item-card__badges">
+        {supportType && stage === 'prod' ? (
+          <Tooltip content={<p>Support level</p>}>
+            <a href="/support" target="_blank" rel="nofollow noreferrer" className="catalog-item-card__support-type">
+              <Badge className="catalog-item-card__badges--support-type">{supportType.replace(/_+/g, ' | ')}</Badge>
+            </a>
+          </Tooltip>
+        ) : stage === 'dev' ? (
+          <Badge className="catalog-item-card__badges--dev">development</Badge>
+        ) : stage === 'test' ? (
+          <Badge className="catalog-item-card__badges--test">test</Badge>
+        ) : null}
+      </div>
       <Link
         className={`catalog-item-card ${isDisabled ? 'catalog-item-card--disabled' : ''}`}
         to={`${location.pathname}?${urlSearchParams.toString()}`}
@@ -49,15 +61,6 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
               <CatalogItemIcon catalogItem={catalogItem} />
               {status && status !== 'operational' ? (
                 <StatusPageIcons status={status} className="catalog-item-card__statusPageIcon" />
-              ) : null}
-            </SplitItem>
-            <SplitItem className="catalog-item-card__badges" isFilled>
-              {supportType && stage === 'prod' ? (
-                <Badge className="catalog-item-card__badges--support-type">{supportType.replace(/_+/g, ' | ')}</Badge>
-              ) : stage === 'dev' ? (
-                <Badge className="catalog-item-card__badges--dev">development</Badge>
-              ) : stage === 'test' ? (
-                <Badge className="catalog-item-card__badges--test">test</Badge>
               ) : null}
             </SplitItem>
           </Split>

@@ -76,14 +76,14 @@ const SupportPage: React.FC = () => {
       <PageSection variant={PageSectionVariants.light} className="support-page">
         <Hero image={heroImg}>
           <Title headingLevel="h1" size="xl" style={{ fontSize: '40px' }}>
-            <b>RHPDS Solution Support:</b> SLAs
+            <b>Solution Support:</b> SLAs
           </Title>
         </Hero>
         <div className="page-container">
           <Breadcrumb style={{ paddingBottom: 'var(--pf-global--spacer--xl)' }}>
             <BreadcrumbItem to="/">Home</BreadcrumbItem>
             <BreadcrumbItem to="#" isActive>
-              RHPDS Solution Support: SLAs
+              Solution Support: SLAs
             </BreadcrumbItem>
           </Breadcrumb>
           <Sidebar hasGutter style={{ height: 'auto' }}>
