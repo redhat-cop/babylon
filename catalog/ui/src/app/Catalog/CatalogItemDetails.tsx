@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -21,12 +20,9 @@ import {
   SplitItem,
   Title,
   Label,
-  Tooltip,
-  Badge,
 } from '@patternfly/react-core';
 import useSWR from 'swr';
-import { apiPaths, createServiceRequest, fetcherItemsInAllPages } from '@app/api';
-import { selectCatalogNamespace } from '@app/store';
+import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem, ResourceClaim } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
@@ -40,6 +36,7 @@ import {
   FETCH_BATCH_LIMIT,
   isLabDeveloper,
 } from '@app/util';
+import TimeInterval from '@app/components/TimeInterval';
 import {
   getProvider,
   getDescription,
@@ -55,7 +52,6 @@ import {
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
-import TimeInterval from '@app/components/TimeInterval';
 
 import './catalog-item-details.css';
 
