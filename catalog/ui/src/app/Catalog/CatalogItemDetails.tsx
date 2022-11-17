@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -23,8 +22,7 @@ import {
   Label,
 } from '@patternfly/react-core';
 import useSWR from 'swr';
-import { apiPaths, createServiceRequest, fetcherItemsInAllPages } from '@app/api';
-import { selectCatalogNamespace } from '@app/store';
+import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem, ResourceClaim } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
@@ -38,12 +36,15 @@ import {
   FETCH_BATCH_LIMIT,
   isLabDeveloper,
 } from '@app/util';
+import TimeInterval from '@app/components/TimeInterval';
 import {
   getProvider,
   getDescription,
   formatTime,
   getIsDisabled,
+  getStage,
   getStatus,
+  getSupportType,
   HIDDEN_LABELS,
   getIncidentUrl,
   formatString,
@@ -51,7 +52,6 @@ import {
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import CatalogItemRating from './CatalogItemRating';
-import TimeInterval from '@app/components/TimeInterval';
 
 import './catalog-item-details.css';
 
@@ -64,11 +64,12 @@ enum CatalogItemAccess {
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
   const navigate = useNavigate();
   const { email, userNamespace, isAdmin, groups } = useSession().getSession();
-  const catalogNamespace = useSelector((state) => selectCatalogNamespace(state, namespace));
   const { userImpersonated } = useImpersonateUser();
-  const { provisionTimeEstimate, termsOfService, parameters, accessControl, lastUpdate } = catalogItem.spec;
+  const { provisionTimeEstimate, accessControl, lastUpdate } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
+  const supportType = getSupportType(catalogItem);
+  const stage = getStage(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
@@ -139,19 +140,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   }
 
   async function orderCatalogItem(): Promise<void> {
-    // Either direct user to request form or immediately request if form would be empty.
-    if (termsOfService || (parameters || []).length > 0) {
-      navigate(`/catalog/${namespace}/order/${name}`);
-    } else {
-      const resourceClaim = await createServiceRequest({
-        catalogItem: catalogItem,
-        catalogNamespaceName: catalogNamespace?.displayName || catalogItem.metadata.namespace,
-        groups,
-        userNamespace,
-        usePoolIfAvailable: true,
-      });
-      navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
-    }
+    navigate(`/catalog/${namespace}/order/${name}`);
   }
 
   function getHelpLink() {
@@ -290,6 +279,13 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <DescriptionListDescription>
                     {displayProvisionTime !== '-' ? `Up to ${displayProvisionTime}` : displayProvisionTime}
                   </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
+
+              {supportType && stage === 'prod' ? (
+                <DescriptionListGroup className="catalog-item-details__support-type">
+                  <DescriptionListTerm>Support level</DescriptionListTerm>
+                  <DescriptionListDescription>{supportType.replace(/_+/g, ' | ')}</DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
             </DescriptionList>

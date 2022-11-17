@@ -37,6 +37,9 @@ const PublicHeader: React.FC = () => {
     >
       Status Page
     </ApplicationLauncherItem>,
+    <ApplicationLauncherItem key="support-type" href="/support">
+      Solution Support: SLAs
+    </ApplicationLauncherItem>,
   ];
 
   const HeaderTools = (
