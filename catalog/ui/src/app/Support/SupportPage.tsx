@@ -54,9 +54,6 @@ const SupportPage: React.FC = () => {
   const restorationTime = createRowFromArr('Restoration Time');
   const resolutionTimeForRHPDS = createRowFromArr('Resolution Time');
   const failureRate = createRowFromArr('Deployment Failure Rate');
-  const upTime = createRowFromArr('Catalog Item Uptime');
-  const platformUpTime = createRowFromArr('Platform Uptime');
-  const contentFailureRate = createRowFromArr('Content Failure Rate');
 
   const rows = [
     description,
@@ -71,9 +68,6 @@ const SupportPage: React.FC = () => {
     restorationTime,
     resolutionTimeForRHPDS,
     failureRate,
-    upTime,
-    platformUpTime,
-    contentFailureRate,
   ];
   const headingIndex = 4;
 
@@ -132,21 +126,10 @@ const SupportPage: React.FC = () => {
                 component={TextListVariants.ul}
                 style={{ listStyle: 'disc', marginLeft: 'var(--pf-global--spacer--lg)' }}
               >
-                <TextListItem>
-                  <b>Speedy restoration</b> to get your business back up and running due to Red Hat’s fast response
-                  time, in the event of a production-critical issue
-                </TextListItem>
-                <TextListItem>
-                  <b>Increased confidence</b> because of restoration and resolution service-level agreements (SLAs) that
-                  guarantee restoration and resolution
-                </TextListItem>
-                <TextListItem>
-                  <b>Efficient issue resolution</b> with direct access to senior technical engineers who are familiar
-                  with your environment
-                </TextListItem>
-                <TextListItem>
-                  <b>High availability of help</b> through a designated support channel
-                </TextListItem>
+                <TextListItem>Reliable and speedy deployment (minutes instead of hours)</TextListItem>
+                <TextListItem>Customer-facing workshop support from our team</TextListItem>
+                <TextListItem>24/5 global monitoring of all tickets</TextListItem>
+                <TextListItem>More coming soon</TextListItem>
               </TextList>
             </PageSection>
           </SidebarContent>
