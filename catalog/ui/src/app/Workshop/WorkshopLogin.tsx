@@ -28,24 +28,17 @@ const WorkshopLogin: React.FC<{
   const displayName = workshop.displayName || 'Workshop';
   const [accessPassword, setAccessPassword] = useState('');
   const [email, setEmail] = useState('');
-  const [emailValidated, setEmailValidated] = React.useState<validateType>('default');
+  const [emailValidated, setEmailValidated] = useState<validateType>('default');
   const submitDisabled = (workshop.accessPasswordRequired && !accessPassword) || emailValidated !== 'success';
 
   const handleEmail = (v: string) => {
-    const validate = (email: string): null | validateType => {
-      if (!email || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(email)) {
-        return 'error';
-      }
-      return null;
+    const validate = (email: string): validateType => {
+      if (!email || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(email)) return 'error';
+      return 'success';
     };
-    const errorType = validate(email);
-    if (!errorType) {
-      setEmail(v);
-      setEmailValidated('success');
-    } else {
-      setEmail(v);
-      setEmailValidated(errorType);
-    }
+    const errorType = validate(v);
+    setEmail(v);
+    setEmailValidated(errorType);
   };
 
   return (
