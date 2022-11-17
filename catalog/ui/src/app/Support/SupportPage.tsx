@@ -113,9 +113,8 @@ const SupportPage: React.FC = () => {
                 Overview
               </Title>
               <Text>
-                RHPDS (Red Hat Product Demo System) is the platform which enables stakeholders, both internal and
-                external (specified Partners) with the ability to run demonstrations, hands-on workshops and personal
-                sandbox environments for definite time periods to showcase Red Hat’s portfolio of solutions.
+                RHPDS (Red Hat Product Demo System) helps you confidently plan and host customer-facing events with
+                assistance from experienced support engineers and architects.
               </Text>
             </PageSection>
             <PageSection>
