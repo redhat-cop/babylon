@@ -23,7 +23,12 @@ const WorkshopAccess: React.FC<{
   const description = workshop.description;
   const displayName = workshop.displayName || 'Workshop';
   const userAssignment = workshop.assignment;
-
+  let renderEditor = true;
+  try {
+    JSON.parse(description);
+  } catch {
+    renderEditor = false;
+  }
   return (
     <PageSection variant={PageSectionVariants.light} className="workshop">
       <Stack hasGutter={true}>
@@ -35,7 +40,11 @@ const WorkshopAccess: React.FC<{
         {description ? (
           <StackItem>
             <Bullseye>
-              <EditorViewer value={description} />
+              {renderEditor ? (
+                <EditorViewer value={description} />
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: description }} />
+              )}
             </Bullseye>
           </StackItem>
         ) : null}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { $getRoot, EditorState, LexicalEditor } from 'lexical';
+import { $getRoot, EditorState, LexicalEditor, TextNode } from 'lexical';
 import { InitialEditorStateType, LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -21,6 +21,23 @@ import Theme from './Theme';
 import AutoLinkPlugin from './AutoLinkPlugin';
 
 import './editor.css';
+
+// Override the TextNode to detect underline and create an u element https://github.com/facebook/lexical/issues/2452
+const exportDOM = TextNode.prototype.exportDOM;
+const IS_UNDERLINE = 1 << 3;
+TextNode.prototype.exportDOM = function (editor: LexicalEditor) {
+  if (this.__format & IS_UNDERLINE) {
+    const dom = document.createElement('u');
+    dom.textContent = this.__text;
+    const maybeUnderline: string | string[] | undefined = editor._config.theme.text?.['underline'];
+    if (maybeUnderline) {
+      dom.className = Array.isArray(maybeUnderline) ? maybeUnderline.join(' ') : maybeUnderline;
+    }
+    return { element: dom };
+  } else {
+    return exportDOM.apply(this, [editor]);
+  }
+};
 
 const Editor: React.FC<{
   onChange: (editorState: EditorState, editor: LexicalEditor) => void;
