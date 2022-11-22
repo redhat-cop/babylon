@@ -1,5 +1,6 @@
 import React from 'react';
-import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
+import { $getRoot } from 'lexical';
+import { $generateNodesFromDOM } from '@lexical/html';
 import { InitialEditorStateType, LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -20,12 +21,13 @@ const EditorViewer: React.FC<{
   try {
     JSON.parse(value);
   } catch {
-    _defaultValue = () => {
+    _defaultValue = (editor) => {
+      const parser = new DOMParser();
+      const dom = parser.parseFromString(value, 'text/html');
+      const nodes = $generateNodesFromDOM(editor, dom);
       const root = $getRoot();
       root.clear();
-      const p = $createParagraphNode();
-      p.append($createTextNode(value));
-      root.append(p);
+      root.append(...nodes);
     };
   }
   return (

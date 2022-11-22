@@ -1,5 +1,5 @@
 import React from 'react';
-import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from 'lexical';
+import { $getRoot, EditorState, LexicalEditor } from 'lexical';
 import { InitialEditorStateType, LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -15,6 +15,7 @@ import { ListItemNode, ListNode } from '@lexical/list';
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { TRANSFORMERS } from '@lexical/markdown';
+import { $generateNodesFromDOM } from '@lexical/html';
 import ToolbarPlugin from './ToolbarPlugin';
 import Theme from './Theme';
 import AutoLinkPlugin from './AutoLinkPlugin';
@@ -27,15 +28,17 @@ const Editor: React.FC<{
   defaultValue?: string;
 }> = ({ onChange, placeholder, defaultValue }) => {
   let _defaultValue: InitialEditorStateType = defaultValue;
+
   try {
     JSON.parse(defaultValue);
   } catch {
-    _defaultValue = () => {
+    _defaultValue = (editor) => {
+      const parser = new DOMParser();
+      const dom = parser.parseFromString(defaultValue, 'text/html');
+      const nodes = $generateNodesFromDOM(editor, dom);
       const root = $getRoot();
       root.clear();
-      const p = $createParagraphNode();
-      p.append($createTextNode(defaultValue));
-      root.append(p);
+      root.append(...nodes);
     };
   }
   return (
@@ -71,7 +74,7 @@ const Editor: React.FC<{
               placeholder={<div className="editor__placeholder">{placeholder}</div>}
               ErrorBoundary={LexicalErrorBoundary}
             />
-            <OnChangePlugin onChange={onChange} />
+            <OnChangePlugin onChange={onChange} ignoreSelectionChange />
             <HistoryPlugin />
             <ListPlugin />
             <LinkPlugin />

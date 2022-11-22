@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { EditorState } from 'lexical';
+import { EditorState, LexicalEditor } from 'lexical';
+import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
 import {
   DescriptionList,
@@ -119,9 +120,11 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListTerm>
         <DescriptionListDescription>
           <Editor
-            onChange={(state: EditorState) => {
-              const editorState = state.toJSON();
-              patchWorkshopSpec({ description: JSON.stringify(editorState) });
+            onChange={(_: EditorState, editor: LexicalEditor) => {
+              editor.update(() => {
+                const html = $generateHtmlFromNodes(editor, null);
+                patchWorkshopSpec({ description: html });
+              });
             }}
             placeholder="Add description"
             defaultValue={workshop.spec.description}
