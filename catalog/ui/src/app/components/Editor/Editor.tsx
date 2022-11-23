@@ -60,7 +60,10 @@ const Editor: React.FC<{
   } catch {
     _defaultValue = (editor) => {
       const parser = new DOMParser();
-      const dom = parser.parseFromString(defaultValue, 'text/html');
+      let dom = parser.parseFromString(defaultValue, 'text/html');
+      if (!Array.from(dom.body.childNodes).some((node) => node.nodeType === 1)) {
+        dom = parser.parseFromString(`<p>${defaultValue}</p>`, 'text/html');
+      }
       const nodes = $generateNodesFromDOM(editor, dom);
       const root = $getRoot();
       root.clear();
