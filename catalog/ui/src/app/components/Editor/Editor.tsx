@@ -1,5 +1,5 @@
 import React from 'react';
-import { $getRoot, EditorState, LexicalEditor } from 'lexical';
+import { $getRoot, EditorState, LexicalEditor, TextNode } from 'lexical';
 import { InitialEditorStateType, LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -22,6 +22,32 @@ import AutoLinkPlugin from './AutoLinkPlugin';
 
 import './editor.css';
 
+// Override the TextNode to detect underline/italic and create an u/i element https://github.com/facebook/lexical/issues/2452
+const exportDOM = TextNode.prototype.exportDOM;
+const IS_UNDERLINE = 1 << 3;
+const IS_ITALIC = 1 << 1;
+TextNode.prototype.exportDOM = function (editor: LexicalEditor) {
+  if (this.__format & IS_UNDERLINE) {
+    const dom = document.createElement('u');
+    dom.textContent = this.__text;
+    const maybeUnderline: string | string[] | undefined = editor._config.theme.text?.['underline'];
+    if (maybeUnderline) {
+      dom.className = Array.isArray(maybeUnderline) ? maybeUnderline.join(' ') : maybeUnderline;
+    }
+    return { element: dom };
+  } else if (this.__format & IS_ITALIC) {
+    const dom = document.createElement('i');
+    dom.textContent = this.__text;
+    const maybeItalic: string | string[] | undefined = editor._config.theme.text?.['italic'];
+    if (maybeItalic) {
+      dom.className = Array.isArray(maybeItalic) ? maybeItalic.join(' ') : maybeItalic;
+    }
+    return { element: dom };
+  } else {
+    return exportDOM.apply(this, [editor]);
+  }
+};
+
 const Editor: React.FC<{
   onChange: (editorState: EditorState, editor: LexicalEditor) => void;
   placeholder: string;
@@ -34,7 +60,10 @@ const Editor: React.FC<{
   } catch {
     _defaultValue = (editor) => {
       const parser = new DOMParser();
-      const dom = parser.parseFromString(defaultValue, 'text/html');
+      let dom = parser.parseFromString(defaultValue, 'text/html');
+      if (!Array.from(dom.body.childNodes).some((node) => node.nodeType === 1)) {
+        dom = parser.parseFromString(`<p>${defaultValue}</p>`, 'text/html');
+      }
       const nodes = $generateNodesFromDOM(editor, dom);
       const root = $getRoot();
       root.clear();
