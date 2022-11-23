@@ -22,26 +22,42 @@ import AutoLinkPlugin from './AutoLinkPlugin';
 
 import './editor.css';
 
-// Override the TextNode to detect underline/italic and create an u/i element https://github.com/facebook/lexical/issues/2452
+// Override the TextNode to detect bold/underline/italic and create an b/u/i element https://github.com/facebook/lexical/issues/2452
 const exportDOM = TextNode.prototype.exportDOM;
 const IS_UNDERLINE = 1 << 3;
 const IS_ITALIC = 1 << 1;
+const IS_BOLD = 1;
+const getLastChildren = (parent: Element): Element => {
+  const getLastChildrens = (parent: Element): Element[] => {
+    return Array.from(parent.children).reduce<Element[]>((acc, node) => {
+      const children = Array.from(node.children);
+      if (children.length === 0) {
+        acc.push(node);
+        return acc;
+      }
+      return [...acc, ...getLastChildrens(node)];
+    }, []);
+  };
+  if (parent.children.length === 0) return parent;
+  return getLastChildrens(parent)[0];
+};
 TextNode.prototype.exportDOM = function (editor: LexicalEditor) {
-  if (this.__format & IS_UNDERLINE) {
-    const dom = document.createElement('u');
-    dom.textContent = this.__text;
-    const maybeUnderline: string | string[] | undefined = editor._config.theme.text?.['underline'];
-    if (maybeUnderline) {
-      dom.className = Array.isArray(maybeUnderline) ? maybeUnderline.join(' ') : maybeUnderline;
+  if (this.__format & IS_UNDERLINE || this.__format & IS_ITALIC || this.__format & IS_BOLD) {
+    let dom: HTMLElement = null;
+    if (this.__format & IS_UNDERLINE) {
+      const el = document.createElement('u');
+      dom ? getLastChildren(dom).appendChild(el) : (dom = el);
     }
-    return { element: dom };
-  } else if (this.__format & IS_ITALIC) {
-    const dom = document.createElement('i');
-    dom.textContent = this.__text;
-    const maybeItalic: string | string[] | undefined = editor._config.theme.text?.['italic'];
-    if (maybeItalic) {
-      dom.className = Array.isArray(maybeItalic) ? maybeItalic.join(' ') : maybeItalic;
+    if (this.__format & IS_ITALIC) {
+      const el = document.createElement('i');
+      dom ? getLastChildren(dom).appendChild(el) : (dom = el);
     }
+    if (this.__format & IS_BOLD) {
+      const el = document.createElement('b');
+      dom ? getLastChildren(dom).appendChild(el) : (dom = el);
+    }
+    const lastEl = getLastChildren(dom);
+    lastEl.textContent = this.__text;
     return { element: dom };
   } else {
     return exportDOM.apply(this, [editor]);
@@ -59,15 +75,17 @@ const Editor: React.FC<{
     JSON.parse(defaultValue);
   } catch {
     _defaultValue = (editor) => {
-      const parser = new DOMParser();
-      let dom = parser.parseFromString(defaultValue, 'text/html');
-      if (!Array.from(dom.body.childNodes).some((node) => node.nodeType === 1)) {
-        dom = parser.parseFromString(`<p>${defaultValue}</p>`, 'text/html');
+      if (defaultValue) {
+        const parser = new DOMParser();
+        let dom = parser.parseFromString(defaultValue, 'text/html');
+        if (!Array.from(dom.body.childNodes).some((node) => node.nodeType === 1)) {
+          dom = parser.parseFromString(`<p>${defaultValue}</p>`, 'text/html');
+        }
+        const nodes = $generateNodesFromDOM(editor, dom);
+        const root = $getRoot();
+        root.clear();
+        root.append(...nodes);
       }
-      const nodes = $generateNodesFromDOM(editor, dom);
-      const root = $getRoot();
-      root.clear();
-      root.append(...nodes);
     };
   }
   return (

@@ -22,15 +22,17 @@ const EditorViewer: React.FC<{
     JSON.parse(value);
   } catch {
     _defaultValue = (editor) => {
-      const parser = new DOMParser();
-      let dom = parser.parseFromString(value, 'text/html');
-      if (!Array.from(dom.body.childNodes).some((node) => node.nodeType === 1)) {
-        dom = parser.parseFromString(`<p>${value}</p>`, 'text/html');
+      if (value) {
+        const parser = new DOMParser();
+        let dom = parser.parseFromString(value, 'text/html');
+        if (!Array.from(dom.body.childNodes).some((node) => node.nodeType === 1)) {
+          dom = parser.parseFromString(`<p>${value}</p>`, 'text/html');
+        }
+        const nodes = $generateNodesFromDOM(editor, dom);
+        const root = $getRoot();
+        root.clear();
+        root.append(...nodes);
       }
-      const nodes = $generateNodesFromDOM(editor, dom);
-      const root = $getRoot();
-      root.clear();
-      root.append(...nodes);
     };
   }
   return (
