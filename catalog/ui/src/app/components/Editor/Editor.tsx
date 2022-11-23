@@ -22,9 +22,10 @@ import AutoLinkPlugin from './AutoLinkPlugin';
 
 import './editor.css';
 
-// Override the TextNode to detect underline and create an u element https://github.com/facebook/lexical/issues/2452
+// Override the TextNode to detect underline/italic and create an u/i element https://github.com/facebook/lexical/issues/2452
 const exportDOM = TextNode.prototype.exportDOM;
 const IS_UNDERLINE = 1 << 3;
+const IS_ITALIC = 1 << 1;
 TextNode.prototype.exportDOM = function (editor: LexicalEditor) {
   if (this.__format & IS_UNDERLINE) {
     const dom = document.createElement('u');
@@ -32,6 +33,14 @@ TextNode.prototype.exportDOM = function (editor: LexicalEditor) {
     const maybeUnderline: string | string[] | undefined = editor._config.theme.text?.['underline'];
     if (maybeUnderline) {
       dom.className = Array.isArray(maybeUnderline) ? maybeUnderline.join(' ') : maybeUnderline;
+    }
+    return { element: dom };
+  } else if (this.__format & IS_ITALIC) {
+    const dom = document.createElement('i');
+    dom.textContent = this.__text;
+    const maybeItalic: string | string[] | undefined = editor._config.theme.text?.['italic'];
+    if (maybeItalic) {
+      dom.className = Array.isArray(maybeItalic) ? maybeItalic.join(' ') : maybeItalic;
     }
     return { element: dom };
   } else {
