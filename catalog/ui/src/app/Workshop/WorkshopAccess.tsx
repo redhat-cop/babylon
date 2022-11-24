@@ -31,7 +31,7 @@ const WorkshopAccess: React.FC<{
   }
   return (
     <PageSection variant={PageSectionVariants.light} className="workshop">
-      <Stack hasGutter={true}>
+      <Stack hasGutter>
         <StackItem>
           <Bullseye>
             <Title headingLevel="h2">{displayName}</Title>

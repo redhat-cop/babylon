@@ -681,7 +681,7 @@ const ServicesList: React.FC<{
                   position="right"
                   resourceClaim={resourceClaim}
                   actionHandlers={actionHandlers}
-                  iconOnly={true}
+                  iconOnly
                   key="admin-actions"
                 />
               );

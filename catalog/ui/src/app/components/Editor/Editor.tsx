@@ -89,7 +89,7 @@ const Editor: React.FC<{
     };
   }
   return (
-    <div className="editor">
+    <div className="editor" style={{ width: '100%', maxWidth: '600px' }}>
       <LexicalComposer
         initialConfig={{
           namespace: 'editor',
