@@ -79,7 +79,7 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
-    "@lexical/react": "^0.6.2",
+    "@lexical/react": "^0.6.3",
     "@monaco-editor/react": "^4.4.6",
     "@patternfly/react-core": "4.264.0",
     "@patternfly/react-icons": "4.93.0",
