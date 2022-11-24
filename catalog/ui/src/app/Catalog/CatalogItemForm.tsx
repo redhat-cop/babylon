@@ -139,7 +139,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
       }
     }
     parameterValues['purpose'] = formState.purpose;
-    if (formState.salesforceId.required || !!formState.salesforceId.value) {
+    if (formState.salesforceId.value) {
       parameterValues['salesforce_id'] = formState.salesforceId.value;
     }
 
