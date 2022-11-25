@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import RedHatLogo from './RedHatLogo';
+import GithubIcon from '@patternfly/react-icons/dist/js/icons/github-icon';
 
 import './footer.css';
 
@@ -32,6 +33,19 @@ const Footer: React.FC<{ rightElement?: ReactNode }> = ({ rightElement }) => (
             </li>
             <li className="leaf">
               <a id="teconsent"></a>
+            </li>
+            <li className="leaf">
+              <a
+                href="https://github.com/redhat-cop/babylon/releases"
+                target="_blank"
+                rel="noreferrer"
+                style={{ display: 'flex', flexDirection: 'row' }}
+              >
+                <GithubIcon
+                  style={{ marginRight: 'var(--pf-global--spacer--xs)', textDecoration: 'none', alignSelf: 'center' }}
+                />
+                Babylon v0.19.0
+              </a>
             </li>
           </ul>
         </div>
