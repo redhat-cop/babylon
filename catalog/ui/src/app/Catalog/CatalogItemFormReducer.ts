@@ -339,8 +339,21 @@ function reduceFormStateTermsOfServiceAgreed(initialState: FormState, termsOfSer
 }
 
 function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProps = null): FormState {
+  const salesforceId = { ...initialState.salesforceId, required: salesforceIdRequired({ ...initialState, workshop }) };
+  if (workshop) {
+    return {
+      ...initialState,
+      salesforceId,
+      conditionChecks: {
+        ...initialState.conditionChecks,
+        completed: initialState.salesforceId.value ? false : initialState.conditionChecks.completed,
+      },
+      workshop,
+    };
+  }
   return {
     ...initialState,
+    salesforceId,
     workshop,
   };
 }
@@ -367,21 +380,37 @@ function reduceFormStateStartDate(initialState: FormState, startDate: Date): For
 }
 
 function reduceFormStatePurpose(initialState: FormState, purpose: string): FormState {
-  const salesforceId = { ...initialState.salesforceId, required: false };
   const [_activity, _purpose] = purpose.split('-');
+  const newPurpose = !!_activity && !!_purpose ? `${_activity}-${_purpose}` : null;
   if (_activity === 'Customer Activity') {
-    salesforceId.required = true;
     return {
       ...initialState,
-      salesforceId,
-      purpose: !!_activity && !!_purpose ? `${_activity}-${_purpose}` : null,
+      salesforceId: { ...initialState.salesforceId, required: true },
+      purpose: newPurpose,
+      conditionChecks: {
+        ...initialState.conditionChecks,
+        completed: initialState.salesforceId.value ? false : initialState.conditionChecks.completed,
+      },
     };
   }
   return {
     ...initialState,
-    salesforceId,
-    purpose: !!_activity && !!_purpose ? `${_activity}-${_purpose}` : null,
+    salesforceId: {
+      ...initialState.salesforceId,
+      required: salesforceIdRequired({ ...initialState, purpose: newPurpose }),
+    },
+    purpose: newPurpose,
   };
+}
+
+function salesforceIdRequired(state: FormState): boolean {
+  if (state.purpose) {
+    const [_activity] = state.purpose.split('-');
+    if (_activity === 'Customer Activity') return true;
+  }
+  if (state.user.isAdmin) return false;
+  if (state.workshop) return true;
+  return false;
 }
 
 function reduceFormStateSalesforceId(
