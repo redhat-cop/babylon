@@ -273,7 +273,9 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                 !formState.salesforceId.value || !formState.salesforceId.required || formState.salesforceId.valid
               }
             >
-              A valid Salesforce ID is required for all Customer Facing Events
+              {formState.workshop
+                ? 'A valid Salesforce ID is required for enabling the workshop user interface'
+                : 'A valid Salesforce ID is required for all Customer Facing Events'}
             </FormHelperText>
           }
           validated={
