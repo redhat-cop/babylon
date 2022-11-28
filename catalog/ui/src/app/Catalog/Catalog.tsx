@@ -514,14 +514,14 @@ const Catalog: React.FC = () => {
                             <p>
                               Sorry! The new Red Hat Product Demo System (RHPDS) is not yet available for partners.
                               Please continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
-                              <a href="https://rhpds.redhat.com/">rhpds.redhat.com</a> for demos.
+                              <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                             </p>
                           ) : (
                             <p>
                               Sorry! You do not have access to the Red Hat Product Demo System. This system is only
                               available for Red Hat associates at this time. Red Hat partners may access{' '}
                               <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
-                              <a href="https://rhpds.redhat.com/">rhpds.redhat.com</a> for demos.
+                              <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                             </p>
                           )}
                         </EmptyState>

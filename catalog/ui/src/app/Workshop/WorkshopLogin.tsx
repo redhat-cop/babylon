@@ -43,7 +43,7 @@ const WorkshopLogin: React.FC<{
 
   return (
     <PageSection variant={PageSectionVariants.light}>
-      <Stack hasGutter={true}>
+      <Stack hasGutter>
         <StackItem>
           <Bullseye>
             <Title headingLevel="h1" style={{ padding: 'var(--pf-global--spacer--lg) 0' }}>

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useReducer, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
 import { EditorState } from 'lexical/LexicalEditorState';
+import { LexicalEditor } from 'lexical/LexicalEditor';
+import { $generateHtmlFromNodes } from '@lexical/html';
 import {
   ActionList,
   ActionListItem,
@@ -49,6 +51,7 @@ import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import Modal, { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
+import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
@@ -134,6 +137,10 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
       ) {
         parameterValues[parameterState.name] = parameterState.value;
       }
+    }
+    parameterValues['purpose'] = formState.purpose;
+    if (formState.salesforceId.value) {
+      parameterValues['salesforce_id'] = formState.salesforceId.value;
     }
 
     if (formState.workshop) {
@@ -230,6 +237,86 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
       {formState.formGroups.length > 0 ? <p>Order by completing the form. Default values may be provided.</p> : null}
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
+        <ActivityPurposeSelector
+          value={formState.purpose}
+          onChange={(purpose: string) => {
+            dispatchFormState({
+              type: 'purpose',
+              purpose,
+            });
+          }}
+        />
+
+        <FormGroup
+          fieldId="salesforce_id"
+          isRequired={formState.salesforceId.required}
+          label={
+            <span>
+              Salesforce ID{' '}
+              <span
+                style={{
+                  fontSize: 'var(--pf-global--FontSize--xs)',
+                  color: 'var(--pf-global--palette--black-600)',
+                  fontStyle: 'italic',
+                  fontWeight: 400,
+                }}
+              >
+                (Opportunity ID, Campaign ID, Partner Registration, or Project ID)
+              </span>
+            </span>
+          }
+          helperTextInvalid={
+            <FormHelperText
+              icon={<ExclamationCircleIcon />}
+              isError
+              isHidden={
+                !formState.salesforceId.value || !formState.salesforceId.required || formState.salesforceId.valid
+              }
+            >
+              {formState.workshop
+                ? 'A valid Salesforce ID is required for enabling the workshop user interface'
+                : 'A valid Salesforce ID is required for all Customer Facing Events'}
+            </FormHelperText>
+          }
+          validated={
+            formState.salesforceId.valid
+              ? 'success'
+              : formState.salesforceId.value && formState.salesforceId.required
+              ? 'error'
+              : 'default'
+          }
+        >
+          <div className="catalog-item-form__group-control--single">
+            <TextInput
+              type="text"
+              key="salesforce_id"
+              id="salesforce_id"
+              onChange={(value) =>
+                dispatchFormState({
+                  type: 'salesforceId',
+                  salesforceId: { ...formState.salesforceId, value, valid: false },
+                })
+              }
+              value={formState.salesforceId.value || ''}
+              validated={
+                formState.salesforceId.value && formState.salesforceId.valid
+                  ? 'success'
+                  : formState.salesforceId.value && formState.salesforceId.required
+                  ? 'error'
+                  : 'default'
+              }
+            />
+            <Tooltip
+              position="right"
+              content={<div>Salesforce Opportunity ID, Campaign ID, Partner Registration, or Project ID.</div>}
+            >
+              <OutlinedQuestionCircleIcon
+                aria-label="Salesforce Opportunity ID, Campaign ID, Partner Registration, or Project ID."
+                className="tooltip-icon-only"
+              />
+            </Tooltip>
+          </div>
+        </FormGroup>
         {formState.formGroups.map((formGroup, formGroupIdx) => {
           // do not render form group if all parameters for formGroup are hidden
           if (formGroup.parameters.every((parameter) => parameter.isHidden)) {
@@ -319,7 +406,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               />
               <Tooltip
                 position="right"
-                isContentLeftAligned={true}
+                isContentLeftAligned
                 content={
                   catalogItem.spec.multiuser ? (
                     <p>Setup a user interface for the workshop attendees to access their credentials.</p>
@@ -342,7 +429,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 
         {formState.workshop ? (
           <div className="catalog-item-form__workshop-form">
-            <FormGroup fieldId="workshopDisplayName" isRequired={true} label="Display Name">
+            <FormGroup fieldId="workshopDisplayName" isRequired label="Display Name">
               <div className="catalog-item-form__group-control--single">
                 <TextInput
                   id="workshopDisplayName"
@@ -402,7 +489,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                 </Select>
                 <Tooltip
                   position="right"
-                  isContentLeftAligned={true}
+                  isContentLeftAligned
                   content={
                     <ul>
                       <li>- Open registration: Only the password will be required to access the credentials.</li>
@@ -420,11 +507,13 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
             <FormGroup fieldId="workshopDescription" label="Description">
               <div className="catalog-item-form__group-control--single">
                 <Editor
-                  onChange={(state: EditorState) => {
-                    const editorState = state.toJSON();
-                    dispatchFormState({
-                      type: 'workshop',
-                      workshop: { ...formState.workshop, description: JSON.stringify(editorState) },
+                  onChange={(_: EditorState, editor: LexicalEditor) => {
+                    editor.update(() => {
+                      const html = $generateHtmlFromNodes(editor, null);
+                      dispatchFormState({
+                        type: 'workshop',
+                        workshop: { ...formState.workshop, description: html },
+                      });
                     });
                   }}
                   placeholder="Add description"

@@ -50,3 +50,7 @@
   gap: var(--pf-global--gutter--md);
   display: grid;
 }
+
+.catalog-item-form__form .pf-c-form__label-required {
+  margin-left: 0;
+}

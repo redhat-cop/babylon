@@ -32,6 +32,12 @@ type FormState = {
   error: string;
   usePoolIfAvailable: boolean;
   startDate?: Date;
+  purpose: string;
+  salesforceId: {
+    required: boolean;
+    value?: string;
+    valid: boolean;
+  };
 };
 type ParameterProps = {
   name: string;
@@ -47,11 +53,20 @@ export type FormStateAction = {
     | 'startDate'
     | 'workshop'
     | 'usePoolIfAvailable'
+    | 'purpose'
+    | 'salesforceId'
     | 'complete';
   catalogItem?: CatalogItem;
   user?: UserProps;
   parameter?: ParameterProps;
   termsOfServiceAgreed?: boolean;
+  purpose?: string;
+  salesforceId?: {
+    required: boolean;
+    value: string;
+    valid: boolean;
+  };
+  salesforceIdValid?: boolean;
   error?: string;
   parameters?: { [name: string]: FormStateParameter };
   workshop?: WorkshopProps;
@@ -79,6 +94,8 @@ type FormStateParameterGroup = {
   parameters: FormStateParameter[];
 };
 
+const checkSalesforceIdRegex = /\bcheck_salesforce_id\(\s*(\w+)\s*\)/g;
+
 export function checkCondition(condition: string, vars: ConditionValues): boolean {
   const checkFunction = new Function(
     Object.entries(vars)
@@ -102,7 +119,6 @@ async function _checkCondition(
   vars: ConditionValues,
   debouncedApiFetch: (path: string) => Promise<unknown>
 ): Promise<boolean> {
-  const checkSalesforceIdRegex = /\bcheck_salesforce_id\(\s*(\w+)\s*\)/g;
   const checkSalesforceIds: string[] = [];
   condition.replace(checkSalesforceIdRegex, (match, name) => {
     checkSalesforceIds.push(name);
@@ -132,9 +148,17 @@ export async function checkConditionsInFormState(
   for (const [name, parameterState] of Object.entries(parameters)) {
     conditionValues[name] = parameterState.value;
   }
+  let salesforceIdValid = initialState.salesforceId.valid;
 
   try {
-    for (const [name, parameterState] of Object.entries(parameters)) {
+    if (initialState.salesforceId.value) {
+      salesforceIdValid = await _checkCondition(
+        'check_salesforce_id(salesforce_id)',
+        { salesforce_id: initialState.salesforceId.value },
+        debouncedApiFetch
+      );
+    }
+    for (const [, parameterState] of Object.entries(parameters)) {
       const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
 
       if (parameterSpec.formDisableCondition) {
@@ -191,9 +215,11 @@ export async function checkConditionsInFormState(
         }
       }
     }
+
     dispatchFn({
       type: 'complete',
       parameters,
+      salesforceIdValid,
       error: '',
     });
   } catch (error) {
@@ -206,6 +232,7 @@ function reduceFormStateInit(catalogItem: CatalogItem, { isAdmin, groups, roles 
   const parameters: { [name: string]: FormStateParameter } = {};
 
   for (const parameterSpec of catalogItem.spec.parameters || []) {
+    if (parameterSpec.name === 'purpose' || parameterSpec.name === 'salesforce_id') continue; // Disable agnosticV purpose / salesforce_id
     const defaultValue: boolean | number | string | undefined =
       parameterSpec.openAPIV3Schema?.default !== undefined
         ? parameterSpec.openAPIV3Schema.default
@@ -255,17 +282,31 @@ function reduceFormStateInit(catalogItem: CatalogItem, { isAdmin, groups, roles 
     workshop: null,
     error: '',
     usePoolIfAvailable: true,
+    purpose: null,
+    salesforceId: {
+      required: false,
+      value: null,
+      valid: false,
+    },
   };
 }
 
 function reduceFormStateComplete(
   state: FormState,
-  { error = '', parameters }: { error: string; parameters: { [name: string]: FormStateParameter } }
+  {
+    error = '',
+    salesforceIdValid,
+    parameters,
+  }: { error: string; salesforceIdValid: boolean; parameters: { [name: string]: FormStateParameter } }
 ): FormState {
   return {
     ...state,
     ...(parameters ? { parameters } : {}),
     error,
+    salesforceId: {
+      ...state.salesforceId,
+      valid: salesforceIdValid,
+    },
     conditionChecks: {
       completed: true,
     },
@@ -298,8 +339,21 @@ function reduceFormStateTermsOfServiceAgreed(initialState: FormState, termsOfSer
 }
 
 function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProps = null): FormState {
+  const salesforceId = { ...initialState.salesforceId, required: salesforceIdRequired({ ...initialState, workshop }) };
+  if (workshop) {
+    return {
+      ...initialState,
+      salesforceId,
+      conditionChecks: {
+        ...initialState.conditionChecks,
+        completed: initialState.salesforceId.value ? false : initialState.conditionChecks.completed,
+      },
+      workshop,
+    };
+  }
   return {
     ...initialState,
+    salesforceId,
     workshop,
   };
 }
@@ -325,6 +379,67 @@ function reduceFormStateStartDate(initialState: FormState, startDate: Date): For
   };
 }
 
+function reduceFormStatePurpose(initialState: FormState, purpose: string): FormState {
+  const [_activity, _purpose] = purpose.split('-');
+  const newPurpose = !!_activity && !!_purpose ? `${_activity}-${_purpose}` : null;
+  if (_activity === 'Customer Activity') {
+    return {
+      ...initialState,
+      salesforceId: { ...initialState.salesforceId, required: true },
+      purpose: newPurpose,
+      conditionChecks: {
+        ...initialState.conditionChecks,
+        completed: initialState.salesforceId.value ? false : initialState.conditionChecks.completed,
+      },
+    };
+  }
+  return {
+    ...initialState,
+    salesforceId: {
+      ...initialState.salesforceId,
+      required: salesforceIdRequired({ ...initialState, purpose: newPurpose }),
+    },
+    purpose: newPurpose,
+  };
+}
+
+function salesforceIdRequired(state: FormState): boolean {
+  if (state.purpose) {
+    const [_activity] = state.purpose.split('-');
+    if (_activity === 'Customer Activity') return true;
+  }
+  if (state.user.isAdmin) return false;
+  if (state.workshop) return true;
+  return false;
+}
+
+function reduceFormStateSalesforceId(
+  initialState: FormState,
+  salesforceId: { required: boolean; value: string; valid: boolean }
+): FormState {
+  if (!initialState.salesforceId.required) {
+    for (const [, parameterState] of Object.entries(initialState.parameters)) {
+      const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
+      if (parameterSpec.validation.match(checkSalesforceIdRegex) !== null) {
+        return {
+          ...initialState,
+          salesforceId,
+          conditionChecks: {
+            completed: false,
+          },
+        };
+      }
+    }
+  }
+  return {
+    ...initialState,
+    salesforceId,
+    conditionChecks: {
+      completed: initialState.salesforceId.required ? false : true,
+    },
+  };
+}
+
 export function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'init':
@@ -335,6 +450,10 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         value: action.parameter.value,
         isValid: action.parameter.isValid,
       });
+    case 'purpose':
+      return reduceFormStatePurpose(state, action.purpose);
+    case 'salesforceId':
+      return reduceFormStateSalesforceId(state, action.salesforceId);
     case 'startDate':
       return reduceFormStateStartDate(state, action.startDate);
     case 'termsOfServiceAgreed':
@@ -344,7 +463,11 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
     case 'usePoolIfAvailable':
       return reduceFormStateUsePoolIfAvailable(state, action.usePoolIfAvailable);
     case 'complete':
-      return reduceFormStateComplete(state, { error: action.error, parameters: action.parameters });
+      return reduceFormStateComplete(state, {
+        error: action.error,
+        salesforceIdValid: action.salesforceIdValid,
+        parameters: action.parameters,
+      });
     default:
       throw new Error(`Invalid FormStateAction type: ${action.type}`);
   }
@@ -355,6 +478,17 @@ export function checkEnableSubmit(state: FormState): boolean {
     return false;
   }
   if (state.termsOfServiceRequired && !state.termsOfServiceAgreed) {
+    return false;
+  }
+  if (state.purpose) {
+    const [_purpose, _activity] = state.purpose.split('-');
+    if (!_purpose || !_activity) {
+      return false;
+    }
+  } else {
+    return false;
+  }
+  if (state.salesforceId.required && !state.salesforceId.valid) {
     return false;
   }
   for (const parameter of Object.values(state.parameters)) {
