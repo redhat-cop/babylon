@@ -23,7 +23,10 @@ const CatalogLabelSelector: React.FC<{
   onSelect: (labels: { [label: string]: string[] }) => void;
   selected: { [label: string]: string[] };
 }> = ({ catalogItems, filteredCatalogItems, onSelect, selected }) => {
-  const [expandedLabels, setExpandedLabels] = useState<{ [label: string]: boolean }>({});
+  const defaultExpandedLabels: { [label: string]: boolean } = Object.keys(selected).reduce((acc, value) => {
+    return { ...acc, [value]: true };
+  }, {});
+  const [expandedLabels, setExpandedLabels] = useState(defaultExpandedLabels);
   const labels: { [label: string]: CatalogLabelValues } = {};
   for (const catalogItem of catalogItems || []) {
     if (!catalogItem.metadata.labels) continue;
@@ -121,6 +124,7 @@ const CatalogLabelSelector: React.FC<{
                 <Tooltip content={<div>Clear filter</div>}>
                   <Button
                     variant="plain"
+                    component="span"
                     style={{ marginRight: 0, marginLeft: 'auto', padding: 0 }}
                     onClick={(ev) => {
                       ev.stopPropagation();

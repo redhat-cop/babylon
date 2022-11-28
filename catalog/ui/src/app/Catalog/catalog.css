@@ -75,12 +75,20 @@
   background-color: var(--pf-global--palette--black-200);
   min-height: 450px;
 }
-.catalog__select-view {
+.catalog__right-tools {
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
 }
-.catalog__select-view button {
+.catalog__right-tools button {
   margin-left: 1rem;
   padding: 0;
+}
+.catalog__sort-by button {
+  padding-left: var(--pf-c-select__toggle--PaddingLeft);
+  padding-bottom: 0;
+  padding-top: 0;
+  width: auto;
+  padding-right: 0;
+  font-size: var(--pf-global--FontSize--sm);
 }

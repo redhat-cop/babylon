@@ -13,6 +13,10 @@ import {
   EmptyStateIcon,
   PageSection,
   PageSectionVariants,
+  Select,
+  SelectDirection,
+  SelectOption,
+  SelectVariant,
   Sidebar,
   SidebarContent,
   SidebarPanel,
@@ -54,11 +58,25 @@ import Footer from '@app/components/Footer';
 
 import './catalog.css';
 
-function compareCatalogItems(a: CatalogItem, b: CatalogItem): number {
+function compareCatalogItems(a: CatalogItem, b: CatalogItem, method: 'Featured' | 'AZ' | 'ZA' = 'AZ'): number {
   const aDisplayName = displayName(a);
   const bDisplayName = displayName(b);
   if (aDisplayName !== bDisplayName) {
-    return aDisplayName < bDisplayName ? -1 : 1;
+    if (method === 'AZ') {
+      return aDisplayName < bDisplayName ? -1 : 1;
+    } else if (method === 'ZA') {
+      return aDisplayName < bDisplayName ? 1 : -1;
+    } else {
+      // method === 'Featured'
+      const aRating = a.metadata.annotations[`${BABYLON_DOMAIN}/featuredRating`];
+      const bRating = b.metadata.annotations[`${BABYLON_DOMAIN}/featuredRating`];
+      if (aRating || bRating) {
+        if (aRating && bRating) return parseInt(aRating, 10) < parseInt(bRating, 10) ? 1 : -1;
+        if (bRating) return 1;
+        return -1;
+      }
+      return aDisplayName < bDisplayName ? -1 : 1;
+    }
   }
   const aStage = a.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
   const bStage = b.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
@@ -250,6 +268,10 @@ const Catalog: React.FC = () => {
   const { namespace: catalogNamespaceName } = useParams();
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
+  const [sortBy, setSortBy] = useState<{ isOpen: boolean; selected: 'Featured' | 'AZ' | 'ZA' }>({
+    isOpen: false,
+    selected: 'Featured',
+  });
   const urlSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const openCatalogItemParam: string | null = urlSearchParams.has('item') ? urlSearchParams.get('item') : null;
   const openCatalogItemNamespaceName: string | null = openCatalogItemParam
@@ -272,7 +294,7 @@ const Catalog: React.FC = () => {
   const selectedCategory = urlSearchParams.has('category') ? urlSearchParams.get('category') : null;
   const selectedLabels: { [label: string]: string[] } = urlSearchParams.has('labels')
     ? JSON.parse(urlSearchParams.get('labels'))
-    : null;
+    : {};
 
   const catalogNamespaceNames: string[] = catalogNamespaces.map((ci) => ci.name);
   const filterFunction = useMemo(() => (item: CatalogItem) => filterCatalogItemByAccessControl(item, groups), [groups]);
@@ -284,8 +306,8 @@ const Catalog: React.FC = () => {
 
   // Filter & Sort catalog items
   const catalogItems = useMemo(
-    () => catalogItemsArr.filter(filterFunction).sort(compareCatalogItems),
-    [catalogItemsArr, filterFunction]
+    () => catalogItemsArr.filter(filterFunction).sort((a, b) => compareCatalogItems(a, b, sortBy.selected)),
+    [catalogItemsArr, filterFunction, sortBy.selected]
   );
 
   // Load last filter
@@ -296,17 +318,17 @@ const Catalog: React.FC = () => {
     }
   }, [navigate, location.pathname, urlSearchParams]);
 
-  const categoryFilteredCatalogItems: CatalogItem[] = selectedCategory
+  const categoryFilteredCatalogItems = selectedCategory
     ? catalogItems.filter((catalogItem) => filterCatalogItemByCategory(catalogItem, selectedCategory))
     : catalogItems;
-  const searchFilteredCatalogItems: CatalogItem[] = keywordFilter
+  const searchFilteredCatalogItems = keywordFilter
     ? categoryFilteredCatalogItems.filter((catalogItem) => filterCatalogItemByKeywords(catalogItem, keywordFilter))
     : categoryFilteredCatalogItems;
-  const labelFilteredCatalogItems: CatalogItem[] = selectedLabels
+  const labelFilteredCatalogItems = selectedLabels
     ? searchFilteredCatalogItems.filter((catalogItem) => filterCatalogItemByLabels(catalogItem, selectedLabels))
     : searchFilteredCatalogItems;
 
-  const openCatalogItem: CatalogItem =
+  const openCatalogItem =
     openCatalogItemName && openCatalogItemNamespaceName
       ? catalogItems.find(
           (item) =>
@@ -432,7 +454,7 @@ const Catalog: React.FC = () => {
                         <SplitItem>
                           <Stack hasGutter>
                             <StackItem>
-                              <ul className="catalog__select-view">
+                              <ul className="catalog__right-tools">
                                 <li>
                                   <Tooltip content="Gallery view">
                                     <Button
@@ -470,6 +492,32 @@ const Catalog: React.FC = () => {
                                     </Tooltip>
                                   </li>
                                 ) : null}
+                                <li>
+                                  <Select
+                                    className="catalog__sort-by"
+                                    variant={SelectVariant.single}
+                                    aria-label="Sort by"
+                                    onToggle={(isOpen) =>
+                                      setSortBy({
+                                        ...sortBy,
+                                        isOpen,
+                                      })
+                                    }
+                                    onSelect={(_, selection) =>
+                                      setSortBy({
+                                        ...sortBy,
+                                        selected: selection as 'Featured' | 'AZ' | 'ZA',
+                                        isOpen: false,
+                                      })
+                                    }
+                                    selections={`Sort by: ${sortBy.selected}`}
+                                    isOpen={sortBy.isOpen}
+                                  >
+                                    <SelectOption key={0} value="Featured" />
+                                    <SelectOption key={1} value="AZ" />
+                                    <SelectOption key={2} value="ZA" />
+                                  </Select>
+                                </li>
                               </ul>
                             </StackItem>
                             <StackItem>
