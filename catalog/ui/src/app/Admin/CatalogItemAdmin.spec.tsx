@@ -42,7 +42,7 @@ describe('CatalogItemAdmin Component', () => {
   });
   test('When save form API function is called', async () => {
     const mockDate = new Date();
-    jest.spyOn(global, 'Date').mockImplementation(() => mockDate as unknown as string);
+    jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
     Date.parse = jest.fn(() => 1656950267699);
     const { getByLabelText, getByText } = render(<CatalogItemAdmin />);
 

@@ -409,7 +409,7 @@ function salesforceIdRequired(state: FormState): boolean {
     if (_activity === 'Customer Activity') return true;
   }
   if (state.user.isAdmin) return false;
-  if (state.workshop) return true;
+  // if (state.workshop) return true;
   return false;
 }
 
