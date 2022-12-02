@@ -4,11 +4,13 @@ import { Badge, CardBody, CardHeader, Split, SplitItem, Title, Tooltip } from '@
 import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
+import StarRating from '@app/components/StarRating';
 import {
   formatString,
   getDescription,
   getIsDisabled,
   getProvider,
+  getRate,
   getStage,
   getStatus,
   getSupportType,
@@ -25,6 +27,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
   const isDisabled = getIsDisabled(catalogItem);
+  const rate = getRate(catalogItem);
   const { code: status } = getStatus(catalogItem);
   const supportType = getSupportType(catalogItem);
 
@@ -72,10 +75,13 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
           <Title className="catalog-item-card__subtitle" headingLevel="h6">
             provided by {formatString(provider)}
           </Title>
-          <div className="catalog-item-card__description">
-            {description
-              ? stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)
-              : 'No description available.'}
+          {description ? (
+            <div className="catalog-item-card__description">
+              {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+            </div>
+          ) : null}
+          <div className="catalog-item-card__rating">
+            <StarRating count={5} rating={rate} readOnly={true} />
           </div>
         </CardBody>
       </Link>

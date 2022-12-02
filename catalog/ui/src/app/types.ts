@@ -519,3 +519,5 @@ export type ResourceType =
   | 'RESOURCE_POOLS'
   | 'RESOURCE_PROVIDERS'
   | 'RESOURCE_PROVIDER';
+
+export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
