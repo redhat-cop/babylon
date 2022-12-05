@@ -24,7 +24,6 @@
 
 .catalog-item-list-item__description {
   line-height: 1.25em;
-  height: 3.75em;
   overflow: hidden;
   font-weight: var(--pf-global--link--FontWeight) !important;
   font-size: var(--pf-global--FontSize--sm) !important;

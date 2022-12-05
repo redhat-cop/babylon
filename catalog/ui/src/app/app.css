@@ -57,4 +57,5 @@ body,
 }
 .optional-flags__no-ratings .catalog-item-card .catalog-item-card__description {
   font-size: var(--pf-global--FontSize--sm) !important;
+  -webkit-line-clamp: 3 !important;
 }

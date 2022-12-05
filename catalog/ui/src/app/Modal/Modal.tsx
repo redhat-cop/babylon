@@ -14,6 +14,8 @@ import useModal from './useModal';
 
 import './modal.css';
 
+const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : [];
+
 const _Modal: ForwardRefRenderFunction<
   {
     open: () => void;
@@ -147,7 +149,9 @@ const _Modal: ForwardRefRenderFunction<
     ? createPortal(
         isOpen ? (
           <Modal
-            className={`modal-component${className ? ' ' + className : ''}`}
+            className={`modal-component${className ? ` ${className}` : ''} ${optionalFlags
+              .map((flag) => `optional-flags__${flag}`)
+              .join(' ')}`}
             variant={ModalVariant.small}
             title={_title}
             onClose={close}
