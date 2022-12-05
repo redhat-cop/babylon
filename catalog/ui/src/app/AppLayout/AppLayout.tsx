@@ -8,7 +8,7 @@ import useSession from '@app/utils/useSession';
 import useStatusPageEmbed from './useStatusPageEmbed';
 import Navigation from './Navigation';
 
-const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : '';
+const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : [];
 
 const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessControl?: IAppRouteAccessControl }> = ({
   children,
