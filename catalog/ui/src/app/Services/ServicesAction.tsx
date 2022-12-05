@@ -58,7 +58,7 @@ const ServicesAction: React.FC<{
         <p>Cloud services will be stopped.</p>
       ) : null}
       {action === 'rate' || action === 'delete' ? (
-        <Form>
+        <Form className="services-action__rating-form">
           <FormGroup fieldId="comment" label="Rating">
             <StarRating
               count={5}

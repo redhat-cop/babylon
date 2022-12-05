@@ -28,6 +28,18 @@
       data-tracker-type="advertising"
     ></script>
     <script id="dpal" src="https://www.redhat.com/ma/dpal.js" type="text/javascript"></script>
+    <% } %> <% if (!htmlWebpackPlugin.options.OPTIONAL_FLAGS.includes('ratings')) { %>
+    <style>
+      .catalog-item-card__rating,
+      .catalog-item-details__rate,
+      .catalog-item-card__description,
+      .services-action__rating-form {
+        display: none !important;
+      }
+      .catalog-item-card .catalog-item-card__description {
+        font-size: var(--pf-global--FontSize--sm) !important;
+      }
+    </style>
     <% } %>
   </head>
 
