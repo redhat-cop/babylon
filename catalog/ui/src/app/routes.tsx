@@ -257,7 +257,7 @@ const publicRoutes: IAppRoute[] = [
   {
     component: SupportPage,
     path: '/support',
-    title: 'Support | Babylon',
+    title: 'Solution Support: SLAs | Babylon',
   },
 ];
 

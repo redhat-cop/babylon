@@ -20,6 +20,7 @@ import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-tab
 import useSWRImmutable from 'swr/immutable';
 import { CSVToArray } from '@app/util';
 import { publicFetcher } from '@app/api';
+import useDocumentTitle from '@app/utils/useDocumentTitle';
 import PublicHeader from '@app/Header/PublicHeader';
 import Footer from '@app/components/Footer';
 import Hero from '@app/components/Hero';
@@ -27,7 +28,8 @@ import heroImg from '@app/bgimages/hero-img.jpeg';
 
 import './support-page.css';
 
-const SupportPage: React.FC = () => {
+const SupportPage: React.FC<{ title: string }> = ({ title }) => {
+  useDocumentTitle(title);
   const { data } = useSWRImmutable('./public/incidents_technical_support.csv', publicFetcher);
   const dataArr = CSVToArray(data);
   function getHelpLink() {
