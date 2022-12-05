@@ -93,7 +93,14 @@ const ServiceActions: React.FC<{
     );
   }
   if (!isPartOfWorkshop && actionHandlers.rate) {
-    actionDropdownItems.push(<ActionDropdownItem key="rate" label="Rate" onSelect={actionHandlers.rate} />);
+    actionDropdownItems.push(
+      <ActionDropdownItem
+        key="rate"
+        label="Rate"
+        onSelect={actionHandlers.rate}
+        className="action-dropdown-item__rate"
+      />
+    );
   }
   return (
     <ActionDropdown
