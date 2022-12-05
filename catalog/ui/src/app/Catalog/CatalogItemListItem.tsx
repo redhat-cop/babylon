@@ -3,9 +3,18 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { Badge, Card, CardBody, CardHeader, Title } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
-import CatalogItemIcon from './CatalogItemIcon';
-import { formatString, getDescription, getIsDisabled, getProvider, getStage, getStatus } from './catalog-utils';
 import { displayName, renderContent, stripHtml } from '@app/util';
+import StarRating from '@app/components/StarRating';
+import CatalogItemIcon from './CatalogItemIcon';
+import {
+  formatString,
+  getDescription,
+  getIsDisabled,
+  getProvider,
+  getRate,
+  getStage,
+  getStatus,
+} from './catalog-utils';
 
 import './catalog-item-list-item.css';
 
@@ -17,6 +26,7 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
   const isDisabled = getIsDisabled(catalogItem);
+  const rate = getRate(catalogItem);
   const { code: status } = getStatus(catalogItem);
 
   if (!urlSearchParams.has('item')) {
@@ -51,10 +61,13 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
           <Title className="catalog-item-list-item__subtitle" headingLevel="h6">
             provided by {formatString(provider)}
           </Title>
-          <div className="catalog-item-list-item__description">
-            {description
-              ? stripHtml(renderContent(description, { format: descriptionFormat }))
-              : 'No description available.'}
+          {description ? (
+            <div className="catalog-item-card__description">
+              {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+            </div>
+          ) : null}
+          <div className="catalog-item-card__rating">
+            <StarRating count={5} rating={rate} readOnly={true} />
           </div>
         </CardBody>
       </Card>

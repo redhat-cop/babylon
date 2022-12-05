@@ -25,8 +25,8 @@ const ActivityPurposeSelector: React.FC<{
 }> = ({ onChange, value }) => {
   const defaultValuesArr = value ? value.split('-') : ['', ''];
   const [isOpen, setIsOpen] = useState(false);
-  const [activity, setActivity] = useState(defaultValuesArr.length === 1 ? defaultValuesArr[0] : '');
-  const [purpose, setPurpose] = useState(defaultValuesArr.length === 1 ? defaultValuesArr[1] : '');
+  const [activity, setActivity] = useState(defaultValuesArr.length === 1 ? defaultValuesArr[0].trim() : '');
+  const [purpose, setPurpose] = useState(defaultValuesArr.length === 1 ? defaultValuesArr[1].trim() : '');
 
   return (
     <>
@@ -56,7 +56,7 @@ const ActivityPurposeSelector: React.FC<{
                 onChange={() => {
                   setActivity(activityOpt.name);
                   setPurpose('');
-                  onChange(`${activityOpt.name}-`);
+                  onChange(`${activityOpt.name} -`);
                 }}
                 label={activityOpt.name}
                 id={`activity-${activityOpt.id}`}
@@ -74,7 +74,7 @@ const ActivityPurposeSelector: React.FC<{
               onSelect={(_, value) => {
                 setPurpose(value as string);
                 setIsOpen(false);
-                onChange(`${activity}-${value}`);
+                onChange(`${activity} - ${value}`);
               }}
               onToggle={() => setIsOpen((v) => !v)}
               placeholderText="- Select purpose -"
@@ -82,7 +82,7 @@ const ActivityPurposeSelector: React.FC<{
               variant={SelectVariant.single}
             >
               {PurposeOpts.filter((purposeOpt) => purposeOpt.activity === activity).map((purposeOpt) => (
-                <SelectOption key={`${purposeOpt.activity}-${purposeOpt.name}`} value={purposeOpt.name} />
+                <SelectOption key={`${purposeOpt.activity} - ${purposeOpt.name}`} value={purposeOpt.name} />
               ))}
             </Select>
           </div>

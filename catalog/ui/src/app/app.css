@@ -49,3 +49,14 @@ body,
     flex-direction: column;
   }
 }
+
+.optional-flags__no-ratings .catalog-item-card__rating,
+.optional-flags__no-ratings .catalog-item-details__rate,
+.optional-flags__no-ratings .services-action__rating-form,
+.optional-flags__no-ratings .action-dropdown-item__rate {
+  display: none !important;
+}
+.optional-flags__no-ratings .catalog-item-card .catalog-item-card__description {
+  font-size: var(--pf-global--FontSize--sm) !important;
+  -webkit-line-clamp: 3 !important;
+}

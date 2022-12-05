@@ -8,12 +8,13 @@ import { BABYLON_DOMAIN, checkResourceClaimCanStart, checkResourceClaimCanStop }
 const ServiceActions: React.FC<{
   actionHandlers: {
     runtime?: () => void;
-    lifespan: () => void;
+    lifespan?: () => void;
     delete: () => void;
     start?: () => void;
     stop?: () => void;
     manageWorkshop?: () => void;
     getCost?: () => void;
+    rate?: () => void;
   };
   className?: string;
   isDisabled?: boolean;
@@ -89,6 +90,16 @@ const ServiceActions: React.FC<{
   if (actionHandlers.manageWorkshop) {
     actionDropdownItems.push(
       <ActionDropdownItem key="manageWorkshop" label="Manage Workshop" onSelect={actionHandlers.manageWorkshop} />
+    );
+  }
+  if (!isPartOfWorkshop && actionHandlers.rate) {
+    actionDropdownItems.push(
+      <ActionDropdownItem
+        key="rate"
+        label="Rate"
+        onSelect={actionHandlers.rate}
+        className="action-dropdown-item__rate"
+      />
     );
   }
   return (

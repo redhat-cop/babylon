@@ -31,7 +31,7 @@ import {
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-import { NamespaceList, ResourceClaim, ResourceClaimList, ServiceNamespace } from '@app/types';
+import { NamespaceList, ResourceClaim, ResourceClaimList, ServiceActionActions, ServiceNamespace } from '@app/types';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -83,9 +83,10 @@ const ServicesList: React.FC<{
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const enableFetchUserNamespaces: boolean = isAdmin;
   const [modalState, setModalState] = useState<{
-    action?: string;
+    action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
-  }>({});
+    rating?: { rate: number; comment: string };
+  }>({ action: null });
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalGetCost, openModalGetCost] = useModal();
@@ -264,7 +265,15 @@ const ServicesList: React.FC<{
   ]);
 
   const showModal = useCallback(
-    ({ modal, action, resourceClaim }: { modal: string; action?: string; resourceClaim?: ResourceClaim }) => {
+    ({
+      modal,
+      action,
+      resourceClaim,
+    }: {
+      modal: string;
+      action?: ServiceActionActions;
+      resourceClaim?: ResourceClaim;
+    }) => {
       if (modal === 'action') {
         setModalState({ action, resourceClaim });
         openModalAction();
@@ -274,7 +283,7 @@ const ServicesList: React.FC<{
         openModalScheduleAction();
       }
       if (modal === 'getCost') {
-        setModalState({ resourceClaim });
+        setModalState({ action, resourceClaim });
         openModalGetCost();
       }
     },
@@ -322,7 +331,7 @@ const ServicesList: React.FC<{
   return (
     <div onScroll={scrollHandler} style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
       <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
-        <ServicesAction action={modalState.action} resourceClaim={modalState.resourceClaim} />
+        <ServicesAction actionState={modalState} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction

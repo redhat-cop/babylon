@@ -1,15 +1,29 @@
 import React, { useEffect } from 'react';
 import parseDuration from 'parse-duration';
-import { ResourceClaim } from '@app/types';
+import { ResourceClaim, ServiceActionActions } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import { displayName } from '@app/util';
+import StarRating from '@app/components/StarRating';
+import { Form, FormGroup, TextArea } from '@patternfly/react-core';
 
 const ServicesAction: React.FC<{
-  action: string;
-  resourceClaim?: ResourceClaim;
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
-}> = ({ action, resourceClaim, setTitle }) => {
-  const resourceClaimHasMultipleResources: boolean | null = resourceClaim?.spec?.resources
+  setActionState?: React.Dispatch<
+    React.SetStateAction<{
+      action: ServiceActionActions;
+      resourceClaim?: ResourceClaim;
+      rating?: { rate: number; comment: string };
+    }>
+  >;
+  actionState: {
+    action: ServiceActionActions;
+    resourceClaim?: ResourceClaim;
+    rating?: { rate: number; comment: string };
+  };
+}> = ({ actionState, setTitle, setActionState }) => {
+  const action = actionState.action;
+  const resourceClaim = actionState.resourceClaim;
+  const resourceClaimHasMultipleResources = resourceClaim?.spec?.resources
     ? resourceClaim.spec.resources.length > 1
     : null;
   const targetDisplay = resourceClaim ? displayName(resourceClaim) : 'Selected Services';
@@ -27,19 +41,48 @@ const ServicesAction: React.FC<{
   return (
     <>
       {action === 'delete' ? (
-        <>Cloud resources will be deleted. Restore for deleted resources is not available.</>
+        <p style={{ paddingBottom: 'var(--pf-global--spacer--md)' }}>
+          Cloud resources will be deleted. Restore for deleted resources is not available.
+        </p>
       ) : action === 'start' ? (
         defaultRuntime ? (
-          <>
+          <p>
             {resourceClaimHasMultipleResources ? 'Services' : 'Service'}
             {' will stop in '}
             <TimeInterval interval={defaultRuntime} />.
-          </>
+          </p>
         ) : (
-          <>Services will automatically stop according to their configured schedules.</>
+          <p>Services will automatically stop according to their configured schedules.</p>
         )
-      ) : action == 'stop' ? (
-        <>Cloud services will be stopped.</>
+      ) : action === 'stop' ? (
+        <p>Cloud services will be stopped.</p>
+      ) : null}
+      {action === 'rate' || action === 'delete' ? (
+        <Form className="services-action__rating-form">
+          <FormGroup fieldId="comment" label="Rating">
+            <StarRating
+              count={5}
+              rating={actionState?.rating?.rate || 0}
+              onRating={(rate) => setActionState({ ...actionState, rating: { ...actionState.rating, rate } })}
+            />
+          </FormGroup>
+          <FormGroup
+            fieldId="comment"
+            label={
+              <span>
+                Add feedback for <i>{displayName(resourceClaim)}</i> developers
+              </span>
+            }
+          >
+            <TextArea
+              id="comment"
+              onChange={(comment) => setActionState({ ...actionState, rating: { ...actionState.rating, comment } })}
+              value={actionState.rating?.comment || ''}
+              placeholder="Add comment"
+              aria-label="Add comment"
+            />
+          </FormGroup>
+        </Form>
       ) : null}
     </>
   );

@@ -5,6 +5,7 @@ import useSWRImmutable from 'swr/immutable';
 import Footer from '@app/components/Footer';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import { publicFetcher } from '@app/api';
+import useDocumentTitle from '@app/utils/useDocumentTitle';
 import { apiPaths } from './workshop-utils';
 import { workshopLogin, WorkshopDetails } from './workshopApi';
 import WorkshopAccess from './WorkshopAccess';
@@ -13,7 +14,8 @@ import WorkshopLogin from './WorkshopLogin';
 
 import './workshop.css';
 
-const Workshop: React.FC = () => {
+const Workshop: React.FC<{ title: string }> = ({ title }) => {
+  useDocumentTitle(title);
   const { workshopId } = useParams();
   const { search } = useLocation();
   const userInterface = new URLSearchParams(search).get('userInterface');

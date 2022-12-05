@@ -28,9 +28,11 @@ describe('CatalogItemForm Component', () => {
   test("When renders should display 'CatalogItem' properties and parameters", async () => {
     const { getByText, getByLabelText } = render(<CatalogItemForm />);
     const catalogItemDisplayName = await waitFor(() => getByText('Order Test Config'));
-    const sfidLabel = getByLabelText('Salesforce ID');
+    const sfidLabel = getByLabelText(
+      'Salesforce ID (Opportunity ID, Campaign ID, Partner Registration, or Project ID)'
+    );
     const purposeLabel = getByText('Purpose');
-    const purposePlaceholder = '- Select Purpose -';
+    const purposePlaceholder = '- Select purpose -';
     const termsOfServiceLabel = getByText('IMPORTANT PLEASE READ');
     const termsOfServiceAck = 'I confirm that I understand the above warnings.';
 
@@ -48,8 +50,12 @@ describe('CatalogItemForm Component', () => {
   });
 
   test('Submit button disabled until required fields are filled', async () => {
-    const { getByText } = render(<CatalogItemForm />);
-    const button = await waitFor(() => getByText('Order'));
+    const { getByText, getByLabelText, getByRole } = render(<CatalogItemForm />);
+    const button = await waitFor(() =>
+      getByRole('button', {
+        name: /Order/i,
+      })
+    );
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
@@ -60,16 +66,19 @@ describe('CatalogItemForm Component', () => {
     expect(termsOfServiceAck).toBeChecked();
     expect(button).toBeDisabled();
 
-    await userEvent.click(getByText('- Select Purpose -').closest('button'));
-    await userEvent.click(getByText('Development - Catalog item creation / maintenance'));
+    await userEvent.click(getByLabelText('Development'));
+    await userEvent.click(getByText('- Select purpose -').closest('button'));
+    await userEvent.click(getByText('Catalog item creation / maintenance'));
     expect(button).toBeEnabled();
   });
 
   test('Description should be visible when hovering', async () => {
     const { queryByText, getByLabelText } = render(<CatalogItemForm />);
 
-    const sfidLabel = await waitFor(() => getByLabelText('Salesforce ID'));
-    const sfidDescriptionText = 'Salesforce Opportunity ID, Campaign ID, or Partner Registration';
+    const sfidLabel = await waitFor(() =>
+      getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, Partner Registration, or Project ID)')
+    );
+    const sfidDescriptionText = 'Salesforce Opportunity ID, Campaign ID, Partner Registration, or Project ID.';
     expect(queryByText(sfidDescriptionText)).not.toBeInTheDocument();
     await userEvent.hover(sfidLabel.closest('.pf-c-form__group').querySelector('.tooltip-icon-only'));
     await waitFor(() => expect(queryByText(sfidDescriptionText)).toBeInTheDocument());
@@ -98,20 +107,27 @@ describe('CatalogItemForm Component', () => {
   });
 
   test('Workshop Title is required', async () => {
-    const { getByText, getByLabelText } = render(<CatalogItemForm />);
-    const button = await waitFor(() => getByText('Order'));
-    const switchBtn = getByLabelText('Enable workshop user interface');
+    const { getByText, getByLabelText, getByRole } = render(<CatalogItemForm />);
+    const button = await waitFor(() =>
+      getByRole('button', {
+        name: /Order/i,
+      })
+    );
 
     expect(button).toBeDisabled();
 
-    await userEvent.click(switchBtn);
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
       'input[type="checkbox"]'
     );
-    fireEvent.click(termsOfServiceAck);
-    await userEvent.click(getByText('- Select Purpose -').closest('button'));
-    await userEvent.click(getByText('Development - Catalog item creation / maintenance'));
 
+    fireEvent.click(termsOfServiceAck);
+    await userEvent.click(getByLabelText('Development'));
+    await userEvent.click(getByText('- Select purpose -').closest('button'));
+    await userEvent.click(getByText('Catalog item creation / maintenance'));
+    await userEvent.click(getByLabelText('Enable workshop user interface'));
+
+    expect(termsOfServiceAck).toBeChecked();
+    expect(getByLabelText('Enable workshop user interface')).toBeChecked();
     expect(button).toBeEnabled();
 
     const input: HTMLInputElement = getByText('Display Name')

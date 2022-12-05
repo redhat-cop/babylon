@@ -40,9 +40,10 @@ const ActionDropdownItem: React.FC<{
   isDisabled?: boolean;
   label: string;
   onSelect: () => void;
-}> = ({ label, isDisabled = false, onSelect }) => {
+  className?: string;
+}> = ({ label, className, isDisabled = false, onSelect }) => {
   return (
-    <DropdownItem key={label} isDisabled={isDisabled} onClick={() => onSelect()}>
+    <DropdownItem className={className} key={label} isDisabled={isDisabled} onClick={() => onSelect()}>
       {label}
     </DropdownItem>
   );

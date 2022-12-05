@@ -37,16 +37,24 @@ export function getSupportType(catalogItem: CatalogItem): SupportTypes {
 
 export function getIsDisabled(catalogItem: CatalogItem): boolean {
   if (catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/disabled`]) {
-    return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/disabled`] === 'true';
+    return catalogItem.metadata.labels[`${BABYLON_DOMAIN}/disabled`] === 'true';
   }
   return false;
+}
+
+export function getRate(catalogItem: CatalogItem): number | null {
+  if (catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/rate`]) {
+    const rate = parseInt(catalogItem.metadata.labels[`${BABYLON_DOMAIN}/rate`], 10);
+    return isNaN(rate) ? null : rate;
+  }
+  return null;
 }
 
 export function getStatus(
   catalogItem: CatalogItem
 ): { code: string; name: string; updated?: { author: string; updatedAt: string } } | null {
   if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]) {
-    const ops: Ops = JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]);
+    const ops: Ops = JSON.parse(catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/ops`]);
     if (ops.status.id) {
       switch (ops.status.id) {
         case 'degraded-performance':
@@ -67,7 +75,7 @@ export function getStatus(
 
 export function getIncidentUrl(catalogItem: CatalogItem): string {
   if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]) {
-    const ops: Ops = JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]);
+    const ops: Ops = JSON.parse(catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/ops`]);
     return ops.incidentUrl || null;
   }
   return null;

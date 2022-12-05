@@ -36,6 +36,7 @@ import {
   FETCH_BATCH_LIMIT,
   isLabDeveloper,
 } from '@app/util';
+import StarRating from '@app/components/StarRating';
 import TimeInterval from '@app/components/TimeInterval';
 import {
   getProvider,
@@ -48,10 +49,10 @@ import {
   HIDDEN_LABELS,
   getIncidentUrl,
   formatString,
+  getRate,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
-import CatalogItemRating from './CatalogItemRating';
 
 import './catalog-item-details.css';
 
@@ -104,6 +105,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
+  const rate = getRate(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups);
   const catalogItemAccess: CatalogItemAccess =
     isAdmin || isLabDeveloper(groups)
@@ -243,14 +245,6 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         <Sidebar>
           <SidebarPanel className="catalog-item-details__sidebar">
             <DescriptionList>
-              {catalogItem.status?.rating ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Rating</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <CatalogItemRating rating={catalogItem.status.rating} starDimension="20px" />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
               {catalogItem.status?.provisionHistory ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Health</DescriptionListTerm>
@@ -288,6 +282,13 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <DescriptionListDescription>{supportType.replace(/_+/g, ' | ')}</DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
+
+              <DescriptionListGroup className="catalog-item-details__rate">
+                <DescriptionListTerm>Rate</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <StarRating count={5} rating={rate} readOnly={true} />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
             </DescriptionList>
           </SidebarPanel>
           <SidebarContent>

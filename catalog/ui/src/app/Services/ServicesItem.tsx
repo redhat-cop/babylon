@@ -50,6 +50,7 @@ import {
   NamespaceList,
   ResourceClaim,
   ResourceClaimSpecResource,
+  ServiceActionActions,
   ServiceNamespace,
   Workshop,
 } from '@app/types';
@@ -282,9 +283,13 @@ const ServicesItemComponent: React.FC<{
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
   const [modalState, setModalState] = useState<{
-    action?: string;
+    action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
-  }>({});
+    rating?: {
+      rate: number;
+      comment: string;
+    };
+  }>({ action: null });
 
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const enableFetchUserNamespaces = isAdmin;
@@ -328,18 +333,20 @@ const ServicesItemComponent: React.FC<{
     resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
 
   const actionHandlers = {
-    delete: () => showModal({ action: 'delete', modal: 'action' }),
-    lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction' }),
+    delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
+    lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
   };
   if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
-    actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action' });
+    actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', resourceClaim });
   }
   if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
-    actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action' });
-    actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction' });
+    actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
+    actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
   }
   if (isPartOfWorkshop) {
     actionHandlers['manageWorkshop'] = () => navigate(`/workshops/${serviceNamespace.name}/${workshopName}`);
+  } else {
+    actionHandlers['rate'] = () => showModal({ action: 'rate', modal: 'action', resourceClaim });
   }
 
   // Find lab user interface information either in the resource claim or inside resources
@@ -398,12 +405,14 @@ const ServicesItemComponent: React.FC<{
       deleteResourceClaim(resourceClaim);
       cache.delete(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }));
       navigate(`/services/${serviceNamespaceName}`);
-    } else {
+    } else if (modalState.action === 'stop' || modalState.action === 'start') {
       const resourceClaimUpdate =
         modalState.action === 'start'
           ? await startAllResourcesInResourceClaim(resourceClaim)
           : await stopAllResourcesInResourceClaim(resourceClaim);
       mutate(resourceClaimUpdate);
+    } else if (modalState.action === 'rate') {
+      console.log(modalState);
     }
   }
 
@@ -429,12 +438,14 @@ const ServicesItemComponent: React.FC<{
     ({
       modal,
       action,
+      resourceClaim,
     }: {
       modal: 'action' | 'scheduleAction' | 'createWorkshop';
-      action?: 'start' | 'stop' | 'delete' | 'retirement';
+      action?: ServiceActionActions;
+      resourceClaim?: ResourceClaim;
     }) => {
       if (modal === 'action') {
-        setModalState({ action });
+        setModalState({ action, resourceClaim });
         openModalAction();
       }
       if (modal === 'scheduleAction') {
@@ -461,7 +472,7 @@ const ServicesItemComponent: React.FC<{
   return (
     <>
       <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
-        <ServicesAction action={modalState.action} resourceClaim={resourceClaim} />
+        <ServicesAction actionState={modalState} setActionState={setModalState} />
       </Modal>
       <Modal ref={modalCreateWorkshop} onConfirm={onModalWorkshopCreate} passModifiers={true}>
         <ServicesCreateWorkshop resourceClaim={resourceClaim} />
@@ -607,7 +618,7 @@ const ServicesItemComponent: React.FC<{
                           iconPosition="right"
                           isDisabled={!checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop}
                           onClick={() => {
-                            showModal({ action: 'stop', modal: 'scheduleAction' });
+                            showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
                           }}
                           className="services-item__schedule-btn"
                         >
@@ -632,7 +643,7 @@ const ServicesItemComponent: React.FC<{
                             variant="control"
                             isDisabled={!resourceClaim.status?.lifespan}
                             onClick={() => {
-                              showModal({ action: 'retirement', modal: 'scheduleAction' });
+                              showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
                             }}
                             icon={<OutlinedClockIcon />}
                             iconPosition="right"
@@ -849,7 +860,7 @@ const ServicesItemComponent: React.FC<{
                       <Button
                         className="services-item__create-workshop-button"
                         onClick={() => {
-                          showModal({ modal: 'createWorkshop' });
+                          showModal({ modal: 'createWorkshop', resourceClaim });
                         }}
                       >
                         Enable workshop user interface
