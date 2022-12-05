@@ -4,6 +4,7 @@ WORKDIR /build
 ARG STATUS_PAGE_ID
 ARG MONITOR_ENABLED
 ARG TRACKING_ENABLED
+ARG OPTIONAL_FLAGS
 
 COPY package.json package-lock.json ./
 RUN npm ci && npm cache clean --force

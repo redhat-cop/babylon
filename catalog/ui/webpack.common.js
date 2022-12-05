@@ -91,7 +91,6 @@ module.exports = () => {
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, 'src', 'index.html'),
         TRACKING_ENABLED: process.env.TRACKING_ENABLED,
-        OPTIONAL_FLAGS: process.env.OPTIONAL_FLAGS || [],
       }),
       new CopyPlugin({
         patterns: [

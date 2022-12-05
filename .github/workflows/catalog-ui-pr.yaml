@@ -75,6 +75,7 @@ jobs:
             STATUS_PAGE_ID=m7thn7y0z176
             MONITOR_ENABLED=false
             TRACKING_ENABLED=false
+            OPTIONAL_FLAGS=default
           push: true
           tags: ${{ env.IMAGE_TAGS }}
           # images from a PR expire after 14d
