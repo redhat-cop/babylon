@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import {
   Backdrop,
   Button,
@@ -14,7 +14,6 @@ import {
   PageSection,
   PageSectionVariants,
   Select,
-  SelectDirection,
   SelectOption,
   SelectVariant,
   Sidebar,
@@ -38,6 +37,8 @@ import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import LoadingIcon from '@app/components/LoadingIcon';
+import Footer from '@app/components/Footer';
 import {
   formatString,
   getCategory,
@@ -53,8 +54,6 @@ import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogItemListItem from './CatalogItemListItem';
-import LoadingIcon from '@app/components/LoadingIcon';
-import Footer from '@app/components/Footer';
 
 import './catalog.css';
 
@@ -265,6 +264,7 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
 const Catalog: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { namespace: catalogNamespaceName } = useParams();
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
@@ -272,31 +272,42 @@ const Catalog: React.FC = () => {
     isOpen: false,
     selected: 'Featured',
   });
-  const urlSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const openCatalogItemParam: string | null = urlSearchParams.has('item') ? urlSearchParams.get('item') : null;
-  const openCatalogItemNamespaceName: string | null = openCatalogItemParam
+  const openCatalogItemParam = searchParams.has('item') ? searchParams.get('item') : null;
+  const openCatalogItemNamespaceName = openCatalogItemParam
     ? openCatalogItemParam.includes('/')
       ? openCatalogItemParam.split('/')[0]
       : catalogNamespaceName
     : null;
-  const openCatalogItemName: string | null = openCatalogItemParam
+  const openCatalogItemName = openCatalogItemParam
     ? openCatalogItemParam.includes('/')
       ? openCatalogItemParam.split('/')[1]
       : openCatalogItemParam
     : null;
-  const keywordFilter: string[] | null = urlSearchParams.has('search')
-    ? urlSearchParams
+  const keywordFilter = searchParams.has('search')
+    ? searchParams
         .get('search')
         .trim()
         .split(/ +/)
         .filter((w) => w != '')
     : null;
-  const selectedCategory = urlSearchParams.has('category') ? urlSearchParams.get('category') : null;
-  const selectedLabels: { [label: string]: string[] } = urlSearchParams.has('labels')
-    ? JSON.parse(urlSearchParams.get('labels'))
+  const selectedCategory = searchParams.has('category') ? searchParams.get('category') : null;
+  const selectedLabels: { [label: string]: string[] } = searchParams.has('labels')
+    ? JSON.parse(searchParams.get('labels'))
     : {};
 
-  const catalogNamespaceNames: string[] = catalogNamespaces.map((ci) => ci.name);
+  const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
+  useEffect(() => {
+    if (catalogNamespaces.length === 0) {
+      const count = searchParams.has('c') ? parseInt(searchParams.get('c'), 10) + 1 : 1;
+      setTimeout(() => {
+        if (count < 6) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('c', count.toString());
+          window.location.href = url.toString();
+        }
+      }, 10000);
+    }
+  }, [catalogNamespaces, searchParams]);
   const filterFunction = useMemo(() => (item: CatalogItem) => filterCatalogItemByAccessControl(item, groups), [groups]);
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
@@ -313,10 +324,10 @@ const Catalog: React.FC = () => {
   // Load last filter
   useEffect(() => {
     const lastCatalogQuery = getLastFilter();
-    if (!urlSearchParams.toString() && lastCatalogQuery) {
-      navigate(`${location.pathname}?${lastCatalogQuery}`);
+    if (!searchParams.toString() && lastCatalogQuery) {
+      setSearchParams(lastCatalogQuery);
     }
-  }, [navigate, location.pathname, urlSearchParams]);
+  }, [searchParams, setSearchParams]);
 
   const categoryFilteredCatalogItems = selectedCategory
     ? catalogItems.filter((catalogItem) => filterCatalogItemByCategory(catalogItem, selectedCategory))
@@ -337,18 +348,18 @@ const Catalog: React.FC = () => {
       : null;
 
   function closeCatalogItem(): void {
-    urlSearchParams.delete('item');
-    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+    searchParams.delete('item');
+    setSearchParams(searchParams);
   }
 
   function onKeywordSearchChange(value: string[]): void {
     if (value) {
-      urlSearchParams.set('search', value.join(' '));
-    } else if (urlSearchParams.has('search')) {
-      urlSearchParams.delete('search');
+      searchParams.set('search', value.join(' '));
+    } else if (searchParams.has('search')) {
+      searchParams.delete('search');
     }
-    saveFilter(urlSearchParams);
-    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+    saveFilter(searchParams);
+    setSearchParams(searchParams);
   }
 
   function onSelectCatalogNamespace(namespaceName: string | null): void {
@@ -361,27 +372,27 @@ const Catalog: React.FC = () => {
 
   function onSelectCategory(category: string | null): void {
     if (category) {
-      urlSearchParams.set('category', category);
-    } else if (urlSearchParams.has('category')) {
-      urlSearchParams.delete('category');
+      searchParams.set('category', category);
+    } else if (searchParams.has('category')) {
+      searchParams.delete('category');
     }
-    saveFilter(urlSearchParams);
-    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+    saveFilter(searchParams);
+    setSearchParams(searchParams);
   }
 
   function onSelectLabels(labels: { [label: string]: string[] } | null): void {
     if (labels) {
-      urlSearchParams.set('labels', JSON.stringify(labels));
-    } else if (urlSearchParams.has('labels')) {
-      urlSearchParams.delete('labels');
+      searchParams.set('labels', JSON.stringify(labels));
+    } else if (searchParams.has('labels')) {
+      searchParams.delete('labels');
     }
-    saveFilter(urlSearchParams);
-    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+    saveFilter(searchParams);
+    setSearchParams(searchParams);
   }
 
   function onClearFilters() {
     saveFilter(new URLSearchParams());
-    navigate(`${location.pathname}`);
+    setSearchParams();
   }
 
   const getInitialKeywordFilter = () => {
@@ -564,13 +575,22 @@ const Catalog: React.FC = () => {
                               Please continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
                               <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                             </p>
-                          ) : (
+                          ) : catalogNamespaceNames.length > 0 ? (
                             <p>
                               Sorry! You do not have access to the Red Hat Product Demo System. This system is only
                               available for Red Hat associates at this time. Red Hat partners may access{' '}
                               <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
                               <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                             </p>
+                          ) : (
+                            <>
+                              <p>Welcome to the Red Hat Product Demo System!</p>
+                              <LoadingIcon />
+                              <p>
+                                Please wait a few seconds while we set up your catalog. If nothing happens refresh this
+                                page.
+                              </p>
+                            </>
                           )}
                         </EmptyState>
                       </PageSection>
