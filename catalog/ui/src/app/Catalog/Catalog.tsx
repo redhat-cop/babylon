@@ -264,7 +264,7 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
 const Catalog: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [urlSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { namespace: catalogNamespaceName } = useParams();
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
@@ -272,7 +272,7 @@ const Catalog: React.FC = () => {
     isOpen: false,
     selected: 'Featured',
   });
-  const openCatalogItemParam = urlSearchParams.has('item') ? urlSearchParams.get('item') : null;
+  const openCatalogItemParam = searchParams.has('item') ? searchParams.get('item') : null;
   const openCatalogItemNamespaceName = openCatalogItemParam
     ? openCatalogItemParam.includes('/')
       ? openCatalogItemParam.split('/')[0]
@@ -283,22 +283,22 @@ const Catalog: React.FC = () => {
       ? openCatalogItemParam.split('/')[1]
       : openCatalogItemParam
     : null;
-  const keywordFilter = urlSearchParams.has('search')
-    ? urlSearchParams
+  const keywordFilter = searchParams.has('search')
+    ? searchParams
         .get('search')
         .trim()
         .split(/ +/)
         .filter((w) => w != '')
     : null;
-  const selectedCategory = urlSearchParams.has('category') ? urlSearchParams.get('category') : null;
-  const selectedLabels: { [label: string]: string[] } = urlSearchParams.has('labels')
-    ? JSON.parse(urlSearchParams.get('labels'))
+  const selectedCategory = searchParams.has('category') ? searchParams.get('category') : null;
+  const selectedLabels: { [label: string]: string[] } = searchParams.has('labels')
+    ? JSON.parse(searchParams.get('labels'))
     : {};
 
   const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
   useEffect(() => {
     if (catalogNamespaces.length === 0) {
-      const count = urlSearchParams.has('c') ? parseInt(urlSearchParams.get('c'), 10) + 1 : 1;
+      const count = searchParams.has('c') ? parseInt(searchParams.get('c'), 10) + 1 : 1;
       setTimeout(() => {
         if (count < 6) {
           const url = new URL(window.location.href);
@@ -307,7 +307,7 @@ const Catalog: React.FC = () => {
         }
       }, 10000);
     }
-  }, [catalogNamespaces, urlSearchParams]);
+  }, [catalogNamespaces, searchParams]);
   const filterFunction = useMemo(() => (item: CatalogItem) => filterCatalogItemByAccessControl(item, groups), [groups]);
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
@@ -324,10 +324,10 @@ const Catalog: React.FC = () => {
   // Load last filter
   useEffect(() => {
     const lastCatalogQuery = getLastFilter();
-    if (!urlSearchParams.toString() && lastCatalogQuery) {
-      navigate(`${location.pathname}?${lastCatalogQuery}`);
+    if (!searchParams.toString() && lastCatalogQuery) {
+      setSearchParams(lastCatalogQuery);
     }
-  }, [navigate, location.pathname, urlSearchParams]);
+  }, [searchParams, setSearchParams]);
 
   const categoryFilteredCatalogItems = selectedCategory
     ? catalogItems.filter((catalogItem) => filterCatalogItemByCategory(catalogItem, selectedCategory))
@@ -348,18 +348,18 @@ const Catalog: React.FC = () => {
       : null;
 
   function closeCatalogItem(): void {
-    urlSearchParams.delete('item');
-    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+    searchParams.delete('item');
+    setSearchParams(searchParams);
   }
 
   function onKeywordSearchChange(value: string[]): void {
     if (value) {
-      urlSearchParams.set('search', value.join(' '));
-    } else if (urlSearchParams.has('search')) {
-      urlSearchParams.delete('search');
+      searchParams.set('search', value.join(' '));
+    } else if (searchParams.has('search')) {
+      searchParams.delete('search');
     }
-    saveFilter(urlSearchParams);
-    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+    saveFilter(searchParams);
+    setSearchParams(searchParams);
   }
 
   function onSelectCatalogNamespace(namespaceName: string | null): void {
@@ -372,27 +372,27 @@ const Catalog: React.FC = () => {
 
   function onSelectCategory(category: string | null): void {
     if (category) {
-      urlSearchParams.set('category', category);
-    } else if (urlSearchParams.has('category')) {
-      urlSearchParams.delete('category');
+      searchParams.set('category', category);
+    } else if (searchParams.has('category')) {
+      searchParams.delete('category');
     }
-    saveFilter(urlSearchParams);
-    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+    saveFilter(searchParams);
+    setSearchParams(searchParams);
   }
 
   function onSelectLabels(labels: { [label: string]: string[] } | null): void {
     if (labels) {
-      urlSearchParams.set('labels', JSON.stringify(labels));
-    } else if (urlSearchParams.has('labels')) {
-      urlSearchParams.delete('labels');
+      searchParams.set('labels', JSON.stringify(labels));
+    } else if (searchParams.has('labels')) {
+      searchParams.delete('labels');
     }
-    saveFilter(urlSearchParams);
-    navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+    saveFilter(searchParams);
+    setSearchParams(searchParams);
   }
 
   function onClearFilters() {
     saveFilter(new URLSearchParams());
-    navigate(`${location.pathname}`);
+    setSearchParams();
   }
 
   const getInitialKeywordFilter = () => {
