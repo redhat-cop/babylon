@@ -15,6 +15,7 @@ import {
   SidebarPanel,
   Breadcrumb,
   BreadcrumbItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import useSWRImmutable from 'swr/immutable';
@@ -27,6 +28,7 @@ import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
 
 import './support-page.css';
+import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 
 const SupportPage: React.FC<{ title: string }> = ({ title }) => {
   useDocumentTitle(title);
@@ -36,21 +38,44 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
     return 'https://red.ht/open-support';
   }
 
-  function createRowFromArr(dataLabel: string, label?: string) {
+  function createColumnsFromArr(dataLabel: string, label?: string) {
     if (typeof label === 'undefined' || label === null) {
       label = dataLabel;
     }
     return [label, ...dataArr.find((i) => i[0].startsWith(dataLabel))?.slice(1)];
   }
-  const types = createRowFromArr('Types', '');
-  const columns = types;
+  function createRowFromArr(dataLabel: string, label?: string) {
+    if (typeof label === 'undefined' || label === null) {
+      label = dataLabel;
+    }
+    const arr = dataArr.find((i) => i[0].startsWith(dataLabel));
+    const tooltipDescription = arr[0].match(/\((.*)\)/);
+    if (tooltipDescription) {
+      return [
+        <div key={label}>
+          {label}{' '}
+          <Tooltip position="right" content={<div>{tooltipDescription[0]}</div>} key={label}>
+            <OutlinedQuestionCircleIcon
+              aria-label={tooltipDescription[0]}
+              className="tooltip-icon-only"
+              style={{ marginLeft: 'var(--pf-global--spacer--xs)', width: '10px' }}
+            />
+          </Tooltip>
+        </div>,
+        ...arr?.slice(1),
+      ];
+    }
+    return [label, ...arr?.slice(1)];
+  }
+  const columns = createColumnsFromArr('Types', '');
   const description = createRowFromArr('Description');
   const requirements = createRowFromArr('Requirements');
   const supportTools = createRowFromArr('Customer-Facing Support Tools');
   const responseTime = createRowFromArr('Request/Incident Response Time');
-  const resolutionTimeHeading = createRowFromArr('Incident Resolution Times');
+  const resolutionTimePlatformHeading = createRowFromArr('Incident Resolution Time - Platform');
   const severity1 = createRowFromArr('Severity 1');
   const severity2 = createRowFromArr('Severity 2');
+  const resolutionTimeContentHeading = createRowFromArr('Incident Resolution Time - Content');
   const severity3 = createRowFromArr('Severity 3');
   const severity4 = createRowFromArr('Severity 4');
   const restorationTime = createRowFromArr('Restoration Time');
@@ -62,16 +87,18 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
     requirements,
     supportTools,
     responseTime,
-    resolutionTimeHeading,
+    resolutionTimePlatformHeading,
     severity1,
     severity2,
+    resolutionTimeContentHeading,
     severity3,
     severity4,
     restorationTime,
     resolutionTimeForRHPDS,
     failureRate,
   ];
-  const headingIndex = 4;
+  const headingIndexes = [4, 7];
+  const combinedRows = [5, 6];
 
   return (
     <Page mainContainerId="primary-app-container" header={<PublicHeader />}>
@@ -167,7 +194,10 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                         width={10}
                         key={`row-${columnIndex}`}
                         dataLabel={columns[columnIndex]}
-                        style={{ fontWeight: rowIndex === headingIndex ? 700 : 400 }}
+                        style={{
+                          fontWeight: headingIndexes.includes(rowIndex) ? 700 : 400,
+                          textAlign: combinedRows.includes(rowIndex) && columnIndex > 0 ? 'right' : 'left',
+                        }}
                       >
                         {row[columnIndex]}
                       </Td>

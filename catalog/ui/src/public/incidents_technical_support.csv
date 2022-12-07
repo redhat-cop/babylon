@@ -4,11 +4,12 @@ Requirements,,Open Environments only supported on deploy/destroy.,,at least 2 we
 Hours of Coverage,"Mon-Fri during business hours in IST, GMT, CEST, EST and PST ","Mon-Fri during business hours  in IST, GMT, CEST, EST and PST ","Mon-Fri during business hours  in IST, GMT, CEST, EST and PST ","Mon-Fri during business hours  in IST, GMT, CEST, EST and PST "
 Customer-Facing Support Tools,Ticketing system,Ticketing system,Ticketing system,Ticketing System and dedicated workshop Google Chat space
 Request/Incident Response Time (Officially Support Tooling only),16 business hours,10 business hours,6 business hours,Dedicated Support
-Incident Resolution Times,,,,
-Severity 1 (RHPDS is down/Most CIs are not available),10 business hours,10 business hours,10 business hours,
-Severity 2 (a specifc cloud is down/All product related demos are down/Most CIs have intermittent issues),12 business hours,12 business hours,12 business hours,
-Severity 3 (a single demo is not available?),5 business days,1 business day,12 business hours,
-Severity 4 (a single demo or several demos are having intermittent issues),10 business days,2 business days,1 business day,
+Incident Resolution Time - Platform,,,,
+Severity 1 (RHPDS is down/Most CIs are not available),,10 business hours,,
+Severity 2 (A specifc cloud is down/All product related demos are down/Most CIs have intermittent issues),,12 business hours,,
+Incident Resolution Time - Content,,,,
+Severity 3 (ie: A single demo is not available),5 business days,1 business day,12 business hours,
+Severity 4 (ie: A single demo or several demos are having intermittent issues),10 business days,2 business days,1 business day,
 Restoration Time,Best effort,5 business days,2 business days,"1 hour, dependent on the asset's support tier"
 Resolution Time for RHPDS-Supportable Issues,Best effort,10 business days,5 business days,1 business day
 Deployment Failure Rate %,10%,7.50%,3%,1%
