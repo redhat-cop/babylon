@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import {
   Backdrop,
   Button,
@@ -14,7 +14,6 @@ import {
   PageSection,
   PageSectionVariants,
   Select,
-  SelectDirection,
   SelectOption,
   SelectVariant,
   Sidebar,
@@ -38,6 +37,8 @@ import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import LoadingIcon from '@app/components/LoadingIcon';
+import Footer from '@app/components/Footer';
 import {
   formatString,
   getCategory,
@@ -53,8 +54,6 @@ import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogItemListItem from './CatalogItemListItem';
-import LoadingIcon from '@app/components/LoadingIcon';
-import Footer from '@app/components/Footer';
 
 import './catalog.css';
 
@@ -265,6 +264,7 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
 const Catalog: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [urlSearchParams] = useSearchParams();
   const { namespace: catalogNamespaceName } = useParams();
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
@@ -272,19 +272,18 @@ const Catalog: React.FC = () => {
     isOpen: false,
     selected: 'Featured',
   });
-  const urlSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const openCatalogItemParam: string | null = urlSearchParams.has('item') ? urlSearchParams.get('item') : null;
-  const openCatalogItemNamespaceName: string | null = openCatalogItemParam
+  const openCatalogItemParam = urlSearchParams.has('item') ? urlSearchParams.get('item') : null;
+  const openCatalogItemNamespaceName = openCatalogItemParam
     ? openCatalogItemParam.includes('/')
       ? openCatalogItemParam.split('/')[0]
       : catalogNamespaceName
     : null;
-  const openCatalogItemName: string | null = openCatalogItemParam
+  const openCatalogItemName = openCatalogItemParam
     ? openCatalogItemParam.includes('/')
       ? openCatalogItemParam.split('/')[1]
       : openCatalogItemParam
     : null;
-  const keywordFilter: string[] | null = urlSearchParams.has('search')
+  const keywordFilter = urlSearchParams.has('search')
     ? urlSearchParams
         .get('search')
         .trim()
@@ -296,7 +295,19 @@ const Catalog: React.FC = () => {
     ? JSON.parse(urlSearchParams.get('labels'))
     : {};
 
-  const catalogNamespaceNames: string[] = catalogNamespaces.map((ci) => ci.name);
+  const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
+  useEffect(() => {
+    if (catalogNamespaces.length === 0) {
+      const count = urlSearchParams.has('c') ? parseInt(urlSearchParams.get('c'), 10) + 1 : 1;
+      setTimeout(() => {
+        if (count < 6) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('c', count.toString());
+          window.location.href = url.toString();
+        }
+      }, 10000);
+    }
+  }, [catalogNamespaces, urlSearchParams]);
   const filterFunction = useMemo(() => (item: CatalogItem) => filterCatalogItemByAccessControl(item, groups), [groups]);
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
@@ -564,13 +575,22 @@ const Catalog: React.FC = () => {
                               Please continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
                               <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                             </p>
-                          ) : (
+                          ) : catalogNamespaceNames.length > 0 ? (
                             <p>
                               Sorry! You do not have access to the Red Hat Product Demo System. This system is only
                               available for Red Hat associates at this time. Red Hat partners may access{' '}
                               <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
                               <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                             </p>
+                          ) : (
+                            <>
+                              <p>Welcome to the Red Hat Product Demo System!</p>
+                              <LoadingIcon />
+                              <p>
+                                Please wait a few seconds while we set up your catalog. If nothing happens refresh this
+                                page.
+                              </p>
+                            </>
                           )}
                         </EmptyState>
                       </PageSection>
