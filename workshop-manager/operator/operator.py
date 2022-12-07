@@ -562,28 +562,32 @@ class Workshop:
             if resource_claim_name and resource_claim_name not in check_resource_claim_names:
                 check_resource_claim_names.append(resource_claim_name)
 
-        missing_resource_claim_names = []
+        remove_resource_claim_names = []
         for resource_claim_name in check_resource_claim_names:
             try:
-                custom_objects_api.get_namespaced_custom_object(
+                resource_claim_definition = custom_objects_api.get_namespaced_custom_object(
                     poolboy_domain, poolboy_api_version, self.namespace,
                     'resourceclaims', resource_claim_name
                 )
+                resource_claim_workshop_name = resource_claim_definition['metadata'].get('labels', {}).get(workshop_label)
+                if self.name != resource_claim_workshop_name:
+                    logging.info(f"Resourceclaim {resource_claim_name} was reassigned from Workshop {self.name} to {resource_claim_workshop_name}")
+                    remove_resource_claim_names.append(resource_claim_name)
             except kubernetes.client.rest.ApiException as e:
                 if e.status == 404:
-                    missing_resource_claim_names.append(resource_claim_name)
+                    remove_resource_claim_names.append(resource_claim_name)
                 else:
                     pass
 
-        if missing_resource_claim_names:
-            logger.info(f"Removing ResourceClaims ({', '.join(missing_resource_claim_names)}) from Workshop {self.name} in {self.namespace}")
+        if remove_resource_claim_names:
+            logger.info(f"Removing ResourceClaims ({', '.join(remove_resource_claim_names)}) from Workshop {self.name} in {self.namespace}")
             try:
                 workshop_definition = custom_objects_api.get_namespaced_custom_object(
                     babylon_domain, babylon_api_version, self.namespace, 'workshops', self.name
                 )
                 workshop_user_assignments = workshop_definition['spec'].get('userAssignments', [])
                 pruned_user_assignments = [
-                    item for item in workshop_user_assignments if item.get('resourceClaimName') not in missing_resource_claim_names
+                    item for item in workshop_user_assignments if item.get('resourceClaimName') not in remove_resource_claim_names
                 ]
                 if pruned_user_assignments == workshop_user_assignments:
                     self.init__(definition=workshop_definition)
