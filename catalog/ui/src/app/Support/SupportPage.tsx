@@ -54,9 +54,9 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
       return [
         <div key={label}>
           {label}{' '}
-          <Tooltip position="right" content={<div>{tooltipDescription[0]}</div>} key={label}>
+          <Tooltip position="right" content={<div>{tooltipDescription[0].slice(1, -1)}</div>} key={label}>
             <OutlinedQuestionCircleIcon
-              aria-label={tooltipDescription[0]}
+              aria-label={tooltipDescription[0].slice(1, -1)}
               className="tooltip-icon-only"
               style={{ marginLeft: 'var(--pf-global--spacer--xs)', width: '10px' }}
             />
