@@ -23,10 +23,10 @@ const ActivityPurposeSelector: React.FC<{
   onChange: (value: string) => void;
   value?: string;
 }> = ({ onChange, value }) => {
-  const defaultValuesArr = value ? value.split('-') : ['', ''];
+  const defaultValuesArr = value ? value.split('-').map((x) => x.trim()) : ['', ''];
   const [isOpen, setIsOpen] = useState(false);
-  const [activity, setActivity] = useState(defaultValuesArr.length === 1 ? defaultValuesArr[0].trim() : '');
-  const [purpose, setPurpose] = useState(defaultValuesArr.length === 1 ? defaultValuesArr[1].trim() : '');
+  const [activity, setActivity] = useState(defaultValuesArr.length === 1 ? defaultValuesArr[0] : '');
+  const [purpose, setPurpose] = useState(defaultValuesArr.length === 1 ? defaultValuesArr[1] : '');
 
   return (
     <>
@@ -71,10 +71,10 @@ const ActivityPurposeSelector: React.FC<{
             <Select
               aria-label="Purpose"
               isOpen={isOpen}
-              onSelect={(_, value) => {
-                setPurpose(value as string);
+              onSelect={(_, _purpose) => {
+                setPurpose(_purpose as string);
                 setIsOpen(false);
-                onChange(`${activity} - ${value}`);
+                onChange(`${activity} - ${_purpose}`);
               }}
               onToggle={() => setIsOpen((v) => !v)}
               placeholderText="- Select purpose -"
