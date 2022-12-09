@@ -339,14 +339,16 @@ function reduceFormStateTermsOfServiceAgreed(initialState: FormState, termsOfSer
 }
 
 function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProps = null): FormState {
-  const salesforceId = { ...initialState.salesforceId, required: salesforceIdRequired({ ...initialState, workshop }) };
+  const isSalesforceIdRequired = salesforceIdRequired({ ...initialState, workshop });
+  const salesforceId = { ...initialState.salesforceId, required: isSalesforceIdRequired };
   if (workshop) {
     return {
       ...initialState,
       salesforceId,
       conditionChecks: {
         ...initialState.conditionChecks,
-        completed: initialState.salesforceId.value ? false : initialState.conditionChecks.completed,
+        completed:
+          isSalesforceIdRequired && initialState.salesforceId.value ? false : initialState.conditionChecks.completed,
       },
       workshop,
     };

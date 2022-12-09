@@ -443,6 +443,15 @@ export async function createServiceRequest({
         recursiveAssign(resource, { template: { spec: { vars: { job_vars: { [jobVarName]: value } } } } });
       }
     }
+
+    // Purpose & SFDC
+    if (parameterValues.purpose) {
+      requestResourceClaim.metadata.annotations['pfe.redhat.com/purpose'] = parameterValues.purpose as string;
+    }
+    if (parameterValues.salesforce_id) {
+      requestResourceClaim.metadata.annotations['pfe.redhat.com/salesforce-id'] =
+        parameterValues.salesforce_id as string;
+    }
   } else {
     // No direct access to catalog item. Create the service-request to record
     // the user interest in the catalog item.
