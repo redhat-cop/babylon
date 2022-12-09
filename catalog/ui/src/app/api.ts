@@ -446,10 +446,11 @@ export async function createServiceRequest({
 
     // Purpose & SFDC
     if (parameterValues.purpose) {
-      const purpose = parameterValues.purpose as string;
-      const [activity] = purpose.split('-').map((x) => x.trim());
-      requestResourceClaim.metadata.annotations['rhpds.redhat.com/purpose'] = purpose;
-      requestResourceClaim.metadata.annotations['rhpds.redhat.com/purpose-activity'] = activity;
+      requestResourceClaim.metadata.annotations['rhpds.redhat.com/purpose'] = parameterValues.purpose as string;
+    }
+    if (parameterValues.purpose_activity) {
+      requestResourceClaim.metadata.annotations['rhpds.redhat.com/purpose-activity'] =
+        parameterValues.purpose_activity as string;
     }
     if (parameterValues.salesforce_id) {
       requestResourceClaim.metadata.annotations['rhpds.redhat.com/salesforce-id'] =
