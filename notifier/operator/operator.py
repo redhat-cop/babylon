@@ -679,6 +679,7 @@ def get_template_vars(catalog_item, catalog_namespace, resource_claim):
 
     return {
         **{k: v for (k, v) in provision_data.items() if isinstance(k, str)},
+        "catalog_display_name": catalog_namespace.display_name,
         "catalog_item": catalog_item,
         "catalog_namespace": catalog_namespace,
         "guid": resource_claim.guid,
