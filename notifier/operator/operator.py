@@ -550,7 +550,7 @@ def notify_ready(catalog_item, catalog_namespace, email_addresses, logger, resou
             stderr=subprocess.PIPE,
         )
         stdout, stderr = asciidoctor_process.communicate(
-            input = "\n".join([m + ' +' if m else m for m in provision_messages]).encode('utf8')
+            input = "\n".join([m.rstrip("\n") + ' +' if m else m for m in provision_messages]).encode('utf8')
         )
         template_vars['provision_messages_html'] = stdout.decode('utf8')
 
