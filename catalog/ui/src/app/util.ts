@@ -3,6 +3,7 @@ import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output s
 import { AccessControl, AnarchySubject, CostTracker, K8sObject, Nullable, ResourceClaim } from '@app/types';
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
+export const DEMO_DOMAIN = 'demo.redhat.com';
 
 // Force all links to target new window and not pass unsafe attributes
 dompurify.addHook('afterSanitizeAttributes', function (node) {

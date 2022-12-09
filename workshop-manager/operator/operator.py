@@ -19,7 +19,7 @@ babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
 poolboy_domain = os.environ.get('POOLBOY_DOMAIN', 'poolboy.gpte.redhat.com')
 poolboy_api_version = os.environ.get('POOLBOY_API_VERSION', 'v1')
 poolboy_namespace = os.environ.get('POOLBOY_NAMESPACE', 'poolboy')
-rhpds_domain = os.environ.get('RHPDS_DOMAIN', 'rhpds.redhat.com')
+demo_domain = os.environ.get('DEMO_DOMAIN', 'demo.redhat.com')
 
 catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
 catalog_item_display_name_annotation = f"{babylon_domain}/catalogItemDisplayName"
@@ -37,9 +37,9 @@ url_annotation = f"{babylon_domain}/url"
 workshop_label = f"{babylon_domain}/workshop"
 workshop_id_label = f"{babylon_domain}/workshop-id"
 workshop_provision_label = f"{babylon_domain}/workshop-provision"
-purpose_annotation = f"{rhpds_domain}/purpose"
-purpose_activity_annotation = f"{rhpds_domain}/purpose-activity"
-salesforce_id_annotation = f"{rhpds_domain}/salesforce-id"
+purpose_annotation = f"{demo_domain}/purpose"
+purpose_activity_annotation = f"{demo_domain}/purpose-activity"
+salesforce_id_annotation = f"{demo_domain}/salesforce-id"
 
 if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
     kubernetes.config.load_incluster_config()
