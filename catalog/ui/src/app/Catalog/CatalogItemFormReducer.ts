@@ -417,10 +417,11 @@ function reduceFormStateSalesforceId(
   initialState: FormState,
   salesforceId: { required: boolean; value: string; valid: boolean }
 ): FormState {
-  if (!initialState.salesforceId.required) {
+  const isSalesforceIdRequired = salesforceIdRequired(initialState);
+  if (!isSalesforceIdRequired) {
     for (const [, parameterState] of Object.entries(initialState.parameters)) {
-      const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
-      if (parameterSpec.validation.match(checkSalesforceIdRegex) !== null) {
+      const parameterSpec = parameterState.spec;
+      if (parameterSpec.validation && parameterSpec.validation.match(checkSalesforceIdRegex) !== null) {
         return {
           ...initialState,
           salesforceId,
@@ -435,7 +436,7 @@ function reduceFormStateSalesforceId(
     ...initialState,
     salesforceId,
     conditionChecks: {
-      completed: initialState.salesforceId.required ? false : true,
+      completed: isSalesforceIdRequired ? false : true,
     },
   };
 }
