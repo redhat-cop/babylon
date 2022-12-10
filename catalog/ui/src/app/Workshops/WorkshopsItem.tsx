@@ -75,7 +75,7 @@ const WorkshopsItemComponent: React.FC<{
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces, workshopNamespaces } = useSession().getSession();
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
@@ -104,6 +104,7 @@ const WorkshopsItemComponent: React.FC<{
     [openModalAction, openModalDelete, openModalGetCost, openModalSchedule]
   );
   const enableFetchUserNamespaces = isAdmin;
+  const enableManageWorkshopProvisions = isAdmin || workshopNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
@@ -140,7 +141,7 @@ const WorkshopsItemComponent: React.FC<{
       namespace: workshop.metadata.namespace,
       limit: 'ALL',
     }),
-    () =>
+    () => enableManageWorkshopProvisions ? (
       fetcherItemsInAllPages((continueId) =>
         apiPaths.WORKSHOP_PROVISIONS({
           workshopName: workshop.metadata.name,
@@ -149,6 +150,7 @@ const WorkshopsItemComponent: React.FC<{
           continueId,
         })
       )
+    ) : []
   );
 
   const { data: resourceClaims, mutate } = useSWR<ResourceClaim[]>(
@@ -386,9 +388,9 @@ const WorkshopsItemComponent: React.FC<{
                       : () => showModal({ action: 'deleteService', resourceClaims: selectedResourceClaims }),
                   start:
                     resourceClaims.length === 0
-                      ? isWorkshopStarted(workshopProvisions)
-                        ? null
-                        : () => showModal({ action: 'startWorkshop', resourceClaims: [] })
+                      ? enableManageWorkshopProvisions && !isWorkshopStarted(workshopProvisions)
+                        ? () => showModal({ action: 'startWorkshop', resourceClaims: [] })
+                        : null
                       : checkWorkshopCanStart(resourceClaims)
                       ? () => showModal({ action: 'startServices', resourceClaims })
                       : null,
@@ -417,9 +419,11 @@ const WorkshopsItemComponent: React.FC<{
               />
             ) : null}
           </Tab>
-          <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
-            {activeTab === 'provision' ? <WorkshopsItemProvisioning workshopProvisions={workshopProvisions} /> : null}
-          </Tab>
+          { enableManageWorkshopProvisions ? (
+            <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
+              {activeTab === 'provision' ? <WorkshopsItemProvisioning workshopProvisions={workshopProvisions} /> : null}
+            </Tab>
+          ) : null }
           <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
             {activeTab === 'services' ? (
               <WorkshopsItemServices
