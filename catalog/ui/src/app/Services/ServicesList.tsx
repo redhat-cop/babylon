@@ -58,7 +58,7 @@ import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-u
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServicesScheduleAction from './ServicesScheduleAction';
-import ServiceNamespaceSelect from './ServiceNamespaceSelect';
+import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
 
 import './services-list.css';
@@ -349,12 +349,11 @@ const ServicesList: React.FC<{
       </Modal>
       {serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-list__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect
+          <ServiceNamespaceSelect allowSelectAll isPlain isText
             currentNamespaceName={serviceNamespaceName}
-            serviceNamespaces={serviceNamespaces}
-            onSelect={(namespaceName) => {
-              if (namespaceName) {
-                navigate(`/services/${namespaceName}${location.search}`);
+            onSelect={(namespace) => {
+              if (namespace) {
+                navigate(`/services/${namespace.name}${location.search}`);
               } else {
                 navigate(`/services${location.search}`);
               }

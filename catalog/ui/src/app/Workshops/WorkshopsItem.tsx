@@ -39,7 +39,7 @@ import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvi
 import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import useSession from '@app/utils/useSession';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
-import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
+import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import Modal, { useModal } from '@app/Modal/Modal';
 import Footer from '@app/components/Footer';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
@@ -324,12 +324,11 @@ const WorkshopsItemComponent: React.FC<{
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-item__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect
+          <ServiceNamespaceSelect allowSelectAll isPlain isText selectWorkshopNamespace
             currentNamespaceName={serviceNamespaceName}
-            serviceNamespaces={serviceNamespaces}
-            onSelect={(namespaceName) => {
-              if (namespaceName) {
-                navigate(`/workshops/${namespaceName}${location.search}`);
+            onSelect={(namespace) => {
+              if (namespace) {
+                navigate(`/workshops/${namespace.name}${location.search}`);
               } else {
                 navigate(`/workshops${location.search}`);
               }

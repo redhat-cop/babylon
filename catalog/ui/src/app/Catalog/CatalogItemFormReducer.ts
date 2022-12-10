@@ -1,6 +1,6 @@
 import React from 'react';
 import { checkSalesforceId } from '@app/api';
-import { CatalogItem, CatalogItemSpecParameter } from '@app/types';
+import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace } from '@app/types';
 
 type ConditionValues = {
   [name: string]: boolean | number | string | string[] | undefined;
@@ -26,6 +26,7 @@ type FormState = {
   };
   formGroups: FormStateParameterGroup[];
   parameters: { [name: string]: FormStateParameter };
+  serviceNamespace: ServiceNamespace;
   termsOfServiceAgreed: boolean;
   termsOfServiceRequired: boolean;
   workshop?: WorkshopProps;
@@ -55,12 +56,14 @@ export type FormStateAction = {
     | 'usePoolIfAvailable'
     | 'purpose'
     | 'salesforceId'
+    | 'serviceNamespace'
     | 'complete';
   catalogItem?: CatalogItem;
   user?: UserProps;
   parameter?: ParameterProps;
-  termsOfServiceAgreed?: boolean;
   purpose?: string;
+  serviceNamespace?: ServiceNamespace;
+  termsOfServiceAgreed?: boolean;
   salesforceId?: {
     required: boolean;
     value: string;
@@ -228,7 +231,11 @@ export async function checkConditionsInFormState(
   }
 }
 
-function reduceFormStateInit(catalogItem: CatalogItem, { isAdmin, groups, roles }): FormState {
+function reduceFormStateInit(
+  catalogItem: CatalogItem,
+  serviceNamespace: ServiceNamespace,
+  { isAdmin, groups, roles }
+): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
 
@@ -278,6 +285,7 @@ function reduceFormStateInit(catalogItem: CatalogItem, { isAdmin, groups, roles 
     },
     formGroups: formGroups,
     parameters: parameters,
+    serviceNamespace: serviceNamespace,
     termsOfServiceAgreed: false,
     termsOfServiceRequired: catalogItem.spec.termsOfService ? true : false,
     workshop: null,
@@ -370,6 +378,13 @@ function reduceFormStateStartDate(initialState: FormState, startDate: Date): For
   };
 }
 
+function reduceFormStateServiceNamespace(initialState: FormState, serviceNamespace: string): FormState {
+  return {
+    ...initialState,
+    serviceNamespace: serviceNamespace,
+  }
+}
+
 function reduceFormStatePurpose(initialState: FormState, purpose: string): FormState {
   const [_activity, _purpose] = purpose.split('-').map((x) => x.trim());
   const newPurpose = !!_activity && !!_purpose ? `${_activity} - ${_purpose}` : null;
@@ -409,7 +424,7 @@ function reduceFormStateSalesforceId(
 export function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'init':
-      return reduceFormStateInit(action.catalogItem, action.user);
+      return reduceFormStateInit(action.catalogItem, action.serviceNamespace, action.user);
     case 'parameterUpdate':
       return reduceFormStateParameterUpdate(state, {
         name: action.parameter.name,
@@ -420,6 +435,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormStatePurpose(state, action.purpose);
     case 'salesforceId':
       return reduceFormStateSalesforceId(state, action.salesforceId);
+    case 'serviceNamespace':
+      return reduceFormStateServiceNamespace(state, action.serviceNamespace);
     case 'startDate':
       return reduceFormStateStartDate(state, action.startDate);
     case 'termsOfServiceAgreed':

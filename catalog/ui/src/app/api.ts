@@ -28,7 +28,6 @@ import {
   UserList,
   Session,
   Nullable,
-  UserNamespace,
   ResourceType,
 } from '@app/types';
 import { store } from '@app/store';
@@ -62,7 +61,7 @@ interface CreateServiceRequestOptScheduleStartResource extends CreateServiceRequ
 type CreateServiceRequestOpt = {
   catalogItem: CatalogItem;
   catalogNamespaceName: string;
-  userNamespace: UserNamespace;
+  serviceNamespace: ServiceNamespace;
   groups: string[];
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
@@ -340,11 +339,11 @@ export async function createResourcePool(definition: ResourcePool): Promise<Reso
 export async function createServiceRequest({
   catalogItem,
   catalogNamespaceName,
-  userNamespace,
   groups,
   parameterValues,
-  usePoolIfAvailable,
+  serviceNamespace,
   start,
+  usePoolIfAvailable,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
@@ -358,7 +357,7 @@ export async function createServiceRequest({
         [`${BABYLON_DOMAIN}/catalogDisplayName`]: catalogNamespaceName || catalogItem.metadata.namespace,
         [`${BABYLON_DOMAIN}/catalogItemDisplayName`]: displayName(catalogItem),
         [`${BABYLON_DOMAIN}/requester`]: session.user,
-        [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}`,
+        [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}`,
         ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
         ...(catalogItem.spec.userData
           ? { [`${BABYLON_DOMAIN}/userData`]: JSON.stringify(catalogItem.spec.userData) }
@@ -370,7 +369,7 @@ export async function createServiceRequest({
         ...(catalogItem.spec.bookbag ? { [`${BABYLON_DOMAIN}/labUserInterface`]: 'bookbag' } : {}),
       },
       name: catalogItem.metadata.name,
-      namespace: userNamespace.name,
+      namespace: serviceNamespace.name,
     },
     spec: {
       resources: [],
@@ -493,7 +492,7 @@ export async function createServiceRequest({
         requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${n}`;
         requestResourceClaim.metadata.annotations[
           `${BABYLON_DOMAIN}/url`
-        ] = `${baseUrl}/services/${userNamespace.name}/${catalogItem.metadata.name}-${n}`;
+        ] = `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}-${n}`;
       } else {
         throw error;
       }
