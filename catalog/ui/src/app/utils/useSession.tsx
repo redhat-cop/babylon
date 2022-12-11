@@ -2,6 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { getApiSession } from '@app/api';
 import {
   actionStartSession,
+  selectAuthUser,
   selectCatalogNamespaces,
   selectConsoleURL,
   selectInterface,
@@ -38,6 +39,7 @@ async function getSessionFn(dispatch: Dispatch<AnyAction>) {
 
 export default function useSession(): {
   getSession: () => {
+    authUser: string;
     email: string;
     isAdmin: boolean;
     groups: string[];
@@ -51,6 +53,7 @@ export default function useSession(): {
   };
 } {
   const dispatch = useDispatch();
+  const authUser = useSelector(selectAuthUser);
   const email = useSelector(selectUser);
   const isAdmin = useSelector(selectUserIsAdmin);
   const groups = useSelector(selectUserGroups);
@@ -79,6 +82,7 @@ export default function useSession(): {
     }
 
     return {
+      authUser,
       email,
       isAdmin,
       groups,
@@ -91,6 +95,7 @@ export default function useSession(): {
       userNamespace,
     };
   }, [
+    authUser,
     email,
     isAdmin,
     promise,
