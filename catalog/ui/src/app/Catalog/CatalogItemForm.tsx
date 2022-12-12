@@ -179,7 +179,7 @@ const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceNa
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem,
-        catalogNamespaceNameName: catalogNamespaceName,
+        catalogNamespaceName: catalogNamespaceName,
         groups,
         parameterValues,
         serviceNamespace: formState.serviceNamespace,
