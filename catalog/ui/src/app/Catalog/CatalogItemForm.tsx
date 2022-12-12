@@ -272,7 +272,10 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               icon={<ExclamationCircleIcon />}
               isError
               isHidden={
-                !formState.salesforceId.value || !formState.salesforceId.required || formState.salesforceId.valid
+                !formState.salesforceId.value ||
+                !formState.salesforceId.required ||
+                formState.salesforceId.valid ||
+                !formState.conditionChecks.completed
               }
             >
               {formState.workshop
@@ -283,7 +286,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
           validated={
             formState.salesforceId.valid
               ? 'success'
-              : formState.salesforceId.value && formState.salesforceId.required
+              : formState.salesforceId.value && formState.salesforceId.required && formState.conditionChecks.completed
               ? 'error'
               : 'default'
           }
@@ -303,7 +306,9 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
               validated={
                 formState.salesforceId.value && formState.salesforceId.valid
                   ? 'success'
-                  : formState.salesforceId.value && formState.salesforceId.required
+                  : formState.salesforceId.value &&
+                    formState.salesforceId.required &&
+                    formState.conditionChecks.completed
                   ? 'error'
                   : 'default'
               }
