@@ -973,13 +973,13 @@ class WorkshopProvision:
                     )
 
         if 'purpose' in self.parameters:
-            resource_claim_definition['metadata']['annotations'][purpose_annotation] = self.parameters.purpose
+            resource_claim_definition['metadata']['annotations'][purpose_annotation] = self.parameters.get('purpose')
 
         if 'purpose_activity' in self.parameters:
-            resource_claim_definition['metadata']['annotations'][purpose_activity_annotation] = self.parameters.purpose_activity
+            resource_claim_definition['metadata']['annotations'][purpose_activity_annotation] = self.parameters.get('purpose_activity')
 
         if 'salesforce_id' in self.parameters:
-            resource_claim_definition['metadata']['annotations'][salesforce_id_annotation] = self.parameters.salesforce_id
+            resource_claim_definition['metadata']['annotations'][salesforce_id_annotation] = self.parameters.get('salesforce_id')
 
         resource_claim_definition = custom_objects_api.create_namespaced_custom_object(
             poolboy_domain, poolboy_api_version, self.namespace, 'resourceclaims',
