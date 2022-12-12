@@ -25,7 +25,7 @@ const ServiceNamespaceSelect: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
   const [searchValue, setSearchValue] = React.useState('');
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces, workshopNamespaces: sessionWorkshopNamespaces } = useSession().getSession();
-  const enableFetchNamespaces: boolean = isAdmin;
+  const enableFetchNamespaces = isAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
