@@ -341,18 +341,6 @@ function reduceFormStateTermsOfServiceAgreed(initialState: FormState, termsOfSer
 function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProps = null): FormState {
   const isSalesforceIdRequired = salesforceIdRequired({ ...initialState, workshop });
   const salesforceId = { ...initialState.salesforceId, required: isSalesforceIdRequired };
-  if (workshop) {
-    return {
-      ...initialState,
-      salesforceId,
-      conditionChecks: {
-        ...initialState.conditionChecks,
-        completed:
-          isSalesforceIdRequired && initialState.salesforceId.value ? false : initialState.conditionChecks.completed,
-      },
-      workshop,
-    };
-  }
   return {
     ...initialState,
     salesforceId,
@@ -384,17 +372,6 @@ function reduceFormStateStartDate(initialState: FormState, startDate: Date): For
 function reduceFormStatePurpose(initialState: FormState, purpose: string): FormState {
   const [_activity, _purpose] = purpose.split('-').map((x) => x.trim());
   const newPurpose = !!_activity && !!_purpose ? `${_activity} - ${_purpose}` : null;
-  if (_activity === 'Customer Activity') {
-    return {
-      ...initialState,
-      salesforceId: { ...initialState.salesforceId, required: true },
-      purpose: newPurpose,
-      conditionChecks: {
-        ...initialState.conditionChecks,
-        completed: initialState.salesforceId.value ? false : initialState.conditionChecks.completed,
-      },
-    };
-  }
   return {
     ...initialState,
     salesforceId: {
@@ -419,26 +396,11 @@ function reduceFormStateSalesforceId(
   initialState: FormState,
   salesforceId: { required: boolean; value: string; valid: boolean }
 ): FormState {
-  const isSalesforceIdRequired = salesforceIdRequired(initialState);
-  if (!isSalesforceIdRequired) {
-    for (const [, parameterState] of Object.entries(initialState.parameters)) {
-      const parameterSpec = parameterState.spec;
-      if (parameterSpec.validation && parameterSpec.validation.match(checkSalesforceIdRegex) !== null) {
-        return {
-          ...initialState,
-          salesforceId,
-          conditionChecks: {
-            completed: false,
-          },
-        };
-      }
-    }
-  }
   return {
     ...initialState,
     salesforceId,
     conditionChecks: {
-      completed: isSalesforceIdRequired ? false : true,
+      completed: false,
     },
   };
 }
@@ -483,14 +445,16 @@ export function checkEnableSubmit(state: FormState): boolean {
   if (state.termsOfServiceRequired && !state.termsOfServiceAgreed) {
     return false;
   }
-  if (state.purpose) {
-    const [_purpose, _activity] = state.purpose.split('-').map((x) => x.trim());
-    if (!_purpose || !_activity) {
-      return false;
-    }
-  } else {
+
+  if (!state.purpose) {
     return false;
   }
+
+  const [_purpose, _activity] = state.purpose.split('-').map((x) => x.trim());
+  if (!_purpose || !_activity) {
+    return false;
+  }
+
   if (state.salesforceId.required && !state.salesforceId.valid) {
     return false;
   }
