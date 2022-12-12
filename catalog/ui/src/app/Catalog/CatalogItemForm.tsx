@@ -426,6 +426,8 @@ const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceNa
                 onChange={(isChecked) =>
                   dispatchFormState({
                     type: 'workshop',
+                    allowServiceNamespaces: isAdmin ? null : isChecked ? workshopNamespaces : serviceNamespaces,
+                    serviceNamespace: isChecked ? workshopNamespaces[0] : userNamespace,
                     workshop: isChecked ? workshopInitialProps : null,
                   })
                 }
