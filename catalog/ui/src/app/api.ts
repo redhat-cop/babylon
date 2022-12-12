@@ -38,6 +38,7 @@ import {
   displayName,
   recursiveAssign,
   BABYLON_DOMAIN,
+  DEMO_DOMAIN,
   getCostTracker,
   compareStringDates,
   canExecuteAction,
@@ -446,10 +447,14 @@ export async function createServiceRequest({
 
     // Purpose & SFDC
     if (parameterValues.purpose) {
-      requestResourceClaim.metadata.annotations['pfe.redhat.com/purpose'] = parameterValues.purpose as string;
+      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
+    }
+    if (parameterValues.purpose_activity) {
+      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`] =
+        parameterValues.purpose_activity as string;
     }
     if (parameterValues.salesforce_id) {
-      requestResourceClaim.metadata.annotations['pfe.redhat.com/salesforce-id'] =
+      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] =
         parameterValues.salesforce_id as string;
     }
   } else {

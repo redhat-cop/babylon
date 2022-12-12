@@ -19,6 +19,7 @@ babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
 poolboy_domain = os.environ.get('POOLBOY_DOMAIN', 'poolboy.gpte.redhat.com')
 poolboy_api_version = os.environ.get('POOLBOY_API_VERSION', 'v1')
 poolboy_namespace = os.environ.get('POOLBOY_NAMESPACE', 'poolboy')
+demo_domain = os.environ.get('DEMO_DOMAIN', 'demo.redhat.com')
 
 catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
 catalog_item_display_name_annotation = f"{babylon_domain}/catalogItemDisplayName"
@@ -36,6 +37,9 @@ url_annotation = f"{babylon_domain}/url"
 workshop_label = f"{babylon_domain}/workshop"
 workshop_id_label = f"{babylon_domain}/workshop-id"
 workshop_provision_label = f"{babylon_domain}/workshop-provision"
+purpose_annotation = f"{demo_domain}/purpose"
+purpose_activity_annotation = f"{demo_domain}/purpose-activity"
+salesforce_id_annotation = f"{demo_domain}/salesforce-id"
 
 if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
     kubernetes.config.load_incluster_config()
@@ -967,6 +971,15 @@ class WorkshopProvision:
                         resource_claim_definition['spec']['resources'][resource_index],
                         {'template': {'spec': {'vars': {'job_vars': {catalog_item_parameter.variable: value}}}}}
                     )
+
+        if 'purpose' in self.parameters:
+            resource_claim_definition['metadata']['annotations'][purpose_annotation] = self.parameters.purpose
+
+        if 'purpose_activity' in self.parameters:
+            resource_claim_definition['metadata']['annotations'][purpose_activity_annotation] = self.parameters.purpose_activity
+
+        if 'salesforce_id' in self.parameters:
+            resource_claim_definition['metadata']['annotations'][salesforce_id_annotation] = self.parameters.salesforce_id
 
         resource_claim_definition = custom_objects_api.create_namespaced_custom_object(
             poolboy_domain, poolboy_api_version, self.namespace, 'resourceclaims',

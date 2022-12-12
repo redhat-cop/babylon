@@ -139,6 +139,8 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
       }
     }
     parameterValues['purpose'] = formState.purpose;
+    const [activity] = formState.purpose.split('-').map((x) => x.trim());
+    parameterValues['purpose_activity'] = activity;
     if (formState.salesforceId.value) {
       parameterValues['salesforce_id'] = formState.salesforceId.value;
     }
