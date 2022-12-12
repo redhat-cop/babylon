@@ -52,6 +52,7 @@ import PatientNumberInput from '@app/components/PatientNumberInput';
 import Modal, { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
+import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
@@ -79,17 +80,17 @@ const ScheduleModal: React.FC<{ defaultTimestamp: number; onSelect: (date: Date)
   );
 };
 
-const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string }> = ({
-  namespace,
+const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceName: string}> = ({
   catalogItemName,
+  catalogNamespaceName,
 }) => {
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [scheduleModal, openScheduleModal] = useModal();
-  const { isAdmin, groups, roles, workshopNamespaces, userNamespace } = useSession().getSession();
+  const { isAdmin, groups, roles, serviceNamespaces, workshopNamespaces, userNamespace } = useSession().getSession();
   const { userImpersonated } = useImpersonateUser();
   const { data: catalogItem } = useSWR<CatalogItem>(
-    apiPaths.CATALOG_ITEM({ namespace, name: catalogItemName }),
+    apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher
   );
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
@@ -111,6 +112,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
     reduceFormState(null, {
       type: 'init',
       catalogItem,
+      serviceNamespace: userNamespace,
       user: { groups, roles, isAdmin },
     })
   );
@@ -161,8 +163,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
         displayName,
         catalogItem: catalogItem,
         openRegistration: userRegistration === 'open',
-        // FIXME - Allow selecting service namespace
-        serviceNamespace: workshopNamespaces[0],
+        serviceNamespace: formState.serviceNamespace,
       });
       await createWorkshopProvision({
         catalogItem: catalogItem,
@@ -178,10 +179,10 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem,
-        catalogNamespaceName: namespace,
-        userNamespace,
+        catalogNamespaceName: catalogNamespaceName,
         groups,
         parameterValues,
+        serviceNamespace: formState.serviceNamespace,
         usePoolIfAvailable: formState.usePoolIfAvailable,
         ...(scheduled && formState.startDate
           ? {
@@ -239,6 +240,35 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
       {formState.formGroups.length > 0 ? <p>Order by completing the form. Default values may be provided.</p> : null}
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
+
+        { isAdmin
+          || (formState.workshop && workshopNamespaces.length > 1)
+          || (!formState.workshop && serviceNamespaces.length > 1)
+          ? (
+            <FormGroup key="service-namespace" fieldId="service-namespace" label="Create Request in Project">
+              <ServiceNamespaceSelect
+                currentNamespaceName={formState.serviceNamespace.name}
+                onSelect={(namespace) => {
+                  dispatchFormState({
+                    type: 'serviceNamespace',
+                    serviceNamespace: namespace,
+                  });
+                }}
+              />
+              {' '}
+              <Tooltip
+                position="right"
+                content={<div>Create service request in specified project namespace.</div>}
+              >
+                <OutlinedQuestionCircleIcon
+                  aria-label="Create service request in specified project namespace."
+                  className="tooltip-icon-only"
+                />
+              </Tooltip>
+            </FormGroup>
+          ) : null
+        }
+
         <ActivityPurposeSelector
           value={formState.purpose}
           onChange={(purpose: string) => {
@@ -384,7 +414,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
           );
         })}
 
-        {workshopNamespaces.length > 0 ? (
+        {isAdmin || workshopNamespaces.length > 0 ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch
@@ -396,6 +426,8 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
                 onChange={(isChecked) =>
                   dispatchFormState({
                     type: 'workshop',
+                    allowServiceNamespaces: isAdmin ? null : isChecked ? workshopNamespaces : serviceNamespaces,
+                    serviceNamespace: isChecked ? workshopNamespaces[0] : userNamespace,
                     workshop: isChecked ? workshopInitialProps : null,
                   })
                 }
@@ -665,7 +697,7 @@ const CatalogItemFormData: React.FC<{ namespace: string; catalogItemName: string
 };
 
 const CatalogItemForm: React.FC = () => {
-  const { namespace, name: catalogItemName } = useParams();
+  const { namespace: catalogNamespaceName, name: catalogItemName } = useParams();
   return (
     <ErrorBoundary
       onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
@@ -678,7 +710,7 @@ const CatalogItemForm: React.FC = () => {
                 Catalog item not found.
               </Title>
               <EmptyStateBody>
-                CatalogItem {catalogItemName} was not found in {namespace}
+                CatalogItem {catalogItemName} was not found in {catalogNamespaceName}
               </EmptyStateBody>
             </EmptyState>
           </PageSection>
@@ -686,7 +718,7 @@ const CatalogItemForm: React.FC = () => {
         </>
       )}
     >
-      <CatalogItemFormData catalogItemName={catalogItemName} namespace={namespace} />
+      <CatalogItemFormData catalogItemName={catalogItemName} catalogNamespaceName={catalogNamespaceName} />
       <Footer />
     </ErrorBoundary>
   );

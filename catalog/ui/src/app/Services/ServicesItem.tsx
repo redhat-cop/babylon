@@ -77,7 +77,7 @@ import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-u
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
-import ServiceNamespaceSelect from './ServiceNamespaceSelect';
+import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
@@ -484,12 +484,11 @@ const ServicesItemComponent: React.FC<{
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-item__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect
+          <ServiceNamespaceSelect allowSelectAll isPlain isText
             currentNamespaceName={serviceNamespaceName}
-            serviceNamespaces={serviceNamespaces}
-            onSelect={(namespaceName) => {
-              if (namespaceName) {
-                navigate(`/services/${namespaceName}${location.search}`);
+            onSelect={(namespace) => {
+              if (namespace) {
+                navigate(`/services/${namespace.name}${location.search}`);
               } else {
                 navigate(`/services${location.search}`);
               }

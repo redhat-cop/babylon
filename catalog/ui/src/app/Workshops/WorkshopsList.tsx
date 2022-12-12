@@ -26,7 +26,7 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
+import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import WorkshopActions from './WorkshopActions';
@@ -236,12 +236,12 @@ const WorkshopsList: React.FC<{
       </Modal>
       {serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-list__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect
+          <ServiceNamespaceSelect allowSelectAll isPlain isText selectWorkshopNamespace
             currentNamespaceName={serviceNamespaceName}
-            serviceNamespaces={serviceNamespaces}
-            onSelect={(namespaceName) => {
-              if (namespaceName) {
-                navigate(`/workshops/${namespaceName}${location.search}`);
+            selectWorkshopNamespace={true}
+            onSelect={(namespace) => {
+              if (namespace) {
+                navigate(`/workshops/${namespace.name}${location.search}`);
               } else {
                 navigate(`/workshops${location.search}`);
               }

@@ -18,7 +18,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 };
 const Navigation: React.FC = () => {
   const location = useLocation();
-  const { isAdmin, userNamespace, serviceNamespaces, workshopNamespaces } = useSession().getSession();
+  const { isAdmin, userNamespace, serviceNamespaces } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
     return location.pathname.includes(str);
@@ -59,7 +59,7 @@ const Navigation: React.FC = () => {
     ) : null;
 
   const workshopNavigation =
-    isAdmin || workshopNamespaces.length > 1 ? (
+    isAdmin || serviceNamespaces.length > 1 ? (
       <NavExpandable title="Workshops" isExpanded={locationStartsWith('/workshops')}>
         <NavItem>
           <NavLink
@@ -73,7 +73,7 @@ const Navigation: React.FC = () => {
           <ExactNavLink to="/workshops">All Workshops</ExactNavLink>
         </NavItem>
       </NavExpandable>
-    ) : workshopNamespaces.length > 0 ? (
+    ) : serviceNamespaces.length > 0 ? (
       <NavItem>
         <NavLink
           className={locationStartsWith(`/workshops/${userNamespace.name}`) ? 'pf-m-current' : ''}

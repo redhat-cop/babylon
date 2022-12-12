@@ -39,7 +39,7 @@ import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvi
 import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import useSession from '@app/utils/useSession';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
-import ServiceNamespaceSelect from '@app/Services/ServiceNamespaceSelect';
+import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import Modal, { useModal } from '@app/Modal/Modal';
 import Footer from '@app/components/Footer';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
@@ -75,7 +75,7 @@ const WorkshopsItemComponent: React.FC<{
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces, workshopNamespaces } = useSession().getSession();
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
@@ -104,6 +104,7 @@ const WorkshopsItemComponent: React.FC<{
     [openModalAction, openModalDelete, openModalGetCost, openModalSchedule]
   );
   const enableFetchUserNamespaces = isAdmin;
+  const enableManageWorkshopProvisions = isAdmin || workshopNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
@@ -140,7 +141,7 @@ const WorkshopsItemComponent: React.FC<{
       namespace: workshop.metadata.namespace,
       limit: 'ALL',
     }),
-    () =>
+    () => enableManageWorkshopProvisions ? (
       fetcherItemsInAllPages((continueId) =>
         apiPaths.WORKSHOP_PROVISIONS({
           workshopName: workshop.metadata.name,
@@ -149,6 +150,7 @@ const WorkshopsItemComponent: React.FC<{
           continueId,
         })
       )
+    ) : []
   );
 
   const { data: resourceClaims, mutate } = useSWR<ResourceClaim[]>(
@@ -324,12 +326,11 @@ const WorkshopsItemComponent: React.FC<{
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-item__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect
+          <ServiceNamespaceSelect allowSelectAll isPlain isText selectWorkshopNamespace
             currentNamespaceName={serviceNamespaceName}
-            serviceNamespaces={serviceNamespaces}
-            onSelect={(namespaceName) => {
-              if (namespaceName) {
-                navigate(`/workshops/${namespaceName}${location.search}`);
+            onSelect={(namespace) => {
+              if (namespace) {
+                navigate(`/workshops/${namespace.name}${location.search}`);
               } else {
                 navigate(`/workshops${location.search}`);
               }
@@ -387,9 +388,9 @@ const WorkshopsItemComponent: React.FC<{
                       : () => showModal({ action: 'deleteService', resourceClaims: selectedResourceClaims }),
                   start:
                     resourceClaims.length === 0
-                      ? isWorkshopStarted(workshopProvisions)
-                        ? null
-                        : () => showModal({ action: 'startWorkshop', resourceClaims: [] })
+                      ? enableManageWorkshopProvisions && !isWorkshopStarted(workshopProvisions)
+                        ? () => showModal({ action: 'startWorkshop', resourceClaims: [] })
+                        : null
                       : checkWorkshopCanStart(resourceClaims)
                       ? () => showModal({ action: 'startServices', resourceClaims })
                       : null,
@@ -418,9 +419,11 @@ const WorkshopsItemComponent: React.FC<{
               />
             ) : null}
           </Tab>
-          <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
-            {activeTab === 'provision' ? <WorkshopsItemProvisioning workshopProvisions={workshopProvisions} /> : null}
-          </Tab>
+          { enableManageWorkshopProvisions ? (
+            <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
+              {activeTab === 'provision' ? <WorkshopsItemProvisioning workshopProvisions={workshopProvisions} /> : null}
+            </Tab>
+          ) : null }
           <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
             {activeTab === 'services' ? (
               <WorkshopsItemServices
