@@ -148,6 +148,7 @@ export async function checkConditionsInFormState(
   for (const [name, parameterState] of Object.entries(parameters)) {
     conditionValues[name] = parameterState.value;
   }
+  conditionValues['salesforce_id'] = initialState.salesforceId.value;
   let salesforceIdValid = initialState.salesforceId.valid;
 
   try {
