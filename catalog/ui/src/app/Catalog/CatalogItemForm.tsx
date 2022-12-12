@@ -241,7 +241,7 @@ const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceNa
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
 
-	{ isAdmin
+        { isAdmin
           || (formState.workshop && workshopNamespaces.length > 1)
           || (!formState.workshop && serviceNamespaces.length > 1)
           ? (
