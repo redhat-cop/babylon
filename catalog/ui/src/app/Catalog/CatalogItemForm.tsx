@@ -87,39 +87,13 @@ const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceNa
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [scheduleModal, openScheduleModal] = useModal();
-  const { isAdmin, groups, roles, serviceNamespaces: sessionServiceNamespaces, workshopNamespaces: sessionWorkshopNamespaces, userNamespace } = useSession().getSession();
-  const enableFetchUserNamespaces: boolean = isAdmin;
+  const { isAdmin, groups, roles, serviceNamespaces, workshopNamespaces, userNamespace } = useSession().getSession();
   const { userImpersonated } = useImpersonateUser();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher
   );
-  const [namespaceSelectIsOpen, setNamespaceSelectIsOpen] = useState(false);
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
-  const { data: userNamespaceList } = useSWR<NamespaceList>(
-    enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
-    fetcher
-  );
-  const serviceNamespaces: ServiceNamespace[] = useMemo(() => {
-    return enableFetchUserNamespaces
-      ? userNamespaceList.items.map((ns): ServiceNamespace => {
-          return {
-            name: ns.metadata.name,
-            displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-          };
-        })
-      : sessionServiceNamespaces;
-  }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
-  const workshopNamespaces: ServiceNamespace[] = useMemo(() => {
-    return enableFetchUserNamespaces
-      ? userNamespaceList.items.map((ns): ServiceNamespace => {
-          return {
-            name: ns.metadata.name,
-            displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-          };
-        })
-      : sessionWorkshopNamespaces;
-  }, [enableFetchUserNamespaces, sessionWorkshopNamespaces, userNamespaceList]);
   const workshopInitialProps = useMemo(
     () => ({
       userRegistration: 'open',
@@ -267,30 +241,33 @@ const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceNa
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
 
-	{ serviceNamespaces.length > 1 ? (
-          <FormGroup key="service-namespace" fieldId="service-namespace" label="Create Request in Project">
-            <ServiceNamespaceSelect
-              currentNamespaceName={formState.serviceNamespace.name}
-              onSelect={(namespace) => {
-                dispatchFormState({
-                  type: 'serviceNamespace',
-                  serviceNamespace: namespace,
-                });
-                setNamespaceSelectIsOpen(false);
-              }}
-            />
-            {' '}
-            <Tooltip
-              position="right"
-              content={<div>Create service request in specified project namespace.</div>}
-            >
-              <OutlinedQuestionCircleIcon
-                aria-label="Create service request in specified project namespace."
-                className="tooltip-icon-only"
+	{ isAdmin
+          || (formState.workshop && workshopNamespaces.length > 1)
+          || (!formState.workshop && serviceNamespaces.length > 1)
+          ? (
+            <FormGroup key="service-namespace" fieldId="service-namespace" label="Create Request in Project">
+              <ServiceNamespaceSelect
+                currentNamespaceName={formState.serviceNamespace.name}
+                onSelect={(namespace) => {
+                  dispatchFormState({
+                    type: 'serviceNamespace',
+                    serviceNamespace: namespace,
+                  });
+                }}
               />
-            </Tooltip>
-          </FormGroup>
-        ) : null}
+              {' '}
+              <Tooltip
+                position="right"
+                content={<div>Create service request in specified project namespace.</div>}
+              >
+                <OutlinedQuestionCircleIcon
+                  aria-label="Create service request in specified project namespace."
+                  className="tooltip-icon-only"
+                />
+              </Tooltip>
+            </FormGroup>
+          ) : null
+        }
 
         <ActivityPurposeSelector
           value={formState.purpose}
@@ -437,7 +414,7 @@ const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceNa
           );
         })}
 
-        {workshopNamespaces.length > 0 ? (
+        {isAdmin || workshopNamespaces.length > 0 ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch
