@@ -1,0 +1,7 @@
+.impersonate-user-modal.pf-m-sm.pf-c-modal-box > .pf-c-modal-box__body {
+  overflow: visible;
+}
+
+.impersonate-user-modal.pf-m-sm.pf-c-modal-box > .pf-c-modal-box__body > .pf-c-context-selector {
+  width: 100%;
+}

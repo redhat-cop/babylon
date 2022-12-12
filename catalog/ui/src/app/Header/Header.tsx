@@ -1,7 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { listUsers } from '@app/api';
-import { User, UserList } from '@app/types';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import {
   ApplicationLauncher,
   ApplicationLauncherItem,
@@ -12,16 +9,15 @@ import {
   DropdownToggle,
   PageHeader,
   PageHeaderTools,
-  SearchInput,
 } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
+import ImpersonateUserModal from '@app/components/ImpersonateUserModal';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
-import Modal, { useModal } from '@app/Modal/Modal';
 
 import './header.css';
 
@@ -33,62 +29,14 @@ const Header: React.FC<{
 }> = ({ isNavOpen, isMobileView, onNavToggle, onNavToggleMobile }) => {
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = useState(false);
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
-  const { setImpersonation, userImpersonated, clearImpersonation } = useImpersonateUser();
-  const [impersonationModal, openImpersonationModal] = useModal();
-  const [users, setUsers] = useState<User[]>([]);
-  const [userImpersonationDialogState, setUserImpersonationDialogState] = useState<{
-    matchCount: number;
-    value: string;
-  }>({
-    matchCount: 0,
-    value: '',
-  });
-  const navigate = useNavigate();
+  const {clearImpersonation, userImpersonated} = useImpersonateUser();
+  const [impersonateUserModalIsOpen, setImpersonateUserModalIsOpen] = useState(false);
+
   const { isAdmin, email, userInterface } = useSession().getSession();
-
-  useEffect(() => {
-    async function getAllUsersList() {
-      const resp: UserList = await listUsers({ disableImpersonation: true });
-      setUsers(resp.items);
-    }
-    if (isAdmin) {
-      getAllUsersList();
-    }
-  }, [isAdmin]);
-
-  function applyUserImpersonation() {
-    setImpersonation(userImpersonationDialogState.value);
-    navigate('/');
-  }
-
-  function openUserImpersonationDialog() {
-    openImpersonationModal();
-    setUserImpersonationDialogState({
-      matchCount: 0,
-      value: '',
-    });
-  }
 
   function clearUserImpersonation() {
     clearImpersonation();
     setUserControlDropdownOpen(false);
-  }
-
-  function onUserImpersonationSearchInputChange(value: string) {
-    const exactMatch = users.filter((user) => user.metadata.name === value);
-    const filteredUsers =
-      exactMatch.length === 1 ? exactMatch : users.filter((user) => user.metadata.name.startsWith(value));
-    setUserImpersonationDialogState({
-      matchCount: filteredUsers.length,
-      value: filteredUsers.length === 1 ? filteredUsers[0].metadata.name : value,
-    });
-  }
-
-  function onUserImpersonationSearchInputClear() {
-    setUserImpersonationDialogState({
-      matchCount: 0,
-      value: '',
-    });
   }
 
   function LogoImg() {
@@ -145,7 +93,7 @@ const Header: React.FC<{
   ];
   if (isAdmin || userImpersonated) {
     UserControlDropdownItems.push(
-      <DropdownItem key="impersonate" onClick={openUserImpersonationDialog}>
+      <DropdownItem key="impersonate" onClick={() => setImpersonateUserModalIsOpen(true)}>
         Impersonate user
       </DropdownItem>
     );
@@ -206,20 +154,12 @@ const Header: React.FC<{
           </DropdownToggle>
         }
       />
-      <Modal
-        title="Impersonate User"
-        ref={impersonationModal}
-        isDisabled={userImpersonationDialogState.matchCount != 1}
-        onConfirm={applyUserImpersonation}
-      >
-        <SearchInput
-          placeholder="Select user"
-          value={userImpersonationDialogState.value}
-          onChange={onUserImpersonationSearchInputChange}
-          onClear={onUserImpersonationSearchInputClear}
-          resultsCount={userImpersonationDialogState.matchCount}
+      { impersonateUserModalIsOpen ? (
+        <ImpersonateUserModal
+          isOpen={true}
+          onClose={() => setImpersonateUserModalIsOpen(false)}
         />
-      </Modal>
+      ) : null }
     </PageHeaderTools>
   );
 
