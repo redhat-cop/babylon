@@ -269,9 +269,8 @@ const ServicesItemComponent: React.FC<{
     (path) =>
       fetchWithUpdatedCostTracker({
         path,
-        initialResourceClaim: cache.get(
-          apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName })
-        ),
+        initialResourceClaim: cache.get(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }))
+          ?.data,
       }),
     {
       refreshInterval: 8000,
