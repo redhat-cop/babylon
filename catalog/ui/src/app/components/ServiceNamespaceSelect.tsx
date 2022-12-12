@@ -12,15 +12,15 @@ const ServiceNamespaceSelect: React.FC<{
   currentNamespaceName: string;
   isPlain: boolean;
   isText: boolean;
-  serviceNamespaces: ServiceNamespace[];
   onSelect: (namespace: ServiceNamespace) => void;
   selectWorkshopNamespace: boolean; 
 }> = ({
-  allowSelectAll,
+  allowSelectAll = false,
   currentNamespaceName,
-  isPlain,
-  isText,
+  isPlain = false,
+  isText = false,
   onSelect,
+  selectWorkshopNamespace=false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchValue, setSearchValue] = React.useState('');
