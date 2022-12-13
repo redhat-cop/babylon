@@ -288,9 +288,9 @@ class ResourceClaim:
             for resource in self.definition.get('spec', {}).get('resources', []):
                 resource_copy = deepcopy(resource)
                 action_schedule = resource_copy.get('template', {}).get('spec', {}).get('vars', {}).get('action_schedule', {})
-                if 'start' in action_schedule:
+                if start_datetime and 'start' in action_schedule:
                     action_schedule['start'] = start_datetime.strftime('%FT%TZ')
-                if 'stop' in action_schedule:
+                if stop_datetime and 'stop' in action_schedule:
                     action_schedule['stop'] = stop_datetime.strftime('%FT%TZ')
                 resource_claim_patch['spec']['resources'].append(resource_copy)
 
