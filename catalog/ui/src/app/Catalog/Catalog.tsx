@@ -67,8 +67,8 @@ function compareCatalogItems(a: CatalogItem, b: CatalogItem, method: 'Featured' 
       return aDisplayName < bDisplayName ? 1 : -1;
     } else {
       // method === 'Featured'
-      const aRating = a.metadata.annotations[`${BABYLON_DOMAIN}/featuredRating`];
-      const bRating = b.metadata.annotations[`${BABYLON_DOMAIN}/featuredRating`];
+      const aRating = a.metadata.labels[`${BABYLON_DOMAIN}/Featured_Score`];
+      const bRating = b.metadata.labels[`${BABYLON_DOMAIN}/Featured_Score`];
       if (aRating || bRating) {
         if (aRating && bRating) return parseInt(aRating, 10) < parseInt(bRating, 10) ? 1 : -1;
         if (bRating) return 1;

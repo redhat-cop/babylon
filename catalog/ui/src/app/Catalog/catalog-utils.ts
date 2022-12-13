@@ -114,5 +114,5 @@ export function setLastFilter(filter: string): void {
 export function formatString(string: string): string {
   return (string.charAt(0).toUpperCase() + string.slice(1)).replace(/_/g, ' ');
 }
-export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage', 'Support_Type'];
+export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage', 'Support_Type', 'Featured_Score'];
 export const HIDDEN_ANNOTATIONS = ['ops', 'displayNameComponent0', 'displayNameComponent1'];
