@@ -14,7 +14,7 @@ const isMonitorEnabled = process.env.MONITOR_ENABLED === 'true';
 
 const App: React.FC = () => {
   const { setImpersonation } = useImpersonateUser();
-  useScript(isMonitorEnabled ? '/monitor.js' : '');
+  useScript(isMonitorEnabled ? '/public/monitor.js' : '');
 
   useEffect(() => {
     const impersonateUserName = sessionStorage.getItem('impersonateUser');
