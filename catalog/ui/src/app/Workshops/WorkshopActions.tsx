@@ -36,7 +36,7 @@ const WorkshopActions: React.FC<{
       <ActionDropdownItem
         key="startServices"
         isDisabled={!actionHandlers.start}
-        label="Start Services"
+        label="Start Workshop Services"
         onSelect={actionHandlers.start}
       />
     );
@@ -45,7 +45,7 @@ const WorkshopActions: React.FC<{
       <ActionDropdownItem
         key="stopServices"
         isDisabled={!actionHandlers.stop}
-        label="Stop Services"
+        label="Stop Workshop Services"
         onSelect={actionHandlers.stop}
       />
     );

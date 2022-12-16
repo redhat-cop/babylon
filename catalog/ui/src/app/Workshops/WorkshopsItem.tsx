@@ -200,6 +200,11 @@ const WorkshopsItemComponent: React.FC<{
     [mutate, resourceClaims]
   );
 
+  /**
+   * After confirmmation, delete selected ResourceClaims (services) for Workshop.
+   * Replacement services may be created by the workshop-manager depending upon
+   * WorkshopProvision configuration.
+   */
   async function onServiceDeleteConfirm(): Promise<void> {
     const deleteResourceClaims = modalState.resourceClaims;
     for (const resourceClaim of deleteResourceClaims) {
@@ -210,38 +215,75 @@ const WorkshopsItemComponent: React.FC<{
     revalidate({ updatedItems: deleteResourceClaims, action: 'delete' });
   }
 
+  /**
+   * After confirmation, start all services in Workshop by updating action schedule of
+   * the Workshop.
+   * The action schedule will propagate to WorkshopProvisions and to ResourceClaims.
+   */
   async function onServiceStartConfirm(): Promise<void> {
-    const updatedResourceClaims: ResourceClaim[] = [];
-    const startResourceClaims = modalState.resourceClaims;
-    for (const resourceClaim of startResourceClaims) {
-      updatedResourceClaims.push(await startAllResourcesInResourceClaim(resourceClaim));
-    }
-    revalidate({ updatedItems: updatedResourceClaims, action: 'update' });
+    const now = new Date();
+    const patch = {
+      spec: {
+        actionSchedule: {
+          start: dateToApiString(now),
+          // FIXME - this should be configurable, hardcoded to 12 hours after start for now
+          stop: dateToApiString(new Date(now.getTime() + 12 * 60 * 60 * 1000)),
+        }
+      }
+    };
+    const workshopUpdated = await patchWorkshop({
+      name: workshop.metadata.name,
+      namespace: workshop.metadata.namespace,
+      patch,
+    });
+    mutateWorkshop(workshopUpdated);
   }
 
+  /**
+   * After confirmation, set Workshop lifespan to start immediately and set action schedule
+   * for auto-stop.
+   * The workshop-manager will propagate changes to WorkshopProvisions and ResourceClaims.
+   */
   async function onWorkshopStartConfirm(): Promise<void> {
-    const workshopProvisionsUpdated = [];
-    for (const workshopProvision of workshopProvisions) {
-      workshopProvisionsUpdated.push(
-        await patchWorkshopProvision({
-          name: workshopProvision.metadata.name,
-          namespace: workshopProvision.metadata.namespace,
-          patch: { spec: { lifespan: { start: dateToApiString(new Date()) } } },
-        })
-      );
-    }
-    mutateWorkshopProvisions(workshopProvisionsUpdated);
+    const now = newDate();
+    const patch = {
+      spec: {
+        actionSchedule: {
+          start: dateToApiString(now),
+          // FIXME - this should be configurable, hardcoded to 12 hours after start for now
+          stop: dateToApiString(new Date(now.getTime() + 12 * 60 * 60 * 1000)),
+        },
+        lifespan: {
+          start: dateToApiString(now),
+        }
+      }
+    };
+    const workshopUpdated = await patchWorkshop({
+      name: workshop.metadata.name,
+      namespace: workshop.metadata.namespace,
+      patch,
+    });
+    mutateWorkshop(workshopUpdated);
   }
 
+  /**
+   * After confirmation, set Workshop action schedule to stop immediately.
+   * The workshop-manager will propagate changes to WorkshopProvisions and ResourceClaims.
+   */
   async function onServiceStopConfirm(): Promise<void> {
-    const updatedResourceClaims: ResourceClaim[] = [];
-    const stopResourceClaims = modalState.resourceClaims;
-    for (const resourceClaim of stopResourceClaims) {
-      updatedResourceClaims.push(await stopAllResourcesInResourceClaim(resourceClaim));
-    }
-    revalidate({ updatedItems: updatedResourceClaims, action: 'update' });
+    const patch = { spec: { actionSchedule: { stop: dateToApiString(new Date()) } } };
+    const workshopUpdated = await patchWorkshop({
+      name: workshop.metadata.name,
+      namespace: workshop.metadata.namespace,
+      patch,
+    });
+    mutateWorkshop(workshopUpdated);
   }
 
+  /**
+   * After confirmation, delete Workshop.
+   * Deletion will propagate to WorkshopProvisions and ResourceClaims.
+   */
   async function onWorkshopDeleteConfirm(): Promise<void> {
     await deleteWorkshop(workshop);
     mutateWorkshop(null);
@@ -250,9 +292,12 @@ const WorkshopsItemComponent: React.FC<{
     navigate(`/workshops/${serviceNamespaceName}`);
   }
 
+  /**
+   * Adjust lifespan or action schedule for Workshop.
+   * The workshop-manager will propagate changes to WorkshopProvisions and ResourceClaims.
+   */
   async function onModalScheduleAction(date: Date): Promise<void> {
     if (modalState.action === 'scheduleDelete') {
-      const resourceClaimsUpdated = [];
       const patch = { spec: { lifespan: { end: dateToApiString(date) } } };
       const workshopUpdated = await patchWorkshop({
         name: workshop.metadata.name,
@@ -260,29 +305,33 @@ const WorkshopsItemComponent: React.FC<{
         patch,
       });
       mutateWorkshop(workshopUpdated);
-      for (const resourceClaim of modalState.resourceClaims) {
-        resourceClaimsUpdated.push(await setLifespanEndForResourceClaim(resourceClaim, date, false));
-      }
-      revalidate({ updatedItems: resourceClaimsUpdated, action: 'update' });
     } else if (modalState.action === 'scheduleStop') {
-      const resourceClaimsUpdated = [];
-      for (const resourceClaim of modalState.resourceClaims) {
-        resourceClaimsUpdated.push(await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date));
-      }
-      revalidate({ updatedItems: resourceClaimsUpdated, action: 'update' });
+      const patch = { spec: { actionSchedule: { stop: dateToApiString(date) } } };
+      const workshopUpdated = await patchWorkshop({
+        name: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        patch,
+      });
+      mutateWorkshop(workshopUpdated);
     } else if (modalState.action === 'scheduleStart') {
-      const workshopProvisionsUpdated = [];
-      const patch = { spec: { lifespan: { start: dateToApiString(date) } } };
-      for (const workshopProvision of workshopProvisions) {
-        workshopProvisionsUpdated.push(
-          await patchWorkshopProvision({
-            name: workshopProvision.metadata.name,
-            namespace: workshopProvision.metadata.namespace,
-            patch,
-          })
-        );
+      const patch = {
+        spec: {
+          actionSchedule: {
+            start: dateToApiString(date),
+            // FIXME - this should be configurable, hardcoded to 12 hours after start for now
+            stop: dateToApiString(new Date(date.getTime() + 12 * 60 * 60 * 1000)),
+          }
+        }
+      };
+      if (!isWorkshopStarted(workshop, workshopProvisions)) {
+        patch.spec.lifespan = { start: dateToApiString(date) };
       }
-      mutateWorkshopProvisions(workshopProvisionsUpdated);
+      const workshopUpdated = await patchWorkshop({
+        name: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        patch,
+      });
+      mutateWorkshop(workshopUpdated);
     }
   }
 
@@ -388,7 +437,7 @@ const WorkshopsItemComponent: React.FC<{
                       : () => showModal({ action: 'deleteService', resourceClaims: selectedResourceClaims }),
                   start:
                     resourceClaims.length === 0
-                      ? enableManageWorkshopProvisions && !isWorkshopStarted(workshopProvisions)
+                      ? enableManageWorkshopProvisions && !isWorkshopStarted(workshop, workshopProvisions)
                         ? () => showModal({ action: 'startWorkshop', resourceClaims: [] })
                         : null
                       : checkWorkshopCanStart(resourceClaims)
@@ -421,7 +470,12 @@ const WorkshopsItemComponent: React.FC<{
           </Tab>
           { enableManageWorkshopProvisions ? (
             <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
-              {activeTab === 'provision' ? <WorkshopsItemProvisioning workshopProvisions={workshopProvisions} /> : null}
+              {activeTab === 'provision' ? (
+                <WorkshopsItemProvisioning
+                  workshop={workshop}
+                  workshopProvisions={workshopProvisions}
+                />
+              ) : null}
             </Tab>
           ) : null }
           <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>

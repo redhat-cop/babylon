@@ -23,9 +23,9 @@ const WorkshopScheduleAction: React.FC<{
       currentActionDate = autoStartTime ? new Date(autoStartTime) : null;
     }
   } else {
-    const autoStopTime = getWorkshopAutoStopTime(resourceClaims);
+    const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
     currentActionDate = autoStopTime ? new Date(autoStopTime) : null;
-    maxDate = getWorkshopServicesStartTime(resourceClaims);
+    maxDate = getWorkshopServicesStartTime(workshop, resourceClaims);
   }
 
   const [selectedDate, setSelectedDate] = useState(currentActionDate || new Date());

@@ -1167,7 +1167,7 @@ export async function patchWorkshop({
   jsonPatch?: JSONPatch;
   patch?: Record<string, unknown>;
 }): Promise<Workshop> {
-  return patchK8sObject({
+  return await patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
     name: name,
@@ -1188,7 +1188,7 @@ export async function patchWorkshopProvision({
   jsonPatch?: JSONPatch;
   patch?: Record<string, unknown>;
 }): Promise<WorkshopProvision> {
-  return patchK8sObject({
+  return await patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
     name: name,
