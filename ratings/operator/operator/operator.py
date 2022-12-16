@@ -11,7 +11,7 @@ from catalog_item import CatalogItem
 
 babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
 babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
-ratings_service = ''
+ratings_api = os.environ.get('RATINGS_API', 'babylon-ratings-api')
 
 rating_label = f"{babylon_domain}/rating"
 
@@ -65,7 +65,7 @@ def list_catalog_items(namespace, logger):
             return
 
 def get_rating(catalog_item, logger):
-    response = requests.get(f"{ratings_service}/ratings/v1/catalogitem/{catalog_item.name}")
+    response = requests.get(f"{ratings_api}/ratings/v1/catalogitem/{catalog_item.name}")
     logger.info(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {response.status_code}")
     if response.status_code == 200:
         return response.json().get('rating', None)
