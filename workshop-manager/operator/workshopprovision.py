@@ -311,7 +311,7 @@ class WorkshopProvision(CachedKopfObject):
                 raise kopf.TemporaryError("Workshop {self.workshop_name} was not found.", delay=60)
             raise
 
-        if self.owner_references != workshop.as_owner_ref() \
+        if self.owner_references != [workshop.as_owner_ref()] \
         or self.labels.get(Babylon.workshop_label) != self.workshop_name:
             logger.info(f"Setting ownerReferences for {self} to {workshop}")
             await self.merge_patch({
