@@ -22,7 +22,7 @@ jobs:
         # Version is a semantic version tag or semantic version with release number
         # GITHUB_REF will be of the form "refs/tags/admin-v0.1.2" or "refs/tags/admin-v0.1.2-1"
         # To determine RELEASE, strip off the leading "refs/tags/"
-        RELEASE=${GITHUB_REF#refs/tags/notifier-}
+        RELEASE=${GITHUB_REF#refs/tags/ratings-}
         # To determine VERSION, strip off any release number suffix
         VERSION=${RELEASE/-*/}
         echo "::set-output name=RELEASE::${RELEASE}"
