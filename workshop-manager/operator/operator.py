@@ -94,7 +94,7 @@ async def workshop_daemon(logger, stopped, **kwargs):
                 logger.info(f"Deleting {workshop} for lifespan end")
                 workshop.delete(logger=logger)
                 return
-            workshop.manage(logger=logger)
+            await workshop.manage(logger=logger)
             await asyncio.sleep(300)
     except asyncio.CancelledError:
         pass
