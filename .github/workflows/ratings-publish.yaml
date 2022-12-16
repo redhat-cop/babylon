@@ -1,0 +1,92 @@
+---
+name: ratings-publish
+on:
+  push:
+    branches-ignore:
+    - '*'
+    tags:
+    - 'ratings-v[0-9]*'
+jobs:
+  publish:
+    env:
+      OPERATOR_IMAGE_NAME: babylon-ratings-operator
+      API_IMAGE_NAME: babylon-ratings-api
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v2
+
+    - name: Get image tags
+      id: image_tags
+      run: |
+        # Version is a semantic version tag or semantic version with release number
+        # GITHUB_REF will be of the form "refs/tags/admin-v0.1.2" or "refs/tags/admin-v0.1.2-1"
+        # To determine RELEASE, strip off the leading "refs/tags/"
+        RELEASE=${GITHUB_REF#refs/tags/notifier-}
+        # To determine VERSION, strip off any release number suffix
+        VERSION=${RELEASE/-*/}
+        echo "::set-output name=RELEASE::${RELEASE}"
+        echo "::set-output name=VERSION::${VERSION}"
+
+        # Only build image if version tag without release number
+        # Releases indicate a change in the repository that should not trigger a new build.
+        if [[ "${VERSION}" == "${RELEASE}" ]]; then
+          # Publish to latest, minor, and patch tags
+          # Ex: latest,v0.1.2,v0.1
+          API_IMAGE_TAGS=(
+            '${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.API_IMAGE_NAME }}:latest'
+            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.API_IMAGE_NAME }}:${VERSION%.*}"
+            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.API_IMAGE_NAME }}:${VERSION}"
+          )
+          OPERATOR_IMAGE_TAGS=(
+            '${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.OPERATOR_IMAGE_NAME }}:latest'
+            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.OPERATOR_IMAGE_NAME }}:${VERSION%.*}"
+            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.OPERATOR_IMAGE_NAME }}:${VERSION}"
+          )
+          # Set API_IMAGE_TAGS output for use in next step
+          ( IFS=$','; echo "::set-output name=API_IMAGE_TAGS::${API_IMAGE_TAGS[*]}" )
+          # Set OPERATOR_IMAGE_TAGS output for use in next step
+          ( IFS=$','; echo "::set-output name=OPERATOR_IMAGE_TAGS::${OPERATOR_IMAGE_TAGS[*]}" )
+        fi
+
+    - name: (API) Set up buildx
+      uses: docker/setup-buildx-action@v1
+      if: steps.image_tags.outputs.API_IMAGE_TAGS
+
+    - name: (API) Login to image registry
+      uses: docker/login-action@v1
+      if: steps.image_tags.outputs.API_IMAGE_TAGS
+      with:
+        registry: ${{ secrets.REGISTRY_URI }}
+        username: ${{ secrets.GPTE_REGISTRY_USERNAME }}
+        password: ${{ secrets.GPTE_REGISTRY_PASSWORD }}
+
+    - name: (API) Build and publish image
+      uses: docker/build-push-action@v2
+      if: steps.image_tags.outputs.API_IMAGE_TAGS
+      with:
+        context: ratings/api
+        file: ratings/api/Dockerfile
+        push: true
+        tags: ${{ steps.image_tags.outputs.API_IMAGE_TAGS }}
+    
+    - name: (Operator) Set up buildx
+      uses: docker/setup-buildx-action@v1
+      if: steps.image_tags.outputs.OPERATOR_IMAGE_TAGS
+
+    - name: (Operator) Login to image registry
+      uses: docker/login-action@v1
+      if: steps.image_tags.outputs.OPERATOR_IMAGE_TAGS
+      with:
+        registry: ${{ secrets.REGISTRY_URI }}
+        username: ${{ secrets.GPTE_REGISTRY_USERNAME }}
+        password: ${{ secrets.GPTE_REGISTRY_PASSWORD }}
+
+    - name: (Operator) Build and publish image
+      uses: docker/build-push-action@v2
+      if: steps.image_tags.outputs.OPERATOR_IMAGE_TAGS
+      with:
+        context: ratings/operator
+        file: ratings/operator/Dockerfile
+        push: true
+        tags: ${{ steps.image_tags.outputs.OPERATOR_IMAGE_TAGS }}

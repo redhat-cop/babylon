@@ -1,10 +1,11 @@
+import os
+
+babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
+rating_label = f"{babylon_domain}/rating"
+
 class CatalogItem:
     def __init__(self, definition):
         self.definition = definition
-
-    @property
-    def display_name(self):
-        return self.definition['metadata'].get('annotations', {}).get('babylon.gpte.redhat.com/displayName', self.name)
 
     @property
     def name(self):
@@ -15,5 +16,5 @@ class CatalogItem:
         return self.definition['metadata']['namespace']
 
     @property
-    def resources(self):
-        return self.definition['spec']['resources']
+    def rating(self):
+        return self.definition['metadata'].get('labels', {}).get(rating_label, None)

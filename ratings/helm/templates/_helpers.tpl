@@ -2,8 +2,12 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "babylon-ratings.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- define "babylon-ratings.apiName" -}}
+{{- default (printf "%s-api" (include "babylon-ratings.name" .)) .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "babylon-ratings.operatorName" -}}
+{{- default (printf "%s-operator" (include "babylon-ratings.name" .)) .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
@@ -53,6 +57,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 {{- end -}}
 
+{{- define "babylon-ratings.apiSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "babylon-ratings.name" . }}-api
+{{-   if (ne .Release.Name "RELEASE-NAME") }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{-   end -}}
+{{- end -}}
+
 {{/*
 Create the name of the service account to use
 */}}
@@ -73,18 +84,35 @@ Create the name of the namespace to use
 
 
 {{/*
-Define the image to deploy
+Define the API image to deploy
 */}}
-{{- define "babylon-ratings.image" -}}
-  {{- if .Values.image.override -}}
-    {{- .Values.image.override -}}
+{{- define "babylon-ratings.api-image" -}}
+  {{- if .Values.api-image.override -}}
+    {{- .Values.api-image.override -}}
   {{- else -}}
-    {{- if eq .Values.image.tagOverride "-" -}}
-      {{- .Values.image.repository -}}
-    {{- else if .Values.image.tagOverride -}}
-      {{- printf "%s:%s" .Values.image.repository .Values.image.tagOverride -}}
+    {{- if eq .Values.api-image.tagOverride "-" -}}
+      {{- .Values.api-image.repository -}}
+    {{- else if .Values.api-image.tagOverride -}}
+      {{- printf "%s:%s" .Values.api-image.repository .Values.api-image.tagOverride -}}
     {{- else -}}
-      {{- printf "%s:v%s" .Values.image.repository .Chart.AppVersion -}}
+      {{- printf "%s:v%s" .Values.api-image.repository .Chart.AppVersion -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Define the Operator image to deploy
+*/}}
+{{- define "babylon-ratings.operator-image" -}}
+  {{- if .Values.operator-image.override -}}
+    {{- .Values.operator-image.override -}}
+  {{- else -}}
+    {{- if eq .Values.operator-image.tagOverride "-" -}}
+      {{- .Values.operator-image.repository -}}
+    {{- else if .Values.operator-image.tagOverride -}}
+      {{- printf "%s:%s" .Values.operator-image.repository .Values.operator-image.tagOverride -}}
+    {{- else -}}
+      {{- printf "%s:v%s" .Values.operator-image.repository .Chart.AppVersion -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}

@@ -42,7 +42,12 @@ affinity: {}
 babylon:
   domain: babylon.gpte.redhat.com
 
-image:
-  repository: quay.io/redhat-gpte/babylon-ratings
+api-image:
+  repository: quay.io/redhat-gpte/babylon-ratings-api
+  pullPolicy: Always
+  tagOverride: ""
+
+operator-image:
+  repository: quay.io/redhat-gpte/babylon-ratings-operator
   pullPolicy: Always
   tagOverride: ""

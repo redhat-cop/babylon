@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "babylon-ratings.name" . }}
+  name: {{ include "babylon-ratings.apiName" . }}
   namespace: {{ include "babylon-ratings.namespaceName" . }}
   labels:
     {{- include "babylon-ratings.labels" . | nindent 4 }}
@@ -11,12 +11,14 @@ spec:
   selector:
     matchLabels:
       {{- include "babylon-ratings.selectorLabels" . | nindent 6 }}
+      {{- include "babylon-ratings.apiSelectorLabels" . | nindent 6 }}
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        {{- include "babylon-ratings.selectorLabels" . | nindent 8 }}
+        {{- include "babylon-ratings.selectorLabels" . | nindent 6 }}
+        {{- include "babylon-ratings.apiSelectorLabels" . | nindent 6 }}
     spec:
       containers:
       - name: ratings
@@ -25,14 +27,14 @@ spec:
           value: "--log-format=json"
         - name: KOPF_PEERING
           value: {{ include "babylon-ratings.name" . }}
-        image: {{ include "babylon-ratings.image" . | quote }}
+        image: {{ include "babylon-ratings.api-image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
         livenessProbe:
           initialDelaySeconds: 30
           tcpSocket:
-            port: 8080
+            port: 80
           timeoutSeconds: 1
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

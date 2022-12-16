@@ -85,7 +85,7 @@ def rate():
 @application.get("/api/ratings/v1/catalogitem/<string:catalog_item>")
 def get_catalog_item_rating(catalog_item):
     query = execute_query(GET_RATING, (catalog_item, ))
-    rating = query.get("result")[0].get("rating")
+    rating = query.get("result", [{}])[0].get("rating", None)
     if (rating):
         return {"catalog_item": catalog_item, "rating": int(rating)}
     return {}, 404
@@ -97,4 +97,4 @@ def get_catalog_item_rating(catalog_item):
 if __name__ == "__main__":
     execute_query(CREATE_RATINGS_TABLE)
     logger.info("Booting up")
-    application.run()
+    application.run(port=80)
