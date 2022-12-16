@@ -50,7 +50,7 @@ if not application.debug:
 def index():
     return "<h1>Babylon Ratings</h1>"
 
-# {"catalog_item": "catalog_item_key", "email": "user@redhat.com", "rating": 48, comment: "My comment"}
+# {"provision_uuid": "the_uuid", "email": "user@redhat.com", "rating": 48, comment: "My comment"}
 @application.post("/api/ratings/v1/rate")
 @expects_json({
   "type": "object",
