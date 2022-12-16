@@ -13,7 +13,7 @@ const ServiceNamespaceSelect: React.FC<{
   isPlain: boolean;
   isText: boolean;
   onSelect: (namespace: ServiceNamespace) => void;
-  selectWorkshopNamespace: boolean; 
+  selectWorkshopNamespace: boolean;
 }> = ({
   allowSelectAll = false,
   currentNamespaceName,

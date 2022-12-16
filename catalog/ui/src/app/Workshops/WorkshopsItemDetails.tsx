@@ -47,7 +47,7 @@ const WorkshopsItemDetails: React.FC<{
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, workshopProvisions);
-  const autoStopTime = getWorkshopAutoStopTime(resourceClaims);
+  const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
 
   async function patchWorkshopSpec(patch: {
     accessPassword?: string;

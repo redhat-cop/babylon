@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { apiPaths, fetcher, patchWorkshopProvision } from '@app/api';
-import { CatalogItem, WorkshopProvision } from '@app/types';
+import { CatalogItem, Workshop, WorkshopProvision } from '@app/types';
 import { displayName } from '@app/util';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import PatientNumberInput from '@app/components/PatientNumberInput';
@@ -20,8 +20,9 @@ import useSession from '@app/utils/useSession';
 import useSWR, { useSWRConfig } from 'swr';
 
 const WorkshopsItemProvisioningItem: React.FC<{
+  workshop: Workshop;
   workshopProvision: WorkshopProvision;
-}> = ({ workshopProvision }) => {
+}> = ({ workshop, workshopProvision }) => {
   const { isAdmin } = useSession().getSession();
   const { mutate } = useSWRConfig();
   const { data: catalogItem } = useSWR<CatalogItem>(
@@ -85,7 +86,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Workshop User Count</DescriptionListTerm>
+          <DescriptionListTerm>{workshop.spec.multiuserServices ? 'Workshop Service Count' : 'Workshop User Count'}</DescriptionListTerm>
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
@@ -94,7 +95,11 @@ const WorkshopsItemProvisioningItem: React.FC<{
               value={workshopProvision.spec.count}
               style={{ paddingRight: 'var(--pf-global--spacer--md)' }}
             />
-            <Tooltip position="right" content={<p>Number of independent services for the workshop.</p>}>
+            <Tooltip position="right" content={
+              workshop.spec.multiuserServices
+              ? <p>Number of shared services for the workshop, each service supports multiple users.</p>
+              : <p>Number of independent services for the workshop, each user gets a dedicated service.</p>
+            }>
               <OutlinedQuestionCircleIcon
                 aria-label="Number of independent services for the workshop"
                 className="tooltip-icon-only"

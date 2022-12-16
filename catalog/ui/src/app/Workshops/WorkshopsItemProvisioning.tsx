@@ -1,12 +1,13 @@
 import React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { WorkshopProvision } from '@app/types';
+import { Workshop, WorkshopProvision } from '@app/types';
 import WorkshopsItemProvisioningItem from './WorkshopsItemProvisioningItem';
 
 const WorkshopsItemProvisioning: React.FC<{
+  workshop?: Workshop;
   workshopProvisions?: WorkshopProvision[];
-}> = ({ workshopProvisions }) => {
+}> = ({ workshop, workshopProvisions }) => {
   if (!workshopProvisions || workshopProvisions.length === 0) {
     return (
       <EmptyState variant="full">
@@ -25,7 +26,11 @@ const WorkshopsItemProvisioning: React.FC<{
   return (
     <>
       {workshopProvisions.map((workshopProvision) => (
-        <WorkshopsItemProvisioningItem key={workshopProvision.metadata.uid} workshopProvision={workshopProvision} />
+        <WorkshopsItemProvisioningItem
+          key={workshopProvision.metadata.uid}
+          workshop={workshop}
+          workshopProvision={workshopProvision}
+        />
       ))}
     </>
   );

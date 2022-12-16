@@ -2,12 +2,24 @@ import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 import { getAutoStopTime, getStartTime } from '@app/Services/service-utils';
 
-export function isWorkshopStarted(workshopProvisions: WorkshopProvision[]): boolean {
-  const startTime = getWorkshopStartTime(workshopProvisions);
+export function isWorkshopStarted(
+  workshop: Workshop,
+  workshopProvisions: WorkshopProvision[],
+): boolean {
+  const startTime = getWorkshopStartTime(workshop, workshopProvisions);
   return startTime && startTime < Date.now();
 }
 
-export function getWorkshopStartTime(workshopProvisions: WorkshopProvision[]): number {
+export function getWorkshopStartTime(
+  workshop: Workshop,
+  workshopProvisions: WorkshopProvision[],
+): number {
+  // Lifespan start propagates from Workshop.
+  if (workshop.spec.lifespan?.start) {
+    return Date.parse(workshop.spec.lifespan.start);
+  }
+
+  // If workshop does not have workshop start then check WorkshopProvisions
   const provisionsStartTime = workshopProvisions
     ? workshopProvisions
         .map((workshopProvision) =>
@@ -20,17 +32,33 @@ export function getWorkshopStartTime(workshopProvisions: WorkshopProvision[]): n
 
 export function getWorkshopLifespan(
   workshop: Workshop,
-  workshopProvisions: WorkshopProvision[]
+  workshopProvisions: WorkshopProvision[],
 ): { start: number; end: number } {
   const endTime = workshop.spec.lifespan?.end ? Date.parse(workshop.spec.lifespan.end) : null;
-  return { start: getWorkshopStartTime(workshopProvisions), end: endTime };
+  return { start: getWorkshopStartTime(workshop, workshopProvisions), end: endTime };
 }
 
-export function getWorkshopAutoStopTime(resourceClaims: ResourceClaim[]): number {
+export function getWorkshopAutoStopTime(
+  workshop: Workshop,
+  resourceClaims: ResourceClaim[],
+): number {
+  // Workshop stop schedule propagates to all ResourceClaims
+  if (workshop.spec.actionSchedule?.stop) {
+    return Date.parse(workshop.spec.actionSchedule.stop);
+  }
+  // Fallback to getting stop time from ResourceClaims
   const resourcesTime = resourceClaims && resourceClaims.length > 0 ? resourceClaims.flatMap(getAutoStopTime) : [];
   return resourcesTime.length > 0 ? Math.min(...resourcesTime) : null;
 }
-export function getWorkshopServicesStartTime(resourceClaims: ResourceClaim[]): number {
+export function getWorkshopServicesStartTime(
+  workshop: Workshop,
+  resourceClaims: ResourceClaim[],
+): number {
+  // Workshop start schedule propagates to all ResourceClaims
+  if (workshop.spec.actionSchedule?.start) {
+    return Date.parse(workshop.spec.actionSchedule.start);
+  }
+  // Fallback to getting stop time from ResourceClaims
   return resourceClaims.length > 0 ? Math.min(...resourceClaims.flatMap(getStartTime)) : null;
 }
 
