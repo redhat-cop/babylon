@@ -31,11 +31,11 @@ class Babylon():
 
 def get_rating_from_api(catalog_item, logger):
     try:
-        response = requests.get(f"{Babylon.ratings_api}/ratings/v1/namespace/{catalog_item.namespace}/catalogitem/{catalog_item.name}")
+        response = requests.get(f"{Babylon.ratings_api}/ratings/v1/catalogitem/{catalog_item.name}")
         if response.status_code == 200:
-            logger.info(f"/api/ratings/v1/namespace/{catalog_item.namespace}/catalogitem/{catalog_item.name} - {response.status_code}")
+            logger.info(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {response.status_code}")
             return response.json().get('rating', None)
-        logger.warn(f"/api/ratings/v1/namespace/{catalog_item.namespace}/catalogitem/{catalog_item.name} - {response.status_code}")
+        logger.warn(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {response.status_code}")
     except:
         logger.error(f"Error: Invalid connection with {Babylon.ratings_api}")
         pass
