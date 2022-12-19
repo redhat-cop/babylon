@@ -46,4 +46,3 @@ image:
   repository: quay.io/redhat-gpte/babylon-ratings
   pullPolicy: Always
   tagOverride: ""
-

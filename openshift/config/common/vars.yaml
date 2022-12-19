@@ -187,6 +187,12 @@ babylon_resources:
       babylon_ratings_deploy | default(true) | bool
     helm_template:
       dir: babylon-ratings
+      values:
+        db:
+          name: "{{ babylon_reporting_db.dbname | default('') }}"
+          username: "{{ babylon_reporting_db.username | default('') }}"
+          password: "{{ babylon_reporting_db.password | default('') }}"
+          hostname: "{{ babylon_reporting_db.hostname | default('') }}"
 
   # agnosticv-operator
   - name: AgnosticV Operator Deploy

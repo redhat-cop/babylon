@@ -1,4 +1,4 @@
-# Babylon catalog-manager
+# Babylon Ratings Development
 
 Development can be performed in the `odo` OpenShift developer CLI or building with OpenShift build configs.
 An OpenShift cluster with cluster-admin is required for `odo` development.
@@ -15,25 +15,25 @@ https://docs.openshift.com/container-platform/latest/cli_reference/developer_cli
 
 . Create a project for development using `odo`:
 +
----------------------------------------------------
-odo create project babylon-catalog-manager-dev
----------------------------------------------------
+---------------------------------------
+odo create project babylon-ratings-dev
+---------------------------------------
 
-. Create Babylon catalog-manager resources from the provided helm chart:
+. Create Babylon ratings resources from the provided helm chart:
 +
------------------------------------------------------
+-------------------------------
 helm template helm \
 --set deploy=false \
---set nameOverride=babylon-catalog-manager-dev \
+--set nameOverride=babylon-ratings-dev \
 --set namespace.name=$(oc project --short) \
 | oc apply -f -
------------------------------------------------------
+-------------------------------
 
-. Grant privileges for cluster role `babylon-catalog-manager-dev` to default service account:
+. Grant privileges for cluster role `babylon-ratings` to default service account:
 +
-----------------------------------------------------------------------------------
-oc adm policy add-cluster-role-to-user babylon-catalog-manager-dev -z default
-----------------------------------------------------------------------------------
+----------------------------------------------------------------------
+oc adm policy add-cluster-role-to-user babylon-ratings-dev -z default
+----------------------------------------------------------------------
 
 . Setup `odo` from the provided `devfile.yaml`:
 +
@@ -51,36 +51,37 @@ odo push
 +
 Remove `odo` component
 +
----------------------------------------------------
-odo delete --force babylon-catalog-manager-dev
----------------------------------------------------
+---------------------------------------
+odo delete --force babylon-ratings-dev
+---------------------------------------
 +
-Remove the `babylon-catalog-manager-dev` cluster role binding
+Remove the cluster-reader cluster role binding
 +
---------------------------------------------------------------------------------
-oc adm policy remove-cluster-role-from-user babylon-catalog-manager-dev -z default
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------
+oc adm policy remove-cluster-role-from-user babylon-ratings-dev -z default
+---------------------------------------------------------------------------
 +
 Remove resources created from the helm template
 +
------------------------------------------------------
+-------------------------------
 helm template helm \
 --set deploy=false \
---set nameOverride=babylon-catalog-manager-dev \
+--set nameOverride=babylon-ratings-dev \
 --set namespace.name=$(oc project --short) \
 | oc delete -f -
------------------------------------------------------
+-------------------------------
+
 
 ## Development OpenShift Build
 
-The OpenShift build process is a bit slower for development but has the advantage of being a bit closer to a normal deployment of the babylon-workshop-manager.
+The OpenShift build process is a bit slower for development but has the advantage of being a bit closer to a normal deployment of the babylon-ratings.
 It is often best to iterate development using `odo` and also test with an OpenShift build and deployment prior to opening a pull request.
 
 . Create a project for development using `oc`:
 +
------------------------------------------------
-oc new-project babylon-catalog-manager-dev
------------------------------------------------
+---------------------------------------
+oc new-project babylon-ratings-dev
+---------------------------------------
 
 . Process OpenShift build template to create BuildConfig and ImageStream:
 +
@@ -88,19 +89,19 @@ oc new-project babylon-catalog-manager-dev
 oc process --local -f build-template.yaml | oc apply -f -
 ---------------------------------------------------------
 
-. Build babylon-catalog-manager image from local source:
+. Build babylon-ratings image from local source:
 +
-------------------------------------------------------------------
-oc start-build babylon-catalog-manager --from-dir=.. --follow
-------------------------------------------------------------------
+----------------------------------------------------------
+oc start-build babylon-ratings --from-dir=.. --follow
+----------------------------------------------------------
 
-. Deploy babylon-catalog-manager from build image
+. Deploy Poolboy from build image
 +
 --------------------------------------------------------------------------------
 helm template helm \
---set nameOverride=babylon-catalog-manager-dev \
+--set nameOverride=babylon-ratings-dev \
 --set namespace.create=false \
---set=image.override="$(oc get imagestream babylon-catalog-manager -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}')" \
+--set=image.override="$(oc get imagestream babylon-ratings -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}')" \
 | oc apply -f -
 --------------------------------------------------------------------------------
 
@@ -108,12 +109,12 @@ helm template helm \
 +
 Remove resources created from the helm template:
 +
------------------------------------------------------
+---------------------------------------------
 helm template helm \
---set nameOverride=babylon-catalog-manager-dev \
+--set nameOverride=babylon-ratings-dev \
 --set namespace.create=false \
 | oc delete -f -
------------------------------------------------------
+---------------------------------------------
 +
 Remove BuildConfig and ImageStream:
 +
