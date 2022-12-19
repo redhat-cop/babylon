@@ -3,12 +3,12 @@ apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   annotations:
-    description: babylon-ratings-operator deploy
-  name: babylon-ratings-operator-build
+    description: babylon-catalog-manager deploy
+  name: babylon-catalog-manager-build
 
 parameters:
 - name: NAME
-  value: babylon-ratings-operator
+  value: babylon-catalog-manager
 - name: GIT_REPO
   value: https://github.com/redhat-cop/babylon.git
 - name: GIT_REF
@@ -38,7 +38,7 @@ objects:
     resources: {}
     runPolicy: Serial
     source:
-      contextDir: ratings
+      contextDir: catalog-manager
       git:
         uri: ${GIT_REPO}
         ref: ${GIT_REF}
