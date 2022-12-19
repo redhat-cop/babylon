@@ -16,7 +16,7 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "babylon-ratings.selectorLabels" . | nindent 6 }}
+        {{- include "babylon-ratings.selectorLabels" . | nindent 8 }}
     spec:
       containers:
       - name: ratings

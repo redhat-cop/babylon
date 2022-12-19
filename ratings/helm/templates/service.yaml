@@ -7,11 +7,9 @@ metadata:
   labels:
     {{- include "babylon-ratings.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
+  type: ExternalName
+  externalName: {{ include "babylon-ratings.name" . }}.{{ include "babylon-ratings.namespaceName" . }}.svc.cluster.local
   ports:
-  - name: ratings-api
-    port: 80
-    protocol: TCP
-    targetPort: 80
+  - port: 8080
   selector:
     {{- include "babylon-ratings.selectorLabels" . | nindent 4 }}

@@ -11,7 +11,7 @@ from catalog_item import CatalogItem
 
 babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
 babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
-ratings_api = os.environ.get('RATINGS_API', 'babylon-ratings-api')
+ratings_api = os.environ.get('RATINGS_API', 'babylon-ratings.babylon-ratings.svc.cluster.local')
 
 rating_label = f"{babylon_domain}/rating"
 
