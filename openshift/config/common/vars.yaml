@@ -172,9 +172,21 @@ babylon_resources:
 
   - name: Babylon workshop-manager Helm Template
     when: >-
-      babylon_lab_ui_manager_deploy | default(true) | bool
+      babylon_workshop_manager_deploy | default(true) | bool
     helm_template:
       dir: babylon-workshop-manager
+  
+  - name: Babylon catalog-manager Helm Template
+    when: >-
+      babylon_catalog_manager_deploy | default(true) | bool
+    helm_template:
+      dir: babylon-catalog-manager
+
+  - name: Babylon ratings Helm Template
+    when: >-
+      babylon_ratings_deploy | default(true) | bool
+    helm_template:
+      dir: babylon-ratings
 
   # agnosticv-operator
   - name: AgnosticV Operator Deploy

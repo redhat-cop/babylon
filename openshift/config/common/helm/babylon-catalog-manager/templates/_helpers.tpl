@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "babylon-ratings.name" -}}
+{{- define "babylon-catalog-manager.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
@@ -11,7 +11,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "babylon-ratings.fullname" -}}
+{{- define "babylon-catalog-manager.fullname" -}}
 {{- if .Values.fullnameOverride -}}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
@@ -27,16 +27,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "babylon-ratings.chart" -}}
+{{- define "babylon-catalog-manager.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
 Common labels
 */}}
-{{- define "babylon-ratings.labels" -}}
-helm.sh/chart: {{ include "babylon-ratings.chart" . }}
-{{ include "babylon-ratings.selectorLabels" . }}
+{{- define "babylon-catalog-manager.labels" -}}
+helm.sh/chart: {{ include "babylon-catalog-manager.chart" . }}
+{{ include "babylon-catalog-manager.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -46,8 +46,8 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "babylon-ratings.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "babylon-ratings.name" . }}
+{{- define "babylon-catalog-manager.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "babylon-catalog-manager.name" . }}
 {{- if (ne .Release.Name "RELEASE-NAME") }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
@@ -56,9 +56,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "babylon-ratings.serviceAccountName" -}}
+{{- define "babylon-catalog-manager.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
-{{ default (include "babylon-ratings.name" .) .Values.serviceAccount.name }}
+{{ default (include "babylon-catalog-manager.name" .) .Values.serviceAccount.name }}
 {{- else -}}
 {{ default "default" .Values.serviceAccount.name }}
 {{- end -}}
@@ -67,15 +67,15 @@ Create the name of the service account to use
 {{/*
 Create the name of the namespace to use
 */}}
-{{- define "babylon-ratings.namespaceName" -}}
-{{- default (include "babylon-ratings.name" .) .Values.namespace.name }}
+{{- define "babylon-catalog-manager.namespaceName" -}}
+{{- default (include "babylon-catalog-manager.name" .) .Values.namespace.name }}
 {{- end -}}
 
 
 {{/*
 Define the image to deploy
 */}}
-{{- define "babylon-ratings.image" -}}
+{{- define "babylon-catalog-manager.image" -}}
   {{- if .Values.image.override -}}
     {{- .Values.image.override -}}
   {{- else -}}

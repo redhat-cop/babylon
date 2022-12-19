@@ -97,4 +97,4 @@ def get_catalog_item_rating(catalog_item):
 if __name__ == "__main__":
     execute_query(CREATE_RATINGS_TABLE)
     logger.info("Booting up")
-    application.run(port=80)
+    application.run(port=8080)

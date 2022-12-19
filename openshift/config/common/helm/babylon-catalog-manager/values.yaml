@@ -42,8 +42,10 @@ affinity: {}
 babylon:
   domain: babylon.gpte.redhat.com
 
+poolboy:
+  domain: poolboy.gpte.redhat.com
+
 image:
-  repository: quay.io/redhat-gpte/babylon-ratings
+  repository: quay.io/redhat-gpte/babylon-catalog-manager
   pullPolicy: Always
   tagOverride: ""
-
