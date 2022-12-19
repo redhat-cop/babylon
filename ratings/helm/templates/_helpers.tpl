@@ -36,11 +36,14 @@ Common labels
 */}}
 {{- define "babylon-ratings.labels" -}}
 helm.sh/chart: {{ include "babylon-ratings.chart" . }}
-{{ include "babylon-ratings.selectorLabels" . }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/name: {{ include "babylon-ratings.name" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+  {{- if (ne .Release.Name "RELEASE-NAME") }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- end -}}
 {{- end -}}
 
 {{/*
@@ -48,20 +51,20 @@ Selector labels
 */}}
 {{- define "babylon-ratings.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "babylon-ratings.name" . }}
-{{- if (ne .Release.Name "RELEASE-NAME") }}
+  {{- if (ne .Release.Name "RELEASE-NAME") }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
+  {{- end -}}
 {{- end -}}
 
 {{/*
 Create the name of the service account to use
 */}}
 {{- define "babylon-ratings.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create -}}
+  {{- if .Values.serviceAccount.create -}}
 {{ default (include "babylon-ratings.name" .) .Values.serviceAccount.name }}
-{{- else -}}
+  {{- else -}}
 {{ default "default" .Values.serviceAccount.name }}
-{{- end -}}
+  {{- end -}}
 {{- end -}}
 
 {{/*
@@ -70,7 +73,6 @@ Create the name of the namespace to use
 {{- define "babylon-ratings.namespaceName" -}}
 {{- default (include "babylon-ratings.name" .) .Values.namespace.name }}
 {{- end -}}
-
 
 {{/*
 Define the image to deploy

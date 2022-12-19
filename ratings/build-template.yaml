@@ -14,7 +14,7 @@ parameters:
 - name: GIT_REF
   value: main
 - name: PYTHON_S2I_IMAGE
-  value: registry.access.redhat.com/ubi8/python-38:latest
+  value: registry.access.redhat.com/ubi8/python-39:latest
 
 objects:
 - apiVersion: image.openshift.io/v1
@@ -38,7 +38,7 @@ objects:
     resources: {}
     runPolicy: Serial
     source:
-      contextDir: ratings/api
+      contextDir: ratings
       git:
         uri: ${GIT_REPO}
         ref: ${GIT_REF}
