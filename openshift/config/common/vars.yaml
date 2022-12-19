@@ -184,6 +184,7 @@ babylon_resources:
 
   - name: Babylon ratings Helm Template
     when: >-
+      babylon_reporting_db is defined and
       babylon_ratings_deploy | default(true) | bool
     helm_template:
       dir: babylon-ratings
