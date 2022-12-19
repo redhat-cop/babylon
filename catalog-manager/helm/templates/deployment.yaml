@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "babylon-catalog-manager.operatorName" . }}
+  name: {{ include "babylon-catalog-manager.name" . }}
   namespace: {{ include "babylon-catalog-manager.namespaceName" . }}
   labels:
     {{- include "babylon-catalog-manager.labels" . | nindent 4 }}
