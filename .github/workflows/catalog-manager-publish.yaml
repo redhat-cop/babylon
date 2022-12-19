@@ -1,15 +1,15 @@
 ---
-name: ratings-publish
+name: catalog-manager-publish
 on:
   push:
     branches-ignore:
     - '*'
     tags:
-    - 'ratings-v[0-9]*'
+    - 'catalog-manager-v[0-9]*'
 jobs:
   publish:
     env:
-      IMAGE_NAME: babylon-ratings
+      IMAGE_NAME: babylon-catalog-manager
     runs-on: ubuntu-latest
     steps:
     - name: Checkout source
@@ -21,7 +21,7 @@ jobs:
         # Version is a semantic version tag or semantic version with release number
         # GITHUB_REF will be of the form "refs/tags/admin-v0.1.2" or "refs/tags/admin-v0.1.2-1"
         # To determine RELEASE, strip off the leading "refs/tags/"
-        RELEASE=${GITHUB_REF#refs/tags/ratings-}
+        RELEASE=${GITHUB_REF#refs/tags/catalog-manager-}
         # To determine VERSION, strip off any release number suffix
         VERSION=${RELEASE/-*/}
         echo "::set-output name=RELEASE::${RELEASE}"
@@ -57,7 +57,7 @@ jobs:
       uses: docker/build-push-action@v2
       if: steps.image_tags.outputs.IMAGE_TAGS
       with:
-        context: ratings
-        file: ratings/Dockerfile
+        context: catalog-manager
+        file: catalog-manager/Dockerfile
         push: true
         tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
