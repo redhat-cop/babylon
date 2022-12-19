@@ -21,10 +21,10 @@ spec:
       containers:
       - name: ratings
         env:
-        - name: KOPF_OPTIONS
-          value: "--log-format=json"
-        - name: KOPF_PEERING
-          value: {{ include "babylon-ratings.name" . }}
+        - name: GUNICORN_PROCESSES
+          value: "{{ .Values.gunicorn.processes }}"
+        - name: GUNICORN_THREADS
+          value: "{{ .Values.gunicorn.threads }}"
         image: {{ include "babylon-ratings.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:

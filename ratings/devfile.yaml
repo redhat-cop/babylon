@@ -1,6 +1,6 @@
 commands:
 - exec:
-    commandLine: pip install -r api/requirements.txt
+    commandLine: pip install -r requirements.txt
     component: py
     group:
       isDefault: true
@@ -8,7 +8,7 @@ commands:
     workingDir: ${PROJECT_SOURCE}
   id: pip-install-requirements
 - exec:
-    commandLine: python api/app.py
+    commandLine: python app.py
     component: py
     group:
       isDefault: true
@@ -50,7 +50,7 @@ metadata:
   displayName: Python
   icon: https://raw.githubusercontent.com/devfile-samples/devfile-stack-icons/main/python.svg
   language: Python
-  name: babylon-ratings
+  name: ratings
   projectType: Python
   provider: Red Hat
   tags:

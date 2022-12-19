@@ -5,8 +5,11 @@ import logging
 from logging import Formatter, FileHandler
 import psycopg2
 import os
+import urllib3
 from utils import execute_query
 
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logger = logging.getLogger('babylon-ratings')
 
 CREATE_RATINGS_TABLE = """CREATE TABLE IF NOT EXISTS ratings (

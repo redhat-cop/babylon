@@ -22,10 +22,12 @@ else:
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
 def get_secret_data(secret_name, secret_namespace=None):
     core_v1_api = kubernetes.client.CoreV1Api()
-    if not secret_namespace:
-        secret_namespace = "babylon-reporting"
+    if os.path.exists('/run/secrets/kubernetes.io/serviceaccount/namespace'):
+        current_namespace = open('/run/secrets/kubernetes.io/serviceaccount/namespace').read()
+    else:
+        current_namespace = 'babylon-ratings-dev'
     secret = core_v1_api.read_namespaced_secret(
-        secret_name, secret_namespace
+        secret_name, current_namespace
     )
     data = {k: base64.b64decode(v).decode('utf-8') for (k, v) in secret.data.items()}
 

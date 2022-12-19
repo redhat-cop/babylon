@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi8/python-39:latest
 
 USER root
 
-COPY . /tmp/src
+COPY ./api /tmp/src
 
 RUN chown -R 1001:0 /tmp/src && \
     chmod -R g+w /tmp/src
