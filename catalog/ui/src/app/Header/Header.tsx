@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ApplicationLauncher,
   ApplicationLauncherItem,
@@ -31,9 +32,9 @@ const Header: React.FC<{
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
   const {clearImpersonation, userImpersonated} = useImpersonateUser();
   const [impersonateUserModalIsOpen, setImpersonateUserModalIsOpen] = useState(false);
-
   const { isAdmin, email, userInterface } = useSession().getSession();
-
+  const navigate = useNavigate();
+  
   function clearUserImpersonation() {
     clearImpersonation();
     setUserControlDropdownOpen(false);
