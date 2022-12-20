@@ -1,4 +1,5 @@
 import os
+
 from babylon import Babylon
 
 class CatalogItem():
