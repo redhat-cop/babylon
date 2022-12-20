@@ -1,32 +1,28 @@
 import os
-import kubernetes
 import base64
 import json
 import psycopg2
+import re
+import logging
+
 from psycopg2.extras import DictCursor
 from psycopg2 import ProgrammingError
 from psycopg2 import pool
-import re
 from retrying import retry
-import logging
 from decimal import Decimal
 from datetime import timedelta
 
+from babylon import Babylon
+
 logger = logging.getLogger('babylon-ratings')
 
-if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
-    kubernetes.config.load_incluster_config()
-else:
-    kubernetes.config.load_kube_config()
-
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
-def get_secret_data(secret_name, secret_namespace=None):
-    core_v1_api = kubernetes.client.CoreV1Api()
+async def get_secret_data(secret_name, secret_namespace=None):
     if os.path.exists('/run/secrets/kubernetes.io/serviceaccount/namespace'):
         current_namespace = open('/run/secrets/kubernetes.io/serviceaccount/namespace').read()
     else:
         current_namespace = 'babylon-ratings-dev'
-    secret = core_v1_api.read_namespaced_secret(
+    secret = await Babylon.core_v1_api.read_namespaced_secret(
         secret_name, current_namespace
     )
     data = {k: base64.b64decode(v).decode('utf-8') for (k, v) in secret.data.items()}
@@ -40,11 +36,11 @@ def get_secret_data(secret_name, secret_namespace=None):
     return data
 
 
-def get_conn_params(secret_name='gpte-db-secrets'):
+async def get_conn_params(secret_name='gpte-db-secrets'):
     """Get connection parameters from the passed dictionary.
     Return a dictionary with parameters to connect to PostgreSQL server.
     """
-    params_dict = get_secret_data(secret_name)
+    params_dict = await get_secret_data(secret_name)
     params_map = {
         "hostname": "host",
         "username": "user",
@@ -62,13 +58,13 @@ def get_conn_params(secret_name='gpte-db-secrets'):
 
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
-def connect_to_db(fail_on_conn=True):
+async def connect_to_db(fail_on_conn=True):
     """ Connect to database and returns connection pool
     :param fail_on_conn:
     :return: connection pool
     """
     db_connection = None
-    conn_params = get_conn_params()
+    conn_params = await get_conn_params()
     try:
         db_connection = pool.ThreadedConnectionPool(2, 4, **conn_params)
 
@@ -89,8 +85,8 @@ def connect_to_db(fail_on_conn=True):
 
     return db_connection
 
-def execute_query(query, positional_args=None, autocommit=True):
-    db_connection = connect_to_db()
+async def execute_query(query, positional_args=None, autocommit=True):
+    db_connection = await connect_to_db()
     db_pool_conn = db_connection.getconn()
 
     encoding = 'utf-8'

@@ -1,6 +1,7 @@
 import kubernetes_asyncio
 import os
 import requests
+import Rating from catalog_item
 
 class Babylon():
     babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
@@ -34,9 +35,9 @@ def get_rating_from_api(catalog_item, logger):
         response = requests.get(f"{Babylon.ratings_api}/ratings/v1/catalogitem/{catalog_item.name}")
         if response.status_code == 200:
             logger.info(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {response.status_code}")
-            return response.json().get('rating', None)
+            return Rating(response.json().get('rating_score', None), response.json().get('total_ratings', 0))
         logger.warn(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {response.status_code}")
     except:
         logger.error(f"Error: Invalid connection with {Babylon.ratings_api}")
         pass
-    return None
+    return Rating(None, 0)

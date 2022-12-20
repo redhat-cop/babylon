@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ "${RATINGS_COMPONENT}" == 'api' ]
+then
+    export HOME=/opt/app-root/api
+    cd $HOME
+    exec uvicorn app:app --host 0.0.0.0 --port 8080 --lifespan on --log-level info --log-config logconfig.yaml
+else
+    exec /usr/libexec/s2i/run
+fi

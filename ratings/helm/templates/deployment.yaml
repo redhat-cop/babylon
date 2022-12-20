@@ -19,12 +19,10 @@ spec:
         {{- include "babylon-ratings.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-      - name: ratings
+      - name: ratings-api
         env:
-        - name: GUNICORN_PROCESSES
-          value: "{{ .Values.gunicorn.processes }}"
-        - name: GUNICORN_THREADS
-          value: "{{ .Values.gunicorn.threads }}"
+        - name: RATINGS_COMPONENT
+          value: api
         image: {{ include "babylon-ratings.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:

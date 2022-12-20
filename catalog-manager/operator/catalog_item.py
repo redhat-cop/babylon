@@ -42,10 +42,11 @@ class CatalogItem():
 
     @property
     def rating(self):
-        return self.labels.get(Babylon.catalog_item_rating_label, None)
+        return Rating(self.labels.get(Babylon.catalog_item_rating_label, None), 
+        self.annotations.get(Babylon.catalog_item_total_ratings, 0))
 
     @classmethod
-    async def set_rating(self, rating_score, logger):
+    async def set_rating(self, rating, logger):
         await Babylon.custom_objects_api.patch_namespaced_custom_object(
             group = Babylon.babylon_domain,
             version = Babylon.babylon_api_version,
@@ -56,10 +57,22 @@ class CatalogItem():
             body = {
                 "metadata": {
                     "labels": {
-                        Babylon.catalog_item_rating_label: rating_score,
+                        Babylon.catalog_item_rating_label: rating.rating_score,
+                    },
+                    "annotations": {
+                        Babylon.catalog_item_total_ratings: rating.total_ratings,
                     }
                 }
             }
         )
         self.labels = {**self.labels, **{ Babylon.catalog_item_rating_label: rating_score }}
-        logger.info(self.labels)
+        self.annotations = {**self.annotations, **{ Babylon.catalog_item_total_ratings: total_ratings }}
+
+class Rating():
+    def __init__(self, rating_score, total_ratings):
+        self.rating_score = rating_score
+        self.total_ratings = total_ratings
+    def __eq__(self, rating):
+        if isinstance(rating, Rating):
+            return self.rating_score == rating.rating_score and self.total_ratings == rating.total_ratings
+        return False

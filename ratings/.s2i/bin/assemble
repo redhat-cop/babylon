@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -x
+set -eo pipefail
+shopt -s dotglob
+
+mkdir -p /opt/app-root/src || :
+cp --preserve=mode --recursive /tmp/src/api /opt/app-root/
+
+exec /usr/libexec/s2i/assemble

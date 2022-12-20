@@ -24,7 +24,6 @@ objects:
   spec:
     lookupPolicy:
       local: false
-
 - apiVersion: v1
   kind: BuildConfig
   metadata:
