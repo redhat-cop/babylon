@@ -166,7 +166,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
-        <Split>
+        <Split hasGutter>
           <SplitItem className="catalog-item-details__header-icon">
             <CatalogItemIcon catalogItem={catalogItem} />
           </SplitItem>
