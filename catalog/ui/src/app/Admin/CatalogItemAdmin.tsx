@@ -37,9 +37,15 @@ import UnderMaintenanceLogo from '@app/components/StatusPageIcons/UnderMaintenan
 import useSession from '@app/utils/useSession';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import LoadingIcon from '@app/components/LoadingIcon';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './catalog-item-admin.css';
 
+type comment = {
+  author: string;
+  createdAt: string;
+  message: string;
+}
 export type Ops = {
   disabled: boolean;
   status: {
@@ -51,11 +57,7 @@ export type Ops = {
   };
   incidentUrl?: string;
   jiraIssueId?: string;
-  comments: {
-    author: string;
-    createdAt: string;
-    message: string;
-  }[];
+  comments: comment[];
   updated: {
     author: string;
     updatedAt: string;
@@ -66,6 +68,7 @@ const CatalogItemAdmin: React.FC = () => {
   const { namespace, name } = useParams();
   const navigate = useNavigate();
   const { data: catalogItem, mutate } = useSWR<CatalogItem>(apiPaths.CATALOG_ITEM({ namespace, name }), fetcher);
+  const matchMutate = useMatchMutate();
   const { email: userEmail } = useSession().getSession();
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -95,7 +98,7 @@ const CatalogItemAdmin: React.FC = () => {
     }
   }, [setIsReadOnlyValue, status]);
 
-  async function removeComment(comment) {
+  async function removeComment(comment: comment) {
     if (!ops?.comments || ops.comments.length < 1) {
       throw "Can't find comment to delete";
     }
@@ -106,15 +109,18 @@ const CatalogItemAdmin: React.FC = () => {
       },
     };
     setIsLoading(true);
-    mutate(
-      (await patchK8sObjectByPath({
-        path: apiPaths.CATALOG_ITEM({
-          namespace,
-          name,
-        }),
-        patch,
-      })) as CatalogItem
-    );
+    const catalogItemUpdated: CatalogItem = await patchK8sObjectByPath({
+      path: apiPaths.CATALOG_ITEM({
+        namespace,
+        name,
+      }),
+      patch,
+    });
+    mutate(catalogItemUpdated);
+    matchMutate([
+      { name: 'CATALOG_ITEMS', arguments: { namespace: 'all-catalogs' }, data: undefined },
+      { name: 'CATALOG_ITEMS', arguments: { namespace: catalogItemUpdated.metadata.namespace }, data: undefined },
+    ]);
     setIsLoading(false);
   }
   async function saveForm() {
@@ -145,15 +151,18 @@ const CatalogItemAdmin: React.FC = () => {
       },
     };
     setIsLoading(true);
-    mutate(
-      (await patchK8sObjectByPath({
-        path: apiPaths.CATALOG_ITEM({
-          namespace,
-          name,
-        }),
-        patch,
-      })) as CatalogItem
-    );
+    const catalogItemUpdated: CatalogItem = await patchK8sObjectByPath({
+      path: apiPaths.CATALOG_ITEM({
+        namespace,
+        name,
+      }),
+      patch,
+    });
+    mutate(catalogItemUpdated);
+    matchMutate([
+      { name: 'CATALOG_ITEMS', arguments: { namespace: 'all-catalogs' }, data: undefined },
+      { name: 'CATALOG_ITEMS', arguments: { namespace: catalogItemUpdated.metadata.namespace }, data: undefined },
+    ]);
     setIsLoading(false);
     navigate('/catalog');
   }
