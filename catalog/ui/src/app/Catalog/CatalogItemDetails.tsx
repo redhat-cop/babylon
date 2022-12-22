@@ -277,8 +277,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               ) : null}
 
               {sla && stage === 'prod' ? (
-                <DescriptionListGroup className="catalog-item-details__support-level">
-                  <DescriptionListTerm>Support level</DescriptionListTerm>
+                <DescriptionListGroup className="catalog-item-details__sla">
+                  <DescriptionListTerm>SLA</DescriptionListTerm>
                   <DescriptionListDescription>{sla.replace(/_+/g, ' | ')}</DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
