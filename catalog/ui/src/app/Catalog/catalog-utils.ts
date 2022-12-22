@@ -27,12 +27,12 @@ export function getStage(catalogItem: CatalogItem): string | null {
   return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
 }
 
-const supportedSupportTypes = ['Enterprise_Premium', 'Enterprise_Standard', 'Community'] as const;
-type SupportTypes = typeof supportedSupportTypes[number];
-export function getSupportType(catalogItem: CatalogItem): SupportTypes {
-  const supportType = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/Support_Type`] as SupportTypes;
-  if (!supportedSupportTypes.includes(supportType)) return null;
-  return supportType;
+const supportedSLAs = ['Enterprise_Premium', 'Enterprise_Standard', 'Community'] as const;
+type SLAs = typeof supportedSLAs[number];
+export function getSLA(catalogItem: CatalogItem): SLAs {
+  const sla = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/SLA`] as SLAs;
+  if (!supportedSLAs.includes(sla)) return null;
+  return sla;
 }
 
 export function getIsDisabled(catalogItem: CatalogItem): boolean {
@@ -114,5 +114,5 @@ export function setLastFilter(filter: string): void {
 export function formatString(string: string): string {
   return (string.charAt(0).toUpperCase() + string.slice(1)).replace(/_/g, ' ');
 }
-export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage', 'Support_Type', 'Featured_Score'];
+export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage', 'Featured_Score'];
 export const HIDDEN_ANNOTATIONS = ['ops', 'displayNameComponent0', 'displayNameComponent1'];
