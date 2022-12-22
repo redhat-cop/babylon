@@ -44,7 +44,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
       <div className="catalog-item-card__badges">
         {sla && stage === 'prod' ? (
           <Tooltip content={<p>SLA</p>}>
-            <a href="/support" target="_blank" rel="nofollow noreferrer" className="catalog-item-sla">
+            <a href="/support" target="_blank" rel="nofollow noreferrer">
               <Badge className="catalog-item-card__badges--sla">{sla.replace(/_+/g, ' | ')}</Badge>
             </a>
           </Tooltip>
