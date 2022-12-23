@@ -80,7 +80,7 @@
   z-index: 50;
 }
 
-.catalog-item-card__badges--support-type {
+.catalog-item-card__badges--sla {
   background-color: var(--pf-global--danger-color--100);
 }
 

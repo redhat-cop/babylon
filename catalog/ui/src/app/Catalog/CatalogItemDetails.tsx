@@ -45,7 +45,7 @@ import {
   getIsDisabled,
   getStage,
   getStatus,
-  getSupportType,
+  getSLA,
   HIDDEN_LABELS,
   getIncidentUrl,
   formatString,
@@ -69,7 +69,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { provisionTimeEstimate, accessControl, lastUpdate } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
-  const supportType = getSupportType(catalogItem);
+  const sla = getSLA(catalogItem);
   const stage = getStage(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
@@ -276,10 +276,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 </DescriptionListGroup>
               ) : null}
 
-              {supportType && stage === 'prod' ? (
-                <DescriptionListGroup className="catalog-item-details__support-type">
-                  <DescriptionListTerm>Support level</DescriptionListTerm>
-                  <DescriptionListDescription>{supportType.replace(/_+/g, ' | ')}</DescriptionListDescription>
+              {sla && stage === 'prod' ? (
+                <DescriptionListGroup className="catalog-item-details__sla">
+                  <DescriptionListTerm>SLA</DescriptionListTerm>
+                  <DescriptionListDescription>{sla.replace(/_+/g, ' | ')}</DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
 

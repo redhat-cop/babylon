@@ -77,7 +77,7 @@ const Header: React.FC<{
     >
       Status Page
     </ApplicationLauncherItem>,
-    <ApplicationLauncherItem key="support-type" href="/support">
+    <ApplicationLauncherItem key="support-sla" href="/support">
       Solution Support: SLAs
     </ApplicationLauncherItem>,
   ];

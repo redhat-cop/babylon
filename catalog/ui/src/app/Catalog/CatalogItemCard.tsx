@@ -13,7 +13,7 @@ import {
   getRate,
   getStage,
   getStatus,
-  getSupportType,
+  getSLA,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 
@@ -29,7 +29,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const isDisabled = getIsDisabled(catalogItem);
   const rate = getRate(catalogItem);
   const { code: status } = getStatus(catalogItem);
-  const supportType = getSupportType(catalogItem);
+  const sla = getSLA(catalogItem);
 
   if (!urlSearchParams.has('item')) {
     if (namespace) {
@@ -42,10 +42,10 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   return (
     <div className="catalog-item-card__wrapper">
       <div className="catalog-item-card__badges">
-        {supportType && stage === 'prod' ? (
-          <Tooltip content={<p>Support level</p>}>
-            <a href="/support" target="_blank" rel="nofollow noreferrer" className="catalog-item-card__support-type">
-              <Badge className="catalog-item-card__badges--support-type">{supportType.replace(/_+/g, ' | ')}</Badge>
+        {sla && stage === 'prod' ? (
+          <Tooltip content={<p>SLA</p>}>
+            <a href="/support" target="_blank" rel="nofollow noreferrer">
+              <Badge className="catalog-item-card__badges--sla">{sla.replace(/_+/g, ' | ')}</Badge>
             </a>
           </Tooltip>
         ) : stage === 'dev' ? (
