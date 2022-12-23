@@ -125,6 +125,7 @@ export interface CatalogItemSpec {
   bookbag?: any;
   messageTemplates?: any;
   multiuser?: boolean;
+  workshopUiDisabled?: boolean;
   parameters?: CatalogItemSpecParameter[];
   provisionTimeEstimate?: string;
   resources?: any[];

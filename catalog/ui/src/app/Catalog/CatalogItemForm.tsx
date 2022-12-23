@@ -106,7 +106,7 @@ const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceNa
     }),
     [catalogItem]
   );
-
+  const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
     reduceFormState(null, {
@@ -414,7 +414,7 @@ const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceNa
           );
         })}
 
-        {isAdmin || workshopNamespaces.length > 0 ? (
+        {!workshopUiDisabled && (isAdmin || workshopNamespaces.length > 0) ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch
