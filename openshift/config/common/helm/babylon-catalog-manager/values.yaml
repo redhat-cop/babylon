@@ -1,0 +1,51 @@
+# Default values for ..
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+deploy: true
+replicaCount: 1
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+namespace:
+  # Specifies whether a namespace should be created
+  create: true
+  # The name of the namespace to use.
+  # If not set and create is true, a name is generated using the name template
+  name:
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+babylon:
+  domain: babylon.gpte.redhat.com
+
+poolboy:
+  domain: poolboy.gpte.redhat.com
+
+image:
+  repository: quay.io/redhat-gpte/babylon-catalog-manager
+  pullPolicy: Always
+  tagOverride: ""

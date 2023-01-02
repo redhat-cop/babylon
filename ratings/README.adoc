@@ -1,0 +1,20 @@
+= Babylon Catalog API
+
+== Setup
+
+Initial setup to run once to prepare for running the API:
+
+-----------------------------------------------
+python3 -m venv ~/virtualenv/babylon-ratings/
+. ~/virtualenv/babylon-ratings/bin/activate
+pip install -r requirements.txt
+-----------------------------------------------
+
+=== Running in Development
+
+Commands each time to start:
+
+---------------------------------
+. ~/virtualenv/babylon-ratings/bin/activate
+uvicorn app:app --host 0.0.0.0 --port 8080 --lifespan on --log-level info --log-config logconfig.yaml --reload
+---------------------------------

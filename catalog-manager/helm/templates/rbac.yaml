@@ -1,0 +1,84 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "babylon-catalog-manager.name" . }}
+  annotations:
+    description: >-
+      Access read cluster resources for babylon catalog-manager
+  labels:
+    {{- include "babylon-catalog-manager.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kopf.dev
+  resources:
+  - clusterkopfpeerings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.babylon.domain }}
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+{{ if .Values.deploy }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "babylon-catalog-manager.name" . }}
+  labels:
+    {{- include "babylon-catalog-manager.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "babylon-catalog-manager.name" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "babylon-catalog-manager.serviceAccountName" . }}
+  namespace: {{ include "babylon-catalog-manager.namespaceName" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "babylon-catalog-manager.name" . }}:admin
+  labels:
+    {{- include "babylon-catalog-manager.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+- kind: ServiceAccount
+  name: {{ include "babylon-catalog-manager.serviceAccountName" . }}
+  namespace: {{ include "babylon-catalog-manager.namespaceName" . }}
+{{ end }}

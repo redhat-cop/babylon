@@ -1,0 +1,56 @@
+{{ if .Values.deploy }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "babylon-catalog-manager.name" . }}
+  namespace: {{ include "babylon-catalog-manager.namespaceName" . }}
+  labels:
+    {{- include "babylon-catalog-manager.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylon-catalog-manager.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon-catalog-manager.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: catalog-manager
+        env:
+        - name: KOPF_OPTIONS
+          value: "--log-format=json"
+        - name: KOPF_PEERING
+          value: {{ include "babylon-catalog-manager.name" . }}
+        image: {{ include "babylon-catalog-manager.image" . | quote }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: {{ include "babylon-catalog-manager.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 30
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{ end }}

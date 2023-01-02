@@ -1,0 +1,51 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  annotations:
+    description: babylon-catalog-manager deploy
+  name: babylon-catalog-manager-build
+
+parameters:
+- name: NAME
+  value: babylon-catalog-manager
+- name: GIT_REPO
+  value: https://github.com/redhat-cop/babylon.git
+- name: GIT_REF
+  value: main
+- name: KOPF_S2I_IMAGE
+  value: quay.io/redhat-cop/python-kopf-s2i:v1.35
+
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: ${NAME}
+  spec:
+    lookupPolicy:
+      local: false
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      contextDir: catalog-manager
+      git:
+        uri: ${GIT_REPO}
+        ref: ${GIT_REF}
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: ${KOPF_S2I_IMAGE}
+    triggers: []

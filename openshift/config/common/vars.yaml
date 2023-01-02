@@ -172,9 +172,28 @@ babylon_resources:
 
   - name: Babylon workshop-manager Helm Template
     when: >-
-      babylon_lab_ui_manager_deploy | default(true) | bool
+      babylon_workshop_manager_deploy | default(true) | bool
     helm_template:
       dir: babylon-workshop-manager
+  
+  - name: Babylon catalog-manager Helm Template
+    when: >-
+      babylon_catalog_manager_deploy | default(true) | bool
+    helm_template:
+      dir: babylon-catalog-manager
+
+  - name: Babylon ratings Helm Template
+    when: >-
+      babylon_reporting_db is defined and
+      babylon_ratings_deploy | default(true) | bool
+    helm_template:
+      dir: babylon-ratings
+      values:
+        db:
+          name: "{{ babylon_reporting_db.dbname | default('') }}"
+          username: "{{ babylon_reporting_db.username | default('') }}"
+          password: "{{ babylon_reporting_db.password | default('') }}"
+          hostname: "{{ babylon_reporting_db.hostname | default('') }}"
 
   # agnosticv-operator
   - name: AgnosticV Operator Deploy

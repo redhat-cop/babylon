@@ -44,7 +44,7 @@ const Footer: React.FC<{ rightElement?: ReactNode }> = ({ rightElement }) => (
                 <GithubIcon
                   style={{ marginRight: 'var(--pf-global--spacer--xs)', textDecoration: 'none', alignSelf: 'center' }}
                 />
-                Babylon v0.19.0
+                Babylon Release
               </a>
             </li>
           </ul>

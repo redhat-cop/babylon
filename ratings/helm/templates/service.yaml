@@ -1,0 +1,15 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "babylon-ratings.name" . }}
+  namespace: {{ include "babylon-ratings.namespaceName" . }}
+  labels:
+    {{- include "babylon-ratings.labels" . | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ include "babylon-ratings.name" . }}.{{ include "babylon-ratings.namespaceName" . }}.svc.cluster.local
+  ports:
+  - port: 8080
+  selector:
+    {{- include "babylon-ratings.selectorLabels" . | nindent 4 }}
