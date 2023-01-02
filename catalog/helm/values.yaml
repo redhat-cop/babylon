@@ -34,7 +34,7 @@ ui:
   name: # default use chart name + '-ui'
   image:
     #override:
-    tag: v0.24.2
+    tag: v0.24.3
     repository: quay.io/redhat-gpte/babylon-catalog-ui
     pullPolicy: IfNotPresent
   replicaCount: 1
