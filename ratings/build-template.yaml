@@ -44,6 +44,7 @@ objects:
     strategy:
       type: Source
       sourceStrategy:
+        forcePull: true
         from:
           kind: DockerImage
           name: ${PYTHON_S2I_IMAGE}

@@ -46,7 +46,3 @@ image:
   repository: quay.io/redhat-gpte/babylon-ratings
   pullPolicy: Always
   tagOverride: ""
-
-gunicorn:
-  processes: 5
-  threads: 1
