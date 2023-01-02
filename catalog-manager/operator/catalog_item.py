@@ -1,6 +1,7 @@
 import os
 
 from babylon import Babylon
+from rating import Rating
 
 class CatalogItem():
     kind = 'CatalogItem'
@@ -68,12 +69,3 @@ class CatalogItem():
         )
         self.labels = {**self.labels, **{ Babylon.catalog_item_rating_label: rating_score }}
         self.annotations = {**self.annotations, **{ Babylon.catalog_item_total_ratings: total_ratings }}
-
-class Rating():
-    def __init__(self, rating_score, total_ratings):
-        self.rating_score = rating_score
-        self.total_ratings = total_ratings
-    def __eq__(self, rating):
-        if isinstance(rating, Rating):
-            return self.rating_score == rating.rating_score and self.total_ratings == rating.total_ratings
-        return False
