@@ -28,7 +28,7 @@ async def on_startup(logger, settings, **_):
     settings.persistence.diffbase_storage = kopf.StatusDiffBaseStorage(field='status.diffBase')
 
     # Use operator domain as finalizer
-    settings.persistence.finalizer = f"{Babylon.babylon_domain}/workshop-manager"
+    settings.persistence.finalizer = f"{Babylon.babylon_domain}/catalog-manager"
 
     # Store progress in status
     settings.persistence.progress_storage = kopf.StatusProgressStorage(field='status.kopf.progress')
