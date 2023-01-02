@@ -2,7 +2,7 @@ import kubernetes_asyncio
 import os
 import requests
 
-from catalog_item import Rating
+from rating import Rating
 
 class Babylon():
     babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
