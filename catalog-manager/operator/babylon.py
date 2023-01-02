@@ -7,7 +7,7 @@ from rating import Rating
 class Babylon():
     babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
     babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
-    ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local')
+    ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 
     catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
     catalog_item_display_name_annotation = f"{babylon_domain}/catalogItemDisplayName"
