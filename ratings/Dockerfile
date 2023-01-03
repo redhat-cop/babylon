@@ -10,8 +10,9 @@ RUN rm -rf /tmp/src/.git* && \
     chown -R 1001 /tmp/src && \
     chown -R 1001 /tmp/scripts && \
     chgrp -R 0 /tmp/src && \
+    chgrp -R 0 /tmp/scripts && \
     chmod -R g+w /tmp/src && \
-    chmod -R 500 /tmp/scripts
+    chmod -R 701 /tmp/scripts
 
 USER 1001
 
