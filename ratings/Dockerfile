@@ -15,8 +15,6 @@ RUN rm -rf /tmp/src/.git* && \
 
 USER 1001
 
-ENV APP_SCRIPT /tmp/scripts/s2i/run
-
 RUN /tmp/scripts/s2i/assemble
 
-CMD /usr/libexec/s2i/run
+CMD /tmp/scripts/s2i/run
