@@ -12,10 +12,10 @@ RUN rm -rf /tmp/src/.git* && \
     chgrp -R 0 /tmp/src && \
     chgrp -R 0 /tmp/scripts && \
     chmod -R g+w /tmp/src && \
-    chmod -R 701 /tmp/scripts
+    chmod -R +x /tmp/scripts
 
 USER 1001
 
 RUN /tmp/scripts/s2i/assemble
 
-CMD /tmp/scripts/s2i/run
+CMD ["/tmp/scripts/s2i/run"]
