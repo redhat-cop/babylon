@@ -2,8 +2,7 @@ FROM registry.access.redhat.com/ubi8/python-39:latest
 
 USER root
 
-COPY ./api /tmp/src
-COPY ./requirements.txt /tmp/src
+COPY . /tmp/src
 
 RUN rm -rf /tmp/src/.git* && \
     chown -R 1001 /tmp/src && \
