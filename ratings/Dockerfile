@@ -14,6 +14,4 @@ USER 1001
 
 RUN /usr/libexec/s2i/assemble
 
-EXPOSE 8080
-
 CMD /usr/libexec/s2i/run
