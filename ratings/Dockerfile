@@ -4,13 +4,19 @@ USER root
 
 COPY . /tmp/src
 
+COPY ./.s2i/bin /tmp/scripts/s2i
+
 RUN rm -rf /tmp/src/.git* && \
     chown -R 1001 /tmp/src && \
+    chown -R 1001 /tmp/scripts && \
     chgrp -R 0 /tmp/src && \
-    chmod -R g+w /tmp/src
+    chmod -R g+w /tmp/src && \
+    chmod -R 500 /tmp/scripts
 
 USER 1001
 
-RUN /usr/libexec/s2i/assemble
+ENV APP_SCRIPT /tmp/scripts/s2i/run
+
+RUN /tmp/scripts/s2i/assemble
 
 CMD /usr/libexec/s2i/run
