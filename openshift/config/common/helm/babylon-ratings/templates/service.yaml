@@ -10,8 +10,8 @@ spec:
   type: ClusterIP
   ports:
   - name: ratings-api
-    port: 80
+    port: 8080
     protocol: TCP
-    targetPort: 80
+    targetPort: 8080
   selector:
     {{- include "babylon-ratings.selectorLabels" . | nindent 4 }}
