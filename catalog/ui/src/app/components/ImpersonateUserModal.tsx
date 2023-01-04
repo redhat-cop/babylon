@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { listUsers } from '@app/api';
 import { useNavigate } from 'react-router-dom';
 import { Button, ContextSelector, ContextSelectorItem, Modal, SearchInput } from '@patternfly/react-core';
-
+import { User, UserList } from '@app/types';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
 
 import './impersonate-user-modal.css';
+
 
 const ImpersonateUserModal: React.FC<{
   isOpen: boolean;

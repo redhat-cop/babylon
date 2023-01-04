@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import useSession from '@app/utils/useSession';
 import { ContextSelector, ContextSelectorItem } from '@patternfly/react-core';
-import { ServiceNamespace } from '@app/types';
+import { NamespaceList, ServiceNamespace } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
 
 import './service-namespace-select.css';
