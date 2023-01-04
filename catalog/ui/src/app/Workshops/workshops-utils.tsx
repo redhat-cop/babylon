@@ -2,18 +2,12 @@ import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 import { getAutoStopTime, getStartTime } from '@app/Services/service-utils';
 
-export function isWorkshopStarted(
-  workshop: Workshop,
-  workshopProvisions: WorkshopProvision[],
-): boolean {
+export function isWorkshopStarted(workshop: Workshop, workshopProvisions: WorkshopProvision[]): boolean {
   const startTime = getWorkshopStartTime(workshop, workshopProvisions);
   return startTime && startTime < Date.now();
 }
 
-export function getWorkshopStartTime(
-  workshop: Workshop,
-  workshopProvisions: WorkshopProvision[],
-): number {
+export function getWorkshopStartTime(workshop: Workshop, workshopProvisions: WorkshopProvision[]): number {
   // Lifespan start propagates from Workshop.
   if (workshop.spec.lifespan?.start) {
     return Date.parse(workshop.spec.lifespan.start);
@@ -32,16 +26,13 @@ export function getWorkshopStartTime(
 
 export function getWorkshopLifespan(
   workshop: Workshop,
-  workshopProvisions: WorkshopProvision[],
+  workshopProvisions: WorkshopProvision[]
 ): { start: number; end: number } {
   const endTime = workshop.spec.lifespan?.end ? Date.parse(workshop.spec.lifespan.end) : null;
   return { start: getWorkshopStartTime(workshop, workshopProvisions), end: endTime };
 }
 
-export function getWorkshopAutoStopTime(
-  workshop: Workshop,
-  resourceClaims: ResourceClaim[],
-): number {
+export function getWorkshopAutoStopTime(workshop: Workshop, resourceClaims: ResourceClaim[]): number {
   // Workshop stop schedule propagates to all ResourceClaims
   if (workshop.spec.actionSchedule?.stop) {
     return Date.parse(workshop.spec.actionSchedule.stop);
@@ -50,10 +41,7 @@ export function getWorkshopAutoStopTime(
   const resourcesTime = resourceClaims && resourceClaims.length > 0 ? resourceClaims.flatMap(getAutoStopTime) : [];
   return resourcesTime.length > 0 ? Math.min(...resourcesTime) : null;
 }
-export function getWorkshopServicesStartTime(
-  workshop: Workshop,
-  resourceClaims: ResourceClaim[],
-): number {
+export function getWorkshopServicesStartTime(workshop: Workshop, resourceClaims: ResourceClaim[]): number {
   // Workshop start schedule propagates to all ResourceClaims
   if (workshop.spec.actionSchedule?.start) {
     return Date.parse(workshop.spec.actionSchedule.start);

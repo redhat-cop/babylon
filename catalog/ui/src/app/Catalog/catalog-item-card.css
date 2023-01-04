@@ -39,10 +39,10 @@
 }
 
 .catalog-item-card__description {
-  line-height: 1.25em;
+  line-height: 1.25 !important;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   font-weight: 300 !important;
   font-size: var(--pf-global--FontSize--xs) !important;
@@ -92,10 +92,11 @@
 .catalog-item-card__subtitle {
   color: var(--pf-global--palette--black-600);
   font-size: var(--pf-global--FontSize--xs) !important;
-  display: flex;
+  line-height: 1.25 !important;
   align-items: center;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
+  display: -webkit-box;
   overflow: hidden;
 }
 

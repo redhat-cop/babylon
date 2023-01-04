@@ -3,8 +3,7 @@ import parseDuration from 'parse-duration';
 import { ResourceClaim, ServiceActionActions } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import { displayName } from '@app/util';
-import StarRating from '@app/components/StarRating';
-import { Form, FormGroup, TextArea } from '@patternfly/react-core';
+import ServicesActionRating from './ServicesActionRating';
 
 const ServicesAction: React.FC<{
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
@@ -58,31 +57,7 @@ const ServicesAction: React.FC<{
         <p>Cloud services will be stopped.</p>
       ) : null}
       {action === 'rate' || action === 'delete' ? (
-        <Form className="services-action__rating-form">
-          <FormGroup fieldId="comment" label="Rating">
-            <StarRating
-              count={5}
-              rating={actionState?.rating?.rate || 0}
-              onRating={(rate) => setActionState({ ...actionState, rating: { ...actionState.rating, rate } })}
-            />
-          </FormGroup>
-          <FormGroup
-            fieldId="comment"
-            label={
-              <span>
-                Add feedback for <i>{displayName(resourceClaim)}</i> developers
-              </span>
-            }
-          >
-            <TextArea
-              id="comment"
-              onChange={(comment) => setActionState({ ...actionState, rating: { ...actionState.rating, comment } })}
-              value={actionState.rating?.comment || ''}
-              placeholder="Add comment"
-              aria-label="Add comment"
-            />
-          </FormGroup>
-        </Form>
+        <ServicesActionRating actionState={actionState} setActionState={setActionState} />
       ) : null}
     </>
   );

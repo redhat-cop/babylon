@@ -23,7 +23,7 @@
 }
 
 .catalog-item-list-item__description {
-  line-height: 1.25em;
+  line-height: 1.25em !important;
   overflow: hidden;
   font-weight: var(--pf-global--link--FontWeight) !important;
   font-size: var(--pf-global--FontSize--sm) !important;
@@ -76,6 +76,7 @@
 .catalog-item-list-item__subtitle {
   color: var(--pf-global--palette--black-600);
   font-size: var(--pf-global--FontSize--xs) !important;
+  line-height: 1.25 !important;
   display: flex;
   align-items: center;
   overflow: hidden;

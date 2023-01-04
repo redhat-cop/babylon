@@ -41,6 +41,7 @@ import {
   requestStatusForAllResourcesInResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
   setLifespanEndForResourceClaim,
+  setProvisionRating,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
@@ -410,8 +411,16 @@ const ServicesItemComponent: React.FC<{
           ? await startAllResourcesInResourceClaim(resourceClaim)
           : await stopAllResourcesInResourceClaim(resourceClaim);
       mutate(resourceClaimUpdate);
-    } else if (modalState.action === 'rate') {
-      console.log(modalState);
+    }
+    if (modalState.action === 'rate' || modalState.action === 'delete') {
+      if (modalState.rating) {
+        const provisionUuids = resourceClaim.status.resources
+          .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
+          .filter(Boolean);
+        for (const provisionUuid of provisionUuids) {
+          await setProvisionRating(provisionUuid, modalState.rating.rate, modalState.rating.comment);
+        }
+      }
     }
   }
 
@@ -484,7 +493,10 @@ const ServicesItemComponent: React.FC<{
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-item__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect allowSelectAll isPlain isText
+          <ServiceNamespaceSelect
+            allowSelectAll
+            isPlain
+            isText
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {

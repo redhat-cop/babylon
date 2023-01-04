@@ -1592,6 +1592,14 @@ export async function fetchWithUpdatedCostTracker({
   return await fetcher(path);
 }
 
+export function setProvisionRating(provisionUuid: string, rating: number, comment: string): Promise<void> {
+  return apiFetch(apiPaths.PROVISION_RATING({ provisionUuid: provisionUuid }), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rating: rating, comment: comment }),
+  });
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
@@ -1686,4 +1694,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }`,
   RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }): string =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders/${resourceProviderName}`,
+  PROVISION_RATING: ({ provisionUuid }: { provisionUuid: string }): string =>
+    `/api/ratings/provisions/${provisionUuid}`,
 };

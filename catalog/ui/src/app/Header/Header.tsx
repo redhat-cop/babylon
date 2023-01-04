@@ -30,11 +30,11 @@ const Header: React.FC<{
 }> = ({ isNavOpen, isMobileView, onNavToggle, onNavToggleMobile }) => {
   const [isUserControlDropdownOpen, setUserControlDropdownOpen] = useState(false);
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
-  const {clearImpersonation, userImpersonated} = useImpersonateUser();
+  const { clearImpersonation, userImpersonated } = useImpersonateUser();
   const [impersonateUserModalIsOpen, setImpersonateUserModalIsOpen] = useState(false);
   const { isAdmin, email, userInterface } = useSession().getSession();
   const navigate = useNavigate();
-  
+
   function clearUserImpersonation() {
     clearImpersonation();
     setUserControlDropdownOpen(false);
@@ -155,12 +155,9 @@ const Header: React.FC<{
           </DropdownToggle>
         }
       />
-      { impersonateUserModalIsOpen ? (
-        <ImpersonateUserModal
-          isOpen={true}
-          onClose={() => setImpersonateUserModalIsOpen(false)}
-        />
-      ) : null }
+      {impersonateUserModalIsOpen ? (
+        <ImpersonateUserModal isOpen={true} onClose={() => setImpersonateUserModalIsOpen(false)} />
+      ) : null}
     </PageHeaderTools>
   );
 

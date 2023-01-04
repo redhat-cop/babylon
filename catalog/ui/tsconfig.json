@@ -25,10 +25,8 @@
     "strictNullChecks": false,
     "strict": true,
     "target": "es5",
-    "typeRoots": [
-      "node_modules/@types"
-    ],
-    "resolveJsonModule": true,
+    "typeRoots": ["node_modules/@types"],
+    "resolveJsonModule": true
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js", "./test-setup.ts"],
   "exclude": ["node_modules"]
