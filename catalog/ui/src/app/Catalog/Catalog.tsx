@@ -296,8 +296,13 @@ const Catalog: React.FC = () => {
     : {};
 
   const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
+  const requiredUserPropertiesToAccess =
+    catalogNamespaces.length > 0 &&
+    groups.some((g) => g.startsWith('identity-provider')) &&
+    groups.some((g) => g.startsWith('email-domain'));
+
   useEffect(() => {
-    if (catalogNamespaces.length === 0) {
+    if (requiredUserPropertiesToAccess) {
       const count = searchParams.has('c') ? parseInt(searchParams.get('c'), 10) + 1 : 1;
       setTimeout(() => {
         if (count < 6) {
@@ -307,7 +312,7 @@ const Catalog: React.FC = () => {
         }
       }, 10000);
     }
-  }, [catalogNamespaces, searchParams]);
+  }, [requiredUserPropertiesToAccess, searchParams]);
   const filterFunction = useMemo(() => (item: CatalogItem) => filterCatalogItemByAccessControl(item, groups), [groups]);
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
@@ -575,7 +580,7 @@ const Catalog: React.FC = () => {
                               Please continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
                               <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                             </p>
-                          ) : catalogNamespaceNames.length > 0 ? (
+                          ) : requiredUserPropertiesToAccess ? (
                             <p>
                               Sorry! You do not have access to the Red Hat Product Demo System. This system is only
                               available for Red Hat associates at this time. Red Hat partners may access{' '}
