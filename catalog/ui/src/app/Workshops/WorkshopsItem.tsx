@@ -104,7 +104,8 @@ const WorkshopsItemComponent: React.FC<{
     [openModalAction, openModalDelete, openModalGetCost, openModalSchedule]
   );
   const enableFetchUserNamespaces = isAdmin;
-  const enableManageWorkshopProvisions = isAdmin || workshopNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
+  const enableManageWorkshopProvisions =
+    isAdmin || workshopNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
@@ -141,16 +142,17 @@ const WorkshopsItemComponent: React.FC<{
       namespace: workshop.metadata.namespace,
       limit: 'ALL',
     }),
-    () => enableManageWorkshopProvisions ? (
-      fetcherItemsInAllPages((continueId) =>
-        apiPaths.WORKSHOP_PROVISIONS({
-          workshopName: workshop.metadata.name,
-          namespace: workshop.metadata.namespace,
-          limit: FETCH_BATCH_LIMIT,
-          continueId,
-        })
-      )
-    ) : []
+    () =>
+      enableManageWorkshopProvisions
+        ? fetcherItemsInAllPages((continueId) =>
+            apiPaths.WORKSHOP_PROVISIONS({
+              workshopName: workshop.metadata.name,
+              namespace: workshop.metadata.namespace,
+              limit: FETCH_BATCH_LIMIT,
+              continueId,
+            })
+          )
+        : []
   );
 
   const { data: resourceClaims, mutate } = useSWR<ResourceClaim[]>(
@@ -228,8 +230,8 @@ const WorkshopsItemComponent: React.FC<{
           start: dateToApiString(now),
           // FIXME - this should be configurable, hardcoded to 12 hours after start for now
           stop: dateToApiString(new Date(now.getTime() + 12 * 60 * 60 * 1000)),
-        }
-      }
+        },
+      },
     };
     const workshopUpdated = await patchWorkshop({
       name: workshop.metadata.name,
@@ -255,8 +257,8 @@ const WorkshopsItemComponent: React.FC<{
         },
         lifespan: {
           start: dateToApiString(now),
-        }
-      }
+        },
+      },
     };
     const workshopUpdated = await patchWorkshop({
       name: workshop.metadata.name,
@@ -320,8 +322,8 @@ const WorkshopsItemComponent: React.FC<{
             start: dateToApiString(date),
             // FIXME - this should be configurable, hardcoded to 12 hours after start for now
             stop: dateToApiString(new Date(date.getTime() + 12 * 60 * 60 * 1000)),
-          }
-        }
+          },
+        },
       };
       if (!isWorkshopStarted(workshop, workshopProvisions)) {
         patch.spec.lifespan = { start: dateToApiString(date) };
@@ -375,7 +377,11 @@ const WorkshopsItemComponent: React.FC<{
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-item__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect allowSelectAll isPlain isText selectWorkshopNamespace
+          <ServiceNamespaceSelect
+            allowSelectAll
+            isPlain
+            isText
+            selectWorkshopNamespace
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {
@@ -468,16 +474,13 @@ const WorkshopsItemComponent: React.FC<{
               />
             ) : null}
           </Tab>
-          { enableManageWorkshopProvisions ? (
+          {enableManageWorkshopProvisions ? (
             <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
               {activeTab === 'provision' ? (
-                <WorkshopsItemProvisioning
-                  workshop={workshop}
-                  workshopProvisions={workshopProvisions}
-                />
+                <WorkshopsItemProvisioning workshop={workshop} workshopProvisions={workshopProvisions} />
               ) : null}
             </Tab>
-          ) : null }
+          ) : null}
           <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
             {activeTab === 'services' ? (
               <WorkshopsItemServices

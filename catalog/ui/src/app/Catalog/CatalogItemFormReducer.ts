@@ -355,9 +355,8 @@ function reduceFormStateWorkshop(
   workshop: WorkshopProps = null
 ): FormState {
   const isSalesforceIdRequired = salesforceIdRequired({ ...initialState, workshop });
-  const resetServiceNamepace = allowServiceNamespaces && !(
-    allowServiceNamespaces.map(ns => ns.name).includes(initialState.serviceNamespace.name)
-  );
+  const resetServiceNamepace =
+    allowServiceNamespaces && !allowServiceNamespaces.map((ns) => ns.name).includes(initialState.serviceNamespace.name);
   const salesforceId = { ...initialState.salesforceId, required: isSalesforceIdRequired };
   return {
     ...initialState,
@@ -388,11 +387,11 @@ function reduceFormStateStartDate(initialState: FormState, startDate: Date): For
   };
 }
 
-function reduceFormStateServiceNamespace(initialState: FormState, serviceNamespace: string): FormState {
+function reduceFormStateServiceNamespace(initialState: FormState, serviceNamespace: ServiceNamespace): FormState {
   return {
     ...initialState,
     serviceNamespace: serviceNamespace,
-  }
+  };
 }
 
 function reduceFormStatePurpose(initialState: FormState, purpose: string): FormState {

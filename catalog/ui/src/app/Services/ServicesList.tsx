@@ -349,7 +349,10 @@ const ServicesList: React.FC<{
       </Modal>
       {serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-list__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect allowSelectAll isPlain isText
+          <ServiceNamespaceSelect
+            allowSelectAll
+            isPlain
+            isText
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {

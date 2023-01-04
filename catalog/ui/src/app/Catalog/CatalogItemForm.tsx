@@ -80,7 +80,7 @@ const ScheduleModal: React.FC<{ defaultTimestamp: number; onSelect: (date: Date)
   );
 };
 
-const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceName: string}> = ({
+const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceName: string }> = ({
   catalogItemName,
   catalogNamespaceName,
 }) => {
@@ -240,34 +240,27 @@ const CatalogItemFormData: React.FC<{catalogItemName: string; catalogNamespaceNa
       {formState.formGroups.length > 0 ? <p>Order by completing the form. Default values may be provided.</p> : null}
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
-
-        { isAdmin
-          || (formState.workshop && workshopNamespaces.length > 1)
-          || (!formState.workshop && serviceNamespaces.length > 1)
-          ? (
-            <FormGroup key="service-namespace" fieldId="service-namespace" label="Create Request in Project">
-              <ServiceNamespaceSelect
-                currentNamespaceName={formState.serviceNamespace.name}
-                onSelect={(namespace) => {
-                  dispatchFormState({
-                    type: 'serviceNamespace',
-                    serviceNamespace: namespace,
-                  });
-                }}
+        {isAdmin ||
+        (formState.workshop && workshopNamespaces.length > 1) ||
+        (!formState.workshop && serviceNamespaces.length > 1) ? (
+          <FormGroup key="service-namespace" fieldId="service-namespace" label="Create Request in Project">
+            <ServiceNamespaceSelect
+              currentNamespaceName={formState.serviceNamespace.name}
+              onSelect={(namespace) => {
+                dispatchFormState({
+                  type: 'serviceNamespace',
+                  serviceNamespace: namespace,
+                });
+              }}
+            />{' '}
+            <Tooltip position="right" content={<div>Create service request in specified project namespace.</div>}>
+              <OutlinedQuestionCircleIcon
+                aria-label="Create service request in specified project namespace."
+                className="tooltip-icon-only"
               />
-              {' '}
-              <Tooltip
-                position="right"
-                content={<div>Create service request in specified project namespace.</div>}
-              >
-                <OutlinedQuestionCircleIcon
-                  aria-label="Create service request in specified project namespace."
-                  className="tooltip-icon-only"
-                />
-              </Tooltip>
-            </FormGroup>
-          ) : null
-        }
+            </Tooltip>
+          </FormGroup>
+        ) : null}
 
         <ActivityPurposeSelector
           value={formState.purpose}

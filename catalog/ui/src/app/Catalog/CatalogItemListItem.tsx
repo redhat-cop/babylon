@@ -67,7 +67,7 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
             </div>
           ) : null}
           <div className="catalog-item-card__rating">
-            <StarRating count={5} rating={rate} readOnly={true} />
+            <StarRating count={5} rating={rate} readOnly hideIfNotRated />
           </div>
         </CardBody>
       </Card>

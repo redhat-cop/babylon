@@ -3,7 +3,6 @@ import { ResourceType } from '@app/types';
 import { escapeRegex } from '@app/util';
 import { useCallback } from 'react';
 import { useSWRConfig } from 'swr';
-import { ScopedMutator } from 'swr/dist/types';
 
 /**
  * matchMutate can receive a resource type, and apply the bussiness logic to update the affected cache item.
@@ -14,7 +13,7 @@ import { ScopedMutator } from 'swr/dist/types';
 function useMatchMutate(): (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resources: { name: ResourceType; arguments: any; data: any }[]
-) => Promise<ScopedMutator[]> {
+) => Promise<any[]> {
   const { cache, mutate } = useSWRConfig();
   return useCallback(
     (resources) => {

@@ -35,6 +35,7 @@
   display: inline-block;
   margin-left: var(--pf-global--spacer--md);
 }
-.footer__legal li:last-child a:after, .footer__legal a > a:after {
+.footer__legal li:last-child a:after,
+.footer__legal a > a:after {
   display: none;
 }

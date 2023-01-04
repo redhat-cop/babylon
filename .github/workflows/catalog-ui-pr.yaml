@@ -36,6 +36,7 @@ jobs:
       - name: Run integration tests
         working-directory: ./catalog/ui
         run: npm run test
+        shell: bash
   deploy:
     needs: test
     name: "Deploy on OpenShift (BabyDev)"

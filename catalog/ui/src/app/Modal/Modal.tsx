@@ -7,9 +7,11 @@ import React, {
   ForwardRefRenderFunction,
   ReactPortal,
   useLayoutEffect,
+  Suspense,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Modal, ModalVariant, Spinner } from '@patternfly/react-core';
+import LoadingSection from '@app/components/LoadingSection';
 import useModal from './useModal';
 
 import './modal.css';
@@ -148,45 +150,53 @@ const _Modal: ForwardRefRenderFunction<
   return domReady
     ? createPortal(
         isOpen ? (
-          <Modal
-            className={`modal-component${className ? ` ${className}` : ''} ${optionalFlags
-              .map((flag) => `optional-flags__${flag}`)
-              .join(' ')}`}
-            variant={ModalVariant.small}
-            title={_title}
-            onClose={close}
-            aria-label={`Modal: ${_title}`}
-            isOpen={isOpen}
-            actions={
-              type === 'action'
-                ? [
-                    <Button
-                      key="confirm"
-                      variant="primary"
-                      onClick={handleOnConfirm}
-                      isDisabled={_isDisabled || isLoading}
-                      icon={isLoading ? <Spinner isSVG size="sm" /> : null}
-                    >
-                      {confirmText}
-                    </Button>,
-                    <Button key="cancel" variant="link" onClick={close}>
-                      Cancel
-                    </Button>,
-                  ]
-                : [
-                    <Button
-                      key="confirm"
-                      variant="primary"
-                      onClick={handleOnConfirm}
-                      isDisabled={isDisabled || isLoading}
-                    >
-                      Close
-                    </Button>,
-                  ]
+          <Suspense
+            fallback={
+              <Modal isOpen variant={ModalVariant.small} onClose={close}>
+                <LoadingSection />
+              </Modal>
             }
           >
-            {childrenWithProps}
-          </Modal>
+            <Modal
+              className={`modal-component${className ? ` ${className}` : ''} ${optionalFlags
+                .map((flag) => `optional-flags__${flag}`)
+                .join(' ')}`}
+              variant={ModalVariant.small}
+              title={_title}
+              onClose={close}
+              aria-label={`Modal: ${_title}`}
+              isOpen={isOpen}
+              actions={
+                type === 'action'
+                  ? [
+                      <Button
+                        key="confirm"
+                        variant="primary"
+                        onClick={handleOnConfirm}
+                        isDisabled={_isDisabled || isLoading}
+                        icon={isLoading ? <Spinner isSVG size="sm" /> : null}
+                      >
+                        {confirmText}
+                      </Button>,
+                      <Button key="cancel" variant="link" onClick={close}>
+                        Cancel
+                      </Button>,
+                    ]
+                  : [
+                      <Button
+                        key="confirm"
+                        variant="primary"
+                        onClick={handleOnConfirm}
+                        isDisabled={isDisabled || isLoading}
+                      >
+                        Close
+                      </Button>,
+                    ]
+              }
+            >
+              {childrenWithProps}
+            </Modal>
+          </Suspense>
         ) : null,
         document.getElementById('modal-root')
       )

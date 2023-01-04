@@ -14,7 +14,7 @@ const ciName = 'ci-name';
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcher: jest.fn(() => Promise.resolve(catalogItemObj as CatalogItem)),
-  patchK8sObjectByPath: jest.fn(),
+  patchK8sObjectByPath: jest.fn(() => Promise.resolve(catalogItemObj as CatalogItem)),
 }));
 
 jest.mock('react-router-dom', () => ({

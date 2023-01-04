@@ -45,7 +45,7 @@ type comment = {
   author: string;
   createdAt: string;
   message: string;
-}
+};
 export type Ops = {
   disabled: boolean;
   status: {

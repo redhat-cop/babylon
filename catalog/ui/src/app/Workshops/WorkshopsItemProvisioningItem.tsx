@@ -86,7 +86,9 @@ const WorkshopsItemProvisioningItem: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>{workshop.spec.multiuserServices ? 'Workshop Service Count' : 'Workshop User Count'}</DescriptionListTerm>
+          <DescriptionListTerm>
+            {workshop.spec.multiuserServices ? 'Workshop Service Count' : 'Workshop User Count'}
+          </DescriptionListTerm>
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
@@ -95,11 +97,16 @@ const WorkshopsItemProvisioningItem: React.FC<{
               value={workshopProvision.spec.count}
               style={{ paddingRight: 'var(--pf-global--spacer--md)' }}
             />
-            <Tooltip position="right" content={
-              workshop.spec.multiuserServices
-              ? <p>Number of shared services for the workshop, each service supports multiple users.</p>
-              : <p>Number of independent services for the workshop, each user gets a dedicated service.</p>
-            }>
+            <Tooltip
+              position="right"
+              content={
+                workshop.spec.multiuserServices ? (
+                  <p>Number of shared services for the workshop, each service supports multiple users.</p>
+                ) : (
+                  <p>Number of independent services for the workshop, each user gets a dedicated service.</p>
+                )
+              }
+            >
               <OutlinedQuestionCircleIcon
                 aria-label="Number of independent services for the workshop"
                 className="tooltip-icon-only"

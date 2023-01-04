@@ -2,16 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { listUsers } from '@app/api';
 import { useNavigate } from 'react-router-dom';
 import { Button, ContextSelector, ContextSelectorItem, Modal, SearchInput } from '@patternfly/react-core';
-
+import { User, UserList } from '@app/types';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
 
 import './impersonate-user-modal.css';
 
+
 const ImpersonateUserModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-}> = ({isOpen, onClose}) => {
+}> = ({ isOpen, onClose }) => {
   const { setImpersonation } = useImpersonateUser();
   const [users, setUsers] = useState<User[]>([]);
   const [userSelectIsOpen, setUserSelectIsOpen] = useState(false);
@@ -26,7 +27,7 @@ const ImpersonateUserModal: React.FC<{
   }
 
   async function fetchUsers() {
-    const resp: UserList = await listUsers({disableImpersonation: true});
+    const resp: UserList = await listUsers({ disableImpersonation: true });
     setUsers(resp.items);
   }
 
@@ -47,7 +48,7 @@ const ImpersonateUserModal: React.FC<{
         </Button>,
         <Button key="cancel" variant="link" onClick={onClose}>
           Cancel
-        </Button>
+        </Button>,
       ]}
     >
       <ContextSelector
@@ -57,21 +58,22 @@ const ImpersonateUserModal: React.FC<{
         searchInputValue={userSearchValue}
         toggleText={user?.metadata?.name || 'Select User'}
       >
-        { users.filter(
-            (user) => user.metadata.name != authUser && user.metadata.name.includes(userSearchValue)
-          ).map((user) =>
+        {users
+          .filter((user) => user.metadata.name != authUser && user.metadata.name.includes(userSearchValue))
+          .map((user) => (
             <ContextSelectorItem
               key={user.metadata.name}
               onClick={() => {
                 setUser(user);
-                setUserSelectIsOpen(false)
+                setUserSelectIsOpen(false);
               }}
-            >{ user.metadata.name }</ContextSelectorItem>
-          )
-        }
+            >
+              {user.metadata.name}
+            </ContextSelectorItem>
+          ))}
       </ContextSelector>
     </Modal>
   );
-}
+};
 
 export default ImpersonateUserModal;

@@ -31,6 +31,7 @@ interface_name = os.environ.get('INTERFACE_NAME');
 redis_connection = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
+ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 
 if 'REDIS_PASSWORD' in os.environ:
     redis_connection = redis.StrictRedis(
@@ -388,6 +389,18 @@ def resolve_openstack_subjects(resource_claim):
         subjects.append(subject)
     return(subjects)
 
+def api_proxy(method, url, headers, data = None):
+    resp = requests.request(method=method, url=url,
+        headers={key: value for (key, value) in headers if key != 'Host'},
+        data=data,
+        allow_redirects=False)
+    excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection', 
+    'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers', 'upgrade']
+    headers = [(name, value) for (name, value) in resp.raw.headers.items()
+               if name.lower() not in excluded_headers]
+
+    response = flask.Response(resp.content, resp.status_code, headers)
+    return response
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
 def salesforce_connection():
@@ -739,6 +752,19 @@ def salesforce_opportunity(opportunity_id):
     if salesforce_validation(opportunity_id):
         return flask.jsonify({"success": True})
     flask.abort(404)
+
+@application.route("/api/ratings/provisions/<provision_uuid>", methods=['POST'])
+def provision_rating_set(provision_uuid):
+    user = proxy_user()
+    data = flask.request.get_json()
+    data["email"] = user['metadata']['name']
+    return api_proxy(method="POST", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}", data=json.dumps(data), headers=flask.request.headers)
+
+@application.route("/api/ratings/provisions/<provision_uuid>", methods=['GET'])
+def provision_rating_get(provision_uuid):
+    user = proxy_user()
+    email = user['metadata']['name']
+    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}/users/{email}", headers=flask.request.headers)
 
 @application.route("/api/workshop/<workshop_id>", methods=['GET'])
 def workshop_get(workshop_id):

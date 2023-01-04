@@ -34,7 +34,7 @@ class Babylon():
 
 def get_rating_from_api(catalog_item, logger):
     try:
-        response = requests.get(f"{Babylon.ratings_api}/ratings/v1/catalogitem/{catalog_item.name}")
+        response = requests.get(f"{Babylon.ratings_api}/api/ratings/v1/catalogitem/{catalog_item.name}")
         if response.status_code == 200:
             logger.info(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {response.status_code}")
             return Rating(response.json().get('rating_score', None), response.json().get('total_ratings', 0))
