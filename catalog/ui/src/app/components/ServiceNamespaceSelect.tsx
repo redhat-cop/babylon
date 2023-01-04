@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR from 'swr';
 import useSession from '@app/utils/useSession';
 import { ContextSelector, ContextSelectorItem } from '@patternfly/react-core';
 import { ServiceNamespace } from '@app/types';
@@ -8,23 +8,27 @@ import { apiPaths, fetcher } from '@app/api';
 import './service-namespace-select.css';
 
 const ServiceNamespaceSelect: React.FC<{
-  allowSelectAll: boolean;
+  allowSelectAll?: boolean;
   currentNamespaceName: string;
-  isPlain: boolean;
-  isText: boolean;
+  isPlain?: boolean;
+  isText?: boolean;
   onSelect: (namespace: ServiceNamespace) => void;
-  selectWorkshopNamespace: boolean;
+  selectWorkshopNamespace?: boolean;
 }> = ({
   allowSelectAll = false,
   currentNamespaceName,
   isPlain = false,
   isText = false,
   onSelect,
-  selectWorkshopNamespace=false,
+  selectWorkshopNamespace = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchValue, setSearchValue] = React.useState('');
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces, workshopNamespaces: sessionWorkshopNamespaces } = useSession().getSession();
+  const {
+    isAdmin,
+    serviceNamespaces: sessionServiceNamespaces,
+    workshopNamespaces: sessionWorkshopNamespaces,
+  } = useSession().getSession();
   const enableFetchNamespaces = isAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
@@ -39,7 +43,9 @@ const ServiceNamespaceSelect: React.FC<{
             displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
           };
         })
-      : selectWorkshopNamespace ? sessionWorkshopNamespaces : sessionServiceNamespaces;
+      : selectWorkshopNamespace
+      ? sessionWorkshopNamespaces
+      : sessionServiceNamespaces;
   }, [enableFetchNamespaces, sessionServiceNamespaces, userNamespaceList]);
 
   const currentNamespace: ServiceNamespace | null = currentNamespaceName
@@ -57,7 +63,7 @@ const ServiceNamespaceSelect: React.FC<{
       searchInputValue={searchValue}
       toggleText={currentNamespace ? currentNamespace.displayName : 'All Projects'}
     >
-      { allowSelectAll ? (
+      {allowSelectAll ? (
         <ContextSelectorItem
           key="*"
           onClick={() => {
@@ -67,19 +73,27 @@ const ServiceNamespaceSelect: React.FC<{
         >
           All Projects
         </ContextSelectorItem>
-      ) : [] }
+      ) : (
+        []
+      )}
 
-      { serviceNamespaces.filter((ns) => ns.name.toLowerCase().includes(searchValue.toLowerCase()) || ns.displayName.toLowerCase().includes(searchValue.toLowerCase())).map((ns) => (
-        <ContextSelectorItem
-          key={ns.name}
-          onClick={() => {
-            onSelect(ns);
-            setIsOpen(false);
-          }}
-        >
-          {ns.displayName || ns.name}
-        </ContextSelectorItem>
-      ))}
+      {serviceNamespaces
+        .filter(
+          (ns) =>
+            ns.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+            ns.displayName.toLowerCase().includes(searchValue.toLowerCase())
+        )
+        .map((ns) => (
+          <ContextSelectorItem
+            key={ns.name}
+            onClick={() => {
+              onSelect(ns);
+              setIsOpen(false);
+            }}
+          >
+            {ns.displayName || ns.name}
+          </ContextSelectorItem>
+        ))}
     </ContextSelector>
   );
 };

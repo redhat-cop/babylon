@@ -236,9 +236,12 @@ const WorkshopsList: React.FC<{
       </Modal>
       {serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-list__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect allowSelectAll isPlain isText selectWorkshopNamespace
+          <ServiceNamespaceSelect
+            allowSelectAll
+            isPlain
+            isText
+            selectWorkshopNamespace
             currentNamespaceName={serviceNamespaceName}
-            selectWorkshopNamespace={true}
             onSelect={(namespace) => {
               if (namespace) {
                 navigate(`/workshops/${namespace.name}${location.search}`);
