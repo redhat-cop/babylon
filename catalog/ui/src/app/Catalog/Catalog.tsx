@@ -576,13 +576,13 @@ const Catalog: React.FC = () => {
                             </p>
                           ) : groups.includes('salesforce-partner') ? (
                             <p>
-                              Sorry! The new Red Hat Platform Demo (RHPD) is not yet available for partners. Please
+                              Sorry! The new Red Hat Demo Platform (RHDP) is not yet available for partners. Please
                               continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
                               <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                             </p>
                           ) : !requiredUserPropertiesToAccess ? (
                             <>
-                              <p>Welcome to the Red Hat Platform Demo!</p>
+                              <p>Welcome to the Red Hat Demo Platform!</p>
                               <LoadingIcon />
                               <p>
                                 Please wait a few seconds while we set up your catalog. If nothing happens refresh this
@@ -591,7 +591,7 @@ const Catalog: React.FC = () => {
                             </>
                           ) : (
                             <p>
-                              Sorry! You do not have access to the Red Hat Platform Demo. This system is only available
+                              Sorry! You do not have access to the Red Hat Demo Platform. This system is only available
                               for Red Hat associates at this time. Red Hat partners may access{' '}
                               <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
                               <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
