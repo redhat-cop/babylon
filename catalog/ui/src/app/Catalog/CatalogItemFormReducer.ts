@@ -387,7 +387,7 @@ function reduceFormStateStartDate(initialState: FormState, startDate: Date): For
   };
 }
 
-function reduceFormStateServiceNamespace(initialState: FormState, serviceNamespace: string): FormState {
+function reduceFormStateServiceNamespace(initialState: FormState, serviceNamespace: ServiceNamespace): FormState {
   return {
     ...initialState,
     serviceNamespace: serviceNamespace,
