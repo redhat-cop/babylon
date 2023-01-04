@@ -1,17 +1,17 @@
 Types,Community Content,Enterprise- Standard,Enterprise- Premium,Pre Scheduled Events
-Description,Assets created by the RHPDS User Community. No guaranteed support.,"Assets created by TMMs, SSAs, and other relevant teams to help drive sales with relevant content. Improved Support.",Curated Assets created and supported by RHPDS. Best support experience.,"Customer workshops, brand events. Dedicated support and communication channels."
+Description,Assets created by the RHDP User Community. No guaranteed support.,"Assets created by TMMs, SSAs, and other relevant teams to help drive sales with relevant content. Improved Support.",Curated Assets created and supported by RHDP. Best support experience.,"Customer workshops, brand events. Dedicated support and communication channels."
 Requirements,,Open Environments only supported on deploy/destroy.,,at least 2 weeks notice via ticket to pre provision and allocate resources
 Hours of Coverage,"Mon-Fri during business hours in IST, GMT, CEST, EST and PST ","Mon-Fri during business hours  in IST, GMT, CEST, EST and PST ","Mon-Fri during business hours  in IST, GMT, CEST, EST and PST ","Mon-Fri during business hours  in IST, GMT, CEST, EST and PST "
 Customer-Facing Support Tools,Ticketing system,Ticketing system,Ticketing system,Ticketing System and dedicated workshop Google Chat space
 Request/Incident Response Time (Officially Support Tooling only),16 business hours,10 business hours,6 business hours,Dedicated Support
 Incident Resolution Time - Platform,,,,
-Severity 1 (RHPDS is down/Most CIs are not available),,10 business hours,,
+Severity 1 (RHDP is down/Most CIs are not available),,10 business hours,,
 Severity 2 (A specifc cloud is down/All product related demos are down/Most CIs have intermittent issues),,12 business hours,,
 Incident Resolution Time - Content,,,,
 Severity 3 (ie: A single demo is not available),5 business days,1 business day,12 business hours,
 Severity 4 (ie: A single demo or several demos are having intermittent issues),10 business days,2 business days,1 business day,
 Restoration Time,Best effort,5 business days,2 business days,"1 hour, dependent on the asset's support tier"
-Resolution Time for RHPDS-Supportable Issues,Best effort,10 business days,5 business days,1 business day
+Resolution Time for RHDP-Supportable Issues,Best effort,10 business days,5 business days,1 business day
 Deployment Failure Rate %,10%,7.50%,3%,1%
 Catalog Item Uptime (excluding external dependencies and maintenance windows),Best effort,,,
 Platform Uptime,,,,

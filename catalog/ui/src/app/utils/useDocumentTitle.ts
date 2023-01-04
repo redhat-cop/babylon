@@ -8,7 +8,7 @@ function getPageTitle(title: string, userInterface?: string): string {
   return userInterface === 'summit'
     ? title.replace('Babylon', 'Red Hat Summit')
     : userInterface === 'rhpds'
-    ? title.replace('Babylon', 'RHPDS')
+    ? title.replace('Babylon', 'RHDP')
     : title;
 }
 

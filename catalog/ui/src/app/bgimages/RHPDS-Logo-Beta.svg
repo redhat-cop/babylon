@@ -19,6 +19,6 @@
       </g>
       <path d="M255.5,160.7a2.22,2.22,0,0,1-2.2-2.2V4.2a2.2,2.2,0,0,1,4.4,0V158.4A2.242,2.242,0,0,1,255.5,160.7Z" fill="#fff"/>
     </g>
-    <text data-name="Product Demo System" transform="translate(5410 2033)" fill="#fff" font-size="82" font-family="'RedHatDisplay', 'Overpass', overpass, helvetica, arial, sans-serif" font-weight="700"><tspan x="-877.892" y="0">Product Demo System</tspan></text>
+    <text data-name="Demo Platform" transform="translate(5410 2033)" fill="#fff" font-size="82" font-family="'RedHatDisplay', 'Overpass', overpass, helvetica, arial, sans-serif" font-weight="700"><tspan x="-877.892" y="0">Demo Platform</tspan></text>
   </g>
 </svg>

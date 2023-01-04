@@ -79,7 +79,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
   const severity3 = createRowFromArr('Severity 3');
   const severity4 = createRowFromArr('Severity 4');
   const restorationTime = createRowFromArr('Restoration Time');
-  const resolutionTimeForRHPDS = createRowFromArr('Resolution Time');
+  const resolutionTimeForRHDP = createRowFromArr('Resolution Time');
   const failureRate = createRowFromArr('Deployment Failure Rate');
 
   const rows = [
@@ -94,7 +94,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
     severity3,
     severity4,
     restorationTime,
-    resolutionTimeForRHPDS,
+    resolutionTimeForRHDP,
     failureRate,
   ];
   const headingIndexes = [4, 7];
@@ -127,7 +127,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                 <em>
                   “We ran a pretty intense DevSecOps 1 day-workshop for one of our Premier Partners in Germany with 8
                   attendees. The workshop required to have a cluster per attendee, which was a lot of hassle for us to
-                  set up in the past. With RHPDS support we were able to focus on running the workshop and not on the
+                  set up in the past. With RHDP support we were able to focus on running the workshop and not on the
                   infrastructure. Highly appreciated!”
                 </em>
                 <br />
@@ -143,7 +143,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                   Overview
                 </Title>
                 <Text>
-                  RHPDS (Red Hat Product Demo System) helps you confidently plan and host customer-facing events with
+                  RHDP (Red Hat Demo Platform) helps you confidently plan and host customer-facing events with
                   assistance from experienced support engineers and architects.
                 </Text>
               </PageSection>
@@ -210,7 +210,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
               <a href={getHelpLink()} target="_blank" rel="noopener noreferrer">
                 Contact us
               </a>{' '}
-              for more information about RHPDS Solution Support.
+              for more information about RHDP Solution Support.
             </Text>
             <Divider />
             <TextList

@@ -12,7 +12,7 @@ const CatalogInterfaceDescription: React.FC = () => {
     return (
       <PageSection variant={PageSectionVariants.light} style={{ paddingBottom: 0 }}>
         <Title headingLevel="h1" size="2xl">
-          Red Hat Product Demo System
+          Red Hat Demo Platform
         </Title>
         <div>Select an item to request a new service, demo, or lab.</div>
       </PageSection>

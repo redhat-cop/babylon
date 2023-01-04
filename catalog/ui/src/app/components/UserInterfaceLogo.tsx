@@ -19,7 +19,7 @@ const UserInterfaceLogo: React.FC<
       fill="#fff"
     />
     <text
-      data-name="Product Demo System"
+      data-name="Demo Platform"
       transform="translate(1186 149)"
       fill="#fff"
       fontSize={82}
@@ -27,7 +27,7 @@ const UserInterfaceLogo: React.FC<
       fontWeight={700}
     >
       <tspan x={-877.892} y={0}>
-        Product Demo System
+        Demo Platform
       </tspan>
     </text>
   </svg>
