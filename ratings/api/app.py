@@ -1,7 +1,6 @@
 import logging
 import psycopg2
 import os
-import urllib.parse
 
 from asgi_tools import App, ResponseError
 from datetime import datetime, timezone
