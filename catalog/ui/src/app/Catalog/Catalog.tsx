@@ -581,13 +581,6 @@ const Catalog: React.FC = () => {
                               <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                             </p>
                           ) : !requiredUserPropertiesToAccess ? (
-                            <p>
-                              Sorry! You do not have access to the Red Hat Product Demo System. This system is only
-                              available for Red Hat associates at this time. Red Hat partners may access{' '}
-                              <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
-                              <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
-                            </p>
-                          ) : (
                             <>
                               <p>Welcome to the Red Hat Product Demo System!</p>
                               <LoadingIcon />
@@ -596,6 +589,13 @@ const Catalog: React.FC = () => {
                                 page.
                               </p>
                             </>
+                          ) : (
+                            <p>
+                              Sorry! You do not have access to the Red Hat Product Demo System. This system is only
+                              available for Red Hat associates at this time. Red Hat partners may access{' '}
+                              <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
+                              <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
+                            </p>
                           )}
                         </EmptyState>
                       </PageSection>
