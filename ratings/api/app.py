@@ -74,13 +74,13 @@ async def provision_rating_get(request):
         return 200, resultArr[0]
     return 404, 'Not Found'
 
-# {"email": "user@redhat.com", "rating": 4.8, comment: "My comment"}
+# {"email": "user@redhat.com", "rating": 4, comment: "My comment"}
 @app.route("/api/ratings/v1/provisions/{provision_uuid}", methods=['POST'])
 async def provision_rating_set(request):
     schema = Schema({
         "email": And(str, len),
         Optional("rating"): Or(And(Use(int), lambda n: 0 <= n <= 5), None),
-        Optional("comment"): Or(And(str, len), None),
+        Optional("comment"): Or(str, None),
     })
     data = await request.data()
     try:

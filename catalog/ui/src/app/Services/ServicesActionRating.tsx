@@ -34,8 +34,10 @@ const ServicesActionRating: React.FC<{
       <FormGroup fieldId="comment" label="Rating">
         <StarRating
           count={5}
-          rating={actionState?.rating?.rate || existingRating.rating || 0}
-          onRating={(rate) => setActionState({ ...actionState, rating: { ...actionState.rating, rate } })}
+          rating={actionState.rating ? actionState.rating.rate || 0 : existingRating.rating || 0}
+          onRating={(rate) =>
+            setActionState({ ...actionState, rating: { comment: existingRating.comment, ...actionState.rating, rate } })
+          }
         />
       </FormGroup>
       <FormGroup
@@ -48,8 +50,10 @@ const ServicesActionRating: React.FC<{
       >
         <TextArea
           id="comment"
-          onChange={(comment) => setActionState({ ...actionState, rating: { ...actionState.rating, comment } })}
-          value={actionState.rating?.comment || existingRating.comment || ''}
+          onChange={(comment) =>
+            setActionState({ ...actionState, rating: { rate: existingRating.rating, ...actionState.rating, comment } })
+          }
+          value={actionState.rating ? actionState.rating.comment || '' : existingRating.comment || ''}
           placeholder="Add comment"
           aria-label="Add comment"
         />
