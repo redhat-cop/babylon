@@ -8,7 +8,6 @@ import useSession from '@app/utils/useSession';
 
 import './impersonate-user-modal.css';
 
-
 const ImpersonateUserModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
