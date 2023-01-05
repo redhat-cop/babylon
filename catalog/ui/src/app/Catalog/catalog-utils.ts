@@ -42,13 +42,13 @@ export function getIsDisabled(catalogItem: CatalogItem): boolean {
   return false;
 }
 
-export function getRating(catalogItem: CatalogItem): { ratingScore: number, totalRatings:number} | null {
+export function getRating(catalogItem: CatalogItem): { ratingScore: number; totalRatings: number } | null {
   const ratingScoreSelector = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/rating`];
   const totalRatingsSelector = catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/totalRatings`];
   if (ratingScoreSelector) {
     const ratingScore = parseInt(ratingScoreSelector, 10);
     const totalRatings = totalRatingsSelector ? parseInt(totalRatingsSelector, 10) : null;
-    return isNaN(ratingScore) ? null : {ratingScore, totalRatings};
+    return isNaN(ratingScore) ? null : { ratingScore, totalRatings };
   }
   return null;
 }

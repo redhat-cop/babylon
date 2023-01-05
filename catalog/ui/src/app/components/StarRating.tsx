@@ -68,7 +68,7 @@ const StarRating: React.FC<{
             paddingTop: '1px',
           }}
         >
-          {rating === null || total === null ? 'Not rated' : `(${total})`}
+          {rating === null || total === null ? 'Not rated' : `(${total})`}
         </p>
       ) : null}
     </div>
