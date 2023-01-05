@@ -36,7 +36,10 @@ const ServicesActionRating: React.FC<{
           count={5}
           rating={actionState.rating ? actionState.rating.rate || 0 : existingRating?.rating || 0}
           onRating={(rate) =>
-            setActionState({ ...actionState, rating: { comment: existingRating?.comment, ...actionState.rating, rate } })
+            setActionState({
+              ...actionState,
+              rating: { comment: existingRating?.comment, ...actionState.rating, rate },
+            })
           }
         />
       </FormGroup>

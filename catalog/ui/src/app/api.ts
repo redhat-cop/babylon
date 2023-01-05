@@ -151,9 +151,9 @@ export async function fetcher(path: string, opt?: Record<string, unknown>): Prom
 
 export async function fetcherSilent(path: string, opt?: Record<string, unknown>): Promise<any> {
   try {
-    return await fetcher(path, opt)
+    return await fetcher(path, opt);
   } catch {
-    return Promise.resolve(null)
+    return Promise.resolve(null);
   }
 }
 
