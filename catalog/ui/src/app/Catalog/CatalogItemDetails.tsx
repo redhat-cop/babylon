@@ -284,7 +284,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               ) : null}
 
               <DescriptionListGroup className="catalog-item-details__rate">
-                <DescriptionListTerm>Rate</DescriptionListTerm>
+                <DescriptionListTerm>Rating</DescriptionListTerm>
                 <DescriptionListDescription>
                   <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
                 </DescriptionListDescription>

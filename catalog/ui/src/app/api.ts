@@ -149,6 +149,14 @@ export async function fetcher(path: string, opt?: Record<string, unknown>): Prom
   return response.json();
 }
 
+export async function fetcherSilent(path: string, opt?: Record<string, unknown>): Promise<any> {
+  try {
+    return await fetcher(path, opt)
+  } catch {
+    return Promise.resolve(null)
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export async function fetcherItemsInAllPages(
   pathFn: (continueId: string) => string,

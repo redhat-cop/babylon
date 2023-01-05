@@ -152,7 +152,7 @@ const _Modal: ForwardRefRenderFunction<
         isOpen ? (
           <Suspense
             fallback={
-              <Modal isOpen variant={ModalVariant.small} onClose={close}>
+              <Modal isOpen variant={ModalVariant.small} onClose={close} aria-label="Modal: Loading">
                 <LoadingSection />
               </Modal>
             }
