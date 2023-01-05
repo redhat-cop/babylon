@@ -22,7 +22,7 @@ const ServicesActionRating: React.FC<{
 }> = ({ actionState, setActionState }) => {
   const resourceClaim = actionState.resourceClaim;
   const provisionUuid = resourceClaim.status?.resources
-    .map((r) => r.state.spec?.vars?.job_vars?.uuid)
+    .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
     .find((uuid) => uuid);
   const { data: existingRating } = useSWR<{ rating: number; comment: string }>(
     provisionUuid ? apiPaths.PROVISION_RATING({ provisionUuid }) : null,
@@ -30,38 +30,49 @@ const ServicesActionRating: React.FC<{
   );
 
   return (
-    <Form className="services-action__rating-form">
-      <FormGroup fieldId="comment" label="Rating">
-        <StarRating
-          count={5}
-          rating={actionState.rating ? actionState.rating.rate || 0 : existingRating?.rating || 0}
-          onRating={(rate) =>
-            setActionState({
-              ...actionState,
-              rating: { comment: existingRating?.comment, ...actionState.rating, rate },
-            })
-          }
-        />
-      </FormGroup>
-      <FormGroup
-        fieldId="comment"
-        label={
-          <span>
-            Add feedback for <i>{displayName(resourceClaim)}</i> developers
-          </span>
-        }
-      >
-        <TextArea
-          id="comment"
-          onChange={(comment) =>
-            setActionState({ ...actionState, rating: { rate: existingRating?.rating, ...actionState.rating, comment } })
-          }
-          value={actionState.rating ? actionState.rating.comment || '' : existingRating?.comment || ''}
-          placeholder="Add comment"
-          aria-label="Add comment"
-        />
-      </FormGroup>
-    </Form>
+    <>
+      {provisionUuid ? (
+        <Form className="services-action__rating-form">
+          <FormGroup fieldId="comment" label="Rating">
+            <StarRating
+              count={5}
+              rating={actionState.rating ? actionState.rating.rate || 0 : existingRating?.rating || 0}
+              onRating={(rate) =>
+                setActionState({
+                  ...actionState,
+                  rating: { comment: existingRating?.comment, ...actionState.rating, rate },
+                })
+              }
+            />
+          </FormGroup>
+          <FormGroup
+            fieldId="comment"
+            label={
+              <span>
+                Add feedback for <i>{displayName(resourceClaim)}</i> developers
+              </span>
+            }
+          >
+            <TextArea
+              id="comment"
+              onChange={(comment) =>
+                setActionState({
+                  ...actionState,
+                  rating: { rate: existingRating?.rating, ...actionState.rating, comment },
+                })
+              }
+              value={actionState.rating ? actionState.rating.comment || '' : existingRating?.comment || ''}
+              placeholder="Add comment"
+              aria-label="Add comment"
+            />
+          </FormGroup>
+        </Form>
+      ) : (
+        <div>
+          <p>Not available</p>
+        </div>
+      )}
+    </>
   );
 };
 
