@@ -1,4 +1,5 @@
 import os
+import kubernetes_asyncio
 
 from babylon import Babylon
 from rating import Rating
@@ -7,21 +8,17 @@ class CatalogItem():
     kind = 'CatalogItem'
     plural = 'catalogitems'
     
-    @classmethod
-    def from_definition(cls, definition):
+    def from_definition(self, definition):
         metadata = definition['metadata']
-        return cls(
-            annotations = metadata.get('annotations', {}),
-            labels = metadata.get('labels', {}),
-            meta = metadata,
-            name = metadata['name'],
-            namespace = metadata['namespace'],
-            spec = definition['spec'],
-            status = definition.get('status', {}),
-            uid = metadata['uid'],
-        )
+        self.annotations = metadata.get('annotations', {})
+        self.labels = metadata.get('labels', {})
+        self.metadata = metadata
+        self.name = metadata['name']
+        self.namespace = metadata['namespace']
+        self.spec = definition['spec']
+        self.status = definition.get('status', {})
+        self.uid = metadata['uid']
     
-    @classmethod
     def from_params(self, annotations, labels, meta, name, namespace, spec, status, uid, **_):
         self.annotations = annotations
         self.labels = labels
@@ -47,25 +44,37 @@ class CatalogItem():
         return Rating(self.labels.get(Babylon.catalog_item_rating_label, None), 
         self.annotations.get(Babylon.catalog_item_total_ratings, 0))
 
-    @classmethod
+    def update_from_definition(self, definition):
+        metadata = definition['metadata']
+        self.annotations = metadata.get('annotations', {})
+        self.labels = metadata.get('labels', {})
+        self.metadata = metadata
+        self.spec = definition['spec']
+        self.status = definition.get('status', {})
+        self.uid = metadata['uid']
+
     async def set_rating(self, rating, logger):
-        await Babylon.custom_objects_api.patch_namespaced_custom_object(
-            group = Babylon.babylon_domain,
-            version = Babylon.babylon_api_version,
-            namespace = self.namespace,
-            plural = self.plural,
-            name = self.name,
-            _content_type = 'application/merge-patch+json',
-            body = {
-                "metadata": {
-                    "labels": {
-                        Babylon.catalog_item_rating_label: rating.rating_score,
-                    },
-                    "annotations": {
-                        Babylon.catalog_item_total_ratings: rating.total_ratings,
+        try:
+            definition = await Babylon.custom_objects_api.patch_namespaced_custom_object(
+                group = Babylon.babylon_domain,
+                version = Babylon.babylon_api_version,
+                namespace = self.namespace,
+                plural = self.plural,
+                name = self.name,
+                body = {
+                    "metadata": {
+                        "labels": {
+                            Babylon.catalog_item_rating_label: str(rating.rating_score)
+                        },
+                        "annotations": {
+                            Babylon.catalog_item_total_ratings: str(rating.total_ratings)
+                        }
                     }
-                }
-            }
-        )
-        self.labels = {**self.labels, **{ Babylon.catalog_item_rating_label: rating_score }}
-        self.annotations = {**self.annotations, **{ Babylon.catalog_item_total_ratings: total_ratings }}
+                },
+                _content_type = 'application/merge-patch+json',
+            )
+            self.update_from_definition(definition)
+        except kubernetes_asyncio.client.rest.ApiException as e:
+            logger.warn(f"Error in catalog_item.set_rating: {e}")
+            if e.status != 404:
+                raise

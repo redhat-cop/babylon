@@ -11,7 +11,7 @@ from babylon import Babylon, get_rating_from_api
 
 async def manage_catalog_item_rating(catalog_item, logger):
     rating = get_rating_from_api(catalog_item, logger=logger)
-    logger.info(f"Rating of {catalog_item.name} is {rating.rating_score}")
+    logger.info(f"Rating of {catalog_item.name} is {rating.rating_score} of {rating.total_ratings} -- was {catalog_item.rating.rating_score} of {catalog_item.rating.total_ratings}")
     if rating != catalog_item.rating:
         await catalog_item.set_rating(rating, logger=logger)
         logger.info(f"Updated rating ({rating.rating_score} of {rating.total_ratings}) for CatalogItem: {catalog_item.name}")

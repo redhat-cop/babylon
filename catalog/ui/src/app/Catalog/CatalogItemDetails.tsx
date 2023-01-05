@@ -49,7 +49,7 @@ import {
   HIDDEN_LABELS,
   getIncidentUrl,
   formatString,
-  getRate,
+  getRating,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -105,7 +105,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
-  const rate = getRate(catalogItem);
+  const rating = getRating(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups);
   const catalogItemAccess: CatalogItemAccess =
     isAdmin || isLabDeveloper(groups)
@@ -286,7 +286,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               <DescriptionListGroup className="catalog-item-details__rate">
                 <DescriptionListTerm>Rate</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <StarRating count={5} rating={rate} readOnly />
+                  <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>

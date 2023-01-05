@@ -11,7 +11,7 @@ import {
   getDescription,
   getIsDisabled,
   getProvider,
-  getRate,
+  getRating,
   getStage,
   getStatus,
 } from './catalog-utils';
@@ -26,7 +26,7 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
   const isDisabled = getIsDisabled(catalogItem);
-  const rate = getRate(catalogItem);
+  const rating = getRating(catalogItem);
   const { code: status } = getStatus(catalogItem);
 
   if (!urlSearchParams.has('item')) {
@@ -67,7 +67,7 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
             </div>
           ) : null}
           <div className="catalog-item-card__rating">
-            <StarRating count={5} rating={rate} readOnly hideIfNotRated />
+            <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly hideIfNotRated />
           </div>
         </CardBody>
       </Card>

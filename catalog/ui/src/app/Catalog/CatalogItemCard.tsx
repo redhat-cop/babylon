@@ -10,7 +10,7 @@ import {
   getDescription,
   getIsDisabled,
   getProvider,
-  getRate,
+  getRating,
   getStage,
   getStatus,
   getSLA,
@@ -27,7 +27,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
   const isDisabled = getIsDisabled(catalogItem);
-  const rate = getRate(catalogItem);
+  const rating = getRating(catalogItem);
   const { code: status } = getStatus(catalogItem);
   const sla = getSLA(catalogItem);
 
@@ -81,7 +81,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
             </div>
           ) : null}
           <div className="catalog-item-card__rating">
-            <StarRating count={5} rating={rate} readOnly hideIfNotRated />
+            <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly hideIfNotRated />
           </div>
         </CardBody>
       </Link>
