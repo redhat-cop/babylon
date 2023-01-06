@@ -24,6 +24,7 @@ const ServicesActionRating: React.FC<{
   const provisionUuid = resourceClaim.status?.resources
     .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
     .find((uuid) => uuid);
+  console.log(provisionUuid);
   const { data: existingRating } = useSWR<{ rating: number; comment: string }>(
     provisionUuid ? apiPaths.PROVISION_RATING({ provisionUuid }) : null,
     fetcherSilent
