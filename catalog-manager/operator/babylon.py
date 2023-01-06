@@ -1,6 +1,5 @@
 import kubernetes_asyncio
 import os
-import requests
 
 from rating import Rating
 
@@ -31,15 +30,3 @@ class Babylon():
 
         cls.core_v1_api = kubernetes_asyncio.client.CoreV1Api()
         cls.custom_objects_api = kubernetes_asyncio.client.CustomObjectsApi()
-
-def get_rating_from_api(catalog_item, logger):
-    try:
-        response = requests.get(f"{Babylon.ratings_api}/api/ratings/v1/catalogitem/{catalog_item.name}")
-        if response.status_code == 200:
-            logger.info(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {response.status_code}")
-            return Rating(response.json().get('rating_score', None), response.json().get('total_ratings', 0))
-        logger.warn(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {response.status_code}")
-    except:
-        logger.error(f"Error: Invalid connection with {Babylon.ratings_api}")
-        pass
-    return Rating(None, 0)
