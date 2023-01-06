@@ -1,6 +1,5 @@
 import kubernetes_asyncio
 import os
-import requests
 
 from rating import Rating
 
