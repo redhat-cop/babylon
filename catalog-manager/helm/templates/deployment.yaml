@@ -32,7 +32,7 @@ spec:
         livenessProbe:
           initialDelaySeconds: 30
           tcpSocket:
-            port: 80
+            port: 8080
           timeoutSeconds: 1
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
