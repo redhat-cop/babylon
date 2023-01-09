@@ -71,7 +71,10 @@ async def on_startup(logger, settings, **_):
 async def on_cleanup():
     await Babylon.on_cleanup()
 
+manage_catalog_item_lock = asyncio.Lock()
+
 @kopf.timer(CatalogItem.api_group, CatalogItem.api_version, CatalogItem.plural, interval=1800)
 async def manage_catalog_item(logger, **kwargs):
-    catalog_item = CatalogItem(**kwargs)
-    await manage_catalog_item_rating(catalog_item, logger);
+    async with manage_catalog_item_lock:
+        catalog_item = CatalogItem(**kwargs)
+        await manage_catalog_item_rating(catalog_item, logger);
