@@ -72,6 +72,6 @@ jobs:
             STATUS_PAGE_ID=05mhm9ljgsqq
             MONITOR_ENABLED=true
             TRACKING_ENABLED=true
-            OPTIONAL_FLAGS=no-ratings
+            OPTIONAL_FLAGS=default
           push: true
           tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
