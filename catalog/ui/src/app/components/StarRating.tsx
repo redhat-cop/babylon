@@ -9,7 +9,16 @@ const StarRating: React.FC<{
   onRating?: (id: number) => void;
   readOnly?: boolean;
   hideIfNotRated?: boolean;
-}> = ({ count, rating = null, total = null, onRating, readOnly = false, hideIfNotRated = false }) => {
+  hideCounter?: boolean;
+}> = ({
+  count,
+  rating = null,
+  total = null,
+  onRating = () => null,
+  readOnly = false,
+  hideIfNotRated = false,
+  hideCounter = false,
+}) => {
   const [hoverRating, setHoverRating] = useState(0);
 
   const isFilled = useCallback(
@@ -58,7 +67,7 @@ const StarRating: React.FC<{
   return (
     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
       {starRating}
-      {readOnly ? (
+      {readOnly && !hideCounter ? (
         <p
           style={{
             fontWeight: 300,

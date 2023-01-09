@@ -50,6 +50,7 @@ import {
   getIncidentUrl,
   formatString,
   getRating,
+  CUSTOM_LABELS,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -256,7 +257,13 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               {Object.entries(attributes).map(([attr, value]) => (
                 <DescriptionListGroup key={attr}>
                   <DescriptionListTerm>{formatString(attr)}</DescriptionListTerm>
-                  <DescriptionListDescription>{formatString(value)}</DescriptionListDescription>
+                  <DescriptionListDescription>
+                    {attr === CUSTOM_LABELS.RATING ? (
+                      <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
+                    ) : (
+                      formatString(value)
+                    )}
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
               ))}
               {lastUpdate && lastUpdate.git ? (
@@ -282,13 +289,6 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <DescriptionListDescription>{sla.replace(/_+/g, ' | ')}</DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-
-              <DescriptionListGroup className="catalog-item-details__rate">
-                <DescriptionListTerm>Rating</DescriptionListTerm>
-                <DescriptionListDescription>
-                  <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
-                </DescriptionListDescription>
-              </DescriptionListGroup>
             </DescriptionList>
           </SidebarPanel>
           <SidebarContent>

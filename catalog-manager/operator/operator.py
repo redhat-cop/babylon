@@ -27,7 +27,7 @@ async def get_rating_from_api(catalog_item, logger):
 async def manage_catalog_item_rating(catalog_item, logger):
     rating = await get_rating_from_api(catalog_item, logger=logger)
     logger.info(f"Rating of {catalog_item.name} is {rating.rating_score} of {rating.total_ratings} -- was {catalog_item.rating.rating_score} of {catalog_item.rating.total_ratings}")
-    if rating != catalog_item.rating:
+    if rating != catalog_item.rating and rating.rating_score is not None:
         patch = {
             "metadata": {
                 "labels": {
