@@ -20,7 +20,8 @@ const ServicesActionRating: React.FC<{
     rating?: { rate: number; comment: string };
   };
   hasError?: boolean;
-}> = ({ actionState, setActionState, hasError = false }) => {
+  action: 'rate' | 'delete';
+}> = ({ actionState, setActionState, hasError = false, action }) => {
   const resourceClaim = actionState.resourceClaim;
   const provisionUuid = resourceClaim.status?.resources
     .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
@@ -70,11 +71,11 @@ const ServicesActionRating: React.FC<{
             />
           </FormGroup>
         </Form>
-      ) : (
+      ) : action === 'rate' ? (
         <div>
           <p>Not available</p>
         </div>
-      )}
+      ) : null}
     </>
   );
 };

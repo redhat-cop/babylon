@@ -28,7 +28,7 @@ export function getStage(catalogItem: CatalogItem): string | null {
 }
 
 const supportedSLAs = ['Enterprise_Premium', 'Enterprise_Standard', 'Community'] as const;
-type SLAs = typeof supportedSLAs[number];
+type SLAs = (typeof supportedSLAs)[number];
 export function getSLA(catalogItem: CatalogItem): SLAs {
   const sla = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/SLA`] as SLAs;
   if (!supportedSLAs.includes(sla)) return null;

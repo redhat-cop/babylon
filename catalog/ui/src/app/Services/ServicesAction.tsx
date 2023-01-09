@@ -60,10 +60,10 @@ const ServicesAction: React.FC<{
       {action === 'rate' || action === 'delete' ? (
         <ErrorBoundary
           fallbackRender={() => (
-            <ServicesActionRating actionState={actionState} setActionState={setActionState} hasError />
+            <ServicesActionRating actionState={actionState} setActionState={setActionState} hasError action={action} />
           )}
         >
-          <ServicesActionRating actionState={actionState} setActionState={setActionState} />
+          <ServicesActionRating actionState={actionState} setActionState={setActionState} action={action} />
         </ErrorBoundary>
       ) : null}
     </>
