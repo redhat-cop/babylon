@@ -4,6 +4,7 @@ import { ResourceClaim, ServiceActionActions } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import { displayName } from '@app/util';
 import ServicesActionRating from './ServicesActionRating';
+import { ErrorBoundary } from 'react-error-boundary';
 
 const ServicesAction: React.FC<{
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
@@ -57,7 +58,13 @@ const ServicesAction: React.FC<{
         <p>Cloud services will be stopped.</p>
       ) : null}
       {action === 'rate' || action === 'delete' ? (
-        <ServicesActionRating actionState={actionState} setActionState={setActionState} />
+        <ErrorBoundary
+          fallbackRender={() => (
+            <ServicesActionRating actionState={actionState} setActionState={setActionState} hasError />
+          )}
+        >
+          <ServicesActionRating actionState={actionState} setActionState={setActionState} />
+        </ErrorBoundary>
       ) : null}
     </>
   );

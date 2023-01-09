@@ -25,3 +25,15 @@
 .catalog-label-selector .pf-c-expandable-section__toggle-text {
   width: 100%;
 }
+
+.catalog-label-selector__rating-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pf-global--spacer--xs);
+}
+
+.catalog-label-selector__rating-btn:hover svg,
+.catalog-label-selector__rating-btn.pf-m-active svg {
+  fill: var(--pf-c-button--m-link--hover--Color) !important;
+}

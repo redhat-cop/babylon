@@ -3,8 +3,8 @@ import { ResourceClaim, ServiceActionActions } from '@app/types';
 import { displayName } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import { Form, FormGroup, TextArea } from '@patternfly/react-core';
-import { apiPaths, fetcherSilent } from '@app/api';
-import useSWR from 'swr';
+import { apiPaths, fetcher } from '@app/api';
+import useSWRImmutable from 'swr/immutable';
 
 const ServicesActionRating: React.FC<{
   setActionState?: React.Dispatch<
@@ -19,15 +19,17 @@ const ServicesActionRating: React.FC<{
     resourceClaim?: ResourceClaim;
     rating?: { rate: number; comment: string };
   };
-}> = ({ actionState, setActionState }) => {
+  hasError?: boolean;
+}> = ({ actionState, setActionState, hasError = false }) => {
   const resourceClaim = actionState.resourceClaim;
   const provisionUuid = resourceClaim.status?.resources
     .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
     .find((uuid) => uuid);
-  console.log(provisionUuid);
-  const { data: existingRating } = useSWR<{ rating: number; comment: string }>(
-    provisionUuid ? apiPaths.PROVISION_RATING({ provisionUuid }) : null,
-    fetcherSilent
+
+  const { data: existingRating } = useSWRImmutable<{ rating: number; comment: string }>(
+    !hasError && provisionUuid ? apiPaths.PROVISION_RATING({ provisionUuid }) : null,
+    fetcher,
+    { shouldRetryOnError: false }
   );
 
   return (

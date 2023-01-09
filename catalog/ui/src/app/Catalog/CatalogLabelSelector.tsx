@@ -3,18 +3,19 @@ import { Button, Checkbox, ExpandableSection, Form, FormGroup, Tooltip } from '@
 import FilterAltIcon from '@patternfly/react-icons/dist/js/icons/filter-alt-icon';
 import { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
-import { formatString, HIDDEN_LABELS } from './catalog-utils';
+import StarRating from '@app/components/StarRating';
+import { formatString, HIDDEN_LABELS, CUSTOM_LABELS } from './catalog-utils';
 
 import './catalog-label-selector.css';
-
-type CatalogLabelValues = {
-  displayName: string;
-  values: { [value: string]: CatalogLabelValueItemCount };
-};
 
 type CatalogLabelValueItemCount = {
   count: number;
   displayName: string;
+};
+
+type CatalogLabelValues = {
+  displayName: string;
+  values: { [value: string]: CatalogLabelValueItemCount };
 };
 
 const CatalogLabelSelector: React.FC<{
@@ -31,22 +32,23 @@ const CatalogLabelSelector: React.FC<{
   for (const catalogItem of catalogItems || []) {
     if (!catalogItem.metadata.labels) continue;
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
-      if (!label.startsWith(`${BABYLON_DOMAIN}/`) || label.toLowerCase() === `${BABYLON_DOMAIN}/category`) continue;
+      if (!label.startsWith(`${BABYLON_DOMAIN}/`)) continue;
+      if (label.toLowerCase() === `${BABYLON_DOMAIN}/category`) continue;
+
       // Allow multiple values for labels with numeric suffixes
-      const attr: string = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
-      const attrKey: string = attr.toLowerCase();
+      const attr = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
+      const attrKey = attr.toLowerCase();
       // Only non-hidden labels
       if (!HIDDEN_LABELS.includes(attr)) {
-        const valueKey: string = value.toLowerCase();
+        const valueKey = value.toLowerCase();
         if (!labels[attrKey]) {
           labels[attrKey] = {
             displayName: formatString(attr),
             values: {},
           };
         }
-        const labelValues = labels[attrKey].values;
-        if (!labelValues[valueKey]) {
-          labelValues[valueKey] = {
+        if (!labels[attrKey].values[valueKey]) {
+          labels[attrKey].values[valueKey] = {
             count: 0,
             displayName: formatString(value),
           };
@@ -58,25 +60,30 @@ const CatalogLabelSelector: React.FC<{
   for (const catalogItem of filteredCatalogItems || []) {
     if (!catalogItem.metadata.labels) continue;
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
-      if (!label.startsWith(`${BABYLON_DOMAIN}/`) || label.toLowerCase() === `${BABYLON_DOMAIN}/category`) continue;
+      if (!label.startsWith(`${BABYLON_DOMAIN}/`)) continue;
+      if (label.toLowerCase() === `${BABYLON_DOMAIN}/category`) continue;
       // Allow multiple values for labels with numeric suffixes
-      const attrKey: string = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
+      const attrKey = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
       // Only non-hidden labels
       if (!HIDDEN_LABELS.includes(attrKey)) {
-        const valueKey: string = value.toLowerCase();
+        const valueKey = value.toLowerCase();
         labels[attrKey.toLowerCase()].values[valueKey].count++;
       }
     }
   }
 
   const onChange = useCallback(
-    (checked: boolean, changedLabel: string, changedValue: string) => {
+    (checked: boolean, changedLabel: string, changedValue: string, isCheckbox = true) => {
       const updated: { [label: string]: string[] } = {};
       for (const [label, values] of Object.entries(selected || {})) {
         if (label === changedLabel) {
-          const updatedValues = checked ? [...values, changedValue] : values.filter((v) => v != changedValue);
-          if (updatedValues.length > 0) {
-            updated[label] = updatedValues;
+          if (isCheckbox) {
+            const updatedValues = checked ? [...values, changedValue] : values.filter((v) => v != changedValue);
+            if (updatedValues.length > 0) {
+              updated[label] = updatedValues;
+            }
+          } else {
+            updated[label] = [changedValue];
           }
         } else {
           updated[label] = values;
@@ -103,13 +110,18 @@ const CatalogLabelSelector: React.FC<{
     [onSelect, selected]
   );
 
-  const labelsSorted = Object.entries(labels).sort();
-  const featuredIndex = labelsSorted.findIndex(([x]) => x.toLowerCase() === 'sales_play');
-  if (featuredIndex !== -1) {
-    const featuredLabel = labelsSorted[featuredIndex];
-    labelsSorted.splice(featuredIndex, 1);
-    labelsSorted.unshift(featuredLabel);
-  }
+  const featuredLabels = ['sales_play'];
+  const lastLabels = [CUSTOM_LABELS.RATING];
+
+  const labelsSorted = Object.entries(labels).sort(([a], [b]) => {
+    if (lastLabels.includes(a)) return 1;
+    if (lastLabels.includes(b)) return -1;
+    if (featuredLabels.includes(a)) return -1;
+    if (featuredLabels.includes(b)) return 1;
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+  });
 
   return (
     <Form className="catalog-label-selector">
@@ -120,7 +132,11 @@ const CatalogLabelSelector: React.FC<{
           toggleContent={
             <div style={{ display: 'flex', flexDirection: 'row' }}>
               <p>{attr.displayName}</p>
-              {Object.entries(attr.values).some(([valueKey]) => (selected?.[attrKey] || []).includes(valueKey)) ? (
+              {Object.entries(attr.values).some(([valueKey]) =>
+                (selected?.[attrKey] || []).includes(valueKey) || attrKey === CUSTOM_LABELS.RATING
+                  ? selected?.[attrKey]
+                  : false
+              ) ? (
                 <Tooltip content={<div>Clear filter</div>}>
                   <Button
                     variant="plain"
@@ -140,17 +156,33 @@ const CatalogLabelSelector: React.FC<{
           onToggle={(isExpanded: boolean) => setExpandedLabels({ ...expandedLabels, [attrKey]: isExpanded })}
         >
           <FormGroup>
-            {Object.entries(attr.values)
-              .sort()
-              .map(([valueKey, value]: [string, CatalogLabelValueItemCount]) => (
-                <Checkbox
-                  id={attrKey + '/' + valueKey}
-                  key={attrKey + '/' + valueKey}
-                  label={value.displayName + ' (' + value.count + ')'}
-                  isChecked={(selected?.[attrKey] || []).includes(valueKey)}
-                  onChange={(checked) => onChange(checked, attrKey, valueKey)}
-                />
-              ))}
+            {attrKey !== CUSTOM_LABELS.RATING ? (
+              Object.entries(attr.values)
+                .sort()
+                .map(([valueKey, value]: [string, CatalogLabelValueItemCount]) => (
+                  <Checkbox
+                    id={attrKey + '/' + valueKey}
+                    key={attrKey + '/' + valueKey}
+                    label={value.displayName + ' (' + value.count + ')'}
+                    isChecked={(selected?.[attrKey] || []).includes(valueKey)}
+                    onChange={(checked) => onChange(checked, attrKey, valueKey)}
+                  />
+                ))
+            ) : (
+              <div>
+                {[4, 3, 2, 1].map((rating) => (
+                  <Button
+                    key={rating}
+                    variant="link"
+                    onClick={() => onChange(true, CUSTOM_LABELS.RATING, rating.toString(), false)}
+                    className="catalog-label-selector__rating-btn"
+                    isActive={(selected?.[attrKey] || []).includes(rating.toString())}
+                  >
+                    <StarRating count={5} rating={rating} readOnly hideCounter /> & Up
+                  </Button>
+                ))}
+              </div>
+            )}
           </FormGroup>
         </ExpandableSection>
       ))}

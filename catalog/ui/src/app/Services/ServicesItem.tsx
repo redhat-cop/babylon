@@ -258,7 +258,7 @@ const ServicesItemComponent: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
-  const { cache, mutate: globalMutate } = useSWRConfig();
+  const { cache } = useSWRConfig();
   const [expanded, setExpanded] = useState([]);
 
   const {
@@ -419,7 +419,7 @@ const ServicesItemComponent: React.FC<{
           .filter(Boolean);
         for (const provisionUuid of provisionUuids) {
           await setProvisionRating(provisionUuid, modalState.rating.rate, modalState.rating.comment);
-          globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
+          cache.delete(apiPaths.PROVISION_RATING({ provisionUuid }));
         }
       }
     }

@@ -45,6 +45,7 @@ import {
   getLastFilter,
   HIDDEN_ANNOTATIONS,
   HIDDEN_LABELS,
+  CUSTOM_LABELS,
   setLastFilter,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
@@ -218,8 +219,8 @@ function filterCatalogItemByKeywords(catalogItem: CatalogItem, keywordFilter: st
 
 function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [attr: string]: string[] }): boolean {
   for (const [attr, values] of Object.entries(labelFilter)) {
-    const matchAttr: string = attr.toLowerCase();
-    const matchValues: string[] = values.map((v) => v.toLowerCase());
+    const matchAttr = attr.toLowerCase();
+    const matchValues = values.map((v) => v.toLowerCase());
     let matched = false;
     for (const [ciLabel, ciValue] of Object.entries(catalogItem.metadata.labels || {})) {
       if (ciLabel.startsWith(`${BABYLON_DOMAIN}/`)) {
@@ -227,8 +228,12 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
           .substring(BABYLON_DOMAIN.length + 1)
           .replace(/-[0-9]+$/, '')
           .toLowerCase();
-        if (matchAttr === ciAttr && matchValues.includes(ciValue.toLowerCase())) {
-          matched = true;
+        if (matchAttr === ciAttr) {
+          if (ciAttr === CUSTOM_LABELS.RATING) {
+            if (parseInt(ciValue, 10) >= parseInt(matchValues[0], 10)) matched = true;
+          } else if (matchValues.includes(ciValue.toLowerCase())) {
+            matched = true;
+          }
         }
       }
     }
