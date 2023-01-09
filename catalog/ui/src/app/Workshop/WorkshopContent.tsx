@@ -33,6 +33,7 @@ const WorkshopContent: React.FC<{
   } catch {
     renderEditor = false;
   }
+
   return (
     <PageSection variant={PageSectionVariants.light} className="workshop-access" padding={{ default: 'noPadding' }}>
       <Hero image={heroImg}>
@@ -49,14 +50,14 @@ const WorkshopContent: React.FC<{
           </Bullseye>
         </StackItem>
         {description ? (
-          <StackItem>
-            <Bullseye>
+          <StackItem className="workshop-access__description">
+            <div>
               {renderEditor ? (
                 <EditorViewer value={description} />
               ) : (
                 <div dangerouslySetInnerHTML={{ __html: description }} />
               )}
-            </Bullseye>
+            </div>
           </StackItem>
         ) : null}
         <StackItem>

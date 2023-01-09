@@ -2,14 +2,19 @@
   color: var(--pf-global--danger-color--200);
 }
 .workshop-login__form.pf-c-form {
-  width: 500px;
+  width: 1100px;
   margin: 0 auto var(--pf-global--spacer--lg);
   padding: var(--pf-global--spacer--lg) var(--pf-global--spacer--md);
 }
+.workshop-login__form-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+}
 .workshop-login__form-content {
   width: 300px;
-  margin: 0 auto;
-  background-color: var(--pf-global--palette--black-100);
+  margin: 0 var(--pf-global--spacer--xl);
+  background-color: var(--pf-global--palette--white);
   border-radius: 4px;
   padding: var(--pf-global--spacer--lg) var(--pf-global--spacer--md);
   display: flex;
@@ -22,4 +27,8 @@
   flex-direction: row;
   align-items: center;
   gap: var(--pf-global--spacer--xs);
+  padding: 0 calc(var(--pf-global--spacer--xl) + var(--pf-global--spacer--md));
+}
+.workshop-login__description {
+  margin-top: var(--pf-global--spacer--lg);
 }
