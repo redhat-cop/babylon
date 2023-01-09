@@ -49,9 +49,11 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
             <StatusPageIcons status={status} className="catalog-item-list-item__statusPageIcon" />
           ) : null}
           {stage === 'dev' ? (
-            <Badge className="catalog-item-list-item--dev">development</Badge>
+            <Badge className="catalog-item-list-item__badge--dev">development</Badge>
           ) : stage === 'test' ? (
-            <Badge className="catalog-item-list-item--test">test</Badge>
+            <Badge className="catalog-item-list-item__badge--test">test</Badge>
+          ) : stage === 'event' ? (
+            <Badge className="catalog-item-list-item__badge--event">event</Badge>
           ) : null}
         </CardHeader>
         <CardBody className="catalog-item-list-item__body">

@@ -72,7 +72,7 @@
   left: 46px !important;
   width: 20px !important;
 }
-.catalog-item-card__badges {
+.catalog-item-card__badge {
   text-align: right;
   position: absolute;
   top: var(--pf-global--spacer--md);
@@ -80,12 +80,13 @@
   z-index: 50;
 }
 
-.catalog-item-card__badges--sla {
+.catalog-item-card__badge--sla {
   background-color: var(--pf-global--danger-color--100);
 }
 
-.catalog-item-card__badges--dev,
-.catalog-item-card__badges--test {
+.catalog-item-card__badge--dev,
+.catalog-item-card__badge--test,
+.catalog-item-card__badge--event {
   background-color: var(--pf-global--danger-color--100);
 }
 
