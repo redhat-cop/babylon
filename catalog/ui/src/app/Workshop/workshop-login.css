@@ -1,0 +1,25 @@
+.workshop-login__failure {
+  color: var(--pf-global--danger-color--200);
+}
+.workshop-login__form.pf-c-form {
+  width: 500px;
+  margin: 0 auto var(--pf-global--spacer--lg);
+  padding: var(--pf-global--spacer--lg) var(--pf-global--spacer--md);
+}
+.workshop-login__form-content {
+  width: 300px;
+  margin: 0 auto;
+  background-color: var(--pf-global--palette--black-100);
+  border-radius: 4px;
+  padding: var(--pf-global--spacer--lg) var(--pf-global--spacer--md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-global--spacer--md);
+}
+.workshop-login__title {
+  justify-content: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pf-global--spacer--xs);
+}

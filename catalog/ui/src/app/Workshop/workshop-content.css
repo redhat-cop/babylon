@@ -1,0 +1,15 @@
+.workshop-access .pf-c-description-list__group {
+  padding: var(--pf-global--spacer--md);
+  background-color: var(--pf-global--palette--black-100);
+  border-radius: 4px;
+}
+.workshop-access__title {
+  text-align: center;
+  padding-bottom: var(--pf-global--spacer--md);
+}
+.workshop-access__content {
+  width: 500px;
+  height: auto;
+  margin: 0 auto var(--pf-global--spacer--lg);
+  padding: var(--pf-global--spacer--lg) var(--pf-global--spacer--md);
+}

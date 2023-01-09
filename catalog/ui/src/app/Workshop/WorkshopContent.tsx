@@ -15,9 +15,13 @@ import {
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import { renderContent } from '@app/util';
 import EditorViewer from '@app/components/Editor/EditorViewer';
+import Hero from '@app/components/Hero';
+import heroImg from '@app/bgimages/hero-img.jpeg';
 import { WorkshopDetails } from './workshopApi';
 
-const WorkshopAccess: React.FC<{
+import './workshop-content.css';
+
+const WorkshopContent: React.FC<{
   workshop: WorkshopDetails;
 }> = ({ workshop }) => {
   const description = workshop.description;
@@ -30,11 +34,18 @@ const WorkshopAccess: React.FC<{
     renderEditor = false;
   }
   return (
-    <PageSection variant={PageSectionVariants.light} className="workshop">
-      <Stack hasGutter>
+    <PageSection variant={PageSectionVariants.light} className="workshop-access" padding={{ default: 'noPadding' }}>
+      <Hero image={heroImg}>
+        <Title headingLevel="h1" size="xl" style={{ fontSize: '40px' }}>
+          <b>{displayName}</b>
+        </Title>
+      </Hero>
+      <Stack hasGutter className="workshop-access__content">
         <StackItem>
           <Bullseye>
-            <Title headingLevel="h2">{displayName}</Title>
+            <Title headingLevel="h3" className="workshop-access__title">
+              Instructions for {displayName}
+            </Title>
           </Bullseye>
         </StackItem>
         {description ? (
@@ -89,4 +100,4 @@ const WorkshopAccess: React.FC<{
   );
 };
 
-export default WorkshopAccess;
+export default WorkshopContent;
