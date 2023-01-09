@@ -85,6 +85,10 @@ function compareCatalogItems(a: CatalogItem, b: CatalogItem, method: 'Featured' 
       ? -1
       : aStage !== 'prod' && bStage === 'prod'
       ? 1
+      : aStage === 'event' && bStage !== 'event'
+      ? -1
+      : aStage !== 'event' && bStage === 'event'
+      ? 1
       : aStage === 'test' && bStage !== 'test'
       ? -1
       : aStage !== 'test' && bStage === 'test'

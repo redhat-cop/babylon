@@ -5,6 +5,12 @@
 .catalog-item-list-item--disabled {
   opacity: 0.45;
 }
+.catalog-item-list-item__badge--dev,
+.catalog-item-list-item__badge--test,
+.catalog-item-list-item__badge--event {
+  background-color: var(--pf-global--danger-color--100);
+}
+
 .catalog-item-list-item__card {
   display: flex;
   flex-direction: row;
@@ -61,16 +67,11 @@
   left: 75px !important;
   width: 20px !important;
 }
-.catalog-item-list-item__badges {
+.catalog-item-list-item__badge {
   text-align: right;
   position: absolute;
   top: 0;
   right: 0;
-}
-
-.catalog-item-list-item__badges--dev,
-.catalog-item-list-item__badges--test {
-  background-color: var(--pf-global--danger-color--100);
 }
 
 .catalog-item-list-item__subtitle {
