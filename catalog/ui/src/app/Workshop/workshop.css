@@ -1,13 +1,7 @@
 .workshop.pf-c-page__header .pf-c-page__header-brand {
   height: 60px;
 }
-.workshop-login-failure {
-  color: var(--pf-global--danger-color--200);
-}
-.workshop-login-form.pf-c-form {
-  width: 300px;
-}
-.workshop .pf-c-description-list__group {
-  padding: var(--pf-global--spacer--md);
-  background-color: var(--pf-global--palette--black-200);
+.workshop .pf-c-page__main,
+.workshop .pf-c-page__main-section.pf-m-light {
+  background-color: transparent !important;
 }

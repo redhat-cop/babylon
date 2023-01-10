@@ -8,7 +8,7 @@ import { publicFetcher } from '@app/api';
 import useDocumentTitle from '@app/utils/useDocumentTitle';
 import { apiPaths } from './workshop-utils';
 import { workshopLogin, WorkshopDetails } from './workshopApi';
-import WorkshopAccess from './WorkshopAccess';
+import WorkshopContent from './WorkshopContent';
 import WorkshopHeader from './WorkshopHeader';
 import WorkshopLogin from './WorkshopLogin';
 
@@ -45,9 +45,13 @@ const Workshop: React.FC<{ title: string }> = ({ title }) => {
   }
 
   return (
-    <Page header={<WorkshopHeader userInterface={userInterface} />} style={{ backgroundColor: '#fff' }}>
+    <Page
+      header={<WorkshopHeader userInterface={userInterface} />}
+      style={{ backgroundColor: 'var(--pf-global--palette--black-200)' }}
+      className="workshop"
+    >
       {workshopPrivateInfo.assignment ? (
-        <WorkshopAccess workshop={workshopPrivateInfo} />
+        <WorkshopContent workshop={workshopPrivateInfo} />
       ) : (
         <WorkshopLogin
           loginFailureMessage={loginFailureMessage}

@@ -541,12 +541,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   aria-label="Description"
                   defaultValue={formState.workshop.description}
                 />
-                <Tooltip
-                  position="right"
-                  content={<p>Description text visible after the user accesses the Workshop.</p>}
-                >
+                <Tooltip position="right" content={<p>Description text visible in the user access page.</p>}>
                   <OutlinedQuestionCircleIcon
-                    aria-label="Description text visible after the user accesses the Workshop."
+                    aria-label="Description text visible in the user access page."
                     className="tooltip-icon-only"
                   />
                 </Tooltip>
