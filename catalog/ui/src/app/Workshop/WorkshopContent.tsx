@@ -35,22 +35,22 @@ const WorkshopContent: React.FC<{
   }
 
   return (
-    <PageSection variant={PageSectionVariants.light} className="workshop-access" padding={{ default: 'noPadding' }}>
+    <PageSection variant={PageSectionVariants.light} className="workshop-content" padding={{ default: 'noPadding' }}>
       <Hero image={heroImg}>
         <Title headingLevel="h1" size="xl" style={{ fontSize: '40px' }}>
           <b>{displayName}</b>
         </Title>
       </Hero>
-      <Stack hasGutter className="workshop-access__content">
+      <Stack hasGutter className="workshop-content__wrapper">
         <StackItem>
           <Bullseye>
-            <Title headingLevel="h3" className="workshop-access__title">
+            <Title headingLevel="h3" className="workshop-content__title">
               Instructions for {displayName}
             </Title>
           </Bullseye>
         </StackItem>
         {description ? (
-          <StackItem className="workshop-access__description">
+          <StackItem className="workshop-content__description">
             <div>
               {renderEditor ? (
                 <EditorViewer value={description} />

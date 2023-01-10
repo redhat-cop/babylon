@@ -1,18 +1,18 @@
-.workshop-access .pf-c-description-list__group {
+.workshop-content .pf-c-description-list__group {
   padding: var(--pf-global--spacer--md);
   background-color: var(--pf-global--palette--white);
   border-radius: 4px;
   box-shadow: 0 1px 5px 0 rgb(3 3 3 / 12%), 0 0 1px 0 rgb(3 3 3 / 6%);
 }
-.workshop-access__title,
-.workshop-access__description {
+.workshop-content__title,
+.workshop-content__description {
   text-align: center;
   padding-bottom: var(--pf-global--spacer--md);
   line-height: 1;
 }
-.workshop-access__content {
+.workshop-content__wrapper {
   width: 1100px;
   height: auto;
-  margin: 0 auto;
+  margin: 0 auto var(--pf-global--spacer--xl);
   padding: var(--pf-global--spacer--lg) var(--pf-global--spacer--md);
 }
