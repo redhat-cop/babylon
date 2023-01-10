@@ -7,7 +7,7 @@ import { apiPaths, fetcher } from '@app/api';
 import useSWRImmutable from 'swr/immutable';
 
 const ServicesActionRating: React.FC<{
-  setActionState?: React.Dispatch<
+  setActionState: React.Dispatch<
     React.SetStateAction<{
       action: ServiceActionActions;
       resourceClaim?: ResourceClaim;

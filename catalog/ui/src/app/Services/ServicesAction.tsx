@@ -57,7 +57,7 @@ const ServicesAction: React.FC<{
       ) : action === 'stop' ? (
         <p>Cloud services will be stopped.</p>
       ) : null}
-      {action === 'rate' || action === 'delete' ? (
+      {(action === 'rate' || action === 'delete') && setActionState ? (
         <ErrorBoundary
           fallbackRender={() => (
             <ServicesActionRating actionState={actionState} setActionState={setActionState} hasError action={action} />
