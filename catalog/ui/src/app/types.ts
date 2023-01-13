@@ -120,10 +120,22 @@ export type AccessControl = {
   allowGroups: string[];
   viewOnlyGroups: string[];
 };
+
+export type MessageTemplate = {
+  outputFormat: 'html';
+  template: string;
+  templateFormat: 'asciidoc' | 'html';
+};
 export interface CatalogItemSpec {
   accessControl?: AccessControl;
   bookbag?: any;
-  messageTemplates?: any;
+  messageTemplates?: {
+    info?: MessageTemplate;
+    serviceReady?: MessageTemplate;
+    serviceDeleted?: MessageTemplate;
+    startComplete?: MessageTemplate;
+    stopComplete?: MessageTemplate;
+  };
   multiuser?: boolean;
   workshopUiDisabled?: boolean;
   parameters?: CatalogItemSpecParameter[];
@@ -134,7 +146,6 @@ export interface CatalogItemSpec {
   lifespan?: CatalogItemSpecLifespan;
   lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
-  infoTemplate?: string;
 }
 
 export interface CatalogItemSpecParameter {
@@ -248,7 +259,7 @@ export interface ResourceClaimList {
 export interface ResourceClaimSpec {
   lifespan?: ResourceClaimSpecLifespan;
   resources: ResourceClaimSpecResource[];
-  infoTemplate?: string;
+  infoMessage?: MessageTemplate;
 }
 
 export interface ResourceClaimSpecLifespan {

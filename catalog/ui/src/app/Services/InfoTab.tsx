@@ -6,7 +6,8 @@ import LoadingSection from '@app/components/LoadingSection';
 import ServiceStatus from './ServiceStatus';
 
 const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) => {
-  const { resource, template } = getMostRelevantResourceAndTemplate(resourceClaim);
+  const { resource: mostRelevantResource, template: mostRelevantTemplate } =
+    getMostRelevantResourceAndTemplate(resourceClaim);
   const provision_vars = Object.assign(
     {},
     ...resourceClaim.status?.resources.flatMap((resource) => ({
@@ -16,8 +17,13 @@ const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) 
     }))
   );
   const provision_vars_keys = resourceClaim.status?.resources.map((r) => r.name);
-  const asciiDocTemplate = createAsciiDocTemplate(resourceClaim.spec.infoTemplate, provision_vars);
-  const htmlRenderedTemplate = renderContent(asciiDocTemplate);
+  const infoTemplate =
+    resourceClaim.spec.infoMessage.templateFormat === 'asciidoc'
+      ? createAsciiDocTemplate(resourceClaim.spec.infoMessage.template, provision_vars)
+      : resourceClaim.spec.infoMessage.template;
+  const htmlRenderedTemplate = renderContent(infoTemplate, {
+    format: resourceClaim.spec.infoMessage.templateFormat,
+  });
   const isLoading = provision_vars_keys.some((attr) => htmlRenderedTemplate.includes(`{${attr}`));
   return (
     <div>
@@ -25,8 +31,8 @@ const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) 
         Status:{' '}
         <ServiceStatus
           creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-          resource={resource}
-          resourceTemplate={template}
+          resource={mostRelevantResource}
+          resourceTemplate={mostRelevantTemplate}
           resourceClaim={resourceClaim}
         />
       </div>
