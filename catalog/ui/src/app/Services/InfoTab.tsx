@@ -6,6 +6,9 @@ import LoadingSection from '@app/components/LoadingSection';
 import ServiceStatus from './ServiceStatus';
 
 const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) => {
+  if (!resourceClaim.spec.infoMessage) {
+    return null;
+  }
   const { resource: mostRelevantResource, template: mostRelevantTemplate } =
     getMostRelevantResourceAndTemplate(resourceClaim);
   const provision_vars = Object.assign(
