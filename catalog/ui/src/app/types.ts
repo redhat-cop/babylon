@@ -134,6 +134,7 @@ export interface CatalogItemSpec {
   lifespan?: CatalogItemSpecLifespan;
   lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
+  infoTemplate?: string;
 }
 
 export interface CatalogItemSpecParameter {
@@ -247,7 +248,7 @@ export interface ResourceClaimList {
 export interface ResourceClaimSpec {
   lifespan?: ResourceClaimSpecLifespan;
   resources: ResourceClaimSpecResource[];
-  infoTemplate: string;
+  infoTemplate?: string;
 }
 
 export interface ResourceClaimSpecLifespan {
