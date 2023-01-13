@@ -247,6 +247,7 @@ export interface ResourceClaimList {
 export interface ResourceClaimSpec {
   lifespan?: ResourceClaimSpecLifespan;
   resources: ResourceClaimSpecResource[];
+  infoTemplate: string;
 }
 
 export interface ResourceClaimSpecLifespan {

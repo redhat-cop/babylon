@@ -560,8 +560,8 @@ const ServicesList: React.FC<{
                   {specResources.length >= 1 ? (
                     <ServiceStatus
                       creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                      resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
-                      resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
+                      resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
+                      resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
                       resourceClaim={resourceClaim}
                     />
                   ) : (
@@ -688,13 +688,15 @@ const ServicesList: React.FC<{
 
               const adminActionsCell = (
                 // Actions
-                <ServiceActions
-                  position="right"
-                  resourceClaim={resourceClaim}
-                  actionHandlers={actionHandlers}
-                  iconOnly
-                  key="admin-actions"
-                />
+                <div>
+                  <ServiceActions
+                    position="right"
+                    resourceClaim={resourceClaim}
+                    actionHandlers={actionHandlers}
+                    iconOnly
+                    key="admin-actions"
+                  />
+                </div>
               );
 
               return {
