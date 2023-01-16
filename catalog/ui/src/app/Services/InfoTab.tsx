@@ -6,7 +6,7 @@ import LoadingSection from '@app/components/LoadingSection';
 import ServiceStatus from './ServiceStatus';
 
 const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) => {
-  if (!resourceClaim.spec.infoMessage) {
+  if (!resourceClaim.spec.infoMessageTemplate) {
     return null;
   }
   const { resource: mostRelevantResource, template: mostRelevantTemplate } =
@@ -20,12 +20,12 @@ const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) 
     }))
   );
   const provision_vars_keys = resourceClaim.status?.resources.map((r) => r.name);
-  const infoTemplate =
-    resourceClaim.spec.infoMessage.templateFormat === 'asciidoc'
-      ? createAsciiDocTemplate(resourceClaim.spec.infoMessage.template, provision_vars)
-      : resourceClaim.spec.infoMessage.template;
-  const htmlRenderedTemplate = renderContent(infoTemplate, {
-    format: resourceClaim.spec.infoMessage.templateFormat,
+  const infoMessageTemplate =
+    resourceClaim.spec.infoMessageTemplate.templateFormat === 'asciidoc'
+      ? createAsciiDocTemplate(resourceClaim.spec.infoMessageTemplate.template, provision_vars)
+      : resourceClaim.spec.infoMessageTemplate.template;
+  const htmlRenderedTemplate = renderContent(infoMessageTemplate, {
+    format: resourceClaim.spec.infoMessageTemplate.templateFormat,
   });
   const isLoading = provision_vars_keys.some((attr) => htmlRenderedTemplate.includes(`{${attr}`));
   return (

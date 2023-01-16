@@ -381,7 +381,9 @@ export async function createServiceRequest({
     },
     spec: {
       resources: [],
-      ...(catalogItem.spec.messageTemplates?.info ? { infoMessage: catalogItem.spec.messageTemplates.info } : {}),
+      ...(catalogItem.spec.messageTemplates?.info
+        ? { infoMessageTemplate: catalogItem.spec.messageTemplates.info }
+        : {}),
       ...(start && start.type === 'lifespan' ? { lifespan: { start: dateToApiString(start.date) } } : {}),
     },
   };

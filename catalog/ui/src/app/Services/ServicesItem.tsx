@@ -403,7 +403,7 @@ const ServicesItemComponent: React.FC<{
 
   const costTracker = getCostTracker(resourceClaim);
   const autoStopTime = getAutoStopTime(resourceClaim);
-  const hasInfoTemplate = !!resourceClaim.spec.infoTemplate;
+  const hasInfoMessageTemplate = !!resourceClaim.spec.infoMessageTemplate;
 
   async function onModalAction(): Promise<void> {
     if (modalState.action === 'delete') {
@@ -573,16 +573,16 @@ const ServicesItemComponent: React.FC<{
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="services-item__body">
           <Tabs
-            activeKey={activeTab ? activeTab : hasInfoTemplate ? 'info' : 'details'}
+            activeKey={activeTab ? activeTab : hasInfoMessageTemplate ? 'info' : 'details'}
             onSelect={(e, tabIndex) => navigate(`/services/${serviceNamespaceName}/${resourceClaimName}/${tabIndex}`)}
           >
-            {hasInfoTemplate ? (
+            {hasInfoMessageTemplate ? (
               <Tab eventKey="info" title={<TabTitleText>Info</TabTitleText>}>
                 {activeTab === 'info' || !activeTab ? <InfoTab resourceClaim={resourceClaim} /> : null}
               </Tab>
             ) : null}
             <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
-              {activeTab === 'details' || (!activeTab && !hasInfoTemplate) ? (
+              {activeTab === 'details' || (!activeTab && !hasInfoMessageTemplate) ? (
                 <DescriptionList isHorizontal>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
