@@ -71,8 +71,8 @@
       vars:
         # Check AnarchyGovernor vars that are not listed in params_to_variables
         check_governor_job_vars: >-
-          {{ r_governor.resources[0].spec.vars.job_vars
-           | default({})
+          {{ job_vars
+           | combine({"__meta__": pruned_meta})
            | dict2items
            | json_query(filter_var_query)
            | items2dict
@@ -82,6 +82,10 @@
         filter_var_list: >-
           {{ (vars.catalog_item_params.agnosticv_meta.params_to_variables | default({})).values() | list
            + ["agnosticv_meta"] }}
+        job_vars: >-
+          {{ r_governor.resources[0].spec.vars.job_vars | default({}) }}
+        pruned_meta: >-
+          {{ job_vars.__meta__ | dict2items | json_query("[?key != 'last_update']") | items2dict }}
       failed_when: >-
         r_governor.resources | length == 0 or
         vars.catalog_item_params != vars.catalog_item_params | combine(check_governor_job_vars)
