@@ -82,7 +82,8 @@
         filter_var_list: >-
           {{ (vars.catalog_item_params.agnosticv_meta.params_to_variables | default({})).values() | list
            + ["agnosticv_meta"] }}
-        job_vars: "{{ r_governor.resoruces[0].spec.vars.job_vars | default({}) }}"
+        job_vars: >-
+          {{ r_governor.resources[0].spec.vars.job_vars | default({}) }}
         pruned_meta: >-
           {{ job_vars.__meta__ | dict2items | json_query("[?key != 'last_update']") | items2dict }}
       failed_when: >-
