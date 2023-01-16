@@ -42,7 +42,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
     return specResources.find((s) => s.name === name);
   }
-  if (!resources) return null;
+  if (!resources) return { resource: null, template: null };
   if (resources.length === 1)
     return { resource: resources[0].state, template: getSpecResourceByName(resources[0].name)?.template };
 
@@ -120,4 +120,22 @@ export function getStartTime(resourceClaim: ResourceClaim): number {
     return Math.min(...autoStartTimes);
   }
   return null;
+}
+
+export function createAsciiDocTemplate(template: string, varsObj: object) {
+  function setAttributesFromObj(obj: object, prependAttr = '') {
+    return Object.entries(obj)
+      .map(([k, v]) => {
+        let attr = k;
+        if (prependAttr !== '') {
+          attr = `${prependAttr}--${k}`;
+        }
+        if (typeof v === 'object' && v) {
+          return setAttributesFromObj(v, attr);
+        }
+        return `:${attr}: ${v}\n`;
+      })
+      .join('');
+  }
+  return `${setAttributesFromObj(varsObj)}\n${template}`;
 }

@@ -5,7 +5,7 @@ const ServicesItem = React.lazy(() => import('@app/Services/ServicesItem'));
 const ServicesList = React.lazy(() => import('@app/Services/ServicesList'));
 
 const Services: React.FC = () => {
-  const { namespace, name, tab = 'details' } = useParams();
+  const { namespace, name, tab } = useParams();
   if (name) {
     return <ServicesItem activeTab={tab} resourceClaimName={name} serviceNamespaceName={namespace} />;
   }

@@ -84,6 +84,7 @@ import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
 import ServiceStatus from './ServiceStatus';
 import ServiceItemStatus from './ServiceItemStatus';
+import InfoTab from './InfoTab';
 
 import './services-item.css';
 
@@ -400,6 +401,10 @@ const ServicesItemComponent: React.FC<{
     { refreshInterval: 8000 }
   );
 
+  const costTracker = getCostTracker(resourceClaim);
+  const autoStopTime = getAutoStopTime(resourceClaim);
+  const hasInfoMessageTemplate = !!resourceClaim.spec.infoMessageTemplate;
+
   async function onModalAction(): Promise<void> {
     if (modalState.action === 'delete') {
       deleteResourceClaim(resourceClaim);
@@ -467,9 +472,6 @@ const ServicesItemComponent: React.FC<{
     },
     [openModalAction, openModalCreateWorkshop, openModalScheduleAction]
   );
-
-  const costTracker = getCostTracker(resourceClaim);
-  const autoStopTime = getAutoStopTime(resourceClaim);
 
   const toggle = (id: string) => {
     const index = expanded.indexOf(id);
@@ -571,11 +573,16 @@ const ServicesItemComponent: React.FC<{
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="services-item__body">
           <Tabs
-            activeKey={activeTab || 'details'}
+            activeKey={activeTab ? activeTab : hasInfoMessageTemplate ? 'info' : 'details'}
             onSelect={(e, tabIndex) => navigate(`/services/${serviceNamespaceName}/${resourceClaimName}/${tabIndex}`)}
           >
+            {hasInfoMessageTemplate ? (
+              <Tab eventKey="info" title={<TabTitleText>Info</TabTitleText>}>
+                {activeTab === 'info' || !activeTab ? <InfoTab resourceClaim={resourceClaim} /> : null}
+              </Tab>
+            ) : null}
             <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
-              {activeTab === 'details' ? (
+              {activeTab === 'details' || (!activeTab && !hasInfoMessageTemplate) ? (
                 <DescriptionList isHorizontal>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
@@ -703,8 +710,8 @@ const ServicesItemComponent: React.FC<{
                       <DescriptionListDescription>
                         <ServiceStatus
                           creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                          resource={getMostRelevantResourceAndTemplate(resourceClaim)?.resource}
-                          resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim)?.template}
+                          resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
+                          resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
                           resourceClaim={resourceClaim}
                         />
                       </DescriptionListDescription>
