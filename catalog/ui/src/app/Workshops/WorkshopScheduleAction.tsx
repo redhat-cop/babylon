@@ -18,7 +18,7 @@ const WorkshopScheduleAction: React.FC<{
   if (action === 'retirement' || action === 'start') {
     const { end: autoDestroyTime, start: autoStartTime } = getWorkshopLifespan(workshop, workshopProvisions);
     if (action === 'retirement') {
-      currentActionDate = autoDestroyTime ? new Date(autoDestroyTime) : null;
+      currentActionDate = autoDestroyTime ? new Date(autoDestroyTime) : new Date(new Date().getTime() + 14400000); // By default: 14400000 = 4h;
     } else {
       currentActionDate = autoStartTime ? new Date(autoStartTime) : null;
     }
