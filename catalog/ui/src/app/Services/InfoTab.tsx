@@ -5,6 +5,8 @@ import { renderContent } from '@app/util';
 import LoadingSection from '@app/components/LoadingSection';
 import ServiceStatus from './ServiceStatus';
 
+import './info-tab.css';
+
 const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) => {
   const infoMessageTemplate = getInfoMessageTemplate(resourceClaim);
   if (!infoMessageTemplate) {
