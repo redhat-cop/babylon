@@ -74,7 +74,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
-import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
+import { getAutoStopTime, getInfoMessageTemplate, getMostRelevantResourceAndTemplate } from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
@@ -403,7 +403,7 @@ const ServicesItemComponent: React.FC<{
 
   const costTracker = getCostTracker(resourceClaim);
   const autoStopTime = getAutoStopTime(resourceClaim);
-  const hasInfoMessageTemplate = !!resourceClaim.spec.infoMessageTemplate;
+  const hasInfoMessageTemplate = !!getInfoMessageTemplate(resourceClaim);
 
   async function onModalAction(): Promise<void> {
     if (modalState.action === 'delete') {

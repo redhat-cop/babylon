@@ -259,7 +259,6 @@ export interface ResourceClaimList {
 export interface ResourceClaimSpec {
   lifespan?: ResourceClaimSpecLifespan;
   resources: ResourceClaimSpecResource[];
-  infoMessageTemplate?: MessageTemplate;
 }
 
 export interface ResourceClaimSpecLifespan {

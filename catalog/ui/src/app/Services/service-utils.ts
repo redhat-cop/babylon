@@ -1,11 +1,12 @@
 import {
   AnarchySubject,
+  MessageTemplate,
   ResourceClaim,
   ResourceClaimSpecResource,
   ResourceClaimSpecResourceTemplate,
 } from '@app/types';
 import parseDuration from 'parse-duration';
-import { canExecuteAction } from '@app/util';
+import { canExecuteAction, DEMO_DOMAIN } from '@app/util';
 import { phaseProps, getStatus } from './ServiceStatus';
 
 export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number; stopTime: number } {
@@ -120,6 +121,11 @@ export function getStartTime(resourceClaim: ResourceClaim): number {
     return Math.min(...autoStartTimes);
   }
   return null;
+}
+
+export function getInfoMessageTemplate(resourceClaim?: ResourceClaim): MessageTemplate {
+  if (!resourceClaim || !resourceClaim.metadata?.annotations?.[`${DEMO_DOMAIN}/info-message-template`]) return null;
+  return JSON.parse(resourceClaim.metadata?.annotations?.[`${DEMO_DOMAIN}/info-message-template`]);
 }
 
 export function createAsciiDocTemplate(template: string, varsObj: object) {
