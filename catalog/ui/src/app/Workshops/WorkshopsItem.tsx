@@ -247,7 +247,7 @@ const WorkshopsItemComponent: React.FC<{
    * The workshop-manager will propagate changes to WorkshopProvisions and ResourceClaims.
    */
   async function onWorkshopStartConfirm(): Promise<void> {
-    const now = newDate();
+    const now = new Date();
     const patch = {
       spec: {
         actionSchedule: {
@@ -323,6 +323,7 @@ const WorkshopsItemComponent: React.FC<{
             // FIXME - this should be configurable, hardcoded to 12 hours after start for now
             stop: dateToApiString(new Date(date.getTime() + 12 * 60 * 60 * 1000)),
           },
+          lifespan: null,
         },
       };
       if (!isWorkshopStarted(workshop, workshopProvisions)) {

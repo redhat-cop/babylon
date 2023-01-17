@@ -100,7 +100,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       accessPassword: randomString(8),
       description: '',
       displayName: displayName(catalogItem),
-      provisionCount: catalogItem.spec.multiuser ? 1 : 20,
+      provisionCount: catalogItem.spec.multiuser ? 1 : 5,
       provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
       provisionStartDelay: 30,
     }),
@@ -657,7 +657,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               Order
             </Button>
           </ActionListItem>
-          {isAdmin || isLabDeveloper(groups) || userImpersonated ? (
+          {isAdmin || isLabDeveloper(groups) ? (
             <ActionListItem>
               <Button
                 isAriaDisabled={!submitRequestEnabled}
