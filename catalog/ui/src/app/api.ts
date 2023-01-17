@@ -370,6 +370,9 @@ export async function createServiceRequest({
         ...(catalogItem.spec.userData
           ? { [`${BABYLON_DOMAIN}/userData`]: JSON.stringify(catalogItem.spec.userData) }
           : {}),
+        ...(catalogItem.spec.messageTemplates?.info
+          ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.info) }
+          : {}),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -381,9 +384,6 @@ export async function createServiceRequest({
     },
     spec: {
       resources: [],
-      ...(catalogItem.spec.messageTemplates?.info
-        ? { infoMessageTemplate: catalogItem.spec.messageTemplates.info }
-        : {}),
       ...(start && start.type === 'lifespan' ? { lifespan: { start: dateToApiString(start.date) } } : {}),
     },
   };

@@ -1,12 +1,15 @@
 import React from 'react';
 import { ResourceClaim } from '@app/types';
-import { createAsciiDocTemplate, getMostRelevantResourceAndTemplate } from './service-utils';
+import { createAsciiDocTemplate, getInfoMessageTemplate, getMostRelevantResourceAndTemplate } from './service-utils';
 import { renderContent } from '@app/util';
 import LoadingSection from '@app/components/LoadingSection';
 import ServiceStatus from './ServiceStatus';
 
+import './info-tab.css';
+
 const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) => {
-  if (!resourceClaim.spec.infoMessageTemplate) {
+  const infoMessageTemplate = getInfoMessageTemplate(resourceClaim);
+  if (!infoMessageTemplate) {
     return null;
   }
   const { resource: mostRelevantResource, template: mostRelevantTemplate } =
@@ -20,12 +23,12 @@ const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) 
     }))
   );
   const provision_vars_keys = resourceClaim.status?.resources.map((r) => r.name);
-  const infoMessageTemplate =
-    resourceClaim.spec.infoMessageTemplate.templateFormat === 'asciidoc'
-      ? createAsciiDocTemplate(resourceClaim.spec.infoMessageTemplate.template, provision_vars)
-      : resourceClaim.spec.infoMessageTemplate.template;
-  const htmlRenderedTemplate = renderContent(infoMessageTemplate, {
-    format: resourceClaim.spec.infoMessageTemplate.templateFormat,
+  const template =
+    infoMessageTemplate.templateFormat === 'asciidoc'
+      ? createAsciiDocTemplate(infoMessageTemplate.template, provision_vars)
+      : infoMessageTemplate.template;
+  const htmlRenderedTemplate = renderContent(template, {
+    format: infoMessageTemplate.templateFormat,
   });
   const isLoading = provision_vars_keys.some((attr) => htmlRenderedTemplate.includes(`{${attr}`));
   return (
