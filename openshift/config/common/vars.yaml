@@ -2,7 +2,7 @@
 agnosticv_operator_version: v0.31.6
 babylon_anarchy_version: v0.22.4
 babylon_anarchy_governor_version: v0.17.1
-poolboy_version: v1.2.1
+poolboy_version: v1.3.0
 replik8s_version: v0.5.0
 user_namespace_operator_version: v0.3.1
 
