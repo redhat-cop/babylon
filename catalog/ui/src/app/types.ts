@@ -240,7 +240,7 @@ export interface NamespaceList {
 export interface ResourceHandleResource {
   name: string;
   provider: K8sObjectReference;
-  state: AnarchySubject;
+  state?: AnarchySubject;
 }
 export interface ResourceClaim extends K8sObject {
   spec: ResourceClaimSpec;
