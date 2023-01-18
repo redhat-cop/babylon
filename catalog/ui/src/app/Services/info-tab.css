@@ -7,7 +7,7 @@
 .info-tab__content {
   font-family: sans-serif;
   -webkit-text-size-adjust: 100%;
-  padding: 0 24px;
+  padding: 12px 0;
 }
 .info-tab__content a {
   background: none;

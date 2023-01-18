@@ -316,7 +316,7 @@ const ServicesItemComponent: React.FC<{
   const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const isPartOfWorkshop = !!workshopProvisionName;
-  const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state: K8sObject }) => r.state);
+  const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state?: K8sObject }) => r.state);
   const anarchySubjects = resourcesK8sObj
     .filter((r: K8sObject) => r?.kind === 'AnarchySubject')
     .map((r) => r as AnarchySubject);
@@ -578,7 +578,9 @@ const ServicesItemComponent: React.FC<{
           >
             {hasInfoMessageTemplate ? (
               <Tab eventKey="info" title={<TabTitleText>Info</TabTitleText>}>
-                {activeTab === 'info' || !activeTab ? <InfoTab resourceClaim={resourceClaim} /> : null}
+                {activeTab === 'info' || !activeTab ? (
+                  <InfoTab resourceClaim={resourceClaim} showModal={showModal} />
+                ) : null}
               </Tab>
             ) : null}
             <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
