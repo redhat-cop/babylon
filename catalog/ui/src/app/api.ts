@@ -1368,7 +1368,7 @@ export async function setLifespanEndForResourceClaim(
 export async function startAllResourcesInResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
   const defaultRuntimes = resourceClaim.status?.resources
     ? resourceClaim.status.resources.map((r) =>
-        parseDuration(r.state.spec.vars.action_schedule?.default_runtime || '4h')
+        parseDuration(r.state?.spec.vars.action_schedule?.default_runtime || '4h')
       )
     : [];
   const defaultRuntime = defaultRuntimes.length > 0 ? Math.min(...defaultRuntimes) : 0;
