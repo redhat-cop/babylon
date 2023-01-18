@@ -17,7 +17,7 @@ const InfoTab: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) 
   const provision_vars = Object.assign(
     {},
     ...resourceClaim.status?.resources.flatMap((resource) => ({
-      [resource.name]: resource.state.spec.vars?.provision_data
+      [resource.name]: resource.state?.spec.vars?.provision_data
         ? { ...resource.state.spec.vars?.provision_data }
         : null,
     }))
