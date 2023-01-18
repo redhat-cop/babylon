@@ -32,7 +32,7 @@ const InfoTab: React.FC<{
     action,
     resourceClaim,
   }: {
-    modal: string;
+    modal: 'action' | 'scheduleAction' | 'createWorkshop';
     action?: ServiceActionActions;
     resourceClaim?: ResourceClaim;
   }) => void;
