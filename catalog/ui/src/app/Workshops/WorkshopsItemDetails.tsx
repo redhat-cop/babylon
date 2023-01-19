@@ -33,6 +33,7 @@ import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } fr
 import { ModalState } from './WorkshopsItem';
 
 import './workshops-item-details.css';
+import AutoStopDestroy from '@app/components/AutoStopDestroy';
 
 const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
@@ -232,20 +233,14 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListGroup>
           <DescriptionListTerm>Auto-Stop Services</DescriptionListTerm>
           <DescriptionListDescription>
-            <Button
-              key="auto-stop"
-              variant="control"
-              icon={<OutlinedClockIcon />}
-              iconPosition="right"
+            <AutoStopDestroy
+              type="auto-stop"
               onClick={() => (showModal ? showModal({ action: 'scheduleStop', resourceClaims }) : null)}
               isDisabled={!showModal}
+              time={autoStopTime}
+              variant="extended"
               className="workshops-item__schedule-btn"
-            >
-              <LocalTimestamp time={autoStopTime} />
-              <span style={{ padding: '0 6px' }}>
-                (<TimeInterval toEpochMilliseconds={autoStopTime} />)
-              </span>
-            </Button>
+            />
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
@@ -253,28 +248,17 @@ const WorkshopsItemDetails: React.FC<{
       <DescriptionListGroup>
         <DescriptionListTerm>Auto-Destroy</DescriptionListTerm>
         <DescriptionListDescription>
-          <Button
-            key="auto-destroy"
-            variant="control"
+          <AutoStopDestroy
+            type="auto-destroy"
             onClick={() => {
               showModal ? showModal({ resourceClaims, action: 'scheduleDelete' }) : null;
             }}
-            icon={<OutlinedClockIcon />}
-            iconPosition="right"
+            time={autoDestroyTime}
             isDisabled={!showModal}
+            variant="extended"
             className="workshops-item__schedule-btn"
-          >
-            {autoDestroyTime ? (
-              <>
-                <LocalTimestamp time={autoDestroyTime} />
-                <span style={{ padding: '0 6px' }}>
-                  (<TimeInterval toEpochMilliseconds={autoDestroyTime} />)
-                </span>
-              </>
-            ) : (
-              <span style={{ marginRight: 'var(--pf-global--spacer--sm)' }}>- Not defined -</span>
-            )}
-          </Button>
+            notDefinedMessage="- Not defined -"
+          />
         </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>

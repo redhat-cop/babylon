@@ -150,7 +150,7 @@ const ServiceItemStatus: React.FC<{
           </Button>
         </SplitItem>
       </Split>
-      {resourceClaim.spec.resources.map((resourceSpec, idx) => {
+      {(resourceClaim.spec.resources || []).map((resourceSpec, idx) => {
         const resourceStatus = resourceClaim.status?.resources?.[idx];
         const resourceState = resourceStatus?.state;
 

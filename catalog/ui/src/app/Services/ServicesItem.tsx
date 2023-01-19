@@ -55,14 +55,7 @@ import {
   ServiceNamespace,
   Workshop,
 } from '@app/types';
-import {
-  BABYLON_DOMAIN,
-  canExecuteAction,
-  checkResourceClaimCanStop,
-  getCostTracker,
-  displayName,
-  renderContent,
-} from '@app/util';
+import { BABYLON_DOMAIN, canExecuteAction, getCostTracker, displayName, renderContent } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
 import CurrencyAmount from '@app/components/CurrencyAmount';
@@ -74,6 +67,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
+import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import { getAutoStopTime, getInfoMessageTemplate, getMostRelevantResourceAndTemplate } from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
@@ -316,7 +310,7 @@ const ServicesItemComponent: React.FC<{
   const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const isPartOfWorkshop = !!workshopProvisionName;
-  const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state: K8sObject }) => r.state);
+  const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state?: K8sObject }) => r.state);
   const anarchySubjects = resourcesK8sObj
     .filter((r: K8sObject) => r?.kind === 'AnarchySubject')
     .map((r) => r as AnarchySubject);
@@ -628,50 +622,33 @@ const ServicesItemComponent: React.FC<{
                   <DescriptionListGroup>
                     <DescriptionListTerm>Auto-stop</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {autoStopTime ? (
-                        <Button
-                          key="auto-stop"
-                          variant="control"
-                          icon={<OutlinedClockIcon />}
-                          iconPosition="right"
-                          isDisabled={!checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop}
-                          onClick={() => {
-                            showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
-                          }}
-                          className="services-item__schedule-btn"
-                        >
-                          <LocalTimestamp time={autoStopTime} />
-                          <span style={{ padding: '0 6px' }}>
-                            (<TimeInterval toEpochMilliseconds={autoStopTime} />)
-                          </span>
-                        </Button>
-                      ) : (
-                        <p>-</p>
-                      )}
+                      <AutoStopDestroy
+                        type="auto-stop"
+                        onClick={() => {
+                          showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                        }}
+                        resourceClaim={resourceClaim}
+                        className="services-item__schedule-btn"
+                        time={autoStopTime}
+                        variant="extended"
+                      ></AutoStopDestroy>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
                   {!externalPlatformUrl && !isPartOfWorkshop && resourceClaim.status?.lifespan?.end ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
-                      {resourceClaim.status?.lifespan?.end ? (
-                        <DescriptionListDescription>
-                          <Button
-                            key="auto-destroy"
-                            variant="control"
-                            isDisabled={!resourceClaim.status?.lifespan}
-                            onClick={() => {
-                              showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
-                            }}
-                            icon={<OutlinedClockIcon />}
-                            iconPosition="right"
-                            className="services-item__schedule-btn"
-                          >
-                            <LocalTimestamp timestamp={resourceClaim.status.lifespan.end} />
-                            <span style={{ padding: '0 6px' }}>
-                              (<TimeInterval toTimestamp={resourceClaim.status.lifespan.end} />)
-                            </span>
-                          </Button>
+                      <DescriptionListDescription>
+                        <AutoStopDestroy
+                          type="auto-destroy"
+                          onClick={() => {
+                            showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
+                          }}
+                          time={resourceClaim.status?.lifespan?.end}
+                          className="services-item__schedule-btn"
+                          variant="extended"
+                          resourceClaim={resourceClaim}
+                        >
                           {resourceClaim.spec?.lifespan?.end &&
                           resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
                             <>
@@ -679,10 +656,8 @@ const ServicesItemComponent: React.FC<{
                               <Spinner size="md" />
                             </>
                           ) : null}
-                        </DescriptionListDescription>
-                      ) : (
-                        <p>-</p>
-                      )}
+                        </AutoStopDestroy>
+                      </DescriptionListDescription>
                     </DescriptionListGroup>
                   ) : null}
 

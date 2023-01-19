@@ -62,6 +62,7 @@ import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
 
 import './services-list.css';
+import AutoStopDestroy from '@app/components/AutoStopDestroy';
 
 const ServicesList: React.FC<{
   serviceNamespaceName: string;
@@ -579,45 +580,26 @@ const ServicesList: React.FC<{
               const autoStopCell = (
                 // Auto-stop
                 <span key="auto-stop">
-                  {autoStopTime ? (
-                    <Button
-                      variant="control"
-                      icon={<OutlinedClockIcon />}
-                      iconPosition="right"
-                      isDisabled={!checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop}
-                      onClick={actionHandlers.runtime}
-                      className="services-list__schedule-btn"
-                      isSmall
-                    >
-                      <LocalTimestamp time={autoStopTime} variant="short" />
-                    </Button>
-                  ) : (
-                    <p>-</p>
-                  )}
+                  <AutoStopDestroy
+                    time={autoStopTime}
+                    onClick={actionHandlers.runtime}
+                    className="services-list__schedule-btn"
+                    type="auto-stop"
+                    resourceClaim={resourceClaim}
+                  />
                 </span>
               );
 
               const autoDestroyCell = (
                 // Auto-destroy
                 <span key="auto-destroy">
-                  {resourceClaim.status?.lifespan?.end ? (
-                    <Button
-                      variant="control"
-                      isDisabled={!resourceClaim.status?.lifespan || isPartOfWorkshop}
-                      onClick={actionHandlers.lifespan}
-                      icon={<OutlinedClockIcon />}
-                      iconPosition="right"
-                      className="services-list__schedule-btn"
-                      isSmall
-                    >
-                      <LocalTimestamp
-                        variant="short"
-                        date={new Date(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end)}
-                      />
-                    </Button>
-                  ) : (
-                    <p>-</p>
-                  )}
+                  <AutoStopDestroy
+                    onClick={actionHandlers.lifespan}
+                    time={resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end}
+                    className="services-list__schedule-btn"
+                    type="auto-destroy"
+                    resourceClaim={resourceClaim}
+                  />
                 </span>
               );
 
