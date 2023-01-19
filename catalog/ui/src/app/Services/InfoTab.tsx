@@ -2,7 +2,6 @@ import React from 'react';
 import { ResourceClaim, ServiceActionActions } from '@app/types';
 import { BABYLON_DOMAIN, renderContent } from '@app/util';
 import {
-  Button,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
