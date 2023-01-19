@@ -62,7 +62,7 @@ const AutoStopDestroy: React.FC<{
       isDisabled = !checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop;
     }
     if (type === 'auto-destroy') {
-      isDisabled = !resourceClaim.status?.lifespan || isPartOfWorkshop;
+      isDisabled = !resourceClaim?.status?.lifespan || isPartOfWorkshop;
     }
   }
 

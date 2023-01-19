@@ -85,6 +85,7 @@ const InfoTab: React.FC<{
                 className="services-item__schedule-btn"
                 time={autoStopTime}
                 variant="extended"
+                resourceClaim={resourceClaim}
               />
             </DescriptionListDescription>
           </DescriptionListGroup>
@@ -102,6 +103,7 @@ const InfoTab: React.FC<{
                     className="services-item__schedule-btn"
                     time={resourceClaim.status?.lifespan?.end}
                     variant="extended"
+                    resourceClaim={resourceClaim}
                   >
                     {resourceClaim.spec?.lifespan?.end &&
                     resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
