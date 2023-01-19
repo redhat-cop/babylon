@@ -592,7 +592,7 @@ const ServicesList: React.FC<{
                 <span key="auto-destroy">
                   <AutoStopDestroy
                     onClick={actionHandlers.lifespan}
-                    time={resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end}
+                    time={resourceClaim.spec.lifespan?.end || resourceClaim.status?.lifespan?.end}
                     className="services-list__schedule-btn"
                     type="auto-destroy"
                     resourceClaim={resourceClaim}
