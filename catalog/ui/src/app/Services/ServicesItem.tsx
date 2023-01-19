@@ -554,7 +554,9 @@ const ServicesItemComponent: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
-      {resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' && !isAdmin ? (
+      {resourceClaim.spec.resources &&
+      resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' &&
+      !isAdmin ? (
         <PageSection
           key="body"
           variant={PageSectionVariants.light}
@@ -695,7 +697,7 @@ const ServicesItemComponent: React.FC<{
                   ) : null}
 
                   <ConditionalWrapper
-                    condition={resourceClaim.spec.resources.length > 1}
+                    condition={resourceClaim.spec.resources && resourceClaim.spec.resources.length > 1}
                     wrapper={(children) => (
                       <section>
                         <header>
@@ -717,7 +719,7 @@ const ServicesItemComponent: React.FC<{
                     )}
                   >
                     <div>
-                      {(resourceClaim.spec?.resources || []).map((resourceSpec, idx) => {
+                      {(resourceClaim.spec.resources || []).map((resourceSpec, idx) => {
                         const resourceStatus = resourceClaim.status?.resources?.[idx];
                         const resourceState = resourceStatus?.state;
                         const componentDisplayName =
@@ -777,7 +779,7 @@ const ServicesItemComponent: React.FC<{
                         return (
                           <ConditionalWrapper
                             key={idx}
-                            condition={resourceClaim.spec.resources.length > 1}
+                            condition={resourceClaim.spec.resources && resourceClaim.spec.resources.length > 1}
                             wrapper={(children) => (
                               <AccordionItem>
                                 <AccordionToggle

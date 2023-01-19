@@ -18,7 +18,7 @@ const ServicesScheduleAction: React.FC<{
     () =>
       new Date(
         action === 'retirement'
-          ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan.end)
+          ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan?.end)
           : getAutoStopTime(resourceClaim)
       ),
     [action, resourceClaim]
