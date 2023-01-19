@@ -1,7 +1,6 @@
 import React from 'react';
 import { ResourceClaim, ServiceActionActions } from '@app/types';
-import { BABYLON_DOMAIN, checkResourceClaimCanStop, renderContent } from '@app/util';
-import LoadingSection from '@app/components/LoadingSection';
+import { BABYLON_DOMAIN, renderContent } from '@app/util';
 import {
   Button,
   DescriptionList,
@@ -10,9 +9,7 @@ import {
   DescriptionListTerm,
   Spinner,
 } from '@patternfly/react-core';
-import LocalTimestamp from '@app/components/LocalTimestamp';
-import TimeInterval from '@app/components/TimeInterval';
-import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
+import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import ServiceStatus from './ServiceStatus';
 import {
   createAsciiDocTemplate,
@@ -81,26 +78,15 @@ const InfoTab: React.FC<{
           <DescriptionListGroup>
             <DescriptionListTerm>Auto-stop</DescriptionListTerm>
             <DescriptionListDescription>
-              {autoStopTime ? (
-                <Button
-                  key="auto-stop"
-                  variant="control"
-                  icon={<OutlinedClockIcon />}
-                  iconPosition="right"
-                  isDisabled={!checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop}
-                  onClick={() => {
-                    showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
-                  }}
-                  className="services-item__schedule-btn"
-                >
-                  <LocalTimestamp time={autoStopTime} />
-                  <span style={{ padding: '0 6px' }}>
-                    (<TimeInterval toEpochMilliseconds={autoStopTime} />)
-                  </span>
-                </Button>
-              ) : (
-                <p>-</p>
-              )}
+              <AutoStopDestroy
+                type="auto-stop"
+                onClick={() => {
+                  showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                }}
+                className="services-item__schedule-btn"
+                time={autoStopTime}
+                variant="extended"
+              />
             </DescriptionListDescription>
           </DescriptionListGroup>
 
@@ -109,29 +95,23 @@ const InfoTab: React.FC<{
               <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
               {resourceClaim.status?.lifespan?.end ? (
                 <DescriptionListDescription>
-                  <Button
-                    key="auto-destroy"
-                    variant="control"
-                    isDisabled={!resourceClaim.status?.lifespan}
+                  <AutoStopDestroy
+                    type="auto-destroy"
                     onClick={() => {
                       showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
                     }}
-                    icon={<OutlinedClockIcon />}
-                    iconPosition="right"
                     className="services-item__schedule-btn"
+                    time={resourceClaim.status?.lifespan?.end}
+                    variant="extended"
                   >
-                    <LocalTimestamp timestamp={resourceClaim.status.lifespan.end} />
-                    <span style={{ padding: '0 6px' }}>
-                      (<TimeInterval toTimestamp={resourceClaim.status.lifespan.end} />)
-                    </span>
-                  </Button>
-                  {resourceClaim.spec?.lifespan?.end &&
-                  resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
-                    <>
-                      {' '}
-                      <Spinner size="md" />
-                    </>
-                  ) : null}
+                    {resourceClaim.spec?.lifespan?.end &&
+                    resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
+                      <>
+                        {' '}
+                        <Spinner size="md" />
+                      </>
+                    ) : null}
+                  </AutoStopDestroy>
                 </DescriptionListDescription>
               ) : (
                 <p>-</p>
