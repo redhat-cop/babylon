@@ -571,7 +571,9 @@ const ServicesItemComponent: React.FC<{
           >
             {hasInfoMessageTemplate ? (
               <Tab eventKey="info" title={<TabTitleText>Info</TabTitleText>}>
-                {activeTab === 'info' || !activeTab ? <InfoTab resourceClaim={resourceClaim} /> : null}
+                {activeTab === 'info' || !activeTab ? (
+                  <InfoTab resourceClaim={resourceClaim} showModal={showModal} />
+                ) : null}
               </Tab>
             ) : null}
             <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
