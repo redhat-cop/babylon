@@ -40,6 +40,15 @@ const PublicHeader: React.FC = () => {
     <ApplicationLauncherItem key="support-sla" href="/support">
       Solution Support: SLAs
     </ApplicationLauncherItem>,
+    <ApplicationLauncherItem
+      key="how-to-videos-link"
+      href="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
+      target="_blank"
+      rel="noreferrer nofollow"
+      isExternal
+    >
+      How to videos
+    </ApplicationLauncherItem>,
   ];
 
   const HeaderTools = (
