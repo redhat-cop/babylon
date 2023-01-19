@@ -10,13 +10,11 @@ import {
   Select,
   SelectOption,
   SelectVariant,
-  Button,
   Tooltip,
 } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-icon';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
-import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { patchWorkshop } from '@app/api';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
@@ -27,8 +25,7 @@ import EditableText from '@app/components/EditableText';
 import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import Editor from '@app/components/Editor/Editor';
-import LocalTimestamp from '@app/components/LocalTimestamp';
-import TimeInterval from '@app/components/TimeInterval';
+import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
 import { ModalState } from './WorkshopsItem';
 
@@ -210,20 +207,14 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListGroup>
           <DescriptionListTerm>Start Date</DescriptionListTerm>
           <DescriptionListDescription>
-            <Button
-              key="auto-start"
-              variant="control"
+            <AutoStopDestroy
+              type="auto-start"
+              variant="extended"
               onClick={() => (showModal ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null)}
-              icon={<OutlinedClockIcon />}
-              iconPosition="right"
               className="workshops-item__schedule-btn"
               isDisabled={!showModal}
-            >
-              <LocalTimestamp time={autoStartTime} />
-              <span style={{ padding: '0 6px' }}>
-                (<TimeInterval toEpochMilliseconds={autoStartTime} />)
-              </span>
-            </Button>
+              time={autoStartTime}
+            />
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
@@ -232,20 +223,14 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListGroup>
           <DescriptionListTerm>Auto-Stop Services</DescriptionListTerm>
           <DescriptionListDescription>
-            <Button
-              key="auto-stop"
-              variant="control"
-              icon={<OutlinedClockIcon />}
-              iconPosition="right"
+            <AutoStopDestroy
+              type="auto-stop"
               onClick={() => (showModal ? showModal({ action: 'scheduleStop', resourceClaims }) : null)}
               isDisabled={!showModal}
+              time={autoStopTime}
+              variant="extended"
               className="workshops-item__schedule-btn"
-            >
-              <LocalTimestamp time={autoStopTime} />
-              <span style={{ padding: '0 6px' }}>
-                (<TimeInterval toEpochMilliseconds={autoStopTime} />)
-              </span>
-            </Button>
+            />
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
@@ -253,28 +238,17 @@ const WorkshopsItemDetails: React.FC<{
       <DescriptionListGroup>
         <DescriptionListTerm>Auto-Destroy</DescriptionListTerm>
         <DescriptionListDescription>
-          <Button
-            key="auto-destroy"
-            variant="control"
+          <AutoStopDestroy
+            type="auto-destroy"
             onClick={() => {
               showModal ? showModal({ resourceClaims, action: 'scheduleDelete' }) : null;
             }}
-            icon={<OutlinedClockIcon />}
-            iconPosition="right"
+            time={autoDestroyTime}
             isDisabled={!showModal}
+            variant="extended"
             className="workshops-item__schedule-btn"
-          >
-            {autoDestroyTime ? (
-              <>
-                <LocalTimestamp time={autoDestroyTime} />
-                <span style={{ padding: '0 6px' }}>
-                  (<TimeInterval toEpochMilliseconds={autoDestroyTime} />)
-                </span>
-              </>
-            ) : (
-              <span style={{ marginRight: 'var(--pf-global--spacer--sm)' }}>- Not defined -</span>
-            )}
-          </Button>
+            notDefinedMessage="- Not defined -"
+          />
         </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>
