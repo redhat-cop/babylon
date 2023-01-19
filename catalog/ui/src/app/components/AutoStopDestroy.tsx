@@ -11,7 +11,7 @@ const AutoStopDestroy: React.FC<{
   onClick: () => void;
   resourceClaim?: ResourceClaim;
   className?: string;
-  type: 'auto-stop' | 'auto-destroy';
+  type: 'auto-stop' | 'auto-destroy' | 'auto-start';
   variant?: 'extended';
   children?: React.ReactNode;
   isDisabled?: boolean;

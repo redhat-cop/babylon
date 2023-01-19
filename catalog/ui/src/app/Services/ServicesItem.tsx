@@ -31,7 +31,6 @@ import {
   AccordionToggle,
   ExpandableSection,
 } from '@patternfly/react-core';
-import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
   apiPaths,

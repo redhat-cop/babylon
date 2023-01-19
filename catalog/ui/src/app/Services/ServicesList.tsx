@@ -13,14 +13,12 @@ import {
   Split,
   SplitItem,
   Title,
-  Button,
 } from '@patternfly/react-core';
 import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
 import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
 import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
-import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
   apiPaths,
@@ -50,19 +48,18 @@ import {
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
-import LocalTimestamp from '@app/components/LocalTimestamp';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
+import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
+import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServicesScheduleAction from './ServicesScheduleAction';
-import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import ServiceStatus from './ServiceStatus';
 
 import './services-list.css';
-import AutoStopDestroy from '@app/components/AutoStopDestroy';
 
 const ServicesList: React.FC<{
   serviceNamespaceName: string;
