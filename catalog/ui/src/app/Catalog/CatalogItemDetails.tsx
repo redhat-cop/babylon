@@ -56,7 +56,6 @@ import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 
 import './catalog-item-details.css';
-import parseDuration from 'parse-duration';
 
 enum CatalogItemAccess {
   Allow,
@@ -288,14 +287,18 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               {autoStopTime ? (
                 <DescriptionListGroup className="catalog-item-details__auto-stop">
                   <DescriptionListTerm>Auto-Stop</DescriptionListTerm>
-                  <DescriptionListDescription>{parseDuration(autoStopTime)}</DescriptionListDescription>
+                  <DescriptionListDescription>
+                    <TimeInterval interval={autoStopTime}></TimeInterval>
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
 
               {autoDestroyTime ? (
                 <DescriptionListGroup className="catalog-item-details__auto-destroy">
                   <DescriptionListTerm>Auto-Destroy</DescriptionListTerm>
-                  <DescriptionListDescription>{parseDuration(autoDestroyTime)}</DescriptionListDescription>
+                  <DescriptionListDescription>
+                    <TimeInterval interval={autoDestroyTime}></TimeInterval>
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
             </DescriptionList>
