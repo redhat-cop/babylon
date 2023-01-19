@@ -70,7 +70,6 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { provisionTimeEstimate, accessControl, lastUpdate } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
-  const sla = getSLA(catalogItem);
   const stage = getStage(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
@@ -108,6 +107,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const incidentUrl = getIncidentUrl(catalogItem);
   const rating = getRating(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups);
+  const autoStopTime = catalogItem.spec.runtime?.default;
+  const autoDestroyTime = catalogItem.spec.lifespan?.default;
   const catalogItemAccess: CatalogItemAccess =
     isAdmin || isLabDeveloper(groups)
       ? CatalogItemAccess.Allow
@@ -283,10 +284,21 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 </DescriptionListGroup>
               ) : null}
 
-              {sla && stage === 'prod' ? (
-                <DescriptionListGroup className="catalog-item-details__sla">
-                  <DescriptionListTerm>SLA</DescriptionListTerm>
-                  <DescriptionListDescription>{sla.replace(/_+/g, ' | ')}</DescriptionListDescription>
+              {autoStopTime ? (
+                <DescriptionListGroup className="catalog-item-details__auto-stop">
+                  <DescriptionListTerm>Auto-Stop</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <TimeInterval interval={autoStopTime}></TimeInterval>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
+
+              {autoDestroyTime ? (
+                <DescriptionListGroup className="catalog-item-details__auto-destroy">
+                  <DescriptionListTerm>Auto-Destroy</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <TimeInterval interval={autoDestroyTime}></TimeInterval>
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
             </DescriptionList>
