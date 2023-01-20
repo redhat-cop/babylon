@@ -343,7 +343,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </>
         ) : (
           <ActivityPurposeSelector
-            value={formState.purpose || 'event'}
+            value={formState.purpose || 'Event'}
             isEvent
             onChange={(purpose: string, sfdc: string) => {
               dispatchFormState({
