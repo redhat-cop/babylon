@@ -38,14 +38,13 @@ import {
 } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import TimeInterval from '@app/components/TimeInterval';
+import ShareLink from '@app/components/ShareLink';
 import {
   getProvider,
   getDescription,
   formatTime,
   getIsDisabled,
-  getStage,
   getStatus,
-  getSLA,
   HIDDEN_LABELS,
   getIncidentUrl,
   formatString,
@@ -203,6 +202,15 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   Admin
                 </Button>
               ) : null}
+              <ShareLink
+                url={
+                  new URL(
+                    `/catalog?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
+                    window.location.origin
+                  )
+                }
+                name={catalogItemName}
+              />
               {statusCode && statusCode !== 'operational' ? (
                 <div className="catalog-item-details__status">
                   <Label

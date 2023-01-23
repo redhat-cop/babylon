@@ -117,6 +117,10 @@ const _Modal: ForwardRefRenderFunction<
   }, [handleEscape, isOpen, handleClick]);
 
   const handleOnConfirm = useCallback(async () => {
+    if (type === 'ack') {
+      close();
+      return null;
+    }
     setIsLoading(true);
     try {
       onConfirmCb && (await onConfirmCb());
@@ -125,7 +129,7 @@ const _Modal: ForwardRefRenderFunction<
     } catch {
       setIsLoading(false);
     }
-  }, [close, onConfirm, onConfirmCb, state]);
+  }, [close, onConfirm, onConfirmCb, state, type]);
 
   const childrenWithProps = React.Children.map(children, (child) => {
     if (passModifiers && React.isValidElement(child)) {
