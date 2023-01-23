@@ -70,12 +70,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { provisionTimeEstimate, accessControl, lastUpdate } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
-  const stage = getStage(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
-    userNamespace.name
+    userNamespace?.name
       ? apiPaths.RESOURCE_CLAIMS({
           namespace: userNamespace.name,
           limit: 'ALL',
