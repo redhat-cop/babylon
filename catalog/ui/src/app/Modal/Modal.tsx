@@ -8,8 +8,9 @@ import React, {
   ReactPortal,
   useLayoutEffect,
   Suspense,
+  useRef,
 } from 'react';
-import { createPortal } from 'react-dom';
+import ReactDOM, { createPortal } from 'react-dom';
 import { Button, Modal, ModalVariant, Spinner } from '@patternfly/react-core';
 import LoadingSection from '@app/components/LoadingSection';
 import useModal from './useModal';
@@ -51,6 +52,7 @@ const _Modal: ForwardRefRenderFunction<
 ): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
+  const modalEl = useRef();
   const [onConfirmCb, setOnConfirmCb] = useState<() => Promise<void>>(null);
   const close = useCallback(() => {
     setIsLoading(false);
@@ -91,11 +93,10 @@ const _Modal: ForwardRefRenderFunction<
 
   const handleClick = useCallback(
     (e) => {
-      const backdrop = document.querySelector('.pf-c-backdrop');
-      const modal = document.querySelector('.pf-c-modal-box');
-      if (!modal || !backdrop) {
-        return e;
-      }
+      const el = ReactDOM.findDOMNode(modalEl.current) as Element;
+      const backdrop = el;
+      const modal = el?.querySelector('.pf-c-modal-box');
+      if (!modal || !backdrop) return e;
       if (e.target === backdrop || backdrop.contains(e.target)) {
         if (e.target !== modal && !modal.contains(e.target)) {
           close();
@@ -156,12 +157,13 @@ const _Modal: ForwardRefRenderFunction<
         isOpen ? (
           <Suspense
             fallback={
-              <Modal isOpen variant={ModalVariant.small} onClose={close} aria-label="Modal: Loading">
+              <Modal ref={modalEl} isOpen variant={ModalVariant.small} onClose={close} aria-label="Modal: Loading">
                 <LoadingSection />
               </Modal>
             }
           >
             <Modal
+              ref={modalEl}
               className={`modal-component${className ? ` ${className}` : ''} ${optionalFlags
                 .map((flag) => `optional-flags__${flag}`)
                 .join(' ')}`}
