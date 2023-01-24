@@ -128,7 +128,7 @@ export function getInfoMessageTemplate(resourceClaim?: ResourceClaim): MessageTe
   return JSON.parse(resourceClaim.metadata?.annotations?.[`${DEMO_DOMAIN}/info-message-template`]);
 }
 
-export function createAsciiDocAttributes(varsObj: object) {
+export function createAsciiDocAttributes(varsObj: object): object {
   function setAttributesFromObj(obj: object, prependAttr = '') {
     return Object.entries(obj)
       .map(([k, v]) => {
