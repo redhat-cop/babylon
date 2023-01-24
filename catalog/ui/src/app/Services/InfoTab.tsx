@@ -54,7 +54,7 @@ const InfoTab: React.FC<{
 
   const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
     format: infoMessageTemplate.templateFormat,
-    attributes: createAsciiDocAttributes(provision_vars),
+    vars: createAsciiDocAttributes(provision_vars),
   }).replace(/\s*\{.*?\}\s*/g, spinnerSvgString);
 
   return (
