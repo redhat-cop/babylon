@@ -78,6 +78,7 @@ export function recursiveAssign(target: object, source: object): any {
 type RenderContentOpt = {
   allowIFrame?: boolean;
   format?: 'asciidoc' | 'html';
+  vars?: object;
 };
 
 export function renderContent(content: string, options: RenderContentOpt = {}): string {
@@ -93,7 +94,7 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
     return dompurify.sanitize(content, sanitize_opt);
   } else {
     const asciidoctor = AsciiDoctor();
-    return dompurify.sanitize(asciidoctor.convert(content).toString(), sanitize_opt);
+    return dompurify.sanitize(asciidoctor.convert(content, { attributes: options.vars }).toString(), sanitize_opt);
   }
 }
 

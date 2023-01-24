@@ -128,7 +128,7 @@ export function getInfoMessageTemplate(resourceClaim?: ResourceClaim): MessageTe
   return JSON.parse(resourceClaim.metadata?.annotations?.[`${DEMO_DOMAIN}/info-message-template`]);
 }
 
-export function createAsciiDocTemplate(template: string, varsObj: object) {
+export function createAsciiDocAttributes(varsObj: object): object {
   function setAttributesFromObj(obj: object, prependAttr = '') {
     return Object.entries(obj)
       .map(([k, v]) => {
@@ -139,9 +139,9 @@ export function createAsciiDocTemplate(template: string, varsObj: object) {
         if (typeof v === 'object' && v) {
           return setAttributesFromObj(v, attr);
         }
-        return `:${attr}: ${v}\n`;
+        return { [k]: v, [attr]: v };
       })
-      .join('');
+      .reduce((obj1, obj2) => Object.assign(obj1, obj2), {});
   }
-  return `${setAttributesFromObj(varsObj)}\n${template}`;
+  return setAttributesFromObj(varsObj);
 }
