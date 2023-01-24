@@ -11,7 +11,7 @@ import {
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import ServiceStatus from './ServiceStatus';
 import {
-  createAsciiDocTemplate,
+  createAsciiDocAttributes,
   getAutoStopTime,
   getInfoMessageTemplate,
   getMostRelevantResourceAndTemplate,
@@ -51,12 +51,10 @@ const InfoTab: React.FC<{
         : null,
     }))
   );
-  const template =
-    infoMessageTemplate.templateFormat === 'asciidoc'
-      ? createAsciiDocTemplate(infoMessageTemplate.template, provision_vars)
-      : infoMessageTemplate.template;
-  const htmlRenderedTemplate = renderContent(template, {
+
+  const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
     format: infoMessageTemplate.templateFormat,
+    attributes: createAsciiDocAttributes(provision_vars),
   }).replace(/\s*\{.*?\}\s*/g, spinnerSvgString);
 
   return (
