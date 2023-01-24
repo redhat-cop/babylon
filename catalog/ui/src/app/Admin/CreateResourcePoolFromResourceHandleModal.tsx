@@ -95,9 +95,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
               template: {
                 spec: {
                   vars: {
-                    ...(stopAfterProvision
-                      ? { action_schedule: { start: '2000-01-01T00:00:00Z', stop: '2000-01-01T00:00:00Z' } }
-                      : {}),
+                    default_desired_state: stopAfterProvision ? 'stopped' : 'started',
                     job_vars: yaml.load(resource.jobVars),
                   },
                 },
