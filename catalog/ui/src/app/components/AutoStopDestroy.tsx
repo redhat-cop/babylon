@@ -65,6 +65,19 @@ const AutoStopDestroy: React.FC<{
       isDisabled = !resourceClaim?.status?.lifespan || isPartOfWorkshop;
     }
   }
+  let showNoIdle = false;
+  if (type === 'auto-stop') {
+    if (time > Date.now() + 15778800000) {
+      // If is more than 6months show no idle
+      showNoIdle = true;
+    } else if (resourceClaim.status?.lifespan?.end) {
+      // if Auto-Stop is greater than Auto-Destroy, show no idle
+      const autoDestroyTime = new Date(resourceClaim.status?.lifespan?.end).getTime();
+      if (autoDestroyTime === time || time > autoDestroyTime) {
+        showNoIdle = true;
+      }
+    }
+  }
 
   return (
     <span>
@@ -77,7 +90,7 @@ const AutoStopDestroy: React.FC<{
         className={className}
         isSmall
       >
-        {type === 'auto-stop' && time > Date.now() + 15778800000 ? ( // If is more than 6months show no idle
+        {showNoIdle ? (
           <span style={{ marginRight: 'var(--pf-global--spacer--sm)' }}>No idle</span>
         ) : (
           <>

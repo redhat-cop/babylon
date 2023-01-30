@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import parseDuration from 'parse-duration';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -105,8 +106,15 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const incidentUrl = getIncidentUrl(catalogItem);
   const rating = getRating(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups);
-  const autoStopTime = catalogItem.spec.runtime?.default;
+  let autoStopTime = catalogItem.spec.runtime?.default;
   const autoDestroyTime = catalogItem.spec.lifespan?.default;
+  if (autoStopTime && autoDestroyTime) {
+    const autoStopTimeValue = parseDuration(autoStopTime);
+    const autoDestroyTimeValue = parseDuration(autoDestroyTime);
+    if (autoStopTimeValue === autoDestroyTimeValue || autoStopTimeValue > autoDestroyTimeValue) {
+      autoStopTime = null;
+    }
+  }
   const catalogItemAccess: CatalogItemAccess =
     isAdmin || isLabDeveloper(groups)
       ? CatalogItemAccess.Allow
