@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import CopyIcon from '@patternfly/react-icons/dist/js/icons/copy-icon';
-import { Button, TextInput, Tooltip } from '@patternfly/react-core';
+import { Button, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
 
 const CopyToClipboard: React.FC<{
   text: string;
@@ -24,9 +24,17 @@ const CopyToClipboard: React.FC<{
 
   return (
     <div style={{ display: 'flex', flexDirection: 'row' }}>
-      <TextInput type="text" isDisabled value={text} aria-label={text} />
+      <TextArea type="text" readOnlyVariant="default" value={text} aria-label={text} autoResize={true} />
       <Tooltip position="bottom" content={<div>{copied ? `Copied` : `Copy to clipboard`}</div>}>
-        <Button variant="control" aria-label="Copy" onClick={handleCopy}>
+        <Button
+          variant="control"
+          aria-label="Copy"
+          onClick={handleCopy}
+          style={{
+            maxHeight: '36px',
+            marginTop: 'auto',
+          }}
+        >
           <CopyIcon />
         </Button>
       </Tooltip>
