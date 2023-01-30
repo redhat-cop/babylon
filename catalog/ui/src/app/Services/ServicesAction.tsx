@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import parseDuration from 'parse-duration';
 import { ResourceClaim, ServiceActionActions } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
-import { displayName } from '@app/util';
+import { checkResourceClaimCanRate, displayName } from '@app/util';
 import ServicesActionRating from './ServicesActionRating';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -23,6 +23,7 @@ const ServicesAction: React.FC<{
 }> = ({ actionState, setTitle, setActionState }) => {
   const action = actionState.action;
   const resourceClaim = actionState.resourceClaim;
+  const canRate = resourceClaim ? checkResourceClaimCanRate(resourceClaim) : false;
   const resourceClaimHasMultipleResources = resourceClaim?.spec?.resources
     ? resourceClaim.spec.resources.length > 1
     : null;
@@ -57,7 +58,7 @@ const ServicesAction: React.FC<{
       ) : action === 'stop' ? (
         <p>Cloud services will be stopped.</p>
       ) : null}
-      {(action === 'rate' || action === 'delete') && setActionState ? (
+      {(action === 'rate' || action === 'delete') && setActionState && canRate ? (
         <ErrorBoundary
           fallbackRender={() => (
             <ServicesActionRating actionState={actionState} setActionState={setActionState} hasError action={action} />

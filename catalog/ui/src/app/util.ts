@@ -166,6 +166,21 @@ export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean
   });
 }
 
+export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean {
+  return !!(resourceClaim?.status?.resources || []).find((r, idx) => {
+    const state = r.state;
+    const template = resourceClaim.spec.resources[idx]?.template;
+    if (!state || !template) {
+      return false;
+    }
+    const currentState = state?.spec?.vars?.current_state;
+    if (currentState && (currentState.endsWith('-failed') || currentState === 'provision-canceled')) {
+      return false;
+    }
+    return true;
+  });
+}
+
 export function formatDuration(ms: number): string {
   const absoluteMs = Math.abs(ms);
   const time = {
