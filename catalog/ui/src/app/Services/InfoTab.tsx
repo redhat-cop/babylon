@@ -55,7 +55,7 @@ const InfoTab: React.FC<{
   const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
     format: infoMessageTemplate.templateFormat,
     vars: createAsciiDocAttributes(provision_vars),
-  }).replace(/\s*\{\w[\w-]*\}\s*/g, spinnerSvgString);
+  }).replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString);
 
   return (
     <div style={{ padding: '0 24px' }}>
