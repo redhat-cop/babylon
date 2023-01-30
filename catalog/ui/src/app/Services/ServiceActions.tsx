@@ -3,7 +3,12 @@ import { DropdownPosition } from '@patternfly/react-core';
 import EllipsisVIcon from '@patternfly/react-icons/dist/js/icons/ellipsis-v-icon';
 import { ResourceClaim } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { BABYLON_DOMAIN, checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
+import {
+  BABYLON_DOMAIN,
+  checkResourceClaimCanRate,
+  checkResourceClaimCanStart,
+  checkResourceClaimCanStop,
+} from '@app/util';
 
 const ServiceActions: React.FC<{
   actionHandlers: {
@@ -26,8 +31,9 @@ const ServiceActions: React.FC<{
   const actionDropdownItems: JSX.Element[] = [];
   const workshopProvisionName = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
   const isPartOfWorkshop = !!workshopProvisionName;
-  const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : true;
-  const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : true;
+  const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : false;
+  const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : false;
+  const canRate = resourceClaim ? checkResourceClaimCanRate(resourceClaim) : false;
 
   if (!isPartOfWorkshop && actionHandlers.runtime) {
     actionDropdownItems.push(
@@ -98,6 +104,7 @@ const ServiceActions: React.FC<{
         key="rate"
         label="Rate"
         onSelect={actionHandlers.rate}
+        isDisabled={!canRate}
         className="action-dropdown-item__rate"
       />
     );
