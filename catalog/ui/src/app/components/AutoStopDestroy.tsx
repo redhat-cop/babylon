@@ -70,9 +70,9 @@ const AutoStopDestroy: React.FC<{
     if (time > Date.now() + 15778800000) {
       // If is more than 6months show no idle
       showNoIdle = true;
-    } else if (resourceClaim.status?.lifespan?.end) {
+    } else if (resourceClaim?.status?.lifespan?.end) {
       // if Auto-Stop is greater than Auto-Destroy, show no idle
-      const autoDestroyTime = new Date(resourceClaim.status?.lifespan?.end).getTime();
+      const autoDestroyTime = new Date(resourceClaim.status.lifespan.end).getTime();
       if (autoDestroyTime === time || time > autoDestroyTime) {
         showNoIdle = true;
       }
