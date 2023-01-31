@@ -309,7 +309,7 @@
             namespace: "{{ user_namespace }}"
           spec:
             lifespan:
-              end: "{{ '%FT%TZ' | strftime(1000 * 24 * 60 * 60 + ansible_date_time.epoch | int) }}"
+              end: "{{ '%FT%TZ' | strftime(499 * 24 * 60 * 60 + ansible_date_time.epoch | int) }}"
             resources:
             - >-
               {{ resource_handle.spec.resources[0] | combine(__resource_item_patch) }}
