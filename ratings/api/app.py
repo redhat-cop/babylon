@@ -34,9 +34,14 @@ INSERT_RATING = (
         WHERE ratings.provision_uuid = %(uuid)s AND ratings.email = %(email)s;"""
 )
 GET_CATALOG_ITEM_RATING = (
-    """SELECT AVG(ratings.rating) as rating_score, COUNT(*) as total_ratings FROM ratings 
-    JOIN catalog_items ON catalog_items.id=ratings.catalog_item_id
-    WHERE catalog_items.agnosticv_key = (%s);"""
+    """SELECT AVG(rating) AS rating_score, COUNT(*) FROM 
+    (SELECT DISTINCT(SUBSTR(provisions.babylon_guid, 1,5)), ratings.rating  
+        FROM ratings 
+        JOIN catalog_items ON catalog_items.id=ratings.catalog_item_id 
+        JOIN provisions ON ratings.provision_uuid = provisions.uuid 
+        WHERE catalog_items.agnosticv_key=(%s)
+        AND provisions.babylon_guid IS NOT NULL
+    ) AS ratings_guid;"""
 )
 GET_PROVISION_RATING = (
     """SELECT provision_uuid, email, rating, comment FROM ratings 
