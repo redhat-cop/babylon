@@ -464,8 +464,13 @@ export interface WorkshopSpec {
   openRegistration?: boolean;
   provisionDisabled?: boolean;
   userAssignments: WorkshopSpecUserAssignment[];
+  actionSchedule?: {
+    stop?: string;
+    start?: string;
+  };
   lifespan?: {
     end?: string;
+    start?: string;
   };
 }
 
