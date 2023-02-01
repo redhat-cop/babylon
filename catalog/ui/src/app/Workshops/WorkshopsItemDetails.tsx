@@ -26,7 +26,7 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import Editor from '@app/components/Editor/Editor';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
+import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan, supportAction } from './workshops-utils';
 import { ModalState } from './WorkshopsItem';
 
 import './workshops-item-details.css';
@@ -187,14 +187,16 @@ const WorkshopsItemDetails: React.FC<{
             <span className="workshops-item-details__status--scheduled">
               <CheckCircleIcon /> Scheduled
             </span>
-          ) : checkWorkshopCanStop(resourceClaims) ? (
-            <span className="workshops-item-details__status--running">
-              <CheckCircleIcon /> Running
-            </span>
           ) : workshopProvisions && workshopProvisions.length > 0 ? (
-            <span className="workshops-item-details__status--stopped">
-              <StopCircleIcon /> Stopped
-            </span>
+            checkWorkshopCanStop(resourceClaims) || !supportAction(resourceClaims, 'stop') ? (
+              <span className="workshops-item-details__status--running">
+                <CheckCircleIcon /> Running
+              </span>
+            ) : (
+              <span className="workshops-item-details__status--stopped">
+                <StopCircleIcon /> Stopped
+              </span>
+            )
           ) : (
             <span className="workshops-item-details__status--unknown">
               <QuestionCircleIcon /> No workshop provision

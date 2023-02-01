@@ -1,5 +1,5 @@
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
-import { checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
+import { canExecuteAction, checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 import { getAutoStopTime, getStartTime } from '@app/Services/service-utils';
 
 export function isWorkshopStarted(workshop: Workshop, workshopProvisions: WorkshopProvision[]): boolean {
@@ -50,14 +50,31 @@ export function getWorkshopServicesStartTime(workshop: Workshop, resourceClaims:
   return resourceClaims.length > 0 ? Math.min(...resourceClaims.flatMap(getStartTime)) : null;
 }
 
-export function checkWorkshopCanStop(resourceClaims: ResourceClaim[] = []): boolean {
-  const resourceClaimsCanStop = resourceClaims.filter((resourceClaim) => checkResourceClaimCanStop(resourceClaim));
+export function checkWorkshopCanStop(resourceClaims: ResourceClaim[] = []) {
+  const resourceClaimsCanStop = resourceClaims.filter(checkResourceClaimCanStop);
 
   return resourceClaimsCanStop && resourceClaimsCanStop.length > 0;
 }
 
-export function checkWorkshopCanStart(resourceClaims: ResourceClaim[] = []): boolean {
-  const resourceClaimsCanStart = resourceClaims.filter((resourceClaim) => checkResourceClaimCanStart(resourceClaim));
+export function supportAction(
+  resourceClaims: ResourceClaim[] = [],
+  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy'
+) {
+  function canResourceClaimExecuteAction(resourceClaim: ResourceClaim) {
+    return !!(resourceClaim?.status?.resources || []).find((r) => {
+      const state = r.state;
+      if (!state) return false;
+      return canExecuteAction(state, action);
+    });
+  }
+
+  const resourceClaimsSupportStopAction = resourceClaims.filter(canResourceClaimExecuteAction);
+
+  return resourceClaimsSupportStopAction && resourceClaimsSupportStopAction.length > 0;
+}
+
+export function checkWorkshopCanStart(resourceClaims: ResourceClaim[] = []) {
+  const resourceClaimsCanStart = resourceClaims.filter(checkResourceClaimCanStart);
 
   return resourceClaimsCanStart && resourceClaimsCanStart.length > 0;
 }
