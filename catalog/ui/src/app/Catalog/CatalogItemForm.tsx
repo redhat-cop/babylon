@@ -258,7 +258,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       <Title headingLevel="h1" size="lg">
         Order {displayName(catalogItem)}
       </Title>
-      {formState.formGroups.length > 0 ? <p>Order by completing the form. Default values may be provided.</p> : null}
+      <p>Order by completing the form. Default values may be provided.</p>
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
         {isAdmin ||
