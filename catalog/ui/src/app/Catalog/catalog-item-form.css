@@ -6,6 +6,10 @@
   margin: var(--pf-global--spacer--lg) 0;
 }
 
+.catalog-item-form.pf-c-page__main-section .pf-c-title {
+  margin-top: var(--pf-global--spacer--md);
+}
+
 .catalog-item-form__form .pf-c-check {
   display: flex;
   flex-direction: row;
