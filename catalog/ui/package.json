@@ -82,7 +82,7 @@
     "@lexical/react": "^0.6.5",
     "@monaco-editor/react": "^4.4.6",
     "@patternfly/react-core": "4.267.6",
-    "@patternfly/react-icons": "4.93.3",
+    "@patternfly/react-icons": "4.93.6",
     "@patternfly/react-styles": "4.92.3",
     "@patternfly/react-table": "4.112.39",
     "@reduxjs/toolkit": "^1.9.2",
