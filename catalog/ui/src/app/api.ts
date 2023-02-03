@@ -142,7 +142,6 @@ export async function publicFetcher(path: string, opt?: Record<string, unknown>)
   return response.json();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetcher(path: string, opt?: Record<string, unknown>) {
   const response = await apiFetch(path, opt);
   const contentType = response.headers.get('Content-Type');
@@ -150,7 +149,6 @@ export async function fetcher(path: string, opt?: Record<string, unknown>) {
   return response.json();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
   const items = [];
   let continueId: Nullable<string> = null;
@@ -1576,7 +1574,6 @@ export function setProvisionRating(provisionUuid: string, rating: number, commen
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
