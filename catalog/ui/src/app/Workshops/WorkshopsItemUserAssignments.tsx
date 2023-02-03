@@ -147,7 +147,9 @@ const WorkshopsItemUserAssignments: React.FC<{
                         <DescriptionListDescription>
                           <div
                             dangerouslySetInnerHTML={{
-                              __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n')),
+                              __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n'), {
+                                format: 'asciidoc',
+                              }),
                             }}
                           />
                         </DescriptionListDescription>

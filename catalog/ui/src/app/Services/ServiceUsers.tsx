@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   DescriptionList,
   DescriptionListTerm,
@@ -7,6 +7,75 @@ import {
 } from '@patternfly/react-core';
 import { renderContent, BABYLON_DOMAIN } from '@app/util';
 import { ResourceClaim } from '@app/types';
+
+const UserMessage: React.FC<{
+  userName: string;
+  userMessages: string;
+  userLabUrl: string;
+  userDataEntries: [string, unknown][];
+}> = ({ userName, userMessages, userLabUrl, userDataEntries }) => {
+  const userMessagesHtml = useMemo(
+    () => (
+      <div
+        dangerouslySetInnerHTML={{
+          __html: renderContent(userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, '$1 +\n'), {
+            format: 'asciidoc',
+          }),
+        }}
+      />
+    ),
+    [userMessages]
+  );
+
+  return (
+    <React.Fragment key={userName}>
+      <h2>{userName}</h2>
+      <DescriptionList isHorizontal>
+        {userLabUrl ? (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Lab URL</DescriptionListTerm>
+            <DescriptionListDescription>
+              <a href={userLabUrl}>{userLabUrl}</a>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ) : null}
+        {userMessages ? (
+          <DescriptionListGroup>
+            <DescriptionListTerm>User Messages</DescriptionListTerm>
+            <DescriptionListDescription>{userMessagesHtml}</DescriptionListDescription>
+          </DescriptionListGroup>
+        ) : null}
+        {userDataEntries ? (
+          <DescriptionListGroup>
+            <DescriptionListTerm>User Data</DescriptionListTerm>
+            <DescriptionListDescription>
+              <DescriptionList isHorizontal className="service-users__user-data">
+                {userDataEntries.map(([key, value]) => (
+                  <DescriptionListGroup key={key}>
+                    <DescriptionListTerm>{key}</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {typeof value === 'string' ? (
+                        value.startsWith('https://') ? (
+                          <a href={value}>
+                            <code>{value}</code>
+                          </a>
+                        ) : (
+                          <code>{value}</code>
+                        )
+                      ) : (
+                        <code>{JSON.stringify(value)}</code>
+                      )}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                ))}
+              </DescriptionList>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ) : null}
+      </DescriptionList>
+    </React.Fragment>
+  );
+};
 
 const ServiceUsers: React.FC<{
   resourceClaim: ResourceClaim;
@@ -32,62 +101,12 @@ const ServiceUsers: React.FC<{
           ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg'
         );
         const userMessages: string = userData.msg;
-        return (
-          <React.Fragment key={userName}>
-            <h2>{userName}</h2>
-            <DescriptionList isHorizontal>
-              {userLabUrl ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Lab URL</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <a href={userLabUrl}>{userLabUrl}</a>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-              {userMessages ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>User Messages</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: renderContent(
-                          userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, '$1 +\n')
-                        ),
-                      }}
-                    />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-              {userDataEntries ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>User Data</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <DescriptionList isHorizontal className="service-users__user-data">
-                      {userDataEntries.map(([key, value]) => (
-                        <DescriptionListGroup key={key}>
-                          <DescriptionListTerm>{key}</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            {typeof value === 'string' ? (
-                              value.startsWith('https://') ? (
-                                <a href={value}>
-                                  <code>{value}</code>
-                                </a>
-                              ) : (
-                                <code>{value}</code>
-                              )
-                            ) : (
-                              <code>{JSON.stringify(value)}</code>
-                            )}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      ))}
-                    </DescriptionList>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-            </DescriptionList>
-          </React.Fragment>
-        );
+        <UserMessage
+          userMessages={userMessages}
+          userDataEntries={userDataEntries}
+          userLabUrl={userLabUrl}
+          userName={userName}
+        />;
       })}
     </>
   );
