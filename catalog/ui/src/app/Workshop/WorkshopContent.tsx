@@ -33,7 +33,7 @@ const WorkshopContent: React.FC<{
     () => (
       <div
         dangerouslySetInnerHTML={{
-          __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n')),
+          __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n'), { format: 'asciidoc' }),
         }}
       />
     ),
