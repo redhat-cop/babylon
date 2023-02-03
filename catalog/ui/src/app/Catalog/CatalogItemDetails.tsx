@@ -95,9 +95,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
 
   const services: ResourceClaim[] = useMemo(
     () =>
-      [].concat(
-        ...userResourceClaims.filter((rc) => !rc.metadata.labels?.['babylon.gpte.redhat.com/workshop-provision'])
-      ) || [],
+      Array.isArray(userResourceClaims)
+        ? [].concat(
+            ...userResourceClaims.filter((rc) => !rc.metadata.labels?.['babylon.gpte.redhat.com/workshop-provision'])
+          )
+        : [],
     [userResourceClaims]
   );
 

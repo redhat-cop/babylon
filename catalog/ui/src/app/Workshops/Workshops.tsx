@@ -6,7 +6,7 @@ const WorkshopsList = React.lazy(() => import('@app/Workshops/WorkshopsList'));
 
 const Workshops: React.FunctionComponent = () => {
   const { name, namespace, tab = 'details' } = useParams();
-  if (name) {
+  if (name && name.trim() !== '') {
     return <WorkshopsItem activeTab={tab} serviceNamespaceName={namespace} workshopName={name} />;
   } else {
     return <WorkshopsList serviceNamespaceName={namespace} />;

@@ -46,7 +46,7 @@ function keywordMatch(workshop: Workshop, keyword: string): boolean {
 }
 
 const WorkshopsList: React.FC<{
-  serviceNamespaceName: string;
+  serviceNamespaceName?: string;
 }> = ({ serviceNamespaceName }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,7 +78,7 @@ const WorkshopsList: React.FC<{
   );
   const serviceNamespaces: ServiceNamespace[] = useMemo(() => {
     return enableFetchUserNamespaces
-      ? userNamespaceList.items.map((ns): ServiceNamespace => {
+      ? userNamespaceList.items.map((ns) => {
           return {
             name: ns.metadata.name,
             displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
@@ -86,7 +86,7 @@ const WorkshopsList: React.FC<{
         })
       : sessionServiceNamespaces;
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
-  const serviceNamespace: ServiceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
+  const serviceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
     name: serviceNamespaceName,
     displayName: serviceNamespaceName,
   };
@@ -97,7 +97,7 @@ const WorkshopsList: React.FC<{
     size,
     setSize,
   } = useSWRInfinite<WorkshopList>(
-    (index, previousPageData: WorkshopList) => {
+    (index, previousPageData) => {
       if (previousPageData && !previousPageData.metadata?.continue) {
         return null;
       }
