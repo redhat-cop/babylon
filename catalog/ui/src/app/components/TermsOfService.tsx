@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Checkbox, FormGroup } from '@patternfly/react-core';
 import { renderContent } from '@app/util';
 
@@ -7,9 +7,13 @@ const TermsOfService: React.FC<{
   onChange: (checked: boolean, event: React.FormEvent<HTMLInputElement>) => void;
   text?: string;
 }> = ({ agreed, onChange, text }) => {
+  const tosHtml = useMemo(
+    () => <div dangerouslySetInnerHTML={{ __html: renderContent(text, { format: 'html' }) }} />,
+    [text]
+  );
   return (
     <FormGroup fieldId="" label="IMPORTANT PLEASE READ" className="terms-of-service">
-      <div dangerouslySetInnerHTML={{ __html: renderContent(text, { format: 'html' }) }} />
+      {tosHtml}
       <Checkbox
         label="I confirm that I understand the above warnings."
         id="terms-of-service"

@@ -18,6 +18,7 @@ import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
 import EditorViewer from '@app/components/Editor/EditorViewer';
 import { WorkshopDetails } from './workshopApi';
+import { renderContent } from '@app/util';
 
 import './workshop-login.css';
 
@@ -146,7 +147,7 @@ const WorkshopLogin: React.FC<{
                 {renderEditor ? (
                   <EditorViewer value={description} />
                 ) : (
-                  <div dangerouslySetInnerHTML={{ __html: description }} />
+                  <div dangerouslySetInnerHTML={{ __html: renderContent(description, { format: 'html' }) }} />
                 )}
               </div>
             </aside>

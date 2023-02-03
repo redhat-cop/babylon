@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import yaml from 'js-yaml';
 import {
   Bullseye,
@@ -28,6 +28,18 @@ const WorkshopContent: React.FC<{
   const displayName = workshop.displayName || 'Workshop';
   const userAssignment = workshop.assignment;
   let renderEditor = true;
+
+  const userAssignmentMessagesHtml = useMemo(
+    () => (
+      <div
+        dangerouslySetInnerHTML={{
+          __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n'), { format: 'asciidoc' }),
+        }}
+      />
+    ),
+    [userAssignment.messages]
+  );
+
   try {
     JSON.parse(description);
   } catch {
@@ -55,7 +67,7 @@ const WorkshopContent: React.FC<{
               {renderEditor ? (
                 <EditorViewer value={description} />
               ) : (
-                <div dangerouslySetInnerHTML={{ __html: description }} />
+                <div dangerouslySetInnerHTML={{ __html: renderContent(description, { format: 'html' }) }} />
               )}
             </div>
           </StackItem>
@@ -76,13 +88,7 @@ const WorkshopContent: React.FC<{
               {userAssignment.messages ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Messages</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n')),
-                      }}
-                    />
-                  </DescriptionListDescription>
+                  <DescriptionListDescription>{userAssignmentMessagesHtml}</DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
               {userAssignment.data ? (

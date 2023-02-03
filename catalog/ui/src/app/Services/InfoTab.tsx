@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ResourceClaim, ServiceActionActions } from '@app/types';
 import { BABYLON_DOMAIN, renderContent } from '@app/util';
 import {
@@ -43,19 +43,33 @@ const InfoTab: React.FC<{
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const isPartOfWorkshop = !!workshopProvisionName;
   const autoStopTime = getAutoStopTime(resourceClaim);
-  const provision_vars = Object.assign(
-    {},
-    ...(resourceClaim.status?.resources || []).flatMap((resource) => ({
-      [resource.name]: resource.state?.spec.vars?.provision_data
-        ? { ...resource.state.spec.vars?.provision_data }
-        : null,
-    }))
-  );
 
-  const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
-    format: infoMessageTemplate.templateFormat,
-    vars: createAsciiDocAttributes(provision_vars),
-  }).replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString);
+  const infoHtml = useMemo(() => {
+    const provision_vars: object = Object.assign(
+      {},
+      ...(resourceClaim.status?.resources || []).flatMap((resource) => ({
+        [resource.name]: resource.state?.spec.vars?.provision_data
+          ? { ...resource.state.spec.vars?.provision_data }
+          : null,
+      }))
+    );
+    const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
+      format: infoMessageTemplate.templateFormat,
+      vars: createAsciiDocAttributes(provision_vars),
+    }).replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString);
+    return (
+      <div
+        className="info-tab__content"
+        dangerouslySetInnerHTML={{
+          __html: htmlRenderedTemplate,
+        }}
+      />
+    );
+  }, [
+    infoMessageTemplate.template,
+    infoMessageTemplate.templateFormat,
+    JSON.stringify(resourceClaim.status?.resources),
+  ]);
 
   return (
     <div style={{ padding: '0 24px' }}>
@@ -119,13 +133,7 @@ const InfoTab: React.FC<{
           ) : null}
         </DescriptionList>
       </div>
-
-      <div
-        className="info-tab__content"
-        dangerouslySetInnerHTML={{
-          __html: htmlRenderedTemplate,
-        }}
-      />
+      {infoHtml}
     </div>
   );
 };

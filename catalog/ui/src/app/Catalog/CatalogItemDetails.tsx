@@ -103,6 +103,18 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     [userResourceClaims]
   );
 
+  const descriptionHtml = useMemo(
+    () => (
+      <div
+        className="catalog-item-details__description"
+        dangerouslySetInnerHTML={{
+          __html: description ? renderContent(description, { format: descriptionFormat }) : 'No description available.',
+        }}
+      />
+    ),
+    [description, descriptionFormat]
+  );
+
   const isDisabled = getIsDisabled(catalogItem);
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
@@ -322,14 +334,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           </SidebarPanel>
           <SidebarContent>
             <p className="catalog-item-details__description-label">Description</p>
-            <div
-              className="catalog-item-details__description"
-              dangerouslySetInnerHTML={{
-                __html: description
-                  ? renderContent(description, { format: descriptionFormat })
-                  : 'No description available.',
-              }}
-            />
+            {{ descriptionHtml }}
           </SidebarContent>
         </Sidebar>
       </DrawerContentBody>
