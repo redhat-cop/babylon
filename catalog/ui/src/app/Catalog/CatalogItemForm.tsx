@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
 import { EditorState } from 'lexical/LexicalEditorState';
 import { LexicalEditor } from 'lexical/LexicalEditor';
@@ -7,6 +7,8 @@ import { $generateHtmlFromNodes } from '@lexical/html';
 import {
   ActionList,
   ActionListItem,
+  Breadcrumb,
+  BreadcrumbItem,
   Button,
   EmptyState,
   EmptyStateBody,
@@ -234,10 +236,29 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </HelperText>
         ) : null}
       </Modal>
+      <Breadcrumb>
+        <BreadcrumbItem
+          render={({ className }) => (
+            <Link to="/catalog" className={className}>
+              Catalog
+            </Link>
+          )}
+        />
+        <BreadcrumbItem
+          render={({ className }) => (
+            <Link
+              to={`/catalog?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`}
+              className={className}
+            >
+              {displayName(catalogItem)}
+            </Link>
+          )}
+        />
+      </Breadcrumb>
       <Title headingLevel="h1" size="lg">
         Order {displayName(catalogItem)}
       </Title>
-      {formState.formGroups.length > 0 ? <p>Order by completing the form. Default values may be provided.</p> : null}
+      <p>Order by completing the form. Default values may be provided.</p>
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
         {isAdmin ||
