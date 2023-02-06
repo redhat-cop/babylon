@@ -419,7 +419,7 @@ const ServicesItemComponent: React.FC<{
       mutate(resourceClaimUpdate);
     }
     if (modalState.action === 'rate' || modalState.action === 'delete') {
-      if (modalState.rating) {
+      if (modalState.rating && (modalState.rating.rate !== null || modalState.rating.comment?.trim())) {
         const provisionUuids = resourceClaim.status.resources
           .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
           .filter(Boolean);
