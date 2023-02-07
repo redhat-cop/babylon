@@ -127,11 +127,11 @@ function handleExportCsv(catalogItems: CatalogItem[]) {
   asyncParser.input.push(null);
 }
 
-function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: string[]): boolean {
+function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: string[]) {
   return 'deny' !== checkAccessControl(catalogItem.spec.accessControl, userGroups);
 }
 
-function filterCatalogItemByCategory(catalogItem: CatalogItem, selectedCategory: string): boolean {
+function filterCatalogItemByCategory(catalogItem: CatalogItem, selectedCategory: string) {
   return selectedCategory === getCategory(catalogItem);
 }
 
@@ -357,12 +357,12 @@ const Catalog: React.FC = () => {
         )
       : null;
 
-  function closeCatalogItem(): void {
+  function closeCatalogItem() {
     searchParams.delete('item');
     setSearchParams(searchParams);
   }
 
-  function onKeywordSearchChange(value: string): void {
+  function onKeywordSearchChange(value: string) {
     if (value) {
       searchParams.set('search', value);
     } else if (searchParams.has('search')) {
@@ -372,7 +372,7 @@ const Catalog: React.FC = () => {
     setSearchParams(searchParams);
   }
 
-  function onSelectCatalogNamespace(namespaceName: string): void {
+  function onSelectCatalogNamespace(namespaceName: string) {
     if (namespaceName) {
       navigate(`/catalog/${namespaceName}${location.search}`);
     } else {
@@ -380,7 +380,7 @@ const Catalog: React.FC = () => {
     }
   }
 
-  function onSelectCategory(category: string): void {
+  function onSelectCategory(category: string) {
     if (category) {
       searchParams.set('category', category);
     } else if (searchParams.has('category')) {
@@ -390,7 +390,7 @@ const Catalog: React.FC = () => {
     setSearchParams(searchParams);
   }
 
-  function onSelectLabels(labels: { [label: string]: string[] } | null): void {
+  function onSelectLabels(labels: { [label: string]: string[] }) {
     if (labels) {
       searchParams.set('labels', JSON.stringify(labels));
     } else if (searchParams.has('labels')) {
