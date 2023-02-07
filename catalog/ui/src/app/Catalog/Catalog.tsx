@@ -338,15 +338,16 @@ const Catalog: React.FC = () => {
         },
       ],
     };
-    return new Fuse(_catalogItems, options);
-  }, [_catalogItems]);
+    const catalogItemsFuse = new Fuse(_catalogItems, options);
+    if (selectedCategory) {
+      catalogItemsFuse.remove((ci) => !filterCatalogItemByCategory(ci, selectedCategory));
+    }
+    if (selectedLabels) {
+      catalogItemsFuse.remove((ci) => !filterCatalogItemByLabels(ci, selectedLabels));
+    }
+    return catalogItemsFuse;
+  }, [_catalogItems, selectedCategory, selectedLabels]);
 
-  if (selectedCategory) {
-    catalogItems.remove((catalogItem) => !filterCatalogItemByCategory(catalogItem, selectedCategory));
-  }
-  if (selectedLabels) {
-    catalogItems.remove((catalogItem) => !filterCatalogItemByLabels(catalogItem, selectedLabels));
-  }
   if (keywordFilter) {
     catalogItemsSearchOutput = catalogItems.search(keywordFilter).map((x) => x.item);
   }
