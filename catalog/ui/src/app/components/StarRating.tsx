@@ -24,11 +24,11 @@ const StarRating: React.FC<{
   const isFilled = useCallback(
     (index) => {
       if (readOnly) {
-        return rating >= index;
+        return Math.round(rating) >= index;
       }
       if (hoverRating >= index) {
         return true;
-      } else if (!hoverRating && rating >= index) {
+      } else if (!hoverRating && Math.round(rating) >= index) {
         return true;
       }
 
