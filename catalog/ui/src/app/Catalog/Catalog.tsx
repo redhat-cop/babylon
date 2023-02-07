@@ -297,15 +297,14 @@ const Catalog: React.FC = () => {
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
 
-  const _catalogItems = useMemo(
+  const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups)),
     [catalogItemsArr, groups]
   );
-  const allCatalogItems = useMemo(() => [..._catalogItems], [_catalogItems]);
-  let catalogItemsSearchOutput = [];
 
   // Filter & Sort catalog items
-  const catalogItems = useMemo(() => {
+  const [_catalogItems, _catalogItemsCpy] = useMemo(() => {
+    const catalogItemsCpy = [...catalogItems].sort(compareCatalogItems);
     const options = {
       keys: [
         {
@@ -338,24 +337,21 @@ const Catalog: React.FC = () => {
         },
       ],
     };
-    const catalogItemsFuse = new Fuse(_catalogItems, options);
+    const catalogItemsFuse = new Fuse(catalogItemsCpy, options);
     if (selectedCategory) {
       catalogItemsFuse.remove((ci) => !filterCatalogItemByCategory(ci, selectedCategory));
     }
     if (selectedLabels) {
       catalogItemsFuse.remove((ci) => !filterCatalogItemByLabels(ci, selectedLabels));
     }
-    return catalogItemsFuse;
-  }, [_catalogItems, selectedCategory, selectedLabels]);
+    return [catalogItemsFuse, catalogItemsCpy];
+  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems]);
 
-  if (keywordFilter) {
-    catalogItemsSearchOutput = catalogItems.search(keywordFilter).map((x) => x.item);
-  }
-  const resultCount = keywordFilter ? catalogItemsSearchOutput.length : _catalogItems.length;
+  const catalogItemsResult = keywordFilter ? _catalogItems.search(keywordFilter).map((x) => x.item) : _catalogItemsCpy;
 
   const openCatalogItem =
     openCatalogItemName && openCatalogItemNamespaceName
-      ? allCatalogItems.find(
+      ? catalogItems.find(
           (item) =>
             item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName
         )
@@ -451,13 +447,13 @@ const Catalog: React.FC = () => {
                 <Sidebar tabIndex={0}>
                   <SidebarPanel className="catalog__sidebar-panel">
                     <CatalogCategorySelector
-                      catalogItems={allCatalogItems}
+                      catalogItems={catalogItems}
                       onSelect={onSelectCategory}
                       selected={selectedCategory}
                     />
                     <CatalogLabelSelector
-                      catalogItems={allCatalogItems}
-                      filteredCatalogItems={_catalogItems}
+                      catalogItems={catalogItems}
+                      filteredCatalogItems={catalogItemsResult}
                       onSelect={onSelectLabels}
                       selected={selectedLabels}
                     />
@@ -510,7 +506,7 @@ const Catalog: React.FC = () => {
                                       <Button
                                         variant="plain"
                                         aria-label="Export to CSV"
-                                        onClick={() => handleExportCsv(_catalogItems)}
+                                        onClick={() => handleExportCsv(catalogItems)}
                                       >
                                         <DownloadIcon />
                                       </Button>
@@ -548,31 +544,30 @@ const Catalog: React.FC = () => {
                             </StackItem>
                             <StackItem>
                               <p className="catalog__item-count">
-                                {resultCount} item{resultCount > 1 && 's'}
+                                {catalogItemsResult.length} item{catalogItemsResult.length > 1 && 's'}
                               </p>
                             </StackItem>
                           </Stack>
                         </SplitItem>
                       </Split>
                     </PageSection>
-                    {resultCount > 0 ? (
+                    {catalogItemsResult.length > 0 ? (
                       <PageSection
                         variant={PageSectionVariants.default}
                         className={`catalog__content-box catalog__content-box--${view}`}
                       >
-                        {(keywordFilter ? catalogItemsSearchOutput : _catalogItems.sort(compareCatalogItems)).map(
-                          (catalogItem) =>
-                            view === 'gallery' ? (
-                              <CatalogItemCard key={catalogItem.metadata.uid} catalogItem={catalogItem} />
-                            ) : (
-                              <CatalogItemListItem key={catalogItem.metadata.uid} catalogItem={catalogItem} />
-                            )
+                        {catalogItemsResult.map((catalogItem) =>
+                          view === 'gallery' ? (
+                            <CatalogItemCard key={catalogItem.metadata.uid} catalogItem={catalogItem} />
+                          ) : (
+                            <CatalogItemListItem key={catalogItem.metadata.uid} catalogItem={catalogItem} />
+                          )
                         )}
                       </PageSection>
                     ) : (
                       <PageSection variant={PageSectionVariants.default} className="catalog__content-box--empty">
                         <EmptyState variant="full">
-                          {resultCount === 0 ? (
+                          {catalogItemsResult.length === 0 ? (
                             <p>
                               No catalog items match filters.{' '}
                               <Button
