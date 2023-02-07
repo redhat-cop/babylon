@@ -310,31 +310,31 @@ const Catalog: React.FC = () => {
       keys: [
         {
           name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/displayName'],
-          weight: 1.5,
+          weight: 10,
         },
         {
           name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/keywords'],
-          weight: 1,
+          weight: 5,
         },
         {
           name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Sales_Play'],
-          weight: 0.5,
+          weight: 5,
         },
         {
           name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Provider'],
-          weight: 0.25,
+          weight: 2.5,
         },
         {
           name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Product'],
-          weight: 0.1,
+          weight: 1,
         },
         {
           name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/description'],
-          weight: 0.1,
+          weight: 1,
         },
         {
           name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Product_Family'],
-          weight: 0.05,
+          weight: 0.5,
         },
       ],
     };
