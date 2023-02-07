@@ -3,12 +3,12 @@ import { SearchInput } from '@patternfly/react-core';
 
 const KeywordSearchInput: React.FC<
   {
-    initialValue?: string[];
+    initialValue?: string;
     placeholder?: string;
-    onSearch: (keywords: string[]) => void;
+    onSearch: (keywords: string) => void;
   } & React.HTMLAttributes<HTMLInputElement>
 > = ({ initialValue, placeholder, onSearch, ...rest }) => {
-  const [value, setValue] = useState(initialValue ? initialValue.join(' ') : '');
+  const [value, setValue] = useState(initialValue || '');
 
   return (
     <SearchInput
@@ -16,7 +16,7 @@ const KeywordSearchInput: React.FC<
       value={value}
       aria-label="Search"
       placeholder={placeholder}
-      onChange={(v) => setValue(v)}
+      onChange={(e, v) => setValue(v)}
       onClear={() => {
         setValue('');
         onSearch(null);
@@ -26,7 +26,7 @@ const KeywordSearchInput: React.FC<
         if (trimmedValue === '') {
           onSearch(null);
         } else {
-          onSearch(value.trim().split(/ +/));
+          onSearch(value.trim());
         }
       }}
     />

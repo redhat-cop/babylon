@@ -334,7 +334,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           </SidebarPanel>
           <SidebarContent>
             <p className="catalog-item-details__description-label">Description</p>
-            {{ descriptionHtml }}
+            {descriptionHtml}
           </SidebarContent>
         </Sidebar>
       </DrawerContentBody>
