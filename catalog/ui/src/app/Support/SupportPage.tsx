@@ -127,8 +127,8 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                 <em>
                   “We ran a pretty intense DevSecOps 1 day-workshop for one of our Premier Partners in Germany with 8
                   attendees. The workshop required to have a cluster per attendee, which was a lot of hassle for us to
-                  set up in the past. With RHDP support we were able to focus on running the workshop and not on the
-                  infrastructure. Highly appreciated!”
+                  set up in the past. With Red Hat Demo Platform support we were able to focus on running the workshop
+                  and not on the infrastructure. Highly appreciated!”
                 </em>
                 <br />
                 <p style={{ marginTop: 'var(--pf-global--spacer--xs)' }}>
@@ -143,8 +143,8 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                   Overview
                 </Title>
                 <Text>
-                  RHDP (Red Hat Demo Platform) helps you confidently plan and host customer-facing events with
-                  assistance from experienced support engineers and architects.
+                  Red Hat Demo Platform helps you confidently plan and host customer-facing events with assistance from
+                  experienced support engineers and architects.
                 </Text>
               </PageSection>
               <PageSection>

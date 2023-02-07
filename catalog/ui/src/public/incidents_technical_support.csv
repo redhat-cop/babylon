@@ -1,11 +1,11 @@
 Types,Community Content,Enterprise- Standard,Enterprise- Premium,Pre Scheduled Events
-Description,Assets created by the RHDP User Community. No guaranteed support.,"Assets created by TMMs, SSAs, and other relevant teams to help drive sales with relevant content. Improved Support.",Curated Assets created and supported by RHDP. Best support experience.,"Customer workshops, brand events. Dedicated support and communication channels."
+Description,Assets created by the Red Hat Demo Platform User Community. No guaranteed support.,"Assets created by TMMs, SSAs, and other relevant teams to help drive sales with relevant content. Improved Support.",Curated Assets created and supported by Red Hat Demo Platform. Best support experience.,"Customer workshops, brand events. Dedicated support and communication channels."
 Requirements,,Open Environments only supported on deploy/destroy.,,at least 2 weeks notice via ticket to pre provision and allocate resources
 Hours of Coverage,"Mon-Fri during business hours in IST, GMT, CEST, EST and PST ","Mon-Fri during business hours  in IST, GMT, CEST, EST and PST ","Mon-Fri during business hours  in IST, GMT, CEST, EST and PST ","Mon-Fri during business hours  in IST, GMT, CEST, EST and PST "
 Customer-Facing Support Tools,Ticketing system,Ticketing system,Ticketing system,Ticketing System and dedicated workshop Google Chat space
 Request/Incident Response Time (Officially Support Tooling only),16 business hours,10 business hours,6 business hours,Dedicated Support
 Incident Resolution Time - Platform,,,,
-Severity 1 (RHDP is down/Most CIs are not available),,10 business hours,,
+Severity 1 (Red Hat Demo Platform is down/Most CIs are not available),,10 business hours,,
 Severity 2 (A specifc cloud is down/All product related demos are down/Most CIs have intermittent issues),,12 business hours,,
 Incident Resolution Time - Content,,,,
 Severity 3 (ie: A single demo is not available),5 business days,1 business day,12 business hours,
