@@ -34,7 +34,7 @@ INSERT_RATING = (
         WHERE ratings.provision_uuid = %(uuid)s AND ratings.email = %(email)s;"""
 )
 GET_CATALOG_ITEM_RATING = (
-    """SELECT AVG(rating) AS rating_score, COUNT(*) FROM 
+    """SELECT AVG(rating) AS rating_score, COUNT(*) AS total_ratings FROM 
     (SELECT DISTINCT(SUBSTR(provisions.babylon_guid, 1,5)), ratings.rating  
         FROM ratings 
         JOIN catalog_items ON catalog_items.id=ratings.catalog_item_id 
