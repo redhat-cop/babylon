@@ -292,14 +292,15 @@ const Catalog: React.FC = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  const filterFunction = useMemo(() => (item: CatalogItem) => filterCatalogItemByAccessControl(item, groups), [groups]);
-
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
 
-  const _catalogItems = catalogItemsArr.filter(filterFunction);
+  const _catalogItems = useMemo(
+    () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups)),
+    [catalogItemsArr, groups]
+  );
   let catalogItemsSearchOutput = [];
   const allCatalogItems = [..._catalogItems];
 
