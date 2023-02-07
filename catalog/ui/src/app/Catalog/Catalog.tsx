@@ -301,8 +301,8 @@ const Catalog: React.FC = () => {
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups)),
     [catalogItemsArr, groups]
   );
+  const allCatalogItems = useMemo(() => [..._catalogItems], [_catalogItems]);
   let catalogItemsSearchOutput = [];
-  const allCatalogItems = [..._catalogItems];
 
   // Filter & Sort catalog items
   const catalogItems = useMemo(() => {
