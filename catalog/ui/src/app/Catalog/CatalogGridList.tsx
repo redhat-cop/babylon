@@ -25,7 +25,7 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
         if (index % catalogItemsColumnsSize === 0) {
           grid.push([]);
         }
-        grid[grid.length - 1].push(item);
+        if (grid[grid.length - 1]) grid[grid.length - 1].push(item);
         return grid;
       }, []),
     [catalogItems, catalogItemsColumnsSize]
