@@ -6,8 +6,8 @@ import CatalogItemCard from './CatalogItemCard';
 import CatalogItemListItem from './CatalogItemListItem';
 
 const GUTTER_SIZE = 16;
-const COLUMN_WIDTH = 280;
-const ROW_HEIGHT = 260;
+const GRID_COLUMN_WIDTH = 280;
+const GRID_ROW_HEIGHT = 260;
 const LIST_ROW_HEIGHT = 150;
 const SAFE_MARGIN = 2000;
 
@@ -18,7 +18,7 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
 }) => {
   const gridWidth = wrapperRect?.width || 1000;
   const gridHeight = window.innerHeight - wrapperRect?.top + SAFE_MARGIN || 1000;
-  const catalogItemsColumnsSize = Math.floor(gridWidth / (COLUMN_WIDTH + GUTTER_SIZE));
+  const catalogItemsColumnsSize = Math.floor(gridWidth / (GRID_COLUMN_WIDTH + GUTTER_SIZE));
   const catalogItemsResultAsGrid = useMemo(
     () =>
       catalogItems.reduce((grid, item, index) => {
@@ -73,9 +73,9 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
             outerRef={outerRef}
             style={style}
             columnCount={catalogItemsColumnsSize}
-            columnWidth={COLUMN_WIDTH + GUTTER_SIZE}
+            columnWidth={GRID_COLUMN_WIDTH + GUTTER_SIZE}
             rowCount={catalogItemsResultAsGrid.length}
-            rowHeight={ROW_HEIGHT + GUTTER_SIZE}
+            rowHeight={GRID_ROW_HEIGHT + GUTTER_SIZE}
             width={gridWidth}
             height={gridHeight}
             onScroll={onScroll}
