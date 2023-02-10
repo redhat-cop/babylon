@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SearchInput } from '@patternfly/react-core';
 
-const KeywordSearchInput: React.FC<
+const SearchInputString: React.FC<
   {
-    initialValue?: string[];
+    initialValue?: string;
     placeholder?: string;
-    onSearch: (keywords: string[]) => void;
+    onSearch: (value: string) => void;
+    setValueCb?: (cb: (v: string) => void) => void;
   } & React.HTMLAttributes<HTMLInputElement>
-> = ({ initialValue, placeholder, onSearch, ...rest }) => {
-  const [value, setValue] = useState(initialValue ? initialValue.join(' ') : '');
+> = ({ initialValue, placeholder, onSearch, setValueCb, ...rest }) => {
+  const [value, setValue] = useState(initialValue || '');
+
+  // sync callback with parent
+  useEffect(() => {
+    setValueCb && setValueCb(() => setValue);
+  }, [setValue]);
 
   return (
     <SearchInput
@@ -26,11 +32,11 @@ const KeywordSearchInput: React.FC<
         if (trimmedValue === '') {
           onSearch(null);
         } else {
-          onSearch(value.trim().split(/ +/));
+          onSearch(trimmedValue);
         }
       }}
     />
   );
 };
 
-export default KeywordSearchInput;
+export default SearchInputString;

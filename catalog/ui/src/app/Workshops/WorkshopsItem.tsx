@@ -125,14 +125,13 @@ const WorkshopsItemComponent: React.FC<{
     displayName: serviceNamespaceName,
   };
 
-  const {
-    data: workshop,
-    mutate: mutateWorkshop,
-    error,
-  } = useSWR<Workshop>(apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }), fetcher, {
-    refreshInterval: 8000,
-  });
-  useErrorHandler(error);
+  const { data: workshop, mutate: mutateWorkshop } = useSWR<Workshop>(
+    apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }),
+    fetcher,
+    {
+      refreshInterval: 8000,
+    }
+  );
 
   const { data: workshopProvisions, mutate: mutateWorkshopProvisions } = useSWR<WorkshopProvision[]>(
     apiPaths.WORKSHOP_PROVISIONS({

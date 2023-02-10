@@ -6,7 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import LoadingSection from './components/LoadingSection';
 
 const Dashboard = React.lazy(() => import('@app/Dashboard'));
-const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
+const CatalogRedirections = React.lazy(() => import('@app/Catalog/CatalogRedirections'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
 const Services = React.lazy(() => import('@app/Services/Services'));
 const Workshops = React.lazy(() => import('@app/Workshops/Workshops'));
@@ -41,12 +41,12 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | Catalog',
   },
   {
-    component: Catalog,
+    component: CatalogRedirections,
     path: '/catalog/:namespace',
     title: 'Babylon | Catalog',
   },
   {
-    component: Catalog,
+    component: CatalogRedirections,
     path: '/catalog',
     title: 'Babylon | Catalog',
   },

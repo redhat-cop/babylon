@@ -36,7 +36,7 @@ import { AsyncParser } from 'json2csv';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
-import KeywordSearchInput from '@app/components/KeywordSearchInput';
+import SearchInputString from '@app/components/SearchInputString';
 import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import { useRect } from '@app/utils/useRect';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -44,7 +44,6 @@ import Footer from '@app/components/Footer';
 import {
   formatString,
   getCategory,
-  getLastFilter,
   HIDDEN_ANNOTATIONS,
   HIDDEN_LABELS,
   CUSTOM_LABELS,
@@ -162,10 +161,15 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
   return true;
 }
 
-function saveFilter(urlParams: URLSearchParams) {
+function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
+  const urlParams = new URLSearchParams(urlParmsString);
   if (urlParams.has('item')) {
     urlParams.delete('item');
   }
+  if (urlParams.has('catalog')) {
+    urlParams.delete('catalog');
+  }
+  catalogNamespaceName && urlParams.append('catalog', catalogNamespaceName);
   setLastFilter(urlParams.toString());
 }
 
@@ -184,7 +188,7 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   return catalogItems;
 }
 
-const Catalog: React.FC = () => {
+const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ userHasRequiredPropertiesToAccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -207,7 +211,8 @@ const Catalog: React.FC = () => {
       ? openCatalogItemParam.split('/')[1]
       : openCatalogItemParam
     : null;
-  const keywordFilter = searchParams.has('search') ? searchParams.get('search').trim() : null;
+
+  const searchString = searchParams.has('search') ? searchParams.get('search').trim() : null;
   const selectedCategory = searchParams.has('category') ? searchParams.get('category') : null;
   const labelsString = searchParams.has('labels') ? searchParams.get('labels') : null;
   const selectedLabels: { [label: string]: string[] } = useMemo(
@@ -215,11 +220,9 @@ const Catalog: React.FC = () => {
     [labelsString]
   );
 
+  const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
+  const assignSearchInputStringCb = (cb: (v: string) => void) => setSearchInputStringCb(cb);
   const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
-  const requiredUserPropertiesToAccess =
-    catalogNamespaces.length > 0 &&
-    groups.some((g) => g.startsWith('identity-provider')) &&
-    groups.some((g) => g.startsWith('email-domain'));
 
   const compareCatalogItems = useCallback(
     (a: CatalogItem, b: CatalogItem): number => {
@@ -275,25 +278,6 @@ const Catalog: React.FC = () => {
     },
     [sortBy.selected]
   );
-  useEffect(() => {
-    if (!requiredUserPropertiesToAccess) {
-      const count = searchParams.has('c') ? parseInt(searchParams.get('c'), 10) + 1 : 1;
-      setTimeout(() => {
-        if (count < 6) {
-          const url = new URL(window.location.href);
-          url.searchParams.set('c', count.toString());
-          window.location.href = url.toString();
-        }
-      }, 10000);
-    }
-  }, [requiredUserPropertiesToAccess, searchParams]);
-  // Load last filter
-  useEffect(() => {
-    const lastCatalogQuery = getLastFilter();
-    if (!searchParams.toString() && lastCatalogQuery) {
-      setSearchParams(lastCatalogQuery);
-    }
-  }, [searchParams, setSearchParams]);
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
@@ -351,8 +335,8 @@ const Catalog: React.FC = () => {
   }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems]);
 
   const catalogItemsResult = useMemo(
-    () => (keywordFilter ? _catalogItems.search(keywordFilter).map((x) => x.item) : _catalogItemsCpy),
-    [keywordFilter, _catalogItems, _catalogItemsCpy]
+    () => (searchString ? _catalogItems.search(searchString).map((x) => x.item) : _catalogItemsCpy),
+    [searchString, _catalogItems, _catalogItemsCpy]
   );
 
   const openCatalogItem =
@@ -368,17 +352,18 @@ const Catalog: React.FC = () => {
     setSearchParams(searchParams);
   }
 
-  function onKeywordSearchChange(value: string) {
+  function onSearchChange(value: string) {
     if (value) {
       searchParams.set('search', value);
     } else if (searchParams.has('search')) {
       searchParams.delete('search');
     }
-    saveFilter(searchParams);
+    saveFilter(searchParams.toString(), catalogNamespaceName);
     setSearchParams(searchParams);
   }
 
   function onSelectCatalogNamespace(namespaceName: string) {
+    saveFilter(searchParams.toString(), namespaceName);
     if (namespaceName) {
       navigate(`/catalog/${namespaceName}${location.search}`);
     } else {
@@ -392,7 +377,7 @@ const Catalog: React.FC = () => {
     } else if (searchParams.has('category')) {
       searchParams.delete('category');
     }
-    saveFilter(searchParams);
+    saveFilter(searchParams.toString(), catalogNamespaceName);
     setSearchParams(searchParams);
   }
 
@@ -402,23 +387,15 @@ const Catalog: React.FC = () => {
     } else if (searchParams.has('labels')) {
       searchParams.delete('labels');
     }
-    saveFilter(searchParams);
+    saveFilter(searchParams.toString(), catalogNamespaceName);
     setSearchParams(searchParams);
   }
 
   function onClearFilters() {
-    saveFilter(new URLSearchParams());
+    saveFilter('', catalogNamespaceName);
     setSearchParams();
+    searchInputStringCb && searchInputStringCb('');
   }
-
-  const getInitialKeywordFilter = () => {
-    const lastCatalogQuery = getLastFilter();
-    return keywordFilter
-      ? keywordFilter
-      : lastCatalogQuery && new URLSearchParams(lastCatalogQuery).has('search')
-      ? new URLSearchParams(lastCatalogQuery).get('search')
-      : null;
-  };
 
   return (
     <Drawer isExpanded={openCatalogItem ? true : false}>
@@ -471,11 +448,12 @@ const Catalog: React.FC = () => {
                           <Title headingLevel="h2">
                             {selectedCategory ? formatString(selectedCategory) : 'All Items'}
                           </Title>
-                          <KeywordSearchInput
-                            initialValue={getInitialKeywordFilter()}
-                            placeholder="Filter by keyword..."
-                            onSearch={onKeywordSearchChange}
+                          <SearchInputString
+                            initialValue={searchString}
+                            placeholder="Search"
+                            onSearch={onSearchChange}
                             className="catalog__searchbox"
+                            setValueCb={assignSearchInputStringCb}
                           />
                         </SplitItem>
                         <SplitItem>
@@ -587,7 +565,7 @@ const Catalog: React.FC = () => {
                                 continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
                                 <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                               </p>
-                            ) : !requiredUserPropertiesToAccess ? (
+                            ) : !userHasRequiredPropertiesToAccess ? (
                               <>
                                 <p>Welcome to the Red Hat Demo Platform!</p>
                                 <LoadingIcon />
