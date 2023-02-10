@@ -15,6 +15,15 @@
   display: flex;
   flex-direction: row;
   padding: var(--pf-global--spacer--lg);
+  height: 150px;
+}
+.catalog-item-list-item__card .catalog-item-icon {
+  height: auto;
+  max-height: 60px;
+  width: 60px;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding-bottom: var(--pf-global--spacer--md);
 }
 .catalog-item-list-item:hover {
   box-shadow: var(--pf-c-card--m-hoverable--hover--BoxShadow);
@@ -51,14 +60,6 @@
   flex-direction: column;
   min-width: 100px;
   color: var(--pf-global--palette--black-900);
-}
-.catalog-item-list-item__header .catalog-item-icon {
-  display: block;
-  width: 100%;
-  max-width: 90px;
-  height: auto;
-  max-height: 100%;
-  padding-bottom: var(--pf-global--spacer--md);
 }
 
 .catalog-item-list-item__statusPageIcon {

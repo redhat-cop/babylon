@@ -57,18 +57,7 @@
 
 .catalog__content-box.pf-c-page__main-section {
   background-color: var(--pf-global--palette--black-200);
-  display: grid;
-  gap: var(--pf-global--spacer--md) var(--pf-global--spacer--md);
-  grid-auto-flow: dense;
-  grid-template-columns: repeat(auto-fill, 280px);
-  grid-template-rows: repeat(auto-fill, 260px);
   min-height: 460px;
-}
-
-.catalog__content-box--list.pf-c-page__main-section {
-  grid-template-columns: none;
-  display: flex;
-  flex-direction: column;
 }
 
 .catalog__content-box--empty.pf-c-page__main-section {

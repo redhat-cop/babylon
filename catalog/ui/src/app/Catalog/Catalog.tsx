@@ -38,6 +38,7 @@ import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import { useRect } from '@app/utils/useRect';
 import LoadingIcon from '@app/components/LoadingIcon';
 import Footer from '@app/components/Footer';
 import {
@@ -51,11 +52,10 @@ import {
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
-import CatalogItemCard from './CatalogItemCard';
 import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
-import CatalogItemListItem from './CatalogItemListItem';
+import CatalogGridList from './CatalogGridList';
 
 import './catalog.css';
 
@@ -191,6 +191,7 @@ const Catalog: React.FC = () => {
   const { namespace: catalogNamespaceName } = useParams();
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
+  const [wrapperRect, catalogWrapperRef] = useRect();
   const [sortBy, setSortBy] = useState<{ isOpen: boolean; selected: 'Featured' | 'Rating' | 'AZ' | 'ZA' }>({
     isOpen: false,
     selected: 'Featured',
@@ -208,9 +209,11 @@ const Catalog: React.FC = () => {
     : null;
   const keywordFilter = searchParams.has('search') ? searchParams.get('search').trim() : null;
   const selectedCategory = searchParams.has('category') ? searchParams.get('category') : null;
-  const selectedLabels: { [label: string]: string[] } = searchParams.has('labels')
-    ? JSON.parse(searchParams.get('labels'))
-    : {};
+  const labelsString = searchParams.has('labels') ? searchParams.get('labels') : null;
+  const selectedLabels: { [label: string]: string[] } = useMemo(
+    () => (labelsString ? JSON.parse(labelsString) : {}),
+    [labelsString]
+  );
 
   const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
   const requiredUserPropertiesToAccess =
@@ -347,7 +350,10 @@ const Catalog: React.FC = () => {
     return [catalogItemsFuse, catalogItemsCpy];
   }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems]);
 
-  const catalogItemsResult = keywordFilter ? _catalogItems.search(keywordFilter).map((x) => x.item) : _catalogItemsCpy;
+  const catalogItemsResult = useMemo(
+    () => (keywordFilter ? _catalogItems.search(keywordFilter).map((x) => x.item) : _catalogItemsCpy),
+    [keywordFilter, _catalogItems, _catalogItemsCpy]
+  );
 
   const openCatalogItem =
     openCatalogItemName && openCatalogItemNamespaceName
@@ -551,61 +557,57 @@ const Catalog: React.FC = () => {
                         </SplitItem>
                       </Split>
                     </PageSection>
-                    {catalogItemsResult.length > 0 ? (
-                      <PageSection
-                        variant={PageSectionVariants.default}
-                        className={`catalog__content-box catalog__content-box--${view}`}
-                      >
-                        {catalogItemsResult.map((catalogItem) =>
-                          view === 'gallery' ? (
-                            <CatalogItemCard key={catalogItem.metadata.uid} catalogItem={catalogItem} />
-                          ) : (
-                            <CatalogItemListItem key={catalogItem.metadata.uid} catalogItem={catalogItem} />
-                          )
-                        )}
-                      </PageSection>
-                    ) : (
-                      <PageSection variant={PageSectionVariants.default} className="catalog__content-box--empty">
-                        <EmptyState variant="full">
-                          {catalogItemsResult.length === 0 ? (
-                            <p>
-                              No catalog items match filters.{' '}
-                              <Button
-                                variant="primary"
-                                aria-label="Clear all filters"
-                                icon={<TimesIcon />}
-                                style={{ marginLeft: 'var(--pf-global--spacer--sm)' }}
-                                onClick={onClearFilters}
-                              >
-                                Clear all filters
-                              </Button>
-                            </p>
-                          ) : groups.includes('salesforce-partner') ? (
-                            <p>
-                              Sorry! The new Red Hat Demo Platform (RHDP) is not yet available for partners. Please
-                              continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
-                              <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
-                            </p>
-                          ) : !requiredUserPropertiesToAccess ? (
-                            <>
-                              <p>Welcome to the Red Hat Demo Platform!</p>
-                              <LoadingIcon />
+                    <div ref={catalogWrapperRef}>
+                      {catalogItemsResult.length > 0 ? (
+                        <PageSection
+                          variant={PageSectionVariants.default}
+                          className={`catalog__content-box catalog__content-box--${view}`}
+                        >
+                          <CatalogGridList view={view} catalogItems={catalogItemsResult} wrapperRect={wrapperRect} />
+                        </PageSection>
+                      ) : (
+                        <PageSection variant={PageSectionVariants.default} className="catalog__content-box--empty">
+                          <EmptyState variant="full">
+                            {catalogItemsResult.length === 0 ? (
                               <p>
-                                Please wait a few seconds while we set up your catalog. If nothing happens refresh this
-                                page.
+                                No catalog items match filters.{' '}
+                                <Button
+                                  variant="primary"
+                                  aria-label="Clear all filters"
+                                  icon={<TimesIcon />}
+                                  style={{ marginLeft: 'var(--pf-global--spacer--sm)' }}
+                                  onClick={onClearFilters}
+                                >
+                                  Clear all filters
+                                </Button>
                               </p>
-                            </>
-                          ) : (
-                            <p>
-                              Sorry! You do not have access to the Red Hat Demo Platform. This system is only available
-                              for Red Hat associates at this time. Red Hat partners may access{' '}
-                              <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
-                              <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
-                            </p>
-                          )}
-                        </EmptyState>
-                      </PageSection>
-                    )}
+                            ) : groups.includes('salesforce-partner') ? (
+                              <p>
+                                Sorry! The new Red Hat Demo Platform (RHDP) is not yet available for partners. Please
+                                continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
+                                <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
+                              </p>
+                            ) : !requiredUserPropertiesToAccess ? (
+                              <>
+                                <p>Welcome to the Red Hat Demo Platform!</p>
+                                <LoadingIcon />
+                                <p>
+                                  Please wait a few seconds while we set up your catalog. If nothing happens refresh
+                                  this page.
+                                </p>
+                              </>
+                            ) : (
+                              <p>
+                                Sorry! You do not have access to the Red Hat Demo Platform. This system is only
+                                available for Red Hat associates at this time. Red Hat partners may access{' '}
+                                <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
+                                <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
+                              </p>
+                            )}
+                          </EmptyState>
+                        </PageSection>
+                      )}
+                    </div>
                   </SidebarContent>
                 </Sidebar>
               </CardBody>
