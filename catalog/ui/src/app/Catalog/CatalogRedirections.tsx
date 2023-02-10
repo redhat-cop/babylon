@@ -4,7 +4,7 @@ import useSession from '@app/utils/useSession';
 import Catalog from './Catalog';
 import { getLastFilter } from './catalog-utils';
 
-const RedirectCatalog: React.FC = () => {
+const CatalogRedirections: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { catalogNamespaces, groups } = useSession().getSession();
@@ -46,4 +46,4 @@ const RedirectCatalog: React.FC = () => {
   return <Catalog userHasRequiredPropertiesToAccess={userHasRequiredPropertiesToAccess} />;
 };
 
-export default RedirectCatalog;
+export default CatalogRedirections;

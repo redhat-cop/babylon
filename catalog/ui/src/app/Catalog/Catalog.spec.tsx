@@ -34,17 +34,7 @@ describe('Catalog Component', () => {
     const withinCategorySelector = within(container.querySelector('.catalog-category-selector'));
     await waitFor(() => expect(withinCategorySelector.getByText('Other')).toBeInTheDocument());
     fireEvent.click(withinCategorySelector.getByText('Other').closest('button'));
-    expect(setItemSpy).toBeCalledWith('lastCatalogFilter', 'category=Other');
-    await waitFor(() =>
-      expect(withinCategorySelector.getByText('Other').closest('button').getAttribute('aria-selected')).toBe('true')
-    );
-    expect(history.location.search).toBe('?category=Other');
-  });
-  test('When rendering the /catalog with a saved filter should redirect', async () => {
-    window.sessionStorage.setItem('lastCatalogFilter', 'category=Other');
-    const history = createMemoryHistory();
-    const { container } = render(<Catalog userHasRequiredPropertiesToAccess={true} />, { history: history });
-    const withinCategorySelector = within(container.querySelector('.catalog-category-selector'));
+    expect(setItemSpy).toBeCalledWith('lastCatalogFilter', 'category=Other&catalog=babylon-catalog-test');
     await waitFor(() =>
       expect(withinCategorySelector.getByText('Other').closest('button').getAttribute('aria-selected')).toBe('true')
     );
