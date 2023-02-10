@@ -44,7 +44,6 @@ import Footer from '@app/components/Footer';
 import {
   formatString,
   getCategory,
-  getLastFilter,
   HIDDEN_ANNOTATIONS,
   HIDDEN_LABELS,
   CUSTOM_LABELS,
@@ -162,10 +161,15 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
   return true;
 }
 
-function saveFilter(urlParams: URLSearchParams) {
+function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
+  const urlParams = new URLSearchParams(urlParmsString);
   if (urlParams.has('item')) {
     urlParams.delete('item');
   }
+  if (urlParams.has('catalog')) {
+    urlParams.delete('catalog');
+  }
+  catalogNamespaceName && urlParams.append('catalog', catalogNamespaceName);
   setLastFilter(urlParams.toString());
 }
 
@@ -184,7 +188,7 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   return catalogItems;
 }
 
-const Catalog: React.FC = () => {
+const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ userHasRequiredPropertiesToAccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -219,10 +223,6 @@ const Catalog: React.FC = () => {
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
   const assignSearchInputStringCb = (cb: (v: string) => void) => setSearchInputStringCb(cb);
   const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
-  const requiredUserPropertiesToAccess =
-    catalogNamespaces.length > 0 &&
-    groups.some((g) => g.startsWith('identity-provider')) &&
-    groups.some((g) => g.startsWith('email-domain'));
 
   const compareCatalogItems = useCallback(
     (a: CatalogItem, b: CatalogItem): number => {
@@ -278,29 +278,6 @@ const Catalog: React.FC = () => {
     },
     [sortBy.selected]
   );
-
-  useEffect(() => {
-    if (!requiredUserPropertiesToAccess) {
-      const count = searchParams.has('c') ? parseInt(searchParams.get('c'), 10) + 1 : 1;
-      setTimeout(() => {
-        if (count < 6) {
-          const url = new URL(window.location.href);
-          url.searchParams.set('c', count.toString());
-          window.location.href = url.toString();
-        }
-      }, 10000);
-    }
-  }, [requiredUserPropertiesToAccess, searchParams]);
-
-  // Load last filter
-  useEffect(() => {
-    const lastCatalogQuery = getLastFilter();
-    if (!searchParams.toString() && lastCatalogQuery && searchInputStringCb) {
-      setSearchParams(lastCatalogQuery);
-      const _searchParams = new URLSearchParams(lastCatalogQuery);
-      _searchParams.has('search') ? searchInputStringCb(_searchParams.get('search').trim()) : null;
-    }
-  }, [searchParams.toString(), setSearchParams, searchInputStringCb]);
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
@@ -381,11 +358,12 @@ const Catalog: React.FC = () => {
     } else if (searchParams.has('search')) {
       searchParams.delete('search');
     }
-    saveFilter(searchParams);
+    saveFilter(searchParams.toString(), catalogNamespaceName);
     setSearchParams(searchParams);
   }
 
   function onSelectCatalogNamespace(namespaceName: string) {
+    saveFilter(searchParams.toString(), namespaceName);
     if (namespaceName) {
       navigate(`/catalog/${namespaceName}${location.search}`);
     } else {
@@ -399,7 +377,7 @@ const Catalog: React.FC = () => {
     } else if (searchParams.has('category')) {
       searchParams.delete('category');
     }
-    saveFilter(searchParams);
+    saveFilter(searchParams.toString(), catalogNamespaceName);
     setSearchParams(searchParams);
   }
 
@@ -409,12 +387,12 @@ const Catalog: React.FC = () => {
     } else if (searchParams.has('labels')) {
       searchParams.delete('labels');
     }
-    saveFilter(searchParams);
+    saveFilter(searchParams.toString(), catalogNamespaceName);
     setSearchParams(searchParams);
   }
 
   function onClearFilters() {
-    saveFilter(new URLSearchParams());
+    saveFilter('', catalogNamespaceName);
     setSearchParams();
     searchInputStringCb && searchInputStringCb('');
   }
@@ -587,7 +565,7 @@ const Catalog: React.FC = () => {
                                 continue to use <a href="https://labs.opentlc.com">labs.opentlc.com</a> for labs or{' '}
                                 <a href="https://demo00.opentlc.com">demo00.opentlc.com</a> for demos.
                               </p>
-                            ) : !requiredUserPropertiesToAccess ? (
+                            ) : !userHasRequiredPropertiesToAccess ? (
                               <>
                                 <p>Welcome to the Red Hat Demo Platform!</p>
                                 <LoadingIcon />

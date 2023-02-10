@@ -6,7 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import LoadingSection from './components/LoadingSection';
 
 const Dashboard = React.lazy(() => import('@app/Dashboard'));
-const Catalog = React.lazy(() => import('@app/Catalog/Catalog'));
+const Catalog = React.lazy(() => import('@app/Catalog/RedirectCatalog'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
 const Services = React.lazy(() => import('@app/Services/Services'));
 const Workshops = React.lazy(() => import('@app/Workshops/Workshops'));
