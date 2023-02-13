@@ -94,7 +94,7 @@ function replaceURLs(message: string) {
   });
 }
 
-function stringToHml(string: string) {
+function stringToHtml(string: string) {
   const stringWithBreakLines = string.replace(/(?:\r\n|\r|\n)/g, ' <br/>');
   return replaceURLs(stringWithBreakLines);
 }
@@ -111,7 +111,7 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
   if (options.format === 'html') {
     return dompurify.sanitize(content, sanitize_opt);
   } else if (options.format === 'htmlString') {
-    return dompurify.sanitize(stringToHml(content), sanitize_opt);
+    return dompurify.sanitize(stringToHtml(content), sanitize_opt);
   } else {
     const asciidoctor = AsciiDoctor();
     return dompurify.sanitize(asciidoctor.convert(content, { attributes: options.vars }).toString(), sanitize_opt);
