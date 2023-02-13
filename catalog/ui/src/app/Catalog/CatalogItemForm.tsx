@@ -420,36 +420,38 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               }
               validated={status}
             >
-              {formGroup.parameters.map((parameterState) => (
-                <div
-                  className={`catalog-item-form__group-control--${
-                    formGroup.parameters.length > 1 ? 'multi' : 'single'
-                  }`}
-                  key={parameterState.spec.name}
-                >
-                  <DynamicFormInput
-                    id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
-                    isDisabled={parameterState.isDisabled}
-                    parameter={parameterState.spec}
-                    validationResult={parameterState.validationResult}
-                    value={parameterState.value}
-                    onChange={(value: boolean | number | string, isValid = true) => {
-                      dispatchFormState({
-                        type: 'parameterUpdate',
-                        parameter: { name: parameterState.spec.name, value, isValid },
-                      });
-                    }}
-                  />
-                  {parameterState.spec.description ? (
-                    <Tooltip position="right" content={<div>{parameterState.spec.description}</div>}>
-                      <OutlinedQuestionCircleIcon
-                        aria-label={parameterState.spec.description}
-                        className="tooltip-icon-only"
-                      />
-                    </Tooltip>
-                  ) : null}
-                </div>
-              ))}
+              {formGroup.parameters
+                .filter((p) => !p.isHidden)
+                .map((parameterState) => (
+                  <div
+                    className={`catalog-item-form__group-control--${
+                      formGroup.parameters.length > 1 ? 'multi' : 'single'
+                    }`}
+                    key={parameterState.spec.name}
+                  >
+                    <DynamicFormInput
+                      id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
+                      isDisabled={parameterState.isDisabled}
+                      parameter={parameterState.spec}
+                      validationResult={parameterState.validationResult}
+                      value={parameterState.value}
+                      onChange={(value: boolean | number | string, isValid = true) => {
+                        dispatchFormState({
+                          type: 'parameterUpdate',
+                          parameter: { name: parameterState.spec.name, value, isValid },
+                        });
+                      }}
+                    />
+                    {parameterState.spec.description ? (
+                      <Tooltip position="right" content={<div>{parameterState.spec.description}</div>}>
+                        <OutlinedQuestionCircleIcon
+                          aria-label={parameterState.spec.description}
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    ) : null}
+                  </div>
+                ))}
             </FormGroup>
           );
         })}
