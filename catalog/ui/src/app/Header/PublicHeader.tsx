@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import {
   ApplicationLauncher,
   ApplicationLauncherItem,
+  Button,
   DropdownPosition,
   PageHeader,
   PageHeaderTools,
 } from '@patternfly/react-core';
-import { QuestionCircleIcon } from '@patternfly/react-icons';
+import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
+import CatalogIcon from '@patternfly/react-icons/dist/js/icons/catalog-icon';
+import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 
 import './header.css';
@@ -53,6 +56,27 @@ const PublicHeader: React.FC = () => {
 
   const HeaderTools = (
     <PageHeaderTools>
+      <Button
+        variant="link"
+        icon={<CatalogIcon />}
+        style={{ color: '#fff' }}
+        onClick={() => window.open('https://content.redhat.com/us/en/product/rhdp.html', '_blank')}
+      >
+        Learn more
+      </Button>
+      <Button
+        variant="link"
+        icon={<CommentIcon />}
+        style={{ color: '#fff' }}
+        onClick={() =>
+          window.open(
+            'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
+            '_blank'
+          )
+        }
+      >
+        Feedback
+      </Button>
       <ApplicationLauncher
         aria-label="Help menu"
         onSelect={() => setUserHelpDropdownOpen((prevIsOpen) => !prevIsOpen)}
@@ -60,7 +84,14 @@ const PublicHeader: React.FC = () => {
         isOpen={isUserHelpDropdownOpen}
         items={UserHelpDropdownItems}
         position={DropdownPosition.right}
-        toggleIcon={<QuestionCircleIcon />}
+        toggleIcon={
+          <div
+            style={{ display: 'flex', gap: 'var(--pf-global--spacer--xs)', flexDirection: 'row', alignItems: 'center' }}
+          >
+            <QuestionCircleIcon />
+            Help
+          </div>
+        }
       />
     </PageHeaderTools>
   );
