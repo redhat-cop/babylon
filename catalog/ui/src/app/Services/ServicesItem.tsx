@@ -404,11 +404,7 @@ const ServicesItemComponent: React.FC<{
   const hasInfoMessageTemplate = !!getInfoMessageTemplate(resourceClaim);
 
   async function onModalAction(): Promise<void> {
-    if (modalState.action === 'delete') {
-      deleteResourceClaim(resourceClaim);
-      cache.delete(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }));
-      navigate(`/services/${serviceNamespaceName}`);
-    } else if (modalState.action === 'stop' || modalState.action === 'start') {
+    if (modalState.action === 'stop' || modalState.action === 'start') {
       const resourceClaimUpdate =
         modalState.action === 'start'
           ? await startAllResourcesInResourceClaim(resourceClaim)
@@ -425,6 +421,11 @@ const ServicesItemComponent: React.FC<{
           cache.delete(apiPaths.PROVISION_RATING({ provisionUuid }));
         }
       }
+    }
+    if (modalState.action === 'delete') {
+      deleteResourceClaim(resourceClaim);
+      cache.delete(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }));
+      navigate(`/services/${serviceNamespaceName}`);
     }
   }
 

@@ -80,10 +80,10 @@ export type FormStateAction = {
 
 export type FormStateParameter = {
   default?: boolean | number | string | undefined;
-  isDisabled?: boolean;
-  isHidden?: boolean;
-  isRequired?: boolean; // isValid is specifically the result of component validation such as min/max on numeric input
-  isValid?: boolean;
+  isDisabled: boolean;
+  isHidden: boolean;
+  isRequired: boolean;
+  isValid?: boolean; // isValid is specifically the result of component validation such as min/max on numeric input
   name: string;
   spec: CatalogItemSpecParameter;
   validationMessage?: string | undefined; // validationMessage and validationResult are set by checking validation condition
@@ -93,7 +93,7 @@ export type FormStateParameter = {
 
 type FormStateParameterGroup = {
   formGroupLabel: string;
-  isRequired?: boolean;
+  isRequired: boolean;
   key: string;
   parameters: FormStateParameter[];
 };
@@ -172,8 +172,6 @@ export async function checkConditionsInFormState(
           conditionValues,
           debouncedApiFetch
         );
-      } else {
-        parameterState.isDisabled = false;
       }
 
       if (parameterSpec.formHideCondition) {
@@ -182,8 +180,6 @@ export async function checkConditionsInFormState(
           conditionValues,
           debouncedApiFetch
         );
-      } else {
-        parameterState.isHidden = false;
       }
 
       if (parameterSpec.formRequireCondition) {
@@ -192,8 +188,6 @@ export async function checkConditionsInFormState(
           conditionValues,
           debouncedApiFetch
         );
-      } else {
-        parameterState.isRequired = parameterSpec.required;
       }
 
       if (parameterSpec.validation) {
@@ -251,6 +245,9 @@ function reduceFormStateInit(
       name: parameterSpec.name,
       spec: parameterSpec,
       value: defaultValue,
+      isHidden: false,
+      isDisabled: false,
+      isRequired: parameterSpec.required || false,
     };
     parameters[parameterSpec.name] = parameterState;
 
@@ -263,6 +260,7 @@ function reduceFormStateInit(
           formGroupLabel: parameterSpec.formGroup,
           key: parameterSpec.formGroup,
           parameters: [parameterState],
+          isRequired: false,
         });
       }
     } else {
