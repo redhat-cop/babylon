@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -223,6 +223,13 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
   const assignSearchInputStringCb = (cb: (v: string) => void) => setSearchInputStringCb(cb);
   const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
+
+  // sync input with search param
+  useLayoutEffect(() => {
+    if (searchString && searchInputStringCb) {
+      searchInputStringCb(searchString);
+    }
+  }, [searchString, searchInputStringCb]);
 
   const compareCatalogItems = useCallback(
     (a: CatalogItem, b: CatalogItem): number => {
