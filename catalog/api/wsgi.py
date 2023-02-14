@@ -465,6 +465,11 @@ def salesforce_validation(salesforce_id):
                                             "  Id, StartDate, EndDate, IsActive "
                                             "FROM Campaign "
                                             "WHERE Id = {}", salesforce_id)
+        elif salesforce_id.isnumeric() and len(salesforce_id) == 6:
+            salesforce_type = 'cdh'
+            opportunity_query = format_soql("SELECT Account.CDHPartyNumber__c, IsClosed"
+                                            "FROM Opportunity"
+                                            "WHERE Account.CDHPartyNumber__c = {}", salesforce_id)
         else:
             salesforce_type = 'opportunity'
             opportunity_query = format_soql("SELECT "
