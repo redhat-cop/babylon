@@ -109,13 +109,20 @@ const ComponentDetailsList: React.FC<{
   provisionDataEntries,
 }) => {
   const _provisionMessages =
-    typeof provisionMessages === 'string' ? provisionMessages : provisionMessages ? provisionMessages.join('\n') : null;
+    typeof provisionMessages === 'string'
+      ? provisionMessages
+      : provisionMessages
+      ? provisionMessages
+          .join('\n')
+          .replace(/^\s+|\s+$/g, '')
+          .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
+      : null;
   const provisionMessagesHtml = useMemo(
     () =>
-      provisionMessages ? (
+      _provisionMessages ? (
         <div
           dangerouslySetInnerHTML={{
-            __html: renderContent(_provisionMessages, { format: 'htmlString' }),
+            __html: renderContent(_provisionMessages, { format: 'asciidoc' }),
           }}
         />
       ) : null,
