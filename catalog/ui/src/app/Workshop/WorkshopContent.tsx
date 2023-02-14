@@ -30,13 +30,14 @@ const WorkshopContent: React.FC<{
   let renderEditor = true;
 
   const userAssignmentMessagesHtml = useMemo(
-    () => (
-      <div
-        dangerouslySetInnerHTML={{
-          __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n'), { format: 'asciidoc' }),
-        }}
-      />
-    ),
+    () =>
+      userAssignment.messages ? (
+        <div
+          dangerouslySetInnerHTML={{
+            __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n'), { format: 'asciidoc' }),
+          }}
+        />
+      ) : null,
     [userAssignment.messages]
   );
 
