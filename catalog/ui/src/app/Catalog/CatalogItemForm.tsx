@@ -309,7 +309,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       fontWeight: 400,
                     }}
                   >
-                    (Opportunity ID, Campaign ID, Partner Registration, or Project ID)
+                    (Opportunity ID, Campaign ID, CDH, or Project ID)
                   </span>
                 </span>
               }
@@ -352,10 +352,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 />
                 <Tooltip
                   position="right"
-                  content={<div>Salesforce Opportunity ID, Campaign ID, Partner Registration, or Project ID.</div>}
+                  content={<div>Salesforce Opportunity ID, Campaign ID, CDH, or Project ID.</div>}
                 >
                   <OutlinedQuestionCircleIcon
-                    aria-label="Salesforce Opportunity ID, Campaign ID, Partner Registration, or Project ID."
+                    aria-label="Salesforce Opportunity ID, Campaign ID, CDH, or Project ID."
                     className="tooltip-icon-only"
                   />
                 </Tooltip>
