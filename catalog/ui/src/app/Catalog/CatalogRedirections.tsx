@@ -16,17 +16,18 @@ const CatalogRedirections: React.FC = () => {
 
   // Load last filter
   useEffect(() => {
-    const lastFilter = new URLSearchParams(getLastFilter());
-    if (lastFilter.has('catalog')) {
-      const lastCatalogNamespaceName = lastFilter.get('catalog');
-      lastFilter.delete('catalog');
+    const lastFilter = getLastFilter();
+    const lastFilterParams = new URLSearchParams(lastFilter);
+    if (lastFilterParams.has('catalog')) {
+      const lastCatalogNamespaceName = lastFilterParams.get('catalog');
+      lastFilterParams.delete('catalog');
       if (!catalogNamespaceName) {
-        const filter = lastFilter.toString() ? `?${lastFilter.toString()}` : '';
+        const filter = lastFilter ? `?${lastFilterParams.toString()}` : '';
         return navigate(`/catalog/${lastCatalogNamespaceName}${filter}`, { replace: true });
       }
     }
     if (!searchParams.toString() && lastFilter) {
-      setSearchParams(lastFilter);
+      setSearchParams(lastFilterParams);
     }
   }, [searchParams.toString(), setSearchParams]);
 
