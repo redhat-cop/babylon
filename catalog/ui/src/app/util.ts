@@ -77,27 +77,9 @@ export function recursiveAssign(target: object, source: object): any {
 
 type RenderContentOpt = {
   allowIFrame?: boolean;
-  format?: 'asciidoc' | 'html' | 'htmlString';
+  format?: 'asciidoc' | 'html';
   vars?: object;
 };
-
-function replaceURLs(message: string) {
-  if (!message) return '';
-
-  const urlRegex = /(((https?:\/\/)|(www\.))[^\s]+)/g;
-  return message.replace(urlRegex, function (url) {
-    var hyperlink = url;
-    if (!hyperlink.match('^https?://')) {
-      hyperlink = 'http://' + hyperlink;
-    }
-    return '<a href="' + hyperlink + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
-  });
-}
-
-function stringToHtml(string: string) {
-  const stringWithBreakLines = string.replace(/(?:\r\n|\r|\n)/g, ' <br/>');
-  return replaceURLs(stringWithBreakLines);
-}
 
 export function renderContent(content: string, options: RenderContentOpt = {}): string {
   const sanitize_opt = {
@@ -110,8 +92,6 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
   }
   if (options.format === 'html') {
     return dompurify.sanitize(content, sanitize_opt);
-  } else if (options.format === 'htmlString') {
-    return dompurify.sanitize(stringToHtml(content), sanitize_opt);
   } else {
     const asciidoctor = AsciiDoctor();
     return dompurify.sanitize(asciidoctor.convert(content, { attributes: options.vars }).toString(), sanitize_opt);

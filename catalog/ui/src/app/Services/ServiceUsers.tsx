@@ -18,8 +18,8 @@ const UserMessage: React.FC<{
     () => (
       <div
         dangerouslySetInnerHTML={{
-          __html: renderContent(userMessages, {
-            format: 'htmlString',
+          __html: renderContent(userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, '$1 +\n'), {
+            format: 'asciidoc',
           }),
         }}
       />
