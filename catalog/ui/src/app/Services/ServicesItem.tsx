@@ -108,21 +108,25 @@ const ComponentDetailsList: React.FC<{
   provisionMessages,
   provisionDataEntries,
 }) => {
+  const _provisionMessages =
+    typeof provisionMessages === 'string'
+      ? provisionMessages
+      : provisionMessages
+      ? provisionMessages
+          .join('\n')
+          .replace(/^\s+|\s+$/g, '')
+          .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
+      : null;
   const provisionMessagesHtml = useMemo(
     () =>
-      provisionMessages ? (
+      _provisionMessages ? (
         <div
           dangerouslySetInnerHTML={{
-            __html: renderContent(
-              (typeof provisionMessages === 'string' ? provisionMessages : provisionMessages.join('\n'))
-                .replace(/^\s+|\s+$/g, '')
-                .replace(/([^\n])\n(?!\n)/g, '$1 +\n'),
-              { format: 'asciidoc' }
-            ),
+            __html: renderContent(_provisionMessages, { format: 'asciidoc' }),
           }}
         />
       ) : null,
-    [JSON.stringify(provisionMessages)]
+    [_provisionMessages]
   );
   return (
     <DescriptionList isHorizontal>
