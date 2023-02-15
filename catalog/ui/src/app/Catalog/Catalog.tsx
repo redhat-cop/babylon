@@ -311,6 +311,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       threshold: 0,
       ignoreLocation: true,
       fieldNormWeight: 0,
+      useExtendedSearch: true,
       keys: [
         {
           name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/displayName'],
@@ -326,7 +327,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         },
         {
           name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Sales_Play'],
-          weight: 5,
+          weight: 3,
         },
         {
           name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/safe_description'],
@@ -357,7 +358,10 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems]);
 
   const catalogItemsResult = useMemo(
-    () => (searchString ? _catalogItems.search(searchString).map((x) => x.item) : _catalogItemsCpy),
+    () =>
+      searchString
+        ? _catalogItems.search("'" + searchString.split(' ').join(" '")).map((x) => x.item)
+        : _catalogItemsCpy,
     [searchString, _catalogItems, _catalogItemsCpy]
   );
 
