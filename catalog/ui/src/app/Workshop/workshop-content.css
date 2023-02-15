@@ -16,3 +16,6 @@
   margin: 0 auto var(--pf-global--spacer--xl);
   padding: var(--pf-global--spacer--lg) var(--pf-global--spacer--md);
 }
+.workshop-content__wrapper pre {
+  font-family: var(--pf-global--FontFamily--sans-serif);
+}

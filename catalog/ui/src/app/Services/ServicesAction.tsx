@@ -13,12 +13,14 @@ const ServicesAction: React.FC<{
       action: ServiceActionActions;
       resourceClaim?: ResourceClaim;
       rating?: { rate: number; comment: string };
+      submitDisabled: boolean;
     }>
   >;
   actionState: {
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
     rating?: { rate: number; comment: string };
+    submitDisabled: boolean;
   };
 }> = ({ actionState, setTitle, setActionState }) => {
   const action = actionState.action;
