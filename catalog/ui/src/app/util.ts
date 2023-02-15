@@ -306,7 +306,7 @@ export function escapeRegex(string: string) {
   return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
-export function stripTags(unStripped: string) {
-  const parseHTML = new DOMParser().parseFromString(unStripped, 'text/html');
+export function stripTags(unStrippedHtml: string) {
+  const parseHTML = new DOMParser().parseFromString(dompurify.sanitize(unStrippedHtml), 'text/html');
   return parseHTML.body.textContent || '';
 }

@@ -300,9 +300,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const [_catalogItems, _catalogItemsCpy] = useMemo(() => {
     const catalogItemsCpy = [...catalogItems].sort(compareCatalogItems);
     catalogItemsCpy.forEach((c, i) => {
-      catalogItemsCpy[i].metadata.annotations['babylon.gpte.redhat.com/safe_description'] = stripTags(
-        c.metadata.annotations['babylon.gpte.redhat.com/description']
-      );
+      if (c.metadata.annotations) {
+        catalogItemsCpy[i].metadata.annotations['babylon.gpte.redhat.com/safe_description'] = stripTags(
+          c.metadata.annotations['babylon.gpte.redhat.com/description']
+        );
+      }
     });
     const options = {
       minMatchCharLength: 3,
