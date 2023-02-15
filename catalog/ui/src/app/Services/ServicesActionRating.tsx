@@ -12,12 +12,14 @@ const ServicesActionRating: React.FC<{
       action: ServiceActionActions;
       resourceClaim?: ResourceClaim;
       rating?: { rate: number; comment: string };
+      submitDisabled: boolean;
     }>
   >;
   actionState: {
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
     rating?: { rate: number; comment: string };
+    submitDisabled: boolean;
   };
   hasError?: boolean;
   action: 'rate' | 'delete';
@@ -41,12 +43,14 @@ const ServicesActionRating: React.FC<{
             <StarRating
               count={5}
               rating={actionState.rating ? actionState.rating.rate || 0 : existingRating?.rating || 0}
-              onRating={(rate) =>
+              onRating={(rate) => {
+                const rating = { comment: existingRating?.comment, ...actionState.rating, rate };
                 setActionState({
                   ...actionState,
-                  rating: { comment: existingRating?.comment, ...actionState.rating, rate },
-                })
-              }
+                  rating,
+                  submitDisabled: rate < 3 && (!rating.comment || rating.comment.trim() === ''),
+                });
+              }}
             />
           </FormGroup>
           <FormGroup
@@ -56,18 +60,23 @@ const ServicesActionRating: React.FC<{
                 Add feedback for <i>{displayName(resourceClaim)}</i> developers
               </span>
             }
+            isRequired={actionState.submitDisabled}
           >
             <TextArea
               id="comment"
-              onChange={(comment) =>
+              onChange={(comment) => {
+                const rating = { rate: existingRating?.rating, ...actionState.rating, comment };
                 setActionState({
                   ...actionState,
-                  rating: { rate: existingRating?.rating, ...actionState.rating, comment },
-                })
-              }
+                  rating,
+                  submitDisabled:
+                    Number.isFinite(rating.rate) && rating.rate < 3 ? !comment || comment.trim() === '' : false,
+                });
+              }}
               value={actionState.rating ? actionState.rating.comment || '' : existingRating?.comment || ''}
               placeholder="Add comment"
               aria-label="Add comment"
+              isRequired={actionState.submitDisabled}
             />
           </FormGroup>
         </Form>

@@ -295,7 +295,8 @@ const ServicesItemComponent: React.FC<{
       rate: number;
       comment: string;
     };
-  }>({ action: null });
+    submitDisabled: boolean;
+  }>({ action: null, submitDisabled: false });
 
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const enableFetchUserNamespaces = isAdmin;
@@ -465,11 +466,11 @@ const ServicesItemComponent: React.FC<{
       resourceClaim?: ResourceClaim;
     }) => {
       if (modal === 'action') {
-        setModalState({ action, resourceClaim });
+        setModalState({ action, resourceClaim, submitDisabled: false });
         openModalAction();
       }
       if (modal === 'scheduleAction') {
-        setModalState({ action });
+        setModalState({ action, submitDisabled: false });
         openModalScheduleAction();
       }
       if (modal === 'createWorkshop') {
@@ -488,7 +489,7 @@ const ServicesItemComponent: React.FC<{
 
   return (
     <>
-      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
+      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true} isDisabled={modalState.submitDisabled}>
         <ServicesAction actionState={modalState} setActionState={setModalState} />
       </Modal>
       <Modal ref={modalCreateWorkshop} onConfirm={onModalWorkshopCreate} passModifiers={true}>
