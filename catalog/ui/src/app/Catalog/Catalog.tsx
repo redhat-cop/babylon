@@ -300,6 +300,10 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const [_catalogItems, _catalogItemsCpy] = useMemo(() => {
     const catalogItemsCpy = [...catalogItems].sort(compareCatalogItems);
     const options = {
+      minMatchCharLength: 3,
+      threshold: 0.3,
+      ignoreLocation: true,
+      fieldNormWeight: 0,
       keys: [
         {
           name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/displayName'],
@@ -314,15 +318,15 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           weight: 5,
         },
         {
+          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/description'],
+          weight: 3,
+        },
+        {
           name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Provider'],
           weight: 2.5,
         },
         {
           name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Product'],
-          weight: 1,
-        },
-        {
-          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/description'],
           weight: 1,
         },
         {
