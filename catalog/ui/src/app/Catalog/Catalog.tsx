@@ -317,6 +317,10 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           weight: 10,
         },
         {
+          name: ['metadata', 'name'],
+          weight: 10,
+        },
+        {
           name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/keywords'],
           weight: 5,
         },
