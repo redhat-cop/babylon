@@ -37,7 +37,7 @@ import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 import SearchInputString from '@app/components/SearchInputString';
-import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT, stripTags } from '@app/util';
 import { useRect } from '@app/utils/useRect';
 import LoadingIcon from '@app/components/LoadingIcon';
 import Footer from '@app/components/Footer';
@@ -299,9 +299,16 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   // Filter & Sort catalog items
   const [_catalogItems, _catalogItemsCpy] = useMemo(() => {
     const catalogItemsCpy = [...catalogItems].sort(compareCatalogItems);
+    catalogItemsCpy.forEach((c, i) => {
+      if (c.metadata.annotations) {
+        catalogItemsCpy[i].metadata.annotations['babylon.gpte.redhat.com/safe_description'] = stripTags(
+          c.metadata.annotations['babylon.gpte.redhat.com/description']
+        );
+      }
+    });
     const options = {
       minMatchCharLength: 3,
-      threshold: 0.3,
+      threshold: 0,
       ignoreLocation: true,
       fieldNormWeight: 0,
       keys: [
@@ -318,7 +325,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           weight: 5,
         },
         {
-          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/description'],
+          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/safe_description'],
           weight: 3,
         },
         {

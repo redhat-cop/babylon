@@ -302,6 +302,11 @@ export function canExecuteAction(
   return anarchySubject?.status?.supportedActions && action in anarchySubject.status.supportedActions;
 }
 
-export function escapeRegex(string: string): string {
+export function escapeRegex(string: string) {
   return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+}
+
+export function stripTags(unStrippedHtml: string) {
+  const parseHTML = new DOMParser().parseFromString(dompurify.sanitize(unStrippedHtml), 'text/html');
+  return parseHTML.body.textContent || '';
 }
