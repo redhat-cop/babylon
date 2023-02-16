@@ -307,6 +307,9 @@ export function escapeRegex(string: string) {
 }
 
 export function stripTags(unStrippedHtml: string) {
-  const parseHTML = new DOMParser().parseFromString(dompurify.sanitize(unStrippedHtml), 'text/html');
+  const parseHTML = new DOMParser().parseFromString(
+    dompurify.sanitize(unStrippedHtml.replace(/<\!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
+    'text/html'
+  );
   return parseHTML.body.textContent || '';
 }
