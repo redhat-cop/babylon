@@ -541,8 +541,9 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                         isOpen: false,
                                       })
                                     }
-                                    selections={`Sort by: ${sortBy.selected}`}
+                                    selections={`Sort by: ${!!searchString ? 'Search' : sortBy.selected}`}
                                     isOpen={sortBy.isOpen}
+                                    isDisabled={!!searchString}
                                   >
                                     <SelectOption key={0} value="Featured" />
                                     <SelectOption key={1} value="Rating" />
