@@ -736,22 +736,24 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             </Button>
           </ActionListItem>
 
-          <ActionListItem>
-            <Button
-              isAriaDisabled={!submitRequestEnabled}
-              isDisabled={!submitRequestEnabled}
-              onClick={() => {
-                dispatchFormState({
-                  type: 'dates',
-                  startDate: new Date(),
-                });
-                openAutoStopDestroyModal('schedule');
-              }}
-              icon={<OutlinedCalendarAltIcon />}
-            >
-              Schedule
-            </Button>
-          </ActionListItem>
+          {isAdmin || isLabDeveloper(groups) ? (
+            <ActionListItem>
+              <Button
+                isAriaDisabled={!submitRequestEnabled}
+                isDisabled={!submitRequestEnabled}
+                onClick={() => {
+                  dispatchFormState({
+                    type: 'dates',
+                    startDate: new Date(),
+                  });
+                  openAutoStopDestroyModal('schedule');
+                }}
+                icon={<OutlinedCalendarAltIcon />}
+              >
+                Schedule
+              </Button>
+            </ActionListItem>
+          ) : null}
 
           <ActionListItem>
             <Button variant="secondary" onClick={() => navigate(-1)}>
