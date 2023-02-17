@@ -86,6 +86,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   );
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
   const stage = getStage(catalogItem);
+  const maxAutoDestroyTime = Math.min(
+    parseDuration(catalogItem.spec.lifespan?.maximum),
+    parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
+  );
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
     reduceFormState(null, {
@@ -190,24 +194,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         autoDestroyDate={formState.destroyDate}
         autoStartDate={formState.startDate}
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
-        maxStartTimestamp={
-          !!formState.workshop || !catalogItem.spec.lifespan
-            ? null
-            : Date.now() +
-              Math.min(
-                parseDuration(catalogItem.spec.lifespan.maximum),
-                parseDuration(catalogItem.spec.lifespan.relativeMaximum)
-              )
-        }
-        maxRuntimeTimestamp={isAdmin ? null : parseDuration(catalogItem.spec.runtime?.maximum)}
-        maxDestroyTimestamp={
-          isAdmin
-            ? null
-            : Math.min(
-                parseDuration(catalogItem.spec.lifespan.maximum),
-                parseDuration(catalogItem.spec.lifespan.relativeMaximum)
-              )
-        }
+        maxStartTimestamp={!!formState.workshop || !catalogItem.spec.lifespan ? null : Date.now() + maxAutoDestroyTime}
+        maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : parseDuration(catalogItem.spec.runtime?.maximum)}
+        maxDestroyTimestamp={maxAutoDestroyTime}
         isWorkshopEnabled={!!formState.workshop}
         onConfirm={(dates: TDates) =>
           dispatchFormState({
