@@ -27,6 +27,7 @@ const _Modal: ForwardRefRenderFunction<
   {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onConfirm: (_: any) => Promise<void> | void;
+    onClose?: () => void;
     defaultOpened?: boolean;
     title?: string;
     children: React.ReactNode;
@@ -40,6 +41,7 @@ const _Modal: ForwardRefRenderFunction<
   {
     children,
     onConfirm,
+    onClose,
     title = '',
     defaultOpened = false,
     isDisabled = false,
@@ -57,6 +59,7 @@ const _Modal: ForwardRefRenderFunction<
   const close = useCallback(() => {
     setIsLoading(false);
     setIsOpen(false);
+    onClose ? onClose() : null;
   }, []);
   const [_title, setTitle] = useState(title);
   const [_isDisabled, setIsDisabled] = useState(isDisabled);

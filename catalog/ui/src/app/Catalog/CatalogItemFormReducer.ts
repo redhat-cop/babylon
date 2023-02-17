@@ -1,6 +1,8 @@
 import React from 'react';
 import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace } from '@app/types';
+import parseDuration from 'parse-duration';
+import { isAutoStopDisabled } from './catalog-utils';
 
 type ConditionValues = {
   [name: string]: boolean | number | string | string[] | undefined;
@@ -33,6 +35,8 @@ type FormState = {
   error: string;
   usePoolIfAvailable: boolean;
   startDate?: Date;
+  stopDate?: Date;
+  destroyDate: Date;
   purpose: string;
   salesforceId: {
     required: boolean;
@@ -51,7 +55,7 @@ export type FormStateAction = {
     | 'init'
     | 'parameterUpdate'
     | 'termsOfServiceAgreed'
-    | 'startDate'
+    | 'dates'
     | 'workshop'
     | 'usePoolIfAvailable'
     | 'purpose'
@@ -76,6 +80,8 @@ export type FormStateAction = {
   workshop?: WorkshopProps;
   usePoolIfAvailable?: boolean;
   startDate?: Date;
+  stopDate?: Date;
+  destroyDate?: Date;
 };
 
 export type FormStateParameter = {
@@ -296,6 +302,10 @@ function reduceFormStateInit(
       value: null,
       valid: false,
     },
+    stopDate: isAutoStopDisabled(catalogItem)
+      ? null
+      : new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default || '4h')),
+    destroyDate: new Date(Date.now() + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
   };
 }
 
@@ -371,17 +381,38 @@ function reduceFormStateUsePoolIfAvailable(initialState: FormState, usePoolIfAva
   };
 }
 
-function reduceFormStateStartDate(initialState: FormState, startDate: Date): FormState {
+function reduceFormStateDates(
+  initialState: FormState,
+  _startDate: Date,
+  _stopDate: Date,
+  _destroyDate: Date
+): FormState {
   const minThreshold = Date.now() + 900000; // 15 mins
-  if (startDate && startDate.getTime() > minThreshold) {
+  let stopDate = _stopDate;
+  let destroyDate = _destroyDate;
+  let startDate = _startDate;
+  if (!_stopDate) {
+    stopDate = initialState.stopDate;
+  }
+  if (!_destroyDate) {
+    destroyDate = initialState.destroyDate;
+  }
+  if (!_startDate) {
+    startDate = initialState.startDate;
+  }
+  if (_startDate && _startDate.getTime() > minThreshold) {
     return {
       ...initialState,
-      startDate,
+      stopDate,
+      destroyDate,
+      startDate: _startDate,
     };
   }
   return {
     ...initialState,
-    startDate: null,
+    startDate,
+    stopDate,
+    destroyDate,
   };
 }
 
@@ -444,8 +475,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormStateSalesforceId(state, action.salesforceId);
     case 'serviceNamespace':
       return reduceFormStateServiceNamespace(state, action.serviceNamespace);
-    case 'startDate':
-      return reduceFormStateStartDate(state, action.startDate);
+    case 'dates':
+      return reduceFormStateDates(state, action.startDate, action.stopDate, action.destroyDate);
     case 'termsOfServiceAgreed':
       return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
     case 'workshop':
