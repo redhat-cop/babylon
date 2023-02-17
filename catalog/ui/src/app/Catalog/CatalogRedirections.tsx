@@ -29,7 +29,7 @@ const CatalogRedirections: React.FC = () => {
     if (!searchParams.toString() && lastFilter) {
       setSearchParams(lastFilterParams);
     }
-  }, [searchParams.toString(), setSearchParams]);
+  }, [searchParams.toString(), setSearchParams, catalogNamespaceName]);
 
   useEffect(() => {
     if (!userHasRequiredPropertiesToAccess) {
