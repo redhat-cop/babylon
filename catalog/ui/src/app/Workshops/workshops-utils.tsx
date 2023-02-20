@@ -1,6 +1,6 @@
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { canExecuteAction, checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
-import { getAutoStopTime, getStartTime } from '@app/Services/service-utils';
+import { getAutoStopTime, getMinDefaultRuntime, getStartTime } from '@app/Services/service-utils';
 
 export function isWorkshopStarted(workshop: Workshop, workshopProvisions: WorkshopProvision[]): boolean {
   const startTime = getWorkshopStartTime(workshop, workshopProvisions);
@@ -48,6 +48,10 @@ export function getWorkshopServicesStartTime(workshop: Workshop, resourceClaims:
   }
   // Fallback to getting stop time from ResourceClaims
   return resourceClaims.length > 0 ? Math.min(...resourceClaims.flatMap(getStartTime)) : null;
+}
+export function getWorkshopDefaultRuntime(resourceClaims: ResourceClaim[]) {
+  const resourcesTime = resourceClaims && resourceClaims.length > 0 ? resourceClaims.flatMap(getMinDefaultRuntime) : [];
+  return resourcesTime.length > 0 ? Math.min(...resourcesTime) : null;
 }
 
 export function checkWorkshopCanStop(resourceClaims: ResourceClaim[] = []) {

@@ -1,13 +1,12 @@
 import React from 'react';
 import { Button } from '@patternfly/react-core';
 import { BABYLON_DOMAIN, checkResourceClaimCanStop } from '@app/util';
-import { CatalogItem, ResourceClaim } from '@app/types';
+import { ResourceClaim } from '@app/types';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import LocalTimestamp from './LocalTimestamp';
 import TimeInterval from './TimeInterval';
-import parseDuration from 'parse-duration';
 
-interface TAutoStopDestroyBase {
+const AutoStopDestroy: React.FC<{
   time: string | number;
   onClick: () => void;
   className?: string;
@@ -16,20 +15,13 @@ interface TAutoStopDestroyBase {
   children?: React.ReactNode;
   isDisabled?: boolean;
   notDefinedMessage?: string;
-}
-interface TAutoStopDestroyBaseWithResourceClaim extends TAutoStopDestroyBase {
-  resourceClaim: ResourceClaim;
-  catalogItem?: never;
-}
-interface TAutoStopDestroyBaseWithCatalogItem extends TAutoStopDestroyBase {
-  resourceClaim?: never;
-  catalogItem: CatalogItem;
-}
-const AutoStopDestroy: React.FC<TAutoStopDestroyBaseWithResourceClaim | TAutoStopDestroyBaseWithCatalogItem> = ({
+  destroyTimestamp?: number;
+  resourceClaim?: ResourceClaim;
+}> = ({
   time: _time,
   onClick,
   resourceClaim,
-  catalogItem,
+  destroyTimestamp,
   className,
   type,
   children,
@@ -86,13 +78,12 @@ const AutoStopDestroy: React.FC<TAutoStopDestroyBaseWithResourceClaim | TAutoSto
     } else if (!!resourceClaim?.status?.lifespan?.end) {
       // if Auto-Stop is greater than Auto-Destroy, show no auto-stop
       const autoDestroyTime = new Date(resourceClaim.status.lifespan.end).getTime();
-      if (autoDestroyTime === time || time > autoDestroyTime) {
+      if (time >= autoDestroyTime) {
         showNoAutoStop = true;
       }
-    } else if (!!catalogItem?.spec.lifespan?.default) {
+    } else if (!!destroyTimestamp) {
       // if Auto-Stop is greater than Auto-Destroy, show no auto-stop
-      const autoDestroyTime = new Date(Date.now() + parseDuration(catalogItem.spec.lifespan.default)).getTime();
-      if (autoDestroyTime === time || time > autoDestroyTime) {
+      if (time >= destroyTimestamp) {
         showNoAutoStop = true;
       }
     }

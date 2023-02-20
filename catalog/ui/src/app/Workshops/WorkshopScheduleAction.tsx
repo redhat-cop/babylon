@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Form, FormGroup } from '@patternfly/react-core';
+import { Form, FormGroup, Switch } from '@patternfly/react-core';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
-import { getWorkshopAutoStopTime, getWorkshopLifespan, getWorkshopServicesStartTime } from './workshops-utils';
+import {
+  getWorkshopAutoStopTime,
+  getWorkshopDefaultRuntime,
+  getWorkshopLifespan,
+  getWorkshopServicesStartTime,
+} from './workshops-utils';
+import parseDuration from 'parse-duration';
 
 const WorkshopScheduleAction: React.FC<{
   action: 'retirement' | 'stop' | 'start';
@@ -15,20 +21,21 @@ const WorkshopScheduleAction: React.FC<{
   const { isAdmin } = useSession().getSession();
   let maxDate: number = null;
   let currentActionDate: Date = null;
+  const { end: autoDestroyTime, start: autoStartTime } = getWorkshopLifespan(workshop, workshopProvisions);
+  const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
   if (action === 'retirement' || action === 'start') {
-    const { end: autoDestroyTime, start: autoStartTime } = getWorkshopLifespan(workshop, workshopProvisions);
     if (action === 'retirement') {
       currentActionDate = autoDestroyTime ? new Date(autoDestroyTime) : new Date(new Date().getTime() + 14400000); // By default: 14400000 = 4h;
     } else {
       currentActionDate = autoStartTime ? new Date(autoStartTime) : null;
     }
   } else {
-    const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
     currentActionDate = autoStopTime ? new Date(autoStopTime) : null;
     maxDate = getWorkshopServicesStartTime(workshop, resourceClaims);
   }
 
   const [selectedDate, setSelectedDate] = useState(currentActionDate || new Date());
+  const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
 
   const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'start' ? 'Start Date' : 'Auto-stop';
@@ -40,6 +47,8 @@ const WorkshopScheduleAction: React.FC<{
   if (isAdmin) {
     minMaxProps.maxDate = null;
   }
+  const noAutoStopSwitchIsVisible =
+    action === 'stop' && autoDestroyTime && (maxDate === null || maxDate >= autoDestroyTime);
 
   return (
     <Form isHorizontal>
@@ -48,8 +57,28 @@ const WorkshopScheduleAction: React.FC<{
           defaultTimestamp={selectedDate.getTime()}
           onSelect={(date) => setSelectedDate(date)}
           {...minMaxProps}
+          isDisabled={noAutoStopSwitchIsVisible && selectedDate.getTime() >= autoDestroyTime}
+          forceUpdateTimestamp={forceUpdateTimestamp}
         />
       </FormGroup>
+      {noAutoStopSwitchIsVisible ? (
+        <Switch
+          id="services-schedule-action__no-auto-stop"
+          aria-label="No auto-stop"
+          label="No auto-stop"
+          isChecked={selectedDate.getTime() >= autoDestroyTime}
+          hasCheckIcon
+          onChange={(isChecked) => {
+            if (isChecked) {
+              setSelectedDate(new Date(autoDestroyTime));
+            } else {
+              const date = new Date(Date.now() + (getWorkshopDefaultRuntime(resourceClaims) || parseDuration('6h')));
+              setSelectedDate(date);
+              setForceUpdateTimestamp(date);
+            }
+          }}
+        />
+      ) : null}
     </Form>
   );
 };

@@ -103,6 +103,22 @@ export function getAutoStopTime(resourceClaim: ResourceClaim): number {
   return null;
 }
 
+export function getMinDefaultRuntime(resourceClaim: ResourceClaim): number {
+  const defaultAutoStops = resourceClaim.status?.resources
+    ? resourceClaim.status.resources
+        .map((statusResource) => {
+          const defaultStop = statusResource.state?.spec.vars?.action_schedule?.default_runtime;
+          if (defaultStop) return parseDuration(defaultStop);
+          return null;
+        })
+        .filter((time) => time !== null)
+    : [];
+  if (defaultAutoStops && defaultAutoStops.length > 0) {
+    return Math.min(...defaultAutoStops);
+  }
+  return null;
+}
+
 export function getStartTime(resourceClaim: ResourceClaim): number {
   const autoStartTimes = resourceClaim.status?.resources
     ? resourceClaim.status.resources
