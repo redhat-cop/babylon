@@ -1,4 +1,5 @@
-import { RefObject, useEffect, useRef, useState } from 'react';
+import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import throttle from 'lodash.throttle';
 
 const useEffectInEvent = (event: 'resize' | 'scroll', useCapture?: boolean, set?: () => void) => {
   useEffect(() => {
@@ -11,8 +12,10 @@ const useEffectInEvent = (event: 'resize' | 'scroll', useCapture?: boolean, set?
 export const useRect = <T extends HTMLDivElement>(): [DOMRect | undefined, RefObject<T>] => {
   const ref = useRef<T>(null);
   const [rect, setRect] = useState<DOMRect>();
-
-  const set = () => setRect(ref.current?.getBoundingClientRect());
+  const set = useCallback(
+    throttle(() => setRect(ref.current?.getBoundingClientRect()), 1000),
+    [setRect]
+  );
 
   useEffectInEvent('resize', false, set);
   useEffectInEvent('scroll', true, set);
