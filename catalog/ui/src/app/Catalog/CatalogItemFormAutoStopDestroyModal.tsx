@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import DateTimePicker from '@app/components/DateTimePicker';
 import Modal, { useModal } from '@app/Modal/Modal';
-import { Form, FormGroup, HelperText, HelperTextItem, Switch } from '@patternfly/react-core';
+import { Alert, AlertGroup, Form, FormGroup, HelperText, HelperTextItem, Switch } from '@patternfly/react-core';
 import InfoIcon from '@patternfly/react-icons/dist/js/icons/info-icon';
+import useSession from '@app/utils/useSession';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
+import { getHelpUrl } from '@app/util';
 
 export type TDates = { startDate: Date; stopDate: Date; destroyDate: Date };
 export type TDatesTypes = 'auto-stop' | 'auto-destroy' | 'schedule';
@@ -34,12 +37,15 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   isWorkshopEnabled = false,
   isAutoStopDisabled = false,
 }) => {
+  const { isAdmin, email } = useSession().getSession();
+  const { userImpersonated } = useImpersonateUser();
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useModal();
   const [dates, setDates] = useState<TDates>({
     startDate: null,
     stopDate: null,
     destroyDate: null,
   });
+  const userEmail = userImpersonated ? userImpersonated : email;
   const _stopDate = dates.stopDate || autoStopDate;
   const _destroyDate = dates.destroyDate || autoDestroyDate;
   const noAutoStopChecked = _stopDate && _destroyDate && _stopDate.getTime() >= _destroyDate.getTime();
@@ -105,20 +111,39 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
           </>
         ) : null}
         {type === 'auto-destroy' || type === 'schedule' ? (
-          <FormGroup fieldId="auto-destroy-modal" label="Auto-destroy">
-            <DateTimePicker
-              defaultTimestamp={autoDestroyDate.getTime()}
-              onSelect={(d) => setDates({ ...dates, destroyDate: d })}
-              maxDate={
-                maxDestroyTimestamp
-                  ? type === 'schedule' && dates.startDate
-                    ? dates.startDate.getTime() + maxDestroyTimestamp
-                    : Date.now() + maxDestroyTimestamp
-                  : null
-              }
-              minDate={Date.now()}
-            />
-          </FormGroup>
+          <>
+            <FormGroup fieldId="auto-destroy-modal" label="Auto-destroy">
+              <DateTimePicker
+                defaultTimestamp={autoDestroyDate.getTime()}
+                onSelect={(d) => setDates({ ...dates, destroyDate: d })}
+                maxDate={
+                  maxDestroyTimestamp
+                    ? type === 'schedule' && dates.startDate
+                      ? dates.startDate.getTime() + maxDestroyTimestamp
+                      : Date.now() + maxDestroyTimestamp
+                    : null
+                }
+                minDate={Date.now()}
+              />
+            </FormGroup>
+            {isAdmin ? null : (
+              <AlertGroup>
+                <Alert
+                  title={
+                    <p>
+                      Auto-Destroy can be extended by submitting a{' '}
+                      <a href={getHelpUrl(userEmail)} target="_blank" rel="noopener noreferrer">
+                        SNOW ticket
+                      </a>
+                      .
+                    </p>
+                  }
+                  variant="info"
+                  isInline
+                />
+              </AlertGroup>
+            )}
+          </>
         ) : null}
       </Form>
       {isWorkshopEnabled ? (

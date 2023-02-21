@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
-import { Form, FormGroup, Switch } from '@patternfly/react-core';
+import { Alert, AlertGroup, Form, FormGroup, Switch } from '@patternfly/react-core';
 import { ResourceClaim } from '@app/types';
-import { displayName } from '@app/util';
+import { displayName, getHelpUrl } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
 import { getAutoStopTime, getMinDefaultRuntime, getStartTime } from './service-utils';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
 
 const ServicesScheduleAction: React.FC<{
   action: 'retirement' | 'stop';
@@ -13,7 +14,8 @@ const ServicesScheduleAction: React.FC<{
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
   setState?: React.Dispatch<React.SetStateAction<Date>>;
 }> = ({ action, resourceClaim, setTitle, setState }) => {
-  const { isAdmin } = useSession().getSession();
+  const { isAdmin, email } = useSession().getSession();
+  const { userImpersonated } = useImpersonateUser();
   const autoDestroyTime = Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan?.end);
   const currentActionDate: Date = useMemo(
     () => new Date(action === 'retirement' ? autoDestroyTime : getAutoStopTime(resourceClaim)),
@@ -41,6 +43,8 @@ const ServicesScheduleAction: React.FC<{
     minMaxProps.maxDate = null;
   }
   const noAutoStopSwitchIsVisible = action === 'stop' && (maxDate === null || maxDate >= autoDestroyTime);
+  const extendLifetimeMsgIsVisible = action === 'retirement' && minMaxProps.maxDate === null;
+  const userEmail = userImpersonated ? userImpersonated : email;
 
   return (
     <Form isHorizontal>
@@ -70,6 +74,23 @@ const ServicesScheduleAction: React.FC<{
             }
           }}
         />
+      ) : null}
+      {extendLifetimeMsgIsVisible ? (
+        <AlertGroup>
+          <Alert
+            title={
+              <p>
+                Auto-Destroy can be extended by submitting a{' '}
+                <a href={getHelpUrl(userEmail)} target="_blank" rel="noopener noreferrer">
+                  SNOW ticket
+                </a>
+                .
+              </p>
+            }
+            variant="info"
+            isInline
+          />
+        </AlertGroup>
       ) : null}
     </Form>
   );

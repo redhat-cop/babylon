@@ -36,6 +36,7 @@ import {
   BABYLON_DOMAIN,
   FETCH_BATCH_LIMIT,
   isLabDeveloper,
+  getHelpUrl,
 } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import TimeInterval from '@app/components/TimeInterval';
@@ -168,11 +169,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   }
 
   function getHelpLink() {
-    const user = userImpersonated ? userImpersonated : email;
-    if (user.includes('@redhat.com')) {
-      return 'https://red.ht/rhpds-help';
-    }
-    return 'https://red.ht/open-support';
+    const userEmail = userImpersonated ? userImpersonated : email;
+    return getHelpUrl(userEmail);
   }
 
   function requestInformation() {
