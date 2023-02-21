@@ -20,9 +20,9 @@ import ImpersonateUserModal from '@app/components/ImpersonateUserModal';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
+import { getHelpUrl } from '@app/util';
 
 import './header.css';
-import { getHelpUrl } from '@app/util';
 
 const Header: React.FC<{
   onNavToggleMobile: () => void;
