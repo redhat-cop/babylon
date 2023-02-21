@@ -68,6 +68,8 @@ type CreateServiceRequestOpt = {
   groups: string[];
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
+  stopDate?: Date;
+  destroyDate: Date;
   start?: CreateServiceRequestOptScheduleStartLifespan | CreateServiceRequestOptScheduleStartResource;
 };
 
@@ -339,6 +341,8 @@ export async function createServiceRequest({
   parameterValues,
   serviceNamespace,
   start,
+  stopDate,
+  destroyDate,
   usePoolIfAvailable,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
@@ -372,7 +376,10 @@ export async function createServiceRequest({
     },
     spec: {
       resources: [],
-      ...(start && start.type === 'lifespan' ? { lifespan: { start: dateToApiString(start.date) } } : {}),
+      lifespan: {
+        ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
+        end: dateToApiString(destroyDate),
+      },
     },
   };
 
@@ -385,7 +392,7 @@ export async function createServiceRequest({
     // Copy resources from catalog item to ResourceClaim
     requestResourceClaim.spec.resources = JSON.parse(JSON.stringify(catalogItem.spec.resources));
 
-    // Add resources start time (if present)
+    // Add resources start/stop time (if present)
     if (start && start.type === 'resource') {
       if (!start.autoStop) {
         throw new Error('Auto-stop data is missing when scheduling a resource start');
@@ -395,6 +402,13 @@ export async function createServiceRequest({
       for (const resource of requestResourceClaim.spec.resources) {
         recursiveAssign(resource, {
           template: { spec: { vars: { action_schedule: { start: startTimestamp, stop: stopTimestamp } } } },
+        });
+      }
+    } else if (stopDate) {
+      const stopTimestamp = dateToApiString(stopDate);
+      for (const resource of requestResourceClaim.spec.resources) {
+        recursiveAssign(resource, {
+          template: { spec: { vars: { action_schedule: { stop: stopTimestamp } } } },
         });
       }
     }

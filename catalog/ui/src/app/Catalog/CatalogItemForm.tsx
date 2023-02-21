@@ -16,8 +16,6 @@ import {
   Form,
   FormGroup,
   FormHelperText,
-  HelperText,
-  HelperTextItem,
   PageSection,
   PageSectionVariants,
   Select,
@@ -28,7 +26,6 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import InfoIcon from '@patternfly/react-icons/dist/js/icons/info-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
@@ -46,41 +43,21 @@ import {
 import { CatalogItem } from '@app/types';
 import { ErrorBoundary } from 'react-error-boundary';
 import { displayName, isLabDeveloper, randomString } from '@app/util';
-import DateTimePicker from '@app/components/DateTimePicker';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
-import Modal, { useModal } from '@app/Modal/Modal';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import Footer from '@app/components/Footer';
-import { getStage } from './catalog-utils';
+import AutoStopDestroy from '@app/components/AutoStopDestroy';
+import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
+import { getStage, isAutoStopDisabled } from './catalog-utils';
 
 import './catalog-item-form.css';
-
-const ScheduleModal: React.FC<{ defaultTimestamp: number; onSelect: (date: Date) => void; maxDate?: number }> = ({
-  defaultTimestamp,
-  onSelect,
-  maxDate,
-}) => {
-  const now = Date.now();
-  return (
-    <Form className="catalog-item-form__schedule-form" isHorizontal>
-      <FormGroup fieldId="schedule-field" label="Start Date">
-        <DateTimePicker
-          defaultTimestamp={defaultTimestamp}
-          onSelect={(date) => onSelect(date)}
-          minDate={now}
-          maxDate={maxDate}
-        />
-      </FormGroup>
-    </Form>
-  );
-};
 
 const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceName: string }> = ({
   catalogItemName,
@@ -88,7 +65,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 }) => {
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
-  const [scheduleModal, openScheduleModal] = useModal();
+  const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
   const { isAdmin, groups, roles, serviceNamespaces, workshopNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWR<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
@@ -109,6 +86,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   );
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
   const stage = getStage(catalogItem);
+  const maxAutoDestroyTime = Math.min(
+    parseDuration(catalogItem.spec.lifespan?.maximum),
+    parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
+  );
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
     reduceFormState(null, {
@@ -186,6 +167,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         parameterValues,
         serviceNamespace: formState.serviceNamespace,
         usePoolIfAvailable: formState.usePoolIfAvailable,
+        stopDate: formState.stopDate,
+        destroyDate: formState.destroyDate,
         ...(scheduled && formState.startDate
           ? {
               start: {
@@ -205,37 +188,27 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
-      <Modal
-        ref={scheduleModal}
-        onConfirm={() => submitRequest({ scheduled: true })}
-        title="Schedule for"
-        confirmText="Schedule"
-      >
-        <ScheduleModal
-          defaultTimestamp={formState.startDate?.getTime() || Date.now()}
-          onSelect={(date) =>
-            dispatchFormState({
-              type: 'startDate',
-              startDate: date,
-            })
-          }
-          maxDate={
-            formState.workshop || !catalogItem.spec.lifespan
-              ? null
-              : Math.min(
-                  Date.now() + parseDuration(catalogItem.spec.lifespan.maximum),
-                  Date.now() + parseDuration(catalogItem.spec.lifespan.relativeMaximum)
-                )
-          }
-        />
-        {formState.workshop ? (
-          <HelperText style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
-            <HelperTextItem icon={<InfoIcon />}>
-              Services will launch at the specified date and take some time to be available.
-            </HelperTextItem>
-          </HelperText>
-        ) : null}
-      </Modal>
+      <CatalogItemFormAutoStopDestroyModal
+        type={autoStopDestroyModal}
+        autoStopDate={formState.stopDate}
+        autoDestroyDate={formState.destroyDate}
+        autoStartDate={formState.startDate}
+        isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
+        maxStartTimestamp={!!formState.workshop || !catalogItem.spec.lifespan ? null : Date.now() + maxAutoDestroyTime}
+        maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : parseDuration(catalogItem.spec.runtime?.maximum)}
+        defaultRuntimeTimestamp={parseDuration(catalogItem.spec.runtime?.default)}
+        maxDestroyTimestamp={maxAutoDestroyTime}
+        isWorkshopEnabled={!!formState.workshop}
+        onConfirm={(dates: TDates) =>
+          dispatchFormState({
+            type: 'dates',
+            startDate: dates.startDate,
+            stopDate: dates.stopDate,
+            destroyDate: dates.destroyDate,
+          })
+        }
+        onClose={() => openAutoStopDestroyModal(null)}
+      />
       <Breadcrumb>
         <BreadcrumbItem
           render={({ className }) => (
@@ -455,6 +428,34 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             </FormGroup>
           );
         })}
+
+        {isAutoStopDisabled(catalogItem) ? null : (
+          <FormGroup key="auto-stop" fieldId="auto-stop" label="Auto-stop">
+            <div className="catalog-item-form__group-control--single">
+              <AutoStopDestroy
+                type="auto-stop"
+                onClick={() => openAutoStopDestroyModal('auto-stop')}
+                className="catalog-item-form__auto-stop-btn"
+                time={formState.stopDate ? formState.stopDate.getTime() : null}
+                variant="extended"
+                destroyTimestamp={formState.destroyDate.getTime()}
+              />
+            </div>
+          </FormGroup>
+        )}
+
+        <FormGroup key="auto-destroy" fieldId="auto-destroy" label="Auto-destroy">
+          <div className="catalog-item-form__group-control--single">
+            <AutoStopDestroy
+              type="auto-destroy"
+              onClick={() => openAutoStopDestroyModal('auto-destroy')}
+              className="catalog-item-form__auto-destroy-btn"
+              time={formState.destroyDate.getTime()}
+              variant="extended"
+              destroyTimestamp={formState.destroyDate.getTime()}
+            />
+          </div>
+        </FormGroup>
 
         {!workshopUiDisabled && (isAdmin || workshopNamespaces.length > 0) ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
@@ -724,6 +725,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               Order
             </Button>
           </ActionListItem>
+
           {isAdmin || isLabDeveloper(groups) ? (
             <ActionListItem>
               <Button
@@ -731,10 +733,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 isDisabled={!submitRequestEnabled}
                 onClick={() => {
                   dispatchFormState({
-                    type: 'startDate',
+                    type: 'dates',
                     startDate: new Date(),
                   });
-                  openScheduleModal();
+                  openAutoStopDestroyModal('schedule');
                 }}
                 icon={<OutlinedCalendarAltIcon />}
               >
@@ -742,6 +744,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               </Button>
             </ActionListItem>
           ) : null}
+
           <ActionListItem>
             <Button variant="secondary" onClick={() => navigate(-1)}>
               Cancel

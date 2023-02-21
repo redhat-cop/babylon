@@ -76,6 +76,13 @@ export function getStatus(
   return { code: null, name: '' };
 }
 
+export function isAutoStopDisabled(catalogItem: CatalogItem) {
+  if (catalogItem.spec.runtime?.default) {
+    return catalogItem.spec.runtime.default.includes('999h');
+  }
+  return false;
+}
+
 export function getIncidentUrl(catalogItem: CatalogItem): string {
   if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]) {
     const ops: Ops = JSON.parse(catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/ops`]);

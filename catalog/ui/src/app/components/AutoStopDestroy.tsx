@@ -9,17 +9,19 @@ import TimeInterval from './TimeInterval';
 const AutoStopDestroy: React.FC<{
   time: string | number;
   onClick: () => void;
-  resourceClaim?: ResourceClaim;
   className?: string;
   type: 'auto-stop' | 'auto-destroy' | 'auto-start';
   variant?: 'extended';
   children?: React.ReactNode;
   isDisabled?: boolean;
   notDefinedMessage?: string;
+  destroyTimestamp?: number;
+  resourceClaim?: ResourceClaim;
 }> = ({
   time: _time,
   onClick,
   resourceClaim,
+  destroyTimestamp,
   className,
   type,
   children,
@@ -57,24 +59,32 @@ const AutoStopDestroy: React.FC<{
     time = new Date(_time).getTime();
   }
 
-  if (isDisabled === null || typeof isDisabled === 'undefined') {
-    if (type === 'auto-stop') {
-      isDisabled = !checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop;
-    }
-    if (type === 'auto-destroy') {
-      isDisabled = !resourceClaim?.status?.lifespan || isPartOfWorkshop;
+  if (!!resourceClaim) {
+    if (isDisabled === null || typeof isDisabled === 'undefined') {
+      if (type === 'auto-stop') {
+        isDisabled = !checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop;
+      }
+      if (type === 'auto-destroy') {
+        isDisabled = !resourceClaim?.status?.lifespan || isPartOfWorkshop;
+      }
     }
   }
-  let showNoIdle = false;
+
+  let showNoAutoStop = false;
   if (type === 'auto-stop') {
     if (time > Date.now() + 15778800000) {
-      // If is more than 6months show no idle
-      showNoIdle = true;
-    } else if (resourceClaim?.status?.lifespan?.end) {
-      // if Auto-Stop is greater than Auto-Destroy, show no idle
+      // If is more than 6months show no auto-stop
+      showNoAutoStop = true;
+    } else if (!!resourceClaim?.status?.lifespan?.end) {
+      // if Auto-Stop is greater than Auto-Destroy, show no auto-stop
       const autoDestroyTime = new Date(resourceClaim.status.lifespan.end).getTime();
-      if (autoDestroyTime === time || time > autoDestroyTime) {
-        showNoIdle = true;
+      if (time >= autoDestroyTime) {
+        showNoAutoStop = true;
+      }
+    } else if (!!destroyTimestamp) {
+      // if Auto-Stop is greater than Auto-Destroy, show no auto-stop
+      if (time >= destroyTimestamp) {
+        showNoAutoStop = true;
       }
     }
   }
@@ -90,8 +100,8 @@ const AutoStopDestroy: React.FC<{
         className={className}
         isSmall
       >
-        {showNoIdle ? (
-          <span style={{ marginRight: 'var(--pf-global--spacer--sm)' }}>No idle</span>
+        {showNoAutoStop ? (
+          <span style={{ marginRight: 'var(--pf-global--spacer--sm)' }}>No auto-stop</span>
         ) : (
           <>
             <LocalTimestamp variant="short" time={time} />

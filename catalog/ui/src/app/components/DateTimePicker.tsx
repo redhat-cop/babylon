@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dropdown,
   DropdownToggle,
@@ -46,6 +46,12 @@ function formatHHMM(timeStr: string): string {
   if (AMPM === 'AM' && hours === 12) hours = hours - 12;
   return `${('00' + hours).slice(-2)}:${('00' + minutes).slice(-2)}`;
 }
+function getDateAndTime(dateTime: Date) {
+  return {
+    date: dateTime.toISOString(),
+    time: `${('00' + dateTime.getHours()).slice(-2)}:${('00' + dateTime.getMinutes()).slice(-2)}`,
+  };
+}
 
 const DateTimePicker: React.FC<{
   defaultTimestamp: number;
@@ -53,7 +59,8 @@ const DateTimePicker: React.FC<{
   onSelect: (date: Date) => void;
   minDate?: number;
   maxDate?: number;
-}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate }) => {
+  forceUpdateTimestamp?: number;
+}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate, forceUpdateTimestamp }) => {
   const dateFormat = (date: Date, withTime = true) =>
     date.toLocaleDateString([getLang(), 'en-US'], {
       year: 'numeric',
@@ -65,13 +72,22 @@ const DateTimePicker: React.FC<{
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isTimeOpen, setIsTimeOpen] = useState(false);
   const dateTime = new Date(defaultTimestamp);
-  const defaultTime = `${('00' + dateTime.getHours()).slice(-2)}:${('00' + dateTime.getMinutes()).slice(-2)}`;
-  const defaultDate = dateTime.toISOString();
-  const [valueDate, setValueDate] = useState(defaultDate);
-  const [valueTime, setValueTime] = useState(defaultTime);
+  const defaultDateTime = getDateAndTime(dateTime);
+  const [valueDate, setValueDate] = useState(defaultDateTime.date);
+  const [valueTime, setValueTime] = useState(defaultDateTime.time);
 
   const hours = Array.from(new Array(24), (_, i) => ('00' + i).slice(-2));
   const minutes = ['00', '30'];
+
+  // sync updated timestamp from parent
+  useEffect(() => {
+    if (!!forceUpdateTimestamp) {
+      const dateTime = new Date(forceUpdateTimestamp);
+      const { date, time } = getDateAndTime(dateTime);
+      setValueDate(date);
+      setValueTime(time);
+    }
+  }, [forceUpdateTimestamp]);
 
   const onToggleCalendar = () => {
     setIsCalendarOpen(!isCalendarOpen);
@@ -143,7 +159,7 @@ const DateTimePicker: React.FC<{
           aria-label="Toggle the time picker menu"
           toggleIndicator={null}
           onToggle={onToggleTime}
-          style={{ padding: '6px 16px' }}
+          style={{ padding: '6px 16px', ...(isDisabled ? { color: 'var(--pf-global--disabled-color--100)' } : {}) }}
           isDisabled={isDisabled}
         >
           <OutlinedClockIcon />
@@ -180,6 +196,7 @@ const DateTimePicker: React.FC<{
             isReadOnly
             className="date-time-picker__text"
             onClick={onToggleCalendar}
+            isDisabled={isDisabled}
           />
           {calendarButton}
           {time}
