@@ -313,3 +313,10 @@ export function stripTags(unStrippedHtml: string) {
   );
   return parseHTML.body.textContent || '';
 }
+
+export function getHelpUrl(userEmail: string) {
+  if (userEmail.includes('@redhat.com')) {
+    return 'https://red.ht/demo-help';
+  }
+  return 'https://red.ht/open-support';
+}

@@ -20,6 +20,7 @@ import ImpersonateUserModal from '@app/components/ImpersonateUserModal';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
+import { getHelpUrl } from '@app/util';
 
 import './header.css';
 
@@ -57,12 +58,10 @@ const Header: React.FC<{
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    const user = userImpersonated ? userImpersonated : email;
-    if (user.includes('@redhat.com')) {
-      window.open('https://red.ht/rhpds-help', '_blank');
-      return;
-    }
-    window.open('https://red.ht/open-support', '_blank');
+    const userEmail = userImpersonated ? userImpersonated : email;
+    const url = getHelpUrl(userEmail);
+    window.open(url, '_blank');
+    return null;
   };
 
   const UserHelpDropdownItems = [
