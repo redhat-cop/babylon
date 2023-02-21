@@ -196,6 +196,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
         maxStartTimestamp={!!formState.workshop || !catalogItem.spec.lifespan ? null : Date.now() + maxAutoDestroyTime}
         maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : parseDuration(catalogItem.spec.runtime?.maximum)}
+        defaultRuntimeTimestamp={parseDuration(catalogItem.spec.runtime?.default)}
         maxDestroyTimestamp={maxAutoDestroyTime}
         isWorkshopEnabled={!!formState.workshop}
         onConfirm={(dates: TDates) =>
@@ -437,7 +438,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 className="catalog-item-form__auto-stop-btn"
                 time={formState.stopDate ? formState.stopDate.getTime() : null}
                 variant="extended"
-                catalogItem={catalogItem}
+                destroyTimestamp={formState.destroyDate.getTime()}
               />
             </div>
           </FormGroup>
@@ -451,7 +452,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               className="catalog-item-form__auto-destroy-btn"
               time={formState.destroyDate.getTime()}
               variant="extended"
-              catalogItem={catalogItem}
+              destroyTimestamp={formState.destroyDate.getTime()}
             />
           </div>
         </FormGroup>

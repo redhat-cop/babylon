@@ -232,6 +232,7 @@ const WorkshopsItemDetails: React.FC<{
               time={autoStopTime}
               variant="extended"
               className="workshops-item__schedule-btn"
+              destroyTimestamp={autoDestroyTime}
             />
           </DescriptionListDescription>
         </DescriptionListGroup>

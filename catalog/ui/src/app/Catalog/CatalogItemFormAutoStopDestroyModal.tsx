@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import DateTimePicker from '@app/components/DateTimePicker';
 import Modal, { useModal } from '@app/Modal/Modal';
-import { Form, FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { Form, FormGroup, HelperText, HelperTextItem, Switch } from '@patternfly/react-core';
 import InfoIcon from '@patternfly/react-icons/dist/js/icons/info-icon';
 
 export type TDates = { startDate: Date; stopDate: Date; destroyDate: Date };
@@ -14,6 +14,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   autoDestroyDate: Date;
   maxStartTimestamp?: number;
   maxRuntimeTimestamp?: number;
+  defaultRuntimeTimestamp?: number;
   maxDestroyTimestamp?: number;
   onConfirm: (date: TDates) => void;
   onClose: () => void;
@@ -26,6 +27,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   autoDestroyDate,
   maxStartTimestamp,
   maxRuntimeTimestamp,
+  defaultRuntimeTimestamp,
   maxDestroyTimestamp,
   onConfirm,
   onClose,
@@ -38,6 +40,10 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
     stopDate: null,
     destroyDate: null,
   });
+  const _stopDate = dates.stopDate || autoStopDate;
+  const _destroyDate = dates.destroyDate || autoDestroyDate;
+  const noAutoStopChecked = _stopDate && _destroyDate && _stopDate.getTime() >= _destroyDate.getTime();
+
   useEffect(() => {
     if (!!type) {
       openAutoStopDestroyModal();
@@ -64,20 +70,39 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
           </FormGroup>
         ) : null}
         {(type === 'auto-stop' || type === 'schedule') && !isAutoStopDisabled ? (
-          <FormGroup fieldId="auto-stop-modal" label="Auto-stop">
-            <DateTimePicker
-              defaultTimestamp={autoStopDate ? autoStopDate.getTime() : null}
-              onSelect={(d) => setDates({ ...dates, stopDate: d })}
-              minDate={Date.now()}
-              maxDate={
-                maxRuntimeTimestamp
-                  ? type === 'schedule' && dates.startDate
-                    ? dates.startDate.getTime() + maxRuntimeTimestamp
-                    : Date.now() + maxRuntimeTimestamp
-                  : null
-              }
-            />
-          </FormGroup>
+          <>
+            <FormGroup fieldId="auto-stop-modal" label="Auto-stop">
+              <DateTimePicker
+                defaultTimestamp={autoStopDate ? autoStopDate.getTime() : null}
+                onSelect={(d) => setDates({ ...dates, stopDate: d })}
+                minDate={Date.now()}
+                maxDate={
+                  maxRuntimeTimestamp
+                    ? type === 'schedule' && dates.startDate
+                      ? dates.startDate.getTime() + maxRuntimeTimestamp
+                      : Date.now() + maxRuntimeTimestamp
+                    : null
+                }
+                isDisabled={noAutoStopChecked}
+              />
+            </FormGroup>
+            {(type === 'schedule' && dates.startDate
+              ? dates.startDate.getTime() + maxRuntimeTimestamp
+              : Date.now() + maxRuntimeTimestamp) >= _destroyDate.getTime() ? (
+              <Switch
+                id="no-auto-stop-switch"
+                aria-label="No auto-stop"
+                label="No auto-stop"
+                isChecked={noAutoStopChecked}
+                hasCheckIcon
+                onChange={(isChecked) => {
+                  isChecked
+                    ? setDates({ ...dates, stopDate: dates.destroyDate || autoDestroyDate })
+                    : setDates({ ...dates, stopDate: new Date(Date.now() + defaultRuntimeTimestamp) });
+                }}
+              />
+            ) : null}
+          </>
         ) : null}
         {type === 'auto-destroy' || type === 'schedule' ? (
           <FormGroup fieldId="auto-destroy-modal" label="Auto-destroy">
