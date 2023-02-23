@@ -55,6 +55,9 @@ spec:
         - {{ (printf "--upstream=http://%s:8080/apis/" (include "babylonCatalog.apiName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080/auth/" (include "babylonCatalog.apiName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080" (include "babylonCatalog.uiName" .)) | quote }}
+        {{- if .Values.route.create }}
+        - --cookie-domain={{ .Values.route.host }}
+        {{- end }}
         {{- if .Values.oauthProxy.templates }}
         - --custom-templates-dir=/templates
         {{- end }}
