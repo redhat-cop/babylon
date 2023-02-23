@@ -14,6 +14,37 @@ metadata:
     app.kubernetes.io/instance: {{ $anarchyNamespace.name }}
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: anarchy
+      {{- range $anarchyRunner := ($anarchyCommune.runners | default (list (dict "name" "default"))) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: anarchy-runner-{{ $anarchyRunner.name }}
+  namespace: {{ $anarchyNamespace.name }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: anarchy-runner-{{ $anarchyRunner.name }}
+  namespace: {{ $anarchyNamespace.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: anarchy-runner-{{ $anarchyRunner.name }}
+subjects:
+- kind: ServiceAccount
+  name: anarchy-runner-{{ $anarchyRunner.name }}
+  namespace: {{ $anarchyNamespace.name }}
+      {{- end }}
 ---
 apiVersion: {{ $.Values.anarchy.apiGroup }}/v1
 kind: AnarchyCommune
