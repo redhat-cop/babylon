@@ -11,6 +11,8 @@ import {
 } from './workshops-utils';
 import parseDuration from 'parse-duration';
 
+const minDefault = parseDuration('6h');
+
 const WorkshopScheduleAction: React.FC<{
   action: 'retirement' | 'stop' | 'start';
   resourceClaims: ResourceClaim[];
@@ -72,7 +74,8 @@ const WorkshopScheduleAction: React.FC<{
             if (isChecked) {
               setSelectedDate(new Date(autoDestroyTime));
             } else {
-              const date = new Date(Date.now() + (getWorkshopDefaultRuntime(resourceClaims) || parseDuration('6h')));
+              const _date = new Date(Date.now() + (getWorkshopDefaultRuntime(resourceClaims) || minDefault));
+              const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
               setSelectedDate(date);
               setForceUpdateTimestamp(date);
             }

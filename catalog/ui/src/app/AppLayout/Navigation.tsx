@@ -18,10 +18,10 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 };
 const Navigation: React.FC = () => {
   const location = useLocation();
-  const { isAdmin, userNamespace, serviceNamespaces } = useSession().getSession();
+  const { isAdmin, userNamespace } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
-    return location.pathname.includes(str);
+    return location.pathname.startsWith(str);
   }
 
   const catalogNavigation = (
@@ -32,57 +32,21 @@ const Navigation: React.FC = () => {
     </NavItem>
   );
 
-  const serviceNavigation =
-    isAdmin || serviceNamespaces.length > 1 ? (
-      <NavExpandable title="Services" isExpanded={locationStartsWith('/services')}>
-        <NavItem>
-          <NavLink
-            to={`/services/${userNamespace.name}`}
-            className={locationStartsWith(`/services/${userNamespace.name}`) ? 'pf-m-current' : ''}
-          >
-            My Services
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <ExactNavLink to="/services">All Services</ExactNavLink>
-        </NavItem>
-      </NavExpandable>
-    ) : userNamespace ? (
-      <NavItem>
-        <NavLink
-          className={locationStartsWith(`/services/${userNamespace.name}`) ? 'pf-m-current' : ''}
-          to={`/services/${userNamespace.name}`}
-        >
-          Services
-        </NavLink>
-      </NavItem>
-    ) : null;
-
-  const workshopNavigation =
-    isAdmin || serviceNamespaces.length > 1 ? (
-      <NavExpandable title="Workshops" isExpanded={locationStartsWith('/workshops')}>
-        <NavItem>
-          <NavLink
-            className={locationStartsWith(`/workshops/${userNamespace.name}`) ? 'pf-m-current' : ''}
-            to={`/workshops/${userNamespace.name}`}
-          >
-            My Workshops
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <ExactNavLink to="/workshops">All Workshops</ExactNavLink>
-        </NavItem>
-      </NavExpandable>
-    ) : serviceNamespaces.length > 0 ? (
-      <NavItem>
-        <NavLink
-          className={locationStartsWith(`/workshops/${userNamespace.name}`) ? 'pf-m-current' : ''}
-          to={`/workshops/${userNamespace.name}`}
-        >
-          Workshops
-        </NavLink>
-      </NavItem>
-    ) : null;
+  const serviceNavigation = userNamespace ? (
+    <NavItem>
+      <NavLink
+        to={`/services/${userNamespace.name}`}
+        className={
+          locationStartsWith(`/services/${userNamespace.name}`) ||
+          locationStartsWith(`/workshops/${userNamespace.name}`)
+            ? 'pf-m-current'
+            : ''
+        }
+      >
+        Services
+      </NavLink>
+    </NavItem>
+  ) : null;
 
   const adminNavigation = isAdmin ? (
     <NavExpandable title="Admin" isExpanded={locationStartsWith('/admin/')}>
@@ -136,6 +100,11 @@ const Navigation: React.FC = () => {
           ResourceProviders
         </NavLink>
       </NavItem>
+      <NavItem>
+        <ExactNavLink className={locationStartsWith('/admin/workshops') ? 'pf-m-current' : ''} to="/admin/workshops">
+          Workshops
+        </ExactNavLink>
+      </NavItem>
     </NavExpandable>
   ) : null;
 
@@ -144,7 +113,6 @@ const Navigation: React.FC = () => {
       <NavList id="nav-list-simple">
         {catalogNavigation}
         {serviceNavigation}
-        {workshopNavigation}
         {adminNavigation}
       </NavList>
     </Nav>

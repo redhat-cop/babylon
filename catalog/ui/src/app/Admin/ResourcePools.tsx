@@ -76,8 +76,7 @@ const ResourcePools: React.FC = () => {
       ),
     {
       refreshInterval: 8000,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      compare: (currentData: any, newData: any) => {
+      compare: (currentData, newData) => {
         if (currentData === newData) return true;
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;

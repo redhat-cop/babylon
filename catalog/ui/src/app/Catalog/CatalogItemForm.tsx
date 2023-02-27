@@ -196,7 +196,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
         maxStartTimestamp={!!formState.workshop || !catalogItem.spec.lifespan ? null : Date.now() + maxAutoDestroyTime}
         maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : parseDuration(catalogItem.spec.runtime?.maximum)}
-        defaultRuntimeTimestamp={parseDuration(catalogItem.spec.runtime?.default)}
+        defaultRuntimeTimestamp={
+          new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default)) > formState.destroyDate
+            ? parseDuration('4h')
+            : parseDuration(catalogItem.spec.runtime?.default)
+        }
         maxDestroyTimestamp={maxAutoDestroyTime}
         isWorkshopEnabled={!!formState.workshop}
         onConfirm={(dates: TDates) =>

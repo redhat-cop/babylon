@@ -29,7 +29,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import Modal, { useModal } from '@app/Modal/Modal';
-import WorkshopActions from './WorkshopActions';
+import WorkshopActions from '../Workshops/WorkshopActions';
 
 import './workshops-list.css';
 
@@ -109,8 +109,7 @@ const WorkshopsList: React.FC<{
       refreshInterval: 8000,
       revalidateFirstPage: true,
       revalidateAll: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      compare: (currentData: any, newData: any) => {
+      compare: (currentData, newData) => {
         if (currentData === newData) return true;
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;
@@ -220,7 +219,7 @@ const WorkshopsList: React.FC<{
   }
 
   if (serviceNamespaces.length === 1 && !serviceNamespaceName) {
-    return <Navigate to={`/workshops/${serviceNamespaces[0].name}`} />;
+    return <Navigate to={`/admin/workshops/${serviceNamespaces[0].name}`} />;
   }
 
   return (
@@ -244,9 +243,9 @@ const WorkshopsList: React.FC<{
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {
-                navigate(`/workshops/${namespace.name}${location.search}`);
+                navigate(`/admin/workshops/${namespace.name}${location.search}`);
               } else {
-                navigate(`/workshops${location.search}`);
+                navigate(`/admin/workshops${location.search}`);
               }
             }}
           />
@@ -259,7 +258,7 @@ const WorkshopsList: React.FC<{
               <Breadcrumb>
                 <BreadcrumbItem
                   render={({ className }) => (
-                    <Link to="/workshops" className={className}>
+                    <Link to="/admin/workshops" className={className}>
                       Workshops
                     </Link>
                   )}
@@ -354,7 +353,7 @@ const WorkshopsList: React.FC<{
                 ? []
                 : [
                     <>
-                      <Link key="workshops" to={`/workshops/${workshop.metadata.namespace}`}>
+                      <Link key="workshops" to={`/admin/workshops/${workshop.metadata.namespace}`}>
                         {workshopServiceNamespace?.displayName || workshop.metadata.namespace}
                       </Link>
                       {isAdmin ? (

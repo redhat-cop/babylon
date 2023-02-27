@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import parseDuration from 'parse-duration';
-import { ResourceClaim, ServiceActionActions } from '@app/types';
+import { ResourceClaim, ServiceActionActions, WorkshopWithResourceClaims } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import { checkResourceClaimCanRate, displayName } from '@app/util';
 import ServicesActionRating from './ServicesActionRating';
@@ -19,26 +19,38 @@ const ServicesAction: React.FC<{
   actionState: {
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
+    workshop?: WorkshopWithResourceClaims;
     rating?: { rate: number; comment: string };
     submitDisabled: boolean;
   };
 }> = ({ actionState, setTitle, setActionState }) => {
   const action = actionState.action;
   const resourceClaim = actionState.resourceClaim;
+  const workshop = actionState.workshop;
   const canRate = resourceClaim ? checkResourceClaimCanRate(resourceClaim) : false;
-  const resourceClaimHasMultipleResources = resourceClaim?.spec?.resources
-    ? resourceClaim.spec.resources.length > 1
-    : null;
-  const targetDisplay = resourceClaim ? displayName(resourceClaim) : 'Selected Services';
+  const targetDisplay = resourceClaim || workshop ? displayName(resourceClaim || workshop) : 'Selected Services';
   const actionDisplay = action.charAt(0).toUpperCase() + action.slice(1);
   useEffect(() => setTitle(`${actionDisplay} ${targetDisplay}`), [actionDisplay, setTitle, targetDisplay]);
 
   // Show default runtime of resource with minimum value
-  const defaultRuntimes = resourceClaim?.status?.resources
-    ? resourceClaim.status.resources
-        .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
-        .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
-    : [];
+  let defaultRuntimes = [];
+  if (resourceClaim) {
+    defaultRuntimes = resourceClaim?.status?.resources
+      ? resourceClaim.status.resources
+          .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
+          .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
+      : [];
+  } else if (workshop && workshop.resourceClaims) {
+    for (const resourceClaim of workshop.resourceClaims) {
+      defaultRuntimes.push(
+        ...(resourceClaim.status?.resources
+          ? resourceClaim.status.resources
+              .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
+              .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
+          : [])
+      );
+    }
+  }
   const defaultRuntime = defaultRuntimes.length > 0 ? Math.min(...defaultRuntimes) : null;
 
   return (
@@ -50,9 +62,7 @@ const ServicesAction: React.FC<{
       ) : action === 'start' ? (
         defaultRuntime ? (
           <p>
-            {resourceClaimHasMultipleResources ? 'Services' : 'Service'}
-            {' will stop in '}
-            <TimeInterval interval={defaultRuntime} />.
+            Service will stop in <TimeInterval interval={defaultRuntime} />.
           </p>
         ) : (
           <p>Services will automatically stop according to their configured schedules.</p>

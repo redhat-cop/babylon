@@ -54,10 +54,9 @@ import CatalogInterfaceDescription from './CatalogInterfaceDescription';
 import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
-import CatalogGridList from './CatalogGridList';
+import CatalogContent from './CatalogContent';
 
 import './catalog.css';
-import CatalogContent from './CatalogContent';
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -196,7 +195,6 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const { namespace: catalogNamespaceName } = useParams();
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
-  const [wrapperRect, catalogWrapperRef] = useRect();
   const [sortBy, setSortBy] = useState<{ isOpen: boolean; selected: 'Featured' | 'Rating' | 'AZ' | 'ZA' }>({
     isOpen: false,
     selected: 'Featured',
