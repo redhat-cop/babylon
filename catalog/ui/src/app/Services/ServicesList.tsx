@@ -68,7 +68,7 @@ function setResourceClaims(workshop: Workshop, resourceClaims: ResourceClaim[]) 
   return workshopWithResourceClaims;
 }
 
-async function fetchServices(namespace: string): Promise<Service[]> {
+async function fetchServices(namespace: string, canLoadWorkshops: boolean): Promise<Service[]> {
   async function fetchResourceClaims(namespace: string) {
     return (await fetcherItemsInAllPages((continueId) =>
       apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
@@ -101,7 +101,9 @@ async function fetchServices(namespace: string): Promise<Service[]> {
   const services: Service[] = [];
   const promises = [];
   promises.push(fetchResourceClaims(namespace).then((r) => services.push(...r)));
-  promises.push(fetchWorksops(namespace).then((w) => services.push(...w)));
+  if (canLoadWorkshops) {
+    promises.push(fetchWorksops(namespace).then((w) => services.push(...w)));
+  }
   await Promise.all(promises);
   return services;
 }
@@ -154,10 +156,10 @@ const ServicesList: React.FC<{
         })
       : sessionServiceNamespaces;
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
-
+  const canLoadWorkshops = isAdmin || serviceNamespaces.length > 1;
   const { data: _services, mutate } = useSWR<Service[]>(
     `services/${serviceNamespaceName}`,
-    () => fetchServices(serviceNamespaceName),
+    () => fetchServices(serviceNamespaceName, canLoadWorkshops),
     {
       refreshInterval: 8000,
       revalidateOnMount: true,
