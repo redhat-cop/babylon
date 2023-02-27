@@ -23,6 +23,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   onClose: () => void;
   isWorkshopEnabled?: boolean;
   isAutoStopDisabled?: boolean;
+  title: string;
 }> = ({
   type,
   autoStartDate,
@@ -36,6 +37,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   onClose,
   isWorkshopEnabled = false,
   isAutoStopDisabled = false,
+  title,
 }) => {
   const { isAdmin, email } = useSession().getSession();
   const { userImpersonated } = useImpersonateUser();
@@ -60,7 +62,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
     <Modal
       ref={autoStopDestroyModal}
       onConfirm={() => onConfirm(dates)}
-      title={type === 'auto-stop' ? 'Auto-stop' : type === 'auto-destroy' ? 'Auto-destroy' : 'Schedule for'}
+      title={type === 'auto-stop' || type === 'auto-destroy' ? title : 'Schedule for'}
       onClose={onClose}
       {...(type === 'schedule' ? { confirmText: 'Schedule' } : {})}
     >
