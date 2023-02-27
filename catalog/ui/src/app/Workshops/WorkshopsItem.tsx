@@ -341,7 +341,7 @@ const WorkshopsItemComponent: React.FC<{
             </Breadcrumb>
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(workshop)}{' '}
-              <Label tooltipDescription={<div>Workshop user interface enabled</div>}>Workshop UI</Label>
+              <Label tooltipDescription={<div>Workshop user interface is enabled</div>}>Workshop UI</Label>
             </Title>
           </SplitItem>
           <SplitItem>
