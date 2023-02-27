@@ -318,9 +318,9 @@ const WorkshopsItemComponent: React.FC<{
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {
-                navigate(`/workshops/${namespace.name}${location.search}`);
+                navigate(`/services/${namespace.name}${location.search}`);
               } else {
-                navigate(`/workshops${location.search}`);
+                navigate(`/services${location.search}`);
               }
             }}
           />
@@ -395,8 +395,8 @@ const WorkshopsItemComponent: React.FC<{
               ) : null}
             </Tab>
           ) : null}
-          <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
-            {activeTab === 'services' ? (
+          <Tab eventKey="instances" title={<TabTitleText>Instances</TabTitleText>}>
+            {activeTab === 'instances' ? (
               <WorkshopsItemServices
                 modalState={modalState}
                 showModal={showModal}

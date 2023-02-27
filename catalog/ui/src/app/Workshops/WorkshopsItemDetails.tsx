@@ -223,7 +223,7 @@ const WorkshopsItemDetails: React.FC<{
 
       {checkWorkshopCanStop(resourceClaims) ? (
         <DescriptionListGroup>
-          <DescriptionListTerm>Auto-Stop Services</DescriptionListTerm>
+          <DescriptionListTerm>Auto-Stop</DescriptionListTerm>
           <DescriptionListDescription>
             <AutoStopDestroy
               type="auto-stop"
