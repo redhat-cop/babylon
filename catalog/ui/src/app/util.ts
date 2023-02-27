@@ -182,6 +182,14 @@ export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean
   });
 }
 
+export function isResourceClaimPartOfWorkshop(resourceClaim: ResourceClaim) {
+  if (!resourceClaim) return false;
+  return (
+    !!resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`] ||
+    !!resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`]
+  );
+}
+
 export function formatDuration(ms: number): string {
   const absoluteMs = Math.abs(ms);
   const time = {

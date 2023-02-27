@@ -54,7 +54,14 @@ import {
   ServiceNamespace,
   Workshop,
 } from '@app/types';
-import { BABYLON_DOMAIN, canExecuteAction, getCostTracker, displayName, renderContent } from '@app/util';
+import {
+  BABYLON_DOMAIN,
+  canExecuteAction,
+  getCostTracker,
+  displayName,
+  renderContent,
+  isResourceClaimPartOfWorkshop,
+} from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
 import CurrencyAmount from '@app/components/CurrencyAmount';
@@ -321,7 +328,7 @@ const ServicesItemComponent: React.FC<{
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
-  const isPartOfWorkshop = !!workshopProvisionName;
+  const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state?: K8sObject }) => r.state);
   const anarchySubjects = resourcesK8sObj
     .filter((r: K8sObject) => r?.kind === 'AnarchySubject')

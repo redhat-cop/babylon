@@ -46,6 +46,7 @@ import {
   keywordMatch,
   compareK8sObjects,
   FETCH_BATCH_LIMIT,
+  isResourceClaimPartOfWorkshop,
 } from '@app/util';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -180,8 +181,7 @@ const ServicesList: React.FC<{
     (service: Service) => {
       if (service.kind === 'ResourceClaim') {
         const resourceClaim = service as ResourceClaim;
-        const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
-        const isPartOfWorkshop = !!workshopProvisionName;
+        const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
         if (isPartOfWorkshop) {
           return false;
         }
@@ -280,8 +280,7 @@ const ServicesList: React.FC<{
         );
         return await deleteResourceClaim(resourceClaim);
       } else {
-        const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
-        const isPartOfWorkshop = !!workshopProvisionName;
+        const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
         if (isPartOfWorkshop) return resourceClaim; // If has a workshopProvision -> Do nothing.
         if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
           return await startAllResourcesInResourceClaim(resourceClaim);

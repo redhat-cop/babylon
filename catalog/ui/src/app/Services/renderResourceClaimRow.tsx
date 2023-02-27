@@ -11,6 +11,7 @@ import {
   checkResourceClaimCanStop,
   displayName,
   getCostTracker,
+  isResourceClaimPartOfWorkshop,
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
@@ -45,8 +46,7 @@ const renderResourceClaimRow = ({
   const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
   const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
-  const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
-  const isPartOfWorkshop = !!workshopProvisionName;
+  const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   // Find lab user interface information either in the resource claim or inside resources
   // associated with the provisioned service.
   const labUserInterfaceData =

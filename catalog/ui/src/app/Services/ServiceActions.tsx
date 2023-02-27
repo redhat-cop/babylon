@@ -8,6 +8,7 @@ import {
   checkResourceClaimCanRate,
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
+  isResourceClaimPartOfWorkshop,
 } from '@app/util';
 
 const ServiceActions: React.FC<{
@@ -29,8 +30,7 @@ const ServiceActions: React.FC<{
   iconOnly?: boolean;
 }> = ({ actionHandlers, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
   const actionDropdownItems: JSX.Element[] = [];
-  const workshopProvisionName = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
-  const isPartOfWorkshop = !!workshopProvisionName;
+  const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : false;
   const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : false;
   const canRate = resourceClaim ? checkResourceClaimCanRate(resourceClaim) : false;

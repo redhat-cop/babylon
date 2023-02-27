@@ -79,7 +79,7 @@ const renderWorkshopRow = ({
       {isAdmin ? <OpenshiftConsoleLink key="workshop-name__console" resource={workshop} /> : null}
     </>,
     // GUID
-    <span key="workshop-guid">-</span>,
+    <span key="workshop-guid">{workshop.metadata.labels?.['babylon.gpte.redhat.com/workshop-id'] ?? '-'}</span>,
     // Status
     <>
       {autoStartTime && autoStartTime > Date.now() ? (
