@@ -30,7 +30,7 @@ import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/ou
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import useSWR from 'swr';
+import useSWRImmutable from 'swr/immutable';
 import {
   apiFetch,
   apiPaths,
@@ -67,17 +67,18 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
   const { isAdmin, groups, roles, serviceNamespaces, workshopNamespaces, userNamespace } = useSession().getSession();
-  const { data: catalogItem } = useSWR<CatalogItem>(
+  const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher
   );
+  const _displayName = displayName(catalogItem);
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const workshopInitialProps = useMemo(
     () => ({
       userRegistration: 'open',
       accessPassword: randomString(8),
       description: '',
-      displayName: displayName(catalogItem),
+      displayName: _displayName,
       provisionCount: 1,
       provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
       provisionStartDelay: 30,
@@ -196,7 +197,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
         maxStartTimestamp={!!formState.workshop || !catalogItem.spec.lifespan ? null : Date.now() + maxAutoDestroyTime}
         maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : parseDuration(catalogItem.spec.runtime?.maximum)}
-        defaultRuntimeTimestamp={parseDuration(catalogItem.spec.runtime?.default)}
+        defaultRuntimeTimestamp={
+          new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default)) > formState.destroyDate
+            ? parseDuration('4h')
+            : parseDuration(catalogItem.spec.runtime?.default)
+        }
         maxDestroyTimestamp={maxAutoDestroyTime}
         isWorkshopEnabled={!!formState.workshop}
         onConfirm={(dates: TDates) =>
@@ -208,6 +213,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           })
         }
         onClose={() => openAutoStopDestroyModal(null)}
+        title={_displayName}
       />
       <Breadcrumb>
         <BreadcrumbItem
@@ -223,13 +229,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               to={`/catalog?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`}
               className={className}
             >
-              {displayName(catalogItem)}
+              {_displayName}
             </Link>
           )}
         />
       </Breadcrumb>
       <Title headingLevel="h1" size="lg">
-        Order {displayName(catalogItem)}
+        Order {_displayName}
       </Title>
       <p>Order by completing the form. Default values may be provided.</p>
       {formState.error ? <p className="error">{formState.error}</p> : null}

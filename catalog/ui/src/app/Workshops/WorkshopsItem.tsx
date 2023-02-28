@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { ErrorBoundary } from 'react-error-boundary';
+import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import useSWR, { useSWRConfig } from 'swr';
@@ -28,12 +28,10 @@ import {
   deleteWorkshop,
   fetcher,
   fetcherItemsInAllPages,
-  patchWorkshop,
-  patchWorkshopProvision,
-  scheduleStopForAllResourcesInResourceClaim,
-  setLifespanEndForResourceClaim,
-  startAllResourcesInResourceClaim,
-  stopAllResourcesInResourceClaim,
+  setWorkshopLifespanEnd,
+  startWorkshop,
+  startWorkshopServices,
+  stopWorkshop,
 } from '@app/api';
 import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvision } from '@app/types';
 import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
@@ -51,6 +49,7 @@ import WorkshopsItemServices from './WorkshopsItemServices';
 import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
 import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopStarted } from './workshops-utils';
+import Label from '@app/components/Label';
 
 import './workshops-item.css';
 
@@ -120,10 +119,6 @@ const WorkshopsItemComponent: React.FC<{
         })
       : sessionServiceNamespaces;
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
-  const serviceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
-    name: serviceNamespaceName,
-    displayName: serviceNamespaceName,
-  };
 
   const { data: workshop, mutate: mutateWorkshop } = useSWR<Workshop>(
     apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }),
@@ -169,8 +164,7 @@ const WorkshopsItemComponent: React.FC<{
       ),
     {
       refreshInterval: 8000,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      compare: (currentData: any, newData: any) => {
+      compare: (currentData, newData) => {
         if (currentData === newData) return true;
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;
@@ -219,22 +213,8 @@ const WorkshopsItemComponent: React.FC<{
    * the Workshop.
    * The action schedule will propagate to WorkshopProvisions and to ResourceClaims.
    */
-  async function onServiceStartConfirm(): Promise<void> {
-    const now = new Date();
-    const patch = {
-      spec: {
-        actionSchedule: {
-          start: dateToApiString(now),
-          // FIXME - this should be configurable, hardcoded to 12 hours after start for now
-          stop: dateToApiString(new Date(now.getTime() + 12 * 60 * 60 * 1000)),
-        },
-      },
-    };
-    const workshopUpdated = await patchWorkshop({
-      name: workshop.metadata.name,
-      namespace: workshop.metadata.namespace,
-      patch,
-    });
+  async function onServiceStartConfirm() {
+    const workshopUpdated = await startWorkshopServices(workshop);
     mutateWorkshop(workshopUpdated);
   }
 
@@ -243,25 +223,8 @@ const WorkshopsItemComponent: React.FC<{
    * for auto-stop.
    * The workshop-manager will propagate changes to WorkshopProvisions and ResourceClaims.
    */
-  async function onWorkshopStartConfirm(): Promise<void> {
-    const now = new Date();
-    const patch = {
-      spec: {
-        actionSchedule: {
-          start: dateToApiString(now),
-          // FIXME - this should be configurable, hardcoded to 12 hours after start for now
-          stop: dateToApiString(new Date(now.getTime() + 12 * 60 * 60 * 1000)),
-        },
-        lifespan: {
-          start: dateToApiString(now),
-        },
-      },
-    };
-    const workshopUpdated = await patchWorkshop({
-      name: workshop.metadata.name,
-      namespace: workshop.metadata.namespace,
-      patch,
-    });
+  async function onWorkshopStartConfirm() {
+    const workshopUpdated = await startWorkshop(workshop, dateToApiString(new Date()), resourceClaims);
     mutateWorkshop(workshopUpdated);
   }
 
@@ -269,13 +232,8 @@ const WorkshopsItemComponent: React.FC<{
    * After confirmation, set Workshop action schedule to stop immediately.
    * The workshop-manager will propagate changes to WorkshopProvisions and ResourceClaims.
    */
-  async function onServiceStopConfirm(): Promise<void> {
-    const patch = { spec: { actionSchedule: { stop: dateToApiString(new Date()) } } };
-    const workshopUpdated = await patchWorkshop({
-      name: workshop.metadata.name,
-      namespace: workshop.metadata.namespace,
-      patch,
-    });
+  async function onServiceStopConfirm() {
+    const workshopUpdated = await stopWorkshop(workshop);
     mutateWorkshop(workshopUpdated);
   }
 
@@ -283,54 +241,31 @@ const WorkshopsItemComponent: React.FC<{
    * After confirmation, delete Workshop.
    * Deletion will propagate to WorkshopProvisions and ResourceClaims.
    */
-  async function onWorkshopDeleteConfirm(): Promise<void> {
+  async function onWorkshopDeleteConfirm() {
     await deleteWorkshop(workshop);
     mutateWorkshop(null);
     mutateWorkshopProvisions(null);
     mutate(null);
-    navigate(`/workshops/${serviceNamespaceName}`);
+    navigate(`/services/${serviceNamespaceName}`);
   }
 
   /**
    * Adjust lifespan or action schedule for Workshop.
    * The workshop-manager will propagate changes to WorkshopProvisions and ResourceClaims.
    */
-  async function onModalScheduleAction(date: Date): Promise<void> {
+  async function onModalScheduleAction(date: Date) {
     if (modalState.action === 'scheduleDelete') {
-      const patch = { spec: { lifespan: { end: dateToApiString(date) } } };
-      const workshopUpdated = await patchWorkshop({
-        name: workshop.metadata.name,
-        namespace: workshop.metadata.namespace,
-        patch,
-      });
+      const workshopUpdated = setWorkshopLifespanEnd(workshop, date);
       mutateWorkshop(workshopUpdated);
     } else if (modalState.action === 'scheduleStop') {
-      const patch = { spec: { actionSchedule: { stop: dateToApiString(date) } } };
-      const workshopUpdated = await patchWorkshop({
-        name: workshop.metadata.name,
-        namespace: workshop.metadata.namespace,
-        patch,
-      });
+      const workshopUpdated = await stopWorkshop(workshop, date);
       mutateWorkshop(workshopUpdated);
     } else if (modalState.action === 'scheduleStart') {
-      const patch = {
-        spec: {
-          actionSchedule: {
-            start: dateToApiString(date),
-            // FIXME - this should be configurable, hardcoded to 12 hours after start for now
-            stop: dateToApiString(new Date(date.getTime() + 12 * 60 * 60 * 1000)),
-          },
-          lifespan: null,
-        },
-      };
-      if (!isWorkshopStarted(workshop, workshopProvisions)) {
-        patch.spec.lifespan = { start: dateToApiString(date) };
-      }
-      const workshopUpdated = await patchWorkshop({
-        name: workshop.metadata.name,
-        namespace: workshop.metadata.namespace,
-        patch,
-      });
+      const workshopUpdated = await startWorkshop(
+        workshop,
+        !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(date) : null,
+        resourceClaims
+      );
       mutateWorkshop(workshopUpdated);
     }
   }
@@ -383,9 +318,9 @@ const WorkshopsItemComponent: React.FC<{
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {
-                navigate(`/workshops/${namespace.name}${location.search}`);
+                navigate(`/services/${namespace.name}${location.search}`);
               } else {
-                navigate(`/workshops${location.search}`);
+                navigate(`/services${location.search}`);
               }
             }}
           />
@@ -394,38 +329,19 @@ const WorkshopsItemComponent: React.FC<{
       <PageSection key="head" className="workshops-item__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
-            {isAdmin || serviceNamespaces.length > 1 ? (
-              <Breadcrumb>
-                <BreadcrumbItem
-                  render={({ className }) => (
-                    <Link to="/workshops" className={className}>
-                      Workshops
-                    </Link>
-                  )}
-                />
-                <BreadcrumbItem
-                  render={({ className }) => (
-                    <Link to={`/workshops/${serviceNamespaceName}`} className={className}>
-                      {displayName(serviceNamespace)}
-                    </Link>
-                  )}
-                />
-                <BreadcrumbItem>{workshopName}</BreadcrumbItem>
-              </Breadcrumb>
-            ) : (
-              <Breadcrumb>
-                <BreadcrumbItem
-                  render={({ className }) => (
-                    <Link to={`/workshops/${serviceNamespaceName}`} className={className}>
-                      Workshops
-                    </Link>
-                  )}
-                />
-                <BreadcrumbItem>{workshopName}</BreadcrumbItem>
-              </Breadcrumb>
-            )}
-            <Title headingLevel="h4" size="xl">
-              {displayName(workshop)}
+            <Breadcrumb>
+              <BreadcrumbItem
+                render={({ className }) => (
+                  <Link to={`/services/${serviceNamespaceName}`} className={className}>
+                    Services
+                  </Link>
+                )}
+              />
+              <BreadcrumbItem>{workshopName}</BreadcrumbItem>
+            </Breadcrumb>
+            <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
+              {displayName(workshop)}{' '}
+              <Label tooltipDescription={<div>Workshop user interface is enabled</div>}>Workshop UI</Label>
             </Title>
           </SplitItem>
           <SplitItem>
@@ -479,8 +395,8 @@ const WorkshopsItemComponent: React.FC<{
               ) : null}
             </Tab>
           ) : null}
-          <Tab eventKey="services" title={<TabTitleText>Services</TabTitleText>}>
-            {activeTab === 'services' ? (
+          <Tab eventKey="instances" title={<TabTitleText>Instances</TabTitleText>}>
+            {activeTab === 'instances' ? (
               <WorkshopsItemServices
                 modalState={modalState}
                 showModal={showModal}
@@ -529,27 +445,26 @@ const NotFoundComponent: React.FC<{
   </EmptyState>
 );
 
-const WorkshopsItem: React.FC<{
-  activeTab: string;
-  serviceNamespaceName: string;
-  workshopName: string;
-}> = ({ activeTab, serviceNamespaceName, workshopName }) => (
-  <ErrorBoundary
-    onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-    fallbackRender={() => (
-      <>
-        <NotFoundComponent workshopName={workshopName} serviceNamespaceName={serviceNamespaceName} />
-        <Footer />
-      </>
-    )}
-  >
-    <WorkshopsItemComponent
-      activeTab={activeTab}
-      workshopName={workshopName}
-      serviceNamespaceName={serviceNamespaceName}
-    />
-    <Footer />
-  </ErrorBoundary>
-);
+const WorkshopsItem: React.FC<{}> = ({}) => {
+  const { name: workshopName, namespace: serviceNamespaceName, tab: activeTab = 'details' } = useParams();
+  return (
+    <ErrorBoundary
+      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
+      fallbackRender={() => (
+        <>
+          <NotFoundComponent workshopName={workshopName} serviceNamespaceName={serviceNamespaceName} />
+          <Footer />
+        </>
+      )}
+    >
+      <WorkshopsItemComponent
+        activeTab={activeTab}
+        workshopName={workshopName}
+        serviceNamespaceName={serviceNamespaceName}
+      />
+      <Footer />
+    </ErrorBoundary>
+  );
+};
 
 export default WorkshopsItem;

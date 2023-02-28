@@ -82,6 +82,15 @@ const Header: React.FC<{
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="how-to-videos-link"
+      href="https://content.redhat.com/us/en/product/rhdp.html"
+      target="_blank"
+      rel="noreferrer nofollow"
+      isExternal
+    >
+      Learn more
+    </ApplicationLauncherItem>,
+    <ApplicationLauncherItem
+      key="how-to-videos-link"
       href="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
       target="_blank"
       rel="noreferrer nofollow"
@@ -118,14 +127,6 @@ const Header: React.FC<{
 
   const HeaderTools = (
     <PageHeaderTools>
-      <Button
-        variant="link"
-        icon={<CatalogIcon />}
-        style={{ color: '#fff' }}
-        onClick={() => window.open('https://content.redhat.com/us/en/product/rhdp.html', '_blank')}
-      >
-        Learn more
-      </Button>
       <Button
         variant="link"
         icon={<CommentIcon />}

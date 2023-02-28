@@ -7,7 +7,7 @@ export function isWorkshopStarted(workshop: Workshop, workshopProvisions: Worksh
   return startTime && startTime < Date.now();
 }
 
-export function getWorkshopStartTime(workshop: Workshop, workshopProvisions: WorkshopProvision[]): number {
+export function getWorkshopStartTime(workshop: Workshop, workshopProvisions?: WorkshopProvision[]): number {
   // Lifespan start propagates from Workshop.
   if (workshop.spec.lifespan?.start) {
     return Date.parse(workshop.spec.lifespan.start);

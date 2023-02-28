@@ -1,40 +1,74 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Alert, AlertGroup, Form, FormGroup, Switch } from '@patternfly/react-core';
-import { ResourceClaim } from '@app/types';
+import { ResourceClaim, WorkshopWithResourceClaims } from '@app/types';
 import { displayName, getHelpUrl } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
 import { getAutoStopTime, getMinDefaultRuntime, getStartTime } from './service-utils';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
+import { getWorkshopAutoStopTime, getWorkshopLifespan } from '@app/Workshops/workshops-utils';
+
+const minDefault = parseDuration('4h');
 
 const ServicesScheduleAction: React.FC<{
   action: 'retirement' | 'stop';
-  resourceClaim: ResourceClaim;
+  resourceClaim?: ResourceClaim;
+  workshop: WorkshopWithResourceClaims;
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
   setState?: React.Dispatch<React.SetStateAction<Date>>;
-}> = ({ action, resourceClaim, setTitle, setState }) => {
+}> = ({ action, resourceClaim, workshop, setTitle, setState }) => {
   const { isAdmin, email } = useSession().getSession();
   const { userImpersonated } = useImpersonateUser();
-  const autoDestroyTime = Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan?.end);
-  const currentActionDate: Date = useMemo(
-    () => new Date(action === 'retirement' ? autoDestroyTime : getAutoStopTime(resourceClaim)),
-    [action, resourceClaim]
-  );
+  const autoDestroyTime = resourceClaim
+    ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan?.end)
+    : getWorkshopLifespan(workshop, null).end;
+  const initialDate = useMemo(() => {
+    let time = null;
+    if (workshop && workshop.resourceClaims) {
+      if (action === 'retirement') {
+        time = autoDestroyTime;
+      } else {
+        time = getWorkshopAutoStopTime(workshop, workshop.resourceClaims);
+      }
+    } else if (resourceClaim) {
+      if (action === 'retirement') {
+        time = autoDestroyTime;
+      } else {
+        time = getAutoStopTime(resourceClaim);
+      }
+    }
+    return new Date(time);
+  }, [resourceClaim, workshop, action]);
 
-  const [selectedDate, setSelectedDate] = useState(currentActionDate);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
   const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
-  useEffect(() => setTitle(`${displayName(resourceClaim)}`), [setTitle, resourceClaim]);
+  useEffect(() => setTitle(`${displayName(resourceClaim || workshop)}`), [setTitle, resourceClaim]);
 
   const actionLabel = action === 'retirement' ? 'Auto-destroy' : 'Auto-stop';
-  const maxDate =
-    action === 'retirement'
+  let maxDate = null;
+  if (action === 'retirement') {
+    maxDate = resourceClaim
       ? Math.min(
           Date.parse(resourceClaim.metadata.creationTimestamp) + parseDuration(resourceClaim.status.lifespan.maximum),
           Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum)
         )
-      : getStartTime(resourceClaim);
+      : workshop.resourceClaims
+      ? Math.min(
+          ...workshop.resourceClaims.flatMap((r) => [
+            Date.parse(r.metadata.creationTimestamp) + parseDuration(r.status.lifespan.maximum),
+            Date.now() + parseDuration(r.status.lifespan.relativeMaximum),
+          ])
+        )
+      : null;
+  } else {
+    maxDate = resourceClaim
+      ? getStartTime(resourceClaim)
+      : workshop.resourceClaims
+      ? Math.min(...workshop.resourceClaims.map((r) => getStartTime(r)))
+      : null;
+  }
   const minMaxProps = {
     minDate: Date.now(),
     maxDate,
@@ -42,7 +76,8 @@ const ServicesScheduleAction: React.FC<{
   if (isAdmin) {
     minMaxProps.maxDate = null;
   }
-  const noAutoStopSwitchIsVisible = action === 'stop' && (maxDate === null || maxDate >= autoDestroyTime);
+  const noAutoStopSwitchIsVisible =
+    action === 'stop' && (minMaxProps.maxDate === null || minMaxProps.maxDate >= autoDestroyTime);
   const extendLifetimeMsgIsVisible = action === 'retirement' && minMaxProps.maxDate === null;
   const userEmail = userImpersonated ? userImpersonated : email;
 
@@ -68,7 +103,15 @@ const ServicesScheduleAction: React.FC<{
             if (isChecked) {
               setSelectedDate(new Date(autoDestroyTime));
             } else {
-              const date = new Date(Date.now() + (getMinDefaultRuntime(resourceClaim) || parseDuration('4h')));
+              const _date = new Date(
+                Date.now() +
+                  (resourceClaim
+                    ? getMinDefaultRuntime(resourceClaim) || minDefault
+                    : workshop.resourceClaims
+                    ? Math.min(...workshop.resourceClaims.map((r) => getMinDefaultRuntime(r) || minDefault))
+                    : null)
+              );
+              const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
               setSelectedDate(date);
               setForceUpdateTimestamp(date);
             }

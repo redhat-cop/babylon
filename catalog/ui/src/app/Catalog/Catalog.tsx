@@ -28,7 +28,6 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
-import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
 import useSWRImmutable from 'swr/immutable';
@@ -38,7 +37,6 @@ import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 import SearchInputString from '@app/components/SearchInputString';
 import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT, stripTags } from '@app/util';
-import { useRect } from '@app/utils/useRect';
 import LoadingIcon from '@app/components/LoadingIcon';
 import Footer from '@app/components/Footer';
 import {
@@ -54,10 +52,9 @@ import CatalogInterfaceDescription from './CatalogInterfaceDescription';
 import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
-import CatalogGridList from './CatalogGridList';
+import CatalogContent from './CatalogContent';
 
 import './catalog.css';
-import CatalogContent from './CatalogContent';
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -196,7 +193,6 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const { namespace: catalogNamespaceName } = useParams();
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
-  const [wrapperRect, catalogWrapperRef] = useRect();
   const [sortBy, setSortBy] = useState<{ isOpen: boolean; selected: 'Featured' | 'Rating' | 'AZ' | 'ZA' }>({
     isOpen: false,
     selected: 'Featured',

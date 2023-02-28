@@ -9,7 +9,8 @@ const Dashboard = React.lazy(() => import('@app/Dashboard'));
 const CatalogRedirections = React.lazy(() => import('@app/Catalog/CatalogRedirections'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
 const Services = React.lazy(() => import('@app/Services/Services'));
-const Workshops = React.lazy(() => import('@app/Workshops/Workshops'));
+const WorkshopsList = React.lazy(() => import('@app/Admin/WorkshopsList'));
+const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
 const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
@@ -71,23 +72,23 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | Services',
   },
   {
-    component: Workshops,
+    component: WorkshopsItem,
     path: '/workshops/:namespace/:name/:tab',
     title: 'Babylon | Workshops',
   },
   {
-    component: Workshops,
+    component: WorkshopsItem,
     path: '/workshops/:namespace/:name',
     title: 'Babylon | Workshops',
   },
   {
-    component: Workshops,
-    path: '/workshops/:namespace',
+    component: WorkshopsList,
+    path: '/admin/workshops/:namespace',
     title: 'Babylon | Workshops',
   },
   {
-    component: Workshops,
-    path: '/workshops',
+    component: WorkshopsList,
+    path: '/admin/workshops',
     title: 'Babylon | Workshops',
   },
   {

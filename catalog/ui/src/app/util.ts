@@ -1,6 +1,6 @@
 import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
 import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
-import { AccessControl, AnarchySubject, CostTracker, K8sObject, Nullable, ResourceClaim } from '@app/types';
+import { AccessControl, AnarchySubject, CostTracker, K8sObject, Nullable, ResourceClaim, Service } from '@app/types';
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 export const DEMO_DOMAIN = 'demo.redhat.com';
@@ -182,6 +182,14 @@ export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean
   });
 }
 
+export function isResourceClaimPartOfWorkshop(resourceClaim: ResourceClaim) {
+  if (!resourceClaim) return false;
+  return (
+    !!resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`] ||
+    !!resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`]
+  );
+}
+
 export function formatDuration(ms: number): string {
   const absoluteMs = Math.abs(ms);
   const time = {
@@ -197,14 +205,14 @@ export function formatDuration(ms: number): string {
     .join(', ');
 }
 
-export function keywordMatch(resourceClaim: ResourceClaim, keyword: string): boolean {
+export function keywordMatch(service: Service, keyword: string): boolean {
   const keywordLowerCased = keyword.toLowerCase();
-  const resourceHandleName = resourceClaim.status?.resourceHandle?.name;
+  const resourceHandleName = service.status?.resourceHandle?.name;
   const guid = resourceHandleName ? resourceHandleName.replace(/^guid-/, '') : null;
-  if (resourceClaim.metadata.name.includes(keywordLowerCased)) {
+  if (service.metadata.name.includes(keywordLowerCased)) {
     return true;
   }
-  if (displayName(resourceClaim).toLowerCase().includes(keywordLowerCased)) {
+  if (displayName(service).toLowerCase().includes(keywordLowerCased)) {
     return true;
   }
   if (guid && guid.includes(keywordLowerCased)) {

@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import useSWR, { useSWRConfig } from 'swr';
-import useSWRInfinite from 'swr/infinite';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,27 +13,31 @@ import {
   SplitItem,
   Title,
 } from '@patternfly/react-core';
-import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
-import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
-import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-icon';
-import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
   apiPaths,
   deleteResourceClaim,
+  deleteWorkshop,
   fetcher,
+  fetcherItemsInAllPages,
   scheduleStopForAllResourcesInResourceClaim,
   setLifespanEndForResourceClaim,
+  setWorkshopLifespanEnd,
   startAllResourcesInResourceClaim,
+  startWorkshopServices,
   stopAllResourcesInResourceClaim,
+  stopWorkshop,
 } from '@app/api';
-import { NamespaceList, ResourceClaim, ResourceClaimList, ServiceActionActions, ServiceNamespace } from '@app/types';
+import {
+  NamespaceList,
+  ResourceClaim,
+  Service,
+  ServiceActionActions,
+  ServiceNamespace,
+  Workshop,
+  WorkshopWithResourceClaims,
+} from '@app/types';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
-import LabInterfaceLink from '@app/components/LabInterfaceLink';
-import LoadingIcon from '@app/components/LoadingIcon';
-import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import TimeInterval from '@app/components/TimeInterval';
 import {
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
@@ -42,24 +45,68 @@ import {
   BABYLON_DOMAIN,
   keywordMatch,
   compareK8sObjects,
-  getCostTracker,
   FETCH_BATCH_LIMIT,
+  isResourceClaimPartOfWorkshop,
 } from '@app/util';
-import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
-import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServicesScheduleAction from './ServicesScheduleAction';
-import ServiceStatus from './ServiceStatus';
+import renderResourceClaimRow from './renderResourceClaimRow';
+import renderWorkshopRow from './renderWorkshopRow';
 
 import './services-list.css';
+
+function setResourceClaims(workshop: Workshop, resourceClaims: ResourceClaim[]) {
+  const workshopWithResourceClaims: WorkshopWithResourceClaims = workshop;
+  workshopWithResourceClaims.resourceClaims = resourceClaims;
+  return workshopWithResourceClaims;
+}
+
+async function fetchServices(namespace: string, canLoadWorkshops: boolean): Promise<Service[]> {
+  async function fetchResourceClaims(namespace: string) {
+    return (await fetcherItemsInAllPages((continueId) =>
+      apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+    )) as ResourceClaim[];
+  }
+  async function fetchWorksops(namespace: string) {
+    return await fetcherItemsInAllPages((continueId) =>
+      apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+    ).then(async (workshops: Workshop[]) => {
+      const workshopsEnrichedPromise: Promise<WorkshopWithResourceClaims>[] = [];
+      const workshopsEnriched: WorkshopWithResourceClaims[] = [];
+      for (const workshop of workshops) {
+        const _workshopEnriched: WorkshopWithResourceClaims = workshop;
+        workshopsEnrichedPromise.push(
+          fetcherItemsInAllPages((continueId) =>
+            apiPaths.RESOURCE_CLAIMS({
+              namespace: workshop.metadata.namespace,
+              labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+              limit: FETCH_BATCH_LIMIT,
+              continueId,
+            })
+          ).then((r) => setResourceClaims(workshop, r))
+        );
+        workshopsEnriched.push(_workshopEnriched);
+      }
+      await Promise.all(workshopsEnrichedPromise);
+      return workshopsEnriched;
+    });
+  }
+  const services: Service[] = [];
+  const promises = [];
+  promises.push(fetchResourceClaims(namespace).then((r) => services.push(...r)));
+  if (canLoadWorkshops) {
+    promises.push(fetchWorksops(namespace).then((w) => services.push(...w)));
+  }
+  await Promise.all(promises);
+  return services;
+}
 
 const ServicesList: React.FC<{
   serviceNamespaceName: string;
@@ -67,24 +114,29 @@ const ServicesList: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
-  const view = serviceNamespaceName ? 'default' : 'admin';
-  const urlSearchParams = new URLSearchParams(location.search);
   const { cache } = useSWRConfig();
-  const keywordFilter = urlSearchParams.has('search')
-    ? urlSearchParams
-        .get('search')
-        .trim()
-        .split(/ +/)
-        .filter((w) => w != '')
-    : null;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const keywordFilter = useMemo(
+    () =>
+      searchParams.has('search')
+        ? searchParams
+            .get('search')
+            .trim()
+            .split(/ +/)
+            .filter((w) => w != '')
+        : null,
+    [searchParams.get('search')]
+  );
 
   // As admin we need to fetch service namespaces for the service namespace dropdown
-  const enableFetchUserNamespaces: boolean = isAdmin;
+  const enableFetchUserNamespaces = isAdmin;
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
+    workshop?: WorkshopWithResourceClaims;
     rating?: { rate: number; comment: string };
-  }>({ action: null });
+    submitDisabled: false;
+  }>({ action: null, submitDisabled: false });
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalGetCost, openModalGetCost] = useModal();
@@ -104,110 +156,119 @@ const ServicesList: React.FC<{
         })
       : sessionServiceNamespaces;
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
-  const serviceNamespace: ServiceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
-    name: serviceNamespaceName,
-    displayName: serviceNamespaceName,
-  };
-
-  const {
-    data: resourceClaimsPages,
-    mutate,
-    size,
-    setSize,
-  } = useSWRInfinite<ResourceClaimList>(
-    (index, previousPageData: ResourceClaimList) => {
-      if (previousPageData && !previousPageData.metadata?.continue) {
-        return null;
-      }
-      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
-      return apiPaths.RESOURCE_CLAIMS({ namespace: serviceNamespaceName, limit: FETCH_BATCH_LIMIT, continueId });
-    },
-    fetcher,
+  const canLoadWorkshops = isAdmin || serviceNamespaces.length > 1;
+  const { data: _services, mutate } = useSWR<Service[]>(
+    `services/${serviceNamespaceName}`,
+    () => fetchServices(serviceNamespaceName, canLoadWorkshops),
     {
       refreshInterval: 8000,
-      revalidateFirstPage: true,
-      revalidateAll: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      compare: (currentData: any, newData: any) => {
+      revalidateOnMount: true,
+      compare: (currentData, newData) => {
         if (currentData === newData) return true;
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
-        for (let i = 0; i < currentData.length; i++) {
-          if (!compareK8sObjects(currentData[i].items, newData[i].items)) return false;
-        }
+        if (!compareK8sObjects(currentData, newData)) return false; // Compare Workshops and ResourceClaims
+        const currentWorkshops = currentData.filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
+        const newWorkshops = currentData.filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
+        const currentWorkshopsResourceClaims = currentWorkshops.flatMap((x) => x.resourceClaims);
+        const newWorkshopsResourceClaims = newWorkshops.flatMap((x) => x.resourceClaims);
+        if (!compareK8sObjects(currentWorkshopsResourceClaims, newWorkshopsResourceClaims)) return false; // Compare ResourceClaims that belongs to Workshops
         return true;
       },
     }
   );
 
-  const revalidate = useCallback(
-    ({ updatedItems, action }: { updatedItems: ResourceClaim[]; action: 'update' | 'delete' }) => {
-      const resourceClaimsPagesCpy = JSON.parse(JSON.stringify(resourceClaimsPages));
-      let p: ResourceClaimList;
-      let i: number;
-      for ([i, p] of resourceClaimsPagesCpy.entries()) {
-        for (const updatedItem of updatedItems) {
-          const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
-          if (foundIndex > -1) {
-            if (action === 'update') {
-              resourceClaimsPagesCpy[i].items[foundIndex] = updatedItem;
-            } else if (action === 'delete') {
-              resourceClaimsPagesCpy[i].items.splice(foundIndex, 1);
-            }
-            mutate(resourceClaimsPagesCpy);
-          }
-        }
-      }
-    },
-    [mutate, resourceClaimsPages]
-  );
-  const isReachingEnd = resourceClaimsPages && !resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue;
-  const isLoadingInitialData = !resourceClaimsPages;
-  const isLoadingMore =
-    isLoadingInitialData || (size > 0 && resourceClaimsPages && typeof resourceClaimsPages[size - 1] === 'undefined');
-
-  const filterResourceClaim = useCallback(
-    (resourceClaim: ResourceClaim) => {
-      if (!isAdmin && resourceClaim.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
-        return false;
-      }
-      if (!keywordFilter) {
-        return true;
-      }
-      for (const keyword of keywordFilter) {
-        if (!keywordMatch(resourceClaim, keyword)) {
+  const filterFn = useCallback(
+    (service: Service) => {
+      if (service.kind === 'ResourceClaim') {
+        const resourceClaim = service as ResourceClaim;
+        const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+        if (isPartOfWorkshop) {
           return false;
         }
+        if (!isAdmin && resourceClaim.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+          return false;
+        }
+        if (!keywordFilter) {
+          return true;
+        }
+        for (const keyword of keywordFilter) {
+          if (!keywordMatch(resourceClaim, keyword)) {
+            return false;
+          }
+        }
+        return true;
       }
-      return true;
+      if (service.kind === 'Workshop') {
+        const workshop = service as Workshop;
+        if (workshop.metadata.deletionTimestamp) {
+          return false;
+        }
+        if (keywordFilter) {
+          for (const keyword of keywordFilter) {
+            if (!keywordMatch(workshop, keyword)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      return false;
     },
     [keywordFilter, isAdmin]
   );
 
-  const resourceClaims: ResourceClaim[] = useMemo(
-    () => [].concat(...resourceClaimsPages.map((page) => page.items)).filter(filterResourceClaim) || [],
-    [filterResourceClaim, resourceClaimsPages]
+  const services = useMemo(
+    () =>
+      _services
+        .filter(filterFn)
+        .sort(
+          (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf()
+        ),
+    [filterFn, _services]
   );
 
-  // Trigger continue fetching more resource claims on scroll.
-  const scrollHandler = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollable = e.currentTarget;
-    const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && !isReachingEnd && !isLoadingMore) {
-      setSize(size + 1);
-    }
-  };
+  const revalidate = useCallback(
+    ({ updatedItems, action }: { updatedItems: Service[]; action: 'update' | 'delete' }) => {
+      const servicesCpy = JSON.parse(JSON.stringify(services));
+      for (const updatedItem of updatedItems) {
+        const foundIndex = services.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+        if (foundIndex > -1) {
+          if (action === 'update') {
+            servicesCpy[foundIndex] = updatedItem;
+          } else if (action === 'delete') {
+            servicesCpy.splice(foundIndex, 1);
+          }
+          mutate(servicesCpy);
+        }
+      }
+    },
+    [mutate, services]
+  );
 
   const onModalScheduleAction = useCallback(
     async (date: Date): Promise<void> => {
-      const resourceClaimUpdate: ResourceClaim =
-        modalState.action === 'retirement'
-          ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
-          : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
-      revalidate({ updatedItems: [resourceClaimUpdate], action: 'update' });
+      let updatedItems: Service[] = [];
+      if (modalState.resourceClaim) {
+        updatedItems.push(
+          modalState.action === 'retirement'
+            ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
+            : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date)
+        );
+      } else if (modalState.workshop) {
+        updatedItems.push(
+          setResourceClaims(
+            modalState.action === 'retirement'
+              ? await setWorkshopLifespanEnd(modalState.workshop, date)
+              : await stopWorkshop(modalState.workshop, date),
+            modalState.workshop.resourceClaims
+          )
+        );
+      }
+      revalidate({ updatedItems, action: 'update' });
     },
-    [modalState.action, modalState.resourceClaim, revalidate]
+    [modalState.action, modalState.resourceClaim, modalState.workshop, revalidate]
   );
 
   const performModalActionForResourceClaim = useCallback(
@@ -221,8 +282,7 @@ const ServicesList: React.FC<{
         );
         return await deleteResourceClaim(resourceClaim);
       } else {
-        const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
-        const isPartOfWorkshop = !!workshopProvisionName;
+        const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
         if (isPartOfWorkshop) return resourceClaim; // If has a workshopProvision -> Do nothing.
         if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
           return await startAllResourcesInResourceClaim(resourceClaim);
@@ -237,27 +297,60 @@ const ServicesList: React.FC<{
     [cache, modalState.action]
   );
 
+  const performModalActionForWorkshop = useCallback(
+    async (workshop: WorkshopWithResourceClaims): Promise<WorkshopWithResourceClaims> => {
+      if (modalState.action === 'delete') {
+        return await deleteWorkshop(workshop);
+      } else {
+        if (Array.isArray(workshop.resourceClaims)) {
+          if (modalState.action === 'start') {
+            return await startWorkshopServices(workshop, workshop.resourceClaims);
+          } else if (modalState.action === 'stop') {
+            return await stopWorkshop(workshop);
+          }
+        }
+        return Promise.resolve(null);
+      }
+    },
+    [cache, modalState.action, modalState.workshop, revalidate, mutate]
+  );
+
   const onModalAction = useCallback(async (): Promise<void> => {
-    const resourceClaimUpdates: ResourceClaim[] = [];
+    const serviceUpdates: Service[] = [];
     if (modalState.resourceClaim) {
-      resourceClaimUpdates.push(await performModalActionForResourceClaim(modalState.resourceClaim));
-    } else {
-      for (const resourceClaim of resourceClaims) {
-        if (selectedUids.includes(resourceClaim.metadata.uid)) {
-          resourceClaimUpdates.push(await performModalActionForResourceClaim(resourceClaim));
+      serviceUpdates.push(await performModalActionForResourceClaim(modalState.resourceClaim));
+    } else if (modalState.workshop) {
+      serviceUpdates.push(
+        setResourceClaims(await performModalActionForWorkshop(modalState.workshop), modalState.workshop.resourceClaims)
+      );
+    }
+    if (selectedUids.length > 0) {
+      for (const service of services) {
+        if (selectedUids.includes(service.metadata.uid)) {
+          if (service.kind === 'ResourceClaim') {
+            serviceUpdates.push(await performModalActionForResourceClaim(service as ResourceClaim));
+          }
+          if (service.kind === 'Workshop') {
+            const _workshop = service as WorkshopWithResourceClaims;
+            serviceUpdates.push(
+              setResourceClaims(await performModalActionForWorkshop(_workshop), _workshop.resourceClaims)
+            );
+          }
         }
       }
     }
     if (modalState.action === 'delete') {
-      revalidate({ updatedItems: resourceClaimUpdates, action: 'delete' });
+      revalidate({ updatedItems: serviceUpdates, action: 'delete' });
     } else {
-      revalidate({ updatedItems: resourceClaimUpdates, action: 'update' });
+      revalidate({ updatedItems: serviceUpdates, action: 'update' });
     }
   }, [
     modalState.action,
     modalState.resourceClaim,
+    modalState.workshop,
     performModalActionForResourceClaim,
-    resourceClaims,
+    performModalActionForWorkshop,
+    services,
     revalidate,
     selectedUids,
   ]);
@@ -267,43 +360,28 @@ const ServicesList: React.FC<{
       modal,
       action,
       resourceClaim,
+      workshop,
     }: {
       modal: string;
       action?: ServiceActionActions;
       resourceClaim?: ResourceClaim;
+      workshop?: Workshop;
     }) => {
       if (modal === 'action') {
-        setModalState({ action, resourceClaim });
+        setModalState({ ...modalState, action, resourceClaim, workshop });
         openModalAction();
       }
       if (modal === 'scheduleAction') {
-        setModalState({ action, resourceClaim });
+        setModalState({ ...modalState, action, resourceClaim, workshop });
         openModalScheduleAction();
       }
       if (modal === 'getCost') {
-        setModalState({ action, resourceClaim });
+        setModalState({ ...modalState, action, resourceClaim, workshop: null });
         openModalGetCost();
       }
     },
     [openModalAction, openModalGetCost, openModalScheduleAction]
   );
-
-  // Fetch all if keywordFilter is defined.
-  if (
-    keywordFilter &&
-    resourceClaimsPages.length > 0 &&
-    resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue
-  ) {
-    if (!isLoadingMore) {
-      if (resourceClaims.length > 0) {
-        setTimeout(() => {
-          setSize(size + 1);
-        }, 5000);
-      } else {
-        setSize(size + 1);
-      }
-    }
-  }
 
   if (serviceNamespaces.length === 0) {
     return (
@@ -327,7 +405,7 @@ const ServicesList: React.FC<{
   }
 
   return (
-    <div onScroll={scrollHandler} style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
       <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
         <ServicesAction actionState={modalState} />
       </Modal>
@@ -335,6 +413,7 @@ const ServicesList: React.FC<{
         <ServicesScheduleAction
           action={modalState.action === 'retirement' ? 'retirement' : 'stop'}
           resourceClaim={modalState.resourceClaim}
+          workshop={modalState.workshop}
         />
       </Modal>
       <Modal
@@ -355,8 +434,6 @@ const ServicesList: React.FC<{
             onSelect={(namespace) => {
               if (namespace) {
                 navigate(`/services/${namespace.name}${location.search}`);
-              } else {
-                navigate(`/services${location.search}`);
               }
             }}
           />
@@ -365,34 +442,21 @@ const ServicesList: React.FC<{
       <PageSection key="head" className="services-list__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
-            {serviceNamespaces.length > 1 && serviceNamespaceName ? (
-              <Breadcrumb>
-                <BreadcrumbItem
-                  render={({ className }) => (
-                    <Link to="/services" className={className}>
-                      Services
-                    </Link>
-                  )}
-                />
-                <BreadcrumbItem>{serviceNamespace?.displayName || serviceNamespaceName}</BreadcrumbItem>
-              </Breadcrumb>
-            ) : (
-              <Breadcrumb>
-                <BreadcrumbItem>Services</BreadcrumbItem>
-              </Breadcrumb>
-            )}
+            <Breadcrumb>
+              <BreadcrumbItem>Services</BreadcrumbItem>
+            </Breadcrumb>
           </SplitItem>
           <SplitItem>
             <KeywordSearchInput
               initialValue={keywordFilter}
               placeholder="Search..."
               onSearch={(value) => {
-                if (value) {
-                  urlSearchParams.set('search', value.join(' '));
-                } else if (urlSearchParams.has('search')) {
-                  urlSearchParams.delete('search');
+                if (value && Array.isArray(value)) {
+                  searchParams.set('search', value.join(' '));
+                } else if (searchParams.has('search')) {
+                  searchParams.delete('search');
                 }
-                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+                setSearchParams(searchParams);
               }}
             />
           </SplitItem>
@@ -410,7 +474,7 @@ const ServicesList: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
-      {resourceClaims.length === 0 && isReachingEnd ? (
+      {services.length === 0 ? (
         <PageSection key="body-empty">
           <EmptyState variant="full">
             <EmptyStateIcon icon={ExclamationTriangleIcon} />
@@ -430,280 +494,53 @@ const ServicesList: React.FC<{
         <PageSection key="body" className="services-list" variant={PageSectionVariants.light}>
           <SelectableTable
             columns={
-              view === 'admin'
-                ? ['Project', 'Name', 'GUID', 'Status', 'Created At', 'Actions']
+              isAdmin
+                ? ['Name', 'GUID', 'Status', 'Created At', 'Auto-stop', 'Auto-destroy', 'Actions']
                 : ['Name', 'Status', 'Created At', 'Auto-stop', 'Auto-destroy', 'Actions']
             }
             onSelectAll={(isSelected) => {
               if (isSelected) {
-                setSelectedUids(resourceClaims.map((resourceClaim) => resourceClaim.metadata.uid));
+                setSelectedUids(services.map((s) => s.metadata.uid));
               } else {
                 setSelectedUids([]);
               }
             }}
-            rows={resourceClaims.map((resourceClaim: ResourceClaim) => {
-              const resourceHandle = resourceClaim.status?.resourceHandle;
-              const specResources = resourceClaim.spec.resources || [];
-              const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
-              const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
-              const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
-              const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
-              const isPartOfWorkshop = !!workshopProvisionName;
-              const rcServiceNamespace = serviceNamespaces.find(
-                (ns: ServiceNamespace) => ns.name === resourceClaim.metadata.namespace
-              );
-              // Find lab user interface information either in the resource claim or inside resources
-              // associated with the provisioned service.
-              const labUserInterfaceData =
-                resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
-                resources
-                  .map((r) =>
-                    r?.kind === 'AnarchySubject'
-                      ? r?.spec?.vars?.provision_data?.lab_ui_data
-                      : r?.data?.labUserInterfaceData
-                  )
-                  .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
-                  .find((u) => u != null);
-              const labUserInterfaceMethod =
-                resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
-                resources
-                  .map((r) =>
-                    r?.kind === 'AnarchySubject'
-                      ? r?.spec?.vars?.provision_data?.lab_ui_method
-                      : r?.data?.labUserInterfaceMethod
-                  )
-                  .find((u) => u != null);
-              const labUserInterfaceUrl =
-                resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
-                resources
-                  .map((r) => {
-                    const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
-                    return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
-                  })
-                  .find((u) => u != null);
-
-              const costTracker = getCostTracker(resourceClaim);
-              // Available actions depends on kind of service
-              const actionHandlers = {
-                delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
-                lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
-                runtime: null,
-                start: null,
-                stop: null,
-                getCost: null,
-                manageWorkshop: null,
-              };
-              if (resources.find((r) => r?.kind === 'AnarchySubject')) {
-                actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
-                actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', resourceClaim });
-                actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
-              }
-              if (costTracker) {
-                actionHandlers['getCost'] = () => showModal({ modal: 'getCost', resourceClaim });
-              }
-              if (isPartOfWorkshop) {
-                actionHandlers['manageWorkshop'] = () =>
-                  navigate(`/workshops/${resourceClaim.metadata.namespace}/${workshopName}`);
-              }
-
-              const autoStopTime = getAutoStopTime(resourceClaim);
-
-              const projectCell = (
-                // Poject
-                <React.Fragment key="project">
-                  <Link key="services" to={`/services/${resourceClaim.metadata.namespace}`}>
-                    {rcServiceNamespace?.displayName || resourceClaim.metadata.namespace}
-                  </Link>
-                  {isAdmin ? (
-                    <OpenshiftConsoleLink key="console" resource={resourceClaim} linkToNamespace={true} />
-                  ) : null}
-                </React.Fragment>
-              );
-
-              const guidCell = (
-                // GUID
-                <React.Fragment key="guid">
-                  {guid ? (
-                    isAdmin ? (
-                      [
-                        <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
-                          {guid}
-                        </Link>,
-                        <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
-                      ]
-                    ) : (
-                      guid
-                    )
-                  ) : (
-                    <p>-</p>
-                  )}
-                </React.Fragment>
-              );
-
-              const nameCell = (
-                // Name
-                <React.Fragment key="name">
-                  <Link
-                    key="name__link"
-                    to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
-                  >
-                    {displayName(resourceClaim)}
-                  </Link>
-                  {isAdmin ? <OpenshiftConsoleLink key="name__console" resource={resourceClaim} /> : null}
-                </React.Fragment>
-              );
-              const statusCell = (
-                // Status
-                <React.Fragment key="status">
-                  {specResources.length >= 1 ? (
-                    <ServiceStatus
-                      creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                      resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
-                      resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
-                      resourceClaim={resourceClaim}
-                    />
-                  ) : (
-                    <p>...</p>
-                  )}
-                </React.Fragment>
-              );
-              const createdAtCell = (
-                // Created At
-                <React.Fragment key="interval">
-                  <TimeInterval toTimestamp={resourceClaim.metadata.creationTimestamp} />
-                </React.Fragment>
-              );
-
-              const autoStopCell = (
-                // Auto-stop
-                <span key="auto-stop">
-                  <AutoStopDestroy
-                    time={autoStopTime}
-                    onClick={actionHandlers.runtime}
-                    className="services-list__schedule-btn"
-                    type="auto-stop"
-                    resourceClaim={resourceClaim}
-                  />
-                </span>
-              );
-
-              const autoDestroyCell = (
-                // Auto-destroy
-                <span key="auto-destroy">
-                  <AutoStopDestroy
-                    onClick={actionHandlers.lifespan}
-                    time={resourceClaim.spec.lifespan?.end || resourceClaim.status?.lifespan?.end}
-                    className="services-list__schedule-btn"
-                    type="auto-destroy"
-                    resourceClaim={resourceClaim}
-                  />
-                </span>
-              );
-
-              const actionsCell = (
-                // Actions
-                <div
-                  key="actions"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    gap: 'var(--pf-global--spacer--sm)',
-                  }}
-                >
-                  {!isPartOfWorkshop ? (
-                    <ButtonCircleIcon
-                      isDisabled={!checkResourceClaimCanStart(resourceClaim)}
-                      onClick={actionHandlers.start}
-                      description="Start"
-                      icon={PlayIcon}
-                      key="actions__start"
-                    />
-                  ) : null}
-                  {!isPartOfWorkshop ? (
-                    <ButtonCircleIcon
-                      isDisabled={!checkResourceClaimCanStop(resourceClaim)}
-                      onClick={actionHandlers.stop}
-                      description="Stop"
-                      icon={StopIcon}
-                      key="actions__stop"
-                    />
-                  ) : null}
-                  {isPartOfWorkshop ? (
-                    <ButtonCircleIcon
-                      onClick={actionHandlers.manageWorkshop}
-                      description="Manage Workshop"
-                      icon={CogIcon}
-                      key="actions__manage-workshop"
-                    />
-                  ) : null}
-                  <ButtonCircleIcon
-                    key="actions__delete"
-                    onClick={actionHandlers.delete}
-                    description="Delete"
-                    icon={TrashIcon}
-                  />
-                  {actionHandlers.getCost ? (
-                    <ButtonCircleIcon
-                      key="actions__cost"
-                      onClick={actionHandlers.getCost}
-                      description="Get amount spent"
-                      icon={DollarSignIcon}
-                    />
-                  ) : null}
-                  {
-                    // Lab Interface
-                    labUserInterfaceUrl ? (
-                      <LabInterfaceLink
-                        key="actions__lab-interface"
-                        url={labUserInterfaceUrl}
-                        data={labUserInterfaceData}
-                        method={labUserInterfaceMethod}
-                        variant="circle"
-                      />
-                    ) : null
-                  }
-                </div>
-              );
-
-              const adminActionsCell = (
-                // Actions
-                <div>
-                  <ServiceActions
-                    position="right"
-                    resourceClaim={resourceClaim}
-                    actionHandlers={actionHandlers}
-                    iconOnly
-                    key="admin-actions"
-                  />
-                </div>
-              );
-
-              return {
-                cells:
-                  view === 'admin'
-                    ? [projectCell, nameCell, guidCell, statusCell, createdAtCell, adminActionsCell]
-                    : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
+            rows={services.map((service: Service) => {
+              const selectObj = {
                 onSelect: (isSelected: boolean) =>
-                  setSelectedUids((uids) => {
+                  setSelectedUids((uids: string[]) => {
                     if (isSelected) {
-                      if (uids.includes(resourceClaim.metadata.uid)) {
+                      if (uids.includes(service.metadata.uid)) {
                         return uids;
                       } else {
-                        return [...uids, resourceClaim.metadata.uid];
+                        return [...uids, service.metadata.uid];
                       }
                     } else {
-                      return uids.filter((uid) => uid !== resourceClaim.metadata.uid);
+                      return uids.filter((uid) => uid !== service.metadata.uid);
                     }
                   }),
-                selected: selectedUids.includes(resourceClaim.metadata.uid),
+                selected: selectedUids.includes(service.metadata.uid),
               };
+              if (service.kind === 'ResourceClaim') {
+                return Object.assign(
+                  selectObj,
+                  renderResourceClaimRow({
+                    resourceClaim: service as ResourceClaim,
+                    showModal,
+                    isAdmin,
+                    navigate,
+                  })
+                );
+              }
+              if (service.kind === 'Workshop') {
+                return Object.assign(
+                  selectObj,
+                  renderWorkshopRow({ workshop: service as Workshop, showModal, isAdmin })
+                );
+              }
+              return null;
             })}
           />
-          {!isReachingEnd ? (
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={LoadingIcon} />
-            </EmptyState>
-          ) : null}
         </PageSection>
       )}
       <Footer />

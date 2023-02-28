@@ -540,3 +540,8 @@ export type ResourceType =
   | 'PROVISION_RATING';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
+
+export type WorkshopWithResourceClaims = Workshop & {
+  resourceClaims?: ResourceClaim[];
+};
+export type Service = ResourceClaim | WorkshopWithResourceClaims;

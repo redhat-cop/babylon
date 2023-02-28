@@ -1077,6 +1077,89 @@ export async function deleteWorkshop(workshop: Workshop) {
   return await deleteK8sObject(workshop);
 }
 
+export async function setWorkshopLifespanEnd(workshop: Workshop, date: Date = new Date()) {
+  const patch = { spec: { lifespan: { end: dateToApiString(date) } } };
+  return await patchWorkshop({
+    name: workshop.metadata.name,
+    namespace: workshop.metadata.namespace,
+    patch,
+  });
+}
+
+export async function stopWorkshop(workshop: Workshop, date: Date = new Date()) {
+  const patch = { spec: { actionSchedule: { stop: dateToApiString(date) } } };
+  return await patchWorkshop({
+    name: workshop.metadata.name,
+    namespace: workshop.metadata.namespace,
+    patch,
+  });
+}
+
+export async function startWorkshop(workshop: Workshop, dateString: string, resourceClaims: ResourceClaim[] = []) {
+  const now = new Date();
+  let defaultRuntimes = [];
+  for (const resourceClaim of resourceClaims) {
+    defaultRuntimes.push(
+      ...(resourceClaim.status?.resources
+        ? resourceClaim.status.resources
+            .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
+            .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime))
+        : [])
+    );
+  }
+  const patch = {
+    spec: {
+      actionSchedule: {
+        start: dateToApiString(now),
+        stop: dateToApiString(
+          defaultRuntimes.length > 0
+            ? new Date(now.getTime() + Math.min(...defaultRuntimes))
+            : new Date(now.getTime() + 12 * 60 * 60 * 1000)
+        ),
+      },
+      lifespan: {
+        start: dateString || dateToApiString(now),
+      },
+    },
+  };
+  return await patchWorkshop({
+    name: workshop.metadata.name,
+    namespace: workshop.metadata.namespace,
+    patch,
+  });
+}
+
+export async function startWorkshopServices(workshop: Workshop, resourceClaims: ResourceClaim[] = []) {
+  const now = new Date();
+  let defaultRuntimes = [];
+  for (const resourceClaim of resourceClaims) {
+    defaultRuntimes.push(
+      ...(resourceClaim.status?.resources
+        ? resourceClaim.status.resources
+            .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
+            .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime))
+        : [])
+    );
+  }
+  const patch = {
+    spec: {
+      actionSchedule: {
+        start: dateToApiString(now),
+        stop: dateToApiString(
+          defaultRuntimes.length > 0
+            ? new Date(now.getTime() + Math.min(...defaultRuntimes))
+            : new Date(now.getTime() + 12 * 60 * 60 * 1000)
+        ),
+      },
+    },
+  };
+  return await patchWorkshop({
+    name: workshop.metadata.name,
+    namespace: workshop.metadata.namespace,
+    patch,
+  });
+}
+
 export async function forceDeleteAnarchySubject(anarchySubject: AnarchySubject) {
   if ((anarchySubject.metadata.finalizers || []).length > 0) {
     await patchNamespacedCustomObject(
