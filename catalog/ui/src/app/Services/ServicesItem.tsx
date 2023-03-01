@@ -265,7 +265,7 @@ const ComponentDetailsList: React.FC<{
                       {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
                         towerJob.towerJobURL ? (
                           <ListItem key={stage}>
-                            <Link to={towerJob.towerJobURL} style={{ textTransform: 'capitalize' }}>
+                            <Link to={'https://' + towerJob.towerJobURL} style={{ textTransform: 'capitalize' }}>
                               {stage}
                             </Link>
                           </ListItem>
