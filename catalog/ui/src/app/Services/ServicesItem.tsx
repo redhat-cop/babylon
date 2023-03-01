@@ -30,6 +30,8 @@ import {
   AccordionItem,
   AccordionToggle,
   ExpandableSection,
+  List,
+  ListItem,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
@@ -259,17 +261,17 @@ const ComponentDetailsList: React.FC<{
                 <DescriptionListGroup key="tower-jobs">
                   <DescriptionListTerm>Tower Jobs</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <ul style={{ margin: 'var(--pf-global--spacer--sm) 0' }}>
+                    <List style={{ margin: 'var(--pf-global--spacer--sm) 0' }}>
                       {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
                         towerJob.towerJobURL ? (
-                          <li key={stage}>
+                          <ListItem key={stage}>
                             <Link to={towerJob.towerJobURL} style={{ textTransform: 'capitalize' }}>
                               {stage}
                             </Link>
-                          </li>
+                          </ListItem>
                         ) : null
                       )}
-                    </ul>
+                    </List>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
