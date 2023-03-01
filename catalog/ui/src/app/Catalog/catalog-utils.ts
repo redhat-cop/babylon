@@ -23,7 +23,7 @@ export function getDescription(catalogItem: CatalogItem): {
   };
 }
 
-export function getStage(catalogItem: CatalogItem): string | null {
+export function getStage(catalogItem: CatalogItem) {
   return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
 }
 

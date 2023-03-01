@@ -190,6 +190,20 @@ export function isResourceClaimPartOfWorkshop(resourceClaim: ResourceClaim) {
   );
 }
 
+export function getStageFromK8sObject(k8sObject: K8sObject): 'dev' | 'test' | 'event' | 'prod' {
+  if (!k8sObject) return null;
+  const nameSplitted = k8sObject.metadata.name.split('.');
+  if (Array.isArray(nameSplitted) && nameSplitted.length > 0) {
+    const stage = nameSplitted.at(-1);
+    const validStages = ['dev', 'test', 'event', 'prod'];
+    if (validStages.includes(stage)) {
+      return stage as 'dev' | 'test' | 'event' | 'prod';
+    }
+    return null;
+  }
+  return null;
+}
+
 export function formatDuration(ms: number): string {
   const absoluteMs = Math.abs(ms);
   const time = {

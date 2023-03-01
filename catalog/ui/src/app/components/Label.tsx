@@ -2,7 +2,7 @@ import React from 'react';
 import { Tooltip } from '@patternfly/react-core';
 
 const Label: React.FC<{ tooltipDescription?: JSX.Element }> = ({ children, tooltipDescription = null }) =>
-  tooltipDescription ? (
+  children && tooltipDescription ? (
     <Tooltip position="bottom" content={tooltipDescription}>
       <span
         style={{
@@ -18,7 +18,7 @@ const Label: React.FC<{ tooltipDescription?: JSX.Element }> = ({ children, toolt
         {children}
       </span>
     </Tooltip>
-  ) : (
+  ) : children ? (
     <span
       style={{
         backgroundColor: '#faeae8',
@@ -32,6 +32,6 @@ const Label: React.FC<{ tooltipDescription?: JSX.Element }> = ({ children, toolt
     >
       {children}
     </span>
-  );
+  ) : null;
 
 export default Label;

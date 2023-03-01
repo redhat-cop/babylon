@@ -11,6 +11,7 @@ import {
   checkResourceClaimCanStop,
   displayName,
   getCostTracker,
+  getStageFromK8sObject,
   isResourceClaimPartOfWorkshop,
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
@@ -21,6 +22,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import { Link } from 'react-router-dom';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import Label from '@app/components/Label';
 
 const renderResourceClaimRow = ({
   resourceClaim,
@@ -97,6 +99,7 @@ const renderResourceClaimRow = ({
   }
 
   const autoStopTime = getAutoStopTime(resourceClaim);
+  const stage = getStageFromK8sObject(resourceClaim);
 
   const guidCell = (
     // GUID
@@ -124,6 +127,7 @@ const renderResourceClaimRow = ({
       <Link key="name__link" to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}>
         {displayName(resourceClaim)}
       </Link>
+      {stage !== 'prod' ? <Label>{stage}</Label> : null}
       {isAdmin ? <OpenshiftConsoleLink key="name__console" resource={resourceClaim} /> : null}
     </React.Fragment>
   );

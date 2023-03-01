@@ -1,7 +1,7 @@
 import React from 'react';
 import { ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { displayName } from '@app/util';
+import { displayName, getStageFromK8sObject } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import TimeInterval from '@app/components/TimeInterval';
 import { Link } from 'react-router-dom';
@@ -58,6 +58,7 @@ const renderWorkshopRow = ({
   const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, null);
   const autoStopTime = getWorkshopAutoStopTime(workshop, workshop.resourceClaims);
   const cells: any[] = [];
+  const stage = getStageFromK8sObject(workshop);
 
   // Add columns
   cells.push(
@@ -73,6 +74,7 @@ const renderWorkshopRow = ({
       >
         {displayName(workshop)}
       </Link>
+      {stage !== 'prod' ? <Label>{stage}</Label> : null}
       <Label key="workshop-name__label" tooltipDescription={<div>Workshop user interface is enabled</div>}>
         Workshop UI
       </Label>
