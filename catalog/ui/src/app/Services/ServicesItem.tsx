@@ -255,6 +255,24 @@ const ComponentDetailsList: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
+              {isAdmin && resourceState?.status?.towerJobs ? (
+                <DescriptionListGroup key="tower-jobs">
+                  <DescriptionListTerm>Tower Jobs</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <ul style={{ margin: 'var(--pf-global--spacer--sm) 0' }}>
+                      {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
+                        towerJob.towerJobURL ? (
+                          <li key={stage}>
+                            <Link to={towerJob.towerJobURL} style={{ textTransform: 'capitalize' }}>
+                              {stage}
+                            </Link>
+                          </li>
+                        ) : null
+                      )}
+                    </ul>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
             </ExpandableSection>
           ) : null}
         </>
