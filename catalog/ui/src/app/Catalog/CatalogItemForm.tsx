@@ -155,7 +155,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         openRegistration: userRegistration === 'open',
         serviceNamespace: formState.serviceNamespace,
         ...(scheduled !== null ? { stopDate: scheduled.stopDate } : { stopDate: formState.stopDate }),
-        ...(scheduled !== null ? { endDate: scheduled.endDate } : { endDate: formState.destroyDate }),
+        ...(scheduled !== null ? { endDate: scheduled.endDate } : { endDate: formState.endDate }),
         ...(scheduled !== null ? { startDate: scheduled.startDate } : {}),
       });
       await createWorkshopProvision({
@@ -177,7 +177,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         serviceNamespace: formState.serviceNamespace,
         usePoolIfAvailable: formState.usePoolIfAvailable,
         stopDate: formState.stopDate,
-        destroyDate: formState.destroyDate,
+        endDate: formState.endDate,
         ...(scheduled !== null
           ? {
               start: {
@@ -200,13 +200,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       <CatalogItemFormAutoStopDestroyModal
         type={autoStopDestroyModal}
         autoStopDate={formState.stopDate}
-        autoDestroyDate={formState.destroyDate}
+        autoDestroyDate={formState.endDate}
         autoStartDate={formState.startDate}
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
         maxStartTimestamp={!!formState.workshop || !catalogItem.spec.lifespan ? null : Date.now() + maxAutoDestroyTime}
         maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : parseDuration(catalogItem.spec.runtime?.maximum)}
         defaultRuntimeTimestamp={
-          new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default)) > formState.destroyDate
+          new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default)) > formState.endDate
             ? parseDuration('4h')
             : parseDuration(catalogItem.spec.runtime?.default)
         }
@@ -214,7 +214,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         isWorkshopEnabled={!!formState.workshop}
         onConfirm={(dates: TDates) =>
           submitRequest({
-            scheduled: { startDate: dates.startDate, stopDate: dates.stopDate, endDate: dates.destroyDate },
+            scheduled: { startDate: dates.startDate, stopDate: dates.stopDate, endDate: dates.endDate },
           })
         }
         onClose={() => openAutoStopDestroyModal(null)}
@@ -449,7 +449,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 className="catalog-item-form__auto-stop-btn"
                 time={formState.stopDate ? formState.stopDate.getTime() : null}
                 variant="extended"
-                destroyTimestamp={formState.destroyDate.getTime()}
+                destroyTimestamp={formState.endDate.getTime()}
               />
             </div>
           </FormGroup>
@@ -461,9 +461,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               type="auto-destroy"
               onClick={() => openAutoStopDestroyModal('auto-destroy')}
               className="catalog-item-form__auto-destroy-btn"
-              time={formState.destroyDate.getTime()}
+              time={formState.endDate.getTime()}
               variant="extended"
-              destroyTimestamp={formState.destroyDate.getTime()}
+              destroyTimestamp={formState.endDate.getTime()}
             />
           </div>
         </FormGroup>

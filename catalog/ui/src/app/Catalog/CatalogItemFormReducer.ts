@@ -36,7 +36,7 @@ type FormState = {
   usePoolIfAvailable: boolean;
   startDate?: Date;
   stopDate?: Date;
-  destroyDate: Date;
+  endDate: Date;
   purpose: string;
   salesforceId: {
     required: boolean;
@@ -81,7 +81,7 @@ export type FormStateAction = {
   usePoolIfAvailable?: boolean;
   startDate?: Date;
   stopDate?: Date;
-  destroyDate?: Date;
+  endDate?: Date;
 };
 
 export type FormStateParameter = {
@@ -305,7 +305,7 @@ function reduceFormStateInit(
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
       : new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default || '4h')),
-    destroyDate: new Date(Date.now() + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
+    endDate: new Date(Date.now() + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
   };
 }
 
@@ -381,21 +381,16 @@ function reduceFormStateUsePoolIfAvailable(initialState: FormState, usePoolIfAva
   };
 }
 
-function reduceFormStateDates(
-  initialState: FormState,
-  _startDate: Date,
-  _stopDate: Date,
-  _destroyDate: Date
-): FormState {
+function reduceFormStateDates(initialState: FormState, _startDate: Date, _stopDate: Date, _endDate: Date): FormState {
   const minThreshold = Date.now() + 900000; // 15 mins
   let stopDate = _stopDate;
-  let destroyDate = _destroyDate;
+  let endDate = _endDate;
   let startDate = _startDate;
   if (!_stopDate) {
     stopDate = initialState.stopDate;
   }
-  if (!_destroyDate) {
-    destroyDate = initialState.destroyDate;
+  if (!_endDate) {
+    endDate = initialState.endDate;
   }
   if (!_startDate) {
     startDate = initialState.startDate;
@@ -404,7 +399,7 @@ function reduceFormStateDates(
     return {
       ...initialState,
       stopDate,
-      destroyDate,
+      endDate,
       startDate: _startDate,
     };
   }
@@ -412,7 +407,7 @@ function reduceFormStateDates(
     ...initialState,
     startDate,
     stopDate,
-    destroyDate,
+    endDate,
   };
 }
 
@@ -476,7 +471,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
     case 'serviceNamespace':
       return reduceFormStateServiceNamespace(state, action.serviceNamespace);
     case 'dates':
-      return reduceFormStateDates(state, action.startDate, action.stopDate, action.destroyDate);
+      return reduceFormStateDates(state, action.startDate, action.stopDate, action.endDate);
     case 'termsOfServiceAgreed':
       return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
     case 'workshop':

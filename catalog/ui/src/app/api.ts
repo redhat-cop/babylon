@@ -69,7 +69,7 @@ type CreateServiceRequestOpt = {
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
   stopDate?: Date;
-  destroyDate: Date;
+  endDate: Date;
   start?: CreateServiceRequestOptScheduleStartLifespan | CreateServiceRequestOptScheduleStartResource;
 };
 
@@ -341,7 +341,7 @@ export async function createServiceRequest({
   serviceNamespace,
   start,
   stopDate,
-  destroyDate,
+  endDate,
   usePoolIfAvailable,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
@@ -377,7 +377,7 @@ export async function createServiceRequest({
       resources: [],
       lifespan: {
         ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
-        end: dateToApiString(destroyDate),
+        end: dateToApiString(endDate),
       },
     },
   };
