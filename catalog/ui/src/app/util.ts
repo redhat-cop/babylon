@@ -1,6 +1,17 @@
 import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
 import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
-import { AccessControl, AnarchySubject, CostTracker, K8sObject, Nullable, ResourceClaim, Service } from '@app/types';
+import {
+  AccessControl,
+  AnarchySubject,
+  CatalogNamespace,
+  CostTracker,
+  K8sObject,
+  Nullable,
+  ResourceClaim,
+  Service,
+  Workshop,
+} from '@app/types';
+import { string } from 'prop-types';
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 export const DEMO_DOMAIN = 'demo.redhat.com';
@@ -13,43 +24,55 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
   }
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-export function displayName(item: any): string {
+export function displayName(item: K8sObject | CatalogNamespace): string {
   if (!item) {
     return '';
   }
-  if (item.kind === 'ResourceClaim') {
-    const catalogItemName = item.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
-    const catalogItemDisplayName = item.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`];
+  const k8sObject = item as ResourceClaim | Workshop;
+  const catalog = item as CatalogNamespace;
+  if (k8sObject.kind === 'ResourceClaim') {
+    const _item = k8sObject as ResourceClaim;
+    const catalogItemName = _item.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
+    const catalogItemDisplayName = _item.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`];
 
-    if (item.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
-      if (catalogItemName && catalogItemDisplayName && item.metadata.name === catalogItemName) {
+    if (_item.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+      if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
         return `${catalogItemDisplayName} Service Request`;
-      } else if (catalogItemName && catalogItemDisplayName && item.metadata.name.startsWith(catalogItemName)) {
-        return `${catalogItemDisplayName} Service Request - ${item.metadata.name.substring(
+      } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
+        return `${catalogItemDisplayName} Service Request - ${_item.metadata.name.substring(
           1 + catalogItemName.length
         )}`;
       } else {
-        return `${item.metadata.name} Service Request`;
+        return `${_item.metadata.name} Service Request`;
       }
     } else {
-      if (catalogItemName && catalogItemDisplayName && item.metadata.name === catalogItemName) {
+      if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
         return catalogItemDisplayName;
-      } else if (catalogItemName && catalogItemDisplayName && item.metadata.name.startsWith(catalogItemName)) {
-        return `${catalogItemDisplayName} - ${item.metadata.name.substring(1 + catalogItemName.length)}`;
+      } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
+        return `${catalogItemDisplayName} - ${_item.metadata.name.substring(1 + catalogItemName.length)}`;
       } else {
-        return item.metadata.name;
+        return _item.metadata.name;
       }
+    }
+  } else if (k8sObject.kind === 'Workshop') {
+    const _item = k8sObject as Workshop;
+    const catalogItemName = _item.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
+    const catalogItemDisplayName = _item.spec?.displayName;
+    if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
+      return catalogItemDisplayName;
+    } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
+      return `${catalogItemDisplayName} - ${_item.metadata.name.substring(1 + catalogItemName.length)}`;
+    } else {
+      return _item.metadata.name;
     }
   } else {
     return (
-      item.metadata?.annotations?.[`${BABYLON_DOMAIN}/displayName`] ||
-      item.metadata?.annotations?.[`${BABYLON_DOMAIN}/display-name`] ||
-      item.metadata?.annotations?.['openshift.io/display-name'] ||
-      item.displayName ||
-      item.spec?.displayName ||
-      item.metadata?.name ||
-      item.name
+      k8sObject.metadata?.annotations?.[`${BABYLON_DOMAIN}/displayName`] ||
+      k8sObject.metadata?.annotations?.[`${BABYLON_DOMAIN}/display-name`] ||
+      k8sObject.metadata?.annotations?.['openshift.io/display-name'] ||
+      catalog.displayName ||
+      k8sObject.metadata?.name ||
+      catalog.name
     );
   }
 }
@@ -64,7 +87,6 @@ export function randomString(length: number): string {
   return text;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 export function recursiveAssign(target: object, source: object): any {
   for (const [k, v] of Object.entries(source)) {
     if (v !== null && typeof v === 'object' && k in target && target[k] !== null && typeof target[k] === 'object') {

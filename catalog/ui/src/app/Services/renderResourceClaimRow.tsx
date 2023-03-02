@@ -123,17 +123,20 @@ const renderResourceClaimRow = ({
 
   const nameCell = (
     // Name
-    <React.Fragment key="name">
-      <Link key="name__link" to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}>
+    <React.Fragment key="resource-claim-name">
+      <Link
+        key="resource-claim-name__link"
+        to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
+      >
         {displayName(resourceClaim)}
       </Link>
-      {stage !== 'prod' ? <Label>{stage}</Label> : null}
-      {isAdmin ? <OpenshiftConsoleLink key="name__console" resource={resourceClaim} /> : null}
+      {stage !== 'prod' ? <Label key="resource-claim-name__stage">{stage}</Label> : null}
+      {isAdmin ? <OpenshiftConsoleLink key="resource-claim-name__console" resource={resourceClaim} /> : null}
     </React.Fragment>
   );
   const statusCell = (
     // Status
-    <React.Fragment key="status">
+    <React.Fragment key="resource-claim-status">
       {specResources.length >= 1 ? (
         <ServiceStatus
           creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
@@ -148,14 +151,14 @@ const renderResourceClaimRow = ({
   );
   const createdAtCell = (
     // Created At
-    <React.Fragment key="interval">
+    <React.Fragment key="resource-claim-interval">
       <TimeInterval toTimestamp={resourceClaim.metadata.creationTimestamp} />
     </React.Fragment>
   );
 
   const autoStopCell = (
     // Auto-stop
-    <span key="auto-stop">
+    <span key="resource-claim-auto-stop">
       <AutoStopDestroy
         time={autoStopTime}
         onClick={actionHandlers.runtime}
@@ -168,7 +171,7 @@ const renderResourceClaimRow = ({
 
   const autoDestroyCell = (
     // Auto-destroy
-    <span key="auto-destroy">
+    <span key="resource-claim-auto-destroy">
       <AutoStopDestroy
         onClick={actionHandlers.lifespan}
         time={resourceClaim.spec.lifespan?.end || resourceClaim.status?.lifespan?.end}
@@ -182,7 +185,7 @@ const renderResourceClaimRow = ({
   const actionsCell = (
     // Actions
     <div
-      key="actions"
+      key="resource-claim-actions"
       style={{
         display: 'flex',
         flexDirection: 'row',

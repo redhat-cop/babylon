@@ -108,7 +108,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }
   }, [dispatchFormState, formState, debouncedApiFetch]);
 
-  async function submitRequest({ scheduled = false }): Promise<void> {
+  async function submitRequest(
+    {
+      scheduled,
+    }: {
+      scheduled: { startDate: Date; endDate: Date; stopDate: Date };
+    } = { scheduled: null }
+  ): Promise<void> {
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
     }
@@ -148,6 +154,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         catalogItem: catalogItem,
         openRegistration: userRegistration === 'open',
         serviceNamespace: formState.serviceNamespace,
+        ...(scheduled !== null ? { stopDate: scheduled.stopDate } : { stopDate: formState.stopDate }),
+        ...(scheduled !== null ? { endDate: scheduled.endDate } : { endDate: formState.destroyDate }),
+        ...(scheduled !== null ? { startDate: scheduled.startDate } : {}),
       });
       await createWorkshopProvision({
         catalogItem: catalogItem,
@@ -156,7 +165,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         parameters: parameterValues,
         startDelay: provisionStartDelay,
         workshop: workshop,
-        ...(scheduled && formState.startDate ? { start: { date: formState.startDate, type: 'lifespan' } } : {}),
       });
 
       navigate(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
@@ -170,13 +178,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         usePoolIfAvailable: formState.usePoolIfAvailable,
         stopDate: formState.stopDate,
         destroyDate: formState.destroyDate,
-        ...(scheduled && formState.startDate
+        ...(scheduled !== null
           ? {
               start: {
                 date: formState.startDate,
                 type: 'resource',
                 autoStop: new Date(
-                  formState.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h')
+                  scheduled.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h')
                 ),
               },
             }
@@ -205,11 +213,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         maxDestroyTimestamp={maxAutoDestroyTime}
         isWorkshopEnabled={!!formState.workshop}
         onConfirm={(dates: TDates) =>
-          dispatchFormState({
-            type: 'dates',
-            startDate: dates.startDate,
-            stopDate: dates.stopDate,
-            destroyDate: dates.destroyDate,
+          submitRequest({
+            scheduled: { startDate: dates.startDate, stopDate: dates.stopDate, endDate: dates.destroyDate },
           })
         }
         onClose={() => openAutoStopDestroyModal(null)}
@@ -726,7 +731,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             <Button
               isAriaDisabled={!submitRequestEnabled}
               isDisabled={!submitRequestEnabled}
-              onClick={() => submitRequest({ scheduled: false })}
+              onClick={() => submitRequest()}
             >
               Order
             </Button>
