@@ -1,27 +1,12 @@
 #!/usr/bin/env python3
 
-import json
-import os
-import kubernetes
-import logging
-import requests
-import subprocess
 import sys
-import time
-
-from base64 import b64decode
-from datetime import datetime
+import kubernetes
 from pprint import pprint
-import urllib3
-
-
 
 kubernetes.config.load_kube_config()
 
-
-core_v1_api = kubernetes.client.CoreV1Api()
 custom_objects_api = kubernetes.client.CustomObjectsApi()
-logger = logging.getLogger(sys.argv[0])
 
 response_governors = custom_objects_api.list_cluster_custom_object(
     'anarchy.gpte.redhat.com',
