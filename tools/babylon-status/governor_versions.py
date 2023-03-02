@@ -70,7 +70,8 @@ def main():
 
     logger = setup_logging()
 
-    logger.info(f"Versions summary:\n{pprint(versions)}")
+    logger.info(f"Versions summary:\n{versions}")
+
 
 
 if __name__ == '__main__':
