@@ -14,7 +14,7 @@ const minDefault = parseDuration('4h');
 const ServicesScheduleAction: React.FC<{
   action: 'retirement' | 'stop';
   resourceClaim?: ResourceClaim;
-  workshop: WorkshopWithResourceClaims;
+  workshop?: WorkshopWithResourceClaims;
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
   setState?: React.Dispatch<React.SetStateAction<Date>>;
 }> = ({ action, resourceClaim, workshop, setTitle, setState }) => {

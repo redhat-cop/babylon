@@ -34,7 +34,7 @@ import {
   stopWorkshop,
 } from '@app/api';
 import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvision } from '@app/types';
-import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
+import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT, getStageFromK8sObject } from '@app/util';
 import useSession from '@app/utils/useSession';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
@@ -127,6 +127,7 @@ const WorkshopsItemComponent: React.FC<{
       refreshInterval: 8000,
     }
   );
+  const stage = getStageFromK8sObject(workshop);
 
   const { data: workshopProvisions, mutate: mutateWorkshopProvisions } = useSWR<WorkshopProvision[]>(
     apiPaths.WORKSHOP_PROVISIONS({
@@ -340,7 +341,8 @@ const WorkshopsItemComponent: React.FC<{
               <BreadcrumbItem>{workshopName}</BreadcrumbItem>
             </Breadcrumb>
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
-              {displayName(workshop)}{' '}
+              {displayName(workshop)}
+              {stage !== 'prod' ? <Label>{stage}</Label> : null}
               <Label tooltipDescription={<div>Workshop user interface is enabled</div>}>Workshop UI</Label>
             </Title>
           </SplitItem>

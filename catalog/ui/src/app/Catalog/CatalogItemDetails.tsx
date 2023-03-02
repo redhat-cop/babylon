@@ -37,6 +37,7 @@ import {
   FETCH_BATCH_LIMIT,
   isLabDeveloper,
   getHelpUrl,
+  isResourceClaimPartOfWorkshop,
 } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import TimeInterval from '@app/components/TimeInterval';
@@ -97,9 +98,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const services: ResourceClaim[] = useMemo(
     () =>
       Array.isArray(userResourceClaims)
-        ? [].concat(
-            ...userResourceClaims.filter((rc) => !rc.metadata.labels?.['babylon.gpte.redhat.com/workshop-provision'])
-          )
+        ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r)))
         : [],
     [userResourceClaims]
   );

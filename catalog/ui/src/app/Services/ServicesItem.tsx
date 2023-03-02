@@ -63,6 +63,7 @@ import {
   displayName,
   renderContent,
   isResourceClaimPartOfWorkshop,
+  getStageFromK8sObject,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -76,6 +77,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
+import Label from '@app/components/Label';
 import { getAutoStopTime, getInfoMessageTemplate, getMostRelevantResourceAndTemplate } from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
@@ -437,6 +439,7 @@ const ServicesItemComponent: React.FC<{
   const costTracker = getCostTracker(resourceClaim);
   const autoStopTime = getAutoStopTime(resourceClaim);
   const hasInfoMessageTemplate = !!getInfoMessageTemplate(resourceClaim);
+  const stage = getStageFromK8sObject(resourceClaim);
 
   async function onModalAction(): Promise<void> {
     if (modalState.action === 'stop' || modalState.action === 'start') {
@@ -578,8 +581,9 @@ const ServicesItemComponent: React.FC<{
                 <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
               </Breadcrumb>
             )}
-            <Title headingLevel="h4" size="xl">
+            <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(resourceClaim)}
+              {stage !== 'prod' ? <Label>{stage}</Label> : null}
             </Title>
           </SplitItem>
           <SplitItem>
