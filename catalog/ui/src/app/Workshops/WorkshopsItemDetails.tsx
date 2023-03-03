@@ -13,8 +13,6 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
-import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-icon';
-import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { patchWorkshop } from '@app/api';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
@@ -26,7 +24,9 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import Editor from '@app/components/Editor/Editor';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan, supportAction } from './workshops-utils';
+import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
+import ServiceStatus from '@app/Services/ServiceStatus';
+import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
 import { ModalState } from './WorkshopsItem';
 
 import './workshops-item-details.css';
@@ -184,23 +184,18 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListTerm>Status</DescriptionListTerm>
         <DescriptionListDescription>
           {autoStartTime && autoStartTime > Date.now() ? (
-            <span className="workshops-item-details__status--scheduled">
-              <CheckCircleIcon /> Scheduled
+            <span className="services-item__status--scheduled" key="scheduled">
+              <CheckCircleIcon key="scheduled-icon" /> Scheduled
             </span>
-          ) : workshopProvisions && workshopProvisions.length > 0 ? (
-            checkWorkshopCanStop(resourceClaims) || !supportAction(resourceClaims, 'stop') ? (
-              <span className="workshops-item-details__status--running">
-                <CheckCircleIcon /> Running
-              </span>
-            ) : (
-              <span className="workshops-item-details__status--stopped">
-                <StopCircleIcon /> Stopped
-              </span>
-            )
+          ) : resourceClaims && resourceClaims.length > 0 ? (
+            <ServiceStatus
+              creationTime={Date.parse(resourceClaims[0].metadata.creationTimestamp)}
+              resource={getMostRelevantResourceAndTemplate(resourceClaims[0]).resource}
+              resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaims[0]).template}
+              resourceClaim={resourceClaims[0]}
+            />
           ) : (
-            <span className="workshops-item-details__status--unknown">
-              <QuestionCircleIcon /> No workshop provision
-            </span>
+            <p>...</p>
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>

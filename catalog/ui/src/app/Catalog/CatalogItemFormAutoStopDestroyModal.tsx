@@ -7,7 +7,7 @@ import useSession from '@app/utils/useSession';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import { getHelpUrl } from '@app/util';
 
-export type TDates = { startDate: Date; stopDate: Date; destroyDate: Date };
+export type TDates = { startDate: Date; stopDate: Date; endDate: Date };
 export type TDatesTypes = 'auto-stop' | 'auto-destroy' | 'schedule';
 
 const CatalogItemFormAutoStopDestroyModal: React.FC<{
@@ -45,12 +45,12 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   const [dates, setDates] = useState<TDates>({
     startDate: null,
     stopDate: null,
-    destroyDate: null,
+    endDate: null,
   });
   const userEmail = userImpersonated ? userImpersonated : email;
   const _stopDate = dates.stopDate || autoStopDate;
-  const _destroyDate = dates.destroyDate || autoDestroyDate;
-  const noAutoStopChecked = _stopDate && _destroyDate && _stopDate.getTime() >= _destroyDate.getTime();
+  const _endDate = dates.endDate || autoDestroyDate;
+  const noAutoStopChecked = _stopDate && _endDate && _stopDate.getTime() >= _endDate.getTime();
 
   useEffect(() => {
     if (!!type) {
@@ -96,7 +96,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
             </FormGroup>
             {(type === 'schedule' && dates.startDate
               ? dates.startDate.getTime() + maxRuntimeTimestamp
-              : Date.now() + maxRuntimeTimestamp) >= _destroyDate.getTime() ? (
+              : Date.now() + maxRuntimeTimestamp) >= _endDate.getTime() ? (
               <Switch
                 id="no-auto-stop-switch"
                 aria-label="No auto-stop"
@@ -105,7 +105,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                 hasCheckIcon
                 onChange={(isChecked) => {
                   isChecked
-                    ? setDates({ ...dates, stopDate: dates.destroyDate || autoDestroyDate })
+                    ? setDates({ ...dates, stopDate: dates.endDate || autoDestroyDate })
                     : setDates({ ...dates, stopDate: new Date(Date.now() + defaultRuntimeTimestamp) });
                 }}
               />
@@ -117,7 +117,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
             <FormGroup fieldId="auto-destroy-modal" label="Auto-destroy">
               <DateTimePicker
                 defaultTimestamp={autoDestroyDate.getTime()}
-                onSelect={(d) => setDates({ ...dates, destroyDate: d })}
+                onSelect={(d) => setDates({ ...dates, endDate: d })}
                 maxDate={
                   maxDestroyTimestamp
                     ? type === 'schedule' && dates.startDate

@@ -74,8 +74,8 @@ const renderWorkshopRow = ({
       >
         {displayName(workshop)}
       </Link>
-      {stage !== 'prod' ? <Label>{stage}</Label> : null}
-      <Label key="workshop-name__label" tooltipDescription={<div>Workshop user interface is enabled</div>}>
+      {stage !== 'prod' ? <Label key="workshop-name__stage">{stage}</Label> : null}
+      <Label key="workshop-name__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
         Workshop UI
       </Label>
       {isAdmin ? <OpenshiftConsoleLink key="workshop-name__console" resource={workshop} /> : null}

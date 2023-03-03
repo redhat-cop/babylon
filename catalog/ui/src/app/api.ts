@@ -69,7 +69,7 @@ type CreateServiceRequestOpt = {
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
   stopDate?: Date;
-  destroyDate: Date;
+  endDate: Date;
   start?: CreateServiceRequestOptScheduleStartLifespan | CreateServiceRequestOptScheduleStartResource;
 };
 
@@ -80,7 +80,6 @@ type CreateWorkshopPovisionOpt = {
   parameters: any;
   startDelay: number;
   workshop: Workshop;
-  start?: { date: Date; type: 'lifespan' };
 };
 
 export type CreateServiceRequestParameterValues = {
@@ -342,7 +341,7 @@ export async function createServiceRequest({
   serviceNamespace,
   start,
   stopDate,
-  destroyDate,
+  endDate,
   usePoolIfAvailable,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
@@ -378,7 +377,7 @@ export async function createServiceRequest({
       resources: [],
       lifespan: {
         ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
-        end: dateToApiString(destroyDate),
+        end: dateToApiString(endDate),
       },
     },
   };
@@ -520,6 +519,9 @@ export async function createWorkshop({
   displayName,
   openRegistration,
   serviceNamespace,
+  stopDate,
+  endDate,
+  startDate,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -527,6 +529,9 @@ export async function createWorkshop({
   displayName?: string;
   openRegistration: boolean;
   serviceNamespace: ServiceNamespace;
+  endDate?: Date;
+  stopDate?: Date;
+  startDate?: Date;
 }): Promise<Workshop> {
   const definition: Workshop = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -543,6 +548,11 @@ export async function createWorkshop({
       multiuserServices: catalogItem.spec.multiuser,
       openRegistration: openRegistration,
       userAssignments: [],
+      lifespan: {
+        ...(startDate ? { start: dateToApiString(startDate) } : {}),
+        ...(endDate ? { end: dateToApiString(endDate) } : {}),
+      },
+      ...(stopDate ? { actionSchedule: { stop: dateToApiString(stopDate) } } : {}),
     },
   };
   if (accessPassword) {
@@ -648,18 +658,7 @@ export async function createWorkshopProvision({
   parameters,
   startDelay,
   workshop,
-  start,
 }: CreateWorkshopPovisionOpt) {
-  let endDate = null;
-  if (catalogItem.spec.lifespan) {
-    const refrenceTime = start?.date ? start.date.getTime() : Date.now();
-    endDate = new Date(
-      Math.min(
-        refrenceTime + parseDuration(catalogItem.spec.lifespan.maximum),
-        refrenceTime + parseDuration(catalogItem.spec.lifespan.relativeMaximum)
-      )
-    );
-  }
   const definition: WorkshopProvision = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'WorkshopProvision',
@@ -690,10 +689,6 @@ export async function createWorkshopProvision({
       parameters: parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
-      lifespan: {
-        ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
-        ...(endDate ? { end: dateToApiString(endDate) } : {}),
-      },
     },
   };
 

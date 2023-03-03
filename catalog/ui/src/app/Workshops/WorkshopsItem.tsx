@@ -342,8 +342,10 @@ const WorkshopsItemComponent: React.FC<{
             </Breadcrumb>
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(workshop)}
-              {stage !== 'prod' ? <Label>{stage}</Label> : null}
-              <Label tooltipDescription={<div>Workshop user interface is enabled</div>}>Workshop UI</Label>
+              {stage !== 'prod' ? <Label key="workshop-item__stage">{stage}</Label> : null}
+              <Label key="workshop-item__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
+                Workshop UI
+              </Label>
             </Title>
           </SplitItem>
           <SplitItem>
