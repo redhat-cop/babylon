@@ -465,12 +465,6 @@ def salesforce_validation(salesforce_id):
                                             "  Id, StartDate, EndDate, IsActive "
                                             "FROM Campaign "
                                             "WHERE Id = {}", salesforce_id)
-        elif salesforce_id.isnumeric() and (len(salesforce_id) == 7 or len(salesforce_id) == 5):
-            salesforce_type = 'cdh'
-            opportunity_query = format_soql("SELECT "
-                                            "  Id, CDHPartyNumber__c "
-                                            "FROM Account "
-                                            "WHERE CDHPartyNumber__c = {}", str(salesforce_id))
         else:
             salesforce_type = 'opportunity'
             opportunity_query = format_soql("SELECT "
@@ -478,7 +472,17 @@ def salesforce_validation(salesforce_id):
                                             "  CloseDate, StageName, OpportunityNumber__c "
                                             "FROM Opportunity "
                                             "WHERE OpportunityNumber__c = {}", salesforce_id)
-
+            try: 
+                opp_results = salesforce_api.query(opportunity_query)
+                totalSize = opp_results.get('totalSize', 0)
+                if totalSize == 0:
+                    salesforce_type = 'cdh'
+                    opportunity_query = format_soql("SELECT "
+                                            "  Id, CDHPartyNumber__c "
+                                            "FROM Account "
+                                            "WHERE CDHPartyNumber__c = {}", str(salesforce_id))
+            except SalesforceMalformedRequest:
+                flask.abort(404, description='Invalid SalesForce Request')
         try:
             opp_results = salesforce_api.query(opportunity_query)
             opportunity_info['totalSize'] = opp_results.get('totalSize', 0)
