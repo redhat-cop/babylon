@@ -465,19 +465,24 @@ def salesforce_validation(salesforce_id):
                                             "  Id, StartDate, EndDate, IsActive "
                                             "FROM Campaign "
                                             "WHERE Id = {}", salesforce_id)
-        elif salesforce_id.isnumeric() and len(salesforce_id) == 7:
-            salesforce_type = 'cdh'
-            opportunity_query = format_soql("SELECT Account.CDHPartyNumber__c, IsActive"
-                                            "FROM Opportunity"
-                                            "WHERE Account.CDHPartyNumber__c = {}", salesforce_id)
         else:
             salesforce_type = 'opportunity'
             opportunity_query = format_soql("SELECT "
                                             "  Id, Name, AccountId, IsClosed, "
                                             "  CloseDate, StageName, OpportunityNumber__c "
                                             "FROM Opportunity "
-                                            "WHERE OpportunityNumber__c = {}", salesforce_id)
-
+                                            "WHERE OpportunityNumber__c = {} AND IsClosed = false", salesforce_id)
+            try: 
+                opp_results = salesforce_api.query(opportunity_query)
+                totalSize = opp_results.get('totalSize', 0)
+                if totalSize == 0:
+                    salesforce_type = 'cdh'
+                    opportunity_query = format_soql("SELECT "
+                                            "  Id, CDHPartyNumber__c "
+                                            "FROM Account "
+                                            "WHERE CDHPartyNumber__c = {}", str(salesforce_id))
+            except SalesforceMalformedRequest:
+                flask.abort(404, description='Invalid SalesForce Request')
         try:
             opp_results = salesforce_api.query(opportunity_query)
             opportunity_info['totalSize'] = opp_results.get('totalSize', 0)
@@ -502,12 +507,14 @@ def salesforce_validation(salesforce_id):
     if saleforce_valid == 0:
         return False
     else:
-        if salesforce_type == 'campaign' or salesforce_type == 'cdh':
+        if salesforce_type == 'campaign':
             # Business rules for a invalid Campaign
             # if IsActive is false
             is_active = opportunity_info.get('IsActive', False)
             if not is_active:
                 return False
+        elif salesforce_type == 'cdh':
+            return True
         elif salesforce_type == 'project':
             is_active = opportunity_info.get('pse__Is_Active__c', False)
             if not is_active:
