@@ -1666,7 +1666,7 @@ export function setProvisionRating(provisionUuid: string, rating: number, commen
   });
 }
 
-export const SERVICES_KEY = ({ namespace }: {namespace: string}) => `services/${namespace}`;
+export const SERVICES_KEY = ({ namespace }: { namespace: string }) => `services/${namespace}`;
 
 export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
@@ -1701,15 +1701,7 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
   RESOURCE_CLAIM: ({ namespace, resourceClaimName }: { namespace: string; resourceClaimName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/${namespace}/resourceclaims/${resourceClaimName}`,
-  NAMESPACES: ({
-    labelSelector,
-    limit,
-    continueId,
-  }: {
-    labelSelector?: string;
-    limit?: number;
-    continueId?: string;
-  }) =>
+  NAMESPACES: ({ labelSelector, limit, continueId }: { labelSelector?: string; limit?: number; continueId?: string }) =>
     `/api/v1/namespaces?${labelSelector ? `labelSelector=${labelSelector}` : ''}${limit ? `&limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
     }`,
@@ -1761,6 +1753,5 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }`,
   RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders/${resourceProviderName}`,
-  PROVISION_RATING: ({ provisionUuid }: { provisionUuid: string }) =>
-    `/api/ratings/provisions/${provisionUuid}`,
+  PROVISION_RATING: ({ provisionUuid }: { provisionUuid: string }) => `/api/ratings/provisions/${provisionUuid}`,
 };

@@ -76,7 +76,7 @@ const ResourcePools: React.FC = () => {
       ),
     {
       refreshInterval: 8000,
-      compare: compareK8sObjectsArr
+      compare: compareK8sObjectsArr,
     }
   );
 

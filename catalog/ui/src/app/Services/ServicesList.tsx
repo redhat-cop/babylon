@@ -159,7 +159,7 @@ const ServicesList: React.FC<{
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
   const canLoadWorkshops = isAdmin || serviceNamespaces.length > 1;
   const { data: _services, mutate } = useSWR<Service[]>(
-    SERVICES_KEY({namespace: serviceNamespaceName}),
+    SERVICES_KEY({ namespace: serviceNamespaceName }),
     () => fetchServices(serviceNamespaceName, canLoadWorkshops),
     {
       refreshInterval: 8000,

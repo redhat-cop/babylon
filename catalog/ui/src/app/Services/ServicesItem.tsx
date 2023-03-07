@@ -312,7 +312,7 @@ const ServicesItemComponent: React.FC<{
       }),
     {
       refreshInterval: 8000,
-      compare: compareK8sObjects
+      compare: compareK8sObjects,
     }
   );
   useErrorHandler(error?.status === 404 ? error : null);
@@ -436,9 +436,9 @@ const ServicesItemComponent: React.FC<{
   const { data: workshop, mutate: mutateWorkshop } = useSWR<Workshop>(
     workshopName ? apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }) : null,
     fetcher,
-    { 
+    {
       refreshInterval: 8000,
-      compare: compareK8sObjects
+      compare: compareK8sObjects,
     }
   );
 
@@ -469,7 +469,12 @@ const ServicesItemComponent: React.FC<{
     }
     if (modalState.action === 'delete') {
       await deleteResourceClaim(resourceClaim);
-      cache.delete(apiPaths.RESOURCE_CLAIM({ namespace: resourceClaim.metadata.namespace, resourceClaimName: resourceClaim.metadata.name }));
+      cache.delete(
+        apiPaths.RESOURCE_CLAIM({
+          namespace: resourceClaim.metadata.namespace,
+          resourceClaimName: resourceClaim.metadata.name,
+        })
+      );
       cache.delete(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
       navigate(`/services/${serviceNamespaceName}`);
     }

@@ -46,7 +46,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
         workshopName: workshopProvision.metadata.labels['babylon.gpte.redhat.com/workshop'],
         namespace: workshopProvision.metadata.namespace,
         limit: 'ALL',
-      }),
+      })
     );
   }
 

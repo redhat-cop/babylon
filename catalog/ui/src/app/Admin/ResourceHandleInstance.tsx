@@ -63,7 +63,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
     fetcher,
     {
       refreshInterval: 8000,
-      compare: compareK8sObjects
+      compare: compareK8sObjects,
     }
   );
   useErrorHandler(error?.status === 404 ? error : null);
@@ -78,7 +78,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
     fetcher,
     {
       refreshInterval: 8000,
-      compare: compareK8sObjects
+      compare: compareK8sObjects,
     }
   );
 

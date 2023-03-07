@@ -35,7 +35,14 @@ import {
   stopWorkshop,
 } from '@app/api';
 import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvision } from '@app/types';
-import { BABYLON_DOMAIN, compareK8sObjects, compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, getStageFromK8sObject } from '@app/util';
+import {
+  BABYLON_DOMAIN,
+  compareK8sObjects,
+  compareK8sObjectsArr,
+  displayName,
+  FETCH_BATCH_LIMIT,
+  getStageFromK8sObject,
+} from '@app/util';
 import useSession from '@app/utils/useSession';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
@@ -126,7 +133,7 @@ const WorkshopsItemComponent: React.FC<{
     fetcher,
     {
       refreshInterval: 8000,
-      compare: compareK8sObjects
+      compare: compareK8sObjects,
     }
   );
   const stage = getStageFromK8sObject(workshop);
@@ -167,7 +174,7 @@ const WorkshopsItemComponent: React.FC<{
       ),
     {
       refreshInterval: 8000,
-      compare: compareK8sObjectsArr
+      compare: compareK8sObjectsArr,
     }
   );
 
@@ -242,7 +249,7 @@ const WorkshopsItemComponent: React.FC<{
     mutateWorkshop(null);
     mutateWorkshopProvisions(null);
     mutate(null);
-    cache.delete(SERVICES_KEY({namespace: workshop.metadata.namespace}))
+    cache.delete(SERVICES_KEY({ namespace: workshop.metadata.namespace }));
     navigate(`/services/${serviceNamespaceName}`);
   }
 

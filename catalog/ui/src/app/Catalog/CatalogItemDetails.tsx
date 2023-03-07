@@ -93,7 +93,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       ),
     {
       refreshInterval: 8000,
-      compare: compareK8sObjectsArr
+      compare: compareK8sObjectsArr,
     }
   );
 

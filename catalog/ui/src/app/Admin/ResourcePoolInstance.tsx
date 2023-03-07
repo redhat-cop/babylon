@@ -75,7 +75,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
     fetcher,
     {
       refreshInterval: 8000,
-      compare: compareK8sObjects
+      compare: compareK8sObjects,
     }
   );
   useErrorHandler(error?.status === 404 ? error : null);

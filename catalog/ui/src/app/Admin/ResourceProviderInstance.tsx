@@ -52,7 +52,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
     mutate,
   } = useSWR<ResourceProvider>(apiPaths.RESOURCE_PROVIDER({ resourceProviderName }), fetcher, {
     refreshInterval: 8000,
-    compare: compareK8sObjects
+    compare: compareK8sObjects,
   });
   useErrorHandler(error?.status === 404 ? error : null);
 
