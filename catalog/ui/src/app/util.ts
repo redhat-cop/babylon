@@ -278,6 +278,7 @@ export const compareK8sObjectsArr = (obj1?: K8sObject[], obj2?: K8sObject[]): bo
     }
     return true;
   }
+  if ((!obj1 && obj2) || (obj1 && !obj2)) return false;
   if (obj1 !== obj2) {
     const map1 = new Map<string, string>();
     const map2 = new Map<string, string>();

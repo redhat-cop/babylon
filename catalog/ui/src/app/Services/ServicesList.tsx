@@ -165,13 +165,15 @@ const ServicesList: React.FC<{
       refreshInterval: 8000,
       revalidateOnMount: true,
       compare: (currentData, newData) => {
-        if (!compareK8sObjectsArr(currentData, newData)) return false; // Compare Workshops and ResourceClaims
-        const currentWorkshops = (currentData ?? []).filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
+        const servicesEquals = compareK8sObjectsArr(currentData, newData);
+        const currentWorkshops = (currentData ?? []).filter(
+          (x) => x.kind === 'Workshop'
+        ) as WorkshopWithResourceClaims[];
         const newWorkshops = (newData ?? []).filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
         const currentWorkshopsResourceClaims = currentWorkshops.flatMap((x) => x.resourceClaims);
         const newWorkshopsResourceClaims = newWorkshops.flatMap((x) => x.resourceClaims);
-        if (!compareK8sObjectsArr(currentWorkshopsResourceClaims, newWorkshopsResourceClaims)) return false; // Compare ResourceClaims that belongs to Workshops
-        return true;
+        const instancesEquals = compareK8sObjectsArr(currentWorkshopsResourceClaims, newWorkshopsResourceClaims);
+        return servicesEquals && instancesEquals;
       },
     }
   );
