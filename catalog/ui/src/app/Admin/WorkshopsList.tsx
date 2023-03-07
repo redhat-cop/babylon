@@ -219,7 +219,7 @@ const WorkshopsList: React.FC<{
   }
 
   if (serviceNamespaces.length === 1 && !serviceNamespaceName) {
-    return <Navigate to={`/admin/workshops/${serviceNamespaces[0].name}`} />;
+    return <Navigate to={`/admin/services/${serviceNamespaces[0].name}`} />;
   }
 
   return (
@@ -243,7 +243,7 @@ const WorkshopsList: React.FC<{
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {
-                navigate(`/admin/workshops/${namespace.name}${location.search}`);
+                navigate(`/admin/services/${namespace.name}${location.search}`);
               } else {
                 navigate(`/admin/workshops${location.search}`);
               }
@@ -353,7 +353,7 @@ const WorkshopsList: React.FC<{
                 ? []
                 : [
                     <>
-                      <Link key="workshops" to={`/admin/workshops/${workshop.metadata.namespace}`}>
+                      <Link key="workshops" to={`/admin/services/${workshop.metadata.namespace}`}>
                         {workshopServiceNamespace?.displayName || workshop.metadata.namespace}
                       </Link>
                       {isAdmin ? (
