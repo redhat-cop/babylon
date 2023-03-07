@@ -41,6 +41,7 @@ import {
   fetchWithUpdatedCostTracker,
   requestStatusForAllResourcesInResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
+  SERVICES_KEY,
   setLifespanEndForResourceClaim,
   setProvisionRating,
   startAllResourcesInResourceClaim,
@@ -293,7 +294,7 @@ const ServicesItemComponent: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
-  const { cache } = useSWRConfig();
+  const { mutate: globalMutate, cache } = useSWRConfig();
   const [expanded, setExpanded] = useState([]);
 
   const {
@@ -448,6 +449,7 @@ const ServicesItemComponent: React.FC<{
           ? await startAllResourcesInResourceClaim(resourceClaim)
           : await stopAllResourcesInResourceClaim(resourceClaim);
       mutate(resourceClaimUpdate);
+      globalMutate(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
     }
     if (modalState.action === 'rate' || modalState.action === 'delete') {
       if (modalState.rating && (modalState.rating.rate !== null || modalState.rating.comment?.trim())) {
@@ -456,18 +458,19 @@ const ServicesItemComponent: React.FC<{
           .filter(Boolean);
         for (const provisionUuid of provisionUuids) {
           await setProvisionRating(provisionUuid, modalState.rating.rate, modalState.rating.comment);
-          cache.delete(apiPaths.PROVISION_RATING({ provisionUuid }));
+          globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
         }
       }
     }
     if (modalState.action === 'delete') {
-      deleteResourceClaim(resourceClaim);
-      cache.delete(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }));
+      await deleteResourceClaim(resourceClaim);
+      cache.delete(apiPaths.RESOURCE_CLAIM({ namespace: resourceClaim.metadata.namespace, resourceClaimName: resourceClaim.metadata.name }));
+      cache.delete(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
       navigate(`/services/${serviceNamespaceName}`);
     }
   }
 
-  async function onModalScheduleAction(date: Date): Promise<void> {
+  async function onModalScheduleAction(date: Date) {
     const resourceClaimUpdate =
       modalState.action === 'retirement'
         ? await setLifespanEndForResourceClaim(resourceClaim, date)
@@ -480,7 +483,7 @@ const ServicesItemComponent: React.FC<{
     mutateWorkshop();
   }
 
-  async function onCheckStatusRequest(): Promise<void> {
+  async function onCheckStatusRequest() {
     const resourceClaimUpdate = await requestStatusForAllResourcesInResourceClaim(resourceClaim);
     mutate(resourceClaimUpdate);
   }

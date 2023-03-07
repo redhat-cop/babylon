@@ -9,6 +9,7 @@ import {
   Nullable,
   ResourceClaim,
   Service,
+  ServiceNamespace,
   Workshop,
 } from '@app/types';
 import { string } from 'prop-types';
@@ -24,7 +25,7 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
   }
 });
 
-export function displayName(item: K8sObject | CatalogNamespace): string {
+export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespace): string {
   if (!item) {
     return '';
   }

@@ -21,6 +21,7 @@ import {
   fetcher,
   fetcherItemsInAllPages,
   scheduleStopForAllResourcesInResourceClaim,
+  SERVICES_KEY,
   setLifespanEndForResourceClaim,
   setWorkshopLifespanEnd,
   startAllResourcesInResourceClaim,
@@ -158,7 +159,7 @@ const ServicesList: React.FC<{
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
   const canLoadWorkshops = isAdmin || serviceNamespaces.length > 1;
   const { data: _services, mutate } = useSWR<Service[]>(
-    `services/${serviceNamespaceName}`,
+    SERVICES_KEY({namespace: serviceNamespaceName}),
     () => fetchServices(serviceNamespaceName, canLoadWorkshops),
     {
       refreshInterval: 8000,
