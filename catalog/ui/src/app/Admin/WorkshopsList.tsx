@@ -18,7 +18,7 @@ import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteWorkshop, fetcher } from '@app/api';
 import { NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
-import { compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
+import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
@@ -115,7 +115,7 @@ const WorkshopsList: React.FC<{
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
         for (let i = 0; i < currentData.length; i++) {
-          if (!compareK8sObjects(currentData[i].items, newData[i].items)) return false;
+          if (!compareK8sObjectsArr(currentData[i].items, newData[i].items)) return false;
         }
         return true;
       },

@@ -258,7 +258,11 @@ export function keywordMatch(service: Service, keyword: string): boolean {
   return false;
 }
 
-export const compareK8sObjects = (obj1?: K8sObject[], obj2?: K8sObject[]): boolean => {
+export const compareK8sObjects = (obj1?: K8sObject, obj2?: K8sObject): boolean => {
+  return compareK8sObjectsArr(obj1 ? Array.of(obj1) : null, obj2 ? Array.of(obj2): null);
+}
+
+export const compareK8sObjectsArr = (obj1?: K8sObject[], obj2?: K8sObject[]): boolean => {
   function areMapsEqual(map1: Map<string, string>, map2: Map<string, string>) {
     let testVal: string;
     if (map1.size !== map2.size) {

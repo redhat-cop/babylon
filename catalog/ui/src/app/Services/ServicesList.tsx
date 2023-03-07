@@ -45,7 +45,7 @@ import {
   displayName,
   BABYLON_DOMAIN,
   keywordMatch,
-  compareK8sObjects,
+  compareK8sObjectsArr,
   FETCH_BATCH_LIMIT,
   isResourceClaimPartOfWorkshop,
 } from '@app/util';
@@ -169,12 +169,12 @@ const ServicesList: React.FC<{
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
-        if (!compareK8sObjects(currentData, newData)) return false; // Compare Workshops and ResourceClaims
+        if (!compareK8sObjectsArr(currentData, newData)) return false; // Compare Workshops and ResourceClaims
         const currentWorkshops = currentData.filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
         const newWorkshops = currentData.filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
         const currentWorkshopsResourceClaims = currentWorkshops.flatMap((x) => x.resourceClaims);
         const newWorkshopsResourceClaims = newWorkshops.flatMap((x) => x.resourceClaims);
-        if (!compareK8sObjects(currentWorkshopsResourceClaims, newWorkshopsResourceClaims)) return false; // Compare ResourceClaims that belongs to Workshops
+        if (!compareK8sObjectsArr(currentWorkshopsResourceClaims, newWorkshopsResourceClaims)) return false; // Compare ResourceClaims that belongs to Workshops
         return true;
       },
     }

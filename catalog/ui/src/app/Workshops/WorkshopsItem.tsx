@@ -35,7 +35,7 @@ import {
   stopWorkshop,
 } from '@app/api';
 import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvision } from '@app/types';
-import { BABYLON_DOMAIN, compareK8sObjects, displayName, FETCH_BATCH_LIMIT, getStageFromK8sObject } from '@app/util';
+import { BABYLON_DOMAIN, compareK8sObjects, compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, getStageFromK8sObject } from '@app/util';
 import useSession from '@app/utils/useSession';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
@@ -126,6 +126,7 @@ const WorkshopsItemComponent: React.FC<{
     fetcher,
     {
       refreshInterval: 8000,
+      compare: compareK8sObjects
     }
   );
   const stage = getStageFromK8sObject(workshop);
@@ -171,7 +172,7 @@ const WorkshopsItemComponent: React.FC<{
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
-        if (!compareK8sObjects(currentData, newData)) return false;
+        if (!compareK8sObjectsArr(currentData, newData)) return false;
         return true;
       },
     }

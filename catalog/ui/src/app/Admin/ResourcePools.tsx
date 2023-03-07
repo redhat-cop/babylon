@@ -18,7 +18,7 @@ import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
+import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 import ResourcePoolStats from './ResourcePoolStats';
 import SelectableTableWithPagination from '@app/components/SelectableTableWithPagination';
@@ -81,7 +81,7 @@ const ResourcePools: React.FC = () => {
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
-        if (!compareK8sObjects(currentData, newData)) return false;
+        if (!compareK8sObjectsArr(currentData, newData)) return false;
         return true;
       },
     }

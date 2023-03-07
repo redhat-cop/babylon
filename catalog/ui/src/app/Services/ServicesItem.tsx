@@ -65,6 +65,7 @@ import {
   renderContent,
   isResourceClaimPartOfWorkshop,
   getStageFromK8sObject,
+  compareK8sObjects,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -311,6 +312,7 @@ const ServicesItemComponent: React.FC<{
       }),
     {
       refreshInterval: 8000,
+      compare: compareK8sObjects
     }
   );
   useErrorHandler(error?.status === 404 ? error : null);
@@ -434,7 +436,10 @@ const ServicesItemComponent: React.FC<{
   const { data: workshop, mutate: mutateWorkshop } = useSWR<Workshop>(
     workshopName ? apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }) : null,
     fetcher,
-    { refreshInterval: 8000 }
+    { 
+      refreshInterval: 8000,
+      compare: compareK8sObjects
+    }
   );
 
   const costTracker = getCostTracker(resourceClaim);
