@@ -28,6 +28,7 @@ import {
   deleteWorkshop,
   fetcher,
   fetcherItemsInAllPages,
+  SERVICES_KEY,
   setWorkshopLifespanEnd,
   startWorkshop,
   startWorkshopServices,
@@ -247,6 +248,7 @@ const WorkshopsItemComponent: React.FC<{
     mutateWorkshop(null);
     mutateWorkshopProvisions(null);
     mutate(null);
+    cache.delete(SERVICES_KEY({namespace: workshop.metadata.namespace}))
     navigate(`/services/${serviceNamespaceName}`);
   }
 
