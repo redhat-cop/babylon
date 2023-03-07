@@ -283,7 +283,7 @@ export async function bulkAssignWorkshopUsers({
         userAssignments: userAssignments,
         workshop: _workshop,
       };
-    } catch (error) {
+    } catch (error: any) {
       if (error.status === 409) {
         _workshop = await getWorkshop(workshop.metadata.namespace, workshop.metadata.name);
       } else {
