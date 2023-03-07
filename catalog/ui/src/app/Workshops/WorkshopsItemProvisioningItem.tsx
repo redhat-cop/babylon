@@ -94,7 +94,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
             <PatientNumberInput
               min={0}
               max={200}
-              onChange={async (value: number) => await patchWorkshopProvisionSpec({ count: value })}
+              onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
               style={{ paddingRight: 'var(--pf-global--spacer--md)' }}
             />
