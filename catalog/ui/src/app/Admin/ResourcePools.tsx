@@ -76,14 +76,7 @@ const ResourcePools: React.FC = () => {
       ),
     {
       refreshInterval: 8000,
-      compare: (currentData, newData) => {
-        if (currentData === newData) return true;
-        if (!currentData || currentData.length === 0) return false;
-        if (!newData || newData.length === 0) return false;
-        if (currentData.length !== newData.length) return false;
-        if (!compareK8sObjectsArr(currentData, newData)) return false;
-        return true;
-      },
+      compare: compareK8sObjectsArr
     }
   );
 

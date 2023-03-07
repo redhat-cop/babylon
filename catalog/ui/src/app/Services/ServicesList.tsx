@@ -165,10 +165,6 @@ const ServicesList: React.FC<{
       refreshInterval: 8000,
       revalidateOnMount: true,
       compare: (currentData, newData) => {
-        if (currentData === newData) return true;
-        if (!currentData || currentData.length === 0) return false;
-        if (!newData || newData.length === 0) return false;
-        if (currentData.length !== newData.length) return false;
         if (!compareK8sObjectsArr(currentData, newData)) return false; // Compare Workshops and ResourceClaims
         const currentWorkshops = currentData.filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
         const newWorkshops = currentData.filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
