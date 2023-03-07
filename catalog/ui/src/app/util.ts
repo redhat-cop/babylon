@@ -9,6 +9,7 @@ import {
   Nullable,
   ResourceClaim,
   Service,
+  ServiceNamespace,
   Workshop,
 } from '@app/types';
 import { string } from 'prop-types';
@@ -24,7 +25,7 @@ dompurify.addHook('afterSanitizeAttributes', function (node) {
   }
 });
 
-export function displayName(item: K8sObject | CatalogNamespace): string {
+export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespace): string {
   if (!item) {
     return '';
   }
@@ -257,7 +258,11 @@ export function keywordMatch(service: Service, keyword: string): boolean {
   return false;
 }
 
-export const compareK8sObjects = (obj1?: K8sObject[], obj2?: K8sObject[]): boolean => {
+export const compareK8sObjects = (obj1?: K8sObject, obj2?: K8sObject): boolean => {
+  return compareK8sObjectsArr(obj1 ? Array.of(obj1) : null, obj2 ? Array.of(obj2) : null);
+};
+
+export const compareK8sObjectsArr = (obj1?: K8sObject[], obj2?: K8sObject[]): boolean => {
   function areMapsEqual(map1: Map<string, string>, map2: Map<string, string>) {
     let testVal: string;
     if (map1.size !== map2.size) {
@@ -273,6 +278,7 @@ export const compareK8sObjects = (obj1?: K8sObject[], obj2?: K8sObject[]): boole
     }
     return true;
   }
+  if ((!obj1 && obj2) || (obj1 && !obj2)) return false;
   if (obj1 !== obj2) {
     const map1 = new Map<string, string>();
     const map2 = new Map<string, string>();

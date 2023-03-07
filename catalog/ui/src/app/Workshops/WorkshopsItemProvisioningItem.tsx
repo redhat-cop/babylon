@@ -45,6 +45,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
       apiPaths.WORKSHOP_PROVISIONS({
         workshopName: workshopProvision.metadata.labels['babylon.gpte.redhat.com/workshop'],
         namespace: workshopProvision.metadata.namespace,
+        limit: 'ALL',
       })
     );
   }
@@ -87,7 +88,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>
-            {workshop.spec.multiuserServices ? 'Workshop Service Count' : 'Workshop User Count'}
+            {workshop.spec.multiuserServices ? 'Workshop Instance Count' : 'Workshop User Count'}
           </DescriptionListTerm>
           <DescriptionListDescription>
             <PatientNumberInput
@@ -101,9 +102,9 @@ const WorkshopsItemProvisioningItem: React.FC<{
               position="right"
               content={
                 workshop.spec.multiuserServices ? (
-                  <p>Number of shared services for the workshop, each service supports multiple users.</p>
+                  <p>Number of shared instances for the workshop, each instance supports multiple users.</p>
                 ) : (
-                  <p>Number of independent services for the workshop, each user gets a dedicated service.</p>
+                  <p>Number of independent instances for the workshop, each user gets a dedicated instance.</p>
                 )
               }
             >

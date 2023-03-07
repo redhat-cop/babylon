@@ -22,7 +22,7 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
+import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './admin.css';
@@ -71,7 +71,7 @@ const ResourceProviders: React.FC = () => {
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
         for (let i = 0; i < currentData.length; i++) {
-          if (!compareK8sObjects(currentData[i].items, newData[i].items)) return false;
+          if (!compareK8sObjectsArr(currentData[i].items, newData[i].items)) return false;
         }
         return true;
       },

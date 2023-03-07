@@ -18,7 +18,7 @@ import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteWorkshop, fetcher } from '@app/api';
 import { NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
-import { compareK8sObjects, displayName, FETCH_BATCH_LIMIT } from '@app/util';
+import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
@@ -115,7 +115,7 @@ const WorkshopsList: React.FC<{
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
         for (let i = 0; i < currentData.length; i++) {
-          if (!compareK8sObjects(currentData[i].items, newData[i].items)) return false;
+          if (!compareK8sObjectsArr(currentData[i].items, newData[i].items)) return false;
         }
         return true;
       },
@@ -219,7 +219,7 @@ const WorkshopsList: React.FC<{
   }
 
   if (serviceNamespaces.length === 1 && !serviceNamespaceName) {
-    return <Navigate to={`/admin/workshops/${serviceNamespaces[0].name}`} />;
+    return <Navigate to={`/admin/services/${serviceNamespaces[0].name}`} />;
   }
 
   return (
@@ -243,7 +243,7 @@ const WorkshopsList: React.FC<{
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {
-                navigate(`/admin/workshops/${namespace.name}${location.search}`);
+                navigate(`/admin/services/${namespace.name}${location.search}`);
               } else {
                 navigate(`/admin/workshops${location.search}`);
               }
@@ -353,7 +353,7 @@ const WorkshopsList: React.FC<{
                 ? []
                 : [
                     <>
-                      <Link key="workshops" to={`/admin/workshops/${workshop.metadata.namespace}`}>
+                      <Link key="workshops" to={`/admin/services/${workshop.metadata.namespace}`}>
                         {workshopServiceNamespace?.displayName || workshop.metadata.namespace}
                       </Link>
                       {isAdmin ? (

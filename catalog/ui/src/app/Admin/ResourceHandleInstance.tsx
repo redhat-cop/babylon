@@ -26,7 +26,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import { apiPaths, deleteResourceHandle, fetcher } from '@app/api';
-import { BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN, compareK8sObjects } from '@app/util';
 import { selectConsoleURL } from '@app/store';
 import { ResourceClaim, ResourceHandle } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
@@ -63,6 +63,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
     fetcher,
     {
       refreshInterval: 8000,
+      compare: compareK8sObjects,
     }
   );
   useErrorHandler(error?.status === 404 ? error : null);
@@ -77,6 +78,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
     fetcher,
     {
       refreshInterval: 8000,
+      compare: compareK8sObjects,
     }
   );
 

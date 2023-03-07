@@ -33,7 +33,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import Footer from '@app/components/Footer';
 import useSWR from 'swr';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
-import { FETCH_BATCH_LIMIT } from '@app/util';
+import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './admin.css';
@@ -52,6 +52,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
     mutate,
   } = useSWR<ResourceProvider>(apiPaths.RESOURCE_PROVIDER({ resourceProviderName }), fetcher, {
     refreshInterval: 8000,
+    compare: compareK8sObjects,
   });
   useErrorHandler(error?.status === 404 ? error : null);
 

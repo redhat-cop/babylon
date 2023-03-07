@@ -38,7 +38,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import useSWR from 'swr';
-import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import { BABYLON_DOMAIN, compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 import usePoolStatus from './usePoolStatus';
 import Footer from '@app/components/Footer';
@@ -75,6 +75,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
     fetcher,
     {
       refreshInterval: 8000,
+      compare: compareK8sObjects,
     }
   );
   useErrorHandler(error?.status === 404 ? error : null);

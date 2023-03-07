@@ -32,7 +32,7 @@ const WorkshopsItemUserAssignments: React.FC<{
   const haveUserNames = (workshop.spec.userAssignments || []).find((ua) => ua.userName) ? true : false;
   const resourceClaimNames = [...new Set((workshop.spec.userAssignments || []).map((ua) => ua.resourceClaimName))];
 
-  function openBulkUserAssignmentModal(): void {
+  function openBulkUserAssignmentModal() {
     setBulkUserAssignmentMessage('');
     setBulkUserAssignmentModalIsOpen(true);
   }
@@ -63,9 +63,9 @@ const WorkshopsItemUserAssignments: React.FC<{
     email: string;
     resourceClaimName: string;
     userName: string;
-  }): Promise<void> {
+  }) {
     setBulkUserAssignmentMessage('');
-    const updatedWorkshop: Workshop = await assignWorkshopUser({
+    const updatedWorkshop = await assignWorkshopUser({
       email: email,
       resourceClaimName: resourceClaimName,
       userName: userName,

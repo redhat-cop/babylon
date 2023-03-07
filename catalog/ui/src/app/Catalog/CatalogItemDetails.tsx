@@ -38,6 +38,7 @@ import {
   isLabDeveloper,
   getHelpUrl,
   isResourceClaimPartOfWorkshop,
+  compareK8sObjectsArr,
 } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import TimeInterval from '@app/components/TimeInterval';
@@ -92,6 +93,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       ),
     {
       refreshInterval: 8000,
+      compare: compareK8sObjectsArr,
     }
   );
 

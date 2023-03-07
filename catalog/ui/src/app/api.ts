@@ -253,7 +253,7 @@ export async function bulkAssignWorkshopUsers({
     };
   }
 
-  let _workshop: Workshop = workshop;
+  let _workshop = Object.assign({}, workshop);
   while (true) {
     const userAssignments: WorkshopSpecUserAssignment[] = [];
     const unassignedEmails: string[] = [];
@@ -1666,6 +1666,8 @@ export function setProvisionRating(provisionUuid: string, rating: number, commen
   });
 }
 
+export const SERVICES_KEY = ({ namespace }: { namespace: string }) => `services/${namespace}`;
+
 export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
@@ -1679,7 +1681,7 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     labelSelector?: string;
     limit?: number;
     continueId?: string;
-  }): string =>
+  }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems?limit=${limit}${
       continueId ? `&continue=${continueId}` : ''
     }${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
@@ -1693,31 +1695,23 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     limit: number;
     continueId?: string;
     labelSelector?: string;
-  }): string =>
+  }) =>
     `/apis/poolboy.gpte.redhat.com/v1${namespace ? `/namespaces/${namespace}` : ''}/resourceclaims?limit=${limit}${
       continueId ? `&continue=${continueId}` : ''
     }${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
-  RESOURCE_CLAIM: ({ namespace, resourceClaimName }: { namespace: string; resourceClaimName: string }): string =>
+  RESOURCE_CLAIM: ({ namespace, resourceClaimName }: { namespace: string; resourceClaimName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/${namespace}/resourceclaims/${resourceClaimName}`,
-  NAMESPACES: ({
-    labelSelector,
-    limit,
-    continueId,
-  }: {
-    labelSelector?: string;
-    limit?: number;
-    continueId?: string;
-  }): string =>
+  NAMESPACES: ({ labelSelector, limit, continueId }: { labelSelector?: string; limit?: number; continueId?: string }) =>
     `/api/v1/namespaces?${labelSelector ? `labelSelector=${labelSelector}` : ''}${limit ? `&limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
     }`,
-  WORKSHOP: ({ namespace, workshopName }: { namespace: string; workshopName: string }): string =>
+  WORKSHOP: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshops/${workshopName}`,
-  WORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number; continueId?: string }): string =>
+  WORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number; continueId?: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
-  ANARCHY_SUBJECT: ({ namespace, anarchySubjectName }: { namespace: string; anarchySubjectName: string }): string =>
+  ANARCHY_SUBJECT: ({ namespace, anarchySubjectName }: { namespace: string; anarchySubjectName: string }) =>
     `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchysubjects/${anarchySubjectName}`,
   WORKSHOP_PROVISIONS: ({
     workshopName,
@@ -1729,11 +1723,11 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     namespace: string;
     limit?: number;
     continueId?: string;
-  }): string =>
+  }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopprovisions?labelSelector=babylon.gpte.redhat.com/workshop=${workshopName}${
       limit ? `&limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
-  RESOURCE_HANDLE: ({ resourceHandleName }: { resourceHandleName: string }): string =>
+  RESOURCE_HANDLE: ({ resourceHandleName }: { resourceHandleName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcehandles/${resourceHandleName}`,
   RESOURCE_HANDLES: ({
     labelSelector,
@@ -1743,22 +1737,21 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     labelSelector?: string;
     limit?: number;
     continueId?: string;
-  }): string =>
+  }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcehandles?${
       labelSelector ? `labelSelector=${labelSelector}` : ''
     }${limit ? `&limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
-  RESOURCE_POOL: ({ resourcePoolName }: { resourcePoolName: string }): string =>
+  RESOURCE_POOL: ({ resourcePoolName }: { resourcePoolName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepools/${resourcePoolName}`,
-  RESOURCE_POOLS: ({ limit, continueId }: { limit: number; continueId?: string }): string =>
+  RESOURCE_POOLS: ({ limit, continueId }: { limit: number; continueId?: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepools?${limit ? `limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
     }`,
-  RESOURCE_PROVIDERS: ({ limit, continueId }: { limit: number; continueId?: string }): string =>
+  RESOURCE_PROVIDERS: ({ limit, continueId }: { limit: number; continueId?: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders?${limit ? `limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
     }`,
-  RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }): string =>
+  RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders/${resourceProviderName}`,
-  PROVISION_RATING: ({ provisionUuid }: { provisionUuid: string }): string =>
-    `/api/ratings/provisions/${provisionUuid}`,
+  PROVISION_RATING: ({ provisionUuid }: { provisionUuid: string }) => `/api/ratings/provisions/${provisionUuid}`,
 };
