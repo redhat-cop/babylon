@@ -9,6 +9,7 @@ export type WorkshopDetails = {
   displayName?: string;
   name: string;
   namespace: string;
+  template?: string;
 };
 
 export async function workshopLogin({

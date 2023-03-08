@@ -18,6 +18,7 @@ import EditorViewer from '@app/components/Editor/EditorViewer';
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
 import { WorkshopDetails } from './workshopApi';
+import { createAsciiDocAttributes } from '@app/Services/service-utils';
 
 import './workshop-content.css';
 
@@ -27,7 +28,24 @@ const WorkshopContent: React.FC<{
   const description = workshop.description;
   const displayName = workshop.displayName || 'Workshop';
   const userAssignment = workshop.assignment;
+  const template = workshop.template;
   let renderEditor = true;
+
+  const templateHtml = useMemo(() => {
+    if (!template || !userAssignment.data) return null;
+    const htmlRenderedTemplate = renderContent(template, {
+      format: 'asciidoc',
+      vars: createAsciiDocAttributes(userAssignment.data),
+    });
+    return (
+      <div
+        className="info-tab__content"
+        dangerouslySetInnerHTML={{
+          __html: htmlRenderedTemplate,
+        }}
+      />
+    );
+  }, [template, JSON.stringify(userAssignment.data)]);
 
   const userAssignmentMessagesHtml = useMemo(
     () =>
@@ -86,20 +104,26 @@ const WorkshopContent: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-              {userAssignment.messages ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Messages</DescriptionListTerm>
-                  <DescriptionListDescription>{userAssignmentMessagesHtml}</DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-              {userAssignment.data ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Data</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <pre>{yaml.dump(userAssignment.data)}</pre>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
+              {templateHtml ? (
+                templateHtml
+              ) : (
+                <>
+                  {userAssignment.messages ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Messages</DescriptionListTerm>
+                      <DescriptionListDescription>{userAssignmentMessagesHtml}</DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
+                  {userAssignment.data ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Data</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <pre>{yaml.dump(userAssignment.data)}</pre>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
+                </>
+              )}
             </DescriptionList>
           </Bullseye>
         </StackItem>
