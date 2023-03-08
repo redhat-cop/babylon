@@ -1,0 +1,8 @@
+.project-selector .pf-c-context-selector__toggle.pf-m-plain .pf-c-context-selector__toggle-text {
+  overflow: visible;
+}
+.project-selector__loading {
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+}

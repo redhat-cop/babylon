@@ -48,18 +48,8 @@ export * from '@testing-library/react';
 // override render method
 export { customRender as render };
 
-const defaultWorkshopNamespaces = [
-  {
-    displayName: 'User test-redhat.com',
-    name: 'user-test-redhat-com',
-  },
-];
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const generateSession = ({
-  email = 'test@redhat.com',
-  isAdmin = false,
-  workshopNamespaces = defaultWorkshopNamespaces,
-}) => ({
+export const generateSession = ({ email = 'test@redhat.com', isAdmin = false }) => ({
   email,
   isAdmin,
   catalogNamespaces: [
@@ -80,7 +70,6 @@ export const generateSession = ({
     name: 'user-test-redhat-com',
     requester: 'test-redhat.com',
   },
-  workshopNamespaces,
   groups: [],
   roles: [],
 });

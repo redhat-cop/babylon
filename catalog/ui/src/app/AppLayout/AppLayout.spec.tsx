@@ -20,7 +20,6 @@ jest.mock('@app/utils/useSession', () => {
         name: 'user-test-redhat-com',
         requester: 'test-redhat.com',
       },
-      workshopNamespaces: [],
     }),
   }));
 });

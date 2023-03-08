@@ -6,6 +6,7 @@ import {
   CatalogNamespace,
   CostTracker,
   K8sObject,
+  Namespace,
   Nullable,
   ResourceClaim,
   Service,
@@ -369,4 +370,12 @@ export function getHelpUrl(userEmail: string) {
     return 'https://red.ht/demo-help';
   }
   return 'https://red.ht/open-support';
+}
+
+export function namespaceToServiceNamespaceMapper(ns: Namespace): ServiceNamespace {
+  return {
+    name: ns.metadata.name,
+    displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
+    requester: ns.metadata.annotations['openshift.io/requester'],
+  };
 }

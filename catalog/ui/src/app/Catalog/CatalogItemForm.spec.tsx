@@ -136,9 +136,9 @@ describe('CatalogItemForm Component', () => {
     expect(button).toBeDisabled();
   });
 
-  test('Workshop Feature disabled if user doesnt have workshopNamespaces', async () => {
+  test('Workshop Feature disabled if user doesnt have workshopProvisionAccess', async () => {
     (useSession as jest.Mock).mockImplementation(() => ({
-      getSession: () => generateSession({ workshopNamespaces: [] }),
+      getSession: () => generateSession({}),
     }));
     const { getByText, queryByLabelText } = render(<CatalogItemForm />);
     await waitFor(() => getByText('Order'));

@@ -42,10 +42,10 @@ import {
   displayName,
   FETCH_BATCH_LIMIT,
   getStageFromK8sObject,
+  namespaceToServiceNamespaceMapper,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
-import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import Modal, { useModal } from '@app/Modal/Modal';
 import Footer from '@app/components/Footer';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
@@ -58,6 +58,7 @@ import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
 import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopStarted } from './workshops-utils';
 import Label from '@app/components/Label';
+import ProjectSelector from '@app/components/ProjectSelector';
 
 import './workshops-item.css';
 
@@ -82,7 +83,7 @@ const WorkshopsItemComponent: React.FC<{
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces, workshopNamespaces } = useSession().getSession();
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
@@ -112,19 +113,16 @@ const WorkshopsItemComponent: React.FC<{
   );
   const enableFetchUserNamespaces = isAdmin;
   const enableManageWorkshopProvisions =
-    isAdmin || workshopNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
+    isAdmin || sessionServiceNamespaces.find((ns) => ns.workshopProvisionAccess && ns.name == serviceNamespaceName)
+      ? true
+      : false;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
   );
   const serviceNamespaces = useMemo(() => {
     return enableFetchUserNamespaces
-      ? userNamespaceList.items.map((ns): ServiceNamespace => {
-          return {
-            name: ns.metadata.name,
-            displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-          };
-        })
+      ? userNamespaceList.items.map(namespaceToServiceNamespaceMapper)
       : sessionServiceNamespaces;
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
 
@@ -314,11 +312,7 @@ const WorkshopsItemComponent: React.FC<{
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="workshops-item__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect
-            allowSelectAll
-            isPlain
-            isText
-            selectWorkshopNamespace
+          <ProjectSelector
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {
@@ -327,6 +321,7 @@ const WorkshopsItemComponent: React.FC<{
                 navigate(`/services${location.search}`);
               }
             }}
+            isPlain={true}
           />
         </PageSection>
       ) : null}

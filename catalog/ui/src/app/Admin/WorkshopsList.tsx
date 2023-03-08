@@ -17,7 +17,7 @@ import {
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteWorkshop, fetcher } from '@app/api';
-import { NamespaceList, Workshop, WorkshopList, ServiceNamespace } from '@app/types';
+import { Workshop, WorkshopList } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
@@ -26,7 +26,6 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import WorkshopActions from '../Workshops/WorkshopActions';
@@ -71,22 +70,7 @@ const WorkshopsList: React.FC<{
     },
     [openModalAction]
   );
-
-  const { data: userNamespaceList } = useSWR<NamespaceList>(
-    enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
-    fetcher
-  );
-  const serviceNamespaces: ServiceNamespace[] = useMemo(() => {
-    return enableFetchUserNamespaces
-      ? userNamespaceList.items.map((ns) => {
-          return {
-            name: ns.metadata.name,
-            displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-          };
-        })
-      : sessionServiceNamespaces;
-  }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
-  const serviceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
+  const serviceNamespace = sessionServiceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
     name: serviceNamespaceName,
     displayName: serviceNamespaceName,
   };
@@ -201,27 +185,6 @@ const WorkshopsList: React.FC<{
     revalidate({ updatedItems: deletedWorkshops, action: 'delete' });
   }
 
-  if (serviceNamespaces.length === 0) {
-    return (
-      <>
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              No Service Access
-            </Title>
-            <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
-          </EmptyState>
-        </PageSection>
-        <Footer />
-      </>
-    );
-  }
-
-  if (serviceNamespaces.length === 1 && !serviceNamespaceName) {
-    return <Navigate to={`/admin/services/${serviceNamespaces[0].name}`} />;
-  }
-
   return (
     <div onScroll={scrollHandler} style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
       <Modal
@@ -233,43 +196,12 @@ const WorkshopsList: React.FC<{
       >
         <p>Provisioned services will be deleted.</p>
       </Modal>
-      {serviceNamespaces.length > 1 ? (
-        <PageSection key="topbar" className="workshops-list__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect
-            allowSelectAll
-            isPlain
-            isText
-            selectWorkshopNamespace
-            currentNamespaceName={serviceNamespaceName}
-            onSelect={(namespace) => {
-              if (namespace) {
-                navigate(`/admin/services/${namespace.name}${location.search}`);
-              } else {
-                navigate(`/admin/workshops${location.search}`);
-              }
-            }}
-          />
-        </PageSection>
-      ) : null}
       <PageSection key="head" className="workshops-list__head" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
-            {serviceNamespaces.length > 1 && serviceNamespaceName ? (
-              <Breadcrumb>
-                <BreadcrumbItem
-                  render={({ className }) => (
-                    <Link to="/admin/workshops" className={className}>
-                      Workshops
-                    </Link>
-                  )}
-                />
-                <BreadcrumbItem>{serviceNamespace?.displayName || serviceNamespaceName}</BreadcrumbItem>
-              </Breadcrumb>
-            ) : (
-              <Breadcrumb>
-                <BreadcrumbItem>Workshops</BreadcrumbItem>
-              </Breadcrumb>
-            )}
+            <Breadcrumb>
+              <BreadcrumbItem>Workshops</BreadcrumbItem>
+            </Breadcrumb>
           </SplitItem>
           <SplitItem>
             <KeywordSearchInput
@@ -316,14 +248,8 @@ const WorkshopsList: React.FC<{
       ) : (
         <PageSection key="body" className="workshops-list__body" variant={PageSectionVariants.light}>
           <SelectableTable
-            columns={(serviceNamespaceName ? [] : ['Project']).concat([
-              'Name',
-              'Registration',
-              'Users',
-              'Created At',
-              'Actions',
-            ])}
-            onSelectAll={(isSelected) => {
+            columns={['Name', 'Project', 'Registration', 'Users', 'Created At', 'Actions']}
+            onSelectAll={(isSelected: boolean) => {
               if (isSelected) {
                 setSelectedUids(workshops.map((workshop) => workshop.metadata.uid));
               } else {
@@ -335,9 +261,6 @@ const WorkshopsList: React.FC<{
                 delete: () => showModal({ action: 'delete', workshop }),
               };
 
-              const workshopServiceNamespace: ServiceNamespace = serviceNamespaces.find(
-                (ns: ServiceNamespace) => ns.name === workshop.metadata.namespace
-              );
               const totalUserAssignments: number = workshop.spec.userAssignments
                 ? workshop.spec.userAssignments.length
                 : null;
@@ -348,21 +271,7 @@ const WorkshopsList: React.FC<{
               const owningResourceClaimName =
                 ownerReference && ownerReference.kind === 'ResourceClaim' ? ownerReference.name : null;
 
-              // Only include project/namespace column if namespace is not selected.
-              const cells: any[] = serviceNamespaceName
-                ? []
-                : [
-                    <>
-                      <Link key="workshops" to={`/admin/services/${workshop.metadata.namespace}`}>
-                        {workshopServiceNamespace?.displayName || workshop.metadata.namespace}
-                      </Link>
-                      {isAdmin ? (
-                        <OpenshiftConsoleLink key="console" resource={workshop} linkToNamespace={true} />
-                      ) : null}
-                    </>,
-                  ];
-
-              // Add other columns
+              const cells: any[] = [];
               cells.push(
                 // Name
                 <>
@@ -377,6 +286,13 @@ const WorkshopsList: React.FC<{
                     {displayName(workshop)}
                   </Link>
                   {isAdmin ? <OpenshiftConsoleLink key="console" resource={workshop} /> : null}
+                </>,
+                // Project
+                <>
+                  <Link key="workshops" to={`/admin/services/${workshop.metadata.namespace}`}>
+                    {workshop.metadata.namespace}
+                  </Link>
+                  {isAdmin ? <OpenshiftConsoleLink key="console" resource={workshop} linkToNamespace={true} /> : null}
                 </>,
                 // Registration
                 <>{workshop.spec.openRegistration === false ? 'Pre-registration' : 'Open'}</>,

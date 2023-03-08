@@ -110,11 +110,6 @@ export const selectServiceNamespaces = createSelector(
 
 export const selectUserNamespace = createSelector(selectAuth, (state) => state.userNamespace);
 
-export const selectWorkshopNamespaces = createSelector(
-  (state: any) => state.impersonate || state.auth,
-  (state: any) => (state.serviceNamespaces || []).filter(Boolean).filter((ns) => ns.workshopProvisionAccess)
-);
-
 // Store
 export const store = configureStore({
   reducer: createReducer(

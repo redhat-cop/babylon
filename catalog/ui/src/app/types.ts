@@ -411,6 +411,8 @@ export interface ResourceProviderSpecValidation {
 export interface ServiceNamespace {
   displayName: string;
   name: string;
+  requester?: string;
+  workshopProvisionAccess?: boolean;
 }
 
 export interface User extends K8sObject {}
@@ -501,7 +503,6 @@ export type Session = {
   user: string;
   catalogNamespaces: CatalogNamespace[];
   serviceNamespaces: ServiceNamespace[];
-  workshopNamespaces: ServiceNamespace[];
   userNamespace: UserNamespace;
 };
 export type CostTracker = {
