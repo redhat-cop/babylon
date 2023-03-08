@@ -15,12 +15,10 @@ Your environment will expire and be deleted in {{ retirement_timedelta_humanized
 <p>In order to conserve resources, we cannot archive or restore any data in this environment.
 All data will be lost upon expiration.</p>
 
-{% if provision_messages is defined or provision_data is defined %}
+{% if provision_messages is defined %}
 <p>Here is some important information about your environment:</p>
-
-{%   if provision_messages_html is defined %}
 {{ provision_messages_html }}
-{%   endif %}
+{% endif %}
 
 {% if service_url %}
 <p>You may manage your {{ catalog_namespace.display_name }} service at:<br>

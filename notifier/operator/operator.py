@@ -727,7 +727,18 @@ def send_notification_email(
     else:
         message_template = catalog_item.get_message_template(kebabToCamelCase(template))
         if message_template:
-            email_body = j2env.from_string(message_template).render(**template_vars)
+            try:
+                email_body = j2env.from_string(message_template).render(**template_vars)
+            except Exception as exception:
+                logger.warning(f"Failed to render template: {exception}")
+                email_body = j2env.get_template(template + '.html.j2').render(**template_vars)
+                email_body += (
+                    "<p><b>Attention:</b> "
+                    "A custom message template was configured for your service, "
+                    "but unfortunately, rendering failed with the following error:</p> "
+                    f"<p>{exception}</p>"
+                    "<p>The content shown above is the default message template.</p>"
+                )
         else:
             email_body = j2env.get_template(template + '.html.j2').render(**template_vars)
 
