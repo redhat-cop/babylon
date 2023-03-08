@@ -263,13 +263,13 @@ const ComponentDetailsList: React.FC<{
               ) : null}
               {isAdmin && resourceState?.status?.towerJobs ? (
                 <DescriptionListGroup key="tower-jobs">
-                  <DescriptionListTerm>Tower Jobs</DescriptionListTerm>
+                  <DescriptionListTerm>Ansible Jobs</DescriptionListTerm>
                   <DescriptionListDescription>
                     <List style={{ margin: 'var(--pf-global--spacer--sm) 0' }}>
                       {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
                         towerJob.towerJobURL ? (
                           <ListItem key={stage}>
-                            <Link to={'https://' + towerJob.towerJobURL} style={{ textTransform: 'capitalize' }}>
+                            <Link to={'https://' + towerJob.towerJobURL} style={{ textTransform: 'capitalize' }} target="_blank">
                               {stage}
                             </Link>
                           </ListItem>
