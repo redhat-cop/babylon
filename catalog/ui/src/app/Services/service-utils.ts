@@ -144,13 +144,13 @@ export function getInfoMessageTemplate(resourceClaim?: ResourceClaim): MessageTe
   return JSON.parse(resourceClaim.metadata?.annotations?.[`${DEMO_DOMAIN}/info-message-template`]);
 }
 
-export function createAsciiDocAttributes(varsObj: object): object {
+export function createAsciiDocAttributes(varsObj: object, separator = '--'): object {
   function setAttributesFromObj(obj: object, prependAttr = '') {
     return Object.entries(obj)
       .map(([k, v]) => {
         let attr = k;
         if (prependAttr !== '') {
-          attr = `${prependAttr}--${k}`;
+          attr = `${prependAttr}${separator}${k}`;
         }
         if (typeof v === 'object' && v) {
           return setAttributesFromObj(v, attr);

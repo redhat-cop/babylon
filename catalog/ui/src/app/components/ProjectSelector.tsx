@@ -1,8 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
+
 import useSession from '@app/utils/useSession';
 import { ContextSelector, ContextSelectorItem } from '@patternfly/react-core';
 import { ServiceNamespace } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
+import { useSWRConfig } from 'swr';
 import { namespaceToServiceNamespaceMapper } from '@app/util';
 import LoadingIcon from './LoadingIcon';
 
@@ -14,6 +16,7 @@ const ProjectSelector: React.FC<{
   isPlain?: boolean;
 }> = ({ currentNamespaceName, onSelect, isPlain = false }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { cache } = useSWRConfig();
   const [allNamespaces, setAllNamespaces] = useState<ServiceNamespace[]>(null);
   const [searchValue, setSearchValue] = React.useState('');
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
@@ -24,9 +27,18 @@ const ProjectSelector: React.FC<{
 
   const toggleOpen = useCallback(() => {
     if (isAdmin && allNamespaces === null) {
-      fetcher(apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' })).then((data) =>
-        setAllNamespaces(data.items.map(namespaceToServiceNamespaceMapper))
-      );
+      const data = cache.get(
+        apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' })
+      ) as ServiceNamespace[];
+      if (data) {
+        setAllNamespaces(data);
+      } else {
+        fetcher(apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' })).then((data) => {
+          const namespaces = data.items.map(namespaceToServiceNamespaceMapper);
+          setAllNamespaces(namespaces);
+          cache.set(apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }), namespaces);
+        });
+      }
     }
     setIsOpen((v) => !v);
   }, [setIsOpen, setAllNamespaces, allNamespaces, isAdmin]);
