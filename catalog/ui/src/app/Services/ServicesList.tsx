@@ -130,7 +130,7 @@ const ServicesList: React.FC<{
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalGetCost, openModalGetCost] = useModal();
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
-  const canLoadWorkshops = isAdmin;
+  const canLoadWorkshops = isAdmin || sessionServiceNamespaces.some((n) => n.workshopProvisionAccess);
   const { data: _services, mutate } = useSWR<Service[]>(
     SERVICES_KEY({ namespace: serviceNamespaceName }),
     () => fetchServices(serviceNamespaceName, canLoadWorkshops),
