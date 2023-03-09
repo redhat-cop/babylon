@@ -1,6 +1,15 @@
 .project-selector .pf-c-context-selector__toggle.pf-m-plain .pf-c-context-selector__toggle-text {
   overflow: visible;
 }
+.project-selector .pf-c-context-selector__menu {
+  width: 400px;
+}
+.project-selector__item {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  display: block;
+}
 .project-selector__loading {
   display: flex;
   flex-grow: 1;

@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
-
-import useSession from '@app/utils/useSession';
+import { useSWRConfig } from 'swr';
+import { FixedSizeList as List } from 'react-window';
 import { ContextSelector, ContextSelectorItem } from '@patternfly/react-core';
+import useSession from '@app/utils/useSession';
 import { ServiceNamespace } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
-import { useSWRConfig } from 'swr';
 import { namespaceToServiceNamespaceMapper } from '@app/util';
 import LoadingIcon from './LoadingIcon';
 
@@ -21,7 +21,7 @@ const ProjectSelector: React.FC<{
   const [searchValue, setSearchValue] = React.useState('');
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const serviceNamespaces = useMemo(
-    () => (isAdmin ? allNamespaces ?? [] : sessionServiceNamespaces),
+    () => (isAdmin ? allNamespaces : sessionServiceNamespaces) ?? [],
     [isAdmin, allNamespaces, sessionServiceNamespaces]
   );
 
@@ -43,9 +43,31 @@ const ProjectSelector: React.FC<{
     setIsOpen((v) => !v);
   }, [setIsOpen, setAllNamespaces, allNamespaces, isAdmin]);
 
-  const filterFn = (ns: ServiceNamespace) =>
-    ns.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-    ns.displayName.toLowerCase().includes(searchValue.toLowerCase());
+  const filteredServiceNamespaces = useMemo(
+    () =>
+      serviceNamespaces.filter((ns) =>
+        ns.name.toLowerCase().includes(searchValue.toLowerCase()) || ns.displayName
+          ? ns.displayName.toLowerCase().includes(searchValue.toLowerCase())
+          : false
+      ),
+    [serviceNamespaces, searchValue]
+  );
+
+  const Row = ({ index, style }) => (
+    <div style={style}>
+      <ContextSelectorItem
+        key={filteredServiceNamespaces[index].name}
+        onClick={() => {
+          onSelect(filteredServiceNamespaces[index]);
+          setIsOpen(false);
+        }}
+      >
+        <span className="project-selector__item">
+          {filteredServiceNamespaces[index].displayName || filteredServiceNamespaces[index].name}
+        </span>
+      </ContextSelectorItem>
+    </div>
+  );
 
   return (
     <ContextSelector
@@ -63,17 +85,9 @@ const ProjectSelector: React.FC<{
           <LoadingIcon />
         </ContextSelectorItem>
       ) : (
-        serviceNamespaces.filter(filterFn).map((ns) => (
-          <ContextSelectorItem
-            key={ns.name}
-            onClick={() => {
-              onSelect(ns);
-              setIsOpen(false);
-            }}
-          >
-            {ns.displayName || ns.name}
-          </ContextSelectorItem>
-        ))
+        <List height={200} itemCount={filteredServiceNamespaces.length} itemSize={40} width={400}>
+          {Row}
+        </List>
       )}
     </ContextSelector>
   );
