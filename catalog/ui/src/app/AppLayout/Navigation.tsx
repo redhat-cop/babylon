@@ -37,8 +37,8 @@ const Navigation: React.FC = () => {
       <NavLink
         to={`/services/${userNamespace.name}`}
         className={
-          locationStartsWith(`/services/${userNamespace.name}`) ||
-          locationStartsWith(`/workshops/${userNamespace.name}`)
+          location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
+          location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
             ? 'pf-m-current'
             : ''
         }

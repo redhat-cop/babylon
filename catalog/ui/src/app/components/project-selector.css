@@ -3,6 +3,7 @@
 }
 .project-selector .pf-c-context-selector__menu {
   width: 400px;
+  overflow: hidden;
 }
 .project-selector__item {
   text-overflow: ellipsis;
