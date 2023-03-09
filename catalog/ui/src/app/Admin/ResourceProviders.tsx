@@ -183,7 +183,7 @@ const ResourceProviders: React.FC = () => {
   }
 
   return (
-    <div onScroll={scrollHandler} style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
+    <div onScroll={scrollHandler} className="admin-container">
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
