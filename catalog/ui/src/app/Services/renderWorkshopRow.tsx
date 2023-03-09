@@ -57,12 +57,10 @@ const renderWorkshopRow = ({
     ownerReference && ownerReference.kind === 'ResourceClaim' ? ownerReference.name : null;
   const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, null);
   const autoStopTime = getWorkshopAutoStopTime(workshop, workshop.resourceClaims);
-  const cells: any[] = [];
   const stage = getStageFromK8sObject(workshop);
 
   // Add columns
-  cells.push(
-    // Name
+  const nameCell = (
     <>
       <Link
         key="workshop-name"
@@ -79,10 +77,10 @@ const renderWorkshopRow = ({
         Workshop UI
       </Label>
       {isAdmin ? <OpenshiftConsoleLink key="workshop-name__console" resource={workshop} /> : null}
-    </>,
-    // GUID
-    <span key="workshop-guid">-</span>,
-    // Status
+    </>
+  );
+  const guidCell = <span key="workshop-guid">-</span>;
+  const statusCell = (
     <>
       {autoStartTime && autoStartTime > Date.now() ? (
         <span className="services-item__status--scheduled" key="scheduled">
@@ -98,12 +96,15 @@ const renderWorkshopRow = ({
       ) : (
         <p>...</p>
       )}
-    </>,
-    // Created At
+    </>
+  );
+
+  const createdAtCell = (
     <>
       <TimeInterval key="interval" toTimestamp={workshop.metadata.creationTimestamp} />
-    </>,
-    // Auto-stop
+    </>
+  );
+  const autoStopCell = (
     <>
       <AutoStopDestroy
         type="auto-stop"
@@ -113,8 +114,9 @@ const renderWorkshopRow = ({
         destroyTimestamp={autoDestroyTime}
         key="workshop-auto-stop"
       />
-    </>,
-    // Auto-destroy
+    </>
+  );
+  const autoDestroyCell = (
     <>
       <AutoStopDestroy
         type="auto-destroy"
@@ -124,8 +126,9 @@ const renderWorkshopRow = ({
         notDefinedMessage="- Not defined -"
         key="workshop-auto-destroy"
       />
-    </>,
-    // Actions
+    </>
+  );
+  const actionsCell = (
     <React.Fragment key="workshop-actions">
       <div
         style={{
@@ -152,8 +155,11 @@ const renderWorkshopRow = ({
       </div>
     </React.Fragment>
   );
+
   return {
-    cells: cells,
+    cells: isAdmin
+      ? [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
+      : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
   };
 };
 
