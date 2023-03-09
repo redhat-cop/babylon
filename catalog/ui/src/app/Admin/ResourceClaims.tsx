@@ -364,7 +364,7 @@ const ResourceClaims: React.FC<{}> = () => {
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
           <SelectableTable
-            columns={['Project', 'Name', 'GUID', 'Status', 'Created At', 'Actions']}
+            columns={['Name', 'Service Namespace', 'GUID', 'Status', 'Created At', 'Actions']}
             onSelectAll={(isSelected: boolean) => {
               if (isSelected) {
                 setSelectedUids(resourceClaims.map((resourceClaim) => resourceClaim.metadata.uid));
@@ -406,7 +406,7 @@ const ResourceClaims: React.FC<{}> = () => {
 
               const projectCell = (
                 // Poject
-                <React.Fragment key="project">
+                <React.Fragment key="service-namespace">
                   <Link key="services" to={`/services/${resourceClaim.metadata.namespace}`}>
                     {resourceClaim.metadata.namespace}
                   </Link>
@@ -472,7 +472,7 @@ const ResourceClaims: React.FC<{}> = () => {
               );
 
               return {
-                cells: [projectCell, nameCell, guidCell, statusCell, createdAtCell, adminActionsCell],
+                cells: [nameCell, projectCell, guidCell, statusCell, createdAtCell, adminActionsCell],
                 onSelect: (isSelected: boolean) =>
                   setSelectedUids((uids) => {
                     if (isSelected) {

@@ -248,7 +248,7 @@ const Workshops: React.FC<{}> = () => {
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
           <SelectableTable
-            columns={['Name', 'Project', 'Registration', 'Users', 'Created At', 'Actions']}
+            columns={['Name', 'Service Namespace', 'Registration', 'Users', 'Created At', 'Actions']}
             onSelectAll={(isSelected: boolean) => {
               if (isSelected) {
                 setSelectedUids(workshops.map((workshop) => workshop.metadata.uid));
@@ -289,7 +289,7 @@ const Workshops: React.FC<{}> = () => {
                 </>,
                 // Project
                 <>
-                  <Link key="workshops" to={`/admin/services/${workshop.metadata.namespace}`}>
+                  <Link key="service-namespace" to={`/services/${workshop.metadata.namespace}`}>
                     {workshop.metadata.namespace}
                   </Link>
                   <OpenshiftConsoleLink key="console" resource={workshop} linkToNamespace={true} />
