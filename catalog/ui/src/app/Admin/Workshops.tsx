@@ -1,10 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import useSWR, { useSWRConfig } from 'swr';
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import {
-  Breadcrumb,
-  BreadcrumbItem,
   EmptyState,
   EmptyStateBody,
   EmptyStateIcon,
@@ -19,7 +17,6 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import { apiPaths, deleteWorkshop, fetcher } from '@app/api';
 import { Workshop, WorkshopList } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT } from '@app/util';
-import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -28,14 +25,16 @@ import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import Modal, { useModal } from '@app/Modal/Modal';
-import WorkshopActions from '../Workshops/WorkshopActions';
+import WorkshopActions from '@app/Workshops/WorkshopActions';
+import ProjectSelector from '@app/components/ProjectSelector';
 
-import './workshops-list.css';
+import './admin.css';
 
 function keywordMatch(workshop: Workshop, keyword: string): boolean {
   const keywordLowerCased = keyword.toLowerCase();
   if (
     workshop.metadata.name.includes(keywordLowerCased) ||
+    workshop.metadata.namespace.includes(keywordLowerCased) ||
     (workshop.spec.description && workshop.spec.description.toLowerCase().includes(keywordLowerCased)) ||
     displayName(workshop).toLowerCase().includes(keywordLowerCased)
   ) {
@@ -44,10 +43,9 @@ function keywordMatch(workshop: Workshop, keyword: string): boolean {
   return false;
 }
 
-const WorkshopsList: React.FC<{
-  serviceNamespaceName?: string;
-}> = ({ serviceNamespaceName }) => {
+const Workshops: React.FC<{}> = () => {
   const navigate = useNavigate();
+  const { namespace } = useParams();
   const location = useLocation();
   const [modalAction, openModalAction] = useModal();
   const urlSearchParams = new URLSearchParams(location.search);
@@ -58,8 +56,6 @@ const WorkshopsList: React.FC<{
         .split(/ +/)
         .filter((w) => w != '')
     : null;
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
-  const enableFetchUserNamespaces = isAdmin; // As admin we need to fetch service namespaces for the service namespace dropdown
   const [modalState, setModalState] = useState<{ action?: string; workshop?: Workshop }>({});
   const [selectedUids, setSelectedUids] = useState([]);
   const { cache } = useSWRConfig();
@@ -70,10 +66,6 @@ const WorkshopsList: React.FC<{
     },
     [openModalAction]
   );
-  const serviceNamespace = sessionServiceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
-    name: serviceNamespaceName,
-    displayName: serviceNamespaceName,
-  };
 
   const {
     data: workshopsPages,
@@ -86,7 +78,7 @@ const WorkshopsList: React.FC<{
         return null;
       }
       const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
-      return apiPaths.WORKSHOPS({ namespace: serviceNamespaceName, limit: FETCH_BATCH_LIMIT, continueId });
+      return apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId });
     },
     fetcher,
     {
@@ -186,7 +178,7 @@ const WorkshopsList: React.FC<{
   }
 
   return (
-    <div onScroll={scrollHandler} style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
+    <div onScroll={scrollHandler} className="admin-container">
       <Modal
         ref={modalAction}
         onConfirm={onWorkshopDeleteConfirm}
@@ -196,12 +188,20 @@ const WorkshopsList: React.FC<{
       >
         <p>Provisioned services will be deleted.</p>
       </Modal>
-      <PageSection key="head" className="workshops-list__head" variant={PageSectionVariants.light}>
+      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
-            <Breadcrumb>
-              <BreadcrumbItem>Workshops</BreadcrumbItem>
-            </Breadcrumb>
+            <Title headingLevel="h4" size="xl">
+              Workshops
+            </Title>
+          </SplitItem>
+          <SplitItem>
+            <ProjectSelector
+              currentNamespaceName={namespace}
+              onSelect={(n) => {
+                navigate(`/admin/workshops/${n.name}?${urlSearchParams.toString()}`);
+              }}
+            />
           </SplitItem>
           <SplitItem>
             <KeywordSearchInput
@@ -238,15 +238,15 @@ const WorkshopsList: React.FC<{
             </Title>
             {keywordFilter ? (
               <EmptyStateBody>No workshops matched search.</EmptyStateBody>
-            ) : sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? (
+            ) : (
               <EmptyStateBody>
                 Request workshops using the <Link to="/catalog">catalog</Link>.
               </EmptyStateBody>
-            ) : null}
+            )}
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" className="workshops-list__body" variant={PageSectionVariants.light}>
+        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
           <SelectableTable
             columns={['Name', 'Project', 'Registration', 'Users', 'Created At', 'Actions']}
             onSelectAll={(isSelected: boolean) => {
@@ -285,14 +285,14 @@ const WorkshopsList: React.FC<{
                   >
                     {displayName(workshop)}
                   </Link>
-                  {isAdmin ? <OpenshiftConsoleLink key="console" resource={workshop} /> : null}
+                  <OpenshiftConsoleLink key="console" resource={workshop} />
                 </>,
                 // Project
                 <>
                   <Link key="workshops" to={`/admin/services/${workshop.metadata.namespace}`}>
                     {workshop.metadata.namespace}
                   </Link>
-                  {isAdmin ? <OpenshiftConsoleLink key="console" resource={workshop} linkToNamespace={true} /> : null}
+                  <OpenshiftConsoleLink key="console" resource={workshop} linkToNamespace={true} />
                 </>,
                 // Registration
                 <>{workshop.spec.openRegistration === false ? 'Pre-registration' : 'Open'}</>,
@@ -347,4 +347,4 @@ const WorkshopsList: React.FC<{
   );
 };
 
-export default WorkshopsList;
+export default Workshops;

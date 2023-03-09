@@ -81,6 +81,14 @@ const Navigation: React.FC = () => {
       </NavItem>
       <NavItem>
         <NavLink
+          className={locationStartsWith('/admin/resourceclaims') ? 'pf-m-current' : ''}
+          to="/admin/resourceclaims"
+        >
+          ResourceClaims
+        </NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink
           className={locationStartsWith('/admin/resourcehandles') ? 'pf-m-current' : ''}
           to="/admin/resourcehandles"
         >

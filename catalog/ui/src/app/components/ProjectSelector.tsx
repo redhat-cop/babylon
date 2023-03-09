@@ -11,7 +11,7 @@ import LoadingIcon from './LoadingIcon';
 import './project-selector.css';
 
 const ProjectSelector: React.FC<{
-  currentNamespaceName: string;
+  currentNamespaceName?: string;
   onSelect: (namespace: ServiceNamespace) => void;
   isPlain?: boolean;
 }> = ({ currentNamespaceName, onSelect, isPlain = false }) => {
@@ -78,7 +78,7 @@ const ProjectSelector: React.FC<{
       onSearchInputChange={(value: string) => setSearchValue(value)}
       onToggle={toggleOpen}
       searchInputValue={searchValue}
-      toggleText={`Project: ${currentNamespaceName}`}
+      toggleText={`Project: ${currentNamespaceName ?? 'All projects'}`}
     >
       {serviceNamespaces.length === 0 ? (
         <ContextSelectorItem key="loading" onClick={null} className="project-selector__loading">

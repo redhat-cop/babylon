@@ -39,3 +39,10 @@
   max-height: 10em;
   overflow-y: scroll;
 }
+.admin-container {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  flex-grow: 1;
+  background-color: #fff;
+}
