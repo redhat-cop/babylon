@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { FixedSizeList as List } from 'react-window';
 import { ContextSelector, ContextSelectorItem } from '@patternfly/react-core';
@@ -18,22 +18,28 @@ const ProjectSelector: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
   const { cache } = useSWRConfig();
   const [allNamespaces, setAllNamespaces] = useState<ServiceNamespace[]>(null);
-  const [searchValue, setSearchValue] = React.useState('');
+  const [searchValue, setSearchValue] = useState('');
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const [abortController] = useState(new AbortController());
   const serviceNamespaces = useMemo(
     () => (isAdmin ? allNamespaces : sessionServiceNamespaces) ?? [],
     [isAdmin, allNamespaces, sessionServiceNamespaces]
   );
+
+  useEffect(() => {
+    return () => abortController.abort();
+  }, []);
 
   const toggleOpen = useCallback(() => {
     if (isAdmin && allNamespaces === null) {
       const data = cache.get(
         apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' })
       ) as ServiceNamespace[];
-      if (data) {
+      if (data && Array.isArray(data)) {
         setAllNamespaces(data);
       } else {
         fetcher(apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' })).then((data) => {
+          if (abortController.signal.aborted) return null;
           const namespaces = data.items.map(namespaceToServiceNamespaceMapper);
           setAllNamespaces(namespaces);
           cache.set(apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }), namespaces);
