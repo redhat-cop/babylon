@@ -8,6 +8,9 @@ import {
   DescriptionListTerm,
   PageSection,
   PageSectionVariants,
+  Panel,
+  PanelMain,
+  PanelMainBody,
   Stack,
   StackItem,
   Title,
@@ -32,10 +35,10 @@ const WorkshopContent: React.FC<{
   let renderEditor = true;
 
   const templateHtml = useMemo(() => {
-    if (!template || !userAssignment.data) return null;
+    if (!template || !userAssignment) return null;
     const htmlRenderedTemplate = renderContent(template, {
       format: 'asciidoc',
-      vars: createAsciiDocAttributes(userAssignment.data),
+      vars: createAsciiDocAttributes(userAssignment, '__'),
     });
     return (
       <div
@@ -104,9 +107,7 @@ const WorkshopContent: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-              {templateHtml ? (
-                templateHtml
-              ) : (
+              {templateHtml ? null : (
                 <>
                   {userAssignment.messages ? (
                     <DescriptionListGroup>
@@ -125,6 +126,13 @@ const WorkshopContent: React.FC<{
                 </>
               )}
             </DescriptionList>
+            {templateHtml ? (
+              <Panel>
+                <PanelMain>
+                  <PanelMainBody>{templateHtml}</PanelMainBody>
+                </PanelMain>
+              </Panel>
+            ) : null}
           </Bullseye>
         </StackItem>
       </Stack>

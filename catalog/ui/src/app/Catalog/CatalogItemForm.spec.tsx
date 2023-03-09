@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils
 import CatalogItemForm from './CatalogItemForm';
 import catalogItemObj from '../__mocks__/catalogItem.json';
 import userEvent from '@testing-library/user-event';
-import { CatalogItem } from '@app/types';
+import { CatalogItem, ServiceNamespace, UserNamespace } from '@app/types';
 import useSession from '@app/utils/useSession';
 
 jest.mock('@app/api', () => ({
@@ -18,9 +18,19 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
+const namespace = {
+  displayName: 'User test-redhat.com',
+  name: 'user-test-redhat-com',
+  requester: 'test-redhat.com',
+  workshopProvisionAccess: true,
+};
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
-    getSession: () => generateSession({}),
+    getSession: () =>
+      generateSession({
+        serviceNamespaces: [namespace as ServiceNamespace],
+        userNamespace: namespace as UserNamespace,
+      }),
   }))
 );
 
@@ -136,9 +146,9 @@ describe('CatalogItemForm Component', () => {
     expect(button).toBeDisabled();
   });
 
-  test('Workshop Feature disabled if user doesnt have workshopNamespaces', async () => {
+  test('Workshop Feature disabled if user doesnt have workshopProvisionAccess', async () => {
     (useSession as jest.Mock).mockImplementation(() => ({
-      getSession: () => generateSession({ workshopNamespaces: [] }),
+      getSession: () => generateSession({}),
     }));
     const { getByText, queryByLabelText } = render(<CatalogItemForm />);
     await waitFor(() => getByText('Order'));

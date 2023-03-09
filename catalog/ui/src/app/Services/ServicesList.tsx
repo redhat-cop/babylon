@@ -18,7 +18,6 @@ import {
   apiPaths,
   deleteResourceClaim,
   deleteWorkshop,
-  fetcher,
   fetcherItemsInAllPages,
   scheduleStopForAllResourcesInResourceClaim,
   SERVICES_KEY,
@@ -29,15 +28,7 @@ import {
   stopAllResourcesInResourceClaim,
   stopWorkshop,
 } from '@app/api';
-import {
-  NamespaceList,
-  ResourceClaim,
-  Service,
-  ServiceActionActions,
-  ServiceNamespace,
-  Workshop,
-  WorkshopWithResourceClaims,
-} from '@app/types';
+import { ResourceClaim, Service, ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import {
   checkResourceClaimCanStart,
@@ -54,7 +45,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
-import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
+import ProjectSelector from '@app/components/ProjectSelector';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServicesScheduleAction from './ServicesScheduleAction';
@@ -128,9 +119,6 @@ const ServicesList: React.FC<{
         : null,
     [searchParams.get('search')]
   );
-
-  // As admin we need to fetch service namespaces for the service namespace dropdown
-  const enableFetchUserNamespaces = isAdmin;
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
@@ -142,22 +130,8 @@ const ServicesList: React.FC<{
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalGetCost, openModalGetCost] = useModal();
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
-
-  const { data: userNamespaceList } = useSWR<NamespaceList>(
-    enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
-    fetcher
-  );
-  const serviceNamespaces: ServiceNamespace[] = useMemo(() => {
-    return enableFetchUserNamespaces
-      ? userNamespaceList.items.map((ns): ServiceNamespace => {
-          return {
-            name: ns.metadata.name,
-            displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-          };
-        })
-      : sessionServiceNamespaces;
-  }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
-  const canLoadWorkshops = isAdmin || serviceNamespaces.length > 1;
+  const canLoadWorkshops =
+    isAdmin || sessionServiceNamespaces.find((n) => n.name === serviceNamespaceName)?.workshopProvisionAccess;
   const { data: _services, mutate } = useSWR<Service[]>(
     SERVICES_KEY({ namespace: serviceNamespaceName }),
     () => fetchServices(serviceNamespaceName, canLoadWorkshops),
@@ -382,7 +356,7 @@ const ServicesList: React.FC<{
     [openModalAction, openModalGetCost, openModalScheduleAction]
   );
 
-  if (serviceNamespaces.length === 0) {
+  if (sessionServiceNamespaces.length === 0) {
     return (
       <>
         <PageSection>
@@ -399,8 +373,10 @@ const ServicesList: React.FC<{
     );
   }
 
-  if (serviceNamespaces.length === 1 && !serviceNamespaceName) {
-    return <Navigate to={`/services/${serviceNamespaces[0].name}`} />;
+  if (!serviceNamespaceName) {
+    if (sessionServiceNamespaces.length >= 1) {
+      return <Navigate to={`/services/${sessionServiceNamespaces[0].name}`} />;
+    }
   }
 
   return (
@@ -423,18 +399,16 @@ const ServicesList: React.FC<{
       >
         <CostTrackerDialog resourceClaim={modalState.resourceClaim} />
       </Modal>
-      {serviceNamespaces.length > 1 ? (
+      {isAdmin || sessionServiceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-list__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect
-            allowSelectAll
-            isPlain
-            isText
+          <ProjectSelector
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {
                 navigate(`/services/${namespace.name}${location.search}`);
               }
             }}
+            isPlain={true}
           />
         </PageSection>
       ) : null}
@@ -482,11 +456,11 @@ const ServicesList: React.FC<{
             </Title>
             {keywordFilter ? (
               <EmptyStateBody>No services matched search.</EmptyStateBody>
-            ) : sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? (
+            ) : (
               <EmptyStateBody>
                 Request services using the <Link to="/catalog">catalog</Link>.
               </EmptyStateBody>
-            ) : null}
+            )}
           </EmptyState>
         </PageSection>
       ) : (

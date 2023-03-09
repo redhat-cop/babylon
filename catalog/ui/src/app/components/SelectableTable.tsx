@@ -1,5 +1,4 @@
 import React from 'react';
-
 import { Table, TableHeader, TableBody } from '@patternfly/react-table';
 
 const SelectableTable: React.FC<{
@@ -7,7 +6,7 @@ const SelectableTable: React.FC<{
   onSelectAll: any;
   rows: any[];
 }> = ({ columns, onSelectAll, rows }) => {
-  function onSelect(event, isSelected, rowId) {
+  function onSelect(_: any, isSelected: boolean, rowId: string | number) {
     if (rowId === -1) {
       onSelectAll(isSelected);
     } else {

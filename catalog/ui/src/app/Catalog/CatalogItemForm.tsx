@@ -49,7 +49,7 @@ import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import DynamicFormInput from '@app/components/DynamicFormInput';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
-import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
+import ProjectSelector from '@app/components/ProjectSelector';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import Footer from '@app/components/Footer';
@@ -66,7 +66,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
-  const { isAdmin, groups, roles, serviceNamespaces, workshopNamespaces, userNamespace } = useSession().getSession();
+  const { isAdmin, groups, roles, serviceNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher
@@ -245,11 +245,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       <p>Order by completing the form. Default values may be provided.</p>
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
-        {isAdmin ||
-        (formState.workshop && workshopNamespaces.length > 1) ||
-        (!formState.workshop && serviceNamespaces.length > 1) ? (
+        {isAdmin || serviceNamespaces.length > 1 ? (
           <FormGroup key="service-namespace" fieldId="service-namespace" label="Create Request in Project">
-            <ServiceNamespaceSelect
+            <ProjectSelector
               currentNamespaceName={formState.serviceNamespace.name}
               onSelect={(namespace) => {
                 dispatchFormState({
@@ -257,6 +255,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   serviceNamespace: namespace,
                 });
               }}
+              isPlain={false}
             />{' '}
             <Tooltip position="right" content={<div>Create service request in specified project namespace.</div>}>
               <OutlinedQuestionCircleIcon
@@ -468,7 +467,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </div>
         </FormGroup>
 
-        {!workshopUiDisabled && (isAdmin || workshopNamespaces.length > 0) ? (
+        {!workshopUiDisabled && (isAdmin || formState.serviceNamespace.workshopProvisionAccess) ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch
@@ -498,8 +497,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 onChange={(isChecked) =>
                   dispatchFormState({
                     type: 'workshop',
-                    allowServiceNamespaces: isAdmin ? null : isChecked ? workshopNamespaces : serviceNamespaces,
-                    serviceNamespace: isChecked ? workshopNamespaces[0] : userNamespace,
                     workshop: isChecked ? workshopInitialProps : null,
                   })
                 }

@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import { store } from '@app/store';
 import { createMemoryHistory, MemoryHistory } from 'history';
 import { SWRConfig } from 'swr';
-import { CatalogNamespace } from '@app/types';
+import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 import LoadingSection from '@app/components/LoadingSection';
 
 const AllTheProviders = ({ children, history }) => {
@@ -48,17 +48,24 @@ export * from '@testing-library/react';
 // override render method
 export { customRender as render };
 
-const defaultWorkshopNamespaces = [
-  {
-    displayName: 'User test-redhat.com',
-    name: 'user-test-redhat-com',
-  },
-];
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const generateSession = ({
   email = 'test@redhat.com',
   isAdmin = false,
-  workshopNamespaces = defaultWorkshopNamespaces,
+  serviceNamespaces = [
+    {
+      displayName: 'User test-redhat.com',
+      name: 'user-test-redhat-com',
+      requester: 'test-redhat.com',
+      workshopProvisionAccess: false,
+    } as ServiceNamespace,
+  ],
+  userNamespace = {
+    displayName: 'User test-redhat.com',
+    name: 'user-test-redhat-com',
+    requester: 'test-redhat.com',
+    workshopProvisionAccess: false,
+  } as UserNamespace,
 }) => ({
   email,
   isAdmin,
@@ -69,18 +76,8 @@ export const generateSession = ({
       displayName: 'Fake Catalog',
     } as CatalogNamespace,
   ],
-  serviceNamespaces: [
-    {
-      displayName: 'User test-redhat.com',
-      name: 'user-test-redhat-com',
-    },
-  ],
-  userNamespace: {
-    displayName: 'User test-redhat.com',
-    name: 'user-test-redhat-com',
-    requester: 'test-redhat.com',
-  },
-  workshopNamespaces,
+  serviceNamespaces,
+  userNamespace,
   groups: [],
   roles: [],
 });

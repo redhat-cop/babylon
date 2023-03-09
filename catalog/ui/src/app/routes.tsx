@@ -9,7 +9,8 @@ const Dashboard = React.lazy(() => import('@app/Dashboard'));
 const CatalogRedirections = React.lazy(() => import('@app/Catalog/CatalogRedirections'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
 const Services = React.lazy(() => import('@app/Services/Services'));
-const WorkshopsList = React.lazy(() => import('@app/Admin/WorkshopsList'));
+const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
+const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
 const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
 const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
@@ -80,6 +81,16 @@ const appRoutes: IAppRoute[] = [
     component: WorkshopsItem,
     path: '/workshops/:namespace/:name',
     title: 'Babylon | Workshops',
+  },
+  {
+    component: ResourceClaims,
+    path: '/admin/resourceclaims/:namespace',
+    title: 'Babylon | ResourceClaims',
+  },
+  {
+    component: ResourceClaims,
+    path: '/admin/resourceclaims',
+    title: 'Babylon | ResourceClaims',
   },
   {
     component: WorkshopsList,

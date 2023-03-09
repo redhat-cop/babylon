@@ -356,20 +356,12 @@ function reduceFormStateTermsOfServiceAgreed(initialState: FormState, termsOfSer
   };
 }
 
-function reduceFormStateWorkshop(
-  initialState: FormState,
-  allowServiceNamespaces: ServiceNamespace[],
-  serviceNamespace: ServiceNamespace,
-  workshop: WorkshopProps = null
-): FormState {
+function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProps = null): FormState {
   const isSalesforceIdRequired = salesforceIdRequired({ ...initialState, workshop });
-  const resetServiceNamepace =
-    allowServiceNamespaces && !allowServiceNamespaces.map((ns) => ns.name).includes(initialState.serviceNamespace.name);
   const salesforceId = { ...initialState.salesforceId, required: isSalesforceIdRequired };
   return {
     ...initialState,
     salesforceId,
-    serviceNamespace: resetServiceNamepace ? serviceNamespace : initialState.serviceNamespace,
     workshop,
   };
 }
@@ -475,7 +467,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
     case 'termsOfServiceAgreed':
       return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
     case 'workshop':
-      return reduceFormStateWorkshop(state, action.allowServiceNamespaces, action.serviceNamespace, action.workshop);
+      return reduceFormStateWorkshop(state, action.workshop);
     case 'usePoolIfAvailable':
       return reduceFormStateUsePoolIfAvailable(state, action.usePoolIfAvailable);
     case 'complete':

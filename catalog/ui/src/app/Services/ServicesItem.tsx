@@ -66,6 +66,7 @@ import {
   isResourceClaimPartOfWorkshop,
   getStageFromK8sObject,
   compareK8sObjects,
+  namespaceToServiceNamespaceMapper,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -84,7 +85,7 @@ import { getAutoStopTime, getInfoMessageTemplate, getMostRelevantResourceAndTemp
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
-import ServiceNamespaceSelect from '@app/components/ServiceNamespaceSelect';
+import ProjectSelector from '@app/components/ProjectSelector';
 import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
@@ -269,7 +270,11 @@ const ComponentDetailsList: React.FC<{
                       {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
                         towerJob.towerJobURL ? (
                           <ListItem key={stage}>
-                            <Link to={'https://' + towerJob.towerJobURL} style={{ textTransform: 'capitalize' }} target="_blank">
+                            <Link
+                              to={'https://' + towerJob.towerJobURL}
+                              style={{ textTransform: 'capitalize' }}
+                              target="_blank"
+                            >
                               {stage}
                             </Link>
                           </ListItem>
@@ -338,12 +343,7 @@ const ServicesItemComponent: React.FC<{
   );
   const serviceNamespaces = useMemo(() => {
     return enableFetchUserNamespaces
-      ? userNamespaceList.items.map((ns): ServiceNamespace => {
-          return {
-            name: ns.metadata.name,
-            displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-          };
-        })
+      ? userNamespaceList.items.map(namespaceToServiceNamespaceMapper)
       : sessionServiceNamespaces;
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
   const serviceNamespace = serviceNamespaces.find((ns) => ns.name === serviceNamespaceName) || {
@@ -546,10 +546,7 @@ const ServicesItemComponent: React.FC<{
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-item__topbar" variant={PageSectionVariants.light}>
-          <ServiceNamespaceSelect
-            allowSelectAll
-            isPlain
-            isText
+          <ProjectSelector
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
               if (namespace) {
@@ -558,6 +555,7 @@ const ServicesItemComponent: React.FC<{
                 navigate(`/services${location.search}`);
               }
             }}
+            isPlain={true}
           />
         </PageSection>
       ) : null}

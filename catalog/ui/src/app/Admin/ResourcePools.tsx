@@ -137,7 +137,7 @@ const ResourcePools: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
+    <div className="admin-container">
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
