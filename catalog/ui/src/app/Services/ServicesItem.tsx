@@ -13,9 +13,6 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
   PageSection,
   PageSectionVariants,
   Spinner,
@@ -33,7 +30,6 @@ import {
   List,
   ListItem,
 } from '@patternfly/react-core';
-import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
   apiPaths,
   deleteResourceClaim,
@@ -54,7 +50,6 @@ import {
   ResourceClaim,
   ResourceClaimSpecResource,
   ServiceActionActions,
-  ServiceNamespace,
   Workshop,
 } from '@app/types';
 import {
@@ -81,6 +76,7 @@ import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import Label from '@app/components/Label';
+import NotFoundComponent from '@app/components/NotFound';
 import { getAutoStopTime, getInfoMessageTemplate, getMostRelevantResourceAndTemplate } from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
@@ -906,6 +902,7 @@ const ServicesItemComponent: React.FC<{
               ]
             ) : serviceHasUsers ? (
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
+                {workshopName}
                 {activeTab === 'users' ? (
                   <>
                     {!workshopName ? (
@@ -941,20 +938,6 @@ const ServicesItemComponent: React.FC<{
   );
 };
 
-const NotFoundComponent: React.FC<{
-  resourceClaimName: string;
-  serviceNamespaceName: string;
-}> = ({ resourceClaimName, serviceNamespaceName }) => (
-  <EmptyState variant="full">
-    <EmptyStateIcon icon={ExclamationTriangleIcon} />
-    <Title headingLevel="h1" size="lg">
-      Service not found
-    </Title>
-    <EmptyStateBody>
-      ResourceClaim {resourceClaimName} was not found in {serviceNamespaceName}.
-    </EmptyStateBody>
-  </EmptyState>
-);
 const ServicesItem: React.FC<{
   activeTab: string;
   resourceClaimName: string;
@@ -964,7 +947,7 @@ const ServicesItem: React.FC<{
     onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
     fallbackRender={() => (
       <>
-        <NotFoundComponent resourceClaimName={resourceClaimName} serviceNamespaceName={serviceNamespaceName} />
+        <NotFoundComponent name={resourceClaimName} namespace={serviceNamespaceName} type="Service" />
         <Footer />
       </>
     )}

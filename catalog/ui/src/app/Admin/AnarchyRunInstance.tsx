@@ -1,6 +1,6 @@
-import React, { useEffect, useReducer, useRef } from 'react';
+import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import useSWR from 'swr';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,100 +23,53 @@ import {
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-import { deleteAnarchyRun, getAnarchyRun } from '@app/api';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { apiPaths, deleteAnarchyRun, fetcher } from '@app/api';
 import { AnarchyRun } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import AnsibleRunLog from '@app/components/AnsibleRunLog';
-import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-import { selectConsoleURL } from '@app/store';
 import Footer from '@app/components/Footer';
+import useSession from '@app/utils/useSession';
+import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
+import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './admin.css';
+import NotFoundComponent from '@app/components/NotFound';
 
-const AnarchyRunInstance: React.FC = () => {
+const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace: string; activeTab: string }> = ({
+  anarchyRunName,
+  namespace,
+  activeTab,
+}) => {
   const navigate = useNavigate();
-  const consoleURL = useSelector(selectConsoleURL);
-  const componentWillUnmount = useRef(false);
-  const { name: anarchyRunName, namespace: anarchyRunNamespace, tab: activeTab = 'details' } = useParams();
-
-  const [anarchyRunFetchState, reduceAnarchyRunFetchState] = useReducer(k8sFetchStateReducer, null);
-
-  const anarchyRun: AnarchyRun | null = (anarchyRunFetchState?.item as AnarchyRun) || null;
+  const { consoleUrl } = useSession().getSession();
+  const matchMutate = useMatchMutate();
+  const {
+    data: anarchyRun,
+    error,
+    mutate,
+  } = useSWR<AnarchyRun>(
+    apiPaths.ANARCHY_RUN({
+      anarchyRunName,
+      namespace,
+    }),
+    fetcher,
+    {
+      refreshInterval: 8000,
+      compare: compareK8sObjects,
+    }
+  );
+  useErrorHandler(error?.status === 404 ? error : null);
 
   async function confirmThenDelete() {
     if (confirm(`Delete AnarchyRun ${anarchyRunName}?`)) {
       await deleteAnarchyRun(anarchyRun);
-      navigate(`/admin/anarchyruns/${anarchyRunNamespace}`);
-    }
-  }
-
-  async function fetchAnarchyRun(): Promise<void> {
-    let anarchyRun: AnarchyRun = null;
-    try {
-      anarchyRun = await getAnarchyRun(anarchyRunNamespace, anarchyRunName);
-    } catch (error) {
-      if (!(error instanceof Response) || error.status !== 404) {
-        throw error;
-      }
-    }
-    if (!anarchyRunFetchState.activity.canceled) {
-      reduceAnarchyRunFetchState({
-        type: 'post',
-        item: anarchyRun,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceAnarchyRunFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  // First render and detect unmount
-  useEffect(() => {
-    reduceAnarchyRunFetchState({ type: 'startFetch' });
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (anarchyRunFetchState?.canContinue) {
-      fetchAnarchyRun();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(anarchyRunFetchState);
-      }
-    };
-  }, [anarchyRunFetchState]);
-
-  if (!anarchyRun) {
-    if (anarchyRunFetchState?.finished) {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              AnarchyRun not found
-            </Title>
-            <EmptyStateBody>
-              AnarchyRun {anarchyRunName} was not found in namespace {anarchyRunNamespace}.
-            </EmptyStateBody>
-          </EmptyState>
-        </PageSection>
-      );
-    } else {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      );
+      mutate(undefined);
+      matchMutate([{ name: 'ANARCHY_RUNS', arguments: { limit: FETCH_BATCH_LIMIT, namespace }, data: undefined }]);
+      navigate(`/admin/anarchyruns/${namespace}`);
     }
   }
 
@@ -133,8 +86,8 @@ const AnarchyRunInstance: React.FC = () => {
           />
           <BreadcrumbItem
             render={({ className }) => (
-              <Link to={`/admin/anarchyruns/${anarchyRunNamespace}`} className={className}>
-                {anarchyRunNamespace}
+              <Link to={`/admin/anarchyruns/${namespace}`} className={className}>
+                {namespace}
               </Link>
             )}
           />
@@ -156,7 +109,7 @@ const AnarchyRunInstance: React.FC = () => {
                   label="Edit in OpenShift Console"
                   onSelect={() =>
                     window.open(
-                      `${consoleURL}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace(
+                      `${consoleUrl}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace(
                         '/',
                         '~'
                       )}~${anarchyRun.kind}/${anarchyRun.metadata.name}/yaml`
@@ -168,7 +121,7 @@ const AnarchyRunInstance: React.FC = () => {
                   label="Open in OpenShift Console"
                   onSelect={() =>
                     window.open(
-                      `${consoleURL}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace(
+                      `${consoleUrl}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace(
                         '/',
                         '~'
                       )}~${anarchyRun.kind}/${anarchyRun.metadata.name}`
@@ -183,9 +136,7 @@ const AnarchyRunInstance: React.FC = () => {
       <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
         <Tabs
           activeKey={activeTab}
-          onSelect={(e, tabIndex) =>
-            navigate(`/admin/anarchyruns/${anarchyRunNamespace}/${anarchyRunName}/${tabIndex}`)
-          }
+          onSelect={(e, tabIndex) => navigate(`/admin/anarchyruns/${namespace}/${anarchyRunName}/${tabIndex}`)}
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
@@ -293,8 +244,25 @@ const AnarchyRunInstance: React.FC = () => {
           </Tab>
         </Tabs>
       </PageSection>
-      <Footer />
     </>
+  );
+};
+
+const AnarchyRunInstance: React.FC = () => {
+  const { name: anarchyRunName, namespace, tab = 'details' } = useParams();
+  return (
+    <ErrorBoundary
+      fallbackRender={() => (
+        <>
+          <NotFoundComponent name={anarchyRunName} namespace={namespace} type="AnarchyRun" />
+          <Footer />
+        </>
+      )}
+      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
+    >
+      <AnarchyRunInstanceComponent namespace={namespace} anarchyRunName={anarchyRunName} activeTab={tab} />
+      <Footer />
+    </ErrorBoundary>
   );
 };
 

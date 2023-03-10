@@ -1,5 +1,6 @@
-import React, { useEffect, useReducer, useRef } from 'react';
+import React, { useCallback, useMemo, useReducer } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import useSWRInfinite from 'swr/infinite';
 import {
   EmptyState,
   EmptyStateIcon,
@@ -10,25 +11,22 @@ import {
   Title,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { deleteAnarchyAction, listAnarchyActions } from '@app/api';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { apiPaths, deleteAnarchyAction, fetcher } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { AnarchyAction, AnarchyActionList, K8sObject } from '@app/types';
+import { AnarchyAction, AnarchyActionList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import RefreshButton from '@app/components/RefreshButton';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import AnarchyActionSelect from './AnarchyActionSelect';
 import AnarchyNamespaceSelect from './AnarchyNamespaceSelect';
 import Footer from '@app/components/Footer';
+import { compareK8sObjectsArr } from '@app/util';
 
 import './admin.css';
-
-const FETCH_BATCH_LIMIT = 20;
 
 function keywordMatch(anarchyAction: AnarchyAction, keyword: string): boolean {
   if (anarchyAction.metadata.name.includes(keyword)) {
@@ -43,45 +41,10 @@ function keywordMatch(anarchyAction: AnarchyAction, keyword: string): boolean {
   return false;
 }
 
-function filterAnarchyAction(anarchyAction: AnarchyAction, keywordFilter: string[]): boolean {
-  if (!keywordFilter) {
-    return true;
-  }
-  for (const keyword of keywordFilter) {
-    if (!keywordMatch(anarchyAction, keyword)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function pruneAnarchyAction(anarchyAction: AnarchyAction): AnarchyAction {
-  return {
-    apiVersion: anarchyAction.apiVersion,
-    kind: anarchyAction.kind,
-    metadata: {
-      creationTimestamp: anarchyAction.metadata.creationTimestamp,
-      name: anarchyAction.metadata.name,
-      namespace: anarchyAction.metadata.namespace,
-      uid: anarchyAction.metadata.uid,
-    },
-    spec: {
-      action: anarchyAction.spec.action,
-      governorRef: anarchyAction.spec.governorRef,
-      subjectRef: anarchyAction.spec.subjectRef,
-    },
-    status: {
-      finishedTimestamp: anarchyAction.status?.finishedTimestamp,
-      state: anarchyAction.status?.state,
-    },
-  };
-}
-
 const AnarchyActions: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const componentWillUnmount = useRef(false);
-  const { namespace: anarchyNamespace } = useParams();
+  const { namespace } = useParams();
   const urlSearchParams = new URLSearchParams(location.search);
   const keywordFilter = urlSearchParams.has('search')
     ? urlSearchParams
@@ -91,25 +54,93 @@ const AnarchyActions: React.FC = () => {
         .filter((w) => w != '')
     : null;
   const actionFilter = urlSearchParams.has('action') ? urlSearchParams.get('action') : null;
-
-  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
+  const labelSelector = actionFilter ? `anarchy.gpte.redhat.com/action=${actionFilter}` : null;
 
-  const anarchyActions: AnarchyAction[] = (fetchState?.filteredItems as AnarchyAction[]) || [];
+  const {
+    data: anarchyActionsPages,
+    mutate,
+    size,
+    setSize,
+  } = useSWRInfinite<AnarchyActionList>(
+    (index, previousPageData: AnarchyActionList) => {
+      if (previousPageData && !previousPageData.metadata?.continue) {
+        return null;
+      }
+      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
+      return apiPaths.ANARCHY_ACTIONS({ namespace, limit: 35, continueId, labelSelector });
+    },
+    fetcher,
+    {
+      refreshInterval: 8000,
+      revalidateFirstPage: true,
+      revalidateAll: true,
+      compare: (currentData, newData) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.length === 0) return false;
+        if (!newData || newData.length === 0) return false;
+        if (currentData.length !== newData.length) return false;
+        for (let i = 0; i < currentData.length; i++) {
+          if (!compareK8sObjectsArr(currentData[i].items, newData[i].items)) return false;
+        }
+        return true;
+      },
+    }
+  );
 
-  const filterFunction = keywordFilter
-    ? (anarchyAction: K8sObject): boolean => filterAnarchyAction(anarchyAction as AnarchyAction, keywordFilter)
-    : null;
+  const revalidate = useCallback(
+    ({ updatedItems, action }: { updatedItems: AnarchyAction[]; action: 'update' | 'delete' }) => {
+      const anarchyActionsPagesCpy = JSON.parse(JSON.stringify(anarchyActionsPages));
+      let p: AnarchyActionList;
+      let i: number;
+      for ([i, p] of anarchyActionsPagesCpy.entries()) {
+        for (const updatedItem of updatedItems) {
+          const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+          if (foundIndex > -1) {
+            if (action === 'update') {
+              anarchyActionsPagesCpy[i].items[foundIndex] = updatedItem;
+            } else if (action === 'delete') {
+              anarchyActionsPagesCpy[i].items.splice(foundIndex, 1);
+            }
+            mutate(anarchyActionsPagesCpy);
+          }
+        }
+      }
+    },
+    [mutate, anarchyActionsPages]
+  );
 
-  const primaryAppContainer = document.getElementById('primary-app-container');
-  primaryAppContainer.onscroll = (e) => {
-    const scrollable = e.target as any;
+  const isReachingEnd = anarchyActionsPages && !anarchyActionsPages[anarchyActionsPages.length - 1].metadata.continue;
+  const isLoadingInitialData = !anarchyActionsPages;
+  const isLoadingMore =
+    isLoadingInitialData || (size > 0 && anarchyActionsPages && typeof anarchyActionsPages[size - 1] === 'undefined');
+
+  const filterFunction = useCallback(
+    (anarchyAction: AnarchyAction) => {
+      if (!keywordFilter) {
+        return true;
+      }
+      for (const keyword of keywordFilter) {
+        if (!keywordMatch(anarchyAction, keyword)) {
+          return false;
+        }
+      }
+      return true;
+    },
+    [keywordFilter]
+  );
+
+  const anarchyActions: AnarchyAction[] = useMemo(
+    () => [].concat(...anarchyActionsPages.map((page) => page.items)).filter(filterFunction) || [],
+    [filterFunction, anarchyActionsPages]
+  );
+
+  // Trigger continue fetching more resource claims on scroll.
+  const scrollHandler = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollable = e.currentTarget;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && !fetchState?.finished && fetchState.limit <= anarchyActions.length) {
-      reduceFetchState({
-        type: 'modify',
-        limit: fetchState.limit + FETCH_BATCH_LIMIT,
-      });
+    if (scrollRemaining < 500 && !isReachingEnd && !isLoadingMore) {
+      setSize(size + 1);
     }
   };
 
@@ -123,83 +154,18 @@ const AnarchyActions: React.FC = () => {
         }
       }
       reduceSelectedUids({ type: 'clear' });
-      reduceFetchState({ type: 'removeItems', items: removedAnarchyActions });
+      revalidate({ action: 'delete', updatedItems: removedAnarchyActions });
     }
   }
-
-  async function fetchAnarchyActions(): Promise<void> {
-    const anarchyActionList: AnarchyActionList = await listAnarchyActions({
-      continue: fetchState.continue,
-      labelSelector: actionFilter ? `anarchy.gpte.redhat.com/action=${actionFilter}` : null,
-      limit: FETCH_BATCH_LIMIT,
-      namespace: anarchyNamespace,
-    });
-    if (!fetchState.activity.canceled) {
-      reduceFetchState({
-        type: 'post',
-        k8sObjectList: anarchyActionList,
-        refreshInterval: 15000,
-        refresh: (): void => {
-          reduceFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  function reloadAnarchyActions(): void {
-    reduceFetchState({
-      type: 'startFetch',
-      filter: filterFunction,
-      limit: FETCH_BATCH_LIMIT,
-      prune: pruneAnarchyAction,
-    });
-    reduceSelectedUids({ type: 'clear' });
-  }
-
-  // First render and detect unmount
-  useEffect(() => {
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  // Fetch or continue fetching
-  useEffect(() => {
-    if (fetchState?.canContinue && (fetchState.refreshing || fetchState.filteredItems.length < fetchState.limit)) {
-      fetchAnarchyActions();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(fetchState);
-      }
-    };
-  }, [fetchState]);
-
-  // Start fetch and reload on k8s namespace or label filter
-  useEffect(() => {
-    reloadAnarchyActions();
-  }, [anarchyNamespace, actionFilter]);
-
-  useEffect(() => {
-    if (fetchState) {
-      reduceFetchState({
-        type: 'modify',
-        filter: filterFunction,
-      });
-    }
-  }, [JSON.stringify(keywordFilter)]);
 
   return (
-    <>
+    <div onScroll={scrollHandler} className="admin-container">
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
               AnarchyActions
             </Title>
-          </SplitItem>
-          <SplitItem>
-            <RefreshButton onClick={() => reloadAnarchyActions()} />
           </SplitItem>
           <SplitItem>
             <KeywordSearchInput
@@ -229,7 +195,7 @@ const AnarchyActions: React.FC = () => {
           </SplitItem>
           <SplitItem>
             <AnarchyNamespaceSelect
-              namespace={anarchyNamespace}
+              namespace={namespace}
               onSelect={(namespaceName) => {
                 if (namespaceName) {
                   navigate(`/admin/anarchyactions/${namespaceName}${location.search}`);
@@ -250,22 +216,14 @@ const AnarchyActions: React.FC = () => {
         </Split>
       </PageSection>
       {anarchyActions.length === 0 ? (
-        fetchState?.finished ? (
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={ExclamationTriangleIcon} />
-              <Title headingLevel="h1" size="lg">
-                No AnarchyActions found
-              </Title>
-            </EmptyState>
-          </PageSection>
-        ) : (
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={LoadingIcon} />
-            </EmptyState>
-          </PageSection>
-        )
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No AnarchyActions found
+            </Title>
+          </EmptyState>
+        </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
           <SelectableTable
@@ -335,7 +293,7 @@ const AnarchyActions: React.FC = () => {
                     <p>-</p>
                   ),
                 ],
-                onSelect: (isSelected) =>
+                onSelect: (isSelected: boolean) =>
                   reduceSelectedUids({
                     type: isSelected ? 'add' : 'remove',
                     items: [anarchyAction],
@@ -344,7 +302,7 @@ const AnarchyActions: React.FC = () => {
               };
             })}
           />
-          {fetchState?.canContinue ? (
+          {!isReachingEnd ? (
             <EmptyState variant="full">
               <EmptyStateIcon icon={LoadingIcon} />
             </EmptyState>
@@ -352,7 +310,7 @@ const AnarchyActions: React.FC = () => {
         </PageSection>
       )}
       <Footer />
-    </>
+    </div>
   );
 };
 

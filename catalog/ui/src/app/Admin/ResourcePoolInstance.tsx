@@ -1,6 +1,5 @@
 import React, { useReducer } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,7 +8,6 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   EmptyState,
-  EmptyStateBody,
   EmptyStateIcon,
   PageSection,
   PageSectionVariants,
@@ -28,7 +26,6 @@ import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import { apiPaths, deleteResourceHandle, deleteResourcePool, fetcher, fetcherItemsInAllPages } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { selectConsoleURL } from '@app/store';
 import { ResourceHandle, ResourcePool, ResourcePoolList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -42,6 +39,8 @@ import { BABYLON_DOMAIN, compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util'
 import useMatchMutate from '@app/utils/useMatchMutate';
 import usePoolStatus from './usePoolStatus';
 import Footer from '@app/components/Footer';
+import useSession from '@app/utils/useSession';
+import NotFoundComponent from '@app/components/NotFound';
 
 import './admin.css';
 
@@ -60,7 +59,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
   activeTab,
 }) => {
   const navigate = useNavigate();
-  const consoleURL = useSelector(selectConsoleURL);
+  const { consoleUrl } = useSession().getSession();
   const matchMutate = useMatchMutate();
   const [selectedResourceHandleUids, reduceResourceHandleSelectedUids] = useReducer(selectedUidsReducer, []);
 
@@ -154,7 +153,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   label="Edit in OpenShift Console"
                   onSelect={() =>
                     window.open(
-                      `${consoleURL}/k8s/ns/${resourcePool.metadata.namespace}/${resourcePool.apiVersion.replace(
+                      `${consoleUrl}/k8s/ns/${resourcePool.metadata.namespace}/${resourcePool.apiVersion.replace(
                         '/',
                         '~'
                       )}~${resourcePool.kind}/${resourcePool.metadata.name}/yaml`
@@ -166,7 +165,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   label="Open in OpenShift Console"
                   onSelect={() =>
                     window.open(
-                      `${consoleURL}/k8s/ns/${resourcePool.metadata.namespace}/${resourcePool.apiVersion.replace(
+                      `${consoleUrl}/k8s/ns/${resourcePool.metadata.namespace}/${resourcePool.apiVersion.replace(
                         '/',
                         '~'
                       )}~${resourcePool.kind}/${resourcePool.metadata.name}`
@@ -382,24 +381,13 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
   );
 };
 
-const NotFoundComponent: React.FC<{
-  resourcePoolName: string;
-}> = ({ resourcePoolName }) => (
-  <EmptyState variant="full">
-    <EmptyStateIcon icon={ExclamationTriangleIcon} />
-    <Title headingLevel="h1" size="lg">
-      ResourcePool not found
-    </Title>
-    <EmptyStateBody>ResourcePool {resourcePoolName} was not found.</EmptyStateBody>
-  </EmptyState>
-);
 const ResourcePoolInstance: React.FC = () => {
   const { name: resourcePoolName, tab: activeTab = 'details' } = useParams();
   return (
     <ErrorBoundary
       fallbackRender={() => (
         <>
-          <NotFoundComponent resourcePoolName={resourcePoolName} />
+          <NotFoundComponent name={resourcePoolName} type="ResourcePool" />
           <Footer />
         </>
       )}

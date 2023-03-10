@@ -1,12 +1,9 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-
 import { PageSection, PageSectionVariants, Title } from '@patternfly/react-core';
-
-import { selectInterface } from '@app/store';
+import useSession from '@app/utils/useSession';
 
 const CatalogInterfaceDescription: React.FC = () => {
-  const userInterface = useSelector(selectInterface);
+  const { userInterface } = useSession().getSession();
 
   if (userInterface === 'rhpds') {
     return (

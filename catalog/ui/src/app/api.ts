@@ -1754,4 +1754,36 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders/${resourceProviderName}`,
   PROVISION_RATING: ({ provisionUuid }: { provisionUuid: string }) => `/api/ratings/provisions/${provisionUuid}`,
+  ANARCHY_RUNS: ({
+    namespace,
+    limit,
+    continueId,
+    labelSelector,
+  }: {
+    namespace?: string;
+    limit?: number;
+    continueId?: string;
+    labelSelector?: string;
+  }) =>
+    `/apis/anarchy.gpte.redhat.com/v1/${namespace ? `namespaces/${namespace}/` : ''}anarchyruns?${
+      labelSelector ? `labelSelector=${labelSelector}&` : ''
+    }${limit ? `limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
+  ANARCHY_RUN: ({ namespace, anarchyRunName }: { namespace: string; anarchyRunName: string }) =>
+    `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchyruns/${anarchyRunName}`,
+  ANARCHY_ACTION: ({ namespace, anarchyActionName }: { namespace: string; anarchyActionName: string }) =>
+    `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchyactions/${anarchyActionName}`,
+  ANARCHY_ACTIONS: ({
+    namespace,
+    limit,
+    continueId,
+    labelSelector,
+  }: {
+    namespace?: string;
+    limit?: number;
+    continueId?: string;
+    labelSelector?: string;
+  }) =>
+    `/apis/anarchy.gpte.redhat.com/v1/${namespace ? `namespaces/${namespace}/` : ''}anarchyactions?${
+      labelSelector ? `labelSelector=${labelSelector}&` : ''
+    }${limit ? `limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
 };
