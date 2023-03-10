@@ -8,9 +8,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Bullseye,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
   PageSection,
   PageSectionVariants,
   Split,
@@ -20,7 +17,6 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
-import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
   apiPaths,
   dateToApiString,
@@ -34,7 +30,7 @@ import {
   startWorkshopServices,
   stopWorkshop,
 } from '@app/api';
-import { NamespaceList, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvision } from '@app/types';
+import { NamespaceList, ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import {
   BABYLON_DOMAIN,
   compareK8sObjects,
@@ -59,6 +55,7 @@ import WorkshopScheduleAction from './WorkshopScheduleAction';
 import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopStarted } from './workshops-utils';
 import Label from '@app/components/Label';
 import ProjectSelector from '@app/components/ProjectSelector';
+import NotFoundComponent from '@app/components/NotFound';
 
 import './workshops-item.css';
 
@@ -432,21 +429,6 @@ const WorkshopsItemComponent: React.FC<{
   );
 };
 
-const NotFoundComponent: React.FC<{
-  workshopName: string;
-  serviceNamespaceName: string;
-}> = ({ workshopName, serviceNamespaceName }) => (
-  <EmptyState variant="full">
-    <EmptyStateIcon icon={ExclamationTriangleIcon} />
-    <Title headingLevel="h1" size="lg">
-      Workshop not found
-    </Title>
-    <EmptyStateBody>
-      Workshop {workshopName} was not found in {serviceNamespaceName}.
-    </EmptyStateBody>
-  </EmptyState>
-);
-
 const WorkshopsItem: React.FC<{}> = ({}) => {
   const { name: workshopName, namespace: serviceNamespaceName, tab: activeTab = 'details' } = useParams();
   return (
@@ -454,7 +436,7 @@ const WorkshopsItem: React.FC<{}> = ({}) => {
       onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
       fallbackRender={() => (
         <>
-          <NotFoundComponent workshopName={workshopName} serviceNamespaceName={serviceNamespaceName} />
+          <NotFoundComponent name={workshopName} namespace={serviceNamespaceName} type="Workshop" />
           <Footer />
         </>
       )}

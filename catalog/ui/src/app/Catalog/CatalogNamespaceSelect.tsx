@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
-
 import { Dropdown, DropdownItem, DropdownToggle, PageSection, PageSectionVariants } from '@patternfly/react-core';
-
-import { selectCatalogNamespaces } from '@app/store';
+import useSession from '@app/utils/useSession';
 import { displayName } from '@app/util';
+
 import './catalog-namespace-select.css';
 
 const CatalogNamespaceSelect: React.FC<{
   onSelect: (ns: string) => void;
   selected?: string;
 }> = ({ onSelect, selected }) => {
-  const catalogNamespaces = useSelector(selectCatalogNamespaces);
+  const { catalogNamespaces } = useSession().getSession();
   const selectedCatalogNamespace = catalogNamespaces.find((ns) => ns.name === selected);
 
   const [isOpen, setIsOpen] = useState<boolean>(false);

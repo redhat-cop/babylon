@@ -538,7 +538,11 @@ export type ResourceType =
   | 'RESOURCE_POOLS'
   | 'RESOURCE_PROVIDERS'
   | 'RESOURCE_PROVIDER'
-  | 'PROVISION_RATING';
+  | 'PROVISION_RATING'
+  | 'ANARCHY_ACTION'
+  | 'ANARCHY_ACTIONS'
+  | 'ANARCHY_RUN'
+  | 'ANARCHY_RUNS';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 

@@ -101,12 +101,14 @@ const ServiceUsers: React.FC<{
           ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg'
         );
         const userMessages: string = userData.msg;
-        <UserMessage
-          userMessages={userMessages}
-          userDataEntries={userDataEntries}
-          userLabUrl={userLabUrl}
-          userName={userName}
-        />;
+        return (
+          <UserMessage
+            userMessages={userMessages}
+            userDataEntries={userDataEntries}
+            userLabUrl={userLabUrl}
+            userName={userName}
+          />
+        );
       })}
     </>
   );

@@ -465,7 +465,6 @@ const AnarchySubjectInstance: React.FC = () => {
           <Tab eventKey="anarchyruns" title={<TabTitleText>AnarchyRuns</TabTitleText>}>
             <AnarchyRunsTable
               anarchyRuns={anarchyRuns}
-              fetchState={anarchyRunsFetchState}
               selectedUids={selectedAnarchyRunUids}
               selectedUidsReducer={reduceAnarchyRunSelectedUids}
             />

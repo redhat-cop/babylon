@@ -1,11 +1,10 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { Button } from '@patternfly/react-core';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
-import { selectUser } from '@app/store';
 import ButtonCircleIcon from './ButtonCircleIcon';
+import useSession from '@app/utils/useSession';
 
-function submitFormFromLink(e) {
+function submitFormFromLink(e: any) {
   e.preventDefault();
   e.target.closest('form').submit();
 }
@@ -16,7 +15,7 @@ const LabInterfaceLink: React.FC<{
   url: string;
   variant?: 'primary' | 'secondary' | 'circle';
 }> = ({ data, method, url, variant }) => {
-  const user = useSelector(selectUser);
+  const { authUser: user } = useSession().getSession();
   const email = user.includes('@')
     ? user
     : user.includes('-')

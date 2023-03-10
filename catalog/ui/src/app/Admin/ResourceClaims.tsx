@@ -32,9 +32,9 @@ import {
   checkResourceClaimCanStop,
   displayName,
   BABYLON_DOMAIN,
-  compareK8sObjects,
   getCostTracker,
   FETCH_BATCH_LIMIT,
+  compareK8sObjectsArr,
 } from '@app/util';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -108,14 +108,13 @@ const ResourceClaims: React.FC<{}> = () => {
       refreshInterval: 8000,
       revalidateFirstPage: true,
       revalidateAll: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      compare: (currentData: any, newData: any) => {
+      compare: (currentData, newData) => {
         if (currentData === newData) return true;
         if (!currentData || currentData.length === 0) return false;
         if (!newData || newData.length === 0) return false;
         if (currentData.length !== newData.length) return false;
         for (let i = 0; i < currentData.length; i++) {
-          if (!compareK8sObjects(currentData[i].items, newData[i].items)) return false;
+          if (!compareK8sObjectsArr(currentData[i].items, newData[i].items)) return false;
         }
         return true;
       },

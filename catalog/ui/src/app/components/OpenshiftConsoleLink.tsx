@@ -1,17 +1,16 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { selectConsoleURL } from '@app/store';
 import { K8sObject, K8sObjectReference } from '@app/types';
 import openshiftIconSVG from '@app/bgimages/openshift-icon.svg';
 
 import './openshift-console-link.css';
+import useSession from '@app/utils/useSession';
 
 const OpenshiftConsoleLink: React.FC<{
   linkToNamespace?: boolean;
   reference?: K8sObjectReference;
   resource?: K8sObject;
 }> = ({ children, linkToNamespace, reference, resource, ...rest }) => {
-  const consoleURL = useSelector(selectConsoleURL);
+  const { consoleUrl } = useSession().getSession();
   const apiVersion = reference?.apiVersion || resource?.apiVersion;
   const kind = reference?.kind || resource?.kind;
   const plural = kind.toLowerCase() + 's';
@@ -20,11 +19,11 @@ const OpenshiftConsoleLink: React.FC<{
 
   const linkHref = apiVersion.includes('/')
     ? linkToNamespace
-      ? `${consoleURL}/api-resource/ns/${namespace}/${apiVersion.replace('/', '~')}~${kind}/instances`
-      : `${consoleURL}/k8s/ns/${namespace}/${apiVersion.replace('/', '~')}~${kind}/${name}`
+      ? `${consoleUrl}/api-resource/ns/${namespace}/${apiVersion.replace('/', '~')}~${kind}/instances`
+      : `${consoleUrl}/k8s/ns/${namespace}/${apiVersion.replace('/', '~')}~${kind}/${name}`
     : linkToNamespace
-    ? `${consoleURL}/k8s/ns/${namespace}/${plural}`
-    : `${consoleURL}/k8s/ns/${namespace}/${plural}/${name}`;
+    ? `${consoleUrl}/k8s/ns/${namespace}/${plural}`
+    : `${consoleUrl}/k8s/ns/${namespace}/${plural}/${name}`;
 
   return (
     <a

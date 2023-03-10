@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,9 +7,6 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
   PageSection,
   PageSectionVariants,
   Split,
@@ -20,11 +16,9 @@ import {
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
-import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import { apiPaths, deleteResourceProvider, fetcher } from '@app/api';
-import { selectConsoleURL } from '@app/store';
 import { ResourceProvider, ResourceProviderList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -35,6 +29,8 @@ import useSWR from 'swr';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
+import NotFoundComponent from '@app/components/NotFound';
+import useSession from '@app/utils/useSession';
 
 import './admin.css';
 
@@ -43,7 +39,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
   activeTab,
 }) => {
   const navigate = useNavigate();
-  const consoleURL = useSelector(selectConsoleURL);
+  const { consoleUrl } = useSession().getSession();
   const matchMutate = useMatchMutate();
 
   const {
@@ -98,7 +94,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
                   label="Edit in OpenShift Console"
                   onSelect={() =>
                     window.open(
-                      `${consoleURL}/k8s/ns/${
+                      `${consoleUrl}/k8s/ns/${
                         resourceProvider.metadata.namespace
                       }/${resourceProvider.apiVersion.replace('/', '~')}~${resourceProvider.kind}/${
                         resourceProvider.metadata.name
@@ -111,7 +107,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
                   label="Open in OpenShift Console"
                   onSelect={() =>
                     window.open(
-                      `${consoleURL}/k8s/ns/${
+                      `${consoleUrl}/k8s/ns/${
                         resourceProvider.metadata.namespace
                       }/${resourceProvider.apiVersion.replace('/', '~')}~${resourceProvider.kind}/${
                         resourceProvider.metadata.name
@@ -182,24 +178,13 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
   );
 };
 
-const NotFoundComponent: React.FC<{
-  resourceProviderName: string;
-}> = ({ resourceProviderName }) => (
-  <EmptyState variant="full">
-    <EmptyStateIcon icon={ExclamationTriangleIcon} />
-    <Title headingLevel="h1" size="lg">
-      ResourceProvider not found
-    </Title>
-    <EmptyStateBody>ResourceProvider {resourceProviderName} was not found.</EmptyStateBody>
-  </EmptyState>
-);
 const ResourceProviderInstance: React.FC = () => {
   const { name: resourceProviderName, tab: activeTab = 'details' } = useParams();
   return (
     <ErrorBoundary
       fallbackRender={() => (
         <>
-          <NotFoundComponent resourceProviderName={resourceProviderName} />
+          <NotFoundComponent name={resourceProviderName} type="ResourceProvider" />
           <Footer />
         </>
       )}
