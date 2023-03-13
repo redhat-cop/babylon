@@ -35,6 +35,7 @@ import {
   getCostTracker,
   FETCH_BATCH_LIMIT,
   compareK8sObjectsArr,
+  isResourceClaimPartOfWorkshop,
 } from '@app/util';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -198,9 +199,8 @@ const ResourceClaims: React.FC<{}> = () => {
         );
         return await deleteResourceClaim(resourceClaim);
       } else {
-        const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
-        const isPartOfWorkshop = !!workshopProvisionName;
-        if (isPartOfWorkshop) return resourceClaim; // If has a workshopProvision -> Do nothing.
+        const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+        if (isPartOfWorkshop) return resourceClaim;
         if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
           return await startAllResourcesInResourceClaim(resourceClaim);
         } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
@@ -377,8 +377,7 @@ const ResourceClaims: React.FC<{}> = () => {
               const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
               const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
               const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
-              const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
-              const isPartOfWorkshop = !!workshopProvisionName;
+              const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
               const costTracker = getCostTracker(resourceClaim);
               // Available actions depends on kind of service
               const actionHandlers = {

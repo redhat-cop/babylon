@@ -180,25 +180,27 @@ const WorkshopsItemDetails: React.FC<{
         )}
       </DescriptionListGroup>
 
-      <DescriptionListGroup>
-        <DescriptionListTerm>Status</DescriptionListTerm>
-        <DescriptionListDescription>
-          {autoStartTime && autoStartTime > Date.now() ? (
-            <span className="services-item__status--scheduled" key="scheduled">
-              <CheckCircleIcon key="scheduled-icon" /> Scheduled
-            </span>
-          ) : resourceClaims && resourceClaims.length > 0 ? (
-            <ServiceStatus
-              creationTime={Date.parse(resourceClaims[0].metadata.creationTimestamp)}
-              resource={getMostRelevantResourceAndTemplate(resourceClaims[0]).resource}
-              resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaims[0]).template}
-              resourceClaim={resourceClaims[0]}
-            />
-          ) : (
-            <p>...</p>
-          )}
-        </DescriptionListDescription>
-      </DescriptionListGroup>
+      {resourceClaims ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Status</DescriptionListTerm>
+          <DescriptionListDescription>
+            {autoStartTime && autoStartTime > Date.now() ? (
+              <span className="services-item__status--scheduled" key="scheduled">
+                <CheckCircleIcon key="scheduled-icon" /> Scheduled
+              </span>
+            ) : resourceClaims.length > 0 ? (
+              <ServiceStatus
+                creationTime={Date.parse(resourceClaims[0].metadata.creationTimestamp)}
+                resource={getMostRelevantResourceAndTemplate(resourceClaims[0]).resource}
+                resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaims[0]).template}
+                resourceClaim={resourceClaims[0]}
+              />
+            ) : (
+              <p>...</p>
+            )}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
 
       {autoStartTime && autoStartTime > Date.now() ? (
         <DescriptionListGroup>
@@ -233,22 +235,24 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListGroup>
       ) : null}
 
-      <DescriptionListGroup>
-        <DescriptionListTerm>Auto-Destroy</DescriptionListTerm>
-        <DescriptionListDescription>
-          <AutoStopDestroy
-            type="auto-destroy"
-            onClick={() => {
-              showModal ? showModal({ resourceClaims, action: 'scheduleDelete' }) : null;
-            }}
-            time={autoDestroyTime}
-            isDisabled={!showModal}
-            variant="extended"
-            className="workshops-item__schedule-btn"
-            notDefinedMessage="- Not defined -"
-          />
-        </DescriptionListDescription>
-      </DescriptionListGroup>
+      {resourceClaims ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Auto-Destroy</DescriptionListTerm>
+          <DescriptionListDescription>
+            <AutoStopDestroy
+              type="auto-destroy"
+              onClick={() => {
+                showModal ? showModal({ resourceClaims, action: 'scheduleDelete' }) : null;
+              }}
+              time={autoDestroyTime}
+              isDisabled={!showModal}
+              variant="extended"
+              className="workshops-item__schedule-btn"
+              notDefinedMessage="- Not defined -"
+            />
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
     </DescriptionList>
   );
 };
