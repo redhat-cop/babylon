@@ -15,15 +15,16 @@ const UserMessage: React.FC<{
   userDataEntries: [string, unknown][];
 }> = ({ userName, userMessages, userLabUrl, userDataEntries }) => {
   const userMessagesHtml = useMemo(
-    () => (
-      <div
-        dangerouslySetInnerHTML={{
-          __html: renderContent(userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, '$1 +\n'), {
-            format: 'asciidoc',
-          }),
-        }}
-      />
-    ),
+    () =>
+      userMessages ? (
+        <div
+          dangerouslySetInnerHTML={{
+            __html: renderContent(userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, '$1 +\n'), {
+              format: 'asciidoc',
+            }),
+          }}
+        />
+      ) : null,
     [userMessages]
   );
 
