@@ -10,9 +10,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
   Form,
   FormGroup,
   FormHelperText,
@@ -29,7 +26,6 @@ import {
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
-import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import useSWRImmutable from 'swr/immutable';
 import {
   apiFetch,
@@ -41,7 +37,6 @@ import {
   fetcher,
 } from '@app/api';
 import { CatalogItem } from '@app/types';
-import { ErrorBoundary } from 'react-error-boundary';
 import { displayName, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
@@ -52,10 +47,10 @@ import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
-import Footer from '@app/components/Footer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
 import { getStage, isAutoStopDisabled } from './catalog-utils';
+import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './catalog-item-form.css';
 
@@ -767,28 +762,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 const CatalogItemForm: React.FC = () => {
   const { namespace: catalogNamespaceName, name: catalogItemName } = useParams();
   return (
-    <ErrorBoundary
-      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-      fallbackRender={() => (
-        <>
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={ExclamationTriangleIcon} />
-              <Title headingLevel="h1" size="lg">
-                Catalog item not found.
-              </Title>
-              <EmptyStateBody>
-                CatalogItem {catalogItemName} was not found in {catalogNamespaceName}
-              </EmptyStateBody>
-            </EmptyState>
-          </PageSection>
-          <Footer />
-        </>
-      )}
-    >
+    <ErrorBoundaryPage namespace={catalogNamespaceName} name={catalogItemName} type="Catalog item">
       <CatalogItemFormData catalogItemName={catalogItemName} catalogNamespaceName={catalogNamespaceName} />
-      <Footer />
-    </ErrorBoundary>
+    </ErrorBoundaryPage>
   );
 };
 

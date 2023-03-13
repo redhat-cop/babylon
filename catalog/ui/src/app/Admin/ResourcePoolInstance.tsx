@@ -33,14 +33,13 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
-import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
+import { useErrorHandler } from 'react-error-boundary';
 import useSWR from 'swr';
 import { BABYLON_DOMAIN, compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 import usePoolStatus from './usePoolStatus';
-import Footer from '@app/components/Footer';
 import useSession from '@app/utils/useSession';
-import NotFoundComponent from '@app/components/NotFound';
+import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './admin.css';
 
@@ -384,18 +383,9 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
 const ResourcePoolInstance: React.FC = () => {
   const { name: resourcePoolName, tab: activeTab = 'details' } = useParams();
   return (
-    <ErrorBoundary
-      fallbackRender={() => (
-        <>
-          <NotFoundComponent name={resourcePoolName} type="ResourcePool" />
-          <Footer />
-        </>
-      )}
-      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-    >
+    <ErrorBoundaryPage name={resourcePoolName} type="ResourcePool">
       <ResourcePoolInstanceComponent activeTab={activeTab} resourcePoolName={resourcePoolName} />
-      <Footer />
-    </ErrorBoundary>
+    </ErrorBoundaryPage>
   );
 };
 

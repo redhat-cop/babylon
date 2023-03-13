@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
@@ -43,7 +42,6 @@ import {
 import useSession from '@app/utils/useSession';
 import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import Modal, { useModal } from '@app/Modal/Modal';
-import Footer from '@app/components/Footer';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
 import WorkshopActionModal from '@app/components/WorkshopActionModal';
 import WorkshopActions from './WorkshopActions';
@@ -55,7 +53,7 @@ import WorkshopScheduleAction from './WorkshopScheduleAction';
 import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopStarted } from './workshops-utils';
 import Label from '@app/components/Label';
 import ProjectSelector from '@app/components/ProjectSelector';
-import NotFoundComponent from '@app/components/NotFound';
+import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './workshops-item.css';
 
@@ -432,22 +430,13 @@ const WorkshopsItemComponent: React.FC<{
 const WorkshopsItem: React.FC<{}> = ({}) => {
   const { name: workshopName, namespace: serviceNamespaceName, tab: activeTab = 'details' } = useParams();
   return (
-    <ErrorBoundary
-      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-      fallbackRender={() => (
-        <>
-          <NotFoundComponent name={workshopName} namespace={serviceNamespaceName} type="Workshop" />
-          <Footer />
-        </>
-      )}
-    >
+    <ErrorBoundaryPage namespace={workshopName} name={serviceNamespaceName} type="Workshop">
       <WorkshopsItemComponent
         activeTab={activeTab}
         workshopName={workshopName}
         serviceNamespaceName={serviceNamespaceName}
       />
-      <Footer />
-    </ErrorBoundary>
+    </ErrorBoundaryPage>
   );
 };
 

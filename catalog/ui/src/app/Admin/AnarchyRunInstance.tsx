@@ -29,12 +29,11 @@ import AnsibleRunLog from '@app/components/AnsibleRunLog';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-import Footer from '@app/components/Footer';
 import useSession from '@app/utils/useSession';
-import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
+import { useErrorHandler } from 'react-error-boundary';
 import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
-import NotFoundComponent from '@app/components/NotFound';
+import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './admin.css';
 
@@ -250,18 +249,9 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
 const AnarchyRunInstance: React.FC = () => {
   const { name: anarchyRunName, namespace, tab = 'details' } = useParams();
   return (
-    <ErrorBoundary
-      fallbackRender={() => (
-        <>
-          <NotFoundComponent name={anarchyRunName} namespace={namespace} type="AnarchyRun" />
-          <Footer />
-        </>
-      )}
-      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-    >
+    <ErrorBoundaryPage namespace={namespace} name={anarchyRunName} type="AnarchyRun">
       <AnarchyRunInstanceComponent namespace={namespace} anarchyRunName={anarchyRunName} activeTab={tab} />
-      <Footer />
-    </ErrorBoundary>
+    </ErrorBoundaryPage>
   );
 };
 

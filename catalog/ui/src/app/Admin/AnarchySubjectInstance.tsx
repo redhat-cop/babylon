@@ -39,11 +39,10 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import AnarchyActionsTable from './AnarchyActionsTable';
 import AnarchyRunsTable from './AnarchyRunsTable';
-import Footer from '@app/components/Footer';
-import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
-import NotFoundComponent from '@app/components/NotFound';
+import { useErrorHandler } from 'react-error-boundary';
 import useSession from '@app/utils/useSession';
 import { compareK8sObjects, compareK8sObjectsArr } from '@app/util';
+import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './admin.css';
 
@@ -430,18 +429,9 @@ const AnarchySubjectInstanceComponent: React.FC<{
 const AnarchySubjectInstance: React.FC = () => {
   const { name: anarchySubjectName, namespace, tab = 'details' } = useParams();
   return (
-    <ErrorBoundary
-      fallbackRender={() => (
-        <>
-          <NotFoundComponent name={anarchySubjectName} namespace={namespace} type="AnarchySubject" />
-          <Footer />
-        </>
-      )}
-      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-    >
+    <ErrorBoundaryPage namespace={namespace} name={anarchySubjectName} type="AnarchySubject">
       <AnarchySubjectInstanceComponent namespace={namespace} anarchySubjectName={anarchySubjectName} activeTab={tab} />
-      <Footer />
-    </ErrorBoundary>
+    </ErrorBoundaryPage>
   );
 };
 

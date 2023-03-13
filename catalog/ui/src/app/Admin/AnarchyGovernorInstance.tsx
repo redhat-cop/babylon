@@ -30,11 +30,10 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import AnarchySubjectsTable from './AnarchySubjectsTable';
-import Footer from '@app/components/Footer';
 import useSession from '@app/utils/useSession';
-import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
-import NotFoundComponent from '@app/components/NotFound';
+import { useErrorHandler } from 'react-error-boundary';
 import { compareK8sObjects, compareK8sObjectsArr } from '@app/util';
+import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './admin.css';
 
@@ -205,22 +204,13 @@ const AnarchyGovernorInstanceComponent: React.FC<{
 const AnarchyGovernorInstance: React.FC = () => {
   const { name: anarchyGovernorName, namespace, tab: activeTab = 'details' } = useParams();
   return (
-    <ErrorBoundary
-      fallbackRender={() => (
-        <>
-          <NotFoundComponent name={anarchyGovernorName} type="AnarchyGovernor" namespace={namespace} />
-          <Footer />
-        </>
-      )}
-      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-    >
+    <ErrorBoundaryPage namespace={namespace} name={anarchyGovernorName} type="AnarchyGovernor">
       <AnarchyGovernorInstanceComponent
         activeTab={activeTab}
         anarchyGovernorName={anarchyGovernorName}
         namespace={namespace}
       />
-      <Footer />
-    </ErrorBoundary>
+    </ErrorBoundaryPage>
   );
 };
 
