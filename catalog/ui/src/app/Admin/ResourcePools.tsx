@@ -54,13 +54,17 @@ function filterResourcePool(resourcePool: ResourcePool, keywordFilter: string[])
 const ResourcePools: React.FC = () => {
   const matchMutate = useMatchMutate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const keywordFilter = searchParams.has('search')
-    ? searchParams
-        .get('search')
-        .trim()
-        .split(/ +/)
-        .filter((w) => w != '')
-    : null;
+  const keywordFilter = useMemo(
+    () =>
+      searchParams.has('search')
+        ? searchParams
+            .get('search')
+            .trim()
+            .split(/ +/)
+            .filter((w) => w != '')
+        : null,
+    [searchParams.get('search')]
+  );
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
   const { data: resourcePools, mutate } = useSWR<ResourcePool[]>(

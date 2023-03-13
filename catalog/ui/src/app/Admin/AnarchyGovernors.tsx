@@ -1,5 +1,5 @@
-import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+import React, { useCallback, useMemo, useReducer } from 'react';
+import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import {
   EmptyState,
   EmptyStateIcon,
@@ -9,21 +9,21 @@ import {
   SplitItem,
   Title,
 } from '@patternfly/react-core';
+import useSWRInfinite from 'swr/infinite';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { deleteAnarchyGovernor, listAnarchyGovernors } from '@app/api';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { apiPaths, deleteAnarchyGovernor, fetcher } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { AnarchyGovernor, AnarchyGovernorList, K8sObject } from '@app/types';
+import { AnarchyGovernor, AnarchyGovernorList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import RefreshButton from '@app/components/RefreshButton';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import AnarchyNamespaceSelect from './AnarchyNamespaceSelect';
 import Footer from '@app/components/Footer';
+import { compareK8sObjectsArr } from '@app/util';
+import ProjectSelector from '@app/components/ProjectSelector';
 
 import './admin.css';
 
@@ -36,50 +36,110 @@ function keywordMatch(anarchyGovernor: AnarchyGovernor, keyword: string): boolea
   return false;
 }
 
-function filterAnarchyGovernor(anarchyGovernor: AnarchyGovernor, keywordFilter: string[]): boolean {
-  if (!keywordFilter) {
-    return true;
-  }
-  for (const keyword of keywordFilter) {
-    if (!keywordMatch(anarchyGovernor, keyword)) {
-      return false;
-    }
-  }
-  return true;
-}
-
 const AnarchyGovernors: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const componentWillUnmount = useRef(false);
-  const { namespace: anarchyNamespace } = useParams();
-  const urlSearchParams = new URLSearchParams(location.search);
-  const keywordFilter = urlSearchParams.has('search')
-    ? urlSearchParams
-        .get('search')
-        .trim()
-        .split(/ +/)
-        .filter((w) => w != '')
-    : null;
-
-  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
+  const { namespace } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const keywordFilter = useMemo(
+    () =>
+      searchParams.has('search')
+        ? searchParams
+            .get('search')
+            .trim()
+            .split(/ +/)
+            .filter((w) => w != '')
+        : null,
+    [searchParams.get('search')]
+  );
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const anarchyGovernors: AnarchyGovernor[] = (fetchState?.filteredItems as AnarchyGovernor[]) || [];
+  const {
+    data: anarchyGovernorsPages,
+    mutate,
+    size,
+    setSize,
+  } = useSWRInfinite<AnarchyGovernorList>(
+    (index, previousPageData: AnarchyGovernorList) => {
+      if (previousPageData && !previousPageData.metadata?.continue) {
+        return null;
+      }
+      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
+      return apiPaths.ANARCHY_GOVERNORS({ namespace, limit: FETCH_BATCH_LIMIT, continueId });
+    },
+    fetcher,
+    {
+      refreshInterval: 8000,
+      revalidateFirstPage: true,
+      revalidateAll: true,
+      compare: (currentData, newData) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.length === 0) return false;
+        if (!newData || newData.length === 0) return false;
+        if (currentData.length !== newData.length) return false;
+        for (let i = 0; i < currentData.length; i++) {
+          if (!compareK8sObjectsArr(currentData[i].items, newData[i].items)) return false;
+        }
+        return true;
+      },
+    }
+  );
 
-  const filterFunction = keywordFilter
-    ? (anarchyGovernor: K8sObject): boolean => filterAnarchyGovernor(anarchyGovernor as AnarchyGovernor, keywordFilter)
-    : null;
+  const revalidate = useCallback(
+    ({ updatedItems, action }: { updatedItems: AnarchyGovernor[]; action: 'update' | 'delete' }) => {
+      const anarchyGovernorsPagesCpy = JSON.parse(JSON.stringify(anarchyGovernorsPages));
+      let p: AnarchyGovernorList;
+      let i: number;
+      for ([i, p] of anarchyGovernorsPagesCpy.entries()) {
+        for (const updatedItem of updatedItems) {
+          const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+          if (foundIndex > -1) {
+            if (action === 'update') {
+              anarchyGovernorsPagesCpy[i].items[foundIndex] = updatedItem;
+            } else if (action === 'delete') {
+              anarchyGovernorsPagesCpy[i].items.splice(foundIndex, 1);
+            }
+            mutate(anarchyGovernorsPagesCpy);
+          }
+        }
+      }
+    },
+    [mutate, anarchyGovernorsPages]
+  );
 
-  const primaryAppContainer = document.getElementById('primary-app-container');
-  primaryAppContainer.onscroll = (e) => {
-    const scrollable = e.target as any;
+  const isReachingEnd =
+    anarchyGovernorsPages && !anarchyGovernorsPages[anarchyGovernorsPages.length - 1].metadata.continue;
+  const isLoadingInitialData = !anarchyGovernorsPages;
+  const isLoadingMore =
+    isLoadingInitialData ||
+    (size > 0 && anarchyGovernorsPages && typeof anarchyGovernorsPages[size - 1] === 'undefined');
+
+  const filterFunction = useCallback(
+    (anarchyGovernor: AnarchyGovernor) => {
+      if (!keywordFilter) {
+        return true;
+      }
+      for (const keyword of keywordFilter) {
+        if (!keywordMatch(anarchyGovernor, keyword)) {
+          return false;
+        }
+      }
+      return true;
+    },
+    [keywordFilter]
+  );
+
+  const anarchyGovernors: AnarchyGovernor[] = useMemo(
+    () => [].concat(...anarchyGovernorsPages.map((page) => page.items)).filter(filterFunction) || [],
+    [filterFunction, anarchyGovernorsPages]
+  );
+
+  // Trigger continue fetching more resource claims on scroll.
+  const scrollHandler = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollable = e.currentTarget;
     const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && fetchState.continue && fetchState.limit <= anarchyGovernors.length) {
-      reduceFetchState({
-        type: 'modify',
-        limit: fetchState.limit + FETCH_BATCH_LIMIT,
-      });
+    if (scrollRemaining < 500 && !isReachingEnd && !isLoadingMore) {
+      setSize(size + 1);
     }
   };
 
@@ -93,71 +153,29 @@ const AnarchyGovernors: React.FC = () => {
         }
       }
       reduceSelectedUids({ type: 'clear' });
-      reduceFetchState({ type: 'removeItems', items: removedAnarchyGovernors });
+      revalidate({ action: 'delete', updatedItems: removedAnarchyGovernors });
     }
   }
 
-  async function fetchAnarchyGovernors(): Promise<void> {
-    const anarchyGovernorList: AnarchyGovernorList = await listAnarchyGovernors({
-      continue: fetchState.continue,
-      limit: FETCH_BATCH_LIMIT,
-      namespace: anarchyNamespace,
-    });
-    if (!fetchState.activity.canceled) {
-      reduceFetchState({
-        type: 'post',
-        k8sObjectList: anarchyGovernorList,
-        refreshInterval: 60000,
-        refresh: (): void => {
-          reduceFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  function reloadAnarchyGovernors(): void {
-    reduceFetchState({
-      type: 'startFetch',
-      filter: filterFunction,
-      limit: FETCH_BATCH_LIMIT,
-    });
-    reduceSelectedUids({ type: 'clear' });
-  }
-
-  useEffect(() => {
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  // Fetch or continue fetching
-  useEffect(() => {
-    if (fetchState?.canContinue && (fetchState.refreshing || fetchState.filteredItems.length < fetchState.limit)) {
-      fetchAnarchyGovernors();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(fetchState);
+  // Fetch all if keywordFilter is defined.
+  if (
+    keywordFilter &&
+    anarchyGovernorsPages.length > 0 &&
+    anarchyGovernorsPages[anarchyGovernorsPages.length - 1].metadata.continue
+  ) {
+    if (!isLoadingMore) {
+      if (anarchyGovernors.length > 0) {
+        setTimeout(() => {
+          setSize(size + 1);
+        }, 5000);
+      } else {
+        setSize(size + 1);
       }
-    };
-  }, [fetchState]);
-
-  // Start fetch and reload on namespace change
-  useEffect(() => {
-    reloadAnarchyGovernors();
-  }, [anarchyNamespace]);
-
-  useEffect(() => {
-    if (fetchState) {
-      reduceFetchState({
-        type: 'modify',
-        filter: filterFunction,
-      });
     }
-  }, [JSON.stringify(keywordFilter)]);
+  }
 
   return (
-    <>
+    <div onScroll={scrollHandler} className="admin-container">
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
@@ -166,24 +184,22 @@ const AnarchyGovernors: React.FC = () => {
             </Title>
           </SplitItem>
           <SplitItem>
-            <RefreshButton onClick={() => reloadAnarchyGovernors()} />
-          </SplitItem>
-          <SplitItem>
             <KeywordSearchInput
               initialValue={keywordFilter}
               onSearch={(value) => {
                 if (value) {
-                  urlSearchParams.set('search', value.join(' '));
-                } else if (urlSearchParams.has('search')) {
-                  urlSearchParams.delete('search');
+                  searchParams.set('search', value.join(' '));
+                } else if (searchParams.has('search')) {
+                  searchParams.delete('search');
                 }
-                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+                setSearchParams(searchParams);
               }}
             />
           </SplitItem>
           <SplitItem>
-            <AnarchyNamespaceSelect
-              namespace={anarchyNamespace}
+            <ProjectSelector
+              selector="anarchy"
+              currentNamespaceName={namespace}
               onSelect={(namespaceName) => {
                 if (namespaceName) {
                   navigate(`/admin/anarchygovernors/${namespaceName}${location.search}`);
@@ -204,27 +220,19 @@ const AnarchyGovernors: React.FC = () => {
         </Split>
       </PageSection>
       {anarchyGovernors.length === 0 ? (
-        fetchState?.finished ? (
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={ExclamationTriangleIcon} />
-              <Title headingLevel="h1" size="lg">
-                No AnarchyGovernors found
-              </Title>
-            </EmptyState>
-          </PageSection>
-        ) : (
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={LoadingIcon} />
-            </EmptyState>
-          </PageSection>
-        )
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No AnarchyGovernors found
+            </Title>
+          </EmptyState>
+        </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
           <SelectableTable
             columns={['Namespace', 'Name', 'Created At']}
-            onSelectAll={(isSelected) => {
+            onSelectAll={(isSelected: boolean) => {
               if (isSelected) {
                 reduceSelectedUids({ type: 'set', items: anarchyGovernors });
               } else {
@@ -254,7 +262,7 @@ const AnarchyGovernors: React.FC = () => {
                     </span>
                   </>,
                 ],
-                onSelect: (isSelected) =>
+                onSelect: (isSelected: boolean) =>
                   reduceSelectedUids({
                     type: isSelected ? 'add' : 'remove',
                     items: [anarchyGovernor],
@@ -263,7 +271,7 @@ const AnarchyGovernors: React.FC = () => {
               };
             })}
           />
-          {fetchState?.canContinue ? (
+          {!isReachingEnd ? (
             <EmptyState variant="full">
               <EmptyStateIcon icon={LoadingIcon} />
             </EmptyState>
@@ -271,7 +279,7 @@ const AnarchyGovernors: React.FC = () => {
         </PageSection>
       )}
       <Footer />
-    </>
+    </div>
   );
 };
 

@@ -14,7 +14,8 @@ const ProjectSelector: React.FC<{
   currentNamespaceName?: string;
   onSelect: (namespace: ServiceNamespace) => void;
   isPlain?: boolean;
-}> = ({ currentNamespaceName, onSelect, isPlain = false }) => {
+  selector?: 'users' | 'anarchy';
+}> = ({ currentNamespaceName, onSelect, isPlain = false, selector = 'users' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { cache } = useSWRConfig();
   const [allNamespaces, setAllNamespaces] = useState<ServiceNamespace[]>(null);
@@ -25,6 +26,12 @@ const ProjectSelector: React.FC<{
     () => (isAdmin ? allNamespaces : sessionServiceNamespaces) ?? [],
     [isAdmin, allNamespaces, sessionServiceNamespaces]
   );
+  const labelSelector =
+    selector === 'users'
+      ? 'usernamespace.gpte.redhat.com/user-uid'
+      : selector === 'anarchy'
+      ? 'app.kubernetes.io/name=anarchy'
+      : null;
 
   useEffect(() => {
     return () => abortController.abort();
@@ -32,17 +39,15 @@ const ProjectSelector: React.FC<{
 
   const toggleOpen = useCallback(() => {
     if (isAdmin && allNamespaces === null) {
-      const data = cache.get(
-        apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' })
-      ) as ServiceNamespace[];
+      const data = cache.get(apiPaths.NAMESPACES({ labelSelector })) as ServiceNamespace[];
       if (data && Array.isArray(data)) {
         setAllNamespaces(data);
       } else {
-        fetcher(apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' })).then((data) => {
+        fetcher(apiPaths.NAMESPACES({ labelSelector })).then((data) => {
           if (abortController.signal.aborted) return null;
           const namespaces = data.items.map(namespaceToServiceNamespaceMapper);
           setAllNamespaces(namespaces);
-          cache.set(apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }), namespaces);
+          cache.set(apiPaths.NAMESPACES({ labelSelector }), namespaces);
         });
       }
     }

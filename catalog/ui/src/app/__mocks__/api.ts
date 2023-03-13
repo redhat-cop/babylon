@@ -1004,12 +1004,6 @@ const mockListUsers = {
     resourceVersion: '260709915',
   },
 };
-const mockListResourceClaims = {
-  apiVersion: 'poolboy.gpte.redhat.com/v1',
-  items: [],
-  kind: 'ResourceClaimList',
-  metadata: { continue: '', resourceVersion: '260717293' },
-};
 
 export async function getApiSession() {
   return Promise.resolve(mockApiSession);
@@ -1021,8 +1015,4 @@ export async function listClusterCustomObject() {
 
 export async function listUsers() {
   return Promise.resolve(mockListUsers);
-}
-
-export async function listResourceClaims() {
-  return Promise.resolve(mockListResourceClaims);
 }

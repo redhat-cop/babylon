@@ -2,9 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState, EmptyStateIcon, Title } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { K8sFetchState } from '@app/K8sFetchState';
 import { AnarchyAction } from '@app/types';
-import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
@@ -12,32 +10,23 @@ import TimeInterval from '@app/components/TimeInterval';
 
 const AnarchyActionsTable: React.FC<{
   anarchyActions: AnarchyAction[];
-  fetchState: K8sFetchState | null;
   selectedUids: string[];
   selectedUidsReducer: any;
-}> = ({ anarchyActions, fetchState, selectedUids, selectedUidsReducer }) => {
+}> = ({ anarchyActions, selectedUids, selectedUidsReducer }) => {
   if (anarchyActions.length === 0) {
-    if (fetchState?.finished) {
-      return (
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            No AnarchyActions found.
-          </Title>
-        </EmptyState>
-      );
-    } else {
-      return (
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      );
-    }
+    return (
+      <EmptyState variant="full">
+        <EmptyStateIcon icon={ExclamationTriangleIcon} />
+        <Title headingLevel="h1" size="lg">
+          No AnarchyActions found.
+        </Title>
+      </EmptyState>
+    );
   }
   return (
     <SelectableTable
       columns={['Name', 'Created At']}
-      onSelectAll={(isSelected) => {
+      onSelectAll={(isSelected: boolean) => {
         if (isSelected) {
           selectedUidsReducer({
             type: 'set',
@@ -68,7 +57,7 @@ const AnarchyActionsTable: React.FC<{
               </span>
             </>,
           ],
-          onSelect: (isSelected) =>
+          onSelect: (isSelected: boolean) =>
             selectedUidsReducer({
               type: isSelected ? 'add' : 'remove',
               uids: [anarchyAction.metadata.uid],

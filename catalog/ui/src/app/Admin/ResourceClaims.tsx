@@ -73,13 +73,17 @@ const ResourceClaims: React.FC<{}> = () => {
   const { namespace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { cache } = useSWRConfig();
-  const keywordFilter = searchParams.has('search')
-    ? searchParams
-        .get('search')
-        .trim()
-        .split(/ +/)
-        .filter((w) => w != '')
-    : null;
+  const keywordFilter = useMemo(
+    () =>
+      searchParams.has('search')
+        ? searchParams
+            .get('search')
+            .trim()
+            .split(/ +/)
+            .filter((w) => w != '')
+        : null,
+    [searchParams.get('search')]
+  );
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;

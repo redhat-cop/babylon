@@ -2,53 +2,30 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState, EmptyStateIcon, Title } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { K8sFetchState } from '@app/K8sFetchState';
 import { AnarchySubject } from '@app/types';
-import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
+import { Table, TableBody, TableHeader } from '@patternfly/react-table';
 
 const AnarchySubjectsTable: React.FC<{
   anarchySubjects: AnarchySubject[];
-  fetchState: K8sFetchState | null;
-  selectedUids: string[];
-  selectedUidsReducer: any;
-}> = ({ anarchySubjects, fetchState, selectedUids, selectedUidsReducer }) => {
+}> = ({ anarchySubjects }) => {
   if (anarchySubjects.length === 0) {
-    if (fetchState?.finished) {
-      return (
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            No AnarchySubjects found.
-          </Title>
-        </EmptyState>
-      );
-    } else {
-      return (
-        <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
-      );
-    }
+    return (
+      <EmptyState variant="full">
+        <EmptyStateIcon icon={ExclamationTriangleIcon} />
+        <Title headingLevel="h1" size="lg">
+          No AnarchySubjects found.
+        </Title>
+      </EmptyState>
+    );
   }
   return (
-    <SelectableTable
-      columns={['Name', 'Created At']}
-      onSelectAll={(isSelected) => {
-        if (isSelected) {
-          selectedUidsReducer({
-            type: 'set',
-            uids: anarchySubjects.map((item) => item.metadata.uid),
-          });
-        } else {
-          selectedUidsReducer({
-            type: 'clear',
-          });
-        }
-      }}
+    <Table
+      aria-label="Table"
+      variant="compact"
+      cells={['Name', 'Created At']}
       rows={anarchySubjects.map((anarchySubject: AnarchySubject) => {
         return {
           cells: [
@@ -68,15 +45,12 @@ const AnarchySubjectsTable: React.FC<{
               </span>
             </>,
           ],
-          onSelect: (isSelected) =>
-            selectedUidsReducer({
-              type: isSelected ? 'add' : 'remove',
-              uids: [anarchySubject.metadata.uid],
-            }),
-          selected: selectedUids.includes(anarchySubject.metadata.uid),
         };
       })}
-    />
+    >
+      <TableHeader />
+      <TableBody />
+    </Table>
   );
 };
 

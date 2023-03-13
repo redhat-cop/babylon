@@ -21,10 +21,10 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
-import AnarchyNamespaceSelect from './AnarchyNamespaceSelect';
 import AnarchyRunnerStateSelect from './AnarchyRunnerStateSelect';
 import Footer from '@app/components/Footer';
 import { compareK8sObjectsArr } from '@app/util';
+import ProjectSelector from '@app/components/ProjectSelector';
 
 import './admin.css';
 
@@ -52,13 +52,17 @@ const AnarchyRuns: React.FC = () => {
   const location = useLocation();
   const { namespace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const keywordFilter = searchParams.has('search')
-    ? searchParams
-        .get('search')
-        .trim()
-        .split(/ +/)
-        .filter((w) => w != '')
-    : null;
+  const keywordFilter = useMemo(
+    () =>
+      searchParams.has('search')
+        ? searchParams
+            .get('search')
+            .trim()
+            .split(/ +/)
+            .filter((w) => w != '')
+        : null,
+    [searchParams.get('search')]
+  );
   const stateUrlParam = searchParams.has('state') ? searchParams.get('state') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
@@ -177,7 +181,7 @@ const AnarchyRuns: React.FC = () => {
   // Fetch all if keywordFilter is defined.
   if (keywordFilter && anarchyRunsPages.length > 0 && anarchyRunsPages[anarchyRunsPages.length - 1].metadata.continue) {
     if (!isLoadingMore) {
-      if (AnarchyRuns.length > 0) {
+      if (anarchyRuns.length > 0) {
         setTimeout(() => {
           setSize(size + 1);
         }, 5000);
@@ -223,8 +227,9 @@ const AnarchyRuns: React.FC = () => {
             />
           </SplitItem>
           <SplitItem>
-            <AnarchyNamespaceSelect
-              namespace={namespace}
+            <ProjectSelector
+              selector="anarchy"
+              currentNamespaceName={namespace}
               onSelect={(namespaceName) => {
                 if (namespaceName) {
                   navigate(`/admin/anarchyruns/${namespaceName}${location.search}`);

@@ -3,7 +3,7 @@ import { Select, SelectOption, SelectVariant } from '@patternfly/react-core';
 
 const AnarchyActionSelect: React.FC<{
   action: string;
-  onSelect: (string) => void;
+  onSelect: (s: string) => void;
 }> = ({ action, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
 

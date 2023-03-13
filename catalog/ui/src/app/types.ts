@@ -530,7 +530,6 @@ export type ResourceType =
   | 'NAMESPACES'
   | 'WORKSHOP'
   | 'WORKSHOPS'
-  | 'ANARCHY_SUBJECT'
   | 'WORKSHOP_PROVISIONS'
   | 'RESOURCE_HANDLE'
   | 'RESOURCE_HANDLES'
@@ -541,8 +540,12 @@ export type ResourceType =
   | 'PROVISION_RATING'
   | 'ANARCHY_ACTION'
   | 'ANARCHY_ACTIONS'
+  | 'ANARCHY_SUBJECT'
+  | 'ANARCHY_SUBJECTS'
   | 'ANARCHY_RUN'
-  | 'ANARCHY_RUNS';
+  | 'ANARCHY_RUNS'
+  | 'ANARCHY_GOVERNORS'
+  | 'ANARCHY_GOVERNOR';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
