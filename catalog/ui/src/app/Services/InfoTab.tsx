@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ResourceClaim, ServiceActionActions } from '@app/types';
-import { BABYLON_DOMAIN, renderContent } from '@app/util';
+import { BABYLON_DOMAIN, isResourceClaimPartOfWorkshop, renderContent } from '@app/util';
 import {
   DescriptionList,
   DescriptionListDescription,
@@ -39,9 +39,8 @@ const InfoTab: React.FC<{
   }
   const { resource: mostRelevantResource, template: mostRelevantTemplate } =
     getMostRelevantResourceAndTemplate(resourceClaim);
-  const workshopProvisionName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
-  const isPartOfWorkshop = !!workshopProvisionName;
+  const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const autoStopTime = getAutoStopTime(resourceClaim);
 
   const infoHtml = useMemo(() => {

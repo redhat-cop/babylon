@@ -39,6 +39,7 @@ import {
   compareK8sObjectsArr,
   FETCH_BATCH_LIMIT,
   isResourceClaimPartOfWorkshop,
+  isWorkshopPartOfResourceClaim,
 } from '@app/util';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -175,6 +176,10 @@ const ServicesList: React.FC<{
       }
       if (service.kind === 'Workshop') {
         const workshop = service as Workshop;
+        const isPartOfResourceClaim = isWorkshopPartOfResourceClaim(workshop);
+        if (isPartOfResourceClaim) {
+          return false;
+        }
         if (workshop.metadata.deletionTimestamp) {
           return false;
         }

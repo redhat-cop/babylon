@@ -209,8 +209,17 @@ export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean
 export function isResourceClaimPartOfWorkshop(resourceClaim: ResourceClaim) {
   if (!resourceClaim) return false;
   return (
-    !!resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`] ||
-    !!resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`]
+    resourceClaim.metadata.ownerReferences &&
+    resourceClaim.metadata.ownerReferences.filter((x) => x.kind === 'WorkshopProvision' || x.kind === 'Workshop')
+      .length > 0
+  );
+}
+
+export function isWorkshopPartOfResourceClaim(workshop: Workshop) {
+  if (!workshop) return false;
+  return (
+    workshop.metadata.ownerReferences &&
+    workshop.metadata.ownerReferences.filter((x) => x.kind === 'ResourceClaim').length > 0
   );
 }
 

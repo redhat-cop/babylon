@@ -131,6 +131,11 @@ const renderResourceClaimRow = ({
         {displayName(resourceClaim)}
       </Link>
       {stage !== 'prod' ? <Label key="resource-claim-name__stage">{stage}</Label> : null}
+      {workshopName ? (
+        <Label key="workshop-name__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
+          Workshop UI
+        </Label>
+      ) : null}
       {isAdmin ? <OpenshiftConsoleLink key="resource-claim-name__console" resource={resourceClaim} /> : null}
     </React.Fragment>
   );

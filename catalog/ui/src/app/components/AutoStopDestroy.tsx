@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@patternfly/react-core';
-import { BABYLON_DOMAIN, checkResourceClaimCanStop } from '@app/util';
+import { checkResourceClaimCanStop, isResourceClaimPartOfWorkshop } from '@app/util';
 import { ResourceClaim } from '@app/types';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import LocalTimestamp from './LocalTimestamp';
@@ -53,8 +53,7 @@ const AutoStopDestroy: React.FC<{
     );
   }
 
-  const workshopProvisionName = resourceClaim?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-provision`];
-  const isPartOfWorkshop = !!workshopProvisionName;
+  const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   if (typeof time !== 'number') {
     time = new Date(_time).getTime();
   }
