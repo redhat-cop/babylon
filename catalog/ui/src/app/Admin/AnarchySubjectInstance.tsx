@@ -1,6 +1,6 @@
-import React, { useEffect, useReducer, useRef } from 'react';
+import React, { useMemo, useReducer } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import useSWR from 'swr';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,49 +24,95 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import {
+  apiPaths,
   deleteAnarchyAction,
   deleteAnarchyRun,
   deleteAnarchySubject,
+  fetcher,
   forceDeleteAnarchySubject,
-  getAnarchySubject,
-  listAnarchyActions,
-  listAnarchyRuns,
 } from '@app/api';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchyAction, AnarchyActionList, AnarchyRun, AnarchyRunList, AnarchySubject } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-import { selectConsoleURL } from '@app/store';
 import AnarchyActionsTable from './AnarchyActionsTable';
 import AnarchyRunsTable from './AnarchyRunsTable';
 import Footer from '@app/components/Footer';
+import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
+import NotFoundComponent from '@app/components/NotFound';
+import useSession from '@app/utils/useSession';
+import { compareK8sObjects, compareK8sObjectsArr } from '@app/util';
 
 import './admin.css';
 
-const AnarchySubjectInstance: React.FC = () => {
+const AnarchySubjectInstanceComponent: React.FC<{
+  anarchySubjectName: string;
+  namespace: string;
+  activeTab: string;
+}> = ({ anarchySubjectName, namespace, activeTab }) => {
   const navigate = useNavigate();
-  const consoleURL = useSelector(selectConsoleURL);
-  const componentWillUnmount = useRef(false);
-  const { name: anarchySubjectName, namespace: anarchySubjectNamespace, tab: activeTab = 'details' } = useParams();
-
-  const [anarchyActionsFetchState, reduceAnarchyActionsFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [anarchyRunsFetchState, reduceAnarchyRunsFetchState] = useReducer(k8sFetchStateReducer, null);
-  const [anarchySubjectFetchState, reduceAnarchySubjectFetchState] = useReducer(k8sFetchStateReducer, null);
+  const { consoleUrl } = useSession().getSession();
   const [selectedAnarchyActionUids, reduceAnarchyActionSelectedUids] = useReducer(selectedUidsReducer, []);
   const [selectedAnarchyRunUids, reduceAnarchyRunSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const anarchyActions: AnarchyAction[] = (anarchyActionsFetchState?.items as AnarchyAction[]) || [];
-  const anarchyRuns: AnarchyRun[] = (anarchyRunsFetchState?.items as AnarchyRun[]) || [];
-  const anarchySubject: AnarchySubject | null = (anarchySubjectFetchState?.item as AnarchySubject) || null;
+  const {
+    data: anarchySubject,
+    error,
+    mutate,
+  } = useSWR<AnarchySubject>(
+    apiPaths.ANARCHY_SUBJECT({
+      anarchySubjectName,
+      namespace,
+    }),
+    fetcher,
+    {
+      refreshInterval: 8000,
+      compare: compareK8sObjects,
+    }
+  );
+  useErrorHandler(error?.status === 404 ? error : null);
+
+  const { data: anarchyActionsList, mutate: mutateAnarchyActions } = useSWR<AnarchyActionList>(
+    apiPaths.ANARCHY_ACTIONS({ labelSelector: `anarchy.gpte.redhat.com/subject=${anarchySubjectName}`, namespace }),
+    fetcher,
+    {
+      refreshInterval: 8000,
+      compare: (currentData, newData) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.items.length === 0) return false;
+        if (!newData || newData.items.length === 0) return false;
+        if (currentData.items.length !== newData.items.length) return false;
+        if (!compareK8sObjectsArr(currentData.items, newData.items)) return false;
+        return true;
+      },
+    }
+  );
+  const anarchyActions = useMemo(() => anarchyActionsList.items, [anarchyActionsList]);
+
+  const { data: anarchyRunsList, mutate: mutateAnarchyRuns } = useSWR<AnarchyRunList>(
+    apiPaths.ANARCHY_RUNS({ labelSelector: `anarchy.gpte.redhat.com/subject=${anarchySubjectName}`, namespace }),
+    fetcher,
+    {
+      refreshInterval: 8000,
+      compare: (currentData, newData) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.items.length === 0) return false;
+        if (!newData || newData.items.length === 0) return false;
+        if (currentData.items.length !== newData.items.length) return false;
+        if (!compareK8sObjectsArr(currentData.items, newData.items)) return false;
+        return true;
+      },
+    }
+  );
+  const anarchyRuns = useMemo(() => anarchyRunsList.items, [anarchyRunsList]);
 
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchySubject ${anarchySubjectName}?`)) {
       await deleteAnarchySubject(anarchySubject);
-      navigate(`/admin/anarchysubjects/${anarchySubjectNamespace}`);
+      navigate(`/admin/anarchysubjects/${namespace}`);
+      mutate(null);
     }
   }
 
@@ -77,7 +123,7 @@ const AnarchySubjectInstance: React.FC = () => {
       )
     ) {
       await forceDeleteAnarchySubject(anarchySubject);
-      navigate(`/admin/anarchysubjects/${anarchySubjectNamespace}`);
+      navigate(`/admin/anarchysubjects/${namespace}`);
     }
   }
 
@@ -91,7 +137,12 @@ const AnarchySubjectInstance: React.FC = () => {
         }
       }
       reduceAnarchyActionSelectedUids({ type: 'clear' });
-      reduceAnarchyActionsFetchState({ type: 'removeItems', items: removedAnarchyActions });
+      mutateAnarchyActions({
+        ...anarchyActionsList,
+        items: anarchyActionsList.items.filter(
+          (i) => !removedAnarchyActions.some((r) => r.metadata.uid === i.metadata.uid)
+        ),
+      });
     }
   }
 
@@ -105,132 +156,27 @@ const AnarchySubjectInstance: React.FC = () => {
         }
       }
       reduceAnarchyRunSelectedUids({ type: 'clear' });
-      reduceAnarchyRunsFetchState({ type: 'removeItems', items: removedAnarchyRuns });
-    }
-  }
-
-  async function fetchAnarchyActions(): Promise<void> {
-    const anarchyActionList: AnarchyActionList = await listAnarchyActions({
-      labelSelector: `anarchy.gpte.redhat.com/subject=${anarchySubjectName}`,
-      namespace: anarchySubjectNamespace,
-    });
-    if (!anarchyActionsFetchState.activity.canceled) {
-      reduceAnarchyActionsFetchState({
-        type: 'post',
-        k8sObjectList: anarchyActionList,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceAnarchyActionsFetchState({ type: 'startRefresh' });
-        },
+      mutateAnarchyRuns({
+        ...anarchyRunsList,
+        items: anarchyRunsList.items.filter((i) => !removedAnarchyRuns.some((r) => r.metadata.uid === i.metadata.uid)),
       });
     }
   }
-
-  async function fetchAnarchyRuns(): Promise<void> {
-    const anarchyRunList: AnarchyRunList = await listAnarchyRuns({
-      labelSelector: `anarchy.gpte.redhat.com/subject=${anarchySubjectName}`,
-      namespace: anarchySubjectNamespace,
-    });
-    if (!anarchyRunsFetchState.activity.canceled) {
-      reduceAnarchyRunsFetchState({
-        type: 'post',
-        k8sObjectList: anarchyRunList,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceAnarchyRunsFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  async function fetchAnarchySubject(): Promise<void> {
-    let anarchySubject: AnarchySubject = null;
-    try {
-      anarchySubject = await getAnarchySubject(anarchySubjectNamespace, anarchySubjectName);
-    } catch (error) {
-      if (!(error instanceof Response) || error.status !== 404) {
-        throw error;
-      }
-    }
-    if (!anarchySubjectFetchState.activity.canceled) {
-      reduceAnarchySubjectFetchState({
-        type: 'post',
-        item: anarchySubject,
-        refreshInterval: 5000,
-        refresh: (): void => {
-          reduceAnarchySubjectFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  // First render and detect unmount
-  useEffect(() => {
-    reduceAnarchyActionsFetchState({ type: 'startFetch' });
-    reduceAnarchyRunsFetchState({ type: 'startFetch' });
-    reduceAnarchySubjectFetchState({ type: 'startFetch' });
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (anarchyActionsFetchState?.canContinue) {
-      fetchAnarchyActions();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(anarchyActionsFetchState);
-      }
-    };
-  }, [anarchyActionsFetchState]);
-
-  useEffect(() => {
-    if (anarchyRunsFetchState?.canContinue) {
-      fetchAnarchyRuns();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(anarchyRunsFetchState);
-      }
-    };
-  }, [anarchyRunsFetchState]);
-
-  useEffect(() => {
-    if (anarchySubjectFetchState?.canContinue) {
-      fetchAnarchySubject();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(anarchySubjectFetchState);
-      }
-    };
-  }, [anarchySubjectFetchState]);
 
   if (!anarchySubject) {
-    if (anarchySubjectFetchState?.finished) {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              AnarchySubject not found
-            </Title>
-            <EmptyStateBody>
-              AnarchySubject {anarchySubjectName} was not found in namespace {anarchySubjectNamespace}.
-            </EmptyStateBody>
-          </EmptyState>
-        </PageSection>
-      );
-    } else {
-      return (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateIcon icon={LoadingIcon} />
-          </EmptyState>
-        </PageSection>
-      );
-    }
+    return (
+      <PageSection>
+        <EmptyState variant="full">
+          <EmptyStateIcon icon={ExclamationTriangleIcon} />
+          <Title headingLevel="h1" size="lg">
+            AnarchySubject not found
+          </Title>
+          <EmptyStateBody>
+            AnarchySubject {anarchySubjectName} was not found in namespace {namespace}.
+          </EmptyStateBody>
+        </EmptyState>
+      </PageSection>
+    );
   }
 
   return (
@@ -246,8 +192,8 @@ const AnarchySubjectInstance: React.FC = () => {
           />
           <BreadcrumbItem
             render={({ className }) => (
-              <Link to={`/admin/anarchysubjects/${anarchySubjectNamespace}`} className={className}>
-                {anarchySubjectNamespace}
+              <Link to={`/admin/anarchysubjects/${namespace}`} className={className}>
+                {namespace}
               </Link>
             )}
           />
@@ -286,7 +232,7 @@ const AnarchySubjectInstance: React.FC = () => {
                   label="Edit in OpenShift Console"
                   onSelect={() =>
                     window.open(
-                      `${consoleURL}/k8s/ns/${anarchySubject.metadata.namespace}/${anarchySubject.apiVersion.replace(
+                      `${consoleUrl}/k8s/ns/${anarchySubject.metadata.namespace}/${anarchySubject.apiVersion.replace(
                         '/',
                         '~'
                       )}~${anarchySubject.kind}/${anarchySubject.metadata.name}/yaml`
@@ -298,7 +244,7 @@ const AnarchySubjectInstance: React.FC = () => {
                   label="Open in OpenShift Console"
                   onSelect={() =>
                     window.open(
-                      `${consoleURL}/k8s/ns/${anarchySubject.metadata.namespace}/${anarchySubject.apiVersion.replace(
+                      `${consoleUrl}/k8s/ns/${anarchySubject.metadata.namespace}/${anarchySubject.apiVersion.replace(
                         '/',
                         '~'
                       )}~${anarchySubject.kind}/${anarchySubject.metadata.name}`
@@ -313,9 +259,7 @@ const AnarchySubjectInstance: React.FC = () => {
       <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
         <Tabs
           activeKey={activeTab}
-          onSelect={(e, tabIndex) =>
-            navigate(`/admin/anarchysubjects/${anarchySubjectNamespace}/${anarchySubjectName}/${tabIndex}`)
-          }
+          onSelect={(e, tabIndex) => navigate(`/admin/anarchysubjects/${namespace}/${anarchySubjectName}/${tabIndex}`)}
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
@@ -430,7 +374,7 @@ const AnarchySubjectInstance: React.FC = () => {
             {anarchySubject.status?.towerJobs ? (
               <>
                 <Title key="title" headingLevel="h5" size="lg">
-                  TowerJobs
+                  AnsibleJobs
                 </Title>
                 <DescriptionList isHorizontal key="tower-jobs">
                   {Object.entries(anarchySubject.status.towerJobs)
@@ -457,7 +401,6 @@ const AnarchySubjectInstance: React.FC = () => {
           <Tab eventKey="anarchyactions" title={<TabTitleText>AnarchyActions</TabTitleText>}>
             <AnarchyActionsTable
               anarchyActions={anarchyActions}
-              fetchState={anarchyActionsFetchState}
               selectedUids={selectedAnarchyActionUids}
               selectedUidsReducer={reduceAnarchyActionSelectedUids}
             />
@@ -480,8 +423,25 @@ const AnarchySubjectInstance: React.FC = () => {
           </Tab>
         </Tabs>
       </PageSection>
-      <Footer />
     </>
+  );
+};
+
+const AnarchySubjectInstance: React.FC = () => {
+  const { name: anarchySubjectName, namespace, tab = 'details' } = useParams();
+  return (
+    <ErrorBoundary
+      fallbackRender={() => (
+        <>
+          <NotFoundComponent name={anarchySubjectName} namespace={namespace} type="AnarchySubject" />
+          <Footer />
+        </>
+      )}
+      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
+    >
+      <AnarchySubjectInstanceComponent namespace={namespace} anarchySubjectName={anarchySubjectName} activeTab={tab} />
+      <Footer />
+    </ErrorBoundary>
   );
 };
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useReducer, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useCallback, useMemo, useReducer } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import useSWRInfinite from 'swr/infinite';
 import {
   EmptyState,
   EmptyStateIcon,
@@ -10,19 +11,18 @@ import {
   Title,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { deleteResourceHandle, listResourceHandles } from '@app/api';
-import { cancelFetchActivity, k8sFetchStateReducer } from '@app/K8sFetchState';
+import { apiPaths, deleteResourceHandle, fetcher } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { K8sObject, ResourceHandle, ResourceHandleList } from '@app/types';
+import { ResourceHandle, ResourceHandleList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import RefreshButton from '@app/components/RefreshButton';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import Footer from '@app/components/Footer';
+import { compareK8sObjectsArr } from '@app/util';
 
 import './admin.css';
 
@@ -50,76 +50,109 @@ function keywordMatch(resourceHandle: ResourceHandle, keyword: string): boolean 
   return false;
 }
 
-function filterResourceHandle(resourceHandle: ResourceHandle, keywordFilter: string[]): boolean {
-  if (!keywordFilter) {
-    return true;
-  }
-  for (const keyword of keywordFilter) {
-    if (!keywordMatch(resourceHandle, keyword)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function pruneResourceHandle(resourceHandle: ResourceHandle): ResourceHandle {
-  return {
-    apiVersion: resourceHandle.apiVersion,
-    kind: resourceHandle.kind,
-    metadata: {
-      creationTimestamp: resourceHandle.metadata.creationTimestamp,
-      name: resourceHandle.metadata.name,
-      namespace: resourceHandle.metadata.namespace,
-      uid: resourceHandle.metadata.uid,
-    },
-    spec: {
-      lifespan: resourceHandle.spec.lifespan,
-      resourceClaim: resourceHandle.spec.resourceClaim,
-      resourcePool: resourceHandle.spec.resourcePool,
-      resources: [
-        ...resourceHandle.spec.resources.map((resource) => {
-          return {
-            name: resource.name,
-            provider: resource.provider,
-            reference: resource.reference,
-          };
-        }),
-      ],
-    },
-  };
-}
-
 const ResourceHandles: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const componentWillUnmount = useRef(false);
-  const urlSearchParams = new URLSearchParams(location.search);
-  const keywordFilter = urlSearchParams.has('search')
-    ? urlSearchParams
-        .get('search')
-        .trim()
-        .split(/ +/)
-        .filter((w) => w != '')
-    : null;
-
-  const [fetchState, reduceFetchState] = useReducer(k8sFetchStateReducer, null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const keywordFilter = useMemo(
+    () =>
+      searchParams.has('search')
+        ? searchParams
+            .get('search')
+            .trim()
+            .split(/ +/)
+            .filter((w) => w != '')
+        : null,
+    [searchParams.get('search')]
+  );
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
-  const resourceHandles: ResourceHandle[] = (fetchState?.filteredItems as ResourceHandle[]) || [];
-
-  const filterFunction = keywordFilter
-    ? (resourceHandle: K8sObject): boolean => filterResourceHandle(resourceHandle as ResourceHandle, keywordFilter)
-    : null;
-
-  const primaryAppContainer = document.getElementById('primary-app-container');
-  primaryAppContainer.onscroll = (e) => {
-    const scrollable = e.target as any;
-    const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && !fetchState?.finished && fetchState.limit <= resourceHandles.length) {
-      reduceFetchState({
-        type: 'modify',
-        limit: fetchState.limit + FETCH_BATCH_LIMIT,
+  const {
+    data: resourceHandlesPages,
+    mutate,
+    size,
+    setSize,
+  } = useSWRInfinite<ResourceHandleList>(
+    (index, previousPageData: ResourceHandleList) => {
+      if (previousPageData && !previousPageData.metadata?.continue) {
+        return null;
+      }
+      const continueId = index === 0 ? '' : previousPageData.metadata?.continue;
+      return apiPaths.RESOURCE_HANDLES({
+        limit: FETCH_BATCH_LIMIT,
+        continueId,
       });
+    },
+    fetcher,
+    {
+      refreshInterval: 8000,
+      revalidateFirstPage: true,
+      revalidateAll: true,
+      compare: (currentData, newData) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.length === 0) return false;
+        if (!newData || newData.length === 0) return false;
+        if (currentData.length !== newData.length) return false;
+        for (let i = 0; i < currentData.length; i++) {
+          if (!compareK8sObjectsArr(currentData[i].items, newData[i].items)) return false;
+        }
+        return true;
+      },
+    }
+  );
+
+  const revalidate = useCallback(
+    ({ updatedItems, action }: { updatedItems: ResourceHandle[]; action: 'update' | 'delete' }) => {
+      const resourceHandlesPagesCpy = JSON.parse(JSON.stringify(resourceHandlesPages));
+      let p: ResourceHandleList;
+      let i: number;
+      for ([i, p] of resourceHandlesPagesCpy.entries()) {
+        for (const updatedItem of updatedItems) {
+          const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+          if (foundIndex > -1) {
+            if (action === 'update') {
+              resourceHandlesPagesCpy[i].items[foundIndex] = updatedItem;
+            } else if (action === 'delete') {
+              resourceHandlesPagesCpy[i].items.splice(foundIndex, 1);
+            }
+            mutate(resourceHandlesPagesCpy);
+          }
+        }
+      }
+    },
+    [mutate, resourceHandlesPages]
+  );
+
+  const isReachingEnd =
+    resourceHandlesPages && !resourceHandlesPages[resourceHandlesPages.length - 1].metadata.continue;
+  const isLoadingInitialData = !resourceHandlesPages;
+  const isLoadingMore =
+    isLoadingInitialData || (size > 0 && resourceHandlesPages && typeof resourceHandlesPages[size - 1] === 'undefined');
+
+  const filterResourceHandle = useCallback(
+    (resourceHandle: ResourceHandle) => {
+      if (!keywordFilter) {
+        return true;
+      }
+      for (const keyword of keywordFilter) {
+        if (!keywordMatch(resourceHandle, keyword)) {
+          return false;
+        }
+      }
+      return true;
+    },
+    [keywordFilter]
+  );
+
+  const resourceHandles: ResourceHandle[] = useMemo(
+    () => [].concat(...resourceHandlesPages.map((page) => page.items)).filter(filterResourceHandle) || [],
+    [filterResourceHandle, resourceHandlesPages]
+  );
+
+  // Trigger continue fetching more resource claims on scroll.
+  const scrollHandler = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollable = e.currentTarget;
+    const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
+    if (scrollRemaining < 500 && !isReachingEnd && !isLoadingMore) {
+      setSize(size + 1);
     }
   };
 
@@ -133,66 +166,26 @@ const ResourceHandles: React.FC = () => {
         }
       }
       reduceSelectedUids({ type: 'clear' });
-      reduceFetchState({ type: 'removeItems', items: removedResourceHandles });
+      revalidate({ action: 'delete', updatedItems: removedResourceHandles });
     }
   }
 
-  async function fetchResourceHandles(): Promise<void> {
-    const resourceHandleList: ResourceHandleList = await listResourceHandles({
-      continue: fetchState.continue,
-      limit: FETCH_BATCH_LIMIT,
-    });
-    if (!fetchState.activity.canceled) {
-      reduceFetchState({
-        type: 'post',
-        k8sObjectList: resourceHandleList,
-        refreshInterval: 15000,
-        refresh: (): void => {
-          reduceFetchState({ type: 'startRefresh' });
-        },
-      });
-    }
-  }
-
-  function reloadResourceHandles(): void {
-    reduceFetchState({
-      type: 'startFetch',
-      filter: filterFunction,
-      limit: FETCH_BATCH_LIMIT,
-      prune: pruneResourceHandle,
-    });
-    reduceSelectedUids({ type: 'clear' });
-  }
-
-  // First render and detect unmount
-  useEffect(() => {
-    reloadResourceHandles();
-    return () => {
-      componentWillUnmount.current = true;
-    };
-  }, []);
-
-  // Fetch or continue fetching
-  useEffect(() => {
-    if (fetchState?.canContinue && (fetchState.refreshing || fetchState.filteredItems.length < fetchState.limit)) {
-      fetchResourceHandles();
-    }
-    return () => {
-      if (componentWillUnmount.current) {
-        cancelFetchActivity(fetchState);
+  // Fetch all if keywordFilter is defined.
+  if (
+    keywordFilter &&
+    resourceHandlesPages.length > 0 &&
+    resourceHandlesPages[resourceHandlesPages.length - 1].metadata.continue
+  ) {
+    if (!isLoadingMore) {
+      if (resourceHandles.length > 0) {
+        setTimeout(() => {
+          setSize(size + 1);
+        }, 5000);
+      } else {
+        setSize(size + 1);
       }
-    };
-  }, [fetchState]);
-
-  // Handle keyword filter change
-  useEffect(() => {
-    if (fetchState) {
-      reduceFetchState({
-        type: 'modify',
-        filter: filterFunction,
-      });
     }
-  }, [JSON.stringify(keywordFilter)]);
+  }
 
   return (
     <>
@@ -204,18 +197,15 @@ const ResourceHandles: React.FC = () => {
             </Title>
           </SplitItem>
           <SplitItem>
-            <RefreshButton onClick={() => reloadResourceHandles()} />
-          </SplitItem>
-          <SplitItem>
             <KeywordSearchInput
               initialValue={keywordFilter}
               onSearch={(value) => {
                 if (value) {
-                  urlSearchParams.set('search', value.join(' '));
-                } else if (urlSearchParams.has('search')) {
-                  urlSearchParams.delete('search');
+                  searchParams.set('search', value.join(' '));
+                } else if (searchParams.has('search')) {
+                  searchParams.delete('search');
                 }
-                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+                setSearchParams(searchParams);
               }}
             />
           </SplitItem>
@@ -230,22 +220,14 @@ const ResourceHandles: React.FC = () => {
         </Split>
       </PageSection>
       {resourceHandles.length === 0 ? (
-        fetchState?.finished ? (
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={ExclamationTriangleIcon} />
-              <Title headingLevel="h1" size="lg">
-                No ResourceHandles found
-              </Title>
-            </EmptyState>
-          </PageSection>
-        ) : (
-          <PageSection>
-            <EmptyState variant="full">
-              <EmptyStateIcon icon={LoadingIcon} />
-            </EmptyState>
-          </PageSection>
-        )
+        <PageSection>
+          <EmptyState variant="full">
+            <EmptyStateIcon icon={ExclamationTriangleIcon} />
+            <Title headingLevel="h1" size="lg">
+              No ResourceHandles found
+            </Title>
+          </EmptyState>
+        </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
           <SelectableTable
@@ -257,14 +239,14 @@ const ResourceHandles: React.FC = () => {
               'ResourceProvider(s)',
               'Created At',
             ]}
-            onSelectAll={(isSelected) => {
+            onSelectAll={(isSelected: boolean) => {
               if (isSelected) {
                 reduceSelectedUids({ type: 'set', items: resourceHandles });
               } else {
                 reduceSelectedUids({ type: 'clear' });
               }
             }}
-            rows={resourceHandles.map((resourceHandle: ResourceHandle) => {
+            rows={resourceHandles.map((resourceHandle) => {
               return {
                 cells: [
                   <>
@@ -327,7 +309,7 @@ const ResourceHandles: React.FC = () => {
                     </span>
                   </>,
                 ],
-                onSelect: (isSelected) =>
+                onSelect: (isSelected: boolean) =>
                   reduceSelectedUids({
                     type: isSelected ? 'add' : 'remove',
                     items: [resourceHandle],
@@ -336,7 +318,7 @@ const ResourceHandles: React.FC = () => {
               };
             })}
           />
-          {fetchState?.canContinue ? (
+          {!isReachingEnd ? (
             <EmptyState variant="full">
               <EmptyStateIcon icon={LoadingIcon} />
             </EmptyState>

@@ -22,11 +22,11 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import AnarchyActionSelect from './AnarchyActionSelect';
-import AnarchyNamespaceSelect from './AnarchyNamespaceSelect';
 import Footer from '@app/components/Footer';
 import { compareK8sObjectsArr } from '@app/util';
 
 import './admin.css';
+import ProjectSelector from '@app/components/ProjectSelector';
 
 function keywordMatch(anarchyAction: AnarchyAction, keyword: string): boolean {
   if (anarchyAction.metadata.name.includes(keyword)) {
@@ -46,13 +46,17 @@ const AnarchyActions: React.FC = () => {
   const location = useLocation();
   const { namespace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const keywordFilter = searchParams.has('search')
-    ? searchParams
-        .get('search')
-        .trim()
-        .split(/ +/)
-        .filter((w) => w != '')
-    : null;
+  const keywordFilter = useMemo(
+    () =>
+      searchParams.has('search')
+        ? searchParams
+            .get('search')
+            .trim()
+            .split(/ +/)
+            .filter((w) => w != '')
+        : null,
+    [searchParams.get('search')]
+  );
   const actionFilter = searchParams.has('action') ? searchParams.get('action') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
   const labelSelector = actionFilter ? `anarchy.gpte.redhat.com/action=${actionFilter}` : null;
@@ -194,8 +198,9 @@ const AnarchyActions: React.FC = () => {
             />
           </SplitItem>
           <SplitItem>
-            <AnarchyNamespaceSelect
-              namespace={namespace}
+            <ProjectSelector
+              selector="anarchy"
+              currentNamespaceName={namespace}
               onSelect={(namespaceName) => {
                 if (namespaceName) {
                   navigate(`/admin/anarchyactions/${namespaceName}${location.search}`);

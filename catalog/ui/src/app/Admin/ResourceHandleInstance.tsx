@@ -22,7 +22,6 @@ import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import { apiPaths, deleteResourceHandle, fetcher } from '@app/api';
 import { BABYLON_DOMAIN, compareK8sObjects } from '@app/util';
-import { selectConsoleURL } from '@app/store';
 import { ResourceClaim, ResourceHandle } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';

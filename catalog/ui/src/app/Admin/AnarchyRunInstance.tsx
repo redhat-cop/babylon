@@ -9,7 +9,6 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   EmptyState,
-  EmptyStateBody,
   EmptyStateIcon,
   PageSection,
   PageSectionVariants,
@@ -35,9 +34,9 @@ import useSession from '@app/utils/useSession';
 import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
 import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
+import NotFoundComponent from '@app/components/NotFound';
 
 import './admin.css';
-import NotFoundComponent from '@app/components/NotFound';
 
 const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace: string; activeTab: string }> = ({
   anarchyRunName,
