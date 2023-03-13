@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import {
@@ -71,11 +71,10 @@ function keywordMatch(r: ResourceClaim, keyword: string): boolean {
 const ResourceClaims: React.FC<{}> = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
-  const location = useLocation();
-  const urlSearchParams = new URLSearchParams(location.search);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { cache } = useSWRConfig();
-  const keywordFilter = urlSearchParams.has('search')
-    ? urlSearchParams
+  const keywordFilter = searchParams.has('search')
+    ? searchParams
         .get('search')
         .trim()
         .split(/ +/)
@@ -312,7 +311,7 @@ const ResourceClaims: React.FC<{}> = () => {
             <ProjectSelector
               currentNamespaceName={namespace}
               onSelect={(n) => {
-                navigate(`/admin/resourceclaims/${n.name}?${urlSearchParams.toString()}`);
+                navigate(`/admin/resourceclaims/${n.name}?${searchParams.toString()}`);
               }}
             />
           </SplitItem>
@@ -322,11 +321,11 @@ const ResourceClaims: React.FC<{}> = () => {
               placeholder="Search..."
               onSearch={(value) => {
                 if (value) {
-                  urlSearchParams.set('search', value.join(' '));
-                } else if (urlSearchParams.has('search')) {
-                  urlSearchParams.delete('search');
+                  searchParams.set('search', value.join(' '));
+                } else if (searchParams.has('search')) {
+                  searchParams.delete('search');
                 }
-                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+                setSearchParams(searchParams);
               }}
             />
           </SplitItem>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Page } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
 import Footer from '@app/components/Footer';
@@ -17,8 +17,8 @@ import './workshop.css';
 const Workshop: React.FC<{ title: string }> = ({ title }) => {
   useDocumentTitle(title);
   const { workshopId } = useParams();
-  const { search } = useLocation();
-  const userInterface = new URLSearchParams(search).get('userInterface');
+  const [searchParams] = useSearchParams();
+  const userInterface = searchParams.get('userInterface');
   const [loginFailureMessage, setLoginFailureMessage] = useState('');
   const { data: workshop } = useSWRImmutable<WorkshopDetails>(
     workshopId ? apiPaths.WORKSHOP({ workshopId }) : null,

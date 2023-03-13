@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import {
@@ -46,11 +46,10 @@ function keywordMatch(workshop: Workshop, keyword: string): boolean {
 const Workshops: React.FC<{}> = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
-  const location = useLocation();
   const [modalAction, openModalAction] = useModal();
-  const urlSearchParams = new URLSearchParams(location.search);
-  const keywordFilter = urlSearchParams.has('search')
-    ? urlSearchParams
+  const [searchParams, setSearchParams] = useSearchParams();
+  const keywordFilter = searchParams.has('search')
+    ? searchParams
         .get('search')
         .trim()
         .split(/ +/)
@@ -199,7 +198,7 @@ const Workshops: React.FC<{}> = () => {
             <ProjectSelector
               currentNamespaceName={namespace}
               onSelect={(n) => {
-                navigate(`/admin/workshops/${n.name}?${urlSearchParams.toString()}`);
+                navigate(`/admin/workshops/${n.name}?${searchParams.toString()}`);
               }}
             />
           </SplitItem>
@@ -209,11 +208,11 @@ const Workshops: React.FC<{}> = () => {
               placeholder="Search..."
               onSearch={(value) => {
                 if (value) {
-                  urlSearchParams.set('search', value.join(' '));
-                } else if (urlSearchParams.has('search')) {
-                  urlSearchParams.delete('search');
+                  searchParams.set('search', value.join(' '));
+                } else if (searchParams.has('search')) {
+                  searchParams.delete('search');
                 }
-                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+                setSearchParams(searchParams);
               }}
             />
           </SplitItem>

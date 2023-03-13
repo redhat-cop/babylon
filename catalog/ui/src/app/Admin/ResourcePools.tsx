@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useReducer } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   EmptyState,
   EmptyStateIcon,
@@ -52,12 +52,10 @@ function filterResourcePool(resourcePool: ResourcePool, keywordFilter: string[])
 }
 
 const ResourcePools: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const matchMutate = useMatchMutate();
-  const urlSearchParams = new URLSearchParams(location.search);
-  const keywordFilter = urlSearchParams.has('search')
-    ? urlSearchParams
+  const [searchParams, setSearchParams] = useSearchParams();
+  const keywordFilter = searchParams.has('search')
+    ? searchParams
         .get('search')
         .trim()
         .split(/ +/)
@@ -150,11 +148,11 @@ const ResourcePools: React.FC = () => {
               initialValue={keywordFilter}
               onSearch={(value) => {
                 if (value) {
-                  urlSearchParams.set('search', value.join(' '));
-                } else if (urlSearchParams.has('search')) {
-                  urlSearchParams.delete('search');
+                  searchParams.set('search', value.join(' '));
+                } else if (searchParams.has('search')) {
+                  searchParams.delete('search');
                 }
-                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+                setSearchParams(searchParams);
               }}
             />
           </SplitItem>
