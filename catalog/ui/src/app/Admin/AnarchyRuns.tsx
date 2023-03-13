@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useReducer } from 'react';
-import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import {
   EmptyState,
   EmptyStateIcon,
@@ -51,15 +51,15 @@ const AnarchyRuns: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { namespace } = useParams();
-  const urlSearchParams = new URLSearchParams(location.search);
-  const keywordFilter = urlSearchParams.has('search')
-    ? urlSearchParams
+  const [searchParams, setSearchParams] = useSearchParams();
+  const keywordFilter = searchParams.has('search')
+    ? searchParams
         .get('search')
         .trim()
         .split(/ +/)
         .filter((w) => w != '')
     : null;
-  const stateUrlParam = urlSearchParams.has('state') ? urlSearchParams.get('state') : null;
+  const stateUrlParam = searchParams.has('state') ? searchParams.get('state') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
   const labelSelectors = [];
@@ -201,11 +201,11 @@ const AnarchyRuns: React.FC = () => {
               initialValue={keywordFilter}
               onSearch={(value) => {
                 if (value) {
-                  urlSearchParams.set('search', value.join(' '));
-                } else if (urlSearchParams.has('search')) {
-                  urlSearchParams.delete('searchs');
+                  searchParams.set('search', value.join(' '));
+                } else if (searchParams.has('search')) {
+                  searchParams.delete('searchs');
                 }
-                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+                setSearchParams(searchParams);
               }}
             />
           </SplitItem>
@@ -214,11 +214,11 @@ const AnarchyRuns: React.FC = () => {
               runnerState={stateUrlParam}
               onSelect={(state) => {
                 if (state) {
-                  urlSearchParams.set('state', state);
-                } else if (urlSearchParams.has('state')) {
-                  urlSearchParams.delete('state');
+                  searchParams.set('state', state);
+                } else if (searchParams.has('state')) {
+                  searchParams.delete('state');
                 }
-                navigate(`${location.pathname}?${urlSearchParams.toString()}`);
+                setSearchParams(searchParams);
               }}
             />
           </SplitItem>

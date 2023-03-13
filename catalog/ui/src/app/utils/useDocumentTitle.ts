@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 const DEFAULT_USER_INTERFACE = 'rhpds';
 
@@ -14,8 +14,8 @@ function getPageTitle(title: string, userInterface?: string): string {
 
 // a custom hook for setting the page title
 function useDocumentTitle(title: string): void {
-  const { search } = useLocation();
-  const userInterface = new URLSearchParams(search).get('userInterface');
+  const [searchParams] = useSearchParams();
+  const userInterface = searchParams.get('userInterface');
   useEffect(() => {
     const originalTitle = document.title;
     if (title) document.title = getPageTitle(title, userInterface);

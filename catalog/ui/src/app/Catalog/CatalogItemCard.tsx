@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Badge, CardBody, CardHeader, Split, SplitItem, Title, Tooltip } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
@@ -22,7 +22,7 @@ import './catalog-item-card.css';
 const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
   const location = useLocation();
   const { namespace } = useParams();
-  const urlSearchParams = new URLSearchParams(location.search);
+  const [searchParams] = useSearchParams();
   const { description, descriptionFormat } = getDescription(catalogItem);
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
@@ -31,11 +31,11 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const { code: status } = getStatus(catalogItem);
   const sla = getSLA(catalogItem);
 
-  if (!urlSearchParams.has('item')) {
+  if (!searchParams.has('item')) {
     if (namespace) {
-      urlSearchParams.set('item', catalogItem.metadata.name);
+      searchParams.set('item', catalogItem.metadata.name);
     } else {
-      urlSearchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
+      searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
     }
   }
 
@@ -58,7 +58,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
       </div>
       <Link
         className={`catalog-item-card ${isDisabled ? 'catalog-item-card--disabled' : ''}`}
-        to={`${location.pathname}?${urlSearchParams.toString()}`}
+        to={`${location.pathname}?${searchParams.toString()}`}
       >
         <CardHeader className="catalog-item-card__header">
           <Split>

@@ -48,22 +48,6 @@ function filterAnarchyGovernor(anarchyGovernor: AnarchyGovernor, keywordFilter: 
   return true;
 }
 
-/*
-function pruneAnarchyGovernor(anarchyGovernor: AnarchyGovernor) {
-  return {
-    apiVersion: anarchyGovernor.apiVersion,
-    kind: anarchyGovernor.kind,
-    metadata: {
-      creationTimestamp: anarchyGovernor.metadata.creationTimestamp,
-      name: anarchyGovernor.metadata.name,
-      namespace: anarchyGovernor.metadata.namespace,
-      uid: anarchyGovernor.metadata.uid,
-    },
-    spec: {},
-  };
-}
-*/
-
 const AnarchyGovernors: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
