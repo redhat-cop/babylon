@@ -24,9 +24,9 @@ import TimeInterval from '@app/components/TimeInterval';
 import AnarchyRunnerStateSelect from './AnarchyRunnerStateSelect';
 import Footer from '@app/components/Footer';
 import { compareK8sObjectsArr } from '@app/util';
+import ProjectSelector from '@app/components/ProjectSelector';
 
 import './admin.css';
-import ProjectSelector from '@app/components/ProjectSelector';
 
 function keywordMatch(anarchyRun: AnarchyRun, keyword: string): boolean {
   if (anarchyRun.metadata.name.includes(keyword)) {
