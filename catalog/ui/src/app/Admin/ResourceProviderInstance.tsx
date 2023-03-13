@@ -24,12 +24,11 @@ import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdo
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-import Footer from '@app/components/Footer';
 import useSWR from 'swr';
-import { ErrorBoundary, useErrorHandler } from 'react-error-boundary';
+import { useErrorHandler } from 'react-error-boundary';
 import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
-import NotFoundComponent from '@app/components/NotFound';
+import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import useSession from '@app/utils/useSession';
 
 import './admin.css';
@@ -181,18 +180,9 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
 const ResourceProviderInstance: React.FC = () => {
   const { name: resourceProviderName, tab: activeTab = 'details' } = useParams();
   return (
-    <ErrorBoundary
-      fallbackRender={() => (
-        <>
-          <NotFoundComponent name={resourceProviderName} type="ResourceProvider" />
-          <Footer />
-        </>
-      )}
-      onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-    >
+    <ErrorBoundaryPage name={resourceProviderName} type="ResourceProvider">
       <ResourceProviderInstanceComponent activeTab={activeTab} resourceProviderName={resourceProviderName} />
-      <Footer />
-    </ErrorBoundary>
+    </ErrorBoundaryPage>
   );
 };
 
