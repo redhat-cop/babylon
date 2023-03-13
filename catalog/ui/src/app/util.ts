@@ -215,6 +215,14 @@ export function isResourceClaimPartOfWorkshop(resourceClaim: ResourceClaim) {
   );
 }
 
+export function isWorkshopPartOfResourceClaim(workshop: Workshop) {
+  if (!workshop) return false;
+  return (
+    workshop.metadata.ownerReferences &&
+    workshop.metadata.ownerReferences.filter((x) => x.kind === 'ResourceClaim').length > 0
+  );
+}
+
 export function getStageFromK8sObject(k8sObject: K8sObject): 'dev' | 'test' | 'event' | 'prod' {
   if (!k8sObject) return null;
   const nameSplitted = k8sObject.metadata.name.split('.');

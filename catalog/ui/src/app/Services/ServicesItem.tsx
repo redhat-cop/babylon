@@ -590,6 +590,14 @@ const ServicesItemComponent: React.FC<{
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(resourceClaim)}
               {stage !== 'prod' ? <Label>{stage}</Label> : null}
+              {workshopName ? (
+                <Label
+                  key="service-item__workshop-ui"
+                  tooltipDescription={<div>Workshop user interface is enabled</div>}
+                >
+                  Workshop UI
+                </Label>
+              ) : null}
             </Title>
           </SplitItem>
           <SplitItem>
