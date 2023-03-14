@@ -1,6 +1,6 @@
 # Component Versions
 agnosticv_operator_version: v0.31.8
-babylon_anarchy_version: v0.22.4
+babylon_anarchy_version: v0.23.1
 babylon_anarchy_governor_version: v0.19.1
 poolboy_version: v1.3.2
 replik8s_version: v0.5.0
@@ -25,6 +25,8 @@ default_babylon_anarchy_namespaces:
     replicaCount: 1
     runners:
     - name: default
+      consecutiveFailureLimit: 5
+      maxReplicas: 10
       minReplicas: 1
       resources:
         limits:
@@ -33,6 +35,10 @@ default_babylon_anarchy_namespaces:
         requests:
           cpu: "500m"
           memory: "256Mi"
+      runLimit: 500
+      scaleUpDelay: 5m
+      scaleUpThreshold: 10
+      scalingCheckInterval: 1m
 
 babylon_resources:
   # Anarchy install and anarchy-operator deployment
