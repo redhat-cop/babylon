@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import parseDuration from 'parse-duration';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
   DescriptionList,
@@ -289,6 +289,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <DescriptionListDescription>
                     {attr === CUSTOM_LABELS.RATING ? (
                       <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
+                    ) : attr === CUSTOM_LABELS.SLA ? (
+                      <Link to="/support">{formatString(value)}</Link>
                     ) : (
                       formatString(value)
                     )}
