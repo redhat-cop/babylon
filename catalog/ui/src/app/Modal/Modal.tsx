@@ -88,23 +88,27 @@ const _Modal: ForwardRefRenderFunction<
   );
 
   const handleEscape = useCallback(
-    (e) => {
-      if (e.keyCode === 27) close();
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        close();
+      }
     },
     [close]
   );
 
   const handleClick = useCallback(
-    (e) => {
-      const el = ReactDOM.findDOMNode(modalEl.current) as Element;
-      const backdrop = el;
-      const modal = el?.querySelector('.pf-c-modal-box');
+    (e: MouseEvent | TouchEvent) => {
+      const targetEl = e.target as HTMLElement;
+      const container = ReactDOM.findDOMNode(modalEl.current) as Element;
+      const backdrop = container;
+      const modal = container?.querySelector('.pf-c-modal-box');
       if (!modal || !backdrop) return e;
-      if (e.target === backdrop || backdrop.contains(e.target)) {
-        if (e.target !== modal && !modal.contains(e.target)) {
+      if (e.target === backdrop || backdrop.contains(targetEl)) {
+        if (e.target !== modal && !modal.contains(targetEl)) {
           close();
         }
       }
+      return e;
     },
     [close]
   );
@@ -116,7 +120,7 @@ const _Modal: ForwardRefRenderFunction<
     }
     return () => {
       document.removeEventListener('keydown', handleEscape, false);
-      document.removeEventListener('click', handleEscape, false);
+      document.removeEventListener('click', handleClick, false);
     };
   }, [handleEscape, isOpen, handleClick]);
 
