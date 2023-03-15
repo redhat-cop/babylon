@@ -9,6 +9,7 @@ const ErrorBoundaryPage: React.FC<{
   namespace?: string;
   type: string;
   includeFooter?: boolean;
+  children: React.ReactNode;
 }> = ({ name, namespace, type, includeFooter = true, children }) => (
   <ErrorBoundary
     onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}

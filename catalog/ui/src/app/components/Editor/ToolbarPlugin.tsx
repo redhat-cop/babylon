@@ -191,7 +191,8 @@ function FloatingLinkEditor({ editor }) {
               role="button"
               tabIndex={0}
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 setEditMode(true);
               }}
             />
@@ -351,37 +352,79 @@ function BlockOptionsDropdownList({ editor, blockType, toolbarRef, setShowBlockO
 
   return (
     <div className="dropdown" ref={dropDownRef}>
-      <button className="item" onClick={formatParagraph}>
+      <button
+        className="item"
+        onClick={(e) => {
+          e.preventDefault();
+          formatParagraph();
+        }}
+      >
         <span className="icon paragraph" />
         <span className="text">Normal</span>
         {blockType === 'paragraph' && <span className="active" />}
       </button>
-      <button className="item" onClick={formatLargeHeading}>
+      <button
+        className="item"
+        onClick={(e) => {
+          e.preventDefault();
+          formatLargeHeading();
+        }}
+      >
         <span className="icon large-heading" />
         <span className="text">Large Heading</span>
         {blockType === 'h1' && <span className="active" />}
       </button>
-      <button className="item" onClick={formatSmallHeading}>
+      <button
+        className="item"
+        onClick={(e) => {
+          e.preventDefault();
+          formatSmallHeading();
+        }}
+      >
         <span className="icon small-heading" />
         <span className="text">Small Heading</span>
         {blockType === 'h2' && <span className="active" />}
       </button>
-      <button className="item" onClick={formatBulletList}>
+      <button
+        className="item"
+        onClick={(e) => {
+          e.preventDefault();
+          formatBulletList();
+        }}
+      >
         <span className="icon bullet-list" />
         <span className="text">Bullet List</span>
         {blockType === 'ul' && <span className="active" />}
       </button>
-      <button className="item" onClick={formatNumberedList}>
+      <button
+        className="item"
+        onClick={(e) => {
+          e.preventDefault();
+          formatNumberedList();
+        }}
+      >
         <span className="icon numbered-list" />
         <span className="text">Numbered List</span>
         {blockType === 'ol' && <span className="active" />}
       </button>
-      <button className="item" onClick={formatQuote}>
+      <button
+        className="item"
+        onClick={(e) => {
+          e.preventDefault();
+          formatQuote();
+        }}
+      >
         <span className="icon quote" />
         <span className="text">Quote</span>
         {blockType === 'quote' && <span className="active" />}
       </button>
-      <button className="item" onClick={formatCode}>
+      <button
+        className="item"
+        onClick={(e) => {
+          e.preventDefault();
+          formatCode();
+        }}
+      >
         <span className="icon code" />
         <span className="text">Code Block</span>
         {blockType === 'code' && <span className="active" />}
@@ -508,7 +551,8 @@ const ToolbarPlugin: React.FC = () => {
     <div className="toolbar" ref={toolbarRef}>
       <button
         disabled={!canUndo}
-        onClick={() => {
+        onClick={(e) => {
+          e.preventDefault();
           editor.dispatchCommand(UNDO_COMMAND, null);
         }}
         className="toolbar-item spaced"
@@ -518,7 +562,8 @@ const ToolbarPlugin: React.FC = () => {
       </button>
       <button
         disabled={!canRedo}
-        onClick={() => {
+        onClick={(e) => {
+          e.preventDefault();
           editor.dispatchCommand(REDO_COMMAND, null);
         }}
         className="toolbar-item"
@@ -527,11 +572,14 @@ const ToolbarPlugin: React.FC = () => {
         <i className="format redo" />
       </button>
       <Divider />
-      {supportedBlockTypes.has(blockType) && (
+      {supportedBlockTypes.has(blockType) ? (
         <>
           <button
             className="toolbar-item block-controls"
-            onClick={() => setShowBlockOptionsDropDown(!showBlockOptionsDropDown)}
+            onClick={(e) => {
+              e.preventDefault();
+              setShowBlockOptionsDropDown(!showBlockOptionsDropDown);
+            }}
             aria-label="Formatting Options"
           >
             <span className={'icon block-type ' + blockType} />
@@ -550,7 +598,7 @@ const ToolbarPlugin: React.FC = () => {
             )}
           <Divider />
         </>
-      )}
+      ) : null}
       {blockType === 'code' ? (
         <>
           <Select
@@ -564,7 +612,8 @@ const ToolbarPlugin: React.FC = () => {
       ) : (
         <>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
             }}
             className={'toolbar-item spaced ' + (isBold ? 'active' : '')}
@@ -573,7 +622,8 @@ const ToolbarPlugin: React.FC = () => {
             <i className="format bold" />
           </button>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
             }}
             className={'toolbar-item spaced ' + (isItalic ? 'active' : '')}
@@ -582,7 +632,8 @@ const ToolbarPlugin: React.FC = () => {
             <i className="format italic" />
           </button>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
             }}
             className={'toolbar-item spaced ' + (isUnderline ? 'active' : '')}
@@ -592,7 +643,8 @@ const ToolbarPlugin: React.FC = () => {
           </button>
           {supportStrikeThrough ? (
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
               }}
               className={'toolbar-item spaced ' + (isStrikethrough ? 'active' : '')}
@@ -602,7 +654,8 @@ const ToolbarPlugin: React.FC = () => {
             </button>
           ) : null}
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code');
             }}
             className={'toolbar-item spaced ' + (isCode ? 'active' : '')}
@@ -611,7 +664,10 @@ const ToolbarPlugin: React.FC = () => {
             <i className="format code" />
           </button>
           <button
-            onClick={insertLink}
+            onClick={(e) => {
+              e.preventDefault();
+              insertLink();
+            }}
             className={'toolbar-item spaced ' + (isLink ? 'active' : '')}
             aria-label="Insert Link"
           >
@@ -622,7 +678,8 @@ const ToolbarPlugin: React.FC = () => {
             <>
               <Divider />
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'left');
                 }}
                 className="toolbar-item spaced"
@@ -631,7 +688,8 @@ const ToolbarPlugin: React.FC = () => {
                 <i className="format left-align" />
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'center');
                 }}
                 className="toolbar-item spaced"
@@ -640,7 +698,8 @@ const ToolbarPlugin: React.FC = () => {
                 <i className="format center-align" />
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'right');
                 }}
                 className="toolbar-item spaced"
@@ -649,7 +708,8 @@ const ToolbarPlugin: React.FC = () => {
                 <i className="format right-align" />
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'justify');
                 }}
                 className="toolbar-item"

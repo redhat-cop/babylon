@@ -72,7 +72,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     () => ({
       userRegistration: 'open',
       accessPassword: randomString(8),
-      description: '',
+      description: '<p></p>',
       displayName: _displayName,
       provisionCount: 1,
       provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
