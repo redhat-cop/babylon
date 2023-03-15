@@ -60,7 +60,13 @@ spec:
   runners:
       {{- range $anarchyRunner := ($anarchyCommune.runners | default (list (dict "name" "default"))) }}
   - name: default
+    consecutiveFailureLimit: {{ $anarchyRunner.consecutiveFailureLimit | default(10) }}
+    maxReplicas: {{ $anarchyRunner.maxReplicas | default ($anarchyRunner.minReplicas | default 1 | mul 5) }}
     minReplicas: {{ $anarchyRunner.minReplicas | default 1 }}
+    runLimit: {{ $anarchyRunner.runLimit | default(100) }}
+    scaleUpDelay: {{ $anarchyRunner.scaleUpDelay | default("5m") }}
+    scaleUpThreshold: {{ $anarchyRunner.scaleUpThreshold | default(15) }}
+    scalingCheckInterval: {{ $anarchyRunner.scalingCheckInterval | default("1m") }}
     resources:
         {{- with $anarchyRunnerResources := ($anarchyRunner.resources | default (dict "_" "_")) }}
       limits:
