@@ -10,7 +10,7 @@ function useScript(src: string): Status {
     () => {
       if (!src) {
         setStatus('idle');
-        return null;
+        return undefined;
       }
 
       // Fetch existing script element by src
