@@ -233,13 +233,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
                       <DescriptionListGroup>
                         <DescriptionListTerm>CatalogItem</DescriptionListTerm>
                         <DescriptionListDescription>
-                          <Link
-                            to={`/catalog/item/${
-                              resourceClaim?.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`]
-                            }/${resourceClaim?.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]}`}
-                          >
-                            {resourceClaim?.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`]}
-                          </Link>
+                          {resourceClaim?.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`]}
                           <OpenshiftConsoleLink
                             reference={{
                               apiVersion: `${BABYLON_DOMAIN}/v1`,
