@@ -15,7 +15,8 @@ const ProjectSelector: React.FC<{
   onSelect: (namespace: ServiceNamespace) => void;
   isPlain?: boolean;
   selector?: 'users' | 'anarchy';
-}> = ({ currentNamespaceName, onSelect, isPlain = false, selector = 'users' }) => {
+  hideLabel?: boolean;
+}> = ({ currentNamespaceName, onSelect, isPlain = false, selector = 'users', hideLabel = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { cache } = useSWRConfig();
   const [allNamespaces, setAllNamespaces] = useState<ServiceNamespace[]>(null);
@@ -89,7 +90,7 @@ const ProjectSelector: React.FC<{
       onSearchInputChange={(value: string) => setSearchValue(value)}
       onToggle={toggleOpen}
       searchInputValue={searchValue}
-      toggleText={`Project: ${currentNamespaceName ?? 'All projects'}`}
+      toggleText={`${hideLabel ? '' : 'Project: '}${currentNamespaceName ?? 'All projects'}`}
     >
       {serviceNamespaces.length === 0 ? (
         <ContextSelectorItem key="loading" onClick={null} className="project-selector__loading">

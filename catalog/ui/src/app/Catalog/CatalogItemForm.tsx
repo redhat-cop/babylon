@@ -251,6 +251,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 });
               }}
               isPlain={false}
+              hideLabel={true}
             />{' '}
             <Tooltip position="right" content={<div>Create service request in specified project namespace.</div>}>
               <OutlinedQuestionCircleIcon
