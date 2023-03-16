@@ -3,14 +3,10 @@ import { BABYLON_DOMAIN, formatDuration } from '@app/util';
 import { Ops } from '@app/Admin/CatalogItemAdmin';
 
 export function getProvider(catalogItem: CatalogItem): string {
-  return (
-    catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/provider`] ||
-    catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/Provider`] ||
-    'Red Hat'
-  );
+  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.PROVIDER.key}`] || 'Red Hat';
 }
 export function getCategory(catalogItem: CatalogItem): string | null {
-  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`];
+  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.CATEGORY.key}`];
 }
 export function getDescription(catalogItem: CatalogItem): {
   description: string | null;
@@ -24,26 +20,26 @@ export function getDescription(catalogItem: CatalogItem): {
 }
 
 export function getStage(catalogItem: CatalogItem) {
-  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
+  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.STAGE.key}`];
 }
 
 const supportedSLAs = ['Enterprise_Premium', 'Enterprise_Standard', 'Community'] as const;
 type SLAs = (typeof supportedSLAs)[number];
 export function getSLA(catalogItem: CatalogItem): SLAs {
-  const sla = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/SLA`] as SLAs;
+  const sla = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.SLA.key}`] as SLAs;
   if (!supportedSLAs.includes(sla)) return null;
   return sla;
 }
 
 export function getIsDisabled(catalogItem: CatalogItem): boolean {
-  if (catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/disabled`]) {
-    return catalogItem.metadata.labels[`${BABYLON_DOMAIN}/disabled`] === 'true';
+  if (catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`]) {
+    return catalogItem.metadata.labels[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`] === 'true';
   }
   return false;
 }
 
 export function getRating(catalogItem: CatalogItem): { ratingScore: number; totalRatings: number } | null {
-  const ratingScoreSelector = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/rating`];
+  const ratingScoreSelector = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.RATING.key}`];
   const totalRatingsSelector = catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/totalRatings`];
   if (ratingScoreSelector) {
     const ratingScore = parseFloat(ratingScoreSelector);
@@ -52,7 +48,28 @@ export function getRating(catalogItem: CatalogItem): { ratingScore: number; tota
   }
   return null;
 }
-
+export function formatCurrency(value: number) {
+  const currencyFormatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  });
+  return currencyFormatter.format(value);
+}
+export function getEstimatedCost(catalogItem: CatalogItem) {
+  const estimatedCost = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.ESTIMATED_COST.key}`];
+  if (estimatedCost) {
+    const cost = parseFloat(estimatedCost);
+    return isNaN(cost) ? null : cost;
+  }
+  return null;
+}
+function getEstimatedCostFormatted(catalogItem: CatalogItem) {
+  const estimatedCost = getEstimatedCost(catalogItem);
+  if (estimatedCost) {
+    return formatCurrency(estimatedCost);
+  }
+  return null;
+}
 export function getStatus(
   catalogItem: CatalogItem
 ): { code: string; name: string; updated?: { author: string; updatedAt: string } } | null {
@@ -124,6 +141,42 @@ export function setLastFilter(filter: string): void {
 export function formatString(string: string): string {
   return (string.charAt(0).toUpperCase() + string.slice(1)).replace(/_/g, ' ');
 }
-export const HIDDEN_LABELS = ['disabled', 'userCatalogItem', 'stage', 'Featured_Score'];
+export function sortLabels([a_attr]: string[], [b_attr]: string[]) {
+  const a_obj = Object.values(CUSTOM_LABELS).find((i) => i.key === a_attr);
+  const b_obj = Object.values(CUSTOM_LABELS).find((i) => i.key === b_attr);
+  if (a_obj) {
+    if (b_obj) {
+      return a_obj.weight > b_obj.weight ? -1 : 1;
+    }
+  }
+  return -1;
+}
+export const CUSTOM_LABELS: {
+  [name in 'CATEGORY' | 'PROVIDER' | 'SLA' | 'RATING' | 'ESTIMATED_COST' | 'FEATURED_SCORE' | 'STAGE' | 'DISABLED']: {
+    key: string;
+    weight: number;
+  };
+} = {
+  CATEGORY: { key: 'category', weight: 70 },
+  PROVIDER: { key: 'Provider', weight: 60 },
+  SLA: { key: 'SLA', weight: 50 },
+  RATING: { key: 'rating', weight: 30 },
+  ESTIMATED_COST: { key: 'Estimated_Cost', weight: 20 },
+  FEATURED_SCORE: { key: 'Featured_Score', weight: 0 },
+  STAGE: { key: 'stage', weight: 0 },
+  DISABLED: { key: 'disabled', weight: 0 },
+};
+export const HIDDEN_LABELS = [
+  'userCatalogItem',
+  CUSTOM_LABELS.DISABLED.key,
+  CUSTOM_LABELS.STAGE.key,
+  CUSTOM_LABELS.FEATURED_SCORE.key,
+  CUSTOM_LABELS.ESTIMATED_COST.key,
+];
+export const HIDDEN_LABELS_DETAIL_VIEW = [
+  'userCatalogItem',
+  CUSTOM_LABELS.DISABLED.key,
+  CUSTOM_LABELS.STAGE.key,
+  CUSTOM_LABELS.FEATURED_SCORE.key,
+];
 export const HIDDEN_ANNOTATIONS = ['ops', 'displayNameComponent0', 'displayNameComponent1'];
-export const CUSTOM_LABELS = { RATING: 'rating', SLA: 'SLA' };

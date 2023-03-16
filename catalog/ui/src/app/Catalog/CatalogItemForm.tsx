@@ -7,6 +7,8 @@ import { $generateHtmlFromNodes } from '@lexical/html';
 import {
   ActionList,
   ActionListItem,
+  Alert,
+  AlertGroup,
   Breadcrumb,
   BreadcrumbItem,
   Button,
@@ -49,7 +51,7 @@ import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
-import { getStage, isAutoStopDisabled } from './catalog-utils';
+import { formatCurrency, getEstimatedCost, getStage, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './catalog-item-form.css';
@@ -67,6 +69,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     fetcher
   );
   const _displayName = displayName(catalogItem);
+  const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), []);
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const workshopInitialProps = useMemo(
     () => ({
@@ -640,6 +643,20 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       />
                     </Tooltip>
                   </div>
+                  {estimatedCost && formState.workshop.provisionCount > 1 ? (
+                    <AlertGroup style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
+                      <Alert
+                        title={
+                          <p>
+                            Estimated hourly cost for this workshop user count:{' '}
+                            <b>{formatCurrency(formState.workshop.provisionCount * estimatedCost)}</b>
+                          </p>
+                        }
+                        variant="info"
+                        isInline
+                      />
+                    </AlertGroup>
+                  ) : null}
                 </FormGroup>
                 {isAdmin ? (
                   <>

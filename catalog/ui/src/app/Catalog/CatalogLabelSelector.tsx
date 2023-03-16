@@ -33,7 +33,7 @@ const CatalogLabelSelector: React.FC<{
     if (!catalogItem.metadata.labels) continue;
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
       if (!label.startsWith(`${BABYLON_DOMAIN}/`)) continue;
-      if (label.toLowerCase() === `${BABYLON_DOMAIN}/category`) continue;
+      if (label.toLowerCase() === `${BABYLON_DOMAIN}/${CUSTOM_LABELS.CATEGORY.key}`) continue;
 
       // Allow multiple values for labels with numeric suffixes
       const attr = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
@@ -61,7 +61,7 @@ const CatalogLabelSelector: React.FC<{
     if (!catalogItem.metadata.labels) continue;
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
       if (!label.startsWith(`${BABYLON_DOMAIN}/`)) continue;
-      if (label.toLowerCase() === `${BABYLON_DOMAIN}/category`) continue;
+      if (label.toLowerCase() === `${BABYLON_DOMAIN}/${CUSTOM_LABELS.CATEGORY.key}`) continue;
       // Allow multiple values for labels with numeric suffixes
       const attrKey = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
       // Only non-hidden labels
@@ -111,7 +111,7 @@ const CatalogLabelSelector: React.FC<{
   );
 
   const featuredLabels = ['sales_play'];
-  const lastLabels = [CUSTOM_LABELS.RATING];
+  const lastLabels = [CUSTOM_LABELS.RATING.key];
 
   const labelsSorted = Object.entries(labels).sort(([a], [b]) => {
     if (lastLabels.includes(a)) return 1;
@@ -133,7 +133,7 @@ const CatalogLabelSelector: React.FC<{
             <div style={{ display: 'flex', flexDirection: 'row' }}>
               <p>{attr.displayName}</p>
               {Object.entries(attr.values).some(([valueKey]) =>
-                (selected?.[attrKey] || []).includes(valueKey) || attrKey === CUSTOM_LABELS.RATING
+                (selected?.[attrKey] || []).includes(valueKey) || attrKey === CUSTOM_LABELS.RATING.key
                   ? selected?.[attrKey]
                   : false
               ) ? (
@@ -156,7 +156,7 @@ const CatalogLabelSelector: React.FC<{
           onToggle={(isExpanded: boolean) => setExpandedLabels({ ...expandedLabels, [attrKey]: isExpanded })}
         >
           <FormGroup>
-            {attrKey !== CUSTOM_LABELS.RATING ? (
+            {attrKey !== CUSTOM_LABELS.RATING.key ? (
               Object.entries(attr.values)
                 .sort()
                 .map(([valueKey, value]: [string, CatalogLabelValueItemCount]) => (
@@ -174,7 +174,7 @@ const CatalogLabelSelector: React.FC<{
                   <Button
                     key={rating}
                     variant="link"
-                    onClick={() => onChange(true, CUSTOM_LABELS.RATING, rating.toString(), false)}
+                    onClick={() => onChange(true, CUSTOM_LABELS.RATING.key, rating.toString(), false)}
                     className="catalog-label-selector__rating-btn"
                     isActive={(selected?.[attrKey] || []).includes(rating.toString())}
                   >

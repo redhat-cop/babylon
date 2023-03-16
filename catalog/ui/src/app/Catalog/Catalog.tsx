@@ -144,7 +144,7 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
           .replace(/-[0-9]+$/, '')
           .toLowerCase();
         if (matchAttr === ciAttr) {
-          if (ciAttr === CUSTOM_LABELS.RATING) {
+          if (ciAttr === CUSTOM_LABELS.RATING.key) {
             if (parseInt(ciValue, 10) >= parseInt(matchValues[0], 10)) matched = true;
           } else if (matchValues.includes(ciValue.toLowerCase())) {
             matched = true;
@@ -240,9 +240,17 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         } else {
           // sortBy === 'Featured' and 'Rating'
           const aRating =
-            a.metadata.labels[`${BABYLON_DOMAIN}/${sortBy.selected === 'Featured' ? 'Featured_Score' : 'rating'}`];
+            a.metadata.labels[
+              `${BABYLON_DOMAIN}/${
+                sortBy.selected === 'Featured' ? CUSTOM_LABELS.FEATURED_SCORE.key : CUSTOM_LABELS.RATING.key
+              }`
+            ];
           const bRating =
-            b.metadata.labels[`${BABYLON_DOMAIN}/${sortBy.selected === 'Featured' ? 'Featured_Score' : 'rating'}`];
+            b.metadata.labels[
+              `${BABYLON_DOMAIN}/${
+                sortBy.selected === 'Featured' ? CUSTOM_LABELS.FEATURED_SCORE.key : CUSTOM_LABELS.RATING.key
+              }`
+            ];
           if (aRating || bRating) {
             if (aRating && bRating) return parseInt(aRating, 10) < parseInt(bRating, 10) ? 1 : -1;
             if (bRating) return 1;

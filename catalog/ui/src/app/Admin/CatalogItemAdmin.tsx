@@ -28,7 +28,7 @@ import { apiPaths, fetcher, patchK8sObjectByPath } from '@app/api';
 import { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN, displayName } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
-import { formatString, getProvider } from '@app/Catalog/catalog-utils';
+import { CUSTOM_LABELS, formatString, getProvider } from '@app/Catalog/catalog-utils';
 import OperationalLogo from '@app/components/StatusPageIcons/Operational';
 import DegradedPerformanceLogo from '@app/components/StatusPageIcons/DegradedPerformance';
 import PartialOutageLogo from '@app/components/StatusPageIcons/PartialOutage';
@@ -76,8 +76,8 @@ const CatalogItemAdmin: React.FC = () => {
   const ops: Ops = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]
     ? JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`])
     : null;
-  const disabled = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/disabled`]
-    ? JSON.parse(catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/disabled`])
+  const disabled = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`]
+    ? JSON.parse(catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`])
     : false;
   const [status, setStatus] = useState(ops?.status.id || 'operational');
   const [isDisabled, setIsDisabled] = useState(disabled);
@@ -147,7 +147,7 @@ const CatalogItemAdmin: React.FC = () => {
     const patch = {
       metadata: {
         annotations: { [`${BABYLON_DOMAIN}/ops`]: JSON.stringify(patchObj) },
-        labels: { [`${BABYLON_DOMAIN}/disabled`]: isDisabled.toString() },
+        labels: { [`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`]: isDisabled.toString() },
       },
     };
     setIsLoading(true);
