@@ -7,6 +7,8 @@ import { $generateHtmlFromNodes } from '@lexical/html';
 import {
   ActionList,
   ActionListItem,
+  Alert,
+  AlertGroup,
   Breadcrumb,
   BreadcrumbItem,
   Button,
@@ -19,7 +21,6 @@ import {
   SelectOption,
   SelectVariant,
   Switch,
-  Text,
   TextInput,
   Title,
   Tooltip,
@@ -643,10 +644,18 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     </Tooltip>
                   </div>
                   {estimatedCost && formState.workshop.provisionCount > 1 ? (
-                    <Text style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
-                      Estimated hourly cost for this user count:{' '}
-                      {formatCurrency(formState.workshop.provisionCount * estimatedCost)}
-                    </Text>
+                    <AlertGroup style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
+                      <Alert
+                        title={
+                          <p>
+                            Estimated hourly cost for this workshop user count:{' '}
+                            <b>{formatCurrency(formState.workshop.provisionCount * estimatedCost)}</b>
+                          </p>
+                        }
+                        variant="info"
+                        isInline
+                      />
+                    </AlertGroup>
                   ) : null}
                 </FormGroup>
                 {isAdmin ? (
