@@ -19,6 +19,7 @@ import {
   SelectOption,
   SelectVariant,
   Switch,
+  Text,
   TextInput,
   Title,
   Tooltip,
@@ -49,7 +50,7 @@ import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
-import { getStage, isAutoStopDisabled } from './catalog-utils';
+import { formatCurrency, getEstimatedCost, getStage, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './catalog-item-form.css';
@@ -67,6 +68,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     fetcher
   );
   const _displayName = displayName(catalogItem);
+  const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), []);
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const workshopInitialProps = useMemo(
     () => ({
@@ -640,6 +642,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       />
                     </Tooltip>
                   </div>
+                  {estimatedCost && formState.workshop.provisionCount > 1 ? (
+                    <Text style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
+                      Estimated hourly cost for this user count:{' '}
+                      {formatCurrency(formState.workshop.provisionCount * estimatedCost)}
+                    </Text>
+                  ) : null}
                 </FormGroup>
                 {isAdmin ? (
                   <>

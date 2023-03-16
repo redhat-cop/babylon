@@ -48,7 +48,28 @@ export function getRating(catalogItem: CatalogItem): { ratingScore: number; tota
   }
   return null;
 }
-
+export function formatCurrency(value: number) {
+  const currencyFormatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  });
+  return currencyFormatter.format(value);
+}
+export function getEstimatedCost(catalogItem: CatalogItem) {
+  const estimatedCost = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.ESTIMATED_COST.key}`];
+  if (estimatedCost) {
+    const cost = parseFloat(estimatedCost);
+    return isNaN(cost) ? null : cost;
+  }
+  return null;
+}
+function getEstimatedCostFormatted(catalogItem: CatalogItem) {
+  const estimatedCost = getEstimatedCost(catalogItem);
+  if (estimatedCost) {
+    return formatCurrency(estimatedCost);
+  }
+  return null;
+}
 export function getStatus(
   catalogItem: CatalogItem
 ): { code: string; name: string; updated?: { author: string; updatedAt: string } } | null {

@@ -21,7 +21,9 @@ import {
   SplitItem,
   Title,
   Label,
+  Tooltip,
 } from '@patternfly/react-core';
+import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import useSWR from 'swr';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem, ResourceClaim } from '@app/types';
@@ -55,6 +57,7 @@ import {
   getRating,
   CUSTOM_LABELS,
   sortLabels,
+  formatCurrency,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -77,14 +80,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
-  const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }),
-    []
-  );
+
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
     userNamespace?.name
       ? apiPaths.RESOURCE_CLAIMS({
@@ -296,14 +292,27 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 .sort(sortLabels)
                 .map(([attr, value]) => (
                   <DescriptionListGroup key={attr}>
-                    <DescriptionListTerm>{formatString(attr)}</DescriptionListTerm>
+                    <DescriptionListTerm>
+                      {formatString(attr)}
+                      {attr === CUSTOM_LABELS.ESTIMATED_COST.key ? (
+                        <Tooltip content="Estimated hourly cost per instance">
+                          <InfoAltIcon
+                            style={{
+                              paddingTop: 'var(--pf-global--spacer--xs)',
+                              marginLeft: 'var(--pf-global--spacer--sm)',
+                              width: 'var(--pf-global--icon--FontSize--sm)',
+                            }}
+                          />
+                        </Tooltip>
+                      ) : null}
+                    </DescriptionListTerm>
                     <DescriptionListDescription>
                       {attr === CUSTOM_LABELS.RATING.key ? (
                         <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
                       ) : attr === CUSTOM_LABELS.SLA.key ? (
                         <Link to="/support">{formatString(value)}</Link>
                       ) : attr === CUSTOM_LABELS.ESTIMATED_COST.key ? (
-                        currencyFormatter.format(parseFloat(value))
+                        formatCurrency(parseFloat(value))
                       ) : (
                         formatString(value)
                       )}
