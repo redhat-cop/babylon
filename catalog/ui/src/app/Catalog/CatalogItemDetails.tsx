@@ -49,11 +49,12 @@ import {
   formatTime,
   getIsDisabled,
   getStatus,
-  HIDDEN_LABELS,
+  HIDDEN_LABELS_DETAIL_VIEW,
   getIncidentUrl,
   formatString,
   getRating,
   CUSTOM_LABELS,
+  sortLabels,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -76,6 +77,14 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }),
+    []
+  );
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
     userNamespace?.name
       ? apiPaths.RESOURCE_CLAIMS({
@@ -159,7 +168,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   for (const [label, value] of Object.entries(labels || {})) {
     if (label.startsWith(`${BABYLON_DOMAIN}/`)) {
       const attr: string = label.substring(BABYLON_DOMAIN.length + 1);
-      if (!HIDDEN_LABELS.includes(attr)) {
+      if (!HIDDEN_LABELS_DETAIL_VIEW.includes(attr)) {
         attributes[attr] = value;
       }
     }
@@ -283,20 +292,24 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-              {Object.entries(attributes).map(([attr, value]) => (
-                <DescriptionListGroup key={attr}>
-                  <DescriptionListTerm>{formatString(attr)}</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {attr === CUSTOM_LABELS.RATING ? (
-                      <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
-                    ) : attr === CUSTOM_LABELS.SLA ? (
-                      <Link to="/support">{formatString(value)}</Link>
-                    ) : (
-                      formatString(value)
-                    )}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ))}
+              {Object.entries(attributes)
+                .sort(sortLabels)
+                .map(([attr, value]) => (
+                  <DescriptionListGroup key={attr}>
+                    <DescriptionListTerm>{formatString(attr)}</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {attr === CUSTOM_LABELS.RATING.key ? (
+                        <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
+                      ) : attr === CUSTOM_LABELS.SLA.key ? (
+                        <Link to="/support">{formatString(value)}</Link>
+                      ) : attr === CUSTOM_LABELS.ESTIMATED_COST.key ? (
+                        currencyFormatter.format(parseFloat(value))
+                      ) : (
+                        formatString(value)
+                      )}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                ))}
               {lastUpdate && lastUpdate.git ? (
                 <DescriptionListGroup className="catalog-item-details__last-update">
                   <DescriptionListTerm>Last update</DescriptionListTerm>
