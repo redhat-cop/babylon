@@ -1,5 +1,6 @@
-import { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, ReactElement } from 'react';
 import throttle from 'lodash.throttle';
+import { GridOnScrollProps } from 'react-window';
 
 const windowScrollPositionKey = {
   y: 'pageYOffset',
@@ -17,19 +18,29 @@ const getScrollPosition = (axis: 'x' | 'y'): number =>
   document.body[documentScrollPositionKey[axis]] ||
   0;
 
-export const ReactWindowScroller = ({ children, throttleTime = 10, isGrid = false }): JSX.Element => {
-  const ref = useRef();
-  const outerRef = useRef();
+export const ReactWindowScroller: React.FC<{
+  children: ({
+    ref,
+    outerRef,
+    style,
+    onScroll,
+  }: {
+    ref: React.RefObject<any>;
+    outerRef: React.RefObject<any>;
+    style: React.CSSProperties;
+    onScroll: (props: GridOnScrollProps) => any;
+  }) => ReactElement;
+  throttleTime?: number;
+}> = ({ children, throttleTime = 10 }) => {
+  const ref = useRef(null);
+  const outerRef = useRef(null);
 
   useEffect(() => {
     const handleWindowScroll = throttle(() => {
       const { offsetTop, offsetLeft } = outerRef.current || { offsetLeft: 0, offsetTop: 0 };
       const scrollTop = getScrollPosition('y') - offsetTop;
       const scrollLeft = getScrollPosition('x') - offsetLeft;
-      // @ts-ignore: Object is possibly 'null'.
-      if (isGrid && ref.current) ref.current.scrollTo({ scrollLeft, scrollTop });
-      // @ts-ignore: Object is possibly 'null'.
-      if (!isGrid && ref.current) ref.current.scrollTo(scrollTop);
+      if (ref.current) ref.current.scrollTo({ scrollLeft, scrollTop });
     }, throttleTime);
 
     window.addEventListener('scroll', handleWindowScroll);
@@ -37,32 +48,27 @@ export const ReactWindowScroller = ({ children, throttleTime = 10, isGrid = fals
       handleWindowScroll.cancel();
       window.removeEventListener('scroll', handleWindowScroll);
     };
-  }, [isGrid]);
+  }, []);
 
-  const onScroll = useCallback(
-    ({ scrollLeft, scrollTop, scrollOffset, scrollUpdateWasRequested }) => {
-      if (!scrollUpdateWasRequested) return;
-      const top = getScrollPosition('y');
-      const left = getScrollPosition('x');
-      const { offsetTop, offsetLeft } = outerRef.current || { offsetLeft: 0, offsetTop: 0 };
+  const onScroll = useCallback(({ scrollLeft, scrollTop, scrollUpdateWasRequested }: GridOnScrollProps) => {
+    if (!scrollUpdateWasRequested) return;
+    const top = getScrollPosition('y');
+    const left = getScrollPosition('x');
+    const { offsetTop, offsetLeft } = outerRef.current || { offsetLeft: 0, offsetTop: 0 };
 
-      scrollOffset += Math.min(top, offsetTop);
-      scrollTop += Math.min(top, offsetTop);
-      scrollLeft += Math.min(left, offsetLeft);
+    scrollTop += Math.min(top, offsetTop);
+    scrollLeft += Math.min(left, offsetLeft);
 
-      if (!isGrid && scrollOffset !== top) window.scrollTo(0, scrollOffset);
-      if (isGrid && (scrollTop !== top || scrollLeft !== left)) {
-        window.scrollTo(scrollLeft, scrollTop);
-      }
-    },
-    [isGrid]
-  );
+    if (scrollTop !== top || scrollLeft !== left) {
+      window.scrollTo(scrollLeft, scrollTop);
+    }
+  }, []);
 
   return children({
     ref,
     outerRef,
     style: {
-      width: isGrid ? 'auto' : '100%',
+      width: '100%',
       height: '100%',
       display: 'inline-block',
     },

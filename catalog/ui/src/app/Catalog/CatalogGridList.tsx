@@ -65,7 +65,7 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
   );
 
   return (
-    <ReactWindowScroller isGrid={view === 'gallery'}>
+    <ReactWindowScroller>
       {({ ref, outerRef, style, onScroll }) =>
         view === 'gallery' ? (
           <Grid
