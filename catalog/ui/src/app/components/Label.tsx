@@ -1,7 +1,10 @@
 import React from 'react';
 import { Tooltip } from '@patternfly/react-core';
 
-const Label: React.FC<{ tooltipDescription?: JSX.Element }> = ({ children, tooltipDescription = null }) =>
+const Label: React.FC<{ tooltipDescription?: JSX.Element; children: React.ReactNode }> = ({
+  children,
+  tooltipDescription = null,
+}) =>
   children && tooltipDescription ? (
     <Tooltip position="bottom" content={tooltipDescription}>
       <span

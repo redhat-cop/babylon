@@ -71,8 +71,9 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
       ).phase,
     });
   }
-  const codeLevels = ['failed', 'stopped', 'in-progress', 'running', 'available'];
-  function cmp(a: { phase: phaseProps }, b: { phase: phaseProps }): number {
+
+  const codeLevels = ['failed', 'stopped', 'in-progress', 'available', 'running'];
+  function cmp(a: { phase: phaseProps }, b: { phase: phaseProps }) {
     return codeLevels.indexOf(a.phase) > codeLevels.indexOf(b.phase) ? 1 : -1;
   }
   const mostRelevantResourceIndex = resourcesStatus.sort(cmp)[0].index;

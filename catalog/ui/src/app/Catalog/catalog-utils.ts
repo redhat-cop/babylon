@@ -49,6 +49,7 @@ export function getRating(catalogItem: CatalogItem): { ratingScore: number; tota
   return null;
 }
 export function formatCurrency(value: number) {
+  if (isNaN(value)) return null;
   const currencyFormatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',

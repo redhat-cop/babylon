@@ -908,7 +908,6 @@ const ServicesItemComponent: React.FC<{
               ]
             ) : serviceHasUsers ? (
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
-                {workshopName}
                 {activeTab === 'users' ? (
                   <>
                     {!workshopName ? (
