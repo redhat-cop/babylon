@@ -109,6 +109,27 @@
          Check agnosticv-operator logs:
            oc logs -n agnosticv-operator deployment/agnosticv-operator
 
+  - name: Check if user {{ cloudforms_username }} exists
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: v1
+      kind: User
+      name: "{{ cloudforms_username }}"
+    register: r_user
+
+  - name: Create User {{ cloudforms_username }}
+    when: r_user.resources | length == 0
+    k8s:
+      kubeconfig: "{{ kubeconfig }}"
+      definition:
+        apiVersion: v1
+        kind: User
+        metadata:
+          labels:
+            demo.redhat.com/cfme: "true"
+          name: "{{ cloudforms_username }}"
+    register: r_user_created
+
   - name: Check if namespace {{ user_namespace }} exists
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
