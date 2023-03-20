@@ -137,20 +137,10 @@
       kind: Namespace
       name: "{{ user_namespace }}"
     register: r_user_namespace
-
-  - name: Create namespace {{ user_namespace }}
-    when: r_user_namespace.resources | length == 0
-    k8s:
-      kubeconfig: "{{ kubeconfig }}"
-      definition:
-        apiVersion: v1
-        kind: Namespace
-        metadata:
-          annotations:
-            openshift.io/description: User Namespace for {{ cloudforms_username }}
-            openshift.io/display-name: "User {{ cloudforms_username }}"
-            openshift.io/requester: "{{ cloudforms_username }}"
-          name: "{{ user_namespace }}"
+    failed_when: r_user_namespace.resources | length < 1
+    until: r_user_namespace is successful
+    retries: 10
+    delay: 3
 
   - name: Grant babylon-user-service-access for {{ cloudforms_username }} in namespace
     k8s:
