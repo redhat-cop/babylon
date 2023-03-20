@@ -14,18 +14,25 @@ from datetime import timedelta
 
 from babylon import Babylon
 
-logger = logging.getLogger('babylon-catalog-manager')
+logger = logging.getLogger("babylon-catalog-manager")
 
-@retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
+
+@retry(
+    stop_max_attempt_number=3,
+    wait_exponential_multiplier=500,
+    wait_exponential_max=5000,
+)
 async def get_secret_data(secret_name, secret_namespace=None):
-    if os.path.exists('/run/secrets/kubernetes.io/serviceaccount/namespace'):
-        current_namespace = open('/run/secrets/kubernetes.io/serviceaccount/namespace').read()
+    if os.path.exists("/run/secrets/kubernetes.io/serviceaccount/namespace"):
+        current_namespace = open(
+            "/run/secrets/kubernetes.io/serviceaccount/namespace"
+        ).read()
     else:
-        current_namespace = 'babylon-catalog-manager-dev'
+        current_namespace = "babylon-catalog-manager-dev"
     secret = await Babylon.core_v1_api.read_namespaced_secret(
         secret_name, current_namespace
     )
-    data = {k: base64.b64decode(v).decode('utf-8') for (k, v) in secret.data.items()}
+    data = {k: base64.b64decode(v).decode("utf-8") for (k, v) in secret.data.items()}
 
     # Attempt to evaluate secret data values as YAML
     for k, v in data.items():
@@ -36,7 +43,7 @@ async def get_secret_data(secret_name, secret_namespace=None):
     return data
 
 
-async def get_conn_params(secret_name='gpte-db-secrets'):
+async def get_conn_params(secret_name="gpte-db-secrets"):
     """Get connection parameters from the passed dictionary.
     Return a dictionary with parameters to connect to PostgreSQL server.
     """
@@ -48,18 +55,25 @@ async def get_conn_params(secret_name='gpte-db-secrets'):
         "port": "port",
         "ssl_mode": "sslmode",
         "ca_cert": "sslrootcert",
-        "dbname": "database"
+        "dbname": "database",
     }
 
-    kw = dict((params_map[k], v) for (k, v) in params_dict.items()
-              if k in params_map and v != '' and v is not None)
+    kw = dict(
+        (params_map[k], v)
+        for (k, v) in params_dict.items()
+        if k in params_map and v != "" and v is not None
+    )
 
     return kw
 
 
-@retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
+@retry(
+    stop_max_attempt_number=3,
+    wait_exponential_multiplier=500,
+    wait_exponential_max=5000,
+)
 async def connect_to_db(fail_on_conn=True):
-    """ Connect to database and returns connection pool
+    """Connect to database and returns connection pool
     :param fail_on_conn:
     :return: connection pool
     """
@@ -69,8 +83,10 @@ async def connect_to_db(fail_on_conn=True):
         db_connection = pool.ThreadedConnectionPool(2, 4, **conn_params)
 
     except TypeError as e:
-        if 'sslrootcert' in e.args[0]:
-            logger.error("Postgresql server must be at least version 8.4 to support sslrootcert")
+        if "sslrootcert" in e.args[0]:
+            logger.error(
+                "Postgresql server must be at least version 8.4 to support sslrootcert"
+            )
         if fail_on_conn:
             logger.error(f"unable to connect to database: {e}")
         else:
@@ -85,11 +101,12 @@ async def connect_to_db(fail_on_conn=True):
 
     return db_connection
 
+
 async def execute_query(query, positional_args=None, autocommit=True):
     db_connection = await connect_to_db()
     db_pool_conn = db_connection.getconn()
 
-    encoding = 'utf-8'
+    encoding = "utf-8"
     if encoding is not None:
         db_pool_conn.set_client_encoding(encoding)
 
@@ -103,7 +120,7 @@ async def execute_query(query, positional_args=None, autocommit=True):
 
     query_result = []
     rowcount = 0
-    statusmessage = ''
+    statusmessage = ""
     try:
         cursor.execute(query, arguments)
         statusmessage = cursor.statusmessage
@@ -134,13 +151,15 @@ async def execute_query(query, positional_args=None, autocommit=True):
         cursor.close()
         db_connection.putconn(db_pool_conn)
         db_connection.closeall()
-        logger.error("Cannot execute SQL \n"
-                    "Query: '%s' \n"
-                    "Arguments: %s: \n"
-                    "Error: %s, \n"
-                    "query list: %s\n"
-                    "" % (query, arguments, e))
-    
+        logger.error(
+            "Cannot execute SQL \n"
+            "Query: '%s' \n"
+            "Arguments: %s: \n"
+            "Error: %s, \n"
+            "query list: %s\n"
+            "" % (query, arguments, e)
+        )
+
     try:
         if autocommit:
             db_pool_conn.commit()

@@ -3,10 +3,13 @@ import os
 
 from rating import Rating
 
-class Babylon():
-    babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
-    babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
-    ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
+
+class Babylon:
+    babylon_domain = os.environ.get("BABYLON_DOMAIN", "babylon.gpte.redhat.com")
+    babylon_api_version = os.environ.get("BABYLON_API_VERSION", "v1")
+    ratings_api = os.environ.get(
+        "RATINGS_API", "http://babylon-ratings.babylon-ratings.svc.cluster.local:8080"
+    )
 
     catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
     catalog_item_display_name_annotation = f"{babylon_domain}/catalogItemDisplayName"
@@ -24,7 +27,7 @@ class Babylon():
 
     @classmethod
     async def on_startup(cls):
-        if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
+        if os.path.exists("/run/secrets/kubernetes.io/serviceaccount"):
             kubernetes_asyncio.config.load_incluster_config()
         else:
             await kubernetes_asyncio.config.load_kube_config()
