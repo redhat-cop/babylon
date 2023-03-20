@@ -1,3 +1,10 @@
+
+import logging
+import aiohttp
+
+from rating import Rating
+from babylon import Babylon
+
 GET_CATALOG_ITEM_LAST_SUCCESSFUL_PROVISION = (
     """SELECT provisions.provisioned_at AS last_successful_provision
         FROM catalog_items

@@ -3,7 +3,6 @@
 import logging
 import asyncio
 import kopf
-import aiohttp
 
 from rating import Rating
 from babylon import Babylon
