@@ -8,24 +8,12 @@ import aiohttp
 from rating import Rating
 from babylon import Babylon
 from catalog_item import CatalogItem
+from catalog_item_service import CatalogItemService
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 
-async def get_rating_from_api(catalog_item, logger):
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{Babylon.ratings_api}/api/ratings/v1/catalogitem/{catalog_item.name}", ssl=False) as resp:
-                if resp.status == 200:
-                    logger.info(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {resp.status}")
-                    response = await resp.json()
-                    return Rating(response.get('rating_score', None), response.get('total_ratings', 0))
-                logger.warn(f"/api/ratings/v1/catalogitem/{catalog_item.name} - {resp.status}")
-    except Exception as e:
-        logger.error(f"Invalid connection with {Babylon.ratings_api} - {e}")
-        raise
-
 async def manage_catalog_item_rating(catalog_item, logger):
-    rating = await get_rating_from_api(catalog_item, logger=logger)
+    rating = await CatalogItemService(catalog_item, logger=logger).get_rating_from_api()
     logger.info(f"Rating of {catalog_item.name} is {rating.rating_score} of {rating.total_ratings} -- was {catalog_item.rating.rating_score} of {catalog_item.rating.total_ratings}")
     if rating != catalog_item.rating and rating.rating_score is not None:
         patch = {
@@ -41,6 +29,19 @@ async def manage_catalog_item_rating(catalog_item, logger):
         await catalog_item.merge_patch(patch)
         logger.info(f"Updated rating ({rating.rating_score} of {rating.total_ratings}) for CatalogItem: {catalog_item.name}")
 
+async def manage_catalog_item_provision_data(catalog_item, logger):
+    provision_data = await CatalogItemService(catalog_item, logger=logger).get_provision_data()
+    logger.info(f"Last successful provision of {catalog_item.name} at {provision_data.last_successful_provision}")
+    if (provision_data.last_successful_provision != catalog_item.annotations.get(Babylon.catalog_item_last_successful_provision, None)):
+        patch = {
+            "metadata": {
+                "annotations": {
+                    Babylon.catalog_item_last_successful_provision: provision_data.last_successful_provision
+                }
+            }
+        }
+        await catalog_item.merge_patch(patch)
+        logger.info(f"Updated last successful provision time ({provision_data.last_successful_provision}) for CatalogItem: {catalog_item.name}")
 
 @kopf.on.startup()
 async def on_startup(logger, settings, **_):
@@ -77,4 +78,5 @@ manage_catalog_item_lock = asyncio.Lock()
 async def manage_catalog_item(logger, **kwargs):
     async with manage_catalog_item_lock:
         catalog_item = CatalogItem(**kwargs)
-        await manage_catalog_item_rating(catalog_item, logger);
+        await manage_catalog_item_rating(catalog_item, logger)
+        await manage_catalog_item_provision_data(catalog_item, logger)
