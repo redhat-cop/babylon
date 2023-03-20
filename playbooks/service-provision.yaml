@@ -130,7 +130,7 @@
           name: "{{ cloudforms_username }}"
     register: r_user_created
 
-  - name: Check if namespace {{ user_namespace }} exists
+  - name: Wait for namespace {{ user_namespace }} creation
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
       api_version: v1
