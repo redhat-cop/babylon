@@ -112,7 +112,7 @@
   - name: Check if user {{ cloudforms_username }} exists
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
-      apiVersion: user.openshift.io/v1
+      api_version: user.openshift.io/v1
       kind: User
       name: "{{ cloudforms_username }}"
     register: r_user
