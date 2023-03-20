@@ -109,27 +109,38 @@
          Check agnosticv-operator logs:
            oc logs -n agnosticv-operator deployment/agnosticv-operator
 
-  - name: Check if namespace {{ user_namespace }} exists
+  - name: Check if user {{ cloudforms_username }} exists
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: user.openshift.io/v1
+      kind: User
+      name: "{{ cloudforms_username }}"
+    register: r_user
+
+  - name: Create User {{ cloudforms_username }}
+    when: r_user.resources | length == 0
+    k8s:
+      kubeconfig: "{{ kubeconfig }}"
+      definition:
+        apiVersion: user.openshift.io/v1
+        kind: User
+        metadata:
+          labels:
+            demo.redhat.com/cfme: "true"
+          name: "{{ cloudforms_username }}"
+    register: r_user_created
+
+  - name: Wait for namespace {{ user_namespace }} creation
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
       api_version: v1
       kind: Namespace
       name: "{{ user_namespace }}"
     register: r_user_namespace
-
-  - name: Create namespace {{ user_namespace }}
-    when: r_user_namespace.resources | length == 0
-    k8s:
-      kubeconfig: "{{ kubeconfig }}"
-      definition:
-        apiVersion: v1
-        kind: Namespace
-        metadata:
-          annotations:
-            openshift.io/description: User Namespace for {{ cloudforms_username }}
-            openshift.io/display-name: "User {{ cloudforms_username }}"
-            openshift.io/requester: "{{ cloudforms_username }}"
-          name: "{{ user_namespace }}"
+    failed_when: r_user_namespace.resources | length < 1
+    until: r_user_namespace is successful
+    retries: 10
+    delay: 3
 
   - name: Grant babylon-user-service-access for {{ cloudforms_username }} in namespace
     k8s:
