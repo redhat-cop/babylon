@@ -6,7 +6,7 @@ from rating import Rating
 from babylon import Babylon
 from utils import execute_query
 
-GET_CATALOG_ITEM_LAST_SUCCESSFUL_PROVISION = """SELECT provisions.provisioned_at AS last_successful_provision
+GET_CATALOG_ITEM_LAST_SUCCESSFUL_PROVISION = """SELECT to_char(provisions.provisioned_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS last_successful_provision
         FROM catalog_items
             JOIN provisions 
             ON catalog_items.id = provisions.catalog_id
