@@ -1,11 +1,12 @@
 import logging
 import aiohttp
 
+from datetime import datetime
 from rating import Rating
 from babylon import Babylon
 from utils import execute_query
 
-GET_CATALOG_ITEM_LAST_SUCCESSFUL_PROVISION = """SELECT provisions.provisioned_at AS last_successful_provision
+GET_CATALOG_ITEM_LAST_SUCCESSFUL_PROVISION = """SELECT to_char(provisions.provisioned_at, 'YYYY-MM-DD"T"HH24:MI:SS"') AS last_successful_provision
         FROM catalog_items
             JOIN provisions 
             ON catalog_items.id = provisions.catalog_id
@@ -32,9 +33,12 @@ class CatalogItemService:
         resultArr = query.get("result", [])
         last_successful_provision = None
         if len(resultArr) > 0:
-            last_successful_provision = resultArr[0].get(
+            _last_successful_provision_str = resultArr[0].get(
                 "last_successful_provision", None
             )
+            if (_last_successful_provision_str is not None):
+                self.logger.info(_last_successful_provision_str)
+                last_successful_provision = datetime.fromisoformat(_last_successful_provision_str)
         return ProvisionData(last_successful_provision)
 
     async def get_rating_from_api(self):

@@ -13,10 +13,10 @@ import {
   ServiceNamespace,
   Workshop,
 } from '@app/types';
-import { string } from 'prop-types';
 
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 export const DEMO_DOMAIN = 'demo.redhat.com';
+export const CATALOG_MANAGER_DOMAIN = `catalog-manager.${DEMO_DOMAIN}`;
 
 // Force all links to target new window and not pass unsafe attributes
 dompurify.addHook('afterSanitizeAttributes', function (node) {

@@ -239,18 +239,12 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           return aDisplayName < bDisplayName ? 1 : -1;
         } else {
           // sortBy === 'Featured' and 'Rating'
-          const aRating =
-            a.metadata.labels[
-              `${BABYLON_DOMAIN}/${
-                sortBy.selected === 'Featured' ? CUSTOM_LABELS.FEATURED_SCORE.key : CUSTOM_LABELS.RATING.key
-              }`
-            ];
-          const bRating =
-            b.metadata.labels[
-              `${BABYLON_DOMAIN}/${
-                sortBy.selected === 'Featured' ? CUSTOM_LABELS.FEATURED_SCORE.key : CUSTOM_LABELS.RATING.key
-              }`
-            ];
+          const selector =
+            sortBy.selected === 'Featured'
+              ? `${CUSTOM_LABELS.FEATURED_SCORE.domain}/${CUSTOM_LABELS.FEATURED_SCORE.key}`
+              : `${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`;
+          const aRating = a.metadata.labels[selector];
+          const bRating = b.metadata.labels[selector];
           if (aRating || bRating) {
             if (aRating && bRating) return parseInt(aRating, 10) < parseInt(bRating, 10) ? 1 : -1;
             if (bRating) return 1;
@@ -259,8 +253,9 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           return aDisplayName < bDisplayName ? -1 : 1;
         }
       }
-      const aStage = a.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
-      const bStage = b.metadata.labels?.[`${BABYLON_DOMAIN}/stage`];
+      const stageSelector = `${CUSTOM_LABELS.STAGE.domain}/${CUSTOM_LABELS.STAGE.key}`;
+      const aStage = a.metadata.labels?.[stageSelector];
+      const bStage = b.metadata.labels?.[stageSelector];
       if (aStage !== bStage) {
         return aStage === 'prod' && bStage !== 'prod'
           ? -1

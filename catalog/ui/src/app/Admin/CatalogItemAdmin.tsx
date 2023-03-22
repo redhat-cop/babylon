@@ -76,8 +76,8 @@ const CatalogItemAdmin: React.FC = () => {
   const ops: Ops = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]
     ? JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`])
     : null;
-  const disabled = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`]
-    ? JSON.parse(catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`])
+  const disabled = catalogItem.metadata.labels?.[`${CUSTOM_LABELS.DISABLED.domain}/${CUSTOM_LABELS.DISABLED.key}`]
+    ? JSON.parse(catalogItem.metadata.labels?.[`${CUSTOM_LABELS.DISABLED.domain}/${CUSTOM_LABELS.DISABLED.key}`])
     : false;
   const [status, setStatus] = useState(ops?.status.id || 'operational');
   const [isDisabled, setIsDisabled] = useState(disabled);
