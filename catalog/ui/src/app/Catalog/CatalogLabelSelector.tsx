@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { Button, Checkbox, ExpandableSection, Form, FormGroup, Tooltip } from '@patternfly/react-core';
 import FilterAltIcon from '@patternfly/react-icons/dist/js/icons/filter-alt-icon';
 import { CatalogItem } from '@app/types';
-import { BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN, CATALOG_MANAGER_DOMAIN } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import { formatString, HIDDEN_LABELS, CUSTOM_LABELS } from './catalog-utils';
 
@@ -32,11 +32,17 @@ const CatalogLabelSelector: React.FC<{
   for (const catalogItem of catalogItems || []) {
     if (!catalogItem.metadata.labels) continue;
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
-      if (!label.startsWith(`${BABYLON_DOMAIN}/`)) continue;
+      let domain: string = null;
+      if (label.startsWith(`${BABYLON_DOMAIN}/`)) {
+        domain = BABYLON_DOMAIN;
+      } else if (label.startsWith(`${CATALOG_MANAGER_DOMAIN}/`)) {
+        domain = CATALOG_MANAGER_DOMAIN;
+      }
+      if (!domain) continue;
       if (label.toLowerCase() === `${CUSTOM_LABELS.CATEGORY.domain}/${CUSTOM_LABELS.CATEGORY.key}`) continue;
 
       // Allow multiple values for labels with numeric suffixes
-      const attr = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
+      const attr = label.substring(domain.length + 1).replace(/-[0-9]+$/, '');
       const attrKey = attr.toLowerCase();
       // Only non-hidden labels
       if (!HIDDEN_LABELS.includes(attr)) {
@@ -60,14 +66,23 @@ const CatalogLabelSelector: React.FC<{
   for (const catalogItem of filteredCatalogItems || []) {
     if (!catalogItem.metadata.labels) continue;
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
-      if (!label.startsWith(`${BABYLON_DOMAIN}/`)) continue;
       if (label.toLowerCase() === `${CUSTOM_LABELS.CATEGORY.domain}/${CUSTOM_LABELS.CATEGORY.key}`) continue;
       // Allow multiple values for labels with numeric suffixes
-      const attrKey = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
-      // Only non-hidden labels
-      if (!HIDDEN_LABELS.includes(attrKey)) {
-        const valueKey = value.toLowerCase();
-        labels[attrKey.toLowerCase()].values[valueKey].count++;
+      if (label.startsWith(`${BABYLON_DOMAIN}/`)) {
+        const attrKey = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
+        // Only non-hidden labels
+        if (!HIDDEN_LABELS.includes(attrKey)) {
+          const valueKey = value.toLowerCase();
+          labels[attrKey.toLowerCase()].values[valueKey].count++;
+        }
+      }
+      if (label.startsWith(`${CATALOG_MANAGER_DOMAIN}/`)) {
+        const attrKey = label.substring(CATALOG_MANAGER_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
+        // Only non-hidden labels
+        if (!HIDDEN_LABELS.includes(attrKey)) {
+          const valueKey = value.toLowerCase();
+          labels[attrKey.toLowerCase()].values[valueKey].count++;
+        }
       }
     }
   }
