@@ -36,7 +36,14 @@ import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 import SearchInputString from '@app/components/SearchInputString';
-import { checkAccessControl, displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT, stripTags } from '@app/util';
+import {
+  checkAccessControl,
+  displayName,
+  BABYLON_DOMAIN,
+  FETCH_BATCH_LIMIT,
+  stripTags,
+  CATALOG_MANAGER_DOMAIN,
+} from '@app/util';
 import LoadingIcon from '@app/components/LoadingIcon';
 import Footer from '@app/components/Footer';
 import {
@@ -141,6 +148,17 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
       if (ciLabel.startsWith(`${BABYLON_DOMAIN}/`)) {
         const ciAttr = ciLabel
           .substring(BABYLON_DOMAIN.length + 1)
+          .replace(/-[0-9]+$/, '')
+          .toLowerCase();
+        if (matchAttr === ciAttr) {
+          if (matchValues.includes(ciValue.toLowerCase())) {
+            matched = true;
+          }
+        }
+      }
+      if (ciLabel.startsWith(`${CATALOG_MANAGER_DOMAIN}/`)) {
+        const ciAttr = ciLabel
+          .substring(CATALOG_MANAGER_DOMAIN.length + 1)
           .replace(/-[0-9]+$/, '')
           .toLowerCase();
         if (matchAttr === ciAttr) {

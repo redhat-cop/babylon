@@ -41,6 +41,7 @@ import {
   getHelpUrl,
   isResourceClaimPartOfWorkshop,
   compareK8sObjectsArr,
+  CATALOG_MANAGER_DOMAIN,
 } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import TimeInterval from '@app/components/TimeInterval';
@@ -163,14 +164,20 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const attributes: { [attr: string]: string } = {};
   for (const [label, value] of Object.entries(labels || {})) {
     if (label.startsWith(`${BABYLON_DOMAIN}/`)) {
-      const attr: string = label.substring(BABYLON_DOMAIN.length + 1);
+      const attr = label.substring(BABYLON_DOMAIN.length + 1);
+      if (!HIDDEN_LABELS_DETAIL_VIEW.includes(attr)) {
+        attributes[attr] = value;
+      }
+    }
+    if (label.startsWith(`${CATALOG_MANAGER_DOMAIN}/`)) {
+      const attr = label.substring(CATALOG_MANAGER_DOMAIN.length + 1);
       if (!HIDDEN_LABELS_DETAIL_VIEW.includes(attr)) {
         attributes[attr] = value;
       }
     }
   }
 
-  async function orderCatalogItem(): Promise<void> {
+  async function orderCatalogItem() {
     navigate(`/catalog/${namespace}/order/${name}`);
   }
 
