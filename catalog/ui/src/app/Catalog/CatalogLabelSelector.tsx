@@ -33,7 +33,7 @@ const CatalogLabelSelector: React.FC<{
     if (!catalogItem.metadata.labels) continue;
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
       if (!label.startsWith(`${BABYLON_DOMAIN}/`)) continue;
-      if (label.toLowerCase() === `${BABYLON_DOMAIN}/${CUSTOM_LABELS.CATEGORY.key}`) continue;
+      if (label.toLowerCase() === `${CUSTOM_LABELS.CATEGORY.domain}/${CUSTOM_LABELS.CATEGORY.key}`) continue;
 
       // Allow multiple values for labels with numeric suffixes
       const attr = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
@@ -61,7 +61,7 @@ const CatalogLabelSelector: React.FC<{
     if (!catalogItem.metadata.labels) continue;
     for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
       if (!label.startsWith(`${BABYLON_DOMAIN}/`)) continue;
-      if (label.toLowerCase() === `${BABYLON_DOMAIN}/${CUSTOM_LABELS.CATEGORY.key}`) continue;
+      if (label.toLowerCase() === `${CUSTOM_LABELS.CATEGORY.domain}/${CUSTOM_LABELS.CATEGORY.key}`) continue;
       // Allow multiple values for labels with numeric suffixes
       const attrKey = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
       // Only non-hidden labels

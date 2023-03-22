@@ -1,12 +1,14 @@
 import { CatalogItem } from '@app/types';
-import { BABYLON_DOMAIN, formatDuration } from '@app/util';
+import { BABYLON_DOMAIN, CATALOG_MANAGER_DOMAIN, formatDuration } from '@app/util';
 import { Ops } from '@app/Admin/CatalogItemAdmin';
 
-export function getProvider(catalogItem: CatalogItem): string {
-  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.PROVIDER.key}`] || 'Red Hat';
+export function getProvider(catalogItem: CatalogItem) {
+  const { domain, key } = CUSTOM_LABELS.PROVIDER;
+  return catalogItem.metadata.labels?.[`${domain}/${key}`] || 'Red Hat';
 }
-export function getCategory(catalogItem: CatalogItem): string | null {
-  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.CATEGORY.key}`];
+export function getCategory(catalogItem: CatalogItem) {
+  const { domain, key } = CUSTOM_LABELS.CATEGORY;
+  return catalogItem.metadata.labels?.[`${domain}/${key}`];
 }
 export function getDescription(catalogItem: CatalogItem): {
   description: string | null;
@@ -20,27 +22,31 @@ export function getDescription(catalogItem: CatalogItem): {
 }
 
 export function getStage(catalogItem: CatalogItem) {
-  return catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.STAGE.key}`];
+  const { domain, key } = CUSTOM_LABELS.SLA;
+  return catalogItem.metadata.labels?.[`${domain}/${key}`];
 }
 
 const supportedSLAs = ['Enterprise_Premium', 'Enterprise_Standard', 'Community'] as const;
 type SLAs = (typeof supportedSLAs)[number];
 export function getSLA(catalogItem: CatalogItem): SLAs {
-  const sla = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.SLA.key}`] as SLAs;
+  const { domain, key } = CUSTOM_LABELS.SLA;
+  const sla = catalogItem.metadata.labels?.[`${domain}/${key}`] as SLAs;
   if (!supportedSLAs.includes(sla)) return null;
   return sla;
 }
 
 export function getIsDisabled(catalogItem: CatalogItem): boolean {
-  if (catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`]) {
-    return catalogItem.metadata.labels[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`] === 'true';
+  const { domain, key } = CUSTOM_LABELS.DISABLED;
+  if (catalogItem.metadata.labels?.[`${domain}/${key}`]) {
+    return catalogItem.metadata.labels[`${domain}/${key}`] === 'true';
   }
   return false;
 }
 
 export function getRating(catalogItem: CatalogItem): { ratingScore: number; totalRatings: number } | null {
-  const ratingScoreSelector = catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/${CUSTOM_LABELS.RATING.key}`];
-  const totalRatingsSelector = catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/totalRatings`];
+  const { domain, key } = CUSTOM_LABELS.RATING;
+  const ratingScoreSelector = catalogItem.metadata.labels?.[`${domain}/${key}`];
+  const totalRatingsSelector = catalogItem.metadata.annotations[`${domain}/totalRatings`];
   if (ratingScoreSelector) {
     const ratingScore = parseFloat(ratingScoreSelector);
     const totalRatings = totalRatingsSelector ? parseInt(totalRatingsSelector, 10) : null;
@@ -156,16 +162,17 @@ export const CUSTOM_LABELS: {
   [name in 'CATEGORY' | 'PROVIDER' | 'SLA' | 'RATING' | 'ESTIMATED_COST' | 'FEATURED_SCORE' | 'STAGE' | 'DISABLED']: {
     key: string;
     weight: number;
+    domain: string;
   };
 } = {
-  CATEGORY: { key: 'category', weight: 70 },
-  PROVIDER: { key: 'Provider', weight: 60 },
-  SLA: { key: 'SLA', weight: 50 },
-  RATING: { key: 'rating', weight: 30 },
-  ESTIMATED_COST: { key: 'Estimated_Cost', weight: 20 },
-  FEATURED_SCORE: { key: 'Featured_Score', weight: 0 },
-  STAGE: { key: 'stage', weight: 0 },
-  DISABLED: { key: 'disabled', weight: 0 },
+  CATEGORY: { key: 'category', weight: 70, domain: BABYLON_DOMAIN },
+  PROVIDER: { key: 'Provider', weight: 60, domain: BABYLON_DOMAIN },
+  SLA: { key: 'SLA', weight: 50, domain: BABYLON_DOMAIN },
+  RATING: { key: 'rating', weight: 30, domain: CATALOG_MANAGER_DOMAIN },
+  ESTIMATED_COST: { key: 'Estimated_Cost', weight: 20, domain: BABYLON_DOMAIN },
+  FEATURED_SCORE: { key: 'Featured_Score', weight: 0, domain: BABYLON_DOMAIN },
+  STAGE: { key: 'stage', weight: 0, domain: BABYLON_DOMAIN },
+  DISABLED: { key: 'disabled', weight: 0, domain: BABYLON_DOMAIN },
 };
 export const HIDDEN_LABELS = [
   'userCatalogItem',

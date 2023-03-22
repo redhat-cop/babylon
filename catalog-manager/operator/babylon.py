@@ -10,15 +10,16 @@ class Babylon:
     ratings_api = os.environ.get(
         "RATINGS_API", "http://babylon-ratings.babylon-ratings.svc.cluster.local:8080"
     )
-
+    demo_domain = "demo.redhat.com"
+    catalog_manager_domain = f"catalog-manager.{demo_domain}"
     catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
     catalog_item_display_name_annotation = f"{babylon_domain}/catalogItemDisplayName"
     catalog_item_name_label = f"{babylon_domain}/catalogItemName"
     catalog_item_namespace_label = f"{babylon_domain}/catalogItemNamespace"
     display_name_annotation = f"{babylon_domain}/displayName"
-    catalog_item_rating_label = f"{babylon_domain}/rating"
-    catalog_item_total_ratings = f"{babylon_domain}/totalRatings"
-    catalog_item_last_successful_provision = f"{babylon_domain}/lastSuccessfulProvision"
+    catalog_item_rating_label = f"{catalog_manager_domain}/rating"
+    catalog_item_total_ratings = f"{catalog_manager_domain}/totalRatings"
+    catalog_item_last_successful_provision = f"{catalog_manager_domain}/lastSuccessfulProvision"
 
     @classmethod
     async def on_cleanup(cls):
