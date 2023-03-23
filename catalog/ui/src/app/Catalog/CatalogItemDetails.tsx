@@ -348,7 +348,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               ) : null}
 
               {lastSuccessfulProvisionTime ? (
-                <DescriptionListGroup className="catalog-item-details__last-update">
+                <DescriptionListGroup className="catalog-item-details__last-provision">
                   <DescriptionListTerm>Last successful provision</DescriptionListTerm>
                   <DescriptionListDescription>
                     <TimeInterval toEpochMilliseconds={lastSuccessfulProvisionTime} />
