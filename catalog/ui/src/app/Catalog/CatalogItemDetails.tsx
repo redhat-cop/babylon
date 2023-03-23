@@ -59,6 +59,7 @@ import {
   CUSTOM_LABELS,
   sortLabels,
   formatCurrency,
+  getLastSuccessfulProvisionTime,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -80,6 +81,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const provider = getProvider(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
+  const lastSuccessfulProvisionTime = getLastSuccessfulProvisionTime(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
 
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
@@ -326,6 +328,16 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 ))}
+
+              {provisionTimeEstimate ? (
+                <DescriptionListGroup className="catalog-item-details__estimated-time">
+                  <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {displayProvisionTime !== '-' ? `Up to ${displayProvisionTime}` : displayProvisionTime}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
+
               {lastUpdate && lastUpdate.git ? (
                 <DescriptionListGroup className="catalog-item-details__last-update">
                   <DescriptionListTerm>Last update</DescriptionListTerm>
@@ -334,11 +346,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-              {provisionTimeEstimate ? (
-                <DescriptionListGroup className="catalog-item-details__estimated-time">
-                  <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
+
+              {lastSuccessfulProvisionTime ? (
+                <DescriptionListGroup className="catalog-item-details__last-provision">
+                  <DescriptionListTerm>Last successful provision</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {displayProvisionTime !== '-' ? `Up to ${displayProvisionTime}` : displayProvisionTime}
+                    <TimeInterval toEpochMilliseconds={lastSuccessfulProvisionTime} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
