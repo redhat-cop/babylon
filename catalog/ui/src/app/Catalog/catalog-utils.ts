@@ -22,7 +22,7 @@ export function getDescription(catalogItem: CatalogItem): {
 }
 
 export function getStage(catalogItem: CatalogItem) {
-  const { domain, key } = CUSTOM_LABELS.SLA;
+  const { domain, key } = CUSTOM_LABELS.STAGE;
   return catalogItem.metadata.labels?.[`${domain}/${key}`];
 }
 
@@ -74,6 +74,12 @@ function getEstimatedCostFormatted(catalogItem: CatalogItem) {
   const estimatedCost = getEstimatedCost(catalogItem);
   if (estimatedCost) {
     return formatCurrency(estimatedCost);
+  }
+  return null;
+}
+export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
+  if (catalogItem.metadata.annotations?.[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]) {
+    return new Date(catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]).getTime();
   }
   return null;
 }
