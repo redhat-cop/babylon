@@ -109,7 +109,7 @@ const WorkshopsItemServices: React.FC<{
             // GUID
             <>
               {guid ? (
-                isAdmin ? (
+                isAdmin && resourceHandle ? (
                   [
                     <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
                       {guid}
