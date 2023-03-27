@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-import json
-
+import os
 import kubernetes
 import pandas as pd
 import urllib3
 import argparse
 
 urllib3.disable_warnings()
-core_v1_api = custom_objects_api = pool_pattern = None
 poolboy_domain = 'poolboy.gpte.redhat.com'
 poolboy_version = 'v1'
 poolboy_namespace = 'poolboy'
@@ -31,13 +29,12 @@ def parse_args():
     parser.add_argument('--pool-name',
                         dest="pool_name",
                         help='Pool Name',
-                        nargs=1,
+                        type=str,
                         required=False)
 
     parser.add_argument('--set-min',
                         dest="set_min",
                         help='Min replica',
-                        nargs=1,
                         type=int,
                         required=False)
 
@@ -46,9 +43,9 @@ def parse_args():
     return args
 
 
-def search_pool():
-    # min_available = pool['spec']['minAvailable']
+def search_pool(pool_name):
     try:
+        custom_objects_api = kubernetes.client.CustomObjectsApi()
         pool_config = custom_objects_api.get_namespaced_custom_object(poolboy_domain, poolboy_version,
                                                                       poolboy_namespace,
                                                                       'resourcepools', pool_name)
@@ -62,14 +59,15 @@ def search_pool():
             exit(-2)
 
 
-def set_min():
+def set_min(min_available, pool_name):
     try:
-        resource_pool_data = search_pool()
+        custom_objects_api = kubernetes.client.CustomObjectsApi()
+        resource_pool_data = search_pool(pool_name)
         if len(resource_pool_data) == 0:
             return
 
         previous_value = resource_pool_data['spec']['minAvailable']
-        if previous_value == pool_min:
+        if previous_value == min_available:
             print(f"Pool {pool_name} already set minAvailable to {previous_value}. Skipping")
             return
 
@@ -81,11 +79,11 @@ def set_min():
             name=pool_name,
             body={
                 "spec": {
-                    "minAvailable": int(pool_min)
+                    "minAvailable": min_available
                 }
             }
         )
-        print(f"Pool {pool_name} updated previous value {previous_value} new value {pool_min}")
+        print(f"Pool {pool_name} updated previous value {previous_value} new value {min_available}")
 
     except kubernetes.client.exceptions.ApiException as e:
         if e.status == 404:
@@ -96,7 +94,8 @@ def set_min():
             exit(-2)
 
 
-def list_pools():
+def list_pools(pool_pattern):
+    custom_objects_api = kubernetes.client.CustomObjectsApi()
     response_pools = custom_objects_api.list_namespaced_custom_object('poolboy.gpte.redhat.com',
                                                                       'v1',
                                                                       'poolboy',
@@ -134,7 +133,6 @@ def list_pools():
             if 'resources' not in handle['spec']:
                 continue
 
-            totalresource = len(handle['spec']['resources'])
             resourcecompleted = 0
 
             for resource in handle['spec']['resources']:
@@ -175,7 +173,7 @@ def list_pools():
     print("Total Taken: ", df_pools['TAKEN'].sum())
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
 
     if args.set_min and args.pool_name is None:
@@ -183,14 +181,17 @@ if __name__ == "__main__":
         exit(-1)
 
     kubernetes.config.load_kube_config()
-    core_v1_api = kubernetes.client.CoreV1Api()
-    custom_objects_api = kubernetes.client.CustomObjectsApi()
+    if os.path.exists('/run/secrets/kubernetes.io/serviceaccount/token'):
+        kubernetes.config.load_incluster_config()
+    else:
+        await kubernetes.config.load_kube_config()
 
-    if args.set_min and args.set_min[0] >= 0 and args.pool_name:
-        pool_min = args.set_min[0]
-        pool_name = args.pool_name[0]
-        set_min()
+    if args.set_min and args.set_min >= 0 and args.pool_name:
+        set_min(args.set_min, args.pool_name)
         exit(0)
 
-    pool_pattern = args.pool_pattern
-    list_pools()
+    list_pools(args.pool_pattern)
+
+
+if __name__ == "__main__":
+    main()
