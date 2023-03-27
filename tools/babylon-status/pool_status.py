@@ -9,6 +9,7 @@ urllib3.disable_warnings()
 poolboy_domain = 'poolboy.gpte.redhat.com'
 poolboy_version = 'v1'
 poolboy_namespace = 'poolboy'
+kubernetes.config.load_kube_config()
 
 
 def parse_args():
@@ -179,12 +180,6 @@ def main():
     if args.set_min and args.pool_name is None:
         print("Option --set-min requires --pool-name")
         exit(-1)
-
-    kubernetes.config.load_kube_config()
-    if os.path.exists('/run/secrets/kubernetes.io/serviceaccount/token'):
-        kubernetes.config.load_incluster_config()
-    else:
-        kubernetes.config.load_kube_config()
 
     if args.set_min and args.set_min >= 0 and args.pool_name:
         set_min(args.set_min, args.pool_name)
