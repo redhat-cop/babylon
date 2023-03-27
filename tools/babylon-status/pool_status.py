@@ -184,7 +184,7 @@ def main():
     if os.path.exists('/run/secrets/kubernetes.io/serviceaccount/token'):
         kubernetes.config.load_incluster_config()
     else:
-        await kubernetes.config.load_kube_config()
+        kubernetes.config.load_kube_config()
 
     if args.set_min and args.set_min >= 0 and args.pool_name:
         set_min(args.set_min, args.pool_name)
