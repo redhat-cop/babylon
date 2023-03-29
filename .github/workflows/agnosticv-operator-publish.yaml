@@ -33,9 +33,9 @@ jobs:
           # Publish to latest, minor, and patch tags
           # Ex: latest,v0.1.2,v0.1
           IMAGE_TAGS=(
-            '${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest'
-            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION%.*}"
-            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+            "${BABYLON_IMAGE_REGISTRY}/${BABYLON_IMAGE_REPOSITORY}/${IMAGE_NAME}:latest"
+            "${BABYLON_IMAGE_REGISTRY}/${BABYLON_IMAGE_REPOSITORY}/${IMAGE_NAME}:${VERSION%.*}"
+            "${BABYLON_IMAGE_REGISTRY}/${BABYLON_IMAGE_REPOSITORY}/${IMAGE_NAME}:${VERSION}"
           )
           # Set IMAGE_TAGS output for use in next step
           ( IFS=$','; echo "IMAGE_TAGS=${IMAGE_TAGS[*]}" >> $GITHUB_OUTPUT )
@@ -49,9 +49,9 @@ jobs:
       uses: docker/login-action@v1
       if: steps.image_tags.outputs.IMAGE_TAGS
       with:
-        registry: ${{ secrets.REGISTRY_URI }}
-        username: ${{ secrets.GPTE_REGISTRY_USERNAME }}
-        password: ${{ secrets.GPTE_REGISTRY_PASSWORD }}
+        registry: ${{ env.BABYLON_IMAGE_REGISTRY }}
+        username: ${{ secrets.BABYLON_IMAGE_REGISTRY_USERNAME }}
+        password: ${{ secrets.BABYLON_IMAGE_REGISTRY_PASSWORD }}
 
     - name: Build and publish image
       uses: docker/build-push-action@v2
