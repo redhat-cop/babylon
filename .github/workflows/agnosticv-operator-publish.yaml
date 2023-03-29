@@ -19,13 +19,11 @@ jobs:
       id: image_tags
       run: |
         # Version is a semantic version tag or semantic version with release number
-        # GITHUB_REF will be of the form "refs/tags/admin-v0.1.2" or "refs/tags/admin-v0.1.2-1"
+        # GITHUB_REF will be of the form "refs/tags/agnosticv-operator-v1.0.0" or "refs/tags/agnosticv-operator-v1.0.0-1"
         # To determine RELEASE, strip off the leading "refs/tags/"
         RELEASE=${GITHUB_REF#refs/tags/agnosticv-operator-}
         # To determine VERSION, strip off any release number suffix
         VERSION=${RELEASE/-*/}
-        echo "RELEASE=${RELEASE}" >> $GITHUB_OUTPUT
-        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
 
         # Only build image if version tag without release number
         # Releases indicate a change in the repository that should not trigger a new build.
@@ -38,7 +36,7 @@ jobs:
             "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
           )
           # Set IMAGE_TAGS output for use in next step
-          ( IFS=$','; echo "IMAGE_TAGS=${IMAGE_TAGS[*]}" >> $GITHUB_OUTPUT )
+          ( IFS=$','; echo "::set-output name=IMAGE_TAGS::${IMAGE_TAGS[*]}" )
         fi
 
     - name: Set up buildx
