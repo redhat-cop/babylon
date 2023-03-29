@@ -24,8 +24,8 @@ jobs:
         RELEASE=${GITHUB_REF#refs/tags/agnosticv-operator-}
         # To determine VERSION, strip off any release number suffix
         VERSION=${RELEASE/-*/}
-        echo "::set-output name=RELEASE::${RELEASE}"
-        echo "::set-output name=VERSION::${VERSION}"
+        echo "RELEASE=${RELEASE}" >> $GITHUB_OUTPUT
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
 
         # Only build image if version tag without release number
         # Releases indicate a change in the repository that should not trigger a new build.
@@ -38,7 +38,7 @@ jobs:
             "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
           )
           # Set IMAGE_TAGS output for use in next step
-          ( IFS=$','; echo "::set-output name=IMAGE_TAGS::${IMAGE_TAGS[*]}" )
+          ( IFS=$','; echo "IMAGE_TAGS=${IMAGE_TAGS[*]}" >> $GITHUB_OUTPUT )
         fi
 
     - name: Set up buildx
