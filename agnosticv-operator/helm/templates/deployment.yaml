@@ -1,0 +1,86 @@
+{{- if .Values.deploy -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "babylonAgnosticVOperator.name" . }}
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" . }}
+  labels:
+    {{- include "babylonAgnosticVOperator.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "babylonAgnosticVOperator.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylonAgnosticVOperator.selectorLabels" . | nindent 8 }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ include "babylonAgnosticVOperator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: manager
+          env:
+            - name: AGNOSTICV_API_GROUP
+              value: {{ .Values.agnosticv.apiGroup }}
+            - name: AGNOSTICV_VERSION
+              value: {{ .Values.agnosticv.version }}
+            - name: ANARCHY_API_GROUP
+              value: {{ .Values.anarchy.apiGroup }}
+            - name: ANARCHY_VERSION
+              value: {{ .Values.anarchy.version }}
+            - name: CATALOG_API_GROUP
+              value: {{ .Values.catalog.apiGroup }}
+            - name: CATALOG_VERSION
+              value: {{ .Values.catalog.version }}
+            - name: EXECUTION_ENVIRONMENT_ALLOW_LIST
+              value: |
+                {{- .Values.executionEnvironmentAllowList | toYaml | nindent 16 }}
+            - name: POLLING_INTERVAL
+              value: {{ .Values.pollingInterval }}
+            - name: RESOURCE_BROKER_API_GROUP
+              value: {{ .Values.resourceBroker.apiGroup }}
+            - name: RESOURCE_BROKER_NAMESPACE
+              value: {{ .Values.resourceBroker.namespace }}
+            - name: RESOURCE_BROKER_VERSION
+              value: {{ .Values.resourceBroker.version }}
+
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ include "babylonAgnosticVOperator.image" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            failureThreshold: 5
+            initialDelaySeconds: 30
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 10
+          ports:
+          - name: metrics
+            containerPort: 8000
+      restartPolicy: Always
+      securityContext: {}
+      serviceAccountName: {{ include "babylonAgnosticVOperator.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 30
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end -}}
