@@ -12,6 +12,6 @@ RUN rm -rf /tmp/src/.git* && \
 
 USER 1001
 
-RUN /tmp/scripts/assemble
+RUN cd /tmp/src && /tmp/scripts/assemble
 
 CMD ["/usr/libexec/s2i/run"]
