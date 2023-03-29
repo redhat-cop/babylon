@@ -33,9 +33,9 @@ jobs:
           # Publish to latest, minor, and patch tags
           # Ex: latest,v0.1.2,v0.1
           IMAGE_TAGS=(
-            "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${IMAGE_NAME}:latest"
-            "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${IMAGE_NAME}:${VERSION%.*}"
-            "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${IMAGE_NAME}:${VERSION}"
+            "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest"
+            "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION%.*}"
+            "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
           )
           # Set IMAGE_TAGS output for use in next step
           ( IFS=$','; echo "IMAGE_TAGS=${IMAGE_TAGS[*]}" >> $GITHUB_OUTPUT )
