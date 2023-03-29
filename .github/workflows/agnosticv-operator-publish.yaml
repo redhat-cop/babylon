@@ -5,7 +5,7 @@ on:
     branches-ignore:
     - '*'
     tags:
-    - 'agnosticv-operator-v[0-9]*'
+    - 'agnosticv-operator-v[0123456789]*'
 jobs:
   publish:
     env:
