@@ -2,6 +2,8 @@
 name: agnosticv-operator-publish
 on:
   push:
+    branches-ignore:
+    - '*'
     tags:
     - 'agnosticv-operator-v[0-9]*'
 jobs:
