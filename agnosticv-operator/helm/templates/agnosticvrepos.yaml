@@ -1,0 +1,25 @@
+{{ range $agnosticvRepo := .Values.agnosticvRepos }}
+---
+apiVersion: {{ $.Values.agnosticv.apiGroup }}/{{ $.Values.agnosticv.version }}
+kind: AgnosticVRepo
+metadata:
+  name: {{ $agnosticvRepo.name }}
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" $ }}
+spec:
+{{ range $k, $v := $agnosticvRepo }}
+  {{- if and (ne $k "name") (ne $k "sshKey") }}
+  {{- (dict $k $v) | toYaml | indent 2 }}
+  {{- end }}
+{{ end }}
+{{ with $agnosticvRepo.sshKey }}
+  sshKey: {{ $agnosticvRepo.name }}-sshkey
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $agnosticvRepo.name }}-sshkey
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" $ }}
+data:
+  id_rsa: {{ . | b64enc }}
+{{ end }}
+{{ end }}

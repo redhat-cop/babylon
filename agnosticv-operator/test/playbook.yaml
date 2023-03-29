@@ -1,0 +1,26 @@
+---
+- hosts: localhost
+  gather_facts: false
+  vars:
+    test_namespace: babylon-config
+    tests:
+    - core
+  tasks:
+  - name: Cleanup to reset before Running tests
+    include_role:
+      name: "{{ __test_role }}"
+      tasks_from: cleanup.yml
+    loop: "{{ tests }}"
+    loop_control:
+      loop_var: __test
+    vars:
+      __test_role: test_{{ __test }}
+
+  - name: Run tests
+    include_role:
+      name: "{{ __test_role }}"
+    loop: "{{ tests }}"
+    loop_control:
+      loop_var: __test
+    vars:
+      __test_role: test_{{ __test }}

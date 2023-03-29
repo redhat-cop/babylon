@@ -1,0 +1,54 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "babylonAgnosticVOperator.name" . }}
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" . }}
+  labels:
+    {{- include "babylonAgnosticVOperator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - {{ .Values.agnosticv.apiGroup }}
+  resources:
+  - agnosticvrepos
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.agnosticv.apiGroup }}
+  resources:
+  - agnosticvrepos/status
+  verbs:
+  - create
+  - patch
+  - update
+- apiGroups:
+  - {{ .Values.agnosticv.apiGroup }}
+  resources:
+  - agnosticvcomponents
+  - agnosticvcomponents/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  attributeRestrictions: null
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update

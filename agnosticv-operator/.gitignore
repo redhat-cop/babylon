@@ -1,0 +1,5 @@
+.odo/env
+.odo/odo-file-index.json
+id_rsa
+id_rsa.pub
+test-helm-values.yaml

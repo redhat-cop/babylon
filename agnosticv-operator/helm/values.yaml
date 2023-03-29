@@ -1,0 +1,83 @@
+namespace:
+  # Specifies whether a namespace should be created
+  create: true
+  # The name of the namespace to use.
+  # If not set and create is true, a name is generated using the name template
+  name: babylon-config
+
+#agnosticvRepos:
+#- name: agnosticv
+#  ref: master
+#  sshKey: agnosticv-sshkey
+#  url: git@github.com:rhpds/agnosticv.git
+#  ...
+
+agnosticv:
+  apiGroup: gpte.redhat.com
+  version: v1
+
+anarchy:
+  apiGroup: anarchy.gpte.redhat.com
+  version: v1
+
+catalog:
+  apiGroup: babylon.gpte.redhat.com
+  version: v1
+
+executionEnvironmentAllowList:
+# Allow everything from redhat official registry
+- image: ^registry.redhat.io/
+- image: ^registry.access.redhat.com/
+# Allow EE built-in AAP2
+- name: ^Ansible Engine 2.9 execution environment$
+- name: ^Automation Hub Ansible Engine 2.9 execution environment$
+- name: ^Automation Hub Default execution environment$
+- name: ^Automation Hub Minimal execution environment$
+- name: ^Control Plane Execution Environment$
+- name: ^Default execution environment$
+- name: ^Minimal execution environment$
+# Allow AgnosticD ee images
+- image: ^quay.io/agnosticd/ee-
+# Allow custom aap2-workshop image
+- name: ^aap2-workshop$
+
+pollingInterval: 1m
+
+resourceBroker:
+  apiGroup: poolboy.gpte.redhat.com
+  version: v1
+  namespace: poolboy
+
+deploy: true
+
+image:
+  repository: quay.io/rhpds/babylon-agnosticv-operator
+  pullPolicy: Always
+  tagOverride: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 512Mi
+  requests:
+    cpu: 500m
+    memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

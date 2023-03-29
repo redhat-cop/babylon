@@ -1,0 +1,14 @@
+{{- if .Values.deploy -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "babylonAgnosticVOperator.name" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "babylonAgnosticVOperator.name" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "babylonAgnosticVOperator.serviceAccountName" . }}
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" $ }}
+{{- end -}}
