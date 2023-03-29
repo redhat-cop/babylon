@@ -45,6 +45,7 @@ objects:
     strategy:
       type: Docker
       dockerStrategy:
+        dockerfilePath: Containerfile
         from:
           kind: DockerImage
           name: ${KOPF_S2I_IMAGE}

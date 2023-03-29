@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "babylonAgnosticVOperator.name" . }}
+  name: {{ include "babylonAgnosticVOperator.shortName" . }}
   namespace: {{ include "babylonAgnosticVOperator.namespaceName" . }}
   labels:
     {{- include "babylonAgnosticVOperator.labels" . | nindent 4 }}

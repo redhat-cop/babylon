@@ -28,10 +28,10 @@ helm template helm/ \
 oc project babylon-config
 -------------------------
 
-. Grant privileges for cluster role `babylon-config-operator` to default service account:
+. Grant privileges for cluster role `babylon-agnosticv-operator` to default service account:
 +
 --------------------------------------------------------------------------------
-oc adm policy add-cluster-role-to-user agnosticv-operator -z default
+oc adm policy add-cluster-role-to-user babylon-agnosticv-operator -z default
 oc policy add-role-to-user --role-namespace=babylon-config agnosticv-operator -z default
 --------------------------------------------------------------------------------
 
@@ -60,9 +60,9 @@ ansible-playbook test/playbook.yaml
 +
 Remove `odo` component:
 +
-------------------------------------------
-odo delete --force babylon-config-operator
-------------------------------------------
+---------------------------------------------
+odo delete --force babylon-agnosticv-operator
+---------------------------------------------
 +
 Delete resources created from helm template:
 +
@@ -92,7 +92,7 @@ oc process --local -f build-template.yaml | oc apply -f -
 . Build user-namespace-operator image from local source:
 +
 ------------------------------------------------------------
-oc start-build babylon-config-operator --from-dir=. --follow
+oc start-build babylon-agnosticv-operator --from-dir=.. --follow
 ------------------------------------------------------------
 
 . Deploy user-namespace-operator from build image:
@@ -101,7 +101,7 @@ oc start-build babylon-config-operator --from-dir=. --follow
 helm template helm \
 --set namespace.create=false \
 --set=image.tagOverride=- \
---set=image.repository=$(oc get imagestream babylon-config-operator -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}') \
+--set=image.repository=$(oc get imagestream babylon-agnosticv-operator -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}') \
 | oc apply -f -
 --------------------------------------------------------------------------------
 

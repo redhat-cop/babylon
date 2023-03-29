@@ -1,6 +1,6 @@
+import json
 import os
 import re
-import yaml
 
 from base64 import b64decode
 
@@ -204,15 +204,15 @@ class AgnosticVRepo(CachedKopfObject):
             await agnosticv_component.delete()
 
     async def get_component_definition(self, path, logger):
-        proc = await asyncio.create_subprocess_shell(
-            f"cd {self.agnosticv_path} && {agnosticv_cli_path} --merge {path}",
+        proc = await asyncio.create_subprocess_exec(
+            agnosticv_cli_path, '--merge', os.path.join(self.agnosticv_path, path), '--output=json',
             stdout = asyncio.subprocess.PIPE,
             stderr = asyncio.subprocess.PIPE,
         )
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
             raise AgnosticVMergeError(f"agnosticv --merge failed for {path}")
-        definition = yaml.safe_load(stdout.decode('utf-8'))
+        definition = json.loads(stdout.decode('utf-8'))
         if self.anarchy_collections:
             definition['__meta__'].setdefault('anarchy', {})['collections'] = self.anarchy_collections
         definition['__meta__'].setdefault('anarchy', {})['roles'] = self.anarchy_roles
@@ -230,17 +230,17 @@ class AgnosticVRepo(CachedKopfObject):
         return definition
 
     async def get_component_paths(self, changed_only, logger):
-        agnosticv_cmd = f"cd {self.agnosticv_path} && {agnosticv_cli_path} --list --has __meta__"
+        agnosticv_cmd = [agnosticv_cli_path, '--dir', self.agnosticv_path, '--list', '--has=__meta__']
 
         # Add restriction to changed files if requested
         if changed_only and self.git_changed_files:
-            agnosticv_cmd += f" --related {self.git_changed_files[0]}"
+            agnosticv_cmd.extend(['--related', self.git_changed_files[0]])
             for file in self.git_changed_files[1:]:
-                agnosticv_cmd += f" --or-related {file}"
+                agnosticv_cmd.extend(['--or-related', file])
 
         # FIXME - Use create_subprocess_exec instead... need to figure out chdir
-        proc = await asyncio.create_subprocess_shell(
-            agnosticv_cmd,
+        proc = await asyncio.create_subprocess_exec(
+            *agnosticv_cmd,
             stdout = asyncio.subprocess.PIPE,
             stderr = asyncio.subprocess.PIPE,
         )

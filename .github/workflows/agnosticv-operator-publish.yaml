@@ -29,33 +29,27 @@ jobs:
         # Releases indicate a change in the repository that should not trigger a new build.
         if [[ "${VERSION}" == "${RELEASE}" ]]; then
           # Publish to latest, minor, and patch tags
-          # Ex: latest,v0.1.2,v0.1
-          IMAGE_TAGS=(
-            "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest"
-            "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION%.*}"
-            "${{ secrets.BABYLON_IMAGE_REGISTRY }}/${{ secrets.BABYLON_IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
-          )
-          # Set IMAGE_TAGS output for use in next step
-          ( IFS=$','; echo "::set-output name=IMAGE_TAGS::${IMAGE_TAGS[*]}" )
+          # Ex: latest,v1.2,v1.2.3
+          echo "IMAGE_TAGS=latest ${VERSION%.*} ${VERSION}" >> $GITHUB_OUTPUT
         fi
 
-    - name: Set up buildx
-      uses: docker/setup-buildx-action@v1
+    - name: Buildah Action
+      id: buildah-build
       if: steps.image_tags.outputs.IMAGE_TAGS
-
-    - name: Login to image registry
-      uses: docker/login-action@v1
-      if: steps.image_tags.outputs.IMAGE_TAGS
+      uses: redhat-actions/buildah-build@v2
       with:
-        registry: ${{ secrets.BABYLON_IMAGE_REGISTRY }}
+        image: ${{ env.IMAGE_NAME }}
+        tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
+        context: agnosticv-operator
+        containerfiles: agnosticv-operator/Containerfile
+
+    - name: Push image to registry
+      id: push-to-registry
+      if: steps.image_tags.outputs.IMAGE_TAGS
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: ${{ steps.buildah-build.outputs.image }}
+        tags: ${{ steps.buildah-build.outputs.tags }}
+        registry: ${{ vars.BABYLON_IMAGE_REGISTRY }}/${{ vars.BABYLON_IMAGE_REPOSITORY }}
         username: ${{ secrets.BABYLON_IMAGE_REGISTRY_USERNAME }}
         password: ${{ secrets.BABYLON_IMAGE_REGISTRY_PASSWORD }}
-
-    - name: Build and publish image
-      uses: docker/build-push-action@v2
-      if: steps.image_tags.outputs.IMAGE_TAGS
-      with:
-        context: agnosticv-operator
-        file: agnosticv-operator/Dockerfile
-        push: true
-        tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}

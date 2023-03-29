@@ -3,7 +3,11 @@
 Expand the name of the chart.
 */}}
 {{- define "babylonAgnosticVOperator.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" | trimPrefix "babylon-" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "babylonAgnosticVOperator.shortName" -}}
+{{- include "babylonAgnosticVOperator.name" . | trimPrefix "babylon-" -}}
 {{- end -}}
 
 {{/*
@@ -58,7 +62,7 @@ Create the name of the service account to use
 */}}
 {{- define "babylonAgnosticVOperator.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
-    {{ default (include "babylonAgnosticVOperator.name" .) .Values.serviceAccount.name }}
+    {{ default (include "babylonAgnosticVOperator.shortName" .) .Values.serviceAccount.name }}
 {{- else -}}
     {{ default "default" .Values.serviceAccount.name }}
 {{- end -}}
