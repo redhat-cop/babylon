@@ -1,0 +1,64 @@
+commands:
+- exec:
+    commandLine: >-
+      rm -rf /tmp/src && cp /tmp/projects -r /tmp/src && /tmp/src/.s2i/bin/assemble
+    component: s2i-builder
+    group:
+      isDefault: true
+      kind: build
+    hotReloadCapable: false
+    workingDir: ${PROJECT_SOURCE}
+  id: s2i-assemble
+- exec:
+    commandLine: /usr/libexec/s2i/run
+    component: s2i-builder
+    group:
+      isDefault: true
+      kind: run
+    hotReloadCapable: false
+    workingDir: ${PROJECT_SOURCE}
+  id: s2i-run
+components:
+- container:
+    env:
+    - name: AGNOSTICV_API_GROUP
+      value: gpte.redhat.com
+    - name: AGNOSTICV_VERSION
+      value: v1
+    - name: ANARCHY_API_GROUP
+      value: anarchy.gpte.redhat.com
+    - name: ANARCHY_VERSION
+      value: v1
+    - name: CATALOG_API_GROUP
+      value: babylon.gpte.redhat.com
+    - name: CATALOG_VERSION
+      value: v1
+    - name: EXECUTION_ENVIRONMENT_ALLOW_LIST
+      value: |
+        # Allow everything from redhat official registry
+        - image: ^registry.redhat.io/
+        - image: ^registry.access.redhat.com/
+        # Allow EE built-in AAP2
+        - name: ^Ansible Engine 2.9 execution environment$
+        - name: ^Automation Hub Ansible Engine 2.9 execution environment$
+        - name: ^Automation Hub Default execution environment$
+        - name: ^Automation Hub Minimal execution environment$
+        - name: ^Control Plane Execution Environment$
+        - name: ^Default execution environment$
+        - name: ^Minimal execution environment$
+        # Allow AgnosticD ee images
+        - image: ^quay.io/agnosticd/ee-
+        # Allow custom aap2-workshop image
+        - name: ^aap2-workshop$
+    - name: POLLING_INTERVAL
+      value: 10s
+    - name: RESOURCE_BROKER_API_GROUP
+      value: poolboy.gpte.redhat.com
+    image: quay.io/redhat-cop/python-kopf-s2i:v1.36
+    mountSources: true
+    sourceMapping: /tmp/projects
+  name: s2i-builder
+metadata:
+  name: babylon-agnosticv-operator
+  version: 1.0.0
+schemaVersion: 2.0.0

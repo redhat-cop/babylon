@@ -1,0 +1,30 @@
+---
+- name: Create CRDs
+  kubernetes.core.k8s:
+    definition: "{{ lookup('ansible.builtin.url', item, split_lines=false) }}"
+  loop:
+  - "https://raw.githubusercontent.com/redhat-cop/babylon/main/openshift/config/common/helm/babylon-config/crds/catalogitems.babylon.gpte.redhat.com.yaml"
+  - "https://raw.githubusercontent.com/redhat-cop/anarchy/main/helm/crds/anarchygovernors.yaml"
+  - "https://raw.githubusercontent.com/redhat-cop/poolboy/main/helm/crds/resourceproviders.yaml"
+
+- name: Create catalog namespaces
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ item }}"
+  loop:
+  - babylon-catalog-dev
+  - babylon-catalog-test
+  - babylon-catalog-prod
+  - babylon-catalog-event
+  - gpte
+
+- name: Create resource-broker namespace
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: poolboy
