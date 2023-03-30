@@ -1,6 +1,6 @@
 sonarqube-check:
   image: 
-    name: sonarsource/sonar-scanner-cli:latest
+    name: images.paas.redhat.com/alm/sonar-scanner-alpine
     entrypoint: [""]
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
