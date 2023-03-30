@@ -15,11 +15,22 @@
       metadata:
         name: "{{ item }}"
   loop:
+  - babylon-catalog-agnosticv-test
   - babylon-catalog-dev
   - babylon-catalog-test
   - babylon-catalog-prod
   - babylon-catalog-event
   - gpte
+
+- name: Create anarchy namespaces
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ item }}"
+  loop:
+  - babylon-anarchy-agnosticv-test
 
 - name: Create resource-broker namespace
   kubernetes.core.k8s:
@@ -28,3 +39,21 @@
       kind: Namespace
       metadata:
         name: poolboy
+
+- name: Create babylon agnosticv-operator namespace
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ babylon_agnosticv_operator_namespace }}"
+
+- name: Create babylon-agnosticv-test Secret
+  kubernetes.core.k8s:
+    namespace: "{{ babylon_agnosticv_operator_namespace }}"
+    definition: "{{ lookup('file', 'babylon-agnosticv-test.secret.yml') }}"
+
+- name: Create babylon-agnosticv-test AgnosticVRepo
+  kubernetes.core.k8s:
+    namespace: "{{ babylon_agnosticv_operator_namespace }}"
+    definition: "{{ lookup('file', 'babylon-agnosticv-test.agnosticvrepo.yml') }}"
