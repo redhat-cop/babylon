@@ -16,3 +16,5 @@ sonarqube-check:
     - merge_requests
     - main
     - develop
+  tags:
+    - shared
