@@ -109,6 +109,11 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
   const sanitize_opt = {
     ADD_TAGS: [],
     ADD_ATTR: [],
+    CUSTOM_ELEMENT_HANDLING: {
+      tagNameCheck: null, // no custom elements are allowed
+      attributeNameCheck: null, // default / standard attribute allow-list is used
+      allowCustomizedBuiltInElements: false, // no customized built-ins allowed
+    },
   };
   if (options.allowIFrame) {
     sanitize_opt.ADD_TAGS.push('iframe');
@@ -118,7 +123,13 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
     return dompurify.sanitize(content, sanitize_opt);
   } else {
     const asciidoctor = AsciiDoctor();
-    return dompurify.sanitize(asciidoctor.convert(content, { attributes: options.vars }).toString(), sanitize_opt);
+    return dompurify.sanitize(
+      asciidoctor
+        .convert(content, { attributes: options.vars })
+        .toString()
+        .replace(/&#8203;/gi, '-'),
+      sanitize_opt
+    );
   }
 }
 
