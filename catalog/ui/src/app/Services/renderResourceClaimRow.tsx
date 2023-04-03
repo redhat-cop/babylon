@@ -105,7 +105,7 @@ const renderResourceClaimRow = ({
     // GUID
     <React.Fragment key="guid">
       {guid ? (
-        isAdmin ? (
+        isAdmin && resourceHandle ? (
           [
             <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
               {guid}
