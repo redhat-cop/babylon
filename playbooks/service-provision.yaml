@@ -128,7 +128,7 @@
           labels:
             demo.redhat.com/cfme: "true"
           annotations:
-            demo.redhat.com/last-login: "{{ lookup('pipe', 'date +%Y-%m-%dT%H:%MZ') }}"
+            demo.redhat.com/last-login: "{{ now(true, '%FT%TZ') }}"
           name: "{{ cloudforms_username }}"
     register: r_user_created
 
@@ -142,7 +142,7 @@
       definition:
         metadata:
           annotations:
-            demo.redhat.com/last-login: "{{ lookup('pipe', 'date +%Y-%m-%dT%H:%MZ') }}"
+            demo.redhat.com/last-login: "{{ now(true, '%FT%TZ') }}"
 
   - name: Wait for namespace {{ user_namespace }} creation
     k8s_info:
