@@ -378,6 +378,7 @@ export function escapeRegex(string: string) {
 }
 
 export function stripTags(unStrippedHtml: string) {
+  if (!unStrippedHtml) return '';
   const parseHTML = new DOMParser().parseFromString(
     dompurify.sanitize(unStrippedHtml.replace(/<\!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
     'text/html'
