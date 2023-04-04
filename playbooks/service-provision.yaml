@@ -132,17 +132,17 @@
           name: "{{ cloudforms_username }}"
     register: r_user_created
 
-  - name: Add last-login annotation {{ cloudforms_username }}
+  - name: Update last-login annotation {{ cloudforms_username }}
     when: r_user.resources | length > 0
     k8s:
+      apiVersion: user.openshift.io/v1
+      kind: User
       kubeconfig: "{{ kubeconfig }}"
+      name: "{{ cloudforms_username }}"
       definition:
-        apiVersion: user.openshift.io/v1
-        kind: User
         metadata:
           annotations:
             demo.redhat.com/last-login: "{{ lookup('pipe', 'date +%Y-%m-%dT%H:%MZ') }}"
-          name: "{{ cloudforms_username }}"
 
   - name: Wait for namespace {{ user_namespace }} creation
     k8s_info:
