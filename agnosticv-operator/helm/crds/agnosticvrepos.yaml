@@ -138,7 +138,6 @@ spec:
                 description: >-
                   Polling interval for checking for AgnosticV Repo Updates
                 type: string
-                default: 1m
               ref:
                 description: >-
                   Git reference. Ex: branch, commit, or tag
