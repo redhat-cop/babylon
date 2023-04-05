@@ -79,7 +79,14 @@ function getEstimatedCostFormatted(catalogItem: CatalogItem) {
 }
 export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   if (catalogItem.metadata.annotations?.[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]) {
-    return new Date(catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]).getTime();
+    const now = new Date();
+    const provisionDate = new Date(
+      catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]
+    );
+    if (provisionDate < now) {
+      return provisionDate.getTime();
+    }
+    return null;
   }
   return null;
 }
