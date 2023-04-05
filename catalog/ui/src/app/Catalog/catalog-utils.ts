@@ -189,6 +189,7 @@ export const CUSTOM_LABELS: {
 };
 export const HIDDEN_LABELS = [
   'userCatalogItem',
+  'Base_Component',
   CUSTOM_LABELS.DISABLED.key,
   CUSTOM_LABELS.STAGE.key,
   CUSTOM_LABELS.FEATURED_SCORE.key,
@@ -196,6 +197,7 @@ export const HIDDEN_LABELS = [
 ];
 export const HIDDEN_LABELS_DETAIL_VIEW = [
   'userCatalogItem',
+  'Base_Component',
   CUSTOM_LABELS.DISABLED.key,
   CUSTOM_LABELS.STAGE.key,
   CUSTOM_LABELS.FEATURED_SCORE.key,
