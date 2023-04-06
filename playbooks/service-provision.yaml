@@ -127,8 +127,22 @@
         metadata:
           labels:
             demo.redhat.com/cfme: "true"
+          annotations:
+            demo.redhat.com/last-login: "{{ now(true, '%FT%TZ') }}"
           name: "{{ cloudforms_username }}"
     register: r_user_created
+
+  - name: Update last-login annotation {{ cloudforms_username }}
+    when: r_user.resources | length > 0
+    k8s:
+      apiVersion: user.openshift.io/v1
+      kind: User
+      kubeconfig: "{{ kubeconfig }}"
+      name: "{{ cloudforms_username }}"
+      definition:
+        metadata:
+          annotations:
+            demo.redhat.com/last-login: "{{ now(true, '%FT%TZ') }}"
 
   - name: Wait for namespace {{ user_namespace }} creation
     k8s_info:
