@@ -10,7 +10,10 @@ namespace:
 #  ref: master
 #  sshKey: agnosticv-sshkey
 #  url: git@github.com:rhpds/agnosticv.git
-#  ...
+#  gitHub:
+#    preloadPullRequests:
+#      mode: override
+#    token: ... github access token ...
 
 agnosticv:
   apiGroup: gpte.redhat.com
