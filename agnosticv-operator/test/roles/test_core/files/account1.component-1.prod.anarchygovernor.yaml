@@ -1,0 +1,135 @@
+---
+apiVersion: anarchy.gpte.redhat.com/v1
+kind: AnarchyGovernor
+metadata:
+  name: account1.component-1.prod
+  namespace: babylon-anarchy-agnosticv-test
+spec:
+  actions:
+    destroy:
+      callbackHandlers:
+        complete:
+          roles:
+          - role: babylon_anarchy_governor
+      finishOnSuccessfulRun: true
+      roles:
+      - role: babylon_anarchy_governor
+    provision:
+      callbackHandlers:
+        complete:
+          roles:
+          - role: babylon_anarchy_governor
+      finishOnSuccessfulRun: true
+      roles:
+      - role: babylon_anarchy_governor
+    start:
+      callbackHandlers:
+        complete:
+          roles:
+          - role: babylon_anarchy_governor
+      finishOnSuccessfulRun: true
+      roles:
+      - role: babylon_anarchy_governor
+    status:
+      callbackHandlers:
+        complete:
+          roles:
+          - role: babylon_anarchy_governor
+      finishOnSuccessfulRun: true
+      roles:
+      - role: babylon_anarchy_governor
+    stop:
+      callbackHandlers:
+        complete:
+          roles:
+          - role: babylon_anarchy_governor
+      finishOnSuccessfulRun: true
+      roles:
+      - role: babylon_anarchy_governor
+  ansibleGalaxyRequirements:
+    collections:
+    - name: awx.awx
+      version: 19.4.0
+    roles:
+    - name: babylon_anarchy_governor
+      src: https://github.com/rhpds/babylon_anarchy_governor.git
+      version: v0.19.1
+  pythonRequirements: |
+    awscli==1.18.92
+    packaging==20.9
+    pymysql==0.9.3
+  removeFinishedActions:
+    after: 12h
+  removeSuccessfulRuns:
+    after: 3h
+  subjectEventHandlers:
+    create:
+      roles:
+      - role: babylon_anarchy_governor
+    delete:
+      roles:
+      - role: babylon_anarchy_governor
+    update:
+      roles:
+      - role: babylon_anarchy_governor
+  varSecrets:
+  - name: babylon-tower
+    var: babylon_tower
+  - name: somesecret
+    namespace: somewhere
+    var: job_vars
+  vars:
+    job_vars:
+      __meta__:
+        anarchy:
+          namespace: babylon-anarchy-agnosticv-test
+        catalog:
+          category: Open_Environments
+          display_name: Component One
+          keywords:
+          - aws
+          - ocp
+          - openshift
+          labels:
+            Product: Example_Product
+            Product_Family: Example
+            Provider: Nobody
+          multiuser: false
+          namespace: babylon-catalog-{{ stage | default('?') }}
+          parameters:
+          - description: Version of Thing
+            formLabel: Thing Version
+            name: something_version
+            openAPIV3Schema:
+              default: "4.12"
+              enum:
+              - "4.8"
+              - "4.9"
+              - "4.10"
+              - "4.11"
+              - "4.12"
+              type: string
+            required: true
+        deployer:
+          scm_ref: some-prefix-1.0.1
+          scm_type: git
+          scm_url: https://github.com/redhat-cop/agnosticd.git
+          type: agnosticd
+          virtualenv: ansible2.9-python3.6-2021-11-30
+        last_update:
+          git:
+            author: Johnathan Kupferer <jkupfere@redhat.com>
+            committer: Johnathan Kupferer <jkupfere@redhat.com>
+            hash: a9c5158ac5ab077a1c0657694a94f98ff55cdb37
+            message: Initial commit
+            when_author: "2023-03-29T22:39:13Z"
+            when_committer: "2023-03-29T22:48:16Z"
+        secrets:
+        - name: somesecret
+          namespace: somewhere
+      aws_region: us-east-2
+      env_type: ocp4-cluster
+      software_to_deploy: openshift4
+      ssh_authorized_keys:
+      - key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCuQVbHYZi9Q8ErxgWuCkafXb1Xi6nAMCgU4/WvZsXkHQ4FA0v+pWYyM8UgkoqI8jxRA0IzJz0n+kQiKF7aWj63Xc2PMmRSaBvwfo4v73Mg1S28Ls78nJ+Z3WX6UZbxcLDQHSRSGEvClCQkGbYNQSJmVqBq66a+kKxCaX127XeX0wA+Q9EF+cz+1grrGhB+zbBw7VuCa/Y6CdZ9+zgygYv2iwHDgs6ju1lfri+ytdHPHb+8IjitDZdIAWG76uVDjOrp+LW2nDpqYXxKLATJeKuBQQx/pQhmKV1WkDJcoXbo+1pq+hYQtiqiChfJFTZOAsltp6xgzOHnXyydMyahGesvhIhoEidBOQdksllmmUgcPihNcCWCyi6QI6X95og0Ru1pSgLeDMV1RHKRLssidt8thzMpNlWAR8zsPRY99E/GKvqroofIKfUvsqRO/Gg4Gv8Kb7Knq2E14GHY0vWU4wKhdErbWOE1VN4AZpyJDZkZ0RgVoSeKjwHxIZ9tvJWtPhE=
+          not for real

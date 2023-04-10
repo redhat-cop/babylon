@@ -1,0 +1,59 @@
+apiVersion: babylon.gpte.redhat.com/v1
+kind: CatalogItem
+metadata:
+  annotations:
+    babylon.gpte.redhat.com/description: Missing description, please add description.adoc
+      or description.html in agnosticv.
+    babylon.gpte.redhat.com/descriptionFormat: asciidoc
+    babylon.gpte.redhat.com/displayName: Component One
+    babylon.gpte.redhat.com/icon: ""
+    babylon.gpte.redhat.com/keywords: aws,ocp,openshift
+  creationTimestamp: "2023-03-29T23:37:43Z"
+  generation: 1
+  labels:
+    babylon.gpte.redhat.com/Product: Example_Product
+    babylon.gpte.redhat.com/Product_Family: Example
+    babylon.gpte.redhat.com/Provider: Nobody
+    babylon.gpte.redhat.com/category: Open_Environments
+    babylon.gpte.redhat.com/stage: prod
+  name: account1.component-1.prod
+  namespace: babylon-catalog-prod
+  resourceVersion: "691606"
+  uid: 1de6af17-5ab2-4bd4-bcf6-9db7e28c8749
+spec:
+  lastUpdate:
+    git:
+      author: Johnathan Kupferer <jkupfere@redhat.com>
+      committer: Johnathan Kupferer <jkupfere@redhat.com>
+      hash: a9c5158ac5ab077a1c0657694a94f98ff55cdb37
+      message: Initial commit
+      when_author: "2023-03-29T22:39:13Z"
+      when_committer: "2023-03-29T22:48:16Z"
+  lifespan:
+    default: 3d
+    maximum: 14d
+    relativeMaximum: 5d
+  parameters:
+  - description: Version of Thing
+    formLabel: Thing Version
+    name: something_version
+    openAPIV3Schema:
+      default: "4.12"
+      enum:
+      - "4.8"
+      - "4.9"
+      - "4.10"
+      - "4.11"
+      - "4.12"
+      type: string
+    required: true
+  resources:
+  - name: component-1
+    provider:
+      apiVersion: poolboy.gpte.redhat.com/v1
+      kind: ResourceProvider
+      name: account1.component-1.prod
+      namespace: poolboy
+  runtime:
+    default: 4h
+    maximum: 8h

@@ -1,2 +1,77 @@
 ---
-- fail:
+- name: Get AnarchyGovernor account1.component-1.prod
+  kubernetes.core.k8s_info:
+    api_version: anarchy.gpte.redhat.com/v1
+    kind: AnarchyGovernor
+    name: account1.component-1.prod
+    namespace: babylon-anarchy-agnosticv-test
+  register: r_get_anarchy_governor
+  failed_when: r_get_anarchy_governor.resources | length != 1
+  until: r_get_anarchy_governor is successful
+  retries: 6
+  delay: 5
+
+- name: Check AnarchyGovernor account1.component-1.prod
+  vars:
+    __state: "{{ r_get_anarchy_governor.resources[0] }}"
+    __expected: "{{ lookup('file', 'account1.component-1.prod.anarchygovernor.yaml') | from_yaml }}"
+    __state_spec_filtered: "{{ __state.spec | combine(__filter_last_update, recursive=true) }}"
+    __expected_spec_filtered: "{{ __expected.spec | combine(__filter_last_update, recursive=true) }}"
+    __filter_last_update:
+      vars: 
+        job_vars:
+          __meta__:
+            last_update: ~
+  assert:
+    that:
+    - __expected_spec_filtered == __state_spec_filtered
+    fail_msg: "{{ __state_spec_filtered }} != {{ __expected_spec_filtered }}"
+
+- name: Get CatalogItem account1.component-1.prod
+  kubernetes.core.k8s_info:
+    api_version: babylon.gpte.redhat.com/v1
+    kind: CatalogItem
+    name: account1.component-1.prod
+    namespace: babylon-catalog-prod
+  register: r_get_catalog_item
+  failed_when: r_get_catalog_item.resources | length != 1
+  until: r_get_catalog_item is successful
+  retries: 6
+  delay: 5
+
+- name: Check CatalogItem account1.component-1.prod
+  vars:
+    __state: "{{ r_get_catalog_item.resources[0] }}"
+    __expected: "{{ lookup('file', 'account1.component-1.prod.catalogitem.yaml') | from_yaml }}"
+    __state_spec_filtered: "{{ __state.spec | combine({'lastUpdate': None}) }}"
+    __expected_spec_filtered: "{{ __expected.spec | combine({'lastUpdate': None}) }}"
+  block:
+  - assert:
+      that:
+      - __expected_spec_filtered == __state_spec_filtered
+      fail_msg: "{{ __state_spec_filtered }} != {{ __expected_spec_filtered }}"
+  - assert:
+      that:
+      - __expected.metadata.annotations == __state.metadata.annotations
+      - __expected.metadata.labels == __state.metadata.labels
+
+- name: Get ResourceProvider account1.component-1.prod
+  kubernetes.core.k8s_info:
+    api_version: poolboy.gpte.redhat.com/v1
+    kind: ResourceProvider
+    name: account1.component-1.prod
+    namespace: poolboy
+  register: r_get_resource_provider
+  failed_when: r_get_resource_provider.resources | length != 1
+  until: r_get_resource_provider is successful
+  retries: 6
+  delay: 5
+
+- name: Check ResourceProvider account1.component-1.prod
+  vars:
+    __state: "{{ r_get_resource_provider.resources[0] }}"
+    __expected: "{{ lookup('file', 'account1.component-1.prod.resourceprovider.yaml') | from_yaml }}"
+  assert:
+    that:
+    - __expected.spec == __state.spec
+    fail_msg: "{{ __state.spec }} != {{ __expected.spec }}"
