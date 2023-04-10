@@ -260,6 +260,10 @@ class AgnosticVComponent(KopfObject):
         return self.spec['path']
 
     @property
+    def pull_request_number(self):
+        return self.spec.get('pullRequestNumber')
+
+    @property
     def resource_provider_ref(self):
         return {
             "apiVersion": f"{Babylon.resource_broker_api_version}",

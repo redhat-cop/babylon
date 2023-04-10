@@ -134,11 +134,34 @@ spec:
                       - always
                       - missing
                       - never
+              gitHub:
+                description: >-
+                  GitHub integration configuration.
+                type: object
+                properties:
+                  preloadPullRequests:
+                    description: >-
+                      Configuration to load configuration from open pull requests before merge.
+                      This feature is intended for use for integration testing before pull request merge.
+                    type: object
+                    required:
+                    - mode
+                    properties:
+                      mode:
+                        description: >-
+                          Pull request pre-load style.
+                          In the "override" mode the most recent pull request configuration overrides tho applied component configuration.
+                        type: string
+                        enum:
+                        - override
+                  tokenSecret:
+                    description: >-
+                      Name of secret with GitHub token as `token` in secret data.
+                    type: string
               pollingInterval:
                 description: >-
                   Polling interval for checking for AgnosticV Repo Updates
                 type: string
-                default: 1m
               ref:
                 description: >-
                   Git reference. Ex: branch, commit, or tag

@@ -11,8 +11,37 @@ spec:
   {{- (dict $k $v) | toYaml | indent 2 }}
   {{- end }}
 {{ end }}
+{{ with $.Values.anarchy.collections }}
+  babylonAnarchyCollections:
+    {{- $.Values.anarchy.collections | toYaml | indent 4 }}
+{{ end }}
+{{ with $.Values.anarchy.roles }}
+  babylonAnarchyRoles:
+    {{- $.Values.anarchy.roles | toYaml | indent 4 }}
+{{ end }}
 {{ with $agnosticvRepo.sshKey }}
   sshKey: {{ $agnosticvRepo.name }}-sshkey
+{{ end }}
+{{ with $agnosticvRepo.gitHub }}
+  gitHub:
+    tokenSecret: {{ $agnosticvRepo.name }}-github
+{{   range $k, $v := $agnosticvRepo }}
+{{     if and (ne $k "name") (ne $k "token") }}
+{{     (dict $k $v) | toYaml | indent 4 }}
+{{     end }}
+{{   end }}
+{{ end }}
+{{ with $agnosticvRepo.gitHub.token }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $agnosticvRepo.name }}-github
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" $ }}
+data:
+  token: {{ . | b64enc }}
+{{ end }}
+{{ with $agnosticvRepo.sshKey }}
 ---
 apiVersion: v1
 kind: Secret
