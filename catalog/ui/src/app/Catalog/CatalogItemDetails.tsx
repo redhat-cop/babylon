@@ -129,7 +129,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
   const rating = getRating(catalogItem);
-  const accessCheckResult = checkAccessControl(accessControl, groups);
+  const accessCheckResult = checkAccessControl(accessControl, groups, isAdmin);
   let autoStopTime = catalogItem.spec.runtime?.default;
   const autoDestroyTime = catalogItem.spec.lifespan?.default;
   if (autoStopTime && autoDestroyTime) {

@@ -54,6 +54,7 @@ type CreateServiceRequestOpt = {
   catalogNamespaceName: string;
   serviceNamespace: ServiceNamespace;
   groups: string[];
+  isAdmin: boolean;
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
   stopDate?: Date;
@@ -325,6 +326,7 @@ export async function createServiceRequest({
   catalogItem,
   catalogNamespaceName,
   groups,
+  isAdmin,
   parameterValues,
   serviceNamespace,
   start,
@@ -334,7 +336,7 @@ export async function createServiceRequest({
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
-  const access = checkAccessControl(catalogItem.spec.accessControl, groups);
+  const access = checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin);
 
   const requestResourceClaim: ResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
