@@ -133,8 +133,8 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
   }
 }
 
-export function checkAccessControl(accessConfig: AccessControl, groups: string[]): 'allow' | 'viewOnly' | 'deny' {
-  if (!accessConfig) {
+export function checkAccessControl(accessConfig: AccessControl, groups: string[], isAdmin: boolean = false): 'allow' | 'viewOnly' | 'deny' {
+  if (!accessConfig || isAdmin) {
     return 'allow';
   }
   if ((accessConfig.denyGroups || []).filter((group) => groups.includes(group)).length > 0) {
