@@ -9,7 +9,7 @@ const OpenshiftConsoleLink: React.FC<{
   linkToNamespace?: boolean;
   reference?: K8sObjectReference;
   resource?: K8sObject;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }> = ({ children, linkToNamespace, reference, resource, ...rest }) => {
   const { consoleUrl } = useSession().getSession();
   const apiVersion = reference?.apiVersion || resource?.apiVersion;

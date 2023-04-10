@@ -79,7 +79,14 @@ function getEstimatedCostFormatted(catalogItem: CatalogItem) {
 }
 export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   if (catalogItem.metadata.annotations?.[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]) {
-    return new Date(catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]).getTime();
+    const now = new Date();
+    const provisionDate = new Date(
+      catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]
+    );
+    if (provisionDate < now) {
+      return provisionDate.getTime();
+    }
+    return null;
   }
   return null;
 }
@@ -182,6 +189,7 @@ export const CUSTOM_LABELS: {
 };
 export const HIDDEN_LABELS = [
   'userCatalogItem',
+  'Base_Component',
   CUSTOM_LABELS.DISABLED.key,
   CUSTOM_LABELS.STAGE.key,
   CUSTOM_LABELS.FEATURED_SCORE.key,
@@ -189,6 +197,7 @@ export const HIDDEN_LABELS = [
 ];
 export const HIDDEN_LABELS_DETAIL_VIEW = [
   'userCatalogItem',
+  'Base_Component',
   CUSTOM_LABELS.DISABLED.key,
   CUSTOM_LABELS.STAGE.key,
   CUSTOM_LABELS.FEATURED_SCORE.key,

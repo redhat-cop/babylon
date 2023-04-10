@@ -418,10 +418,20 @@ const ResourceClaims: React.FC<{}> = () => {
               const guidCell = (
                 // GUID
                 <React.Fragment key="guid">
-                  <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
-                    {guid}
-                  </Link>
-                  <OpenshiftConsoleLink key="console" reference={resourceHandle} />
+                  {guid ? (
+                    resourceHandle ? (
+                      <>
+                        <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
+                          {guid}
+                        </Link>
+                        <OpenshiftConsoleLink key="console" reference={resourceHandle} />
+                      </>
+                    ) : (
+                      guid
+                    )
+                  ) : (
+                    '-'
+                  )}
                 </React.Fragment>
               );
 
