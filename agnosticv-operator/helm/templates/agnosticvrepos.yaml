@@ -7,17 +7,17 @@ metadata:
   namespace: {{ include "babylonAgnosticVOperator.namespaceName" $ }}
 spec:
 {{ range $k, $v := $agnosticvRepo }}
-  {{- if and (ne $k "name") (ne $k "sshKey") }}
-  {{- (dict $k $v) | toYaml | indent 2 }}
-  {{- end }}
+{{   if and (ne $k "name") (ne $k "sshKey") }}
+{{   (dict $k $v) | toYaml | indent 2 }}
+{{   end }}
 {{ end }}
 {{ with $.Values.anarchy.collections }}
   babylonAnarchyCollections:
-    {{- $.Values.anarchy.collections | toYaml | indent 4 }}
+{{   $.Values.anarchy.collections | toYaml | indent 4 }}
 {{ end }}
 {{ with $.Values.anarchy.roles }}
   babylonAnarchyRoles:
-    {{- $.Values.anarchy.roles | toYaml | indent 4 }}
+{{   $.Values.anarchy.roles | toYaml | indent 4 }}
 {{ end }}
 {{ with $agnosticvRepo.sshKey }}
   sshKey: {{ $agnosticvRepo.name }}-sshkey
