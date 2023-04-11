@@ -160,7 +160,11 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_labels(self):
-        return self.catalog_meta.get('labels', {})
+        # Return labels, silently transforming spaces to underscore
+        return {
+            key.replace(' ', '_'): val.replace(' ', '_')
+            for key, val in self.catalog_meta.get('labels', {}).items()
+        }
 
     @property
     def catalog_message_templates(self):
