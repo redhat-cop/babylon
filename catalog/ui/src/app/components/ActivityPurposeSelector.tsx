@@ -19,7 +19,10 @@ const PurposeOpts = [
   { name: 'Ad-hoc or exploratory', activity: 'Training', id: 9 },
   { name: 'As part of course', activity: 'Training', id: 10 },
 ];
-const EventPurposeOpts = [{ name: 'Summit 2023', activity: 'Event', id: 1, sfdc: null }];
+const EventPurposeOpts = [
+  { name: 'Summit 2023', activity: 'Event', id: 1, sfdc: null },
+  { name: ' AnsibleFest 2023', activity: 'Event', id: 2, sfdc: null },
+];
 const ActivityPurposeSelector: React.FC<
   | {
       onChange: (value: string) => void;
