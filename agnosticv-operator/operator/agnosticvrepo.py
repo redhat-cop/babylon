@@ -526,7 +526,7 @@ class AgnosticVRepo(CachedKopfObject):
             if not github_token:
                 github_token = await self.get_github_token()
             message = "Error applying pull request for integration:\n" + "\n".join(
-                [str(error[1]) for error in prerrors]
+                [str(error) for error in prerrors]
             )
 
             async with aiohttp.ClientSession() as session:
