@@ -171,6 +171,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         catalogItem,
         catalogNamespaceName: catalogNamespaceName,
         groups,
+        isAdmin,
         parameterValues,
         serviceNamespace: formState.serviceNamespace,
         usePoolIfAvailable: formState.usePoolIfAvailable,

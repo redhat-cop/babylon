@@ -10,7 +10,10 @@ namespace:
 #  ref: master
 #  sshKey: agnosticv-sshkey
 #  url: git@github.com:rhpds/agnosticv.git
-#  ...
+#  gitHub:
+#    preloadPullRequests:
+#      mode: override
+#    token: ... github access token ...
 
 agnosticv:
   apiGroup: gpte.redhat.com
@@ -19,6 +22,9 @@ agnosticv:
 anarchy:
   apiGroup: anarchy.gpte.redhat.com
   version: v1
+  # Roles and collections may be passed values with anarchy or through the agnosticvRepos
+  #collections: []
+  #roles: []
 
 catalog:
   apiGroup: babylon.gpte.redhat.com

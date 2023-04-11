@@ -58,6 +58,10 @@ spec:
                 description: >-
                   Component path within AgnosticV repositiory.
                 type: string
+              pullRequestNumber:
+                description: >-
+                  Pull request number if component is managed by a pull request.
+                type: integer
             required:
             - agnosticvRepo
             - definition

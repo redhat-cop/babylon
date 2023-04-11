@@ -1,0 +1,126 @@
+---
+apiVersion: poolboy.gpte.redhat.com/v1
+kind: ResourceProvider
+metadata:
+  annotations:
+    gpte.redhat.com/last-update: '{"git": {"author": "Johnathan Kupferer <jkupfere@redhat.com>",
+      "committer": "Johnathan Kupferer <jkupfere@redhat.com>", "hash": "a9c5158ac5ab077a1c0657694a94f98ff55cdb37",
+      "message": "Initial commit", "when_author": "2023-03-29T22:39:13Z", "when_committer":
+      "2023-03-29T22:48:16Z"}}'
+  creationTimestamp: "2023-03-29T23:37:43Z"
+  generation: 1
+  name: account1.component-1.prod
+  namespace: poolboy
+  resourceVersion: "691609"
+  uid: a4c65758-28b8-4379-92ad-7b4b7068420d
+spec:
+  default:
+    spec:
+      vars:
+        action_schedule:
+          start: '{{ timestamp.utcnow }}'
+          stop: '{{ timestamp.utcnow.add(resource_provider.spec.override.spec.vars.action_schedule.default_runtime)
+            }}'
+  lifespan:
+    default: 3d
+    maximum: '{% if resource_claim.annotations[''demo.redhat.com/open-environment'']
+      | default(false) | bool %}365d{% else %}14d{% endif %}'
+    relativeMaximum: '{% if resource_claim.annotations[''demo.redhat.com/open-environment'']
+      | default(false) | bool %}365d{% else %}5d{% endif %}'
+  matchIgnore:
+  - /spec/vars/action_schedule(/.*)?
+  override:
+    apiVersion: anarchy.gpte.redhat.com/v1
+    kind: AnarchySubject
+    metadata:
+      name: account1.component-1.prod-{{ guid }}{% if resource_index | int > 0 or
+        (resource_reference.name | default('')).endswith('-0') %}-{{ resource_index
+        }}{% endif %}
+      namespace: babylon-anarchy-agnosticv-test
+    spec:
+      governor: account1.component-1.prod
+      vars:
+        action_schedule:
+          default_runtime: 4h
+          maximum_runtime: '{% if resource_claim.annotations[''demo.redhat.com/open-environment'']
+            | default(false) | bool %}365d{% else %}8h{% endif %}'
+        desired_state: |2-
+
+          {%- if 0 < resource_states | map('default', {}, True) | list | json_query("length([?!contains(keys(status.towerJobs.provision || `{}`), 'completeTimestamp')])") -%}
+          {#- desired_state started until all AnarchySubjects have finished provision -#}
+          started
+          {%- elif 0 < resource_templates | json_query("length([?spec.vars.action_schedule.start <= '" ~ now(True, "%FT%TZ") ~ "' && spec.vars.action_schedule.stop > '" ~ now(True, "%FT%TZ") ~ "'])") -%}
+          {#- desired_state started for all if any should be started as determined by action schedule -#}
+          started
+          {%- elif 0 < resource_templates | json_query("length([?spec.vars.default_desired_state == 'started' && !(spec.vars.action_schedule.start || spec.vars.action_schedule.stop)])") -%}
+          {#- desired_state started for all if any should be started as determined by default_desired_state -#}
+          started
+          {%- else -%}
+          stopped
+          {%- endif -%}
+        healthy: true
+        job_vars:
+          guid: '{{ guid }}{% if resource_index | int > 0 or (resource_reference.name
+            | default('''')).endswith(''-0'') %}-{{ resource_index }}{% endif %}'
+  resourceRequiresClaim: false
+  template:
+    enable: true
+  updateFilters:
+  - allowedOps:
+    - add
+    - replace
+    pathMatch: /spec/vars/action_schedule/.*
+  - allowedOps:
+    - add
+    - replace
+    pathMatch: /spec/vars/desired_state
+  - allowedOps:
+    - add
+    - replace
+    pathMatch: /spec/vars/check_status_request_timestamp
+  validation:
+    openAPIV3Schema:
+      additionalProperties: false
+      properties:
+        spec:
+          additionalProperties: false
+          properties:
+            vars:
+              additionalProperties: false
+              properties:
+                action_schedule:
+                  additionalProperties: false
+                  properties:
+                    start:
+                      pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$
+                      type: string
+                    stop:
+                      pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$
+                      type: string
+                  type: object
+                check_status_request_timestamp:
+                  pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$
+                  type: string
+                job_vars:
+                  additionalProperties: false
+                  properties:
+                    something_version:
+                      default: "4.12"
+                      description: Version of Thing
+                      enum:
+                      - "4.8"
+                      - "4.9"
+                      - "4.10"
+                      - "4.11"
+                      - "4.12"
+                      type: string
+                  required:
+                  - something_version
+                  type: object
+              type: object
+          required:
+          - vars
+          type: object
+      required:
+      - spec
+      type: object

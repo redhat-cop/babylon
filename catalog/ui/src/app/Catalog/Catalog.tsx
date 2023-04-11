@@ -131,8 +131,8 @@ function handleExportCsv(catalogItems: CatalogItem[]) {
   asyncParser.input.push(null);
 }
 
-function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: string[]) {
-  return 'deny' !== checkAccessControl(catalogItem.spec.accessControl, userGroups);
+function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: string[], isAdmin: boolean) {
+  return 'deny' !== checkAccessControl(catalogItem.spec.accessControl, userGroups, isAdmin);
 }
 
 function filterCatalogItemByCategory(catalogItem: CatalogItem, selectedCategory: string) {
@@ -310,7 +310,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   );
 
   const catalogItems = useMemo(
-    () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups)),
+    () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
     [catalogItemsArr, groups]
   );
 

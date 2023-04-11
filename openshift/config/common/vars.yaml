@@ -1,8 +1,7 @@
 # Component Versions
-agnosticv_operator_version: v0.31.10
 babylon_anarchy_version: v0.23.1
 babylon_anarchy_governor_version: v0.19.1
-poolboy_version: v1.3.2
+poolboy_version: v1.5.0
 replik8s_version: v0.5.0
 user_namespace_operator_version: v0.3.1
 
@@ -85,6 +84,16 @@ babylon_resources:
             "enable": babylon_cross_cluster_backup_enable | default(false) | bool,
             "replik8sVersion": replik8s_version,
           } }}
+
+  - name: AgnosticV Operator Deploy
+    helm_template:
+      dir: babylon-agnosticv-operator
+      include_crds: true
+      values:
+        # Set agnosticv repos, passing ssh_key value as sshKey
+        agnosticvRepos: "{{ babylon_agnosticv_repositories | default([]) }}"
+        anarchy:
+          roles: "{{ babylon_anarchy_roles }}"
 
   - name: Babylon cost-tracker Helm Template
     when: >-
@@ -207,19 +216,6 @@ babylon_resources:
           username: "{{ babylon_reporting_db.username | default('') }}"
           password: "{{ babylon_reporting_db.password | default('') }}"
           hostname: "{{ babylon_reporting_db.hostname | default('') }}"
-
-  # agnosticv-operator
-  - name: AgnosticV Operator Deploy
-    helm_template:
-      git:
-        repo: https://github.com/redhat-gpte-devopsautomation/agnosticv-operator.git
-        version: "{{ agnosticv_operator_version }}"
-      dir: helm
-      include_crds: true
-      values:
-        # Set agnosticv repos, passing ssh_key value as sshKey
-        agnosticvRepos: "{{ babylon_agnosticv_repositories | default([]) }}"
-        babylonAnarchyRoles: "{{ babylon_anarchy_roles }}"
 
 # Cluster level resources
 k8s_resources: "{{ babylon_resources }}"

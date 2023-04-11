@@ -19,12 +19,7 @@ const PurposeOpts = [
   { name: 'Ad-hoc or exploratory', activity: 'Training', id: 9 },
   { name: 'As part of course', activity: 'Training', id: 10 },
 ];
-const EventPurposeOpts = [
-  { name: 'RHTE 2023 APAC', activity: 'Event', id: 1, sfdc: null },
-  { name: 'RHTE 2023 EMEA', activity: 'Event', id: 2, sfdc: null },
-  { name: 'RHTE 2023 LATAM', activity: 'Event', id: 3, sfdc: null },
-  { name: 'RHTE 2023 NA', activity: 'Event', id: 4, sfdc: null },
-];
+const EventPurposeOpts = [{ name: 'Summit 2023', activity: 'Event', id: 1, sfdc: null }];
 const ActivityPurposeSelector: React.FC<
   | {
       onChange: (value: string) => void;

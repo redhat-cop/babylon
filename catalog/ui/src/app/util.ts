@@ -37,7 +37,7 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
     const catalogItemName = _item.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
     const catalogItemDisplayName = _item.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`];
 
-    if (_item.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+    if (Array.isArray(_item.spec.resources) && _item.spec.resources.length > 0 && _item.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
       if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
         return `${catalogItemDisplayName} Service Request`;
       } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
@@ -109,6 +109,11 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
   const sanitize_opt = {
     ADD_TAGS: [],
     ADD_ATTR: [],
+    CUSTOM_ELEMENT_HANDLING: {
+      tagNameCheck: null, // no custom elements are allowed
+      attributeNameCheck: null, // default / standard attribute allow-list is used
+      allowCustomizedBuiltInElements: false, // no customized built-ins allowed
+    },
   };
   if (options.allowIFrame) {
     sanitize_opt.ADD_TAGS.push('iframe');
@@ -118,12 +123,18 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
     return dompurify.sanitize(content, sanitize_opt);
   } else {
     const asciidoctor = AsciiDoctor();
-    return dompurify.sanitize(asciidoctor.convert(content, { attributes: options.vars }).toString(), sanitize_opt);
+    return dompurify.sanitize(
+      asciidoctor
+        .convert(content, { attributes: options.vars })
+        .toString()
+        .replace(/&#8203;/gi, '-'),
+      sanitize_opt
+    );
   }
 }
 
-export function checkAccessControl(accessConfig: AccessControl, groups: string[]): 'allow' | 'viewOnly' | 'deny' {
-  if (!accessConfig) {
+export function checkAccessControl(accessConfig: AccessControl, groups: string[], isAdmin: boolean = false): 'allow' | 'viewOnly' | 'deny' {
+  if (!accessConfig || isAdmin) {
     return 'allow';
   }
   if ((accessConfig.denyGroups || []).filter((group) => groups.includes(group)).length > 0) {
@@ -367,6 +378,7 @@ export function escapeRegex(string: string) {
 }
 
 export function stripTags(unStrippedHtml: string) {
+  if (!unStrippedHtml) return '';
   const parseHTML = new DOMParser().parseFromString(
     dompurify.sanitize(unStrippedHtml.replace(/<\!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
     'text/html'
