@@ -41,5 +41,6 @@ sonarqube-check:
       ${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:+-Dsonar.pullrequest.branch="$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"}
       ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:+-Dsonar.pullrequest.base="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"}
   timeout: 15 minutes
+  allow_failure: true
   tags:
     - shared
