@@ -1,5 +1,5 @@
 ---
-name: publish
+name: publish-helm-charts
 on:
   push:
     branches-ignore:
@@ -8,7 +8,6 @@ on:
     - 'v[0-9]*'
 
   publish-helm-charts:
-    needs: publish
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
