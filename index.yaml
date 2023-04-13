@@ -2,8 +2,18 @@ apiVersion: v1
 entries:
   babylon:
   - apiVersion: v2
+    appVersion: 0.29.5
+    created: "2023-04-13T15:03:05.432914525Z"
+    description: A Helm chart for the babylon
+    digest: 18a317f07ba1bb6020c7cc55c7561d1e9c8945a2a1cb0dfd060123dee158ef9f
+    name: babylon
+    type: application
+    urls:
+    - https://redhat-cop.github.io/babylon/babylon-0.29.5.tgz
+    version: 0.29.5
+  - apiVersion: v2
     appVersion: 0.29.4
-    created: "2023-04-13T03:13:16.957556256Z"
+    created: "2023-04-13T15:03:05.430839624Z"
     description: A Helm chart for the babylon
     digest: 388fcf5076d6c9ae860773e70d502a034c690bfa2fd657341d238ccd452e93f9
     name: babylon
@@ -11,4 +21,4 @@ entries:
     urls:
     - https://redhat-cop.github.io/babylon/babylon-0.29.4.tgz
     version: 0.29.4
-generated: "2023-04-13T03:13:16.957192553Z"
+generated: "2023-04-13T15:03:05.430410024Z"
