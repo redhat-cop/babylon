@@ -8,7 +8,7 @@ metadata:
       Cluster-wide admin access for Babylon resources.
 rules:
 - apiGroups:
-  - babylon.gpte.redhat.com
+  - {{ .Values.catalog.apiGroup }}
   resources:
   - catalogitems
   verbs:
@@ -45,7 +45,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - babylon.gpte.redhat.com
+  - {{ .Values.catalog.apiGroup }}
   resources:
   - workshops
   - workshopprovisions
@@ -70,7 +70,7 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
 rules:
 - apiGroups:
-  - babylon.gpte.redhat.com
+  - {{ .Values.catalog.apiGroup }}
   resources:
   - catalogitems
   verbs:
@@ -103,7 +103,7 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-view: "true"
 rules:
 - apiGroups:
-  - babylon.gpte.redhat.com
+  - {{ .Values.catalog.apiGroup }}
   resources:
   - catalogitems
   verbs:
@@ -144,7 +144,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - babylon.gpte.redhat.com
+  - {{ .Values.catalog.apiGroup }}
   resources:
   - workshops
   verbs:
@@ -168,7 +168,7 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
 rules:
 - apiGroups:
-  - babylon.gpte.redhat.com
+  - {{ .Values.catalog.apiGroup }}
   resources:
   - workshops
   - workshopprovisions
@@ -264,7 +264,7 @@ metadata:
       This cluster role is used to allow anarchy to access catalog items and secrets.
 rules:
 - apiGroups:
-  - babylon.gpte.redhat.com
+  - {{ .Values.catalog.apiGroup }}
   resources:
   - catalogitems
   verbs:
