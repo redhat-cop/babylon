@@ -11,20 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Checkout gh-pages
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
-        ref: gh-pages
         path: gh-pages
+        ref: gh-pages
 
     - name: Configure Helm
-      uses: azure/setup-helm@v1
+      uses: azure/setup-helm@v3
       with:
-        version: latest
+        version: v3.11.1
 
     - name: Package Helm Chart
       run: |
