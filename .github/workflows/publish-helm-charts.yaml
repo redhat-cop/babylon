@@ -33,7 +33,7 @@ jobs:
 
         helm dep up helm/babylon
         helm package helm/babylon
-        mv ${{ env.IMAGE_NAME }}-*.tgz gh-pages
+        mv babylon-*.tgz gh-pages
         helm repo index --url https://redhat-cop.github.io/babylon gh-pages
 
     - name: Push Changes to GH Pages
