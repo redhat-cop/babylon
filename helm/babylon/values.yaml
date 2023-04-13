@@ -1,0 +1,20 @@
+---
+configNamespace:
+  name: babylon-config
+
+agnosticv:
+  apiGroup: gpte.redhat.com
+  version: v1
+
+anarchy:
+  apiGroup: anarchy.gpte.redhat.com
+  version: v1
+
+catalog:
+  apiGroup: babylon.gpte.redhat.com
+  version: v1
+
+resourceBroker:
+  apiGroup: poolboy.gpte.redhat.com
+  version: v1
+  namespace: poolboy
