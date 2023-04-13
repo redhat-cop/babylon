@@ -6,7 +6,7 @@ on:
     - '*'
     tags:
     - 'v[0-9]*'
-
+jobs:
   publish-helm-charts:
     runs-on: ubuntu-latest
     steps:
