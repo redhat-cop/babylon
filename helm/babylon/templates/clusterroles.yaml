@@ -6,6 +6,8 @@ metadata:
   annotations:
     description: >-
       Cluster-wide admin access for Babylon resources.
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - {{ .Values.catalog.apiGroup }}
@@ -68,6 +70,7 @@ metadata:
       Cluster-wide read access for Babylon resources.
   labels:
     rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
+    {{- include "babylon.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - {{ .Values.catalog.apiGroup }}
@@ -101,6 +104,7 @@ metadata:
       Access to Babylon catalog resources.
   labels:
     rbac.authorization.k8s.io/aggregate-to-view: "true"
+    {{- include "babylon.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - {{ .Values.catalog.apiGroup }}
@@ -129,6 +133,7 @@ metadata:
       Access to manage Babylon services.
   labels:
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    {{- include "babylon.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - {{ .Values.resourceBroker.apiGroup }}
@@ -166,6 +171,7 @@ metadata:
       Access to manage workshops and provisions for workshops.
   labels:
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    {{- include "babylon.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - {{ .Values.catalog.apiGroup }}
@@ -189,6 +195,8 @@ metadata:
   annotations:
     description: >-
       This role is used to allow the resource broker to manage anarchy resources.
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
 rules:
 # ConfigMap access to create user configmaps
 - apiGroups:
@@ -224,6 +232,8 @@ metadata:
   annotations:
     description: >-
       This rolebinding allows the resource broker to manage anarchy resources.
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -241,6 +251,8 @@ metadata:
   annotations:
     description: >-
       This cluster role is used to allow anarchy to manage ResourceClaims and ResourceHandles.
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - {{ .Values.resourceBroker.apiGroup }}
@@ -262,6 +274,8 @@ metadata:
   annotations:
     description: >-
       This cluster role is used to allow anarchy to access catalog items and secrets.
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - {{ .Values.catalog.apiGroup }}
