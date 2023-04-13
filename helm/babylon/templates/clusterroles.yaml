@@ -191,7 +191,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: babylon:resource-broker:anarchy-access
+  name: babylon:{{ .Values.resourceBroker.serviceAccountName }}:anarchy-access
   annotations:
     description: >-
       This role is used to allow the resource broker to manage anarchy resources.
@@ -237,17 +237,17 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: babylon:resource-broker:anarchy-access
+  name: babylon:{{ .Values.resourceBroker.serviceAccountName }}:anarchy-access
 subjects:
 - kind: ServiceAccount
-  name: resource-broker
+  name: {{ .Values.resourceBroker.serviceAccountName }}
   namespace: {{ .Values.resourceBroker.namespace }}
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: babylon:anarchy:resource-broker-access
+  name: babylon:anarchy:{{ .Values.resourceBroker.serviceAccountName }}-access
   annotations:
     description: >-
       This cluster role is used to allow anarchy to manage ResourceClaims and ResourceHandles.

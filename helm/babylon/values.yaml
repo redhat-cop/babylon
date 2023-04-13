@@ -18,3 +18,4 @@ resourceBroker:
   apiGroup: poolboy.gpte.redhat.com
   version: v1
   namespace: poolboy
+  serviceAccountName: poolboy
