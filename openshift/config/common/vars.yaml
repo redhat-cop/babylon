@@ -167,6 +167,19 @@ babylon_resources:
         route: "{{ babylon_catalog_route | default({}) }}"
         salesforce: "{{ babylon_salesforce | default({}) }}"
 
+  - name: Babylon admin Helm Template
+    when: >-
+      babylon_reporting_db is defined and
+      babylon_admin_deploy | default(true) | bool
+    helm_template:
+      dir: babylon-admin
+      values:
+        db:
+          name: "{{ babylon_reporting_db.dbname | default('') }}"
+          username: "{{ babylon_reporting_db.username | default('') }}"
+          password: "{{ babylon_reporting_db.password | default('') }}"
+          hostname: "{{ babylon_reporting_db.hostname | default('') }}"
+
   - name: Babylon lab-ui-manager Helm Template
     when: >-
       babylon_lab_ui_manager_deploy | default(true) | bool
