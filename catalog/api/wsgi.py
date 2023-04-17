@@ -32,6 +32,7 @@ redis_connection = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
+admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
 
 if 'REDIS_PASSWORD' in os.environ:
     redis_connection = redis.StrictRedis(
@@ -389,10 +390,11 @@ def resolve_openstack_subjects(resource_claim):
         subjects.append(subject)
     return(subjects)
 
-def api_proxy(method, url, headers, data = None):
+def api_proxy(method, url, headers, data = None, params = None):
     resp = requests.request(method=method, url=url,
         headers={key: value for (key, value) in headers if key != 'Host'},
         data=data,
+        params=params,
         allow_redirects=False)
     excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection', 
     'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers', 'upgrade']
@@ -777,6 +779,18 @@ def provision_rating_get(provision_uuid):
     user = proxy_user()
     email = user['metadata']['name']
     return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}/users/{email}", headers=flask.request.headers)
+
+@application.route("/api/admin/incidents", methods=['GET'])
+def incidents_get():
+    return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents", params=request.args, headers=flask.request.headers)
+
+@application.route("/api/admin/incidents", methods=['POST'])
+def create_incident(incident_id):
+    return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents", data=json.dumps(data), headers=flask.request.headers)
+
+@application.route("/api/admin/incidents/<incident_id>", methods=['POST'])
+def update_incident(incident_id):
+    return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents/{incident_id}", data=json.dumps(data), headers=flask.request.headers)
 
 @application.route("/api/workshop/<workshop_id>", methods=['GET'])
 def workshop_get(workshop_id):
