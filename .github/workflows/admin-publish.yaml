@@ -33,9 +33,9 @@ jobs:
           # Publish to latest, minor, and patch tags
           # Ex: latest,v0.1.2,v0.1
           IMAGE_TAGS=(
-            '${{ secrets.REGISTRY_URI }}/${{ secrets.REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest'
-            "${{ secrets.REGISTRY_URI }}/${{ secrets.REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION%.*}"
-            "${{ secrets.REGISTRY_URI }}/${{ secrets.REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+            '${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest'
+            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION%.*}"
+            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
           )
           # Set IMAGE_TAGS output for use in next step
           ( IFS=$','; echo "::set-output name=IMAGE_TAGS::${IMAGE_TAGS[*]}" )
@@ -50,8 +50,8 @@ jobs:
       if: steps.image_tags.outputs.IMAGE_TAGS
       with:
         registry: ${{ secrets.REGISTRY_URI }}
-        username: ${{ secrets.REGISTRY_USERNAME }}
-        password: ${{ secrets.REGISTRY_PASSWORD }}
+        username: ${{ secrets.GPTE_REGISTRY_USERNAME }}
+        password: ${{ secrets.GPTE_REGISTRY_PASSWORD }}
 
     - name: Build and publish image
       uses: docker/build-push-action@v2
