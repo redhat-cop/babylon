@@ -15,6 +15,7 @@ const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
 const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
+const Incidents = React.lazy(() => import('@app/Admin/Incidents'));
 const AnarchyActionInstance = React.lazy(() => import('@app/Admin/AnarchyActionInstance'));
 const AnarchyActions = React.lazy(() => import('@app/Admin/AnarchyActions'));
 const AnarchyGovernorInstance = React.lazy(() => import('@app/Admin/AnarchyGovernorInstance'));
@@ -255,6 +256,12 @@ const appRoutes: IAppRoute[] = [
   {
     component: CatalogItemAdmin,
     path: '/admin/catalogitems/:namespace/:name',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: Incidents,
+    path: '/admin/incidents',
     title: 'Babylon | Admin',
     accessControl: 'admin',
   },
