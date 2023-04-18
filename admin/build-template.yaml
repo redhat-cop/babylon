@@ -1,0 +1,51 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  annotations:
+    description: Babylon Admin Build
+  name: babylon-admin-build
+
+parameters:
+- name: NAME
+  value: babylon-admin
+- name: GIT_REPO
+  value: https://github.com/redhat-cop/babylon.git
+- name: GIT_REF
+  value: main
+- name: PYTHON_S2I_IMAGE
+  value: registry.access.redhat.com/ubi8/python-39:latest
+
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: ${NAME}
+  spec:
+    lookupPolicy:
+      local: false
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      contextDir: admin
+      git:
+        uri: ${GIT_REPO}
+        ref: ${GIT_REF}
+    strategy:
+      type: Source
+      sourceStrategy:
+        forcePull: true
+        from:
+          kind: DockerImage
+          name: ${PYTHON_S2I_IMAGE}
+    triggers: []

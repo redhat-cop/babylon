@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "babylon-admin.name" . }}
+  namespace: {{ include "babylon-admin.namespaceName" . }}
+  labels:
+    {{- include "babylon-admin.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+  - name: admin-api
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    {{- include "babylon-admin.selectorLabels" . | nindent 4 }}

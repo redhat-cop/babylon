@@ -123,9 +123,9 @@ class ResourceClaim(K8sObject):
                     k: v for k, v in state_vars['provision_data'].items() if k not in self.lab_ui_url_keys
                 })
                 for lab_ui_url_key in self.lab_ui_url_keys:
-                    if lab_ui_url_key in provision_data:
+                    if lab_ui_url_key in state_vars['provision_data']:
                         lab_user_interface = LabUserInterface(
-                            url = provision_data[lab_ui_url_key]
+                            url = state_vars['provision_data'][lab_ui_url_key]
                         )
                     break
             if 'provision_messages' in state_vars:

@@ -42,7 +42,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     await WorkshopProvision.preload()
 
 @kopf.on.cleanup()
-async def on_cleanup():
+async def on_cleanup(**_):
     await Babylon.on_cleanup()
 
 

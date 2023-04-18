@@ -1,0 +1,46 @@
+---
+name: publish-helm-charts
+on:
+  push:
+    branches-ignore:
+    - '*'
+    tags:
+    - 'v[0-9]*'
+jobs:
+  publish-helm-charts:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Checkout gh-pages
+      uses: actions/checkout@v3
+      with:
+        path: gh-pages
+        ref: gh-pages
+
+    - name: Configure Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: v3.11.1
+
+    - name: Package Helm Chart
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        sed -i helm/babylon/Chart.yaml -re "s/^(version|appVersion): .*/\1: $VERSION/"
+
+        helm dep up helm/babylon
+        helm package helm/babylon
+        mv babylon-*.tgz gh-pages
+        helm repo index --url https://redhat-cop.github.io/babylon gh-pages
+
+    - name: Push Changes to GH Pages
+      run: |
+        cd gh-pages
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+        git add .
+        git commit -m "Updating Helm Chart Repository"
+        git push
