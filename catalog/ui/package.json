@@ -100,7 +100,7 @@
     "react-router-dom": "^6.10.0",
     "react-window": "^1.8.8",
     "redux": "^4.2.1",
-    "reselect": "^4.1.7",
+    "reselect": "^4.1.8",
     "swr": "^2.1.3"
   }
 }
