@@ -6,19 +6,21 @@ from asgi_tools import App, ResponseError
 from datetime import datetime, timezone
 from logging import Formatter, FileHandler
 from utils import execute_query
+from schema import Schema, And, Or, Use, Optional, SchemaError
 
 from babylon import Babylon
 
 logger = logging.getLogger('babylon-admin-api')
 
-CREATE_SCHEMA = """CREATE SCHEMA IF NOT EXISTS babylon-admin; SET schema 'babylon-admin';"""
 CREATE_INCIDENTS_TABLE = """CREATE TABLE IF NOT EXISTS incidents (
                         id SERIAL PRIMARY KEY, 
-                        status enum ('active', 'resolved') NOT NULL,
-                        incident_type enum ('general'),
+                        status varchar(50) NOT NULL,
+                        incident_type varchar(50),
                         message TEXT,
                         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        CONSTRAINT check_status CHECK (status IN ('active', 'resolved')), 
+                        CONSTRAINT check_incident_type CHECK (incident_type IN ('general'))
                     );"""
 INSERT_INCIDENT = (
     """INSERT INTO incidents (status, message) 
@@ -41,7 +43,6 @@ app = App()
 @app.on_startup
 async def on_startup():
     await Babylon.on_startup()
-    # await execute_query(CREATE_SCHEMA)
     await execute_query(CREATE_INCIDENTS_TABLE)
 
 @app.on_shutdown

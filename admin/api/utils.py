@@ -48,7 +48,8 @@ async def get_conn_params(secret_name='gpte-db-secrets'):
         "port": "port",
         "ssl_mode": "sslmode",
         "ca_cert": "sslrootcert",
-        "dbname": "database"
+        "dbname": "database",
+        "options": "options"
     }
 
     kw = dict((params_map[k], v) for (k, v) in params_dict.items()

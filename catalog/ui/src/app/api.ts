@@ -1598,4 +1598,5 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }${limit ? `limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
   ANARCHY_GOVERNOR: ({ namespace, anarchyGovernorName }: { namespace: string; anarchyGovernorName: string }) =>
     `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchygovernors/${anarchyGovernorName}`,
+  INCIDENTS: ({ status }: { status: string }) => `/api/admin/incidents${status ? '?status=' + status : ''}`,
 };
