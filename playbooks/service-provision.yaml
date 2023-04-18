@@ -135,7 +135,7 @@
   - name: Update last-login annotation {{ cloudforms_username }}
     when: r_user.resources | length > 0
     k8s:
-      apiVersion: user.openshift.io/v1
+      api_version: user.openshift.io/v1
       kind: User
       kubeconfig: "{{ kubeconfig }}"
       name: "{{ cloudforms_username }}"
