@@ -133,7 +133,7 @@ const IncidentsAlertList: React.FC = () => {
               <Select
                 aria-labelledby="level"
                 aria-label="Level"
-                selections={state.level === 'info' ? 'Info' : state.level === 'warning' ? 'Warning' : 'critical'}
+                selections={state.level === 'info' ? 'Info' : state.level === 'warning' ? 'Warning' : 'Critical'}
                 onToggle={(isOpen) => setIsOpen(isOpen)}
                 isOpen={isOpen}
                 onSelect={(ev, selection) => {
@@ -144,7 +144,7 @@ const IncidentsAlertList: React.FC = () => {
                   setIsOpen(false);
                 }}
               >
-                <SelectOption key="info" value="Info" isPlaceholder />
+                <SelectOption key="info" value="Info" />
                 <SelectOption key="warning" value="Warning" />
                 <SelectOption key="critical" value="Critical" />
               </Select>
