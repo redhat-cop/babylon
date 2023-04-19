@@ -133,7 +133,7 @@ const IncidentsAlertList: React.FC = () => {
               <Select
                 aria-labelledby="level"
                 aria-label="Level"
-                selections={state.level}
+                selections={state.level === 'info' ? 'Info' : state.level === 'warning' ? 'Warning' : 'critical'}
                 onToggle={(isOpen) => setIsOpen(isOpen)}
                 isOpen={isOpen}
                 onSelect={(ev, selection) => {

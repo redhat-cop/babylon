@@ -5,7 +5,7 @@
 
 .modal-component.pf-c-modal-box .pf-c-modal-box__body {
   overflow-x: visible;
-  overflow-y: visible;
+  overflow-y: auto;
 }
 
 .modal-component.pf-c-modal-box .pf-c-dropdown__menu {

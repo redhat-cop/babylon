@@ -69,8 +69,8 @@
 }
 
 .editor-link {
-  color: rgb(33, 111, 219);
-  text-decoration: none;
+  color: rgb(33, 111, 219) !important;
+  text-decoration: none !important;
 }
 
 .editor-code {
