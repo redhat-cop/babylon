@@ -1,5 +1,5 @@
 import React from 'react';
-import { Banner, Flex, FlexItem } from '@patternfly/react-core';
+import { Banner } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
 import { Incident } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
@@ -18,19 +18,19 @@ const IncidentsBanner: React.FC = () => {
           screenReaderText={i.message}
           variant={i.level === 'info' ? 'info' : i.level === 'critical' ? 'danger' : 'warning'}
         >
-          <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-            <FlexItem>
+          <div style={{ display: 'flex', gap: 'var(--pf-global--spacer--md)', flexDirection: 'row' }}>
+            <div>
               {i.level === 'info' && <InfoCircleIcon />}
               {i.level === 'warning' && <ExclamationTriangleIcon />}
               {i.level === 'critical' && <ExclamationCircleIcon />}
-            </FlexItem>
-            <FlexItem>
+            </div>
+            <div style={{ whiteSpace: 'normal' }}>
               <p>{i.message}</p>
               <p style={{ fontStyle: 'italic', fontSize: 'xs' }}>
                 <TimeInterval toTimestamp={i.updated_at} />
               </p>
-            </FlexItem>
-          </Flex>
+            </div>
+          </div>
         </Banner>
       ))}
     </>

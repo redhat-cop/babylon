@@ -141,12 +141,13 @@ const IncidentsAlertList: React.FC = () => {
                 selections={state.level}
                 onToggle={(isOpen) => setIsOpen(isOpen)}
                 isOpen={isOpen}
-                onSelect={(ev, selection) =>
+                onSelect={(ev, selection) => {
                   dispatch({
                     type: 'set_level',
                     level: selection.toString().toLowerCase() as 'info' | 'warning' | 'critical',
-                  })
-                }
+                  });
+                  setIsOpen(false);
+                }}
               >
                 <SelectOption key="info" value="Info" isPlaceholder />
                 <SelectOption key="warning" value="Warning" />
