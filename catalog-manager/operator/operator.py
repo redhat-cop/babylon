@@ -43,7 +43,7 @@ async def manage_catalog_item_provision_data(catalog_item, logger):
     catalog_item_last_successful_provision = datetime.fromisoformat(
         catalog_item.annotations.get(
             Babylon.catalog_item_last_successful_provision, "1970-01-01T00:00:00Z"
-        )[-1]
+        )[:-1]
     )
     if (
         provision_data.last_successful_provision is not None
