@@ -60,8 +60,10 @@ import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogContent from './CatalogContent';
+import IncidentsBanner from '@app/components/IncidentsBanner';
 
 import './catalog.css';
+import { ErrorBoundary } from 'react-error-boundary';
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -442,159 +444,166 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   }
 
   return (
-    <Drawer isExpanded={openCatalogItem ? true : false}>
-      <DrawerContent
-        panelContent={
-          openCatalogItem ? (
-            <Suspense
-              fallback={
-                <DrawerPanelContent widths={{ default: 'width_75', lg: 'width_75', xl: 'width_66', '2xl': 'width_50' }}>
-                  <PageSection variant={PageSectionVariants.light}>
-                    <EmptyState variant="full">
-                      <EmptyStateIcon icon={LoadingIcon} />
-                    </EmptyState>
-                  </PageSection>
-                </DrawerPanelContent>
-              }
-            >
-              <CatalogItemDetails catalogItem={openCatalogItem} onClose={closeCatalogItem} />
-            </Suspense>
-          ) : null
-        }
-      >
-        {openCatalogItem ? <Backdrop /> : null}
-        <DrawerContentBody>
-          {catalogNamespaces.length > 1 ? (
-            <CatalogNamespaceSelect onSelect={onSelectCatalogNamespace} selected={catalogNamespaceName} />
-          ) : null}
-          <CatalogInterfaceDescription />
-          <PageSection className="catalog__body" variant={PageSectionVariants.light}>
-            <Card>
-              <CardBody>
-                <Sidebar tabIndex={0}>
-                  <SidebarPanel className="catalog__sidebar-panel">
-                    <CatalogCategorySelector
-                      catalogItems={catalogItems}
-                      onSelect={onSelectCategory}
-                      selected={selectedCategory}
-                    />
-                    <CatalogLabelSelector
-                      catalogItems={catalogItems}
-                      filteredCatalogItems={catalogItemsResult}
-                      onSelect={onSelectLabels}
-                      selected={selectedLabels}
-                    />
-                  </SidebarPanel>
-                  <SidebarContent>
-                    <PageSection variant={PageSectionVariants.light} className="catalog__header">
-                      <Split>
-                        <SplitItem isFilled>
-                          <Title headingLevel="h2">
-                            {selectedCategory ? formatString(selectedCategory) : 'All Items'}
-                          </Title>
-                          <SearchInputString
-                            initialValue={searchString}
-                            placeholder="Search"
-                            onSearch={onSearchChange}
-                            className="catalog__searchbox"
-                            setValueCb={assignSearchInputStringCb}
-                          />
-                        </SplitItem>
-                        <SplitItem>
-                          <Stack hasGutter>
-                            <StackItem>
-                              <ul className="catalog__right-tools">
-                                <li>
-                                  <Tooltip content="Gallery view">
-                                    <Button
-                                      variant="plain"
-                                      aria-label="View as gallery"
-                                      onClick={() => setView('gallery')}
-                                      isActive={view === 'gallery'}
-                                    >
-                                      <ThIcon />
-                                    </Button>
-                                  </Tooltip>
-                                </li>
-                                <li>
-                                  <Tooltip content="List view">
-                                    <Button
-                                      variant="plain"
-                                      aria-label="View as list"
-                                      onClick={() => setView('list')}
-                                      isActive={view === 'list'}
-                                    >
-                                      <ListIcon />
-                                    </Button>
-                                  </Tooltip>
-                                </li>
-                                {isAdmin ? (
+    <>
+      <ErrorBoundary fallback={<></>} onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}>
+        <IncidentsBanner />
+      </ErrorBoundary>
+      <Drawer isExpanded={openCatalogItem ? true : false}>
+        <DrawerContent
+          panelContent={
+            openCatalogItem ? (
+              <Suspense
+                fallback={
+                  <DrawerPanelContent
+                    widths={{ default: 'width_75', lg: 'width_75', xl: 'width_66', '2xl': 'width_50' }}
+                  >
+                    <PageSection variant={PageSectionVariants.light}>
+                      <EmptyState variant="full">
+                        <EmptyStateIcon icon={LoadingIcon} />
+                      </EmptyState>
+                    </PageSection>
+                  </DrawerPanelContent>
+                }
+              >
+                <CatalogItemDetails catalogItem={openCatalogItem} onClose={closeCatalogItem} />
+              </Suspense>
+            ) : null
+          }
+        >
+          {openCatalogItem ? <Backdrop /> : null}
+          <DrawerContentBody>
+            {catalogNamespaces.length > 1 ? (
+              <CatalogNamespaceSelect onSelect={onSelectCatalogNamespace} selected={catalogNamespaceName} />
+            ) : null}
+            <CatalogInterfaceDescription />
+            <PageSection className="catalog__body" variant={PageSectionVariants.light}>
+              <Card>
+                <CardBody>
+                  <Sidebar tabIndex={0}>
+                    <SidebarPanel className="catalog__sidebar-panel">
+                      <CatalogCategorySelector
+                        catalogItems={catalogItems}
+                        onSelect={onSelectCategory}
+                        selected={selectedCategory}
+                      />
+                      <CatalogLabelSelector
+                        catalogItems={catalogItems}
+                        filteredCatalogItems={catalogItemsResult}
+                        onSelect={onSelectLabels}
+                        selected={selectedLabels}
+                      />
+                    </SidebarPanel>
+                    <SidebarContent>
+                      <PageSection variant={PageSectionVariants.light} className="catalog__header">
+                        <Split>
+                          <SplitItem isFilled>
+                            <Title headingLevel="h2">
+                              {selectedCategory ? formatString(selectedCategory) : 'All Items'}
+                            </Title>
+                            <SearchInputString
+                              initialValue={searchString}
+                              placeholder="Search"
+                              onSearch={onSearchChange}
+                              className="catalog__searchbox"
+                              setValueCb={assignSearchInputStringCb}
+                            />
+                          </SplitItem>
+                          <SplitItem>
+                            <Stack hasGutter>
+                              <StackItem>
+                                <ul className="catalog__right-tools">
                                   <li>
-                                    <Tooltip content="Export to CSV">
+                                    <Tooltip content="Gallery view">
                                       <Button
                                         variant="plain"
-                                        aria-label="Export to CSV"
-                                        onClick={() => handleExportCsv(catalogItems)}
+                                        aria-label="View as gallery"
+                                        onClick={() => setView('gallery')}
+                                        isActive={view === 'gallery'}
                                       >
-                                        <DownloadIcon />
+                                        <ThIcon />
                                       </Button>
                                     </Tooltip>
                                   </li>
-                                ) : null}
-                                <li>
-                                  <Select
-                                    className="catalog__sort-by"
-                                    variant={SelectVariant.single}
-                                    aria-label="Sort by"
-                                    onToggle={(isOpen) =>
-                                      setSortBy({
-                                        ...sortBy,
-                                        isOpen,
-                                      })
-                                    }
-                                    onSelect={(_, selection) =>
-                                      setSortBy({
-                                        ...sortBy,
-                                        selected: selection as 'Featured' | 'Rating' | 'AZ' | 'ZA',
-                                        isOpen: false,
-                                      })
-                                    }
-                                    selections={`Sort by: ${!!searchString ? 'Search' : sortBy.selected}`}
-                                    isOpen={sortBy.isOpen}
-                                    isDisabled={!!searchString}
-                                  >
-                                    <SelectOption key={0} value="Featured" />
-                                    <SelectOption key={1} value="Rating" />
-                                    <SelectOption key={2} value="AZ" />
-                                    <SelectOption key={3} value="ZA" />
-                                  </Select>
-                                </li>
-                              </ul>
-                            </StackItem>
-                            <StackItem>
-                              <p className="catalog__item-count">
-                                {catalogItemsResult.length} item{catalogItemsResult.length > 1 && 's'}
-                              </p>
-                            </StackItem>
-                          </Stack>
-                        </SplitItem>
-                      </Split>
-                    </PageSection>
-                    <CatalogContent
-                      catalogItemsResult={catalogItemsResult}
-                      onClearFilters={onClearFilters}
-                      view={view}
-                      userHasRequiredPropertiesToAccess={userHasRequiredPropertiesToAccess}
-                    />
-                  </SidebarContent>
-                </Sidebar>
-              </CardBody>
-            </Card>
-          </PageSection>
-          <Footer />
-        </DrawerContentBody>
-      </DrawerContent>
-    </Drawer>
+                                  <li>
+                                    <Tooltip content="List view">
+                                      <Button
+                                        variant="plain"
+                                        aria-label="View as list"
+                                        onClick={() => setView('list')}
+                                        isActive={view === 'list'}
+                                      >
+                                        <ListIcon />
+                                      </Button>
+                                    </Tooltip>
+                                  </li>
+                                  {isAdmin ? (
+                                    <li>
+                                      <Tooltip content="Export to CSV">
+                                        <Button
+                                          variant="plain"
+                                          aria-label="Export to CSV"
+                                          onClick={() => handleExportCsv(catalogItems)}
+                                        >
+                                          <DownloadIcon />
+                                        </Button>
+                                      </Tooltip>
+                                    </li>
+                                  ) : null}
+                                  <li>
+                                    <Select
+                                      className="catalog__sort-by"
+                                      variant={SelectVariant.single}
+                                      aria-label="Sort by"
+                                      onToggle={(isOpen) =>
+                                        setSortBy({
+                                          ...sortBy,
+                                          isOpen,
+                                        })
+                                      }
+                                      onSelect={(_, selection) =>
+                                        setSortBy({
+                                          ...sortBy,
+                                          selected: selection as 'Featured' | 'Rating' | 'AZ' | 'ZA',
+                                          isOpen: false,
+                                        })
+                                      }
+                                      selections={`Sort by: ${!!searchString ? 'Search' : sortBy.selected}`}
+                                      isOpen={sortBy.isOpen}
+                                      isDisabled={!!searchString}
+                                    >
+                                      <SelectOption key={0} value="Featured" />
+                                      <SelectOption key={1} value="Rating" />
+                                      <SelectOption key={2} value="AZ" />
+                                      <SelectOption key={3} value="ZA" />
+                                    </Select>
+                                  </li>
+                                </ul>
+                              </StackItem>
+                              <StackItem>
+                                <p className="catalog__item-count">
+                                  {catalogItemsResult.length} item{catalogItemsResult.length > 1 && 's'}
+                                </p>
+                              </StackItem>
+                            </Stack>
+                          </SplitItem>
+                        </Split>
+                      </PageSection>
+                      <CatalogContent
+                        catalogItemsResult={catalogItemsResult}
+                        onClearFilters={onClearFilters}
+                        view={view}
+                        userHasRequiredPropertiesToAccess={userHasRequiredPropertiesToAccess}
+                      />
+                    </SidebarContent>
+                  </Sidebar>
+                </CardBody>
+              </Card>
+            </PageSection>
+            <Footer />
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 };
 

@@ -10,8 +10,7 @@ from psycopg2 import ProgrammingError
 from psycopg2 import pool
 from retrying import retry
 from decimal import Decimal
-from datetime import timedelta
-
+from datetime import datetime, timezone, timedelta
 from babylon import Babylon
 
 logger = logging.getLogger('babylon-admin-api')
@@ -48,7 +47,8 @@ async def get_conn_params(secret_name='gpte-db-secrets'):
         "port": "port",
         "ssl_mode": "sslmode",
         "ca_cert": "sslrootcert",
-        "dbname": "database"
+        "dbname": "database",
+        "options": "options"
     }
 
     kw = dict((params_map[k], v) for (k, v) in params_dict.items()
@@ -122,6 +122,9 @@ async def execute_query(query, positional_args=None, autocommit=True):
 
                     elif isinstance(val, timedelta):
                         row[key] = str(val)
+
+                    elif isinstance(val, datetime):
+                        row[key] = val.isoformat()
 
                 query_result.append(row)
         except ProgrammingError as e:

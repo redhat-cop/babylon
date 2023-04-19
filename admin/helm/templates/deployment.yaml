@@ -23,6 +23,8 @@ spec:
         env:
         - name: COMPONENT
           value: api
+        - name: SCHEMA
+          value: babylon_admin
         image: {{ include "babylon-admin.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:

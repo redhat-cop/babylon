@@ -545,7 +545,9 @@ export type ResourceType =
   | 'ANARCHY_RUN'
   | 'ANARCHY_RUNS'
   | 'ANARCHY_GOVERNORS'
-  | 'ANARCHY_GOVERNOR';
+  | 'ANARCHY_GOVERNOR'
+  | 'INCIDENTS'
+  | 'INCIDENT';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
@@ -553,3 +555,13 @@ export type WorkshopWithResourceClaims = Workshop & {
   resourceClaims?: ResourceClaim[];
 };
 export type Service = ResourceClaim | WorkshopWithResourceClaims;
+
+export type Incident = {
+  id: number;
+  incident_type: 'general';
+  level: 'info' | 'warning' | 'critical';
+  message: string;
+  status: 'active' | 'resolved';
+  created_at: string;
+  updated_at: string;
+};
