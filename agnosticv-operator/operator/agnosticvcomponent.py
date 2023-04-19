@@ -180,7 +180,7 @@ class AgnosticVComponent(KopfObject):
                 "template": value['template'].rstrip(),
                 "templateFormat": value.get('templateFormat', 'jinja2'),
                 "outputFormat": value.get('outputFormat', 'html'),
-            } for key, value in self.catalog_meta.get('messageTemplates').items()
+            } for key, value in self.catalog_meta.get('messageTemplates', {}).items()
         }
 
     @property
@@ -694,15 +694,31 @@ class AgnosticVComponent(KopfObject):
 
         # Allow altering updatable parameters
         if self.catalog_parameters:
+            definition['spec']['parameters'] = []
+            definition['spec']['template']['definition'] = {}
             open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars']
             for parameter in self.catalog_parameters:
-                # Skip annotation only parameters
+                resource_broker_parameter = {
+                    'name': parameter['name'],
+                    'allowUpdate': parameter.get('allowUpdate', False),
+                    'required': parameter.get('required', False),
+                }
+                if 'openAPIV3Schema' in parameter:
+                    resource_broker_parameter.setdefault('validation', {})['openAPIV3Schema'] = parameter['openAPIV3Schema']
+
+                definition['spec']['parameters'].append(resource_broker_parameter)
+
+                # Skip annotation only parameters in template generation and validation
                 if 'annotation' in parameter and 'variable' not in parameter:
                     continue
+
                 open_api_schema_job_vars.setdefault('properties', {})
                 open_api_schema_job_vars.setdefault('required', [])
                 variable = parameter.get('variable', parameter['name'])
+                default = None
                 parameter_open_api_schema = parameter.get('openAPIV3Schema', {})
+                if 'default' in parameter_open_api_schema:
+                    default = parameter_open_api_schema['default']
                 if 'description' in parameter:
                     parameter_open_api_schema['description'] = parameter['description']
                 open_api_schema_job_vars['properties'][variable] = parameter_open_api_schema
@@ -710,8 +726,20 @@ class AgnosticVComponent(KopfObject):
                     open_api_schema_job_vars['required'].append(variable)
                 if parameter.get('allowUpdate'):
                     definition['spec']['updateFilters'].append({
-                        "pathMatch": f"/spec/vars/job_vars/variable(/.*)?"
+                        "pathMatch": f"/spec/vars/job_vars/{variable}(/.*)?"
                     })
+
+                variable_value_template = (
+                    '{{ resource_claim.spec.provider.parameterValues.' + parameter['name'] +
+                    ' | default(' + (json.dumps(default) if default else 'omit') + ') | object }}'
+                )
+                definition['spec']['template']['definition'].setdefault(
+                    'spec', {}
+                ).setdefault(
+                    'vars', {}
+                ).setdefault(
+                    'job_vars', {}
+                )[variable] = variable_value_template
             
         return definition
 
