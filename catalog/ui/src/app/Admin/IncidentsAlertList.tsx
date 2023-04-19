@@ -101,7 +101,7 @@ const IncidentsAlertList: React.FC = () => {
         onClose={() => {
           dispatch({ type: 'clear_state' });
         }}
-        title="Edit Incident"
+        title={state.id ? 'Edit Incident' : 'New Incident'}
         confirmText="Save"
       >
         <Form className="incidents__form">
