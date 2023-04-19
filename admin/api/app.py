@@ -21,12 +21,12 @@ CREATE_INCIDENTS_TABLE = """CREATE TABLE IF NOT EXISTS incidents (
                         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                         CONSTRAINT check_status CHECK (status IN ('active', 'resolved')), 
-                        CONSTRAINT check_level CHECK (status IN ('critical', 'info', 'warning')), 
+                        CONSTRAINT check_level CHECK (level IN ('critical', 'info', 'warning')), 
                         CONSTRAINT check_incident_type CHECK (incident_type IN ('general'))
                     );"""
 INSERT_INCIDENT = (
-    """INSERT INTO incidents (status, message) 
-    VALUES (%(status)s, %(level)s, %(message)s);"""
+    """INSERT INTO incidents (incident_type, status, level, message, updated_at, created_at) 
+    VALUES (%(incident_type)s, %(status)s, %(level)s, %(message)s, NOW(), NOW());"""
 )
 UPDATE_INCIDENT = (
     """UPDATE incidents SET 

@@ -3,22 +3,27 @@ import {
   Button,
   Form,
   FormGroup,
-  PageSection,
-  PageSectionVariants,
+  Panel,
+  PanelMain,
   Select,
   SelectOption,
   Switch,
   TextArea,
+  Title,
 } from '@patternfly/react-core';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';
-import LocalTimestamp from '@app/components/LocalTimestamp';
 import { Incident } from '@app/types';
-import { Caption, TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import EditIcon from '@patternfly/react-icons/dist/js/icons/edit-icon';
+import Modal, { useModal } from '@app/Modal/Modal';
+import PlusCircleIcon from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import TimeInterval from '@app/components/TimeInterval';
+import InfoCircleIcon from '@patternfly/react-icons/dist/js/icons/info-circle-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 
 import './admin.css';
-import Modal, { useModal } from '@app/Modal/Modal';
 
 type IncidentData = Omit<Incident, 'updated_at' | 'created_at'>;
 const initialState: IncidentData = {
@@ -92,7 +97,7 @@ const IncidentsAlertList: React.FC = () => {
   }
 
   return (
-    <PageSection key="body" variant={PageSectionVariants.light}>
+    <div>
       <Modal
         ref={incidentModal}
         onConfirm={async () => {
@@ -149,48 +154,73 @@ const IncidentsAlertList: React.FC = () => {
           </FormGroup>
         </Form>
       </Modal>
-      <Button
-        onClick={() => {
-          dispatch({ type: 'new_incident' });
-          openIncidentModal();
-        }}
-      >
-        New incident
-      </Button>
-      <TableComposable aria-label="Active incidents">
-        <Caption>Active incidents</Caption>
-        <Thead>
-          <Tr>
-            <Th>Message</Th>
-            <Th>Last updated</Th>
-            <Th>Status</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {activeIncidents.map((incident) => (
-            <Tr key={incident.id}>
-              <Td dataLabel="message">{incident.message}</Td>
-              <Td dataLabel="updated">
-                <LocalTimestamp timestamp={incident.updated_at} />
-              </Td>
-              <Td dataLabel="status">{incident.status}</Td>
-              <Td dataLabel="edit">
-                <Button
-                  variant="plain"
-                  aria-label="edit"
-                  onClick={() => {
-                    dispatch({ type: 'edit_incident', incident });
-                    openIncidentModal();
-                  }}
-                >
-                  <EditIcon />
-                </Button>
-              </Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </TableComposable>
-    </PageSection>
+      <Panel variant="raised">
+        <div style={{ padding: 'var(--pf-global--spacer--md)' }}>
+          <Button
+            onClick={() => {
+              dispatch({ type: 'new_incident' });
+              openIncidentModal();
+            }}
+            icon={<PlusCircleIcon />}
+            style={{
+              marginLeft: 'auto',
+              display: 'flex',
+            }}
+          >
+            New incident
+          </Button>
+        </div>
+        <PanelMain>
+          <Title headingLevel="h3" size="md">
+            Active Incidents
+          </Title>
+          {activeIncidents.length > 0 ? (
+            <TableComposable aria-label="Active incidents">
+              <Thead>
+                <Tr>
+                  <Th>Level</Th>
+                  <Th>Message</Th>
+                  <Th>Last updated</Th>
+                  <Th>Status</Th>
+                  <Th>Edit</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {activeIncidents.map((incident) => (
+                  <Tr key={incident.id}>
+                    <Td dataLabel="level" style={{ textTransform: 'capitalize' }}>
+                      {incident.level === 'info' && <InfoCircleIcon />}
+                      {incident.level === 'warning' && <ExclamationTriangleIcon />}
+                      {incident.level === 'critical' && <ExclamationCircleIcon />}
+                      {incident.level}
+                    </Td>
+                    <Td dataLabel="message">{incident.message}</Td>
+                    <Td dataLabel="status">{incident.status}</Td>
+                    <Td dataLabel="updated">
+                      <TimeInterval toTimestamp={incident.updated_at} />
+                    </Td>
+                    <Td dataLabel="edit">
+                      <Button
+                        variant="plain"
+                        aria-label="edit"
+                        onClick={() => {
+                          dispatch({ type: 'edit_incident', incident });
+                          openIncidentModal();
+                        }}
+                      >
+                        <EditIcon />
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </TableComposable>
+          ) : (
+            <p>No active incidents 🥳</p>
+          )}
+        </PanelMain>
+      </Panel>
+    </div>
   );
 };
 
