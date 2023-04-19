@@ -63,10 +63,10 @@ function reducer(
       return { ...state, message: action.message };
     }
     case 'set_status': {
-      return { ...state, message: action.status };
+      return { ...state, status: action.status };
     }
     case 'set_level': {
-      return { ...state, message: action.level };
+      return { ...state, level: action.level };
     }
   }
 }
@@ -156,6 +156,9 @@ const IncidentsAlertList: React.FC = () => {
       </Modal>
       <Panel variant="raised">
         <div style={{ padding: 'var(--pf-global--spacer--md)' }}>
+          <Title headingLevel="h3" size="md">
+            Active Incidents
+          </Title>
           <Button
             onClick={() => {
               dispatch({ type: 'new_incident' });
@@ -171,9 +174,6 @@ const IncidentsAlertList: React.FC = () => {
           </Button>
         </div>
         <PanelMain>
-          <Title headingLevel="h3" size="md">
-            Active Incidents
-          </Title>
           {activeIncidents.length > 0 ? (
             <TableComposable aria-label="Active incidents">
               <Thead>

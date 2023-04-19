@@ -13,7 +13,11 @@ const IncidentsBanner: React.FC = () => {
   return (
     <>
       {data.map((i) => (
-        <Banner isSticky screenReaderText={i.message}>
+        <Banner
+          isSticky
+          screenReaderText={i.message}
+          variant={i.level === 'info' ? 'info' : i.level === 'critical' ? 'danger' : 'warning'}
+        >
           <Flex spaceItems={{ default: 'spaceItemsSm' }}>
             <FlexItem>
               {i.level === 'info' && <InfoCircleIcon />}
