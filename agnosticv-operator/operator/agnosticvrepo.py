@@ -531,7 +531,7 @@ class AgnosticVRepo(CachedKopfObject):
             logger.exception("manage_components failed with unexpected error.")
             await self.merge_patch_status({
                 "error": {
-                    "message": traceback.format_exeception(error),
+                    "message": traceback.format_exc(),
                     "timestamp": datetime.now(timezone.utc).strftime('%FT%TZ'),
                 }
             })
