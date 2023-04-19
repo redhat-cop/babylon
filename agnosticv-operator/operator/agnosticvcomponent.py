@@ -87,7 +87,9 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def anarchy_namespace(self):
-        return self.anarchy.get('namespace', 'anarchy-operator')
+        if 'namespace' in self.anarchy:
+            return jinja2env.from_string(self.anarchy['namespace']).render(self.template_vars)
+        return 'anarchy-operator'
 
     @property
     def anarchy_remove_finished_actions_after(self):
