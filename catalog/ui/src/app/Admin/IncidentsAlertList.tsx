@@ -92,7 +92,7 @@ const IncidentsAlertList: React.FC = () => {
         body: JSON.stringify(incident),
       });
     }
-    mutate(null);
+    mutate(undefined);
   }
 
   return (

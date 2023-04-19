@@ -785,12 +785,14 @@ def incidents_get():
     return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents", params=flask.request.args, headers=flask.request.headers)
 
 @application.route("/api/admin/incidents", methods=['POST'])
-def create_incident(incident_id):
-    return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents", data=json.dumps(data), headers=flask.request.headers)
+def create_incident():
+    data = flask.request.get_json()
+    return api_proxy(method="POST", url=f"{admin_api}/api/admin/v1/incidents", data=json.dumps(data), headers=flask.request.headers)
 
 @application.route("/api/admin/incidents/<incident_id>", methods=['POST'])
 def update_incident(incident_id):
-    return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents/{incident_id}", data=json.dumps(data), headers=flask.request.headers)
+    data = flask.request.get_json()
+    return api_proxy(method="POST", url=f"{admin_api}/api/admin/v1/incidents/{incident_id}", data=json.dumps(data), headers=flask.request.headers)
 
 @application.route("/api/workshop/<workshop_id>", methods=['GET'])
 def workshop_get(workshop_id):

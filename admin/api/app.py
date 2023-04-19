@@ -87,7 +87,7 @@ async def create_incident(request):
         await execute_query(INSERT_INCIDENT, {
             'incident_type': incident_type,
             'status': status,
-            'level': level
+            'level': level,
             'message': message
         })
     except:
@@ -118,7 +118,7 @@ async def update_incident(request):
         await execute_query(UPDATE_INCIDENT, {
             'status': status,
             'incident_type': incident_type,
-            'level': level
+            'level': level,
             'message': message,
             'incident_id': incident_id
         })
