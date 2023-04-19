@@ -177,3 +177,18 @@ spec:
           status:
             type: object
             x-kubernetes-preserve-unknown-fields: true
+            properties:
+              error:
+                description: >-
+                  Error details while handling this repository.
+                type: object
+                properties:
+                  message:
+                    description: >-
+                      Error message.
+                    type: string
+                  timestamp:
+                    description: >-
+                      Last timestamp this error was reported.
+                    type: string
+                    format: date-time

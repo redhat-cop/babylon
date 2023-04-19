@@ -1,8 +1,11 @@
 import json
 import os
 import re
+import traceback
 
 from base64 import b64decode
+from copy import deepcopy
+from datetime import datetime, timezone
 
 import aiofiles
 import aiofiles.os
@@ -33,7 +36,7 @@ class AgnosticVComponentValidationError(AgnosticVProcessingError):
 class AgnosticVConflictError(AgnosticVProcessingError):
     pass
 
-class AgnosticVMergeError(AgnosticVProcessingError):
+class AgnosticVExecError(AgnosticVProcessingError):
     pass
 
 class AgnosticVRepo(CachedKopfObject):
@@ -175,10 +178,11 @@ class AgnosticVRepo(CachedKopfObject):
             raise kopf.TemporaryError(f"Unable to resolve reference {ref}", delay=60)
 
         self.git_checkout_ref = ref
-        if source and source.pull_request_number:
+        if source:
             if source.hexsha != hexsha:
                 source.hexsha = hexsha
-                logger.info(f"{message} for PR #{source.pull_request_number}")
+                if source.pull_request_number:
+                    logger.info(f"{message} for PR #{source.pull_request_number}")
             return
 
         if self.git_hexsha != hexsha:
@@ -241,26 +245,33 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def agnosticv_exec(self, *cmd):
         proc = await asyncio.create_subprocess_exec(
-            agnosticv_cli_path, '--dir', self.agnosticv_path, *cmd,
+            agnosticv_cli_path, *cmd,
             stdout = asyncio.subprocess.PIPE,
             stderr = asyncio.subprocess.PIPE,
         )
         stdout, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            raise kopf.TemporaryError(
-                f"agnosticv --list failed: {stderr.decode('utf-8')}",
-                delay=60,
+        if stderr:
+            raise AgnosticVExecError(
+                "agnosticv execution failed.\n" +
+                f"agnosticv {' '.join(cmd)}\n" +
+                stderr.decode('utf-8')
             )
-        return stdout.decode('utf-8')
+        return stdout.decode('utf-8'), stderr.decode('utf-8')
 
     async def agnosticv_get_all_component_paths(self):
-        return (await self.agnosticv_exec('--list', '--has=__meta__')).split()
+        stdout, stderr = await self.agnosticv_exec(
+            '--list', '--has=__meta__', '--dir', self.agnosticv_path
+        )
+        return stdout.split(), stderr
 
     async def agnosticv_get_component_paths_from_related_files(self, files):
         args = ['--related', files[0]]
         for file in files[1:]:
             args.extend(['--or-related', file])
-        return (await self.agnosticv_exec('--list', '--has=__meta__', *args)).split()
+        stdout, stderr = await self.agnosticv_exec(
+            '--list', '--has=__meta__', '--dir', self.agnosticv_path, *args
+        )
+        return stdout.split(), stderr
 
     async def delete_components(self, logger):
         async for agnosticv_component in AgnosticVComponent.list(
@@ -273,16 +284,11 @@ class AgnosticVRepo(CachedKopfObject):
     async def get_component_definition(self, source, logger):
         if self.git_checkout_ref != source.ref:
             await self.git_repo_checkout(logger=logger, source=source)
-
-        proc = await asyncio.create_subprocess_exec(
-            agnosticv_cli_path, '--merge', os.path.join(self.agnosticv_path, source.path), '--output=json',
-            stdout = asyncio.subprocess.PIPE,
-            stderr = asyncio.subprocess.PIPE,
+        logger.info(source.hexsha)
+        stdout, stderr = await self.agnosticv_exec(
+            '--merge', os.path.join(self.agnosticv_path, source.path), '--output=json',
         )
-        stdout, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            raise AgnosticVMergeError(f"agnosticv --merge failed for {source}")
-        definition = json.loads(stdout.decode('utf-8'))
+        definition = json.loads(stdout)
         if self.anarchy_collections:
             definition['__meta__'].setdefault('anarchy', {})['collections'] = self.anarchy_collections
         definition['__meta__'].setdefault('anarchy', {})['roles'] = self.anarchy_roles
@@ -301,15 +307,24 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def get_component_sources(self, changed_only, logger):
         # Add restriction to changed files if requested
-        if changed_only and self.git_changed_files:
-            component_paths = await self.agnosticv_get_component_paths_from_related_files(self.git_changed_files)
-        else:
-            component_paths = await self.agnosticv_get_all_component_paths()
+        try:
+            if changed_only and self.git_changed_files:
+                component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(self.git_changed_files)
+            else:
+                component_paths, error_msg = await self.agnosticv_get_all_component_paths()
+        except AgnosticVProcessingError as error:
+            raise Kopf.TemporaryError(
+                f"{error}",
+                delay = 60,
+            )
 
         # Base list of component sources by path
         component_sources_by_path = {
             path: ComponentSource(path, ref=self.git_ref) for path in component_paths
         }
+
+        # Collect all non-fatal error messages
+        error_messages = [error_msg] if error_msg else []
 
         if self.github_preload_pull_requests:
             github_token = await self.get_github_token()
@@ -329,15 +344,20 @@ class AgnosticVRepo(CachedKopfObject):
                         ref = pull_request['head']['ref']
                         await self.git_repo_checkout(logger=logger, ref=ref)
                         changed_files = await self.git_changed_files_in_branch(logger=logger, ref=ref)
-                        component_paths = await self.agnosticv_get_component_paths_from_related_files(changed_files)
-                        for path in component_paths:
-                            component_sources_by_path[path] = ComponentSource(
-                                path, pull_request_number=pull_request['number'], ref=ref
+                        component_paths, pr_error_msg = await self.agnosticv_get_component_paths_from_related_files(changed_files)
+                        if pr_error_msg:
+                            error_messages.append(
+                                f"Failed to list all components for PR #{pull_request['number']} {ref}:\n{pr_error_msg}\n"
                             )
+                        else:
+                            for path in component_paths:
+                                component_sources_by_path[path] = ComponentSource(
+                                    path, pull_request_number=pull_request['number'], ref=ref
+                                )
 
         component_sources = list(component_sources_by_path.values())
         component_sources.sort(key=lambda cs: cs.sortkey)
-        return component_sources
+        return component_sources, error_messages
 
     async def get_github_token(self):
         secret = await Babylon.core_v1_api.read_namespaced_secret(
@@ -487,6 +507,26 @@ class AgnosticVRepo(CachedKopfObject):
                 raise
 
     async def manage_components(self, logger, changed_only=False):
+        try:
+            await self.__manage_components(changed_only=changed_only, logger=logger)
+        except AgnosticVProcessingError as error:
+            await self.merge_patch_status({
+                "error": {
+                    "message": str(error),
+                    "timestamp": datetime.now(timezone.utc).strftime('%FT%TZ'),
+                }
+            })
+            logger.error(str(error))
+        except Exception as error:
+            logger.exception("manage_components failed with unexpected error.")
+            await self.merge_patch_status({
+                "error": {
+                    "message": traceback.format_exeception(error),
+                    "timestamp": datetime.now(timezone.utc).strftime('%FT%TZ'),
+                }
+            })
+
+    async def __manage_components(self, logger, changed_only):
         await self.git_repo_sync(logger=logger)
 
         if changed_only:
@@ -503,7 +543,8 @@ class AgnosticVRepo(CachedKopfObject):
         messages = {}
         pr_hexsha = {}
         errors = {}
-        for source in await self.get_component_sources(changed_only=changed_only, logger=logger):
+        component_sources, get_component_sources_error_messages = await self.get_component_sources(changed_only=changed_only, logger=logger)
+        for source in component_sources:
             try:
                 result = await self.manage_component(source=source, logger=logger)
                 if source.pull_request_number:
@@ -573,15 +614,17 @@ class AgnosticVRepo(CachedKopfObject):
                     json = {"labels": ["integration"]}
                 )
 
-        if errors:
-            raise kopf.TemporaryError(
-                "Error managing components:\n" + "\n".join(
+        if errors or get_component_sources_error_messages:
+            error_messages = deepcopy(get_component_sources_error_messages)
+            raise AgnosticVProcessingError(
+                "\n".join(
+                    get_component_sources_error_messages +
                     [str(error) for prerrors in errors.values() for error in prerrors]
-                ),
-                delay = 60,
+                )
             )
 
         await self.merge_patch_status({
+            "error": None,
             "git": {
                 "commit": self.git_hexsha,
             }
