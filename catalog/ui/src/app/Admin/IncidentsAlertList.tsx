@@ -116,7 +116,7 @@ const IncidentsAlertList: React.FC = () => {
               placeholder="Add message"
             />
           </FormGroup>
-          <FormGroup fieldId="status" isRequired={true} label="Status">
+          <FormGroup fieldId="status" isRequired={true} label="Status" hasNoPaddingTop>
             <div className="incidents__form-group-control--single">
               <Switch
                 id="incidents__form-active"
@@ -128,7 +128,7 @@ const IncidentsAlertList: React.FC = () => {
               />
             </div>
           </FormGroup>
-          <FormGroup fieldId="level" isRequired={true} label="Level">
+          <FormGroup fieldId="level" isRequired={true} label="Level" hasNoPaddingTop>
             <div className="incidents__form-group-control--single">
               <Select
                 aria-labelledby="level"
