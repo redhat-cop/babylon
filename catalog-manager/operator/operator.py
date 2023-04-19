@@ -108,3 +108,9 @@ async def manage_catalog_item(logger, **kwargs):
         catalog_item = CatalogItem(**kwargs)
         await manage_catalog_item_rating(catalog_item, logger)
         await manage_catalog_item_provision_data(catalog_item, logger)
+
+@kopf.on.delete(
+    CatalogItem.api_group, CatalogItem.api_version, CatalogItem.plural
+)
+async def manage_catalog_item_delete(**_):
+    pass
