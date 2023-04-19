@@ -3,8 +3,8 @@ import { PageSection, Title, Button, EmptyState, EmptyStateIcon, EmptyStateBody 
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import useDocumentTitle from '@app/utils/useDocumentTitle';
 
-const NotFound: React.FC<{ title?: string }> = ({ title }) => {
-  useDocumentTitle(title);
+const NotFound: React.FC = () => {
+  useDocumentTitle('404 Page Not Found');
   return (
     <PageSection>
       <EmptyState variant="full">

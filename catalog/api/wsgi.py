@@ -782,7 +782,7 @@ def provision_rating_get(provision_uuid):
 
 @application.route("/api/admin/incidents", methods=['GET'])
 def incidents_get():
-    return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents", params=request.args, headers=flask.request.headers)
+    return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents", params=flask.request.args, headers=flask.request.headers)
 
 @application.route("/api/admin/incidents", methods=['POST'])
 def create_incident(incident_id):

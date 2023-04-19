@@ -15,7 +15,7 @@ const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
 const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
-const Incidents = React.lazy(() => import('@app/Admin/Incidents'));
+const IncidentsPage = React.lazy(() => import('@app/Admin/IncidentsPage'));
 const AnarchyActionInstance = React.lazy(() => import('@app/Admin/AnarchyActionInstance'));
 const AnarchyActions = React.lazy(() => import('@app/Admin/AnarchyActions'));
 const AnarchyGovernorInstance = React.lazy(() => import('@app/Admin/AnarchyGovernorInstance'));
@@ -260,7 +260,7 @@ const appRoutes: IAppRoute[] = [
     accessControl: 'admin',
   },
   {
-    component: Incidents,
+    component: IncidentsPage,
     path: '/admin/incidents',
     title: 'Babylon | Admin',
     accessControl: 'admin',
@@ -304,7 +304,7 @@ const _Routes: React.FC = () => {
           }
         />
       ))}
-      <Route path="*" element={<NotFound title="404 Page Not Found" />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
