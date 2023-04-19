@@ -126,6 +126,8 @@ const IncidentsAlertList: React.FC = () => {
               <Switch
                 id="incidents__form-active"
                 aria-label="Active"
+                label="Active"
+                labelOff="Resolved"
                 isChecked={state.status === 'active'}
                 onChange={(v) => dispatch({ type: 'set_status', status: v ? 'active' : 'resolved' })}
               />
@@ -180,15 +182,23 @@ const IncidentsAlertList: React.FC = () => {
                 <Tr>
                   <Th>Level</Th>
                   <Th>Message</Th>
-                  <Th>Last updated</Th>
                   <Th>Status</Th>
+                  <Th>Last updated</Th>
                   <Th>Edit</Th>
                 </Tr>
               </Thead>
               <Tbody>
                 {activeIncidents.map((incident) => (
                   <Tr key={incident.id}>
-                    <Td dataLabel="level" style={{ textTransform: 'capitalize' }}>
+                    <Td
+                      dataLabel="level"
+                      style={{
+                        textTransform: 'capitalize',
+                        display: 'flex',
+                        gap: 'var(--pf-global--spacer--xs)',
+                        alignItems: 'center',
+                      }}
+                    >
                       {incident.level === 'info' && <InfoCircleIcon />}
                       {incident.level === 'warning' && <ExclamationTriangleIcon />}
                       {incident.level === 'critical' && <ExclamationCircleIcon />}
@@ -216,7 +226,7 @@ const IncidentsAlertList: React.FC = () => {
               </Tbody>
             </TableComposable>
           ) : (
-            <p>No active incidents 🥳</p>
+            <p style={{ padding: 'var(--pf-global--spacer--md)' }}>No active incidents 🥳</p>
           )}
         </PanelMain>
       </Panel>

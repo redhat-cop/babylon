@@ -26,7 +26,7 @@ const IncidentsBanner: React.FC = () => {
             </FlexItem>
             <FlexItem>
               <p>{i.message}</p>
-              <p style={{ fontStyle: 'italic', fontSize: 'sm' }}>
+              <p style={{ fontStyle: 'italic', fontSize: 'xs' }}>
                 <TimeInterval toTimestamp={i.updated_at} />
               </p>
             </FlexItem>
