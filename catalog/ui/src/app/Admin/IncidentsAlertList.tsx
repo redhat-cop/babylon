@@ -75,23 +75,19 @@ const IncidentsAlertList: React.FC = () => {
   });
 
   async function upsertIncident(incident: IncidentData) {
-    if (incident.id) {
-      await fetcher(apiPaths.INCIDENT({ incidentId: incident.id }), {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-        body: JSON.stringify(incident),
-      });
-    } else {
-      await fetcher(apiPaths.INCIDENTS({}), {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-        body: JSON.stringify(incident),
-      });
-    }
+    await fetcher(incident.id ? apiPaths.INCIDENT({ incidentId: incident.id }) : apiPaths.INCIDENTS({}), {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+      body: JSON.stringify({
+        incident_type: incident.incident_type,
+        status: incident.status,
+        level: incident.level,
+        message: incident.message,
+      }),
+    });
+
     mutate(undefined);
   }
 
