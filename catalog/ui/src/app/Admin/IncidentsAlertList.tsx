@@ -44,6 +44,7 @@ function reducer(
       return {
         ...state,
         id: action.incident.id,
+        level: action.incident.level,
         incident_type: action.incident.incident_type,
         message: action.incident.message,
         status: action.incident.status,
