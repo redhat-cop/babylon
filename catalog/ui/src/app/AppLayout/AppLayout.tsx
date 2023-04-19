@@ -7,7 +7,6 @@ import useDocumentTitle from '@app/utils/useDocumentTitle';
 import useSession from '@app/utils/useSession';
 import useStatusPageEmbed from './useStatusPageEmbed';
 import Navigation from './Navigation';
-import IncidentsBanner from '@app/components/IncidentsBanner';
 
 const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : [];
 
@@ -56,7 +55,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
         sidebar={Sidebar}
         onPageResize={onPageResize}
       >
-        <IncidentsBanner />
         {children}
       </Page>
     </Suspense>
