@@ -173,15 +173,6 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_message_templates(self):
-        # FIXME - weird whitespace trimming behavior preserved from agnosticv-operator
-        if 'messageTemplates' not in self.catalog_meta:
-            return None
-        # FIXME - preserve bug in agnosticv-operator
-        if ('info' not in self.catalog_meta['messageTemplates'] and
-            'serviceReady' not in self.catalog_meta['messageTemplates'] and
-            'serviceDeleted' not in self.catalog_meta['messageTemplates']
-        ):
-            return None
         return {
             key: { 
                 "template": value['template'].rstrip(),
