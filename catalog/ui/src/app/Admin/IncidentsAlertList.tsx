@@ -1,16 +1,6 @@
 import React, { useReducer, useState } from 'react';
-import {
-  Button,
-  Form,
-  FormGroup,
-  Panel,
-  PanelMain,
-  Select,
-  SelectOption,
-  Switch,
-  TextArea,
-  Title,
-} from '@patternfly/react-core';
+import { Button, Form, FormGroup, Panel, PanelMain, Select, SelectOption, Switch, Title } from '@patternfly/react-core';
+import { $generateHtmlFromNodes } from '@lexical/html';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';
 import { Incident } from '@app/types';
@@ -22,8 +12,11 @@ import TimeInterval from '@app/components/TimeInterval';
 import InfoCircleIcon from '@patternfly/react-icons/dist/js/icons/info-circle-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
+import Editor from '@app/components/Editor/Editor';
+import { EditorState, LexicalEditor } from 'lexical';
 
 import './admin.css';
+import EditorViewer from '@app/components/Editor/EditorViewer';
 
 type IncidentData = Omit<Incident, 'updated_at' | 'created_at'>;
 const initialState: IncidentData = {
@@ -112,13 +105,15 @@ const IncidentsAlertList: React.FC = () => {
       >
         <Form className="incidents__form">
           <FormGroup fieldId="message" isRequired={true} label="Message">
-            <TextArea
-              id="message"
-              onChange={(v) => dispatch({ type: 'set_message', message: v })}
-              value={state.message}
+            <Editor
+              onChange={(_: EditorState, editor: LexicalEditor) => {
+                editor.update(() => {
+                  const html = $generateHtmlFromNodes(editor, null);
+                  dispatch({ type: 'set_message', message: html });
+                });
+              }}
+              defaultValue={state.message}
               placeholder="Add message"
-              aria-label="Add message"
-              className="incidents__form-comment"
             />
           </FormGroup>
           <FormGroup fieldId="status" isRequired={true} label="Status">
@@ -205,7 +200,9 @@ const IncidentsAlertList: React.FC = () => {
                       {incident.level === 'critical' && <ExclamationCircleIcon />}
                       {incident.level}
                     </Td>
-                    <Td dataLabel="message">{incident.message}</Td>
+                    <Td dataLabel="message">
+                      <EditorViewer value={incident.message} />
+                    </Td>
                     <Td dataLabel="status">{incident.status}</Td>
                     <Td dataLabel="updated">
                       <TimeInterval toTimestamp={incident.updated_at} />

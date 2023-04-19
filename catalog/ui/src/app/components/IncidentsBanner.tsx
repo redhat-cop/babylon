@@ -7,6 +7,7 @@ import InfoCircleIcon from '@patternfly/react-icons/dist/js/icons/info-circle-ic
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import TimeInterval from './TimeInterval';
+import EditorViewer from './Editor/EditorViewer';
 
 const IncidentsBanner: React.FC = () => {
   const { data } = useSWRImmutable<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher);
@@ -25,9 +26,9 @@ const IncidentsBanner: React.FC = () => {
               {i.level === 'critical' && <ExclamationCircleIcon />}
             </div>
             <div style={{ whiteSpace: 'normal' }}>
-              <p>{i.message}</p>
+              <EditorViewer value={i.message} />
               <p style={{ fontStyle: 'italic', fontSize: 'xs' }}>
-                <TimeInterval toTimestamp={i.updated_at} />
+                Last update <TimeInterval toTimestamp={i.updated_at} />
               </p>
             </div>
           </div>
