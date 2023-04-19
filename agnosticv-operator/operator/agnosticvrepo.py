@@ -287,7 +287,6 @@ class AgnosticVRepo(CachedKopfObject):
         if self.git_checkout_ref != source.ref:
             await self.git_repo_checkout(logger=logger, source=source)
         source.hexsha = self.git_hexsha
-
         stdout, stderr = await self.agnosticv_exec(
             '--merge', os.path.join(self.agnosticv_path, source.path), '--output=json',
         )
