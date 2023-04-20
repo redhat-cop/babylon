@@ -729,17 +729,13 @@ class AgnosticVComponent(KopfObject):
                         "pathMatch": f"/spec/vars/job_vars/{variable}(/.*)?"
                     })
 
-                variable_value_template = (
-                    '{{ resource_claim.spec.provider.parameterValues.' + parameter['name'] +
-                    ' | default(' + (json.dumps(default) if default else 'omit') + ') | object }}'
-                )
                 definition['spec']['template']['definition'].setdefault(
                     'spec', {}
                 ).setdefault(
                     'vars', {}
                 ).setdefault(
                     'job_vars', {}
-                )[variable] = variable_value_template
+                )[variable] = '{{ ' + parameter['name'] + ' | default(omit) | object }}'
             
         return definition
 
