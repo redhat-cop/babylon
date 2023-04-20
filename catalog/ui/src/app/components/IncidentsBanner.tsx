@@ -10,7 +10,11 @@ import TimeInterval from './TimeInterval';
 import EditorViewer from './Editor/EditorViewer';
 
 const IncidentsBanner: React.FC = () => {
-  const { data } = useSWRImmutable<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher);
+  const { data } = useSWRImmutable<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher, {
+    shouldRetryOnError: false,
+    suspense: false,
+  });
+  if (!data || (Array.isArray(data) && data.length === 0)) return null;
   return (
     <>
       {data.map((i) => (

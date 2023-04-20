@@ -63,7 +63,6 @@ import CatalogContent from './CatalogContent';
 import IncidentsBanner from '@app/components/IncidentsBanner';
 
 import './catalog.css';
-import { ErrorBoundary } from 'react-error-boundary';
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -445,9 +444,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
 
   return (
     <>
-      <ErrorBoundary fallback={<></>} onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}>
-        <IncidentsBanner />
-      </ErrorBoundary>
+      <IncidentsBanner />
       <Drawer isExpanded={openCatalogItem ? true : false}>
         <DrawerContent
           panelContent={
