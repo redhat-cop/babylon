@@ -16,8 +16,7 @@ import {
   getInfoMessageTemplate,
   getMostRelevantResourceAndTemplate,
 } from './service-utils';
-
-import './info-tab.css';
+import AdocWrapper from '@app/components/AdocWrapper';
 
 const spinnerSvgString = `<svg style="margin: 0 8px;" class="pf-c-spinner pf-m-md" role="progressbar" aria-valuetext="Loading..." viewBox="0 0 100 100" aria-label="Contents"><circle class="pf-c-spinner__path" cx="50" cy="50" r="45" fill="none"></circle></svg>`;
 
@@ -57,14 +56,7 @@ const InfoTab: React.FC<{
       format: infoMessageTemplate.templateFormat,
       vars: createAsciiDocAttributes(provision_vars, '--'),
     }).replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString);
-    return (
-      <div
-        className="info-tab__content"
-        dangerouslySetInnerHTML={{
-          __html: htmlRenderedTemplate,
-        }}
-      />
-    );
+    return <AdocWrapper html={htmlRenderedTemplate} />;
   }, [
     infoMessageTemplate.template,
     infoMessageTemplate.templateFormat,

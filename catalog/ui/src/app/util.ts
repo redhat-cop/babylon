@@ -37,7 +37,11 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
     const catalogItemName = _item.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
     const catalogItemDisplayName = _item.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`];
 
-    if (Array.isArray(_item.spec.resources) && _item.spec.resources.length > 0 && _item.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+    if (
+      Array.isArray(_item.spec.resources) &&
+      _item.spec.resources.length > 0 &&
+      _item.spec.resources[0].provider?.name === 'babylon-service-request-configmap'
+    ) {
       if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
         return `${catalogItemDisplayName} Service Request`;
       } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
@@ -133,7 +137,11 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
   }
 }
 
-export function checkAccessControl(accessConfig: AccessControl, groups: string[], isAdmin: boolean = false): 'allow' | 'viewOnly' | 'deny' {
+export function checkAccessControl(
+  accessConfig: AccessControl,
+  groups: string[],
+  isAdmin: boolean = false
+): 'allow' | 'viewOnly' | 'deny' {
   if (!accessConfig || isAdmin) {
     return 'allow';
   }

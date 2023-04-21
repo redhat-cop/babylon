@@ -114,12 +114,14 @@ class ResourceClaim(K8sObject):
         provision_messages = []
 
         for resource in self.definition.get('status', {}).get('resources', []):
+            name =  resource.get('name')
             state = resource.get('state')
             if not state or not state['kind'] == 'AnarchySubject':
                 continue
             state_vars = state['spec']['vars']
             if 'provision_data' in state_vars:
-                provision_data.update({
+                provision_data[name] = {}
+                provision_data[name].update({
                     k: v for k, v in state_vars['provision_data'].items() if k not in self.lab_ui_url_keys
                 })
                 for lab_ui_url_key in self.lab_ui_url_keys:
