@@ -212,9 +212,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         maxDestroyTimestamp={maxAutoDestroyTime}
         isWorkshopEnabled={!!formState.workshop}
         onConfirm={(dates: TDates) =>
-          submitRequest({
-            scheduled: { startDate: dates.startDate, stopDate: dates.stopDate, endDate: dates.endDate },
-          })
+          autoStopDestroyModal === 'schedule'
+            ? submitRequest({
+                scheduled: { startDate: dates.startDate, stopDate: dates.stopDate, endDate: dates.endDate },
+              })
+            : autoStopDestroyModal === 'auto-destroy'
+            ? dispatchFormState({ type: 'dates', endDate: dates.endDate })
+            : autoStopDestroyModal === 'auto-stop'
+            ? dispatchFormState({ type: 'dates', stopDate: dates.stopDate })
+            : null
         }
         onClose={() => openAutoStopDestroyModal(null)}
         title={_displayName}
