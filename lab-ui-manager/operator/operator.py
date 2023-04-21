@@ -528,17 +528,16 @@ class BookbagDeployment:
 
     def get_image(self):
         if self.image_stream_name:
-            image_stream = custom_objects_api.get_namespaced_custom_object(
-                'image.openshift.io', 'v1', self.image_stream_namespace, 'imagestreams', self.image_stream_name
-            )
-            if 'tags' in image_stream['status']:
-                return image_stream['status']['tags'][0]['items'][0]['dockerImageReference']
-            else:
-                return f"{image_stream['status']['dockerImageRepository']}:latest"
-            return
+           image_stream = custom_objects_api.get_namespaced_custom_object(
+            'image.openshift.io', 'v1', self.image_stream_namespace, 'imagestreams', self.image_stream_name
+        )
+        if 'tags' in image_stream['status']:
+            return image_stream['status']['tags'][0]['items'][0]['dockerImageReference']
         else:
-            return self.image
-
+            return f"{image_stream['status']['dockerImageRepository']}:latest"
+    else:
+        return self.image
+        
     def handle_delete(self, logger):
         self.delete_service_account(logger=logger)
         self.delete_role_binding(logger=logger)
