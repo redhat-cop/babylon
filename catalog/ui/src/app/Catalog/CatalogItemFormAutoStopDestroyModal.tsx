@@ -61,7 +61,11 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   return (
     <Modal
       ref={autoStopDestroyModal}
-      onConfirm={() => onConfirm(dates)}
+      onConfirm={() =>
+        type === 'schedule'
+          ? onConfirm({ endDate: _endDate, stopDate: _stopDate, startDate: dates.startDate || new Date() })
+          : onConfirm(dates)
+      }
       title={type === 'auto-stop' || type === 'auto-destroy' ? title : 'Schedule for'}
       onClose={onClose}
       {...(type === 'schedule' ? { confirmText: 'Schedule' } : {})}
