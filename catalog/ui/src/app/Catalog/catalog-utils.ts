@@ -172,7 +172,17 @@ export function sortLabels([a_attr]: string[], [b_attr]: string[]) {
   return -1;
 }
 export const CUSTOM_LABELS: {
-  [name in 'CATEGORY' | 'PROVIDER' | 'SLA' | 'RATING' | 'ESTIMATED_COST' | 'FEATURED_SCORE' | 'STAGE' | 'DISABLED']: {
+  [name in
+    | 'CATEGORY'
+    | 'PROVIDER'
+    | 'PRODUCT'
+    | 'PRODUCT_FAMILY'
+    | 'SLA'
+    | 'RATING'
+    | 'ESTIMATED_COST'
+    | 'FEATURED_SCORE'
+    | 'STAGE'
+    | 'DISABLED']: {
     key: string;
     weight: number;
     domain: string;
@@ -180,6 +190,8 @@ export const CUSTOM_LABELS: {
 } = {
   CATEGORY: { key: 'category', weight: 70, domain: BABYLON_DOMAIN },
   PROVIDER: { key: 'Provider', weight: 60, domain: BABYLON_DOMAIN },
+  PRODUCT: { key: 'Product', weight: 60, domain: BABYLON_DOMAIN },
+  PRODUCT_FAMILY: { key: 'Product_Family', weight: 60, domain: BABYLON_DOMAIN },
   SLA: { key: 'SLA', weight: 50, domain: BABYLON_DOMAIN },
   RATING: { key: 'rating', weight: 30, domain: CATALOG_MANAGER_DOMAIN },
   ESTIMATED_COST: { key: 'Estimated_Cost', weight: 20, domain: BABYLON_DOMAIN },
@@ -201,5 +213,6 @@ export const HIDDEN_LABELS_DETAIL_VIEW = [
   CUSTOM_LABELS.DISABLED.key,
   CUSTOM_LABELS.STAGE.key,
   CUSTOM_LABELS.FEATURED_SCORE.key,
+  CUSTOM_LABELS.PRODUCT.key,
 ];
 export const HIDDEN_ANNOTATIONS = ['ops', 'displayNameComponent0', 'displayNameComponent1'];
