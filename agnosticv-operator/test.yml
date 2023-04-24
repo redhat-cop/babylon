@@ -1,0 +1,310 @@
+- hosts: localhost
+  vars:
+    resources: [
+      {
+        "name": "tests.test-empty-config.prod",
+        "provider": {
+          "apiVersion": "poolboy.gpte.redhat.com/v1",
+          "kind": "ResourceProvider",
+          "name": "tests.test-empty-config.prod",
+          "namespace": "poolboy"
+        },
+        "state": {
+          "apiVersion": "anarchy.gpte.redhat.com/v1",
+          "kind": "AnarchySubject",
+          "metadata": {
+            "annotations": {
+              "anarchy.gpte.redhat.com/spec-sha256": "2q9YfK9q/HeH6n1mIgDuUjkAEo38Ox8zvZ90R53fllE=",
+              "foo": "bar",
+              "poolboy.gpte.redhat.com/resource-claim-name": "tests.test-empty-config.prod",
+              "poolboy.gpte.redhat.com/resource-claim-namespace": "user-jkupfere-redhat-com",
+              "poolboy.gpte.redhat.com/resource-handle-name": "guid-9c9z9",
+              "poolboy.gpte.redhat.com/resource-handle-namespace": "poolboy",
+              "poolboy.gpte.redhat.com/resource-handle-uid": "562b9471-1cdd-4623-b830-1b6c184989e0",
+              "poolboy.gpte.redhat.com/resource-index": "0",
+              "poolboy.gpte.redhat.com/resource-provider-name": "tests.test-empty-config.prod",
+              "poolboy.gpte.redhat.com/resource-provider-namespace": "poolboy",
+              "poolboy.gpte.redhat.com/resource-requester-email": "jkupfere@redhat.com",
+              "poolboy.gpte.redhat.com/resource-requester-name": "",
+              "poolboy.gpte.redhat.com/resource-requester-preferred-username": "jkupfere@redhat.com",
+              "poolboy.gpte.redhat.com/resource-requester-user": "jkupfere@redhat.com"
+            },
+            "creationTimestamp": "2023-04-21T02:50:57Z",
+            "finalizers": [
+              "anarchy.gpte.redhat.com",
+              "anarchy.gpte.redhat.com/subject",
+              "babylon.gpte.redhat.com/reporting"
+            ],
+            "generation": 8,
+            "labels": {
+              "anarchy.gpte.redhat.com/governor": "tests.test-empty-config.prod",
+              "state": "stopped"
+            },
+            "managedFields": [
+              {
+                "apiVersion": "anarchy.gpte.redhat.com/v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:finalizers": {
+                      ".": {},
+                      "v:\"anarchy.gpte.redhat.com\"": {}
+                    }
+                  }
+                },
+                "manager": "kopf",
+                "operation": "Update",
+                "time": "2023-04-21T02:50:57Z"
+              },
+              {
+                "apiVersion": "anarchy.gpte.redhat.com/v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:status": {
+                    "f:diffBase": {}
+                  }
+                },
+                "manager": "kopf",
+                "operation": "Update",
+                "subresource": "status",
+                "time": "2023-04-21T02:50:57Z"
+              },
+              {
+                "apiVersion": "anarchy.gpte.redhat.com/v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      ".": {},
+                      "f:anarchy.gpte.redhat.com/spec-sha256": {},
+                      "f:poolboy.gpte.redhat.com/resource-claim-name": {},
+                      "f:poolboy.gpte.redhat.com/resource-claim-namespace": {},
+                      "f:poolboy.gpte.redhat.com/resource-handle-name": {},
+                      "f:poolboy.gpte.redhat.com/resource-handle-namespace": {},
+                      "f:poolboy.gpte.redhat.com/resource-handle-uid": {},
+                      "f:poolboy.gpte.redhat.com/resource-index": {},
+                      "f:poolboy.gpte.redhat.com/resource-provider-name": {},
+                      "f:poolboy.gpte.redhat.com/resource-provider-namespace": {},
+                      "f:poolboy.gpte.redhat.com/resource-requester-email": {},
+                      "f:poolboy.gpte.redhat.com/resource-requester-name": {},
+                      "f:poolboy.gpte.redhat.com/resource-requester-preferred-username": {},
+                      "f:poolboy.gpte.redhat.com/resource-requester-user": {}
+                    },
+                    "f:finalizers": {
+                      "v:\"anarchy.gpte.redhat.com/subject\"": {},
+                      "v:\"babylon.gpte.redhat.com/reporting\"": {}
+                    },
+                    "f:labels": {
+                      ".": {},
+                      "f:anarchy.gpte.redhat.com/governor": {},
+                      "f:state": {}
+                    }
+                  },
+                  "f:spec": {
+                    ".": {},
+                    "f:governor": {},
+                    "f:vars": {
+                      ".": {},
+                      "f:action_schedule": {
+                        ".": {},
+                        "f:default_runtime": {},
+                        "f:maximum_runtime": {}
+                      },
+                      "f:check_status_state": {},
+                      "f:current_state": {},
+                      "f:desired_state": {},
+                      "f:healthy": {},
+                      "f:job_vars": {
+                        ".": {},
+                        "f:fail_infra": {},
+                        "f:fail_post_infra": {},
+                        "f:fail_post_software": {},
+                        "f:fail_pre_infra": {},
+                        "f:fail_pre_software": {},
+                        "f:fail_software": {},
+                        "f:guid": {},
+                        "f:test_empty_config_pause_post_software": {},
+                        "f:test_empty_config_pause_post_software_seconds": {},
+                        "f:uuid": {}
+                      },
+                      "f:provision_data": {
+                        ".": {},
+                        "f:GUID": {},
+                        "f:random_string": {}
+                      },
+                      "f:provision_messages": {}
+                    }
+                  }
+                },
+                "manager": "OpenAPI-Generator",
+                "operation": "Update",
+                "time": "2023-04-21T02:52:04Z"
+              },
+              {
+                "apiVersion": "anarchy.gpte.redhat.com/v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      "f:foo": {}
+                    }
+                  }
+                },
+                "manager": "kubectl-edit",
+                "operation": "Update",
+                "time": "2023-04-21T02:53:07Z"
+              },
+              {
+                "apiVersion": "anarchy.gpte.redhat.com/v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                  "f:status": {
+                    ".": {},
+                    "f:pendingActions": {},
+                    "f:runStatus": {},
+                    "f:runs": {
+                      ".": {},
+                      "f:active": {}
+                    },
+                    "f:supportedActions": {
+                      ".": {},
+                      "f:destroy": {
+                        ".": {},
+                        "f:timeEstimate": {}
+                      },
+                      "f:provision": {
+                        ".": {},
+                        "f:timeEstimate": {}
+                      },
+                      "f:start": {
+                        ".": {},
+                        "f:timeEstimate": {}
+                      },
+                      "f:status": {
+                        ".": {},
+                        "f:timeEstimate": {}
+                      },
+                      "f:stop": {
+                        ".": {},
+                        "f:timeEstimate": {}
+                      }
+                    },
+                    "f:towerJobs": {
+                      ".": {},
+                      "f:provision": {
+                        ".": {},
+                        "f:completeTimestamp": {},
+                        "f:deployerJob": {},
+                        "f:startTimestamp": {},
+                        "f:towerHost": {},
+                        "f:towerJobURL": {}
+                      },
+                      "f:stop": {
+                        ".": {},
+                        "f:completeTimestamp": {},
+                        "f:deployerJob": {},
+                        "f:startTimestamp": {},
+                        "f:towerHost": {},
+                        "f:towerJobURL": {}
+                      }
+                    }
+                  }
+                },
+                "manager": "OpenAPI-Generator",
+                "operation": "Update",
+                "subresource": "status",
+                "time": "2023-04-21T02:53:59Z"
+              }
+            ],
+            "name": "tests.test-empty-config.prod-9c9z9",
+            "namespace": "babylon-anarchy-test",
+            "resourceVersion": "1231504192",
+            "uid": "4b78392f-1f0f-45af-83bb-d0f8f3907639"
+          },
+          "spec": {
+            "governor": "tests.test-empty-config.prod",
+            "vars": {
+              "action_schedule": {
+                "default_runtime": "4h",
+                "maximum_runtime": "8h"
+              },
+              "check_status_state": "",
+              "current_state": "stopped",
+              "desired_state": "stopped",
+              "healthy": true,
+              "job_vars": {
+                "fail_infra": false,
+                "fail_post_infra": false,
+                "fail_post_software": false,
+                "fail_pre_infra": false,
+                "fail_pre_software": false,
+                "fail_software": false,
+                "guid": "9c9z9",
+                "test_empty_config_pause_post_software": true,
+                "test_empty_config_pause_post_software_seconds": 5,
+                "uuid": "d9a95228-ae37-5487-a882-1071927bc831"
+              },
+              "provision_data": {
+                "GUID": "9c9z9",
+                "random_string": "bBjnxkokghDNelK"
+              },
+              "provision_messages": [
+                "GUID is 9c9z9",
+                "Some random string gmExZjBcmqCcwfJ"
+              ]
+            }
+          },
+          "status": {
+            "diffBase": "{\"spec\":{\"governor\":\"tests.test-empty-config.prod\",\"vars\":{\"action_schedule\":{\"default_runtime\":\"4h\",\"maximum_runtime\":\"8h\"},\"check_status_state\":\"\",\"current_state\":\"stopped\",\"desired_state\":\"stopped\",\"healthy\":true,\"job_vars\":{\"fail_infra\":false,\"fail_post_infra\":false,\"fail_post_software\":false,\"fail_pre_infra\":false,\"fail_pre_software\":false,\"fail_software\":false,\"guid\":\"9c9z9\",\"test_empty_config_pause_post_software\":true,\"test_empty_config_pause_post_software_seconds\":5,\"uuid\":\"d9a95228-ae37-5487-a882-1071927bc831\"},\"provision_data\":{\"GUID\":\"9c9z9\",\"random_string\":\"bBjnxkokghDNelK\"},\"provision_messages\":[\"GUID is 9c9z9\",\"Some random string gmExZjBcmqCcwfJ\"]}},\"metadata\":{\"labels\":{\"anarchy.gpte.redhat.com/governor\":\"tests.test-empty-config.prod\",\"state\":\"stopped\"},\"annotations\":{\"anarchy.gpte.redhat.com/spec-sha256\":\"2q9YfK9q/HeH6n1mIgDuUjkAEo38Ox8zvZ90R53fllE=\",\"foo\":\"bar\",\"poolboy.gpte.redhat.com/resource-claim-name\":\"tests.test-empty-config.prod\",\"poolboy.gpte.redhat.com/resource-claim-namespace\":\"user-jkupfere-redhat-com\",\"poolboy.gpte.redhat.com/resource-handle-name\":\"guid-9c9z9\",\"poolboy.gpte.redhat.com/resource-handle-namespace\":\"poolboy\",\"poolboy.gpte.redhat.com/resource-handle-uid\":\"562b9471-1cdd-4623-b830-1b6c184989e0\",\"poolboy.gpte.redhat.com/resource-index\":\"0\",\"poolboy.gpte.redhat.com/resource-provider-name\":\"tests.test-empty-config.prod\",\"poolboy.gpte.redhat.com/resource-provider-namespace\":\"poolboy\",\"poolboy.gpte.redhat.com/resource-requester-email\":\"jkupfere@redhat.com\",\"poolboy.gpte.redhat.com/resource-requester-name\":\"\",\"poolboy.gpte.redhat.com/resource-requester-preferred-username\":\"jkupfere@redhat.com\",\"poolboy.gpte.redhat.com/resource-requester-user\":\"jkupfere@redhat.com\"}}}",
+            "pendingActions": [],
+            "runStatus": "successful",
+            "runs": {
+              "active": []
+            },
+            "supportedActions": {
+              "destroy": {
+                "timeEstimate": "2m"
+              },
+              "provision": {
+                "timeEstimate": "2m"
+              },
+              "start": {
+                "timeEstimate": "1m"
+              },
+              "status": {
+                "timeEstimate": "1m"
+              },
+              "stop": {
+                "timeEstimate": "1m"
+              }
+            },
+            "towerJobs": {
+              "provision": {
+                "completeTimestamp": "2023-04-21T02:52:01Z",
+                "deployerJob": 87761,
+                "startTimestamp": "2023-04-21T02:51:15Z",
+                "towerHost": "tower.dark-tower-dev.dev.open.redhat.com",
+                "towerJobURL": "tower.dark-tower-dev.dev.open.redhat.com#/jobs/87761/"
+              },
+              "stop": {
+                "completeTimestamp": "2023-04-21T02:53:56Z",
+                "deployerJob": 87762,
+                "startTimestamp": "2023-04-21T02:53:14Z",
+                "towerHost": "tower.dark-tower-dev.dev.open.redhat.com",
+                "towerJobURL": "tower.dark-tower-dev.dev.open.redhat.com#/jobs/87762/"
+              }
+            }
+          }
+        }
+      }
+    ]
+  tasks:
+  - debug:
+      msg: |-
+        {% set resource_current_states = resources | json_query('[].state.spec.vars.current_state') | default([], true) %}
+        {{
+          'provisioning' if 'provisioning' in resource_current_states else
+          'started' if 'started' in resource_current_states else
+          'stopped' if 'stopped' in resource_current_states else
+          'unknown'
+        }}
