@@ -126,8 +126,13 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_description(self):
-        # FIXME - Weird carry-over from agnosticv-operator strips trailing newline?
-        return self.catalog_meta.get('description', {})
+        """
+        Return description meta dictionary
+        """
+        description = self.catalog_meta.get('description', {})
+        if isinstance(description, dict):
+            return description
+        return {}
 
     @property
     def catalog_description_content(self):

@@ -265,6 +265,8 @@ class AgnosticVRepo(CachedKopfObject):
         return stdout.split(), stderr
 
     async def agnosticv_get_component_paths_from_related_files(self, files):
+        if not files:
+            return [], ''
         args = ['--related', files[0]]
         for file in files[1:]:
             args.extend(['--or-related', file])
