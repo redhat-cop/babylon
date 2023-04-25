@@ -535,7 +535,7 @@ export async function createWorkshop({
       },
       annotations: {
         ...(catalogItem.spec.messageTemplates?.user || catalogItem.spec.messageTemplates?.info
-          ? { [`${DEMO_DOMAIN}/user-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.user || catalogItem.spec.messageTemplates?.info) }
+          ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.user || catalogItem.spec.messageTemplates?.info) }
           : {}),
       },
     },
