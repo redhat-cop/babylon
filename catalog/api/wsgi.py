@@ -812,7 +812,7 @@ def workshop_get(workshop_id):
         "displayName": workshop['spec'].get('displayName'),
         "name": workshop['metadata']['name'],
         "namespace": workshop['metadata']['namespace'],
-        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
+        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/user-template')
     }
     return flask.jsonify(ret)
 
@@ -852,7 +852,7 @@ def workshop_put(workshop_id):
         "displayName": workshop['spec'].get('displayName'),
         "name": workshop_name,
         "namespace": workshop_namespace,
-        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
+        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/user-template')
     }
 
     while not 'assignment' in ret:

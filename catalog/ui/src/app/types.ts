@@ -130,6 +130,7 @@ export interface CatalogItemSpec {
   accessControl?: AccessControl;
   bookbag?: any;
   messageTemplates?: {
+    user?: MessageTemplate;
     info?: MessageTemplate;
     serviceReady?: MessageTemplate;
     serviceDeleted?: MessageTemplate;
