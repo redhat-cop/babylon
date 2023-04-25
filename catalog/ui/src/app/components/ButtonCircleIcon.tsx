@@ -5,7 +5,7 @@ import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 import './button-circle-icon.css';
 
 const ButtonCircleIcon: React.FC<
-  ButtonProps & {
+  Omit<ButtonProps, 'icon'> & {
     icon: React.ComponentClass<SVGIconProps>;
     description: string;
   }

@@ -132,11 +132,13 @@ const WorkshopsItemComponent: React.FC<{
   const stage = getStageFromK8sObject(workshop);
 
   const { data: workshopProvisions, mutate: mutateWorkshopProvisions } = useSWR<WorkshopProvision[]>(
-    apiPaths.WORKSHOP_PROVISIONS({
-      workshopName: workshop.metadata.name,
-      namespace: workshop.metadata.namespace,
-      limit: 'ALL',
-    }),
+    workshop
+      ? apiPaths.WORKSHOP_PROVISIONS({
+          workshopName: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          limit: 'ALL',
+        })
+      : null,
     () =>
       enableManageWorkshopProvisions
         ? fetcherItemsInAllPages((continueId) =>
@@ -151,11 +153,13 @@ const WorkshopsItemComponent: React.FC<{
   );
 
   const { data: resourceClaims, mutate } = useSWR<ResourceClaim[]>(
-    apiPaths.RESOURCE_CLAIMS({
-      namespace: serviceNamespaceName,
-      labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
-      limit: 'ALL',
-    }),
+    workshop
+      ? apiPaths.RESOURCE_CLAIMS({
+          namespace: serviceNamespaceName,
+          labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+          limit: 'ALL',
+        })
+      : null,
     () =>
       fetcherItemsInAllPages((continueId) =>
         apiPaths.RESOURCE_CLAIMS({
@@ -349,11 +353,11 @@ const WorkshopsItemComponent: React.FC<{
                 actionHandlers={{
                   delete: () => showModal({ action: 'delete' }),
                   deleteService:
-                    selectedResourceClaims.length === 0
+                    Array.isArray(selectedResourceClaims) && selectedResourceClaims.length === 0
                       ? null
                       : () => showModal({ action: 'deleteService', resourceClaims: selectedResourceClaims }),
                   start:
-                    resourceClaims.length === 0
+                    Array.isArray(resourceClaims) && resourceClaims.length === 0
                       ? enableManageWorkshopProvisions && !isWorkshopStarted(workshop, workshopProvisions)
                         ? () => showModal({ action: 'startWorkshop', resourceClaims: [] })
                         : null
@@ -398,7 +402,7 @@ const WorkshopsItemComponent: React.FC<{
                 modalState={modalState}
                 showModal={showModal}
                 setSelectedResourceClaims={setSelectedResourceClaims}
-                resourceClaims={resourceClaims}
+                resourceClaims={resourceClaims || []}
               />
             ) : null}
           </Tab>

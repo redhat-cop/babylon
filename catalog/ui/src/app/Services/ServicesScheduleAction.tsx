@@ -125,7 +125,7 @@ const ServicesScheduleAction: React.FC<{
               <p>
                 Auto-Destroy can be extended by submitting a{' '}
                 <a href={getHelpUrl(userEmail)} target="_blank" rel="noopener noreferrer">
-                  SNOW ticket
+                  support request
                 </a>
                 .
               </p>
