@@ -534,8 +534,10 @@ export async function createWorkshop({
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
       },
       annotations: {
-        ...(catalogItem.spec.messageTemplates?.user || catalogItem.spec.messageTemplates?.info
-          ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.user || catalogItem.spec.messageTemplates?.info) }
+        ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
+          ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.user) }
+          : catalogItem.spec.messageTemplates?.info
+          ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.info) }
           : {}),
       },
     },
