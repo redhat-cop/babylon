@@ -347,7 +347,15 @@ class AgnosticVRepo(CachedKopfObject):
                         ref = pull_request['head']['ref']
                         await self.git_repo_checkout(logger=logger, ref=ref)
                         changed_files = await self.git_changed_files_in_branch(logger=logger, ref=ref)
-                        component_paths, pr_error_msg = await self.agnosticv_get_component_paths_from_related_files(changed_files)
+
+                        try:
+                            component_paths, pr_error_msg = await self.agnosticv_get_component_paths_from_related_files(changed_files)
+                        except AgnosticVProcessingError as error:
+                            error_messages.append(
+                                f"Failed to list components for PR #{pull_request['number']} {ref}:\n{error}\n"
+                            )
+                            continue
+
                         if pr_error_msg:
                             error_messages.append(
                                 f"Failed to list all components for PR #{pull_request['number']} {ref}:\n{pr_error_msg}\n"
