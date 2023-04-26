@@ -7,8 +7,6 @@ ARG MONITOR_ENABLED
 ARG TRACKING_ENABLED
 ARG OPTIONAL_FLAGS
 
-COPY --from=previous /tmp/previous ./dist
-
 ENV KEEP_ASSETS=true
 COPY package.json package-lock.json ./
 RUN npm ci && npm cache clean --force
