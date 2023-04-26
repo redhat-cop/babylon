@@ -9,6 +9,8 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import TimeInterval from './TimeInterval';
 import EditorViewer from './Editor/EditorViewer';
 
+import './incidents-banner.css';
+
 const IncidentsBanner: React.FC = () => {
   const { data } = useSWRImmutable<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher, {
     shouldRetryOnError: false,
@@ -23,7 +25,14 @@ const IncidentsBanner: React.FC = () => {
           screenReaderText={i.message}
           variant={i.level === 'info' ? 'info' : i.level === 'critical' ? 'danger' : 'warning'}
         >
-          <div style={{ display: 'flex', gap: 'var(--pf-global--spacer--md)', flexDirection: 'row' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 'var(--pf-global--spacer--md)',
+              flexDirection: 'row',
+              padding: 'var(--pf-global--spacer--md) var(--pf-global--spacer--sm)',
+            }}
+          >
             <div>
               {i.level === 'info' && <InfoCircleIcon />}
               {i.level === 'warning' && <ExclamationTriangleIcon />}
@@ -31,7 +40,7 @@ const IncidentsBanner: React.FC = () => {
             </div>
             <div style={{ whiteSpace: 'normal' }}>
               <EditorViewer value={i.message} />
-              <p style={{ fontStyle: 'italic', fontSize: 'xs' }}>
+              <p style={{ fontStyle: 'italic', fontSize: 'xs', marginTop: 'var(--pf-global--spacer--md)' }}>
                 Last update <TimeInterval toTimestamp={i.updated_at} />
               </p>
             </div>

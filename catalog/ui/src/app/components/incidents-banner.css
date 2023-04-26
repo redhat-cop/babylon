@@ -1,0 +1,10 @@
+.pf-c-banner.pf-m-warning {
+  background-color: #f1c40f;
+}
+.pf-c-banner.pf-m-info {
+  background-color: #3498db;
+}
+.pf-c-banner.pf-m-critical {
+  background-color: #e74c3c;
+  color: #fff;
+}
