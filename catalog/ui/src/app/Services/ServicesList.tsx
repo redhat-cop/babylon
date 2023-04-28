@@ -125,7 +125,7 @@ const ServicesList: React.FC<{
     resourceClaim?: ResourceClaim;
     workshop?: WorkshopWithResourceClaims;
     rating?: { rate: number; comment: string };
-    submitDisabled: false;
+    submitDisabled: boolean;
   }>({ action: null, submitDisabled: false });
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
@@ -387,7 +387,7 @@ const ServicesList: React.FC<{
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
       <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
-        <ServicesAction actionState={modalState} />
+        <ServicesAction actionState={modalState} setActionState={setModalState} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction
