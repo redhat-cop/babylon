@@ -62,7 +62,7 @@ const WorkshopContent: React.FC<{
   );
 
   if (userAssignment.data?.bookbag_url) {
-    window.location.href = userAssignment.data?.bookbag_url;
+    window.location.href = userAssignment.data.bookbag_url;
   }
 
   try {
