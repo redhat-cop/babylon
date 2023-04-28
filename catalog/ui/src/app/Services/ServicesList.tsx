@@ -22,6 +22,7 @@ import {
   scheduleStopForAllResourcesInResourceClaim,
   SERVICES_KEY,
   setLifespanEndForResourceClaim,
+  setProvisionRating,
   setWorkshopLifespanEnd,
   startAllResourcesInResourceClaim,
   startWorkshopServices,
@@ -107,7 +108,7 @@ const ServicesList: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
-  const { cache } = useSWRConfig();
+  const { mutate: globalMutate, cache } = useSWRConfig();
   const [searchParams, setSearchParams] = useSearchParams();
   const keywordFilter = useMemo(
     () =>
@@ -317,8 +318,22 @@ const ServicesList: React.FC<{
         }
       }
     }
-    if (modalState.action === 'delete') {
-      revalidate({ updatedItems: serviceUpdates, action: 'delete' });
+    if (modalState.action === 'rate' || modalState.action === 'delete') {
+      if (
+        modalState.resourceClaim &&
+        modalState.rating &&
+        (modalState.rating.rate !== null || modalState.rating.comment?.trim())
+      ) {
+        const provisionUuids = modalState.resourceClaim.status.resources
+          .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
+          .filter(Boolean);
+        for (const provisionUuid of provisionUuids) {
+          await setProvisionRating(provisionUuid, modalState.rating.rate, modalState.rating.comment);
+          globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
+        }
+      } else {
+        revalidate({ updatedItems: serviceUpdates, action: 'delete' });
+      }
     } else {
       revalidate({ updatedItems: serviceUpdates, action: 'update' });
     }
