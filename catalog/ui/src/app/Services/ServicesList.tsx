@@ -331,7 +331,8 @@ const ServicesList: React.FC<{
           await setProvisionRating(provisionUuid, modalState.rating.rate, modalState.rating.comment);
           globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
         }
-      } else {
+      }
+      if (modalState.action === 'delete') {
         revalidate({ updatedItems: serviceUpdates, action: 'delete' });
       }
     } else {
@@ -341,6 +342,8 @@ const ServicesList: React.FC<{
     modalState.action,
     modalState.resourceClaim,
     modalState.workshop,
+    modalState.rating?.rate,
+    modalState.rating?.comment,
     performModalActionForResourceClaim,
     performModalActionForWorkshop,
     services,
@@ -401,7 +404,7 @@ const ServicesList: React.FC<{
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
-      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
+      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true} isDisabled={modalState.submitDisabled}>
         <ServicesAction actionState={modalState} setActionState={setModalState} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
