@@ -77,7 +77,7 @@ const ServicesAction: React.FC<{
             <ServicesActionRating actionState={actionState} setActionState={setActionState} hasError action={action} />
           )}
         >
-          <ServicesActionRating actionState={actionState} setActionState={setActionState} hasError action={action} />
+          <ServicesActionRating actionState={actionState} setActionState={setActionState} action={action} />
         </ErrorBoundary>
       ) : null}
     </>
