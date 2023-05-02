@@ -559,6 +559,7 @@ def get_auth_session():
         "lifetime": session_lifetime,
         "serviceNamespaces": service_namespaces,
         "userNamespace": user_namespace,
+        "roles": roles,
     }
     if not user_is_admin:
         ret['quota'] = {
