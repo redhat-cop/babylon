@@ -467,17 +467,29 @@ class AgnosticVRepo(CachedKopfObject):
                 })
 
             if source.pull_request_number:
-                if source.pull_request_number != agnosticv_component.pull_request_number:
+                if agnosticv_component.pull_request_commit_hash != source.hexsha:
+                    patch.append({
+                        "op": "add",
+                        "path": "/spec/pullRequestCommitHash",
+                        "value": source.hexsha,
+                    })
+                if agnosticv_component.pull_request_number != source.pull_request_number:
                     patch.append({
                         "op": "add",
                         "path": "/spec/pullRequestNumber",
                         "value": source.pull_request_number,
                     })
-            elif agnosticv_component.pull_request_number:
-                patch.append({
-                    "op": "remove",
-                    "path": "/spec/pullRequestNumber",
-                })
+            else:
+                if agnosticv_component.pull_request_commit_hash:
+                    patch.append({
+                        "op": "remove",
+                        "path": "/spec/pullRequestCommitHash",
+                    })
+                if agnosticv_component.pull_request_number:
+                    patch.append({
+                        "op": "remove",
+                        "path": "/spec/pullRequestNumber",
+                    })
 
             if patch:
                 logger.info(f"Updating {agnosticv_component} definition for {source}")
@@ -546,8 +558,8 @@ class AgnosticVRepo(CachedKopfObject):
         else:
             logger.info(f"Starting full component processing for {git_hexsha}")
 
-        messages = {}
         pr_hexsha = {}
+        pr_messages = {}
         errors = {}
         component_sources, get_component_sources_error_messages = await self.get_component_sources(
             changed_only = changed_only,
@@ -556,14 +568,15 @@ class AgnosticVRepo(CachedKopfObject):
         for source in component_sources:
             try:
                 result = await self.manage_component(source=source, logger=logger)
-                if source.pull_request_number:
-                    pr_hexsha[source.pull_request_number] = source.hexsha
+                if not source.pull_request_number:
+                    continue
+                pr_hexsha[source.pull_request_number] = source.hexsha
                 if result == 'created':
-                    messages.setdefault(source.pull_request_number, []).append(
+                    pr_messages.setdefault(source.pull_request_number, []).append(
                         f"Created AgnosticVComponent {source.name}"
                     )
                 elif result == 'updated':
-                    messages.setdefault(source.pull_request_number, []).append(
+                    pr_messages.setdefault(source.pull_request_number, []).append(
                         f"Updated AgnosticVComponent {source.name}"
                     )
             except AgnosticVProcessingError as error:
@@ -590,7 +603,7 @@ class AgnosticVRepo(CachedKopfObject):
                     json = {"body": message},
                 )
 
-        for pull_request_number, prmessages in messages.items():
+        for pull_request_number, messages in pr_messages.items():
             if not pull_request_number or pull_request_number in errors:
                 continue
             if not github_token:
@@ -598,7 +611,7 @@ class AgnosticVRepo(CachedKopfObject):
             message = (
                 f"Successfully applied revision {pr_hexsha[pull_request_number]} " +
                 "for integration testing this pull request.\n\n" +
-                "\n".join(prmessages)
+                "\n".join(messages)
             )
             if self.catalog_url:
                 message += f"\n\nThe updated catalog is available at {self.catalog_url}"
