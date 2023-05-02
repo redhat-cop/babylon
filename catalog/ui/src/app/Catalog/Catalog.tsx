@@ -262,8 +262,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
             sortBy.selected === 'Featured'
               ? `${CUSTOM_LABELS.FEATURED_SCORE.domain}/${CUSTOM_LABELS.FEATURED_SCORE.key}`
               : `${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`;
-          const aRating = a.metadata.labels[selector];
-          const bRating = b.metadata.labels[selector];
+          const aRating = a.metadata.labels?.[selector];
+          const bRating = b.metadata.labels?.[selector];
           if (aRating || bRating) {
             if (aRating && bRating) return parseInt(aRating, 10) < parseInt(bRating, 10) ? 1 : -1;
             if (bRating) return 1;
