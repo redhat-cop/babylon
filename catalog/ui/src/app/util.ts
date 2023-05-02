@@ -311,8 +311,8 @@ export const compareK8sObjectsArr = (obj1?: K8sObject[], obj2?: K8sObject[]): bo
   if (obj1 !== obj2) {
     const map1 = new Map<string, string>();
     const map2 = new Map<string, string>();
-    if (obj1) obj1.map((i: K8sObject) => map1.set(i.metadata.uid, i.metadata.resourceVersion));
-    if (obj2) obj2.map((i: K8sObject) => map2.set(i.metadata.uid, i.metadata.resourceVersion));
+    if (obj1) obj1.forEach((i: K8sObject) => map1.set(i.metadata.uid, i.metadata.resourceVersion));
+    if (obj2) obj2.forEach((i: K8sObject) => map2.set(i.metadata.uid, i.metadata.resourceVersion));
     return areMapsEqual(map1, map2);
   }
   return true;

@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Button, Form, FormGroup, Modal, ModalVariant, TextArea } from '@patternfly/react-core';
 

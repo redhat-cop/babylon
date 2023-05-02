@@ -104,6 +104,7 @@ const ServiceUsers: React.FC<{
         const userMessages: string = userData.msg;
         return (
           <UserMessage
+            key={userLabUrl || userMessages}
             userMessages={userMessages}
             userDataEntries={userDataEntries}
             userLabUrl={userLabUrl}

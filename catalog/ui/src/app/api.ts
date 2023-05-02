@@ -21,8 +21,7 @@ import {
   Nullable,
   ResourceType,
 } from '@app/types';
-import { store } from '@app/store';
-import { selectImpersonationUser } from '@app/store';
+import { store, selectImpersonationUser } from '@app/store';
 import {
   checkAccessControl,
   displayName,
@@ -832,7 +831,7 @@ async function deleteK8sObject<Type extends K8sObject>(definition: Type): Promis
   const plural = definition.kind.toLowerCase() + 's';
   const path = definition.metadata.namespace
     ? `/apis/${definition.apiVersion}/namespaces/${definition.metadata.namespace}/${plural}/${definition.metadata.name}`
-    : `/apis/${definition.apiVersion}/${plural}/${name}`;
+    : `/apis/${definition.apiVersion}/${plural}/${definition.metadata.name}`;
   try {
     const resp = await apiFetch(path, { method: 'DELETE' });
     return await resp.json();
@@ -1066,7 +1065,7 @@ export async function patchWorkshop({
   namespace: string;
   jsonPatch?: JSONPatch;
   patch?: Record<string, unknown>;
-}) {
+}): Promise<Workshop> {
   return (await patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
@@ -1074,7 +1073,7 @@ export async function patchWorkshop({
     namespace: namespace,
     plural: 'workshops',
     patch: patch,
-  })) as Workshop;
+  }));
 }
 
 export async function patchWorkshopProvision({
@@ -1087,7 +1086,7 @@ export async function patchWorkshopProvision({
   namespace: string;
   jsonPatch?: JSONPatch;
   patch?: Record<string, unknown>;
-}) {
+}): Promise<WorkshopProvision> {
   return (await patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
@@ -1095,7 +1094,7 @@ export async function patchWorkshopProvision({
     namespace: namespace,
     plural: 'workshopprovisions',
     patch: patch,
-  })) as WorkshopProvision;
+  }));
 }
 
 export async function requestStatusForAllResourcesInResourceClaim(resourceClaim: ResourceClaim) {

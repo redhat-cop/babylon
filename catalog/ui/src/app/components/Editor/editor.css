@@ -20,7 +20,6 @@
   min-height: 150px;
   resize: none;
   font-size: var(--pf-global--FontSize--sm);
-  caret-color: rgb(5, 5, 5);
   position: relative;
   tab-size: 1;
   outline: 0;
@@ -224,11 +223,6 @@
   background-color: rgba(150, 150, 150, 0.4);
 }
 
-.emoji-inner::moz-selection {
-  color: transparent;
-  background-color: rgba(150, 150, 150, 0.4);
-}
-
 .emoji.happysmile {
   background-image: url(./images/emoji/1F642.png);
 }
@@ -263,7 +257,6 @@
 
 .toolbar button.toolbar-item i.format {
   background-size: contain;
-  display: inline-block;
   height: 18px;
   width: 18px;
   margin-top: 2px;
@@ -317,7 +310,6 @@
 .toolbar .toolbar-item .text {
   display: flex;
   line-height: 20px;
-  width: 200px;
   vertical-align: middle;
   font-size: 14px;
   color: #777;

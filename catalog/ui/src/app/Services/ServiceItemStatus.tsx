@@ -166,7 +166,7 @@ const ServiceItemStatus: React.FC<{
         const resourceVars = resourceState?.spec?.vars;
 
         return (
-          <div key={idx} className="services-item-status__resource">
+          <div key={componentDisplayName} className="services-item-status__resource">
             <Title headingLevel="h2" size="lg">
               {componentDisplayName}
             </Title>

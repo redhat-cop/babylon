@@ -21,6 +21,7 @@ const IncidentsBanner: React.FC = () => {
     <>
       {data.map((i) => (
         <Banner
+          key={i.id}
           isSticky
           screenReaderText={i.message}
           variant={i.level === 'info' ? 'info' : i.level === 'critical' ? 'danger' : 'warning'}
