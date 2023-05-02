@@ -535,7 +535,6 @@ class BookbagDeployment:
                 return image_stream['status']['tags'][0]['items'][0]['dockerImageReference']
             else:
                 return f"{image_stream['status']['dockerImageRepository']}:latest"
-            return
         else:
             return self.image
 

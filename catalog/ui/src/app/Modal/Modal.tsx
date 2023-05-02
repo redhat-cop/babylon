@@ -106,6 +106,7 @@ const _Modal: ForwardRefRenderFunction<
       if (e.target === backdrop || backdrop.contains(targetEl)) {
         if (e.target !== modal && !modal.contains(targetEl)) {
           close();
+          return null;
         }
       }
       return e;

@@ -14,7 +14,6 @@ import {
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
-import CatalogIcon from '@patternfly/react-icons/dist/js/icons/catalog-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import ImpersonateUserModal from '@app/components/ImpersonateUserModal';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';

@@ -90,8 +90,7 @@ async def execute_query(query, positional_args=None, autocommit=True):
     db_pool_conn = db_connection.getconn()
 
     encoding = 'utf-8'
-    if encoding is not None:
-        db_pool_conn.set_client_encoding(encoding)
+    db_pool_conn.set_client_encoding(encoding)
 
     cursor = db_pool_conn.cursor(cursor_factory=DictCursor)
 
@@ -141,7 +140,6 @@ async def execute_query(query, positional_args=None, autocommit=True):
                     "Query: '%s' \n"
                     "Arguments: %s: \n"
                     "Error: %s, \n"
-                    "query list: %s\n"
                     "" % (query, arguments, e))
     
     try:
@@ -164,4 +162,3 @@ async def execute_query(query, positional_args=None, autocommit=True):
         return kw
     except Exception as e:
         logger.error(f"ERROR closing connection {e}")
-        pass

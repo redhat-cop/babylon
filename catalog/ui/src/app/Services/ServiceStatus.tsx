@@ -5,7 +5,7 @@ import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-ic
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import { AnarchySubject, ResourceClaim, ResourceClaimSpecResourceTemplate } from '@app/types';
-import { getAutoTimes, getMostRelevantResourceAndTemplate } from './service-utils';
+import { getAutoTimes } from './service-utils';
 
 import './service-status.css';
 

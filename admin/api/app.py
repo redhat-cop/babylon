@@ -74,7 +74,7 @@ async def create_incident(request):
     })
     data = await request.data()
     try:
-        validated = schema.validate(data)
+        schema.validate(data)
     except Exception as e:
         logger.info(f"Invalid incident params - {e}")
         return 400, 'Invalid parameters'
@@ -104,7 +104,7 @@ async def update_incident(request):
     })
     data = await request.data()
     try:
-        validated = schema.validate(data)
+        schema.validate(data)
     except Exception as e:
         logger.info(f"Invalid incident params - {e}")
         return 400, 'Invalid parameters'

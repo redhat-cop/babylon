@@ -88,7 +88,7 @@ async def provision_rating_set(request):
     })
     data = await request.data()
     try:
-        validated = schema.validate(data)
+        schema.validate(data)
     except Exception as e:
         logger.info(f"Invalid rating params for {data} - {e}")
         return 400, 'Invalid parameters'
