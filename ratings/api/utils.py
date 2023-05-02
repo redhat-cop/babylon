@@ -90,8 +90,7 @@ async def execute_query(query, positional_args=None, autocommit=True):
     db_pool_conn = db_connection.getconn()
 
     encoding = 'utf-8'
-    if encoding is not None:
-        db_pool_conn.set_client_encoding(encoding)
+    db_pool_conn.set_client_encoding(encoding)
 
     cursor = db_pool_conn.cursor(cursor_factory=DictCursor)
 
