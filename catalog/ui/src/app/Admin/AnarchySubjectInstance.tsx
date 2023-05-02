@@ -111,7 +111,7 @@ const AnarchySubjectInstanceComponent: React.FC<{
     if (confirm(`Delete AnarchySubject ${anarchySubjectName}?`)) {
       await deleteAnarchySubject(anarchySubject);
       navigate(`/admin/anarchysubjects/${namespace}`);
-      mutate(null);
+      mutate(undefined);
     }
   }
 

@@ -243,9 +243,9 @@ const WorkshopsItemComponent: React.FC<{
    */
   async function onWorkshopDeleteConfirm() {
     await deleteWorkshop(workshop);
-    mutateWorkshop(null);
-    mutateWorkshopProvisions(null);
-    mutate(null);
+    mutateWorkshop(undefined);
+    mutateWorkshopProvisions(undefined);
+    mutate(undefined);
     cache.delete(SERVICES_KEY({ namespace: workshop.metadata.namespace }));
     navigate(`/services/${serviceNamespaceName}`);
   }
