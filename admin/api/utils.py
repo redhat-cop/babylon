@@ -162,4 +162,3 @@ async def execute_query(query, positional_args=None, autocommit=True):
         return kw
     except Exception as e:
         logger.error(f"ERROR closing connection {e}")
-        pass
