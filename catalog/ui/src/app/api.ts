@@ -346,6 +346,7 @@ export async function createServiceRequest({
         [`${BABYLON_DOMAIN}/catalogDisplayName`]: catalogNamespaceName || catalogItem.metadata.namespace,
         [`${BABYLON_DOMAIN}/catalogItemDisplayName`]: displayName(catalogItem),
         [`${BABYLON_DOMAIN}/requester`]: session.user,
+        [`${BABYLON_DOMAIN}/category`]: catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`],
         [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}`,
         ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
         ...(catalogItem.spec.userData
@@ -534,6 +535,7 @@ export async function createWorkshop({
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
       },
       annotations: {
+        [`${BABYLON_DOMAIN}/category`]: catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`],
         ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
           ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.user) }
           : catalogItem.spec.messageTemplates?.info
@@ -602,6 +604,9 @@ export async function createWorkshopForMultiuserService({
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItemName,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItemNamespace,
       },
+      annotations: {
+        [`${BABYLON_DOMAIN}/category`]: resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/category`],
+      },
       ownerReferences: [
         {
           apiVersion: 'poolboy.gpte.redhat.com/v1',
@@ -665,6 +670,9 @@ export async function createWorkshopProvision({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+      },
+      annotations: {
+        [`${BABYLON_DOMAIN}/category`]: catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`],
       },
       ownerReferences: [
         {
