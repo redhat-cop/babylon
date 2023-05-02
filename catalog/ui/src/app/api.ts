@@ -1066,14 +1066,14 @@ export async function patchWorkshop({
   jsonPatch?: JSONPatch;
   patch?: Record<string, unknown>;
 }): Promise<Workshop> {
-  return (await patchK8sObject({
+  return await patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
     name: name,
     namespace: namespace,
     plural: 'workshops',
     patch: patch,
-  }));
+  });
 }
 
 export async function patchWorkshopProvision({
@@ -1087,14 +1087,14 @@ export async function patchWorkshopProvision({
   jsonPatch?: JSONPatch;
   patch?: Record<string, unknown>;
 }): Promise<WorkshopProvision> {
-  return (await patchK8sObject({
+  return await patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
     name: name,
     namespace: namespace,
     plural: 'workshopprovisions',
     patch: patch,
-  }));
+  });
 }
 
 export async function requestStatusForAllResourcesInResourceClaim(resourceClaim: ResourceClaim) {

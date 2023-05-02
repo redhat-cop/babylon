@@ -259,7 +259,14 @@ const ServicesList: React.FC<{
             resourceClaimName: resourceClaim.metadata.name,
           })
         );
-        return await deleteResourceClaim(resourceClaim);
+        try {
+          return await deleteResourceClaim(resourceClaim);
+        } catch (error) {
+          if (error.status === 404) {
+            return resourceClaim;
+          }
+          throw error;
+        }
       } else {
         const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
         if (isPartOfWorkshop) return resourceClaim; // If has a workshopProvision -> Do nothing.
