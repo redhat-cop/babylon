@@ -9,7 +9,6 @@ import {
   PageHeaderTools,
 } from '@patternfly/react-core';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
-import CatalogIcon from '@patternfly/react-icons/dist/js/icons/catalog-icon';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 
