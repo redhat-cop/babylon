@@ -300,7 +300,6 @@ def get_service_namespaces(api_client, user_namespace):
 
 def get_user_namespace(user, api_client):
     user_uid = user['metadata']['uid']
-    namespaces = []
 
     for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid=' + user_uid).items:
         name = ns.metadata.name
