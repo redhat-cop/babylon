@@ -24,6 +24,7 @@ class Babylon():
     url_annotation = f"{babylon_domain}/url"
     workshop_label = f"{babylon_domain}/workshop"
     workshop_id_label = f"{babylon_domain}/workshop-id"
+    workshop_uid_label = f"{babylon_domain}/workshop-uid"
     workshop_provision_label = f"{babylon_domain}/workshop-provision"
     purpose_annotation = f"{demo_domain}/purpose"
     purpose_activity_annotation = f"{demo_domain}/purpose-activity"

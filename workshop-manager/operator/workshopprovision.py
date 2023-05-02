@@ -128,6 +128,8 @@ class WorkshopProvision(CachedKopfObject):
                     Babylon.catalog_item_name_label: catalog_item.name,
                     Babylon.catalog_item_namespace_label: catalog_item.namespace,
                     Babylon.workshop_label: workshop.name,
+                    Babylon.workshop_id_label: workshop.workshop_id,
+                    Babylon.workshop_uid_label: workshop.uid,
                     Babylon.workshop_provision_label: self.name,
                 },
                 "namespace": f"{self.namespace}",
