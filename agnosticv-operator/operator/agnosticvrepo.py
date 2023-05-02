@@ -159,44 +159,21 @@ class AgnosticVRepo(CachedKopfObject):
         merge_base = self.git_repo.git.merge_base('origin/' + self.git_ref, 'origin/' + ref)
         return self.git_repo.git.diff(merge_base, 'origin/' + ref, name_only=True).split()
 
-    def __git_repo_checkout(self, logger, ref=None, source=None):
+    def __git_repo_checkout(self, logger, ref=None):
         if not ref:
-            ref = source.ref if source else self.git_ref
+            ref = self.git_ref
 
         if ref in self.git_repo.remotes.origin.refs:
             self.git_repo.git.checkout(f"origin/{ref}")
-            hexsha = self.git_repo.head.commit.hexsha
-            message = f"Checked out origin/{ref} [{hexsha}]"
+            self.git_hexsha = self.git_repo.head.commit.hexsha
         elif re.match(r'[0-9a-f]+$', ref):
             try:
                 self.git_repo.git.checkout(ref)
             except git.exc.GitCommandError:
                 raise kopf.TemporaryError(f"Unable to checkout commit {self.git_hexsha}", delay=60)
-            hexsha = self.git_repo.head.commit.hexsha
-            message = f"Checked out {ref}"
+            self.git_hexsha = self.git_repo.head.commit.hexsha
         else:
             raise kopf.TemporaryError(f"Unable to resolve reference {ref}", delay=60)
-
-        self.git_checkout_ref = ref
-        if source:
-            if source.hexsha != hexsha:
-                source.hexsha = hexsha
-                if source.pull_request_number:
-                    logger.info(f"{message} for PR #{source.pull_request_number}")
-            return
-
-        if self.git_hexsha != hexsha:
-            self.git_hexsha = hexsha
-            logger.info(message)
-
-        if self.last_successful_git_hexsha != hexsha:
-            git_diff_output = self.git_repo.git.diff(
-                self.last_successful_git_hexsha, name_only=True
-            )
-            if git_diff_output:
-                self.git_changed_files = git_diff_output.split("\n")
-        else:
-            self.git_changed_files = []
 
     def __git_repo_clone(self, logger):
         self.git_repo = git.Repo.clone_from(
@@ -205,13 +182,28 @@ class AgnosticVRepo(CachedKopfObject):
             url = self.git_url,
         )
         self.__git_repo_checkout(logger=logger)
+        logger.info(f"Cloned {self.git_ref} [{self.git_hexsha}]")
 
     def __git_repo_pull(self, logger):
         if not self.git_repo:
             self.git_repo = git.Repo(self.git_repo_path)
         with self.git_repo.git.custom_environment(**self.git_env):
             self.git_repo.remotes.origin.fetch()
+        prev_hexsha = self.git_hexsha
         self.__git_repo_checkout(logger=logger)
+
+        if prev_hexsha == self.git_hexsha:
+            self.git_changed_files = []
+            return
+
+        logger.info(f"Checked out {self.git_ref} [{self.git_hexsha}]")
+
+        if self.last_successful_git_hexsha:
+            git_diff_output = self.git_repo.git.diff(
+                self.last_successful_git_hexsha, name_only=True
+            )
+            if git_diff_output:
+                self.git_changed_files = git_diff_output.split("\n")
 
     def validate_component_definition(self, definition, source):
         self.validate_execution_environment(
@@ -285,9 +277,7 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def get_component_definition(self, source, logger):
         if self.git_checkout_ref != source.ref:
-            await self.git_repo_checkout(logger=logger, source=source)
-        source.hexsha = self.git_hexsha
-
+            await self.git_repo_checkout(logger=logger, ref=source.ref)
         stdout, stderr = await self.agnosticv_exec(
             '--merge', os.path.join(self.agnosticv_path, source.path), '--output=json',
         )
@@ -312,18 +302,19 @@ class AgnosticVRepo(CachedKopfObject):
         # Add restriction to changed files if requested
         try:
             if changed_only and self.git_changed_files:
-                component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(self.git_changed_files)
+                component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(
+                    self.git_changed_files
+                )
             else:
                 component_paths, error_msg = await self.agnosticv_get_all_component_paths()
         except AgnosticVProcessingError as error:
-            raise Kopf.TemporaryError(
-                f"{error}",
-                delay = 60,
-            )
+            raise kopf.TemporaryError(f"{error}", delay=60)
 
         # Base list of component sources by path
         component_sources_by_path = {
-            path: ComponentSource(path, ref=self.git_ref) for path in component_paths
+            path: ComponentSource(
+                path, ref=self.git_ref, hexsha=self.git_hexsha
+            ) for path in component_paths
         }
 
         # Collect all non-fatal error messages
@@ -346,24 +337,26 @@ class AgnosticVRepo(CachedKopfObject):
                     for pull_request in pull_requests:
                         ref = pull_request['head']['ref']
                         await self.git_repo_checkout(logger=logger, ref=ref)
+                        logger.info(f"Checked out {ref} [{self.git_hexsha}] for PR #{pull_request['number']}")
                         changed_files = await self.git_changed_files_in_branch(logger=logger, ref=ref)
 
+                        error_message = None
                         try:
-                            component_paths, pr_error_msg = await self.agnosticv_get_component_paths_from_related_files(changed_files)
+                            component_paths, error_message = await self.agnosticv_get_component_paths_from_related_files(changed_files)
                         except AgnosticVProcessingError as error:
-                            error_messages.append(
-                                f"Failed to list components for PR #{pull_request['number']} {ref}:\n{error}\n"
-                            )
-                            continue
+                            error_message = str(error)
 
-                        if pr_error_msg:
-                            error_messages.append(
-                                f"Failed to list all components for PR #{pull_request['number']} {ref}:\n{pr_error_msg}\n"
-                            )
+                        if error_message:
+                            error_message = f"Failed to list all components for PR #{pull_request['number']} {ref}:\n{error_message.rstrip()}\n"
+                            logger.warning(error_message)
+                            error_messages.append(error_message)
                         else:
                             for path in component_paths:
                                 component_sources_by_path[path] = ComponentSource(
-                                    path, pull_request_number=pull_request['number'], ref=ref
+                                    path,
+                                    pull_request_number = pull_request['number'],
+                                    ref = ref,
+                                    hexsha = self.git_hexsha
                                 )
 
         component_sources = list(component_sources_by_path.values())
@@ -401,10 +394,10 @@ class AgnosticVRepo(CachedKopfObject):
             None, self.__git_changed_files_in_branch, logger, ref
         )
 
-    async def git_repo_checkout(self, logger, ref=None, source=None):
+    async def git_repo_checkout(self, logger, ref=None):
         await asyncio.get_event_loop().run_in_executor(
             None, functools.partial(
-                self.__git_repo_checkout, logger=logger, ref=ref, source=source
+                self.__git_repo_checkout, logger=logger, ref=ref
             )
         )
 
@@ -532,29 +525,34 @@ class AgnosticVRepo(CachedKopfObject):
             logger.exception("manage_components failed with unexpected error.")
             await self.merge_patch_status({
                 "error": {
-                    "message": traceback.format_exeception(error),
+                    "message": traceback.format_exc(),
                     "timestamp": datetime.now(timezone.utc).strftime('%FT%TZ'),
                 }
             })
 
     async def __manage_components(self, logger, changed_only):
         await self.git_repo_sync(logger=logger)
+        # Store the hexsha to record in status if successful
+        git_hexsha = self.git_hexsha
 
         if changed_only:
-            if self.git_hexsha == self.last_successful_git_hexsha:
-                logger.debug(f"Unchanged [{self.git_hexsha}]")
+            if git_hexsha == self.last_successful_git_hexsha:
+                logger.debug(f"Unchanged [{git_hexsha}]")
                 return
             elif self.last_successful_git_hexsha:
-                logger.info(f"Updating components from {self.last_successful_git_hexsha} to {self.git_hexsha}")
+                logger.info(f"Updating components from {self.last_successful_git_hexsha} to {git_hexsha}")
             else:
-                logger.info(f"Initial processing for {self.git_hexsha}")
+                logger.info(f"Initial processing for {git_hexsha}")
         else:
-            logger.info(f"Starting full component processing for {self.git_hexsha}")
+            logger.info(f"Starting full component processing for {git_hexsha}")
 
         messages = {}
         pr_hexsha = {}
         errors = {}
-        component_sources, get_component_sources_error_messages = await self.get_component_sources(changed_only=changed_only, logger=logger)
+        component_sources, get_component_sources_error_messages = await self.get_component_sources(
+            changed_only = changed_only,
+            logger = logger,
+        )
         for source in component_sources:
             try:
                 result = await self.manage_component(source=source, logger=logger)
@@ -628,6 +626,7 @@ class AgnosticVRepo(CachedKopfObject):
         if errors or get_component_sources_error_messages:
             error_messages = deepcopy(get_component_sources_error_messages)
             raise AgnosticVProcessingError(
+                "AgnosticVRepo processing failed:\n\n" +
                 "\n".join(
                     get_component_sources_error_messages +
                     [str(error) for prerrors in errors.values() for error in prerrors]
@@ -637,18 +636,18 @@ class AgnosticVRepo(CachedKopfObject):
         await self.merge_patch_status({
             "error": None,
             "git": {
-                "commit": self.git_hexsha,
+                "commit": git_hexsha,
             }
         })
 
         # FIXME - Delete components during full sync
 
-        logger.info(f"Finished managing components for {self.git_hexsha}")
+        logger.info(f"Finished managing components for {git_hexsha}")
 
 
 class ComponentSource:
-    def __init__(self, path, ref, pull_request_number=None):
-        self.hexsha = None
+    def __init__(self, path, ref, hexsha, pull_request_number=None):
+        self.hexsha = hexsha
         self.name = re.sub(r'\.(json|yaml|yml)$', '', path.lower().replace('_', '-').replace('/', '.'))
         self.path = path
         self.pull_request_number = pull_request_number

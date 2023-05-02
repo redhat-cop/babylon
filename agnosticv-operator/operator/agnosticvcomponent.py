@@ -87,7 +87,9 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def anarchy_namespace(self):
-        return self.anarchy.get('namespace', 'anarchy-operator')
+        if 'namespace' in self.anarchy:
+            return jinja2env.from_string(self.anarchy['namespace']).render(self.template_vars)
+        return 'anarchy-operator'
 
     @property
     def anarchy_remove_finished_actions_after(self):
@@ -173,21 +175,12 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_message_templates(self):
-        # FIXME - weird whitespace trimming behavior preserved from agnosticv-operator
-        if 'messageTemplates' not in self.catalog_meta:
-            return None
-        # FIXME - preserve bug in agnosticv-operator
-        if ('info' not in self.catalog_meta['messageTemplates'] and
-            'serviceReady' not in self.catalog_meta['messageTemplates'] and
-            'serviceDeleted' not in self.catalog_meta['messageTemplates']
-        ):
-            return None
         return {
             key: { 
                 "template": value['template'].rstrip(),
                 "templateFormat": value.get('templateFormat', 'jinja2'),
                 "outputFormat": value.get('outputFormat', 'html'),
-            } for key, value in self.catalog_meta.get('messageTemplates').items()
+            } for key, value in self.catalog_meta.get('messageTemplates', {}).items()
         }
 
     @property
@@ -589,7 +582,6 @@ class AgnosticVComponent(KopfObject):
                             },
                             "desired_state":
                                 # FIXME - clean up syntax for readability.
-                                "\n"
                                 "{%- if 0 < resource_states | map('default', {}, True) | list | json_query(\"length([?!contains(keys(status.towerJobs.provision || `{}`), 'completeTimestamp')])\") -%}\n"
                                 "{#- desired_state started until all AnarchySubjects have finished provision -#}\n"
                                 "started\n"
@@ -609,8 +601,50 @@ class AgnosticVComponent(KopfObject):
                         },
                     }
                 },
+                "parameters": [
+                    {
+                        "name": "start_timestamp",
+                        "allowUpdate": True,
+                        "default": {
+                            "template": "{{ now(true, '%FT%TZ') }}",
+                        },
+                        "required": True,
+                        "validation": {
+                            "openAPIV3Schema": {
+                                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+                                "type": "string",
+                            }
+                        }
+                    }, {
+                        "name": "stop_timestamp",
+                        "allowUpdate": True,
+                        "default": {
+                            "template": "{{ (now(true) + runtime_default | parse_time_interval).strftime('%FT%TZ') }}",
+                        },
+                        "required": True,
+                        "validation": {
+                            "openAPIV3Schema": {
+                                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+                                "type": "string",
+                            }
+                        }
+                    }
+                ],
                 "resourceRequiresClaim": self.resource_requires_claim,
+                "statusSummaryTemplate": {
+                    "state": "{{ resources | object }}",
+                    "runtime_default": "{{ runtime_default }}",
+                    "runtime_maximum": "{{ runtime_maximum }}",
+                },
                 "template": {
+                    "definition": {
+                        "spec": {
+                            "vars": {
+                                "start_timestamp": "{{ start_timestamp | default(omit) }}",
+                                "stop_timestamp": "{{ stop_timestamp | default(omit) }}",
+                            }
+                        }
+                    },
                     "enable": True,
                 },
                 "updateFilters": [
@@ -665,6 +699,10 @@ class AgnosticVComponent(KopfObject):
                             }
                         }
                     }
+                },
+                "vars": {
+                    "runtime_default": self.runtime_default,
+                    "runtime_maximum": self.runtime_maximum,
                 }
             }
         }
@@ -673,13 +711,19 @@ class AgnosticVComponent(KopfObject):
             definition['spec'].setdefault('linkedResourceProviders', []).append({
                 "name": linked_component.component_name,
                 "waitFor": f"current_state_{idx} == 'started'",
-                "templateVars": [{
-                    "name": f"current_state_{idx}",
-                    "from": "/spec/vars/current_state",
-                }, {
-                    "name": f"provision_data_{idx}",
-                    "from": "/spec/vars/provision_data",
-                }]
+                "parameterValues": {
+                    "runtime_default": "{{ runtime_default }}",
+                    "runtime_maximum": "{{ runtime_maximum }}",
+                },
+                "templateVars": [
+                    {
+                        "name": f"current_state_{idx}",
+                        "from": "/spec/vars/current_state",
+                    }, {
+                        "name": f"provision_data_{idx}",
+                        "from": "/spec/vars/provision_data",
+                    }
+                ]
             })
 
             for item in linked_component.propagate_provision_data:
@@ -699,17 +743,51 @@ class AgnosticVComponent(KopfObject):
                 "allowedOps": ["add", "replace"],
             })
 
-        # Allow altering updatable parameters
         if self.catalog_parameters:
+            definition['spec']['parameters'] = []
+            definition['spec']['template']['definition'] = {}
             open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars']
             for parameter in self.catalog_parameters:
-                # Skip annotation only parameters
+                resource_broker_parameter = {
+                    'name': parameter['name'],
+                    'allowUpdate': parameter.get('allowUpdate', False),
+                    'required': parameter.get('required', False),
+                }
+                if 'openAPIV3Schema' in parameter:
+                    resource_broker_parameter.setdefault('validation', {})['openAPIV3Schema'] = parameter['openAPIV3Schema']
+
+                definition['spec']['parameters'].append(resource_broker_parameter)
+
+                # FIXME - resource indexes is a clumsy way to configure parameters
+
+                # '@' in resource indexes means current resource. Other values reference
+                # linked resource providers.
+                resource_indexes = parameter.get('resourceIndexes', ['@'])
+                current_resource_index = len(self.linked_components)
+
+                # Configure parameter propagation to linked components
+                for resource_index in resource_indexes:
+                    if resource_index == '@' or resource_index == current_resource_index:
+                        continue
+                    definition['spec']['linkedResourceProviders'][resource_index]['parameterValues'][parameter['name']] = '{{' + parameter['name'] + ' | object }}'
+
+                # Below here is customization for how the parameter value is used to manage the
+                # resource for this provider. Some parameters may only be used to propagate to
+                # other linked providers.
+                if '@' not in resource_indexes and current_resource_index not in resource_indexes:
+                    continue
+
+                # Skip annotation only parameters in template generation and validation
                 if 'annotation' in parameter and 'variable' not in parameter:
                     continue
+
                 open_api_schema_job_vars.setdefault('properties', {})
                 open_api_schema_job_vars.setdefault('required', [])
                 variable = parameter.get('variable', parameter['name'])
+                default = None
                 parameter_open_api_schema = parameter.get('openAPIV3Schema', {})
+                if 'default' in parameter_open_api_schema:
+                    default = parameter_open_api_schema['default']
                 if 'description' in parameter:
                     parameter_open_api_schema['description'] = parameter['description']
                 open_api_schema_job_vars['properties'][variable] = parameter_open_api_schema
@@ -717,8 +795,16 @@ class AgnosticVComponent(KopfObject):
                     open_api_schema_job_vars['required'].append(variable)
                 if parameter.get('allowUpdate'):
                     definition['spec']['updateFilters'].append({
-                        "pathMatch": f"/spec/vars/job_vars/variable(/.*)?"
+                        "pathMatch": f"/spec/vars/job_vars/{variable}(/.*)?"
                     })
+
+                definition['spec']['template']['definition'].setdefault(
+                    'spec', {}
+                ).setdefault(
+                    'vars', {}
+                ).setdefault(
+                    'job_vars', {}
+                )[variable] = '{{ ' + parameter['name'] + ' | default(omit) | object }}'
             
         return definition
 
