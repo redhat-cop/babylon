@@ -511,8 +511,10 @@ def salesforce_validation(salesforce_id):
         if salesforce_type == 'campaign':
             # Business rules for a invalid Campaign
             # if IsActive is false
+            current_date = datetime.utcnow().strftime("%Y-%m-%d")
+            end_date = opportunity_info.get('EndDate')
             is_active = opportunity_info.get('IsActive', False)
-            if not is_active:
+            if not is_active or current_date > end_date:
                 return False
         elif salesforce_type == 'cdh':
             return True
