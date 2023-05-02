@@ -33,9 +33,6 @@ const InfoTab: React.FC<{
   }) => void;
 }> = ({ resourceClaim, showModal }) => {
   const infoMessageTemplate = getInfoMessageTemplate(resourceClaim);
-  if (!infoMessageTemplate) {
-    return null;
-  }
   const { resource: mostRelevantResource, template: mostRelevantTemplate } =
     getMostRelevantResourceAndTemplate(resourceClaim);
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
@@ -51,6 +48,10 @@ const InfoTab: React.FC<{
           : null,
       }))
     );
+
+    if (!infoMessageTemplate) {
+      return null;
+    }
 
     const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
       format: infoMessageTemplate.templateFormat,
