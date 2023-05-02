@@ -259,7 +259,14 @@ const ServicesList: React.FC<{
             resourceClaimName: resourceClaim.metadata.name,
           })
         );
-        return await deleteResourceClaim(resourceClaim);
+        try {
+          return await deleteResourceClaim(resourceClaim);
+        } catch (error) {
+          if (error.status === 404) {
+            return resourceClaim;
+          }
+          throw error;
+        }
       } else {
         const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
         if (isPartOfWorkshop) return resourceClaim; // If has a workshopProvision -> Do nothing.
@@ -279,7 +286,14 @@ const ServicesList: React.FC<{
   const performModalActionForWorkshop = useCallback(
     async (workshop: WorkshopWithResourceClaims): Promise<WorkshopWithResourceClaims> => {
       if (modalState.action === 'delete') {
-        return await deleteWorkshop(workshop);
+        try {
+          return await deleteWorkshop(workshop);
+        } catch (error) {
+          if (error.status === 404) {
+            return workshop;
+          }
+          throw error;
+        }
       } else {
         if (Array.isArray(workshop.resourceClaims)) {
           if (modalState.action === 'start') {
