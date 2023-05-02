@@ -262,6 +262,10 @@ class AgnosticVComponent(KopfObject):
         return self.spec['path']
 
     @property
+    def pull_request_commit_hash(self):
+        return self.spec.get('pullRequestCommitHash')
+
+    @property
     def pull_request_number(self):
         return self.spec.get('pullRequestNumber')
 
