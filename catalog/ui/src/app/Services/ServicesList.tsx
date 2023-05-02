@@ -22,6 +22,7 @@ import {
   scheduleStopForAllResourcesInResourceClaim,
   SERVICES_KEY,
   setLifespanEndForResourceClaim,
+  setProvisionRating,
   setWorkshopLifespanEnd,
   startAllResourcesInResourceClaim,
   startWorkshopServices,
@@ -107,7 +108,7 @@ const ServicesList: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
-  const { cache } = useSWRConfig();
+  const { mutate: globalMutate, cache } = useSWRConfig();
   const [searchParams, setSearchParams] = useSearchParams();
   const keywordFilter = useMemo(
     () =>
@@ -125,7 +126,7 @@ const ServicesList: React.FC<{
     resourceClaim?: ResourceClaim;
     workshop?: WorkshopWithResourceClaims;
     rating?: { rate: number; comment: string };
-    submitDisabled: false;
+    submitDisabled: boolean;
   }>({ action: null, submitDisabled: false });
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
@@ -317,8 +318,23 @@ const ServicesList: React.FC<{
         }
       }
     }
-    if (modalState.action === 'delete') {
-      revalidate({ updatedItems: serviceUpdates, action: 'delete' });
+    if (modalState.action === 'rate' || modalState.action === 'delete') {
+      if (
+        modalState.resourceClaim &&
+        modalState.rating &&
+        (modalState.rating.rate !== null || modalState.rating.comment?.trim())
+      ) {
+        const provisionUuids = modalState.resourceClaim.status.resources
+          .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
+          .filter(Boolean);
+        for (const provisionUuid of provisionUuids) {
+          await setProvisionRating(provisionUuid, modalState.rating.rate, modalState.rating.comment);
+          globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
+        }
+      }
+      if (modalState.action === 'delete') {
+        revalidate({ updatedItems: serviceUpdates, action: 'delete' });
+      }
     } else {
       revalidate({ updatedItems: serviceUpdates, action: 'update' });
     }
@@ -326,6 +342,8 @@ const ServicesList: React.FC<{
     modalState.action,
     modalState.resourceClaim,
     modalState.workshop,
+    modalState.rating?.rate,
+    modalState.rating?.comment,
     performModalActionForResourceClaim,
     performModalActionForWorkshop,
     services,
@@ -386,8 +404,8 @@ const ServicesList: React.FC<{
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
-      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
-        <ServicesAction actionState={modalState} />
+      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true} isDisabled={modalState.submitDisabled}>
+        <ServicesAction actionState={modalState} setActionState={setModalState} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction

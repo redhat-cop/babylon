@@ -13,6 +13,7 @@ const ServicesAction: React.FC<{
       action: ServiceActionActions;
       resourceClaim?: ResourceClaim;
       rating?: { rate: number; comment: string };
+      workshop?: WorkshopWithResourceClaims;
       submitDisabled: boolean;
     }>
   >;
