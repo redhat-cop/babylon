@@ -176,7 +176,7 @@ class AgnosticVComponent(KopfObject):
     @property
     def catalog_message_templates(self):
         return {
-            key: { 
+            key: {
                 "template": value['template'].rstrip(),
                 "templateFormat": value.get('templateFormat', 'jinja2'),
                 "outputFormat": value.get('outputFormat', 'html'),
@@ -510,7 +510,7 @@ class AgnosticVComponent(KopfObject):
             })
 
             if linked_component.display_name:
-                definition['metadata']['annotations'][ 
+                definition['metadata']['annotations'][
                     f"{Babylon.catalog_api_group}/displayNameComponent{idx}"
                 ] = linked_component.display_name
 
@@ -636,16 +636,65 @@ class AgnosticVComponent(KopfObject):
                 ],
                 "resourceRequiresClaim": self.resource_requires_claim,
                 "statusSummaryTemplate": {
-                    "state": "{{ resources | object }}",
                     "runtime_default": "{{ runtime_default }}",
                     "runtime_maximum": "{{ runtime_maximum }}",
+                    "state":
+                        "{%- if 0 < resource_claim.status.provider.validationErrors | default([]) | length -%}\n"
+                        "validation-failed\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-failed']\") | length -%}\n"
+                        "provision-failed\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-error']\") | length -%}\n"
+                        "provision-error\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-canceled']\") | length -%}\n"
+                        "provision-canceled\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-failed']\") | length -%}\n"
+                        "start-failed\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-error']\") | length -%}\n"
+                        "start-error\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-canceled']\") | length -%}\n"
+                        "start-canceled\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-failed']\") | length -%}\n"
+                        "stop-failed\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-error']\") | length -%}\n"
+                        "stop-error\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-canceled']\") | length -%}\n"
+                        "stop-canceled\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provisioning']\") | length -%}\n"
+                        "provisioning\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-pending']\") | length -%}\n"
+                        "provision-pending\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stopping']\") | length -%}\n"
+                        "stopping\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='starting']\") | length -%}\n"
+                        "starting\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-pending']\") | length -%}\n"
+                        "stop-pending\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-pending']\") | length -%}\n"
+                        "start-pending\n"
+                        "{%- elif resources | length != resources | json_query(\"[?state]\") | length -%}\n"
+                        "requested\n"
+                        "{%- elif start_timestamp | default('1970-01-01T00:00:00Z') <= now(true, '%FT%TZ') and stop_timestamp | default('1970-01-01T00:00:00Z') > now(true, '%FT%TZ') -%}\n"
+                        "{%-   if resources | length == resources | json_query(\"[?state.spec.vars.current_state=='started']\") | length -%}\n"
+                        "started\n"
+                        "{%-   else -%}\n"
+                        "start-scheduled\n"
+                        "{%-   endif -%}\n"
+                        "{%- else -%}\n"
+                        "{%-   if resources | length == resources | json_query(\"[?state.spec.vars.current_state=='stopped']\") | length -%}\n"
+                        "stopped\n"
+                        "{%-   else -%}\n"
+                        "stop-scheduled\n"
+                        "{%-   endif -%}\n"
+                        "{%- endif -%}"
                 },
                 "template": {
                     "definition": {
                         "spec": {
                             "vars": {
-                                "start_timestamp": "{{ start_timestamp | default(omit) }}",
-                                "stop_timestamp": "{{ stop_timestamp | default(omit) }}",
+                                "action_schedule": {
+                                    "start": "{{ start_timestamp | default(omit) }}",
+                                    "stop": "{{ stop_timestamp | default(omit) }}",
+                                }
                             }
                         }
                     },
@@ -748,8 +797,6 @@ class AgnosticVComponent(KopfObject):
             })
 
         if self.catalog_parameters:
-            definition['spec']['parameters'] = []
-            definition['spec']['template']['definition'] = {}
             open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars']
             for parameter in self.catalog_parameters:
                 resource_broker_parameter = {
@@ -809,7 +856,7 @@ class AgnosticVComponent(KopfObject):
                 ).setdefault(
                     'job_vars', {}
                 )[variable] = '{{ ' + parameter['name'] + ' | default(omit) | object }}'
-            
+
         return definition
 
     async def __create_catalog_item(self, definition, logger):
