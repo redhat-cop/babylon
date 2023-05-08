@@ -33,6 +33,7 @@ const WorkshopContent: React.FC<{
   const description = workshop.description;
   const displayName = workshop.displayName || 'Workshop';
   const userAssignment = workshop.assignment;
+  const labUserInterfaceRedirect = workshop.labUserInterfaceRedirect;
   const infoMessageTemplate = JSON.parse(workshop.template) as MessageTemplate;
   let renderEditor = true;
 
@@ -61,7 +62,7 @@ const WorkshopContent: React.FC<{
     [userAssignment.messages]
   );
 
-  if (userAssignment.labUserInterface?.url && userAssignment.labUserInterface?.redirect === true) {
+  if (userAssignment.labUserInterface?.url && labUserInterfaceRedirect === true) {
     window.location.href = userAssignment.labUserInterface.url;
   }
 
