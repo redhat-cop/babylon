@@ -61,8 +61,8 @@ const WorkshopContent: React.FC<{
     [userAssignment.messages]
   );
 
-  if (userAssignment.data?.bookbag_url) {
-    window.location.href = userAssignment.data.bookbag_url;
+  if (userAssignment.labUserInterface?.url) {
+    window.location.href = userAssignment.labUserInterface.url;
   }
 
   try {
