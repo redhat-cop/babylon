@@ -63,6 +63,15 @@ spec:
                 description: >-
                   Display name for the workshop.
                 type: string
+              labUserInterface:
+                description: >-
+                  Default settings for labUserInterface under userAssignments.
+                type: object
+                properties:
+                  redirect:
+                    description: >-
+                      Configure that users should be automatically redirected to the lab user interface.
+                    type: boolean
               lifespan:
                 description: >-
                   Lifespan settings for this Workshop.
@@ -122,6 +131,10 @@ spec:
                         Lab user interface information for user access.
                       type: object
                       properties:
+                        redirect:
+                          description: >-
+                            Configure that users should be automatically redirected to the lab user interface.
+                          type: boolean
                         url:
                           description: >-
                             URL for the lab user interface.
