@@ -61,7 +61,7 @@ const WorkshopContent: React.FC<{
     [userAssignment.messages]
   );
 
-  if (userAssignment.labUserInterface?.url) {
+  if (userAssignment.labUserInterface?.url && userAssignment.labUserInterface?.redirect === true) {
     window.location.href = userAssignment.labUserInterface.url;
   }
 

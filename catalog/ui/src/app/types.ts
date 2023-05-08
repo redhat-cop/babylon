@@ -486,6 +486,7 @@ export interface WorkshopSpecUserAssignment {
     data?: object;
     method?: string;
     url: string;
+    redirect?: boolean;
   };
   messages?: string;
   resourceClaimName?: string;
