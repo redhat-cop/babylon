@@ -467,6 +467,7 @@ export interface WorkshopSpec {
   openRegistration?: boolean;
   provisionDisabled?: boolean;
   userAssignments: WorkshopSpecUserAssignment[];
+  labUserInterface?: { redirect?: boolean };
   actionSchedule?: {
     stop?: string;
     start?: string;

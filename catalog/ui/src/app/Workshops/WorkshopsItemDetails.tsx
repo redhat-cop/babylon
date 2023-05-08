@@ -11,6 +11,7 @@ import {
   SelectOption,
   SelectVariant,
   Tooltip,
+  Switch,
 } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
@@ -51,6 +52,7 @@ const WorkshopsItemDetails: React.FC<{
     description?: string;
     displayName?: string;
     openRegistration?: boolean;
+    labUserInterface?: { redirect?: boolean };
   }): Promise<void> {
     if (patch.openRegistration !== null && workshop.spec.openRegistration !== patch.openRegistration) {
       onWorkshopUpdate(
@@ -128,6 +130,29 @@ const WorkshopsItemDetails: React.FC<{
           />
         </DescriptionListDescription>
       </DescriptionListGroup>
+      {workshop.spec.labUserInterface ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>
+            Redirect Users directly to the Lab{' '}
+            <Tooltip position="right" content={<p>Password the users need to introduce to access the Workshop.</p>}>
+              <OutlinedQuestionCircleIcon
+                aria-label="Password the users need to introduce to access the Workshop."
+                className="tooltip-icon-only"
+              />
+            </Tooltip>
+          </DescriptionListTerm>
+          <DescriptionListDescription>
+            <Switch
+              id="workshops-items-details__redirect"
+              aria-label="Redirect"
+              label="Redirect"
+              labelOff="Do not redirect"
+              isChecked={workshop.spec.labUserInterface.redirect === true}
+              onChange={(v) => patchWorkshopSpec({ labUserInterface: { redirect: v } })}
+            />
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
       <DescriptionListGroup>
         <DescriptionListTerm>
           Access Password{' '}
