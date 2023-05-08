@@ -130,29 +130,25 @@ const WorkshopsItemDetails: React.FC<{
           />
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {workshop.spec.labUserInterface ? (
-        <DescriptionListGroup>
-          <DescriptionListTerm>
-            Redirect Users directly to the Lab{' '}
-            <Tooltip position="right" content={<p>Password the users need to introduce to access the Workshop.</p>}>
-              <OutlinedQuestionCircleIcon
-                aria-label="Password the users need to introduce to access the Workshop."
-                className="tooltip-icon-only"
-              />
-            </Tooltip>
-          </DescriptionListTerm>
-          <DescriptionListDescription>
-            <Switch
-              id="workshops-items-details__redirect"
-              aria-label="Redirect"
-              label="Redirect"
-              labelOff="Do not redirect"
-              isChecked={workshop.spec.labUserInterface.redirect === true}
-              onChange={(v) => patchWorkshopSpec({ labUserInterface: { redirect: v } })}
+      <DescriptionListGroup>
+        <DescriptionListTerm>
+          Redirect Users{' '}
+          <Tooltip position="right" content={<p>Upon login redirect to the Lab User Interface if is defined</p>}>
+            <OutlinedQuestionCircleIcon
+              aria-label="Upon login redirect to the Lab User Interface if is defined"
+              className="tooltip-icon-only"
             />
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      ) : null}
+          </Tooltip>
+        </DescriptionListTerm>
+        <DescriptionListDescription>
+          <Switch
+            id="workshops-items-details__redirect"
+            aria-label="Redirect"
+            isChecked={workshop.spec.labUserInterface?.redirect === true}
+            onChange={(v) => patchWorkshopSpec({ labUserInterface: { redirect: v } })}
+          />
+        </DescriptionListDescription>
+      </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>
           Access Password{' '}
