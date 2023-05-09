@@ -123,7 +123,7 @@ const ComponentDetailsList: React.FC<{
       : provisionMessages
       ? provisionMessages
           .join('\n')
-          .replace(/^\s+|\s+$/g, '')
+          .trim()
           .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
       : null;
   const provisionMessagesHtml = useMemo(
