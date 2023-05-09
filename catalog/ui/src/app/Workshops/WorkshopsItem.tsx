@@ -131,7 +131,7 @@ const WorkshopsItemComponent: React.FC<{
   );
   const stage = getStageFromK8sObject(workshop);
 
-  const { data: workshopProvisions, mutate: mutateWorkshopProvisions } = useSWR<WorkshopProvision[]>(
+  const { data: workshopProvisions } = useSWR<WorkshopProvision[]>(
     workshop
       ? apiPaths.WORKSHOP_PROVISIONS({
           workshopName: workshop.metadata.name,
@@ -243,10 +243,18 @@ const WorkshopsItemComponent: React.FC<{
    */
   async function onWorkshopDeleteConfirm() {
     await deleteWorkshop(workshop);
-    mutateWorkshop(undefined);
-    mutateWorkshopProvisions(undefined);
-    mutate(undefined);
     cache.delete(SERVICES_KEY({ namespace: workshop.metadata.namespace }));
+    cache.delete(apiPaths.RESOURCE_CLAIMS({
+      namespace: serviceNamespaceName,
+      labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+      limit: 'ALL',
+    }));
+    cache.delete(apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }));
+    cache.delete(apiPaths.WORKSHOP_PROVISIONS({
+      workshopName: workshop.metadata.name,
+      namespace: workshop.metadata.namespace,
+      limit: 'ALL',
+    }));
     navigate(`/services/${serviceNamespaceName}`);
   }
 

@@ -73,5 +73,3 @@ class CatalogItemParameter:
                     self.default = int(self.default)
                 elif data_type == 'number':
                     self.default = float(self.default)
-                else:
-                    self.default = self.default

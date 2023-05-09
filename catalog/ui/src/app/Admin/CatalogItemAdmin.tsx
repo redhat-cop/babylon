@@ -125,13 +125,13 @@ const CatalogItemAdmin: React.FC = () => {
   }
   async function saveForm() {
     const comments = ops?.comments || [];
-    comment
-      ? comments.push({
-          message: comment,
-          author: userEmail,
-          createdAt: new Date().toISOString(),
-        })
-      : [];
+    if (comment) {
+      comments.push({
+        message: comment,
+        author: userEmail,
+        createdAt: new Date().toISOString(),
+      });
+    }
     const patchObj = {
       status: {
         id: status,

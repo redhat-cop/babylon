@@ -59,7 +59,9 @@ const _Modal: ForwardRefRenderFunction<
   const close = useCallback(() => {
     setIsLoading(false);
     setIsOpen(false);
-    onClose ? onClose() : null;
+    if (onClose) {
+      onClose();
+    }
   }, []);
   const [_title, setTitle] = useState(title);
   const [_isDisabled, setIsDisabled] = useState(isDisabled);

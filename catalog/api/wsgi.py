@@ -851,6 +851,7 @@ def workshop_put(workshop_id):
 
     ret = {
         "accessPasswordRequired": True if workshop_access_password else False,
+        "labUserInterfaceRedirect": workshop['spec'].get('labUserInterface', {}).get('redirect'),
         "description": workshop['spec'].get('description'),
         "displayName": workshop['spec'].get('displayName'),
         "name": workshop_name,
