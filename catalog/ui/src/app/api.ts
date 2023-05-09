@@ -640,16 +640,31 @@ export async function createWorkshopForMultiuserService({
     );
   }
 
-  const workshop = await createK8sObject(definition);
-  const patchedResourceClaim = await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
-    metadata: {
-      labels: {
-        [`${BABYLON_DOMAIN}/workshop`]: workshop.metadata.name,
-      },
-    },
-  });
-
-  return { resourceClaim: patchedResourceClaim, workshop: workshop };
+  let n = 0;
+  while (true) {
+    try {
+      const workshop = await createK8sObject(definition);
+      const patchedResourceClaim = await patchResourceClaim(
+        resourceClaim.metadata.namespace,
+        resourceClaim.metadata.name,
+        {
+          metadata: {
+            labels: {
+              [`${BABYLON_DOMAIN}/workshop`]: workshop.metadata.name,
+            },
+          },
+        }
+      );
+      return { resourceClaim: patchedResourceClaim, workshop: workshop };
+    } catch (error: any) {
+      if (error.status === 409) {
+        n++;
+        definition.metadata.name = `${definition.metadata.name}-${n}`;
+      } else {
+        throw error;
+      }
+    }
+  }
 }
 
 export async function createWorkshopProvision({
