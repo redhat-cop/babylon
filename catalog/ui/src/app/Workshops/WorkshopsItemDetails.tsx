@@ -263,7 +263,9 @@ const WorkshopsItemDetails: React.FC<{
             <AutoStopDestroy
               type="auto-destroy"
               onClick={() => {
-                showModal ? showModal({ resourceClaims, action: 'scheduleDelete' }) : null;
+                if (showModal) {
+                  showModal({ resourceClaims, action: 'scheduleDelete' });
+                }
               }}
               time={autoDestroyTime}
               isDisabled={!showModal}
