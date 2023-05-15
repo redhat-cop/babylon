@@ -306,7 +306,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             }
             helperTextInvalid={
               <FormHelperText icon={<ExclamationCircleIcon />} isError isHidden={false}>
-                {purposeObj.sfdcRequired
+                {purposeObj && purposeObj.sfdcRequired
                   ? 'A valid Salesforce ID is required for the selected activity / purpose'
                   : null}
               </FormHelperText>
