@@ -3,7 +3,7 @@ import { FormGroup, Radio, Select, SelectOption, SelectVariant, TextInput, Toolt
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSession from '@app/utils/useSession';
 
-const ActivityOpts = [
+export const ActivityOpts = [
   { name: 'Customer Facing', id: 1 },
   { name: 'Partner Facing', id: 2 },
   { name: 'Practice / Enablement', id: 3 },
@@ -126,7 +126,7 @@ const ActivityPurposeSelector: React.FC<{
                     setPurpose('Other: ' + _purpose);
                     onChange(activity, _purpose, true);
                   }}
-                  value={purpose.split(':').length > 1 ? purpose.split(':')[1].trim() : ''}
+                  value={purpose.split(': ').length > 1 ? purpose.split(': ')[1] : ''}
                 />
               </div>
             </div>

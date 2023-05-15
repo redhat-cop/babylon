@@ -3,7 +3,7 @@ import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace } from '@app/types';
 import parseDuration from 'parse-duration';
 import { isAutoStopDisabled } from './catalog-utils';
-import { PurposeOpts } from '@app/components/ActivityPurposeSelector';
+import { ActivityOpts, PurposeOpts } from '@app/components/ActivityPurposeSelector';
 
 type ConditionValues = {
   [name: string]: boolean | number | string | string[] | undefined;
@@ -428,8 +428,8 @@ function reduceFormStatePurpose(initialState: FormState, activity: string, purpo
 
 function salesforceIdRequired(state: FormState): boolean {
   if (state.purpose) {
-    const p = PurposeOpts.find((p) => p.name === state.purpose);
-    if (!p) return true;
+    const a = ActivityOpts.find((a) => a.name === state.activity);
+    const p = PurposeOpts.find((p) => a.id === p.activityId && state.purpose.startsWith(p.name));
     if (p.sfdcRequired) return true;
   }
   if (state.user.isAdmin) return false;
