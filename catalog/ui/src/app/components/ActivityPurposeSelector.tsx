@@ -123,8 +123,9 @@ const ActivityPurposeSelector: React.FC<{
                   aria-label="Specify purpose"
                   placeholder="Specify purpose"
                   onChange={(_purpose) => {
-                    setPurpose('Other: ' + _purpose);
-                    onChange(activity, _purpose, true);
+                    const p = 'Other: ' + _purpose;
+                    setPurpose(p);
+                    onChange(activity, p, true);
                   }}
                   value={purpose.split(': ').length > 1 ? purpose.split(': ')[1] : ''}
                 />
