@@ -84,7 +84,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     [catalogItem]
   );
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
-  const stage = getStage(catalogItem);
   const maxAutoDestroyTime = Math.min(
     parseDuration(catalogItem.spec.lifespan?.maximum),
     parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
@@ -129,8 +128,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       }
     }
     parameterValues['purpose'] = formState.purpose;
-    const [activity] = formState.purpose.split('-').map((x) => x.trim());
-    parameterValues['purpose_activity'] = activity;
+    parameterValues['purpose_activity'] = formState.activity;
     if (formState.salesforceId.value) {
       parameterValues['salesforce_id'] = formState.salesforceId.value;
     }
@@ -272,106 +270,83 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {stage !== 'event' ? (
-          <>
-            <ActivityPurposeSelector
-              value={formState.purpose}
-              onChange={(purpose: string) => {
-                dispatchFormState({
-                  type: 'purpose',
-                  purpose,
-                });
-              }}
-            />
-
-            <FormGroup
-              fieldId="salesforce_id"
-              isRequired={formState.salesforceId.required}
-              label={
-                <span>
-                  Salesforce ID{' '}
-                  <span
-                    style={{
-                      fontSize: 'var(--pf-global--FontSize--xs)',
-                      color: 'var(--pf-global--palette--black-600)',
-                      fontStyle: 'italic',
-                      fontWeight: 400,
-                    }}
-                  >
-                    (Opportunity ID, Campaign ID, CDH Party or Project ID)
-                  </span>
-                </span>
-              }
-              helperTextInvalid={
-                <FormHelperText icon={<ExclamationCircleIcon />} isError isHidden={false}>
-                  {formState.purpose && formState.purpose.startsWith('Customer Activity')
-                    ? 'A valid Salesforce ID is required for all Customer Facing Events'
-                    : null}
-                </FormHelperText>
-              }
-              validated={
-                formState.salesforceId.valid
-                  ? 'success'
-                  : formState.salesforceId.value &&
-                    formState.salesforceId.required &&
-                    formState.conditionChecks.completed
-                  ? 'error'
-                  : 'default'
-              }
-            >
-              <div className="catalog-item-form__group-control--single">
-                <TextInput
-                  type="text"
-                  key="salesforce_id"
-                  id="salesforce_id"
-                  onChange={(value) =>
-                    dispatchFormState({
-                      type: 'salesforceId',
-                      salesforceId: { ...formState.salesforceId, value, valid: false },
-                    })
-                  }
-                  value={formState.salesforceId.value || ''}
-                  validated={
-                    formState.salesforceId.value && formState.salesforceId.valid
-                      ? 'success'
-                      : formState.salesforceId.value && formState.conditionChecks.completed
-                      ? 'error'
-                      : 'default'
-                  }
-                />
-                <Tooltip
-                  position="right"
-                  content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
-                >
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
-                    className="tooltip-icon-only"
-                  />
-                </Tooltip>
-              </div>
-            </FormGroup>
-          </>
-        ) : (
+        <>
           <ActivityPurposeSelector
-            value={formState.purpose || 'Event'}
-            isEvent
-            onChange={(purpose: string, sfdc: string) => {
+            value={{ purpose: formState.purpose, activity: formState.activity }}
+            onChange={(activity: string, purpose: string) => {
               dispatchFormState({
                 type: 'purpose',
+                activity,
                 purpose,
               });
-              sfdc
-                ? dispatchFormState({
-                    type: 'salesforceId',
-                    salesforceId: { ...formState.salesforceId, value: sfdc, valid: false },
-                  })
-                : dispatchFormState({
-                    type: 'salesforceId',
-                    salesforceId: { required: false, value: null, valid: false },
-                  });
             }}
           />
-        )}
+
+          <FormGroup
+            fieldId="salesforce_id"
+            isRequired={formState.salesforceId.required}
+            label={
+              <span>
+                Salesforce ID{' '}
+                <span
+                  style={{
+                    fontSize: 'var(--pf-global--FontSize--xs)',
+                    color: 'var(--pf-global--palette--black-600)',
+                    fontStyle: 'italic',
+                    fontWeight: 400,
+                  }}
+                >
+                  (Opportunity ID, Campaign ID, CDH Party or Project ID)
+                </span>
+              </span>
+            }
+            helperTextInvalid={
+              <FormHelperText icon={<ExclamationCircleIcon />} isError isHidden={false}>
+                {formState.purpose && formState.purpose.startsWith('Customer Activity')
+                  ? 'A valid Salesforce ID is required for all Customer Facing Events'
+                  : null}
+              </FormHelperText>
+            }
+            validated={
+              formState.salesforceId.valid
+                ? 'success'
+                : formState.salesforceId.value && formState.salesforceId.required && formState.conditionChecks.completed
+                ? 'error'
+                : 'default'
+            }
+          >
+            <div className="catalog-item-form__group-control--single">
+              <TextInput
+                type="text"
+                key="salesforce_id"
+                id="salesforce_id"
+                onChange={(value) =>
+                  dispatchFormState({
+                    type: 'salesforceId',
+                    salesforceId: { ...formState.salesforceId, value, valid: false },
+                  })
+                }
+                value={formState.salesforceId.value || ''}
+                validated={
+                  formState.salesforceId.value && formState.salesforceId.valid
+                    ? 'success'
+                    : formState.salesforceId.value && formState.conditionChecks.completed
+                    ? 'error'
+                    : 'default'
+                }
+              />
+              <Tooltip
+                position="right"
+                content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+              >
+                <OutlinedQuestionCircleIcon
+                  aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
+                  className="tooltip-icon-only"
+                />
+              </Tooltip>
+            </div>
+          </FormGroup>
+        </>
         {formState.formGroups.map((formGroup, formGroupIdx) => {
           // do not render form group if all parameters for formGroup are hidden
           if (formGroup.parameters.every((parameter) => parameter.isHidden)) {

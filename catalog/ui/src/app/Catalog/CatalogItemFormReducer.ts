@@ -3,6 +3,7 @@ import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace } from '@app/types';
 import parseDuration from 'parse-duration';
 import { isAutoStopDisabled } from './catalog-utils';
+import { PurposeOpts } from '@app/components/ActivityPurposeSelector';
 
 type ConditionValues = {
   [name: string]: boolean | number | string | string[] | undefined;
@@ -37,6 +38,7 @@ type FormState = {
   startDate?: Date;
   stopDate?: Date;
   endDate: Date;
+  activity: string;
   purpose: string;
   salesforceId: {
     required: boolean;
@@ -67,6 +69,7 @@ export type FormStateAction = {
   user?: UserProps;
   parameter?: ParameterProps;
   purpose?: string;
+  activity?: string;
   serviceNamespace?: ServiceNamespace;
   termsOfServiceAgreed?: boolean;
   salesforceId?: {
@@ -296,6 +299,7 @@ function reduceFormStateInit(
     workshop: null,
     error: '',
     usePoolIfAvailable: true,
+    activity: null,
     purpose: null,
     salesforceId: {
       required: false,
@@ -410,23 +414,23 @@ function reduceFormStateServiceNamespace(initialState: FormState, serviceNamespa
   };
 }
 
-function reduceFormStatePurpose(initialState: FormState, purpose: string): FormState {
-  const [_activity, _purpose] = purpose.split('-').map((x) => x.trim());
-  const newPurpose = !!_activity && !!_purpose ? `${_activity} - ${_purpose}` : null;
+function reduceFormStatePurpose(initialState: FormState, activity: string, purpose: string): FormState {
   return {
     ...initialState,
     salesforceId: {
       ...initialState.salesforceId,
-      required: salesforceIdRequired({ ...initialState, purpose: newPurpose }),
+      required: salesforceIdRequired({ ...initialState, purpose }),
     },
-    purpose: newPurpose,
+    activity,
+    purpose,
   };
 }
 
 function salesforceIdRequired(state: FormState): boolean {
   if (state.purpose) {
-    const [_activity] = state.purpose.split('-').map((x) => x.trim());
-    if (_activity === 'Customer Activity') return true;
+    const p = PurposeOpts.find((p) => p.name === state.purpose);
+    if (!p) return true;
+    if (p.sfdcRequired) return true;
   }
   if (state.user.isAdmin) return false;
   if (state.workshop && state.workshop.provisionCount > 1) return true;
@@ -457,7 +461,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         isValid: action.parameter.isValid,
       });
     case 'purpose':
-      return reduceFormStatePurpose(state, action.purpose);
+      return reduceFormStatePurpose(state, action.activity, action.purpose);
     case 'salesforceId':
       return reduceFormStateSalesforceId(state, action.salesforceId);
     case 'serviceNamespace':
@@ -489,12 +493,7 @@ export function checkEnableSubmit(state: FormState): boolean {
     return false;
   }
 
-  if (!state.purpose) {
-    return false;
-  }
-
-  const [_purpose, _activity] = state.purpose.split('-').map((x) => x.trim());
-  if (!_purpose || !_activity) {
+  if (!state.purpose || !state.activity) {
     return false;
   }
 
