@@ -98,7 +98,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     })
   );
   const activityObj = ActivityOpts.find((a) => a.name === formState.activity);
-  const purposeObj = PurposeOpts.find((p) => activityObj.id === p.activityId && formState.purpose.startsWith(p.name));
+  const purposeObj = PurposeOpts.find(
+    (p) => activityObj && activityObj.id === p.activityId && formState.purpose.startsWith(p.name)
+  );
   const submitRequestEnabled = checkEnableSubmit(formState);
 
   useEffect(() => {
