@@ -45,7 +45,7 @@ import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import DynamicFormInput from '@app/components/DynamicFormInput';
-import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
+import ActivityPurposeSelector, { ActivityOpts, PurposeOpts } from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
@@ -97,6 +97,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       user: { groups, roles, isAdmin },
     })
   );
+  const activityObj = ActivityOpts.find((a) => a.name === formState.activity);
+  const purposeObj = PurposeOpts.find((p) => activityObj.id === p.activityId && formState.purpose.startsWith(p.name));
   const submitRequestEnabled = checkEnableSubmit(formState);
 
   useEffect(() => {
@@ -302,8 +304,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             }
             helperTextInvalid={
               <FormHelperText icon={<ExclamationCircleIcon />} isError isHidden={false}>
-                {formState.purpose && formState.purpose.startsWith('Customer Activity')
-                  ? 'A valid Salesforce ID is required for all Customer Facing Events'
+                {purposeObj.sfdcRequired
+                  ? 'A valid Salesforce ID is required for the selected activity / purpose'
                   : null}
               </FormHelperText>
             }
