@@ -129,7 +129,7 @@ class ResourceClaim(K8sObject):
                         lab_user_interface = LabUserInterface(
                             url = state_vars['provision_data'][lab_ui_url_key]
                         )
-                    break
+                        break
             if 'provision_messages' in state_vars:
                 provision_messages.extend(state_vars['provision_messages'])
 
