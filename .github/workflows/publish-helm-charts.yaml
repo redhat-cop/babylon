@@ -29,10 +29,10 @@ jobs:
     - name: Package Helm Chart
       run: |
         VERSION=${GITHUB_REF#refs/tags/v}
-        sed -i helm/babylon/Chart.yaml -re "s/^(version|appVersion): .*/\1: $VERSION/"
+        sed -i helm/Chart.yaml -re "s/^(version|appVersion): .*/\1: $VERSION/"
 
-        helm dep up helm/babylon
-        helm package helm/babylon
+        helm dep up helm
+        helm package helm
         mv babylon-*.tgz gh-pages
         helm repo index --url https://redhat-cop.github.io/babylon gh-pages
 
