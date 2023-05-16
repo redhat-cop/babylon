@@ -1,0 +1,61 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon-cluster-admin
+  annotations:
+    description: >-
+      Cluster-wide admin access for Babylon resources.
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.anarchy.api.group }}
+  resources:
+  - anarchyactions
+  - anarchycommunes
+  - anarchygovernors
+  - anarchyruns
+  - anarchyrunners
+  - anarchysubjects
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourceclaims
+  - resourcehandles
+  - resourcepools
+  - resourceproviders
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - workshops
+  - workshopprovisions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update

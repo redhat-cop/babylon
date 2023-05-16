@@ -1,0 +1,33 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon-cluster-reader
+  annotations:
+    description: >-
+      Cluster-wide read access for Babylon resources.
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
+    {{- include "babylon.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.anarchy.api.group }}
+  resources:
+  - anarchyactions
+  - anarchycommunes
+  - anarchygovernors
+  - anarchyruns
+  - anarchyrunners
+  - anarchysubjects
+  verbs:
+  - get
+  - list
+  - watch

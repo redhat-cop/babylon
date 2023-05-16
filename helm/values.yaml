@@ -1,0 +1,80 @@
+---
+agnosticv:
+  api:
+    group: gpte.redhat.com
+    version: v1
+  deploy: true
+  executionEnvironmentAllowList:
+  # Allow everything from redhat official registry
+  - image: ^registry.redhat.io/
+  - image: ^registry.access.redhat.com/
+  # Allow EE built-in AAP2
+  - name: ^Ansible Engine 2.9 execution environment$
+  - name: ^Automation Hub Ansible Engine 2.9 execution environment$
+  - name: ^Automation Hub Default execution environment$
+  - name: ^Automation Hub Minimal execution environment$
+  - name: ^Control Plane Execution Environment$
+  - name: ^Default execution environment$
+  - name: ^Minimal execution environment$
+  # Allow AgnosticD ee images
+  - image: ^quay.io/agnosticd/ee-
+  # Allow custom aap2-workshop image
+  - name: ^aap2-workshop$
+  operator:
+    image:
+      repository: quay.io/rhpds/babylon-agnosticv-operator
+      tag: v1.1.1
+      pullPolicy: Always
+    resources:
+      limits:
+        cpu: "1"
+        memory: 512Mi
+      requests:
+        cpu: 500m
+        memory: 256Mi
+  repositories: {}
+
+anarchy:
+  ansibleRoles:
+    pre: []
+    sources: 
+      babylon_anarchy_governor:
+        src: https://github.com/rhpds/babylon_anarchy_governor.git
+        version: v0.19.2
+  api:
+    group: anarchy.gpte.redhat.com
+    version: v1
+  namespaces:
+  - name: babylon-anarchy
+    profile: standard
+  namespaceProfiles:
+    standard:
+      consecutiveFailureLimit: 10
+      maxReplicas: 10
+      minReplicas: 1
+      resources:
+        limits:
+          cpu: "1"
+          memory: "1Gi"
+        requests:
+          cpu: "500m"
+          memory: "512Mi"
+      runLimit: 500
+      scaleUpDelay: 5m
+      scaleUpThreshold: 15
+      scalingCheckInterval: 1m
+
+catalog:
+  api:
+    group: babylon.gpte.redhat.com
+    version: v1
+
+configNamespace:
+  name: babylon-config
+
+resourceBroker:
+  api:
+    group: poolboy.gpte.redhat.com
+    version: v1
+  namespace: poolboy
+  serviceAccountName: poolboy

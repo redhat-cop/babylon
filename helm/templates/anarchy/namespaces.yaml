@@ -1,0 +1,9 @@
+{{- range $namespace := .Values.anarchy.namespaces }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $namespace.name }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+{{- end }}

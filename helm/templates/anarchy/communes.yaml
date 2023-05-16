@@ -1,0 +1,14 @@
+{{- range $namespace := .Values.anarchy.namespaces }}
+---
+apiVersion: {{ $.Values.anarchy.api.group }}/{{ $.Values.anarchy.api.version }}
+kind: AnarchyCommune
+metadata:
+  name: anarchy
+  namespace: {{ $namespace.name }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+spec:
+  runners:
+    default:
+      {{- (get $.Values.anarchy.namespaceProfiles $namespace.profile) | toYaml | nindent 6 }}
+{{- end }}

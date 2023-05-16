@@ -1,0 +1,22 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon:anarchy:{{ .Values.resourceBroker.serviceAccountName }}-access
+  annotations:
+    description: >-
+      This cluster role is used to allow anarchy to manage ResourceClaims and ResourceHandles.
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourceclaims
+  - resourcehandles
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update

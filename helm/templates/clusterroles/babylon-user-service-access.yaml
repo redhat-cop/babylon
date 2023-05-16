@@ -1,0 +1,37 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon-user-service-access
+  annotations:
+    description: >-
+      Access to manage Babylon services.
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    {{- include "babylon.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourceclaims
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - workshops
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update
