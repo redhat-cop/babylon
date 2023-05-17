@@ -1,0 +1,15 @@
+{{- $notifier := .Values.notifier }}
+{{- if $notifier.deploy }}
+{{- $redis := $notifier.redis }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: notifier-redis
+  name: {{ $redis.persistentVolumeClaim.name | default "babylon-notifier-redis" }}
+  namespace: {{ $notifier.namespace.name }}
+spec:
+  {{- $redis.persistentVolumeClaim.spec | toYaml | nindent 2 }}
+{{- end }}

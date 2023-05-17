@@ -101,7 +101,7 @@ catalog:
             memory: "256Mi"
       redis:
         image:
-          pullPolicy: Always
+          pullPolicy: IfNotPresent
           repository: registry.redhat.io/rhel9/redis-6
           tag: 1-124
         resources:
@@ -144,6 +144,25 @@ notifier:
   namespace:
     create: true
     name: babylon-notifier
+  redis:
+    image:
+      pullPolicy: IfNotPresent
+      repository: registry.redhat.io/rhel9/redis-6
+      tag: 1-124
+    #persistentVolumeClaim:
+    #  spec:
+    #    accessModes:
+    #    - ReadWriteOnce
+    #    resources:
+    #      requests:
+    #        storage: 1Gi
+    resources:
+      limits:
+        cpu: "1"
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
   resources:
     limits:
       cpu: "1"

@@ -1,5 +1,5 @@
 {{- $notifier := .Values.notifier }}
-{{- if and $notifier.deploy }}
+{{- if $notifier.deploy }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -8,6 +8,7 @@ metadata:
   namespace: {{ $notifier.namespace.name }}
   labels:
     {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: notifier
 spec:
   replicas: 1
   selector:
