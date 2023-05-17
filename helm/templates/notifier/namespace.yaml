@@ -1,0 +1,7 @@
+{{- if and .Values.notifier.deploy .Values.notifier.namespace.create }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.notifier.namespace.name }}
+{{- end }}
