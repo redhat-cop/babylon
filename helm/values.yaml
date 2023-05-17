@@ -72,6 +72,11 @@ catalog:
 configNamespace:
   name: babylon-config
 
+notifier:
+  namespace:
+    create: true
+    name: babylon-notifier
+
 resourceBroker:
   api:
     group: poolboy.gpte.redhat.com
