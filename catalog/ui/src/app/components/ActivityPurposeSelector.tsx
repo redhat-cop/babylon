@@ -80,6 +80,7 @@ const ActivityPurposeSelector: React.FC<{
                   onChange={() => {
                     setActivity(activityOpt.name);
                     setPurpose('');
+                    setExplanation('');
                     onChange(activityOpt.name, null, null);
                   }}
                   label={activityOpt.name}
@@ -98,6 +99,7 @@ const ActivityPurposeSelector: React.FC<{
               isOpen={isOpen}
               onSelect={(_, _purpose) => {
                 setPurpose(_purpose as string);
+                setExplanation('');
                 setIsOpen(false);
                 onChange(activity, _purpose as string, null);
               }}
