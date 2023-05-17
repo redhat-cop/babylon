@@ -11,7 +11,6 @@ spec:
     listKind: AgnosticVReposList
     plural: agnosticvrepos
     singular: agnosticvrepo
-    shortNames: []
   versions:
   - name: v1
     served: true
