@@ -470,7 +470,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         isValid: action.parameter.isValid,
       });
     case 'purpose':
-      return reduceFormStatePurpose(state, action.activity, action.purpose);
+      return reduceFormStatePurpose(state, action.activity, action.purpose, action.explanation);
     case 'salesforceId':
       return reduceFormStateSalesforceId(state, action.salesforceId);
     case 'serviceNamespace':
