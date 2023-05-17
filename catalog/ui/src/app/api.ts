@@ -1208,8 +1208,8 @@ export async function setLifespanEndForResourceClaim(
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
-  let updatedMaxDate: Nullable<string> = null;
-  let updatedRelativeMaxDate: Nullable<string> = null;
+  let updatedMaxDate: string = null;
+  let updatedRelativeMaxDate: string = null;
   if (resourceClaim.status?.lifespan?.maximum) {
     const maxDate = new Date(resourceClaim.metadata.creationTimestamp);
     maxDate.setDate(maxDate.getDate() + parseInt(resourceClaim.status.lifespan.maximum.slice(0, -1), 10));
@@ -1245,8 +1245,16 @@ export async function setLifespanEndForResourceClaim(
       {
         spec: {
           lifespan: {
-            ...(updatedMaxDate ? { maximum: updatedMaxDate } : {}),
-            ...(updatedRelativeMaxDate ? { relativeMaximum: updatedRelativeMaxDate } : {}),
+            ...(updatedMaxDate
+              ? {
+                  maximum: `{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}${updatedMaxDate}{% endif %}`,
+                }
+              : {}),
+            ...(updatedRelativeMaxDate
+              ? {
+                  relativeMaximum: `{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}${updatedRelativeMaxDate}d{% endif %}`,
+                }
+              : {}),
           },
         },
       }
