@@ -74,9 +74,20 @@ configNamespace:
 
 notifier:
   deploy: false
+  image:
+    repository: quay.io/redhat-gpte/babylon-notifier
+    pullPolicy: IfNotPresent
   namespace:
     create: true
     name: babylon-notifier
+  resources:
+    limits:
+      cpu: "1"
+      memory: 640Mi
+    requests:
+      cpu: 100m
+      memory: 640Mi
+  version: v0.4.5
 
 resourceBroker:
   api:

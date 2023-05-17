@@ -1,0 +1,111 @@
+{{- $notifier := .Values.notifier }}
+{{- if and $notifier.deploy }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-notifier
+  namespace: {{ $notifier.namespace.name }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "babylon.labels" . | nindent 6 }}
+      app.kubernetes.io/component: notifier
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.labels" . | nindent 8 }}
+        app.kubernetes.io/component: notifier
+    spec:
+      containers:
+      - name: notifier
+        env:
+        - name: SMTP_FROM
+          value: {{ required ".Values.notifier.smtp.from is required!" $notifier.smtp.from | quote }}
+        - name: SMTP_HOST
+          value: {{ required ".Values.notifier.smtp.host is required!" $notifier.smtp.host | quote }}
+        - name: SMTP_PORT
+          value: {{ required ".Values.notifier.smtp.port is required!" $notifier.smtp.port | quote }}
+        {{- if ($notifier.smtp.tls).ca }}
+        - name: SMTP_TLS_CA_CERT
+          value: |
+            {{- $notifier.smtp.tls.ca | nindent 12 }}
+        {{- end }}
+        {{- if or ($notifier.smtp.tls).crt ($notifier.smtp.tls).clientCertificateSecret }}
+        - name: SMTP_TLS_CERT_FILE
+          value: /smtp-tls/tls.crt
+        {{- end }}
+        {{- if or ($notifier.smtp.tls).key ($notifier.smtp.tls).clientCertificateSecret }}
+        - name: SMTP_TLS_KEY_FILE
+          value: /smtp-tls/tls.key
+        {{- end }}
+        {{- if $notifier.smtp.account }}
+        - name: SMTP_USER
+          valueFrom:
+            secretKeyRef:
+              key: smtp_account
+              name: {{ ($notifier.smtp.tls).clientCertificateSecret | default "babylon-notifier-smtp-credentials" }}
+        - name: SMTP_USER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: smtp_password
+              name: {{ ($notifier.smtp.tls).clientCertificateSecret | default "babylon-notifier-smtp-credentials" }}
+        {{- end }}
+        - name: REDIS_HOST
+          value: babylon-notifier-redis
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-password
+              name: babylon-notifier-redis
+        {{- with $notifier.onlySendTo }}
+        - name: ONLY_SEND_TO
+          value: {{ . | quote }}
+        {{- end }}
+        image: {{ $notifier.image.repository }}:{{ $notifier.version }}
+        imagePullPolicy: {{ $notifier.image.pullPolicy }}
+        resources:
+          {{- toYaml $notifier.resources | nindent 12 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        volumeMounts:
+        {{- if or ($notifier.smtp.tls).crt ($notifier.smtp.tls).clientCertificateSecret }}
+        - name: smtp-tls
+          mountPath: /smtp-tls
+          readOnly: true
+        {{- end }}
+      {{- with $notifier.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $notifier.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: babylon-notifier
+      terminationGracePeriodSeconds: 30
+      {{- with $notifier.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $notifier.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      {{- if or ($notifier.smtp.tls).crt ($notifier.smtp.tls).clientCertificateSecret }}
+      - name: smtp-tls
+        secret:
+          defaultMode: 0440
+          secretName: {{ $notifier.smtp.tls.clientCertificateSecret | default "babylon-notifier-smtp-tls" }}
+      {{- end }}
+{{- end }}
