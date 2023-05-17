@@ -12,14 +12,14 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      {{- include "babylon.labels" . | nindent 6 }}
+      {{- include "babylon.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: notifier
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        {{- include "babylon.labels" . | nindent 8 }}
+        {{- include "babylon.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: notifier
     spec:
       containers:
@@ -67,7 +67,7 @@ spec:
         - name: ONLY_SEND_TO
           value: {{ . | quote }}
         {{- end }}
-        image: {{ $notifier.image.repository }}:{{ $notifier.version }}
+        image: {{ $notifier.image.repository }}:{{ $notifier.image.tag }}
         imagePullPolicy: {{ $notifier.image.pullPolicy }}
         resources:
           {{- toYaml $notifier.resources | nindent 12 }}

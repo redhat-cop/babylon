@@ -1,0 +1,10 @@
+{{- range $namespace, $_ := .Values.catalog.interfaces }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog
+  name: {{ $namespace }}
+{{- end }}

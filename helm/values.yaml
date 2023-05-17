@@ -68,6 +68,69 @@ catalog:
   api:
     group: babylon.gpte.redhat.com
     version: v1
+  interfaces:
+    babylon-catalog:
+      api:
+        gunicorn:
+          processes: 5
+          threads: 1
+        image:
+          repository: quay.io/redhat-gpte/babylon-catalog-api
+          pullPolicy: IfNotPresent
+          tag: v0.11.3
+        replicaCount: 1
+        resources:
+          requests:
+            cpu: 500m
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+      oauthProxy:
+        image:
+          pullPolicy: Always
+          repository: registry.redhat.io/openshift4/ose-oauth-proxy
+          tag: v4.10
+        replicaCount: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "256Mi"
+      redis:
+        image:
+          pullPolicy: Always
+          repository: registry.redhat.io/rhel9/redis-6
+          tag: 1-124
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 256Mi
+      route:
+        certManager:
+          enable: false
+        certUtilsOperator:
+          enable: false
+        create: true
+        host: # Default is rhdp.{{ ingressDomain }}
+      ui:
+        image:
+          repository: quay.io/redhat-gpte/babylon-catalog-ui
+          pullPolicy: IfNotPresent
+          tag: v0.29.7
+        replicaCount: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "256Mi"
 
 configNamespace:
   name: babylon-config
@@ -77,6 +140,7 @@ notifier:
   image:
     repository: quay.io/redhat-gpte/babylon-notifier
     pullPolicy: IfNotPresent
+    tag: v0.4.5
   namespace:
     create: true
     name: babylon-notifier
@@ -87,7 +151,6 @@ notifier:
     requests:
       cpu: 100m
       memory: 640Mi
-  version: v0.4.5
 
 resourceBroker:
   api:
