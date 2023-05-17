@@ -88,7 +88,7 @@ spec:
       - name: redis-data
         {{- if $redis.persistentVolumeClaim }}
         persistentVolumeClaim:
-          claimName: {{- .claimName | default "babylon-notifier-redis" }}
+          claimName: {{ $redis.persistentVolumeClaim.name | default "babylon-notifier-redis" }}
         {{- else }}
         emptyDir: {}
         {{- end }}
