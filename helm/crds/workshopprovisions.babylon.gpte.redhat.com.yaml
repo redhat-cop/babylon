@@ -1,0 +1,122 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: workshopprovisions.babylon.gpte.redhat.com
+spec:
+  conversion:
+    strategy: None
+  group: babylon.gpte.redhat.com
+  names:
+    kind: WorkshopProvision
+    listKind: WorkshopProvisionList
+    plural: workshopprovisions
+    singular: workshopprovision
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: >-
+          Provision configuration for a workshop.
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            properties:
+              name:
+                maxLength: 63
+                pattern: ^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$
+                type: string
+            type: object
+          spec:
+            description: >-
+              Specification of Workshop.
+            type: object
+            required:
+            - catalogItem
+            - count
+            - workshopName
+            properties:
+              actionSchedule:
+                description: >-
+                  Configuration for when services should start and stop.
+                type: object
+                properties:
+                  start:
+                    description: >-
+                      Time when service should start. If in the future then service should be stopped.
+                    type: string
+                    format: date-time
+                  stop:
+                    description: >-
+                      Time when service should stop. If in the past then service should be stopped.
+                    type: string
+                    format: date-time
+              catalogItem:
+                description: >-
+                  CatalogItem for workshop.
+                type: object
+                required:
+                - name
+                - namespace
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+              concurrency:
+                description: >-
+                  Maximum number of concurrent provisions for scaling up workshop.
+                  Default: 10
+                type: integer
+              count:
+                description: >-
+                  Target number of services to provision.
+                type: integer
+              lifespan:
+                description: >-
+                  Lifespan settings for this workshop provision.
+                type: object
+                properties:
+                  end:
+                    description: >-
+                      End of lifespan for workshop provision and provisioned ResourceClaims.
+                    type: string
+                    format: date-time
+                  start:
+                    description: >-
+                      Scheduled start for provisioning to begin for workshop.
+                    type: string
+                    format: date-time
+              parameters:
+                description: >-
+                  Parameter values to use with catalog item provisioning.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              startDelay:
+                description: >-
+                  Number of seconds to delay between starting provisions to prevent flooding the provisioning infrastructure.
+                  Default: 10.
+                type: integer
+                minimum: 1
+              workshopName:
+                description: >-
+                  Workshop name reference.
+                type: string
+          status:
+            description: Status of Workshop
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+

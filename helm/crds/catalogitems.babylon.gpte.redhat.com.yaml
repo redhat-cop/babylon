@@ -1,0 +1,50 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: catalogitems.babylon.gpte.redhat.com
+spec:
+  conversion:
+    strategy: None
+  group: babylon.gpte.redhat.com
+  names:
+    kind: CatalogItem
+    listKind: CatalogItemList
+    plural: catalogitems
+    singular: catalogitem
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Catalog item for Babylon
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            properties:
+              name:
+                maxLength: 63
+                pattern: ^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$
+                type: string
+            type: object
+          spec:
+            description: Specification of CatalogItem
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status of CatalogItem
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
