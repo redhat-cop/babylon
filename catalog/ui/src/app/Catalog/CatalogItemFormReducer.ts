@@ -40,6 +40,7 @@ type FormState = {
   endDate: Date;
   activity: string;
   purpose: string;
+  explanation?: string;
   salesforceId: {
     required: boolean;
     value?: string;
@@ -70,6 +71,7 @@ export type FormStateAction = {
   parameter?: ParameterProps;
   purpose?: string;
   activity?: string;
+  explanation?: string;
   serviceNamespace?: ServiceNamespace;
   termsOfServiceAgreed?: boolean;
   salesforceId?: {
@@ -301,6 +303,7 @@ function reduceFormStateInit(
     usePoolIfAvailable: true,
     activity: null,
     purpose: null,
+    explanation: null,
     salesforceId: {
       required: false,
       value: null,
@@ -414,7 +417,12 @@ function reduceFormStateServiceNamespace(initialState: FormState, serviceNamespa
   };
 }
 
-function reduceFormStatePurpose(initialState: FormState, activity: string, purpose: string): FormState {
+function reduceFormStatePurpose(
+  initialState: FormState,
+  activity: string,
+  purpose: string,
+  explanation: string
+): FormState {
   return {
     ...initialState,
     salesforceId: {
@@ -423,6 +431,7 @@ function reduceFormStatePurpose(initialState: FormState, activity: string, purpo
     },
     activity,
     purpose,
+    explanation,
   };
 }
 

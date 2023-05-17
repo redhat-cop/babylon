@@ -133,6 +133,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }
     parameterValues['purpose'] = formState.purpose;
     parameterValues['purpose_activity'] = formState.activity;
+    parameterValues['purpose_explanation'] = formState.explanation;
     if (formState.salesforceId.value) {
       parameterValues['salesforce_id'] = formState.salesforceId.value;
     }
@@ -277,11 +278,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         <>
           <ActivityPurposeSelector
             value={{ purpose: formState.purpose, activity: formState.activity }}
-            onChange={(activity: string, purpose: string) => {
+            onChange={(activity: string, purpose: string, explanation: string) => {
               dispatchFormState({
                 type: 'purpose',
                 activity,
                 purpose,
+                explanation,
               });
             }}
           />

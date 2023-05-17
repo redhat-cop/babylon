@@ -454,6 +454,10 @@ export async function createServiceRequest({
       requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`] =
         parameterValues.purpose_activity as string;
     }
+    if (parameterValues.purpose_explanation) {
+      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] =
+        parameterValues.purpose_explanation as string;
+    }
     if (parameterValues.salesforce_id) {
       requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] =
         parameterValues.salesforce_id as string;

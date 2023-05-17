@@ -43,14 +43,14 @@ export const PurposeOpts = [
   { name: 'Other', activityId: 6, id: 29, requireUserInput: true, sfdcRequired: false },
 ];
 const ActivityPurposeSelector: React.FC<{
-  onChange: (activity: string, purpose: string, sfdcRequired: boolean) => void;
-  value?: { purpose?: string; activity?: string };
+  onChange: (activity: string, purpose: string, explanation: string) => void;
+  value?: { purpose?: string; activity?: string; explanation?: string };
 }> = ({ onChange, value }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { groups } = useSession().getSession();
   const [activity, setActivity] = useState(value.activity || '');
   const [purpose, setPurpose] = useState(value.purpose || '');
-
+  const [explanation, setExplanation] = useState(value.explanation || '');
   return (
     <>
       <FormGroup
@@ -80,7 +80,7 @@ const ActivityPurposeSelector: React.FC<{
                   onChange={() => {
                     setActivity(activityOpt.name);
                     setPurpose('');
-                    onChange(activityOpt.name, null, true);
+                    onChange(activityOpt.name, null, null);
                   }}
                   label={activityOpt.name}
                   id={`activity-${activityOpt.id}`}
@@ -99,7 +99,7 @@ const ActivityPurposeSelector: React.FC<{
               onSelect={(_, _purpose) => {
                 setPurpose(_purpose as string);
                 setIsOpen(false);
-                onChange(activity, _purpose as string, true);
+                onChange(activity, _purpose as string, null);
               }}
               onToggle={() => setIsOpen((v) => !v)}
               placeholderText="- Select purpose -"
@@ -116,18 +116,17 @@ const ActivityPurposeSelector: React.FC<{
               ))}
             </Select>
           </div>
-          {purpose && purpose.startsWith('Other') ? (
+          {purpose && purpose === 'Other' ? (
             <div className="catalog-item-form__group-control--single">
               <div className="select-wrapper">
                 <TextInput
                   aria-label="Specify purpose"
                   placeholder="Specify purpose"
-                  onChange={(_purpose) => {
-                    const p = 'Other: ' + _purpose;
-                    setPurpose(p);
-                    onChange(activity, p, true);
+                  onChange={(_explanation) => {
+                    setExplanation(_explanation);
+                    onChange(activity, purpose, _explanation);
                   }}
-                  value={purpose.split(': ').length > 1 ? purpose.split(': ')[1] : ''}
+                  value={explanation}
                 />
               </div>
             </div>
