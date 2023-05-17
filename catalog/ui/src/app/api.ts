@@ -1247,14 +1247,12 @@ export async function setLifespanEndForResourceClaim(
           lifespan: {
             ...(updatedMaxDate
               ? {
-                  maximum: `{% if resource_claim.annotations['demo.redhat.com/open-environment'] |
-            default(false) | bool %}365d{% else %}${updatedMaxDate}{% endif %}`,
+                  maximum: `{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}${updatedMaxDate}{% endif %}`,
                 }
               : {}),
             ...(updatedRelativeMaxDate
               ? {
-                  relativeMaximum: `{% if resource_claim.annotations['demo.redhat.com/open-environment'] |
-            default(false) | bool %}365d{% else %}${updatedRelativeMaxDate}d{% endif %}`,
+                  relativeMaximum: `{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}${updatedRelativeMaxDate}d{% endif %}`,
                 }
               : {}),
           },
