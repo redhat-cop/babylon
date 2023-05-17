@@ -73,6 +73,7 @@ configNamespace:
   name: babylon-config
 
 notifier:
+  deploy: false
   namespace:
     create: true
     name: babylon-notifier
