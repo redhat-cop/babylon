@@ -9,7 +9,7 @@ metadata:
   namespace: {{ $.Values.configNamespace.name }}
 rules:
 - apiGroups:
-  - {{ .Values.agnosticv.apiGroup }}
+  - {{ .Values.agnosticv.api.group }}
   resources:
   - agnosticvrepos
   verbs:
@@ -19,7 +19,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - {{ .Values.agnosticv.apiGroup }}
+  - {{ .Values.agnosticv.api.group }}
   resources:
   - agnosticvrepos/status
   verbs:
@@ -27,7 +27,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - {{ .Values.agnosticv.apiGroup }}
+  - {{ .Values.agnosticv.api.group }}
   resources:
   - agnosticvcomponents
   - agnosticvcomponents/status
@@ -47,7 +47,6 @@ rules:
   - get
 - apiGroups:
   - ""
-  attributeRestrictions: null
   resources:
   - events
   verbs:
