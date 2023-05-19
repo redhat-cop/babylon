@@ -1,0 +1,45 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: agnosticv-operator
+  name: babylon-agnosticv-operator
+rules:
+- apiGroups:
+  - {{ .Values.anarchy.api.group }}
+  resources:
+  - anarchygovernors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.anarchy.api.group }}
+  resources:
+  - catalogitems
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourceproviders
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

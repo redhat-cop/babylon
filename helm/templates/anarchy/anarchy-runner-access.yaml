@@ -8,6 +8,7 @@ metadata:
       This cluster role is used to allow anarchy to manage ResourceClaims and ResourceHandles.
   labels:
     {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: anarchy
 rules:
 - apiGroups:
   - {{ .Values.resourceBroker.api.group }}

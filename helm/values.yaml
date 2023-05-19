@@ -24,7 +24,7 @@ agnosticv:
     image:
       repository: quay.io/rhpds/babylon-agnosticv-operator
       tag: v1.1.1
-      pullPolicy: Always
+      pullPolicy: IfNotPresent
     resources:
       limits:
         cpu: "1"
@@ -32,7 +32,15 @@ agnosticv:
       requests:
         cpu: 500m
         memory: 256Mi
+  pollingInterval: 1m
   repositories: {}
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 500m
+      memory: 256Mi
 
 anarchy:
   ansibleRoles:

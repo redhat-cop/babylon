@@ -1,0 +1,42 @@
+{{- $agnosticv := $.Values.agnosticv }}
+{{- range $name, $repo := .Values.agnosticv.repositories }}
+---
+apiVersion: {{ $agnosticv.api.group }}/{{ $agnosticv.api.version }}
+kind: AgnosticVRepo
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: agnosticv-operator
+  name: {{ $name }}
+  namespace: {{ $.Values.configNamespace.name }}
+spec:
+  {{- range $k, $v := $repo.spec }}
+  {{- if and (ne $k "anarchy") (ne $k "gitHub") (ne $k "sshKey") }}
+  {{- (dict $k $v) | toYaml | indent 2 }}
+  {{- end }}
+  {{- end }}
+  {{- with ($repo.anarchy).collections | default $.Values.anarchy.collections }}
+  babylonAnarchyCollections:
+  {{- . | toYaml | indent 2 }}
+  {{- end }}
+  {{- with ($repo.anarchy).roles | default $.Values.anarchy.roles }}
+  babylonAnarchyRoles:
+  {{- . | toYaml | indent 2 }}
+  {{- end }}
+  {{- with $repo.gitHub }}
+  gitHub:
+    {{- if .tokenSecret }}
+    tokenSecret: {{ $repo.tokenSecret }}
+    {{- else }}
+    tokenSecret: {{ $name }}-github
+    {{- end }}
+    {{- range $k, $v := $repo.gitHub }}
+    {{- if ne $k "tokenSecret" }}
+    {{- (dict $k $v) | toYaml | indent 4 }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- with $repo.sshKey }}
+  sshKey: {{ . }}
+  {{- end }}
+{{- end }}
