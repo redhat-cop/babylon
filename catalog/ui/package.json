@@ -43,7 +43,7 @@
     "babel-loader": "^9.1.2",
     "babel-plugin-transform-imports": "^2.0.0",
     "copy-webpack-plugin": "^11.0.0",
-    "css-loader": "^6.7.3",
+    "css-loader": "^6.7.4",
     "css-minimizer-webpack-plugin": "^5.0.0",
     "dotenv-webpack": "^8.0.1",
     "eslint": "^8.40.0",
