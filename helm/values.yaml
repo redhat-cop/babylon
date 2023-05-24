@@ -76,24 +76,26 @@ catalog:
   api:
     group: babylon.gpte.redhat.com
     version: v1
+  defaults:
+    api:
+      gunicorn:
+        processes: 5
+        threads: 1
+      image:
+        repository: quay.io/redhat-gpte/babylon-catalog-api
+        pullPolicy: IfNotPresent
+        tag: v0.11.3
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 500m
+          memory: "2Gi"
+        limits:
+          cpu: "2"
+          memory: "2Gi"
+
   interfaces:
     babylon-catalog:
-      api:
-        gunicorn:
-          processes: 5
-          threads: 1
-        image:
-          repository: quay.io/redhat-gpte/babylon-catalog-api
-          pullPolicy: IfNotPresent
-          tag: v0.11.3
-        replicaCount: 1
-        resources:
-          requests:
-            cpu: 500m
-            memory: "2Gi"
-          limits:
-            cpu: "2"
-            memory: "2Gi"
       oauthProxy:
         image:
           pullPolicy: Always

@@ -1,0 +1,79 @@
+{{- range $namespace, $_interface := .Values.catalog.interfaces }}
+{{- $interface := merge $_interface (deepCopy $.Values.catalog.defaults) }}
+{{- $api := $interface.api }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-catalog-api
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-api
+spec:
+  replicas: {{ $api.replicaCount | default 1}}
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: catalog-api
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: catalog-api
+    spec:
+      {{- with $api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: api
+        env:
+        {{- with $interface.interfaceName }}
+        - name: INTERFACE_NAME
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with $interface.salesforceSecretName }}
+        - name: SALESFORCE_SECRET
+          value: {{ . | quote }}
+        {{- end }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: babylon-catalog-redis
+              key: database-password
+        - name: REDIS_SERVER
+          value: babylon-catalog-redis
+        - name: REDIS_PORT
+          value: "6379"
+        - name: GUNICORN_PROCESSES
+          value: "{{ $api.gunicorn.processes }}"
+        - name: GUNICORN_THREADS
+          value: "{{ $api.gunicorn.threads }}"
+        image: {{ $api.image.repository }}:{{ $api.image.tag }}
+        imagePullPolicy: {{ $api.image.pullPolicy }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        {{- with $api.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with $api.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: babylon-catalog-api
+      {{- with $api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

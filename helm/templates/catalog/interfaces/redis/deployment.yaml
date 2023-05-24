@@ -1,4 +1,5 @@
-{{- range $namespace, $interface := .Values.catalog.interfaces }}
+{{- range $namespace, $_interface := .Values.catalog.interfaces }}
+{{- $interface := merge $_interface (deepCopy $.Values.catalog.defaults) }}
 {{- $redis := $interface.redis }}
 ---
 apiVersion: apps/v1

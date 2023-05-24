@@ -1,0 +1,21 @@
+{{- range $namespace, $_ := .Values.catalog.interfaces }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: babylon-catalog-redis
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-redis
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    {{- include "babylon.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-redis
+{{- end }}
