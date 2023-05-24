@@ -8,10 +8,30 @@ metadata:
   name: babylon-catalog-api
 rules:
 - apiGroups:
-  - babylon.gpte.redhat.com
+  - ""
+  - user.openshift.io
   resources:
-  - catalogitems
+  - groups
+  - users
+  verbs:
+  - get
+  - impersonate
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - secrets
   verbs:
   - get
   - list
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - workshops
+  verbs:
+  - get
+  - list
+  - patch
   - watch
+  - update
