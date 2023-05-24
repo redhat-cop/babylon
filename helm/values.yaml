@@ -82,8 +82,8 @@ catalog:
         processes: 5
         threads: 1
       image:
-        repository: quay.io/redhat-gpte/babylon-catalog-api
         pullPolicy: IfNotPresent
+        repository: quay.io/redhat-gpte/babylon-catalog-api
         tag: v0.11.3
       replicaCount: 1
       resources:
@@ -93,6 +93,19 @@ catalog:
         limits:
           cpu: "2"
           memory: "2Gi"
+    ui:
+      image:
+        pullPolicy: IfNotPresent
+        repository: quay.io/redhat-gpte/babylon-catalog-ui
+        tag: v0.29.7
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: "256Mi"
+        limits:
+          cpu: "1"
+          memory: "256Mi"
 
   interfaces:
     babylon-catalog:

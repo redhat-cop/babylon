@@ -1,0 +1,21 @@
+{{- range $namespace, $interface := .Values.catalog.interfaces }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: babylon-catalog-ui
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-ui
+spec:
+  ports:
+  - name: api
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    {{- include "babylon.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-ui
+  type: ClusterIP
+{{- end }}
