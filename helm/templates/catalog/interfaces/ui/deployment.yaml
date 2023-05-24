@@ -5,7 +5,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: babylon-catalog-api
+  name: babylon-catalog-ui
   namespace: {{ $namespace }}
   labels:
     {{- include "babylon.labels" $ | nindent 4 }}
