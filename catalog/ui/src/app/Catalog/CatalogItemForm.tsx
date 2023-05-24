@@ -675,7 +675,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       <div className="catalog-item-form__group-control--single">
                         <PatientNumberInput
                           min={1}
-                          max={20}
+                          max={30}
                           onChange={(v) =>
                             dispatchFormState({
                               type: 'workshop',
