@@ -1,20 +1,20 @@
-{{- range $namespace, $_ := .Values.catalog.namespaces }}
+{{- range $namespace, $config := .Values.catalog.namespaces }}
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   annotations:
-    {{- with $namespace.description }}
+    {{- with $config.description }}
     openshift.io/description: {{ . | quote }}
     {{- end }}
-    {{- with $namespace.displayName }}
+    {{- with $config.displayName }}
     openshift.io/display-name: {{ . | quote }}
     {{- end }}
   labels:
     {{- include "babylon.labels" $ | nindent 4 }}
     app.kubernetes.io/component: catalog
     babylon.gpte.redhat.com/catalog: ""
-    {{- with $namespace.interface }}
+    {{- with $config.interface }}
     babylon.gpte.redhat.com/interface: {{ . | quote }}
     {{- end }}
   name: {{ $namespace }}
