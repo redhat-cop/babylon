@@ -20,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - {{ .Values.anarchy.api.group }}
+  - {{ .Values.catalog.api.group }}
   resources:
   - catalogitems
   verbs:
