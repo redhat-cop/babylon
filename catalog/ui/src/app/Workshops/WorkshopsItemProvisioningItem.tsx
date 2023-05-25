@@ -122,7 +122,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
               <DescriptionListDescription>
                 <PatientNumberInput
                   min={1}
-                  max={10}
+                  max={30}
                   onChange={(value: number) => patchWorkshopProvisionSpec({ concurrency: value })}
                   value={workshopProvision.spec.concurrency}
                   style={{ paddingRight: 'var(--pf-global--spacer--md)' }}
