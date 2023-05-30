@@ -342,7 +342,17 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <DescriptionListGroup className="catalog-item-details__last-update">
                   <DescriptionListTerm>Last update</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <TimeInterval toTimestamp={lastUpdate.git.when_committer} />
+                    {isAdmin || isLabDeveloper(groups) ? (
+                      <a
+                        href={`https://github.com/rhpds/agnosticv/commit/${lastUpdate.git.hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <TimeInterval toTimestamp={lastUpdate.git.when_committer} />
+                      </a>
+                    ) : (
+                      <TimeInterval toTimestamp={lastUpdate.git.when_committer} />
+                    )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
