@@ -93,6 +93,36 @@ catalog:
         limits:
           cpu: "2"
           memory: "2Gi"
+    oauthProxy:
+      image:
+        pullPolicy: Always
+        repository: registry.redhat.io/openshift4/ose-oauth-proxy
+        tag: v4.10
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: "256Mi"
+        limits:
+          cpu: "1"
+          memory: "256Mi"
+    redis:
+      image:
+        pullPolicy: IfNotPresent
+        repository: registry.redhat.io/rhel9/redis-6
+        tag: 1-124
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: "1"
+          memory: 256Mi
+    route:
+      certManager:
+        enable: false
+      certUtilsOperator:
+        enable: false
     ui:
       image:
         pullPolicy: IfNotPresent
@@ -106,54 +136,8 @@ catalog:
         limits:
           cpu: "1"
           memory: "256Mi"
-
   interfaces:
-    babylon-catalog:
-      oauthProxy:
-        image:
-          pullPolicy: Always
-          repository: registry.redhat.io/openshift4/ose-oauth-proxy
-          tag: v4.10
-        replicaCount: 1
-        resources:
-          requests:
-            cpu: 100m
-            memory: "256Mi"
-          limits:
-            cpu: "1"
-            memory: "256Mi"
-      redis:
-        image:
-          pullPolicy: IfNotPresent
-          repository: registry.redhat.io/rhel9/redis-6
-          tag: 1-124
-        resources:
-          requests:
-            cpu: 100m
-            memory: 256Mi
-          limits:
-            cpu: "1"
-            memory: 256Mi
-      route:
-        certManager:
-          enable: false
-        certUtilsOperator:
-          enable: false
-        create: true
-        host: # Default is rhdp.{{ ingressDomain }}
-      ui:
-        image:
-          repository: quay.io/redhat-gpte/babylon-catalog-ui
-          pullPolicy: IfNotPresent
-          tag: v0.29.7
-        replicaCount: 1
-        resources:
-          requests:
-            cpu: 100m
-            memory: "256Mi"
-          limits:
-            cpu: "1"
-            memory: "256Mi"
+    babylon-catalog: {}
 
 configNamespace:
   name: babylon-config

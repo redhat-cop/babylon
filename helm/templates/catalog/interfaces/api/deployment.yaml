@@ -5,11 +5,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: babylon-catalog-api
-  namespace: {{ $namespace }}
   labels:
     {{- include "babylon.labels" $ | nindent 4 }}
     app.kubernetes.io/component: catalog-api
+  name: babylon-catalog-api
+  namespace: {{ $namespace }}
 spec:
   replicas: {{ $api.replicaCount | default 1}}
   selector:

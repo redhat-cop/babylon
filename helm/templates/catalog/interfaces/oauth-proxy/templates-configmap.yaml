@@ -1,0 +1,17 @@
+{{- range $namespace, $_interface := .Values.catalog.interfaces }}
+{{- $interface := merge $_interface (deepCopy $.Values.catalog.defaults) }}
+{{- $oauthProxy := $interface.oauthProxy }}
+{{- with $oauthProxy.templates }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-oauth-proxy
+  name: babylon-oauth-proxy-templates
+  namespace: {{ $namespace }}
+data:
+  {{- . | toYaml | nindent 2 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,112 @@
+{{- range $namespace, $_interface := .Values.catalog.interfaces }}
+{{- $interface := merge $_interface (deepCopy $.Values.catalog.defaults) }}
+{{- $oauthProxy := $interface.oauthProxy }}
+{{- $domain := $interface.route.host | default (printf "%s.%s" $namespace $.Values.ingressDomain) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-oauth-proxy
+  name: babylon-catalog-oauth-proxy
+  namespace: {{ $namespace }}
+spec:
+  replicas: {{ $oauthProxy.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: catalog-oauth-proxy
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: catalog-oauth-proxy
+    spec:
+      {{- with $oauthProxy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: oauth-proxy
+        args:
+        - --cookie-domain={{ $domain }}
+        - --cookie-secure=true
+        {{- if $oauthProxy.templates }}
+        - --custom-templates-dir=/templates
+        {{- end }}
+        - --https-address=:8443
+        - --logout-url=/
+        - --openshift-service-account=babylon-catalog-oauth-proxy
+        - --provider=openshift
+        - --skip-auth-regex=^/(api/)?workshop($|/.*)
+        - --skip-auth-regex=^/support($|/)
+        - --skip-auth-regex=^/fonts/.*
+        - --skip-auth-regex=^/images/.*
+        - --skip-auth-regex=^/public/.*
+        - --skip-auth-regex=(.js|.html|.css|.map|.txt)($|\?.*)
+        - --skip-provider-button=true
+        - --tls-cert=/etc/tls/private/tls.crt
+        - --tls-key=/etc/tls/private/tls.key
+        - --upstream=http://babylon-catalog-api:8080/api/
+        - --upstream=http://babylon-catalog-api:8080/apis/
+        - --upstream=http://babylon-catalog-api:8080/auth/
+        - --upstream=http://babylon-catalog-ui:8080
+        env:
+        - name: OAUTH2_PROXY_COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: babylon-catalog-oauth-proxy-cookie
+              key: cookieSecret
+        - name: OAUTH2_PROXY_CLIENT_ID
+          value: {{ $namespace }}
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: babylon-catalog-oauth-proxy-client
+              key: clientSecret
+        image: {{ $oauthProxy.image.repository }}:{{ $oauthProxy.image.tag }}
+        imagePullPolicy: {{ $oauthProxy.image.pullPolicy }}
+        ports:
+        - containerPort: 8443
+          name: public
+          protocol: TCP
+        resources: {}
+        volumeMounts:
+        - name: proxy-tls
+          mountPath: /etc/tls/private
+        {{- if $oauthProxy.templates }}
+        - name: templates
+          mountPath: /templates
+        {{- end }}
+      {{- with $oauthProxy.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $oauthProxy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: babylon-catalog-oauth-proxy
+      {{- with $oauthProxy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if (or $interface.route.certManager.enable $oauthProxy.templates) }}
+      volumes:
+      {{- if $interface.route.certManager.enable }}
+      - name: proxy-tls
+        secret:
+          defaultMode: 0644
+          secretName: babylon-catalog-oauth-proxy-tls
+      {{- end }}
+      {{- if $oauthProxy.templates }}
+      - name: templates
+        configMap:
+          defaultMode: 0644
+          name: babylon-oauth-proxy-templates
+      {{- end }}
+      {{- end }}
+{{- end }}
