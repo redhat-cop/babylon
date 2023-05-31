@@ -260,7 +260,7 @@ const ActivityPurposeSelector: React.FC<{
                 <SelectOption
                   key={`${ActivityOpts.find((a) => a.id === purposeOpt.activityId).name} - ${purposeOpt.name}`}
                   value={purposeOpt.name}
-                  style={{ display: 'flex', justifyContent: 'space-between' }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <span>{purposeOpt.name}</span>
                   {purposeOpt.description ? (
