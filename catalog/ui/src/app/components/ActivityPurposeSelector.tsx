@@ -260,8 +260,9 @@ const ActivityPurposeSelector: React.FC<{
                 <SelectOption
                   key={`${ActivityOpts.find((a) => a.id === purposeOpt.activityId).name} - ${purposeOpt.name}`}
                   value={purposeOpt.name}
+                  style={{ display: 'flex', justifyContent: 'space-between' }}
                 >
-                  <span style={{ marginRight: 'var(--pf-global--spacer--sm)' }}>{purposeOpt.name}</span>
+                  <span>{purposeOpt.name}</span>
                   {purposeOpt.description ? (
                     <Tooltip position="right" content={<div>{purposeOpt.description}</div>}>
                       <OutlinedQuestionCircleIcon aria-label={purposeOpt.description} className="tooltip-icon-only" />
