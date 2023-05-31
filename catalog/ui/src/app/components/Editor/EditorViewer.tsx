@@ -1,5 +1,5 @@
 import React from 'react';
-import { $getRoot } from 'lexical';
+import { $getRoot, $insertNodes } from 'lexical';
 import { $generateNodesFromDOM } from '@lexical/html';
 import { InitialEditorStateType, LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
@@ -29,9 +29,22 @@ const EditorViewer: React.FC<{
           dom = parser.parseFromString(`<p>${value}</p>`, 'text/html');
         }
         const nodes = $generateNodesFromDOM(editor, dom);
-        const root = $getRoot();
-        root.clear();
-        root.append(...nodes);
+
+        // There are few recent issues related to $generateNodesFromDOM
+        // https://github.com/facebook/lexical/issues/2807
+        // https://github.com/facebook/lexical/issues/3677
+        // As a temporary fix, checking node content to remove additional spaces and br
+        const filteredNodes = nodes.filter((n) => n.getTextContent().trim());
+
+        // Select the root
+        $getRoot().select();
+
+        if (filteredNodes.length === 0) {
+          $getRoot().clear();
+        }
+
+        // Insert them at a selection.
+        $insertNodes(filteredNodes);
       }
     };
   }
