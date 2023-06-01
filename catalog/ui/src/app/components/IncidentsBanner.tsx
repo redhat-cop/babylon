@@ -12,7 +12,7 @@ import EditorViewer from './Editor/EditorViewer';
 
 import './incidents-banner.css';
 
-const STORAGE_KEY = 'demo.redhat.com.incidents.closed';
+const STORAGE_KEY = `${location?.hostname || 'demo.redhat.com'}.incidents.closed`;
 
 const IncidentsBanner: React.FC = () => {
   const { data } = useSWRImmutable<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher, {
