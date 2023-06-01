@@ -200,9 +200,9 @@ const AnarchyGovernors: React.FC = () => {
             <ProjectSelector
               selector="anarchy"
               currentNamespaceName={namespace}
-              onSelect={(namespaceName) => {
-                if (namespaceName) {
-                  navigate(`/admin/anarchygovernors/${namespaceName}${location.search}`);
+              onSelect={(namespace) => {
+                if (namespace) {
+                  navigate(`/admin/anarchygovernors/${namespace.name}${location.search}`);
                 } else {
                   navigate(`/admin/anarchygovernors${location.search}`);
                 }
