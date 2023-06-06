@@ -57,7 +57,7 @@ const UserMessage: React.FC<{
                     <DescriptionListDescription>
                       {typeof value === 'string' ? (
                         value.startsWith('https://') ? (
-                          <a href={value}>
+                          <a href={value} target="_blank" rel="noopener">
                             <code>{value}</code>
                           </a>
                         ) : (
