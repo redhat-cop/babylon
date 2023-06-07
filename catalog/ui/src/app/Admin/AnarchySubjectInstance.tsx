@@ -213,6 +213,7 @@ const AnarchySubjectInstanceComponent: React.FC<{
                   key="force-delete"
                   label="Force Delete"
                   onSelect={() => confirmThenForceDelete()}
+                  isDisabled={!anarchySubject.metadata.deletionTimestamp}
                 />,
                 <ActionDropdownItem
                   key="deleteAnarchyActions"
