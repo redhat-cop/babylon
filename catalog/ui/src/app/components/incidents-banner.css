@@ -4,6 +4,10 @@
 .pf-c-banner.pf-m-info {
   background-color: #3498db;
 }
+.pf-c-banner.pf-m-info a,
+.pf-c-banner.pf-m-info .editor-link {
+  color: black !important;
+}
 .pf-c-banner.pf-m-critical {
   background-color: #e74c3c;
   color: #fff;
