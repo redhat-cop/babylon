@@ -749,6 +749,12 @@ def apis_proxy(path):
             query_params = [ (k, v) for k, v in flask.request.args.items() ],
             response_type = 'object',
         )
+        # Strip out metadata.managedFields
+        if 'managedFields' in data.get('metadata', {}):
+            del data['metadata']['managedFields']
+        for item in data.get('items', []):
+            if 'managedFields' in item.get('metadata', {}):
+                del item['metadata']['managedFields']
         return flask.make_response(
             json.dumps(data, separators=(',',':')),
             status,
