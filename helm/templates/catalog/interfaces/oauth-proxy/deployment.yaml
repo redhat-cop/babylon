@@ -74,12 +74,16 @@ spec:
           name: public
           protocol: TCP
         resources: {}
+        {{- if (or $interface.route.certManager.enable $oauthProxy.templates) }}
         volumeMounts:
+        {{- if $interface.route.certManager.enable }}
         - name: proxy-tls
           mountPath: /etc/tls/private
+        {{- end }}
         {{- if $oauthProxy.templates }}
         - name: templates
           mountPath: /templates
+        {{- end }}
         {{- end }}
       {{- with $oauthProxy.image.pullSecrets }}
       imagePullSecrets:
