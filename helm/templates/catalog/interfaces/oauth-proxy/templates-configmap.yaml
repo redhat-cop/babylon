@@ -8,7 +8,7 @@ kind: ConfigMap
 metadata:
   labels:
     {{- include "babylon.labels" $ | nindent 4 }}
-    app.kubernetes.io/component: catalog-oauth-proxy
+    app.kubernetes.io/component: oauth-proxy
   name: babylon-oauth-proxy-templates
   namespace: {{ $namespace }}
 data:

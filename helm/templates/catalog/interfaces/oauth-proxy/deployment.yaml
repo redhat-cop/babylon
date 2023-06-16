@@ -8,7 +8,7 @@ kind: Deployment
 metadata:
   labels:
     {{- include "babylon.labels" $ | nindent 4 }}
-    app.kubernetes.io/component: catalog-oauth-proxy
+    app.kubernetes.io/component: oauth-proxy
   name: babylon-catalog-oauth-proxy
   namespace: {{ $namespace }}
 spec:
@@ -16,14 +16,14 @@ spec:
   selector:
     matchLabels:
       {{- include "babylon.selectorLabels" $ | nindent 6 }}
-      app.kubernetes.io/component: catalog-oauth-proxy
+      app.kubernetes.io/component: oauth-proxy
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
         {{- include "babylon.selectorLabels" $ | nindent 8 }}
-        app.kubernetes.io/component: catalog-oauth-proxy
+        app.kubernetes.io/component: oauth-proxy
     spec:
       {{- with $oauthProxy.affinity }}
       affinity:

@@ -11,7 +11,7 @@ metadata:
   {{- end }}
   labels:
     {{- include "babylon.labels" $ | nindent 4 }}
-    app.kubernetes.io/component: catalog-oauth-proxy
+    app.kubernetes.io/component: oauth-proxy
   name: babylon-catalog
   namespace: {{ $namespace }}
 spec:
