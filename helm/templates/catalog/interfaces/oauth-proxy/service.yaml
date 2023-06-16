@@ -1,0 +1,22 @@
+{{- range $namespace, $_interface := .Values.catalog.interfaces }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: oauth-proxy
+  name: babylon-catalog-oauth-proxy
+  namespace: {{ $namespace }}
+spec:
+  ports:
+  - name: proxy
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    {{- include "babylon.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: oauth-proxy
+  sessionAffinity: None
+  type: ClusterIP
+{{- end }}
