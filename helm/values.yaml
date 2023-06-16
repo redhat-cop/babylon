@@ -123,6 +123,7 @@ catalog:
         enable: false
       certUtilsOperator:
         enable: false
+      #host: <namespace>.<ingressDomain>
     ui:
       image:
         pullPolicy: IfNotPresent
@@ -141,6 +142,8 @@ catalog:
 
 configNamespace:
   name: babylon-config
+
+#ingressDomain: <required>
 
 notifier:
   deploy: false

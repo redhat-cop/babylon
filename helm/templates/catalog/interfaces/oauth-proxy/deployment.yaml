@@ -74,16 +74,12 @@ spec:
           name: public
           protocol: TCP
         resources: {}
-        {{- if (or $interface.route.certManager.enable $oauthProxy.templates) }}
         volumeMounts:
-        {{- if $interface.route.certManager.enable }}
         - name: proxy-tls
           mountPath: /etc/tls/private
-        {{- end }}
         {{- if $oauthProxy.templates }}
         - name: templates
           mountPath: /templates
-        {{- end }}
         {{- end }}
       {{- with $oauthProxy.image.pullSecrets }}
       imagePullSecrets:
@@ -98,19 +94,15 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if (or $interface.route.certManager.enable $oauthProxy.templates) }}
       volumes:
-      {{- if $interface.route.certManager.enable }}
       - name: proxy-tls
         secret:
           defaultMode: 0644
           secretName: babylon-catalog-oauth-proxy-tls
-      {{- end }}
       {{- if $oauthProxy.templates }}
       - name: templates
         configMap:
           defaultMode: 0644
           name: babylon-oauth-proxy-templates
-      {{- end }}
       {{- end }}
 {{- end }}
