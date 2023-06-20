@@ -27,6 +27,7 @@ rules:
   - {{ .Values.catalog.api.group }}
   resources:
   - workshops
+  - workshopprovisions
   verbs:
   - create
   - delete

@@ -473,7 +473,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </div>
         </FormGroup>
 
-        {!workshopUiDisabled && (isAdmin || formState.serviceNamespace?.workshopProvisionAccess) ? (
+        {!workshopUiDisabled ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch

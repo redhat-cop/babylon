@@ -57,14 +57,12 @@ export const generateSession = ({
       displayName: 'User test-redhat.com',
       name: 'user-test-redhat-com',
       requester: 'test-redhat.com',
-      workshopProvisionAccess: false,
     } as ServiceNamespace,
   ],
   userNamespace = {
     displayName: 'User test-redhat.com',
     name: 'user-test-redhat-com',
     requester: 'test-redhat.com',
-    workshopProvisionAccess: false,
   } as UserNamespace,
 }) => ({
   email,

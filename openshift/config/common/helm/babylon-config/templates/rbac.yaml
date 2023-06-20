@@ -147,6 +147,7 @@ rules:
   - babylon.gpte.redhat.com
   resources:
   - workshops
+  - workshopprovisions
   verbs:
   - create
   - delete

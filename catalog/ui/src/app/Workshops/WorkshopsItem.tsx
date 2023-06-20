@@ -108,9 +108,7 @@ const WorkshopsItemComponent: React.FC<{
   );
   const enableFetchUserNamespaces = isAdmin;
   const enableManageWorkshopProvisions =
-    isAdmin || sessionServiceNamespaces.find((ns) => ns.workshopProvisionAccess && ns.name == serviceNamespaceName)
-      ? true
-      : false;
+    isAdmin || sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher
@@ -244,17 +242,21 @@ const WorkshopsItemComponent: React.FC<{
   async function onWorkshopDeleteConfirm() {
     await deleteWorkshop(workshop);
     cache.delete(SERVICES_KEY({ namespace: workshop.metadata.namespace }));
-    cache.delete(apiPaths.RESOURCE_CLAIMS({
-      namespace: serviceNamespaceName,
-      labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
-      limit: 'ALL',
-    }));
+    cache.delete(
+      apiPaths.RESOURCE_CLAIMS({
+        namespace: serviceNamespaceName,
+        labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+        limit: 'ALL',
+      })
+    );
     cache.delete(apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }));
-    cache.delete(apiPaths.WORKSHOP_PROVISIONS({
-      workshopName: workshop.metadata.name,
-      namespace: workshop.metadata.namespace,
-      limit: 'ALL',
-    }));
+    cache.delete(
+      apiPaths.WORKSHOP_PROVISIONS({
+        workshopName: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        limit: 'ALL',
+      })
+    );
     navigate(`/services/${serviceNamespaceName}`);
   }
 
