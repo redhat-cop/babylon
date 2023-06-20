@@ -62,7 +62,7 @@ function setResourceClaims(workshop: Workshop, resourceClaims: ResourceClaim[]) 
   return workshopWithResourceClaims;
 }
 
-async function fetchServices(namespace: string, canLoadWorkshops: boolean): Promise<Service[]> {
+async function fetchServices(namespace: string): Promise<Service[]> {
   async function fetchResourceClaims(namespace: string) {
     return (await fetcherItemsInAllPages((continueId) =>
       apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
@@ -95,9 +95,7 @@ async function fetchServices(namespace: string, canLoadWorkshops: boolean): Prom
   const services: Service[] = [];
   const promises = [];
   promises.push(fetchResourceClaims(namespace).then((r) => services.push(...r)));
-  if (canLoadWorkshops) {
-    promises.push(fetchWorksops(namespace).then((w) => services.push(...w)));
-  }
+  promises.push(fetchWorksops(namespace).then((w) => services.push(...w)));
   await Promise.all(promises);
   return services;
 }
@@ -132,11 +130,9 @@ const ServicesList: React.FC<{
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalGetCost, openModalGetCost] = useModal();
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
-  const canLoadWorkshops =
-    isAdmin || sessionServiceNamespaces.find((n) => n.name === serviceNamespaceName)?.workshopProvisionAccess;
   const { data: _services, mutate } = useSWR<Service[]>(
     SERVICES_KEY({ namespace: serviceNamespaceName }),
-    () => fetchServices(serviceNamespaceName, canLoadWorkshops),
+    () => fetchServices(serviceNamespaceName),
     {
       refreshInterval: 8000,
       revalidateOnMount: true,

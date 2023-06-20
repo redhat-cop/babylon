@@ -231,7 +231,6 @@ export interface UserNamespace {
   displayName: string;
   name: string;
   requester: string;
-  workshopProvisionAccess: boolean;
 }
 export interface NamespaceList {
   items: Namespace[];
@@ -413,7 +412,6 @@ export interface ServiceNamespace {
   displayName: string;
   name: string;
   requester?: string;
-  workshopProvisionAccess?: boolean;
 }
 
 export interface User extends K8sObject {}

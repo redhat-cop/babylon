@@ -22,7 +22,6 @@ const namespace = {
   displayName: 'User test-redhat.com',
   name: 'user-test-redhat-com',
   requester: 'test-redhat.com',
-  workshopProvisionAccess: true,
 };
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
@@ -144,14 +143,5 @@ describe('CatalogItemForm Component', () => {
     await userEvent.clear(input);
 
     expect(button).toBeDisabled();
-  });
-
-  test('Workshop Feature disabled if user doesnt have workshopProvisionAccess', async () => {
-    (useSession as jest.Mock).mockImplementation(() => ({
-      getSession: () => generateSession({}),
-    }));
-    const { getByText, queryByLabelText } = render(<CatalogItemForm />);
-    await waitFor(() => getByText('Order'));
-    expect(queryByLabelText('Enable workshop user interface')).not.toBeInTheDocument();
   });
 });
