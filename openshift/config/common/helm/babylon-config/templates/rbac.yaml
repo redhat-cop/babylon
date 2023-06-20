@@ -134,8 +134,6 @@ rules:
   - {{ .Values.poolboy.apiGroup }}
   resources:
   - resourceclaims
-  - workshops
-  - workshopprovisions
   verbs:
   - create
   - delete
@@ -149,6 +147,7 @@ rules:
   - babylon.gpte.redhat.com
   resources:
   - workshops
+  - workshopprovisions
   verbs:
   - create
   - delete
