@@ -134,6 +134,8 @@ rules:
   - {{ .Values.poolboy.apiGroup }}
   resources:
   - resourceclaims
+  - workshops
+  - workshopprovisions
   verbs:
   - create
   - delete
