@@ -207,30 +207,6 @@ def check_user_support_access(api_client):
     )
     return data.get('status', {}).get('allowed', False)
 
-def check_namespace_workshop_provision_access(namespace, api_client):
-    (data, status, headers) = api_client.call_api(
-        '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
-        'POST',
-        auth_settings = ['BearerToken'],
-        body = {
-           "apiVersion": "authorization.k8s.io/v1",
-           "kind": "SelfSubjectAccessReview",
-           "spec": {
-             "resourceAttributes": {
-               "group": "babylon.gpte.redhat.com",
-               "resource": "workshopprovisions",
-               "verb": "list",
-               "namespace": namespace
-             }
-           },
-           "status": {
-             "allowed": False
-           }
-        },
-        response_type = 'object',
-    )
-    return data.get('status', {}).get('allowed', False)
-
 def get_catalog_namespaces(api_client):
     namespaces = []
     for ns in core_v1_api.list_namespace(
@@ -305,13 +281,11 @@ def get_user_namespace(user, api_client):
         name = ns.metadata.name
         requester = ns.metadata.annotations.get('openshift.io/requester')
         display_name = ns.metadata.annotations.get('openshift.io/display-name', 'User ' + requester)
-        workshop_provision_access = check_namespace_workshop_provision_access(name, api_client)
 
         return {
             'name': name,
             'displayName': display_name,
             'requester': requester,
-            'workshopProvisionAccess': workshop_provision_access,
         }
 
     return None
