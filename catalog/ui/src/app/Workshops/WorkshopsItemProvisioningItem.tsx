@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useReducer } from 'react';
 import { Link } from 'react-router-dom';
 import yaml from 'js-yaml';
 import {
@@ -9,21 +9,44 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   Tooltip,
+  TextInput,
 } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import { apiPaths, fetcher, patchWorkshopProvision } from '@app/api';
+import { apiFetch, apiPaths, checkSalesforceId, fetcher, patchWorkshopProvision } from '@app/api';
 import { CatalogItem, Workshop, WorkshopProvision } from '@app/types';
 import { displayName } from '@app/util';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
 import useSWR, { useSWRConfig } from 'swr';
+import useDebounce from '@app/utils/useDebounce';
+
+function reducer(
+  state: { salesforce_id: string; valid: boolean; completed: boolean },
+  action: { type: 'set_salesforceId' | 'complete'; salesforceId?: string; salesforceIdValid?: boolean }
+) {
+  switch (action.type) {
+    case 'set_salesforceId':
+      return {
+        salesforce_id: action.salesforceId,
+        valid: false,
+        completed: false,
+      };
+    case 'complete':
+      return {
+        ...state,
+        valid: action.salesforceIdValid,
+        completed: true,
+      };
+  }
+}
 
 const WorkshopsItemProvisioningItem: React.FC<{
   workshop: Workshop;
   workshopProvision: WorkshopProvision;
 }> = ({ workshop, workshopProvision }) => {
   const { isAdmin } = useSession().getSession();
+  const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { mutate } = useSWRConfig();
   const { data: catalogItem } = useSWR<CatalogItem>(
     workshopProvision.spec.catalogItem
@@ -34,8 +57,30 @@ const WorkshopsItemProvisioningItem: React.FC<{
       : null,
     fetcher
   );
+  const [salesforceObj, dispatchSalesforceObj] = useReducer(reducer, {
+    salesforce_id: workshopProvision.spec.parameters?.salesforce_id || '',
+    valid: !!workshopProvision.spec.parameters?.salesforce_id,
+    completed: false,
+  });
 
-  async function patchWorkshopProvisionSpec(patch: { count?: number; concurrency?: number; startDelay?: number }) {
+  useEffect(() => {
+    if (!salesforceObj.completed) {
+      checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch).then((isValid) =>
+        dispatchSalesforceObj({ type: 'complete', salesforceIdValid: isValid })
+      );
+    } else if (workshopProvision.spec.parameters?.salesforce_id !== salesforceObj.salesforce_id) {
+      patchWorkshopProvisionSpec({
+        parameters: { ...workshopProvision.spec.parameters, salesforce_id: salesforceObj.salesforce_id },
+      });
+    }
+  }, [dispatchSalesforceObj, salesforceObj, debouncedApiFetch]);
+
+  async function patchWorkshopProvisionSpec(patch: {
+    count?: number;
+    concurrency?: number;
+    startDelay?: number;
+    parameters?: any;
+  }) {
     await patchWorkshopProvision({
       name: workshopProvision.metadata.name,
       namespace: workshopProvision.metadata.namespace,
@@ -87,13 +132,43 @@ const WorkshopsItemProvisioningItem: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
+          <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
+
+          <div style={{ maxWidth: 300, display: 'flex', alignItems: 'center', gap: 'var(--pf-global--spacer--md)' }}>
+            <TextInput
+              type="text"
+              key="salesforce_id"
+              id="salesforce_id"
+              onChange={(value) => dispatchSalesforceObj({ type: 'set_salesforceId', salesforceId: value })}
+              value={salesforceObj.salesforce_id}
+              validated={
+                salesforceObj.completed && salesforceObj.valid
+                  ? 'success'
+                  : salesforceObj.completed
+                  ? 'error'
+                  : 'default'
+              }
+            />
+            <Tooltip
+              position="right"
+              content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+            >
+              <OutlinedQuestionCircleIcon
+                aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
+                className="tooltip-icon-only"
+              />
+            </Tooltip>
+          </div>
+        </DescriptionListGroup>
+
+        <DescriptionListGroup>
           <DescriptionListTerm>
             {workshop.spec.multiuserServices ? 'Workshop Instance Count' : 'Workshop User Count'}
           </DescriptionListTerm>
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
-              max={200}
+              max={workshopProvision.spec.parameters?.salesforce_id || workshop.spec.multiuserServices ? 200 : 1}
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
               style={{ paddingRight: 'var(--pf-global--spacer--md)' }}
