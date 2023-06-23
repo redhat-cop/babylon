@@ -1048,7 +1048,7 @@ export async function patchK8sObjectByPath<Type extends K8sObject>({
   return await resp.json();
 }
 
-async function patchResourceClaim(namespace: string, name: string, patch: Record<string, unknown>) {
+export async function patchResourceClaim(namespace: string, name: string, patch: Record<string, unknown>) {
   return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',

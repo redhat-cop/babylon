@@ -12,9 +12,17 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import { apiFetch, apiPaths, checkSalesforceId, fetcher, patchWorkshopProvision } from '@app/api';
-import { CatalogItem, Workshop, WorkshopProvision } from '@app/types';
-import { displayName } from '@app/util';
+import {
+  apiFetch,
+  apiPaths,
+  checkSalesforceId,
+  fetcher,
+  fetcherItemsInAllPages,
+  patchWorkshopProvision,
+  patchResourceClaim,
+} from '@app/api';
+import { CatalogItem, ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
+import { BABYLON_DOMAIN, compareK8sObjectsArr, DEMO_DOMAIN, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
@@ -44,7 +52,8 @@ function reducer(
 const WorkshopsItemProvisioningItem: React.FC<{
   workshop: Workshop;
   workshopProvision: WorkshopProvision;
-}> = ({ workshop, workshopProvision }) => {
+  serviceNamespaceName: string;
+}> = ({ workshop, workshopProvision, serviceNamespaceName }) => {
   const { isAdmin } = useSession().getSession();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { mutate } = useSWRConfig();
@@ -60,8 +69,30 @@ const WorkshopsItemProvisioningItem: React.FC<{
   const [salesforceObj, dispatchSalesforceObj] = useReducer(reducer, {
     salesforce_id: workshopProvision.spec.parameters?.salesforce_id || '',
     valid: !!workshopProvision.spec.parameters?.salesforce_id,
-    completed: false,
+    completed: workshopProvision.spec.parameters?.salesforce_id ? false : true,
   });
+  const { data: resourceClaims } = useSWR<ResourceClaim[]>(
+    workshop
+      ? apiPaths.RESOURCE_CLAIMS({
+          namespace: serviceNamespaceName,
+          labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+          limit: 'ALL',
+        })
+      : null,
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.RESOURCE_CLAIMS({
+          namespace: serviceNamespaceName,
+          labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        })
+      ),
+    {
+      refreshInterval: 8000,
+      compare: compareK8sObjectsArr,
+    }
+  );
 
   useEffect(() => {
     if (!salesforceObj.completed) {
@@ -72,6 +103,13 @@ const WorkshopsItemProvisioningItem: React.FC<{
       patchWorkshopProvisionSpec({
         parameters: { ...workshopProvision.spec.parameters, salesforce_id: salesforceObj.salesforce_id },
       });
+      for (let resourceClaim of resourceClaims) {
+        if (resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/salesforce-id`] !== salesforceObj.salesforce_id) {
+          patchResourceClaim(resourceClaim.metadata.name, resourceClaim.metadata.namespace, {
+            metadata: { annotations: { [`${DEMO_DOMAIN}/salesforce-id`]: salesforceObj.salesforce_id } },
+          });
+        }
+      }
     }
   }, [dispatchSalesforceObj, salesforceObj, debouncedApiFetch]);
 

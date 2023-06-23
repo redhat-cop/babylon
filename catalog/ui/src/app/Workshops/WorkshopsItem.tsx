@@ -402,7 +402,11 @@ const WorkshopsItemComponent: React.FC<{
           {enableManageWorkshopProvisions ? (
             <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
               {activeTab === 'provision' ? (
-                <WorkshopsItemProvisioning workshop={workshop} workshopProvisions={workshopProvisions} />
+                <WorkshopsItemProvisioning
+                  workshop={workshop}
+                  workshopProvisions={workshopProvisions}
+                  serviceNamespaceName={serviceNamespaceName}
+                />
               ) : null}
             </Tab>
           ) : null}
