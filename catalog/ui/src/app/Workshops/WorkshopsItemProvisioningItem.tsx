@@ -105,7 +105,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
       });
       for (let resourceClaim of resourceClaims) {
         if (resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/salesforce-id`] !== salesforceObj.salesforce_id) {
-          patchResourceClaim(resourceClaim.metadata.name, resourceClaim.metadata.namespace, {
+          patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
             metadata: { annotations: { [`${DEMO_DOMAIN}/salesforce-id`]: salesforceObj.salesforce_id } },
           });
         }
@@ -180,10 +180,12 @@ const WorkshopsItemProvisioningItem: React.FC<{
               onChange={(value) => dispatchSalesforceObj({ type: 'set_salesforceId', salesforceId: value })}
               value={salesforceObj.salesforce_id}
               validated={
-                salesforceObj.completed && salesforceObj.valid
-                  ? 'success'
-                  : salesforceObj.completed
-                  ? 'error'
+                salesforceObj.salesforce_id
+                  ? salesforceObj.completed && salesforceObj.valid
+                    ? 'success'
+                    : salesforceObj.completed
+                    ? 'error'
+                    : 'default'
                   : 'default'
               }
             />
@@ -217,7 +219,10 @@ const WorkshopsItemProvisioningItem: React.FC<{
                 workshop.spec.multiuserServices ? (
                   <p>Number of shared instances for the workshop, each instance supports multiple users.</p>
                 ) : (
-                  <p>Number of independent instances for the workshop, each user gets a dedicated instance.</p>
+                  <p>
+                    Number of independent instances for the workshop, each user gets a dedicated instance. <br />
+                    Salesforce Id is required to increase it.
+                  </p>
                 )
               }
             >
