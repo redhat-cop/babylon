@@ -7,7 +7,8 @@ import WorkshopsItemProvisioningItem from './WorkshopsItemProvisioningItem';
 const WorkshopsItemProvisioning: React.FC<{
   workshop?: Workshop;
   workshopProvisions?: WorkshopProvision[];
-}> = ({ workshop, workshopProvisions }) => {
+  serviceNamespaceName: string;
+}> = ({ workshop, workshopProvisions, serviceNamespaceName }) => {
   if (!workshopProvisions || workshopProvisions.length === 0) {
     return (
       <EmptyState variant="full">
@@ -30,6 +31,7 @@ const WorkshopsItemProvisioning: React.FC<{
           key={workshopProvision.metadata.uid}
           workshop={workshop}
           workshopProvision={workshopProvision}
+          serviceNamespaceName={serviceNamespaceName}
         />
       ))}
     </>
