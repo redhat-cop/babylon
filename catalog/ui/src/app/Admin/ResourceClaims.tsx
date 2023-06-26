@@ -87,7 +87,7 @@ const ResourceClaims: React.FC<{}> = () => {
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
-    rating?: { rate: number; comment: string };
+    rating?: { rate: number; useful: 'yes' | 'no' | 'not applicable'; comment: string };
     submitDisabled: false;
   }>({ action: null, submitDisabled: false });
   const [modalAction, openModalAction] = useModal();

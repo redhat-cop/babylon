@@ -22,7 +22,7 @@ const StarRating: React.FC<{
   const [hoverRating, setHoverRating] = useState(0);
 
   const isFilled = useCallback(
-    (index) => {
+    (index: number) => {
       if (readOnly) {
         return Math.round(rating) >= index;
       }

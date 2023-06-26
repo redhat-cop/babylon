@@ -22,15 +22,16 @@ CREATE_RATINGS_TABLE = """CREATE TABLE IF NOT EXISTS ratings (
                         FOREIGN KEY(email) REFERENCES students(email) ON DELETE CASCADE,
                         FOREIGN KEY(catalog_item_id) REFERENCES catalog_items(id) ON DELETE CASCADE
                     );"""
+ADD_COLUMN = """ALTER TABLE ratings ADD useful varchar;"""
 INSERT_RATING = (
-    """INSERT INTO ratings (provision_uuid, catalog_item_id, email, rating, comment) 
+    """INSERT INTO ratings (provision_uuid, catalog_item_id, email, rating, comment, useful) 
     VALUES ( 
         %(uuid)s, 
         (SELECT catalog_id FROM provisions WHERE uuid = %(uuid)s),
-        %(email)s, %(rating)s, %(comment)s
+        %(email)s, %(rating)s, %(comment)s, %(useful)s
     )
     ON CONFLICT (provision_uuid, email) 
-        DO UPDATE SET rating = %(rating)s, comment = %(comment)s, updated_at = NOW() 
+        DO UPDATE SET rating = %(rating)s, comment = %(comment)s, useful = %(useful)s updated_at = NOW() 
         WHERE ratings.provision_uuid = %(uuid)s AND ratings.email = %(email)s;"""
 )
 GET_CATALOG_ITEM_RATING = (
@@ -44,7 +45,7 @@ GET_CATALOG_ITEM_RATING = (
     ) AS ratings_guid;"""
 )
 GET_PROVISION_RATING = (
-    """SELECT provision_uuid, email, rating, comment FROM ratings 
+    """SELECT provision_uuid, email, rating, comment, useful FROM ratings 
     WHERE provision_uuid = %(provision_uuid)s AND email = %(email)s;"""
 )
 
@@ -54,6 +55,7 @@ app = App()
 async def on_startup():
     await Babylon.on_startup()
     await execute_query(CREATE_RATINGS_TABLE)
+    await execute_query(ADD_COLUMN)
 
 @app.on_shutdown
 async def on_cleanup():
@@ -78,13 +80,14 @@ async def provision_rating_get(request):
         return 200, resultArr[0]
     return 404, 'Not Found'
 
-# {"email": "user@redhat.com", "rating": 4, comment: "My comment"}
+# {"email": "user@redhat.com", "rating": 4, comment: "My comment", useful: "yes"}
 @app.route("/api/ratings/v1/provisions/{provision_uuid}", methods=['POST'])
 async def provision_rating_set(request):
     schema = Schema({
         "email": And(str, len),
         Optional("rating"): Or(And(Use(int), lambda n: 0 <= n <= 5), None),
         Optional("comment"): Or(str, None),
+        Optional("useful"): Or(str, None),
     })
     data = await request.data()
     try:
@@ -97,13 +100,15 @@ async def provision_rating_set(request):
     _rating = data.get("rating", None)
     rating = round(_rating * 10, 0) if _rating is not None else None
     comment = data.get("comment", None)
-    logger.info(f"Set new rating for: provision {uuid} - {email} - {rating} - {comment}")
+    useful = data.get("useful", None)
+    logger.info(f"Set new rating for: provision {uuid} - {email} - {rating} - {comment} - {useful}")
     try: 
         await execute_query(INSERT_RATING, {
             'uuid': uuid,
             'email': email, 
             'rating': rating, 
-            'comment': comment
+            'comment': comment,
+            'useful': useful
         })
     except:
         return 400, 'Invalid parameters'

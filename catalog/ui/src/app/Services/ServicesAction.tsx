@@ -12,7 +12,7 @@ const ServicesAction: React.FC<{
     React.SetStateAction<{
       action: ServiceActionActions;
       resourceClaim?: ResourceClaim;
-      rating?: { rate: number; comment: string };
+      rating?: { rate: number; useful: 'yes' | 'no' | 'not applicable'; comment: string };
       workshop?: WorkshopWithResourceClaims;
       submitDisabled: boolean;
     }>
@@ -21,7 +21,7 @@ const ServicesAction: React.FC<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
     workshop?: WorkshopWithResourceClaims;
-    rating?: { rate: number; comment: string };
+    rating?: { rate: number; useful: 'yes' | 'no' | 'not applicable'; comment: string };
     submitDisabled: boolean;
   };
 }> = ({ actionState, setTitle, setActionState }) => {

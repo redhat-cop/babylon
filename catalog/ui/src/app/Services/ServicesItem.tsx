@@ -325,6 +325,7 @@ const ServicesItemComponent: React.FC<{
     resourceClaim?: ResourceClaim;
     rating?: {
       rate: number;
+      useful: 'yes' | 'no' | 'not applicable';
       comment: string;
     };
     submitDisabled: boolean;
@@ -456,7 +457,12 @@ const ServicesItemComponent: React.FC<{
           .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
           .filter(Boolean);
         for (const provisionUuid of provisionUuids) {
-          await setProvisionRating(provisionUuid, modalState.rating.rate, modalState.rating.comment);
+          await setProvisionRating(
+            provisionUuid,
+            modalState.rating.rate,
+            modalState.rating.comment,
+            modalState.rating.useful
+          );
           globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
         }
       }

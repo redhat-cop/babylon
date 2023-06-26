@@ -123,7 +123,7 @@ const ServicesList: React.FC<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
     workshop?: WorkshopWithResourceClaims;
-    rating?: { rate: number; comment: string };
+    rating?: { rate: number; useful: 'yes' | 'no' | 'not applicable'; comment: string };
     submitDisabled: boolean;
   }>({ action: null, submitDisabled: false });
   const [modalAction, openModalAction] = useModal();
@@ -338,7 +338,12 @@ const ServicesList: React.FC<{
           .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
           .filter(Boolean);
         for (const provisionUuid of provisionUuids) {
-          await setProvisionRating(provisionUuid, modalState.rating.rate, modalState.rating.comment);
+          await setProvisionRating(
+            provisionUuid,
+            modalState.rating.rate,
+            modalState.rating.comment,
+            modalState.rating.useful
+          );
           globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
         }
       }
