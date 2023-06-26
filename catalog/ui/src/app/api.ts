@@ -1477,11 +1477,16 @@ export async function fetchWithUpdatedCostTracker({
   return await fetcher(path);
 }
 
-export function setProvisionRating(provisionUuid: string, rating: number, comment: string) {
+export function setProvisionRating(
+  provisionUuid: string,
+  rating: number,
+  comment: string,
+  useful: 'yes' | 'no' | 'not applicable'
+) {
   return apiFetch(apiPaths.PROVISION_RATING({ provisionUuid }), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rating, comment }),
+    body: JSON.stringify({ rating, comment, useful }),
   });
 }
 
