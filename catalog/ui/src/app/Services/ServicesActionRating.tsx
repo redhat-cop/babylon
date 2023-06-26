@@ -57,7 +57,7 @@ const ServicesActionRating: React.FC<{
               id="radio-useful"
             ></Radio>
             <Radio
-              isChecked={actionState.rating?.useful === 'yes'}
+              isChecked={actionState.rating?.useful === 'no'}
               name="radio-2"
               onChange={() =>
                 setActionState({
@@ -69,7 +69,7 @@ const ServicesActionRating: React.FC<{
               id="radio-useful"
             ></Radio>
             <Radio
-              isChecked={actionState.rating?.useful === 'yes'}
+              isChecked={actionState.rating?.useful === 'not applicable'}
               name="radio-3"
               onChange={() =>
                 setActionState({
