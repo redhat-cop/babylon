@@ -28,11 +28,13 @@ const ServicesActionRating: React.FC<{
     .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
     .find((uuid) => uuid);
 
-  const { data: existingRating } = useSWRImmutable<{ rating: number; comment: string }>(
-    !hasError && provisionUuid ? apiPaths.PROVISION_RATING({ provisionUuid }) : null,
-    fetcher,
-    { shouldRetryOnError: false }
-  );
+  const { data: existingRating } = useSWRImmutable<{
+    rating: number;
+    useful: 'yes' | 'no' | 'not applicable';
+    comment: string;
+  }>(!hasError && provisionUuid ? apiPaths.PROVISION_RATING({ provisionUuid }) : null, fetcher, {
+    shouldRetryOnError: false,
+  });
 
   return (
     <>
@@ -55,7 +57,7 @@ const ServicesActionRating: React.FC<{
               id="radio-useful"
             ></Radio>
             <Radio
-              isChecked={actionState.rating.useful === 'yes'}
+              isChecked={actionState.rating?.useful === 'yes'}
               name="radio-2"
               onChange={() =>
                 setActionState({
@@ -67,7 +69,7 @@ const ServicesActionRating: React.FC<{
               id="radio-useful"
             ></Radio>
             <Radio
-              isChecked={actionState.rating.useful === 'yes'}
+              isChecked={actionState.rating?.useful === 'yes'}
               name="radio-3"
               onChange={() =>
                 setActionState({
