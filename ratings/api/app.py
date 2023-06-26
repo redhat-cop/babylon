@@ -45,7 +45,7 @@ GET_CATALOG_ITEM_RATING = (
     ) AS ratings_guid;"""
 )
 GET_PROVISION_RATING = (
-    """SELECT provision_uuid, email, rating, comment FROM ratings 
+    """SELECT provision_uuid, email, rating, comment, useful FROM ratings 
     WHERE provision_uuid = %(provision_uuid)s AND email = %(email)s;"""
 )
 
@@ -100,6 +100,7 @@ async def provision_rating_set(request):
     _rating = data.get("rating", None)
     rating = round(_rating * 10, 0) if _rating is not None else None
     comment = data.get("comment", None)
+    useful = data.get("useful", None)
     logger.info(f"Set new rating for: provision {uuid} - {email} - {rating} - {comment} - {useful}")
     try: 
         await execute_query(INSERT_RATING, {
