@@ -45,7 +45,7 @@ const ServicesActionRating: React.FC<{
             label="Do you believe this asset helped you progress in the sales cycle with your customer?"
           >
             <Radio
-              isChecked={actionState.rating.useful === 'yes'}
+              isChecked={actionState.rating?.useful === 'yes'}
               name="radio-1"
               onChange={() =>
                 setActionState({
