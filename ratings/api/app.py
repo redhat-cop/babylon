@@ -31,7 +31,7 @@ INSERT_RATING = (
         %(email)s, %(rating)s, %(comment)s, %(useful)s
     )
     ON CONFLICT (provision_uuid, email) 
-        DO UPDATE SET rating = %(rating)s, comment = %(comment)s, useful = %(useful)s updated_at = NOW() 
+        DO UPDATE SET rating = %(rating)s, comment = %(comment)s, useful = %(useful)s, updated_at = NOW() 
         WHERE ratings.provision_uuid = %(uuid)s AND ratings.email = %(email)s;"""
 )
 GET_CATALOG_ITEM_RATING = (
