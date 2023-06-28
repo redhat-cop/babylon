@@ -45,7 +45,7 @@ const ServicesActionRating: React.FC<{
             label="Do you believe this asset helped you progress in the sales cycle with your customer?"
           >
             <Radio
-              isChecked={actionState.rating?.useful === 'yes'}
+              isChecked={actionState.rating ? actionState.rating.useful === 'yes' : existingRating?.useful === 'yes'}
               name="radio-1"
               onChange={() =>
                 setActionState({
@@ -57,7 +57,7 @@ const ServicesActionRating: React.FC<{
               id="radio-useful"
             ></Radio>
             <Radio
-              isChecked={actionState.rating?.useful === 'no'}
+              isChecked={actionState.rating ? actionState.rating.useful === 'no' : existingRating?.useful === 'no'}
               name="radio-2"
               onChange={() =>
                 setActionState({
@@ -69,7 +69,11 @@ const ServicesActionRating: React.FC<{
               id="radio-useful"
             ></Radio>
             <Radio
-              isChecked={actionState.rating?.useful === 'not applicable'}
+              isChecked={
+                actionState.rating
+                  ? actionState.rating.useful === 'not applicable'
+                  : existingRating?.useful === 'not applicable'
+              }
               name="radio-3"
               onChange={() =>
                 setActionState({
