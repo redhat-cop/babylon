@@ -24,3 +24,6 @@
 .pf-c-banner.pf-m-critical svg {
   fill: #c9190b;
 }
+.incidents-banner__close-btn svg {
+  fill: #6a6e73;
+}

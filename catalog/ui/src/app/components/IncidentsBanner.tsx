@@ -74,6 +74,7 @@ const IncidentsBanner: React.FC = () => {
                 onClick={() => handleClose(i.id)}
                 variant="plain"
                 style={{ color: '#000', position: 'absolute', top: 0, right: 0 }}
+                className="incidents-banner__close-btn"
               >
                 <CloseIcon />
               </Button>
