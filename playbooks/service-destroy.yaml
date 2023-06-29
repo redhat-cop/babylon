@@ -10,6 +10,9 @@
     catalog_stage: CHANGE ME dev|test|prod
     catalog_item_params_file: CHANGEME
     kubeconfig: CHANGEME
+    babylon_tower_secret: >-
+      {{ vars.catalog_item_params.__meta__.ansible_control_plane.secret
+      | default('babylon-tower') }}
 
     # After that don't touch
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
@@ -19,6 +22,8 @@
     include_vars:
       file: "{{ catalog_item_params_file }}"
       name: catalog_item_params
+
+  - include_tasks: override_ee.yaml
 
   - name: Show catalog_item_params
     debug:
@@ -224,11 +229,11 @@
       api_version: v1
       kind: Secret
       namespace: "{{ anarchy_namespace }}"
-      name: babylon-tower
+      name: "{{ babylon_tower_secret }}"
     register: r_babylon_tower_secret
 
   - fail:
-      msg: "babylon-tower secret not found"
+      msg: "{{ babylon_tower_secret }} secret not found"
     when: r_babylon_tower_secret.resources | length == 0
 
   - set_fact:

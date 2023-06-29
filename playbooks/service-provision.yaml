@@ -13,6 +13,9 @@
     platform: CHANGEME
     cloudforms_useremail: CHANGEME
     cloudforms_username: CHANGEME
+    babylon_tower_secret: >-
+      {{ vars.catalog_item_params.__meta__.ansible_control_plane.secret
+      | default('babylon-tower') }}
 
     # After that don't touch
     user_namespace: user-{{ cloudforms_username | replace('_', '-') | replace('.', '-') }}
@@ -28,6 +31,8 @@
     include_vars:
       file: "{{ catalog_item_params_file }}"
       name: catalog_item_params
+
+  - include_tasks: override_ee.yaml
 
   - name: Show catalog_item_params
     debug:
@@ -453,12 +458,12 @@
       api_version: v1
       kind: Secret
       namespace: "{{ anarchy_namespace }}"
-      name: babylon-tower
+      name: "{{ babylon_tower_secret }}"
     register: r_babylon_tower_secret
 
   - name: Fail if babylon-tower secret not found
     fail:
-      msg: "babylon-tower secret not found"
+      msg: "{{ babylon_tower_secret }} secret not found"
     when: r_babylon_tower_secret.resources | length == 0
 
   - name: Create output_dir/secrets
