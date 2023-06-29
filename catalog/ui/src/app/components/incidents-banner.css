@@ -1,14 +1,29 @@
 .pf-c-banner.pf-m-warning {
-  background-color: #f1c40f;
+  background-color: #fdf7e7;
+  border-top: 2px solid #f0ab00;
 }
 .pf-c-banner.pf-m-info {
-  background-color: #3498db;
+  background-color: #e7f1fa;
+  border-top: 2px solid #2b9af3;
 }
 .pf-c-banner.pf-m-info a,
 .pf-c-banner.pf-m-info .editor-link {
-  color: black !important;
+  color: #151515 !important;
 }
 .pf-c-banner.pf-m-critical {
-  background-color: #e74c3c;
+  background-color: #faeae8;
   color: #fff;
+  border-top: 2px solid #c9190b;
+}
+.pf-c-banner.pf-m-warning svg {
+  fill: #f0ab00;
+}
+.pf-c-banner.pf-m-info svg {
+  fill: #2b9af3;
+}
+.pf-c-banner.pf-m-critical svg {
+  fill: #c9190b;
+}
+.incidents-banner__close-btn svg {
+  fill: #6a6e73 !important;
 }

@@ -66,7 +66,14 @@ const IncidentsBanner: React.FC = () => {
               </div>
               <div style={{ whiteSpace: 'normal' }}>
                 <EditorViewer value={i.message} />
-                <p style={{ fontStyle: 'italic', fontSize: 'xs', marginTop: 'var(--pf-global--spacer--sm)' }}>
+                <p
+                  style={{
+                    fontStyle: 'italic',
+                    fontSize: 'xs',
+                    marginTop: 'var(--pf-global--spacer--sm)',
+                    opacity: 0.75,
+                  }}
+                >
                   Last update <TimeInterval toTimestamp={i.updated_at} />
                 </p>
               </div>
@@ -74,6 +81,7 @@ const IncidentsBanner: React.FC = () => {
                 onClick={() => handleClose(i.id)}
                 variant="plain"
                 style={{ color: '#000', position: 'absolute', top: 0, right: 0 }}
+                className="incidents-banner__close-btn"
               >
                 <CloseIcon />
               </Button>
