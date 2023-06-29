@@ -66,7 +66,14 @@ const IncidentsBanner: React.FC = () => {
               </div>
               <div style={{ whiteSpace: 'normal' }}>
                 <EditorViewer value={i.message} />
-                <p style={{ fontStyle: 'italic', fontSize: 'xs', marginTop: 'var(--pf-global--spacer--sm)' }}>
+                <p
+                  style={{
+                    fontStyle: 'italic',
+                    fontSize: 'xs',
+                    marginTop: 'var(--pf-global--spacer--sm)',
+                    opacity: 0.75,
+                  }}
+                >
                   Last update <TimeInterval toTimestamp={i.updated_at} />
                 </p>
               </div>
