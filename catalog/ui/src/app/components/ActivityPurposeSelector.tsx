@@ -144,7 +144,7 @@ export const PurposeOpts = [
     activityId: 3,
     id: 18,
     requireUserInput: true,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   { name: 'Tech Exchange', activityId: 4, id: 19, sfdcRequired: false },
   { name: 'Summit', activityId: 4, id: 20, sfdcRequired: false },
