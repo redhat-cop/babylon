@@ -1,0 +1,37 @@
+---
+- name: Get Tower credentials and access information
+  k8s_info:
+    kubeconfig: "{{ kubeconfig }}"
+    api_version: v1
+    kind: Secret
+    label_selectors:
+    - babylon.gpte.redhat.com/ansible-control-plane={{ tower_host }}
+    namespace: "{{ anarchy_namespace }}"
+  register: r_babylon_tower_secret
+
+- name: Fail if babylon-tower secret not found
+  fail:
+    msg: "{{ tower_host }} secret not found"
+  when: r_babylon_tower_secret.resources | length == 0
+
+- name: Create output_dir/secrets
+  file:
+    path: "{{ output_dir }}/secrets"
+    state: directory
+    mode: u=rwx,go=
+
+- name: Write tower information to yaml file
+  vars:
+    babylon_tower_secret: "{{ r_babylon_tower_secret.resources[0] }}"
+    tower_hostname: "{{ babylon_tower_secret.data.hostname | b64decode }}"
+    tower_user: "{{ babylon_tower_secret.data.user | b64decode }}"
+    tower_password: "{{ babylon_tower_secret.data.password | b64decode }}"
+  copy:
+    dest: "{{ output_dir }}/secrets/tower.rc"
+    content: |
+      export TOWER_HOST={{ ("https://" ~ tower_hostname) | quote }}
+      export TOWER_VERIFY_SSL=false
+      export TOWER_USERNAME={{ tower_user | quote }}
+      export TOWER_PASSWORD={{ tower_password | quote }}
+      export TOWER_JOB={{ tower_job | quote }}
+...
