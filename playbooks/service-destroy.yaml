@@ -134,9 +134,12 @@
       until: >-
         'destroying' == r_subject.resources[0].spec.vars.current_state|default('')
 
-    - name: Save the tower job
+    - name: Set tower_host and tower_job
       set_fact:
-        tower_job: "{{ r_subject.resources[0].status.towerJobs.destroy.deployerJob }}"
+        tower_host: "{{ __anarchy_subject.status.towerJobs.destroy.towerHost }}"
+        tower_job: "{{ __anarchy_subject.status.towerJobs.destroy.deployerJob }}"
+      vars:
+        __anarchy_subject: "{{ r_subject.resources[0] }}"
 
   - name: Delete without resource claim
     when: resource_claim is undefined
@@ -214,44 +217,12 @@
         deployer_job != '' and
         deployer_job != subject.status.towerJobs.destroy.deployerJob | default('')
 
-    - name: Save the tower job
+    - name: Set tower_host and tower_job
       set_fact:
-        tower_job: "{{ r_subject.resources[0].status.towerJobs.destroy.deployerJob }}"
+        tower_host: "{{ __anarchy_subject.status.towerJobs.destroy.towerHost }}"
+        tower_job: "{{ __anarchy_subject.status.towerJobs.destroy.deployerJob }}"
+      vars:
+        __anarchy_subject: "{{ r_subject.resources[0] }}"
 
-  - name: Get Tower credentials and access information
-    k8s_info:
-      kubeconfig: "{{ kubeconfig }}"
-      api_version: v1
-      kind: Secret
-      namespace: "{{ anarchy_namespace }}"
-      name: babylon-tower
-    register: r_babylon_tower_secret
-
-  - fail:
-      msg: "babylon-tower secret not found"
-    when: r_babylon_tower_secret.resources | length == 0
-
-  - set_fact:
-      babylon_tower_secret: "{{ r_babylon_tower_secret.resources[0] }}"
-
-  - name: Save tower secret
-    set_fact:
-      tower_hostname: "{{ babylon_tower_secret.data.hostname | b64decode }}"
-      tower_user: "{{ babylon_tower_secret.data.user | b64decode }}"
-      tower_password: "{{ babylon_tower_secret.data.password | b64decode }}"
-
-  - name: Create output_dir/secrets
-    file:
-      path: "{{ output_dir }}/secrets"
-      state: directory
-      mode: 0700
-
-  - name: Write tower information to yaml file
-    copy:
-      dest: "{{ output_dir }}/secrets/tower.rc"
-      content: |
-        export TOWER_HOST="https://{{ tower_hostname }}"
-        export TOWER_VERIFY_SSL=false
-        export TOWER_USERNAME={{ tower_user | to_json }}
-        export TOWER_PASSWORD={{ tower_password | to_json }}
-        export TOWER_JOB={{ tower_job | to_json }}
+  - name: Write {{ output_dir }}/secrets/tower.rc
+    import_tasks: tasks/write-tower-rc.yaml

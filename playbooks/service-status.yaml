@@ -182,27 +182,15 @@
       __status_complete_timestamp != '' and
       __status_complete_timestamp != previous_status_complete_timestamp
 
-  - name: Get Tower credentials and access information
-    k8s_info:
-      kubeconfig: "{{ kubeconfig }}"
-      api_version: v1
-      kind: Secret
-      namespace: "{{ anarchy_namespace }}"
-      name: babylon-tower
-    register: r_babylon_tower_secret
-    failed_when: >-
-      r_babylon_tower_secret.resources | length != 1
-
-  - name: Set tower_hostname, tower_user, and tower_password from babylon-tower secret
+  - name: Set tower_host and tower_job
     set_fact:
-      tower_hostname: "{{ __babylon_tower_secret.data.hostname | b64decode }}"
-      tower_user: "{{ __babylon_tower_secret.data.user | b64decode }}"
-      tower_password: "{{ __babylon_tower_secret.data.password | b64decode }}"
-      tower_job: "{{ __subject.status.towerJobs.status.deployerJob }}"
+      tower_host: "{{ __anarchy_subject.status.towerJobs[_action].towerHost }}"
+      tower_job: "{{ __anarchy_subject.status.towerJobs[_action].deployerJob }}"
     vars:
-      __babylon_tower_secret: "{{ r_babylon_tower_secret.resources[0] }}"
-      __resource_claim: "{{ r_claim.resources[0] }}"
-      __subject: "{{ __resource_claim.status.resources[0].state }}"
+      __anarchy_subject: "{{ r_claim.resources[0].status.resources[0].state }}"
+
+  - name: Write {{ output_dir }}/secrets/tower.rc
+    import_tasks: tasks/write-tower-rc.yaml
 
   - name: Write status.txt
     copy:
@@ -212,13 +200,3 @@
     vars:
       __resource_claim: "{{ r_claim.resources[0] }}"
       __subject: "{{ __resource_claim.status.resources[0].state }}"
-
-  - name: Write tower information to yaml file
-    copy:
-      dest: "{{ output_dir }}/secrets/tower.rc"
-      content: |
-        export TOWER_HOST="https://{{ tower_hostname }}"
-        export TOWER_VERIFY_SSL=false
-        export TOWER_USERNAME={{ tower_user | to_json }}
-        export TOWER_PASSWORD={{ tower_password | to_json }}
-        export TOWER_JOB={{ tower_job | to_json }}
