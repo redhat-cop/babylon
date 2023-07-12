@@ -130,6 +130,8 @@
       kubeconfig: "{{ kubeconfig }}"
       definition:
         apiVersion: user.openshift.io/v1
+        identities:
+        - cfme:{{ cloudforms_username }}
         kind: User
         metadata:
           labels:
@@ -139,7 +141,7 @@
           name: "{{ cloudforms_username }}"
     register: r_user_created
 
-  - name: Update last-login annotation {{ cloudforms_username }}
+  - name: Update last-login annotation and identities for {{ cloudforms_username }}
     when: r_user.resources | length > 0
     k8s:
       api_version: user.openshift.io/v1
@@ -147,6 +149,8 @@
       kubeconfig: "{{ kubeconfig }}"
       name: "{{ cloudforms_username }}"
       definition:
+        identities:
+        - cfme:{{ cloudforms_username }}
         metadata:
           annotations:
             demo.redhat.com/last-login: "{{ now(true, '%FT%TZ') }}"
@@ -159,6 +163,31 @@
         {%- else -%}
         {{ r_user_created.result.metadata.uid }}
         {%- endif -%}
+
+  - name: Check if identity cfme:{{ cloudforms_username }} exists
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: user.openshift.io/v1
+      kind: Identity
+      name: cfme:{{ cloudforms_username }}
+    register: r_identity
+
+  - name: Create identity cfme:{{ cloudforms_username }}
+    when: r_identity.resources | length == 0
+    k8s:
+      kubeconfig: "{{ kubeconfig }}"
+      definition:
+        apiVersion: user.openshift.io/v1
+        extra:
+          email: "{{ cloudforms_useremail }}"
+        kind: Identity
+        metadata:
+          name: cfme:{{ cloudforms_username }}
+        providerName: cfme
+        providerUserName: "{{ cloudforms_username }}"
+        user:
+          name: "{{ cloudforms_username }}"
+          uid: "{{ user_uid }}"
 
   - name: Wait for namespace creation for {{ cloudforms_username }}}
     k8s_info:
