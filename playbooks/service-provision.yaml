@@ -71,11 +71,19 @@
         # Check AnarchyGovernor vars that are not listed in params_to_variables
         check_governor_job_vars: >-
           {{ job_vars
-           | combine({"__meta__": pruned_meta})
+           | combine({"__meta__": check_governor_pruned_meta})
            | dict2items
            | json_query(filter_var_query)
            | items2dict
           }}
+        check_governor_pruned_meta: >-
+          {{ job_vars.__meta__ | dict2items | json_query(pruned_meta_query) | items2dict }}
+        check_params: >-
+          {{ vars.catalog_item_params
+           | combine({"__meta__": check_params_pruned_meta})
+          }}
+        check_params_pruned_meta: >-
+          {{ vars.catalog_item_params.__meta__ | dict2items | json_query(pruned_meta_query) | items2dict }}
         filter_var_query: >-
           [?!contains(`{{ filter_var_list | to_json }}`, key)]
         filter_var_list: >-
@@ -83,11 +91,11 @@
            + ["agnosticv_meta"] }}
         job_vars: >-
           {{ r_governor.resources[0].spec.vars.job_vars | default({}) }}
-        pruned_meta: >-
-          {{ job_vars.__meta__ | dict2items | json_query("[?!contains(['git', 'last_update'], key)]") | items2dict }}
+        pruned_meta_query: >-
+          [?!contains(['catalog','last_update'], key)]
       failed_when: >-
         r_governor.resources | length == 0 or
-        vars.catalog_item_params != vars.catalog_item_params | combine(check_governor_job_vars)
+        check_params != check_params | combine(check_governor_job_vars)
       until: r_governor is success
       delay: 5
       retries: 60
