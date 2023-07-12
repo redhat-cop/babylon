@@ -152,7 +152,7 @@
         {{ r_user_created.result.metadata.uid }}
         {%- endif -%}
 
-  - name: Wait for namespace {{ user_namespace }} creation
+  - name: Wait for namespace creation for {{ cloudforms_username }}}
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
       api_version: v1
