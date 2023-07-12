@@ -499,8 +499,8 @@
 
   - name: Set tower_host and tower_job
     set_fact:
-      tower_host: "{{ __anarchy_subject.status.towerJobs.destroy.towerHost }}"
-      tower_job: "{{ __anarchy_subject.status.towerJobs.destroy.deployerJob }}"
+      tower_host: "{{ __anarchy_subject.status.towerJobs.provision.towerHost }}"
+      tower_job: "{{ __anarchy_subject.status.towerJobs.provision.deployerJob }}"
     vars:
       __anarchy_subject: "{{ r_claim.resources[0].status.resources[0].state }}"
 

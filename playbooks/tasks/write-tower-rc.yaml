@@ -26,8 +26,6 @@
     tower_hostname: "{{ babylon_tower_secret.data.hostname | b64decode }}"
     tower_user: "{{ babylon_tower_secret.data.user | b64decode }}"
     tower_password: "{{ babylon_tower_secret.data.password | b64decode }}"
-    tower_job: >-
-      {{ r_claim.resources[0].status.resources[0].state.status.towerJobs.destroy.deployerJob }}
   copy:
     dest: "{{ output_dir }}/secrets/tower.rc"
     content: |
