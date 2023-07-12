@@ -117,6 +117,8 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
     }
   }
 
+  console.log(resourceHandles);
+
   return (
     <>
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
@@ -295,7 +297,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
             ) : (
               <SelectableTable
                 columns={['Name', 'Service Namespace', 'ResourceClaim', 'Created At']}
-                onSelectAll={(isSelected) => {
+                onSelectAll={(isSelected: boolean) => {
                   if (isSelected) {
                     reduceResourceHandleSelectedUids({
                       type: 'set',
@@ -354,7 +356,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                         </span>
                       </>,
                     ],
-                    onSelect: (isSelected) =>
+                    onSelect: (isSelected: boolean) =>
                       reduceResourceHandleSelectedUids({
                         type: isSelected ? 'add' : 'remove',
                         uids: [resourceHandle.metadata.uid],
