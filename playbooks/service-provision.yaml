@@ -84,7 +84,7 @@
         job_vars: >-
           {{ r_governor.resources[0].spec.vars.job_vars | default({}) }}
         pruned_meta: >-
-          {{ job_vars.__meta__ | dict2items | json_query("[?key != 'last_update']") | items2dict }}
+          {{ job_vars.__meta__ | dict2items | json_query("[?!contains(['git', 'last_update'], key)]") | items2dict }}
       failed_when: >-
         r_governor.resources | length == 0 or
         vars.catalog_item_params != vars.catalog_item_params | combine(check_governor_job_vars)
