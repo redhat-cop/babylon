@@ -1,11 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAnarchySubject } from '@app/api';
 import { ResourceHandle } from '@app/types';
+
+export function useIsMounted() {
+  const isMounted = useRef(false);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  return useCallback(() => isMounted.current, []);
+}
 
 function usePoolStatus(resourceHandles: ResourceHandle[]): { available: number; total: number; taken: number } {
   const [available, setAvailable] = useState(-1);
   const [taken, setTaken] = useState(0);
-  const isMounted = useRef(true);
+  const isMounted = useIsMounted();
   const total = resourceHandles.length;
   useEffect(() => {
     let _taken = 0;
@@ -43,15 +55,12 @@ function usePoolStatus(resourceHandles: ResourceHandle[]): { available: number; 
       }
     }
     Promise.all(resourceHandlePromises).then((values) => {
-      if (isMounted.current) {
+      if (isMounted) {
         setAvailable(values.reduce((a, b) => a + b, 0));
-        setTaken(taken);
+        setTaken(_taken);
       }
     });
-    return () => {
-      isMounted.current = false;
-    };
-  }, [isMounted.current, resourceHandles]);
+  }, []);
 
   return {
     available,

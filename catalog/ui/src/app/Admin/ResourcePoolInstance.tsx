@@ -117,8 +117,6 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
     }
   }
 
-  console.log(resourceHandles);
-
   return (
     <>
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
