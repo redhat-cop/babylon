@@ -392,8 +392,24 @@ class AgnosticVComponent(KopfObject):
         # FIXME - more should be removed from __meta__, really __meta__ should not be passed at all
         definition['spec']['vars']['job_vars']['__meta__'] = pruned_meta
 
-        for action_name, action_config in self.deployer_actions.items():
+        sandbox_api_actions = pruned_meta.get('sandbox_api', {}).get('actions', {})
+
+        for action_name in ('destroy', 'provision', 'start', 'status', 'stop'):
+            action_config = {}
+
+            # __meta__.sandbox_api.actions overrides __meta__.deployer.actions
+            if action_name in sandbox_api_actions:
+                action_config = sandbox_api_actions[action_name]
+            else:
+                if action_name in self.deployer_actions:
+                    action_config = self.deployer_actions[action_name]
+                else:
+                    continue
+
             if action_config.get('disable'):
+                continue
+            # If action has explicitely enabled=False, skip it
+            if action_config.get('enable', True) == False:
                 continue
 
             action_def = {
