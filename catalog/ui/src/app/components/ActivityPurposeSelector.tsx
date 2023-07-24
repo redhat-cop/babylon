@@ -263,11 +263,6 @@ const ActivityPurposeSelector: React.FC<{
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <span>{purposeOpt.name}</span>
-                  {purposeOpt.description ? (
-                    <Tooltip position="right" content={<div>{purposeOpt.description}</div>}>
-                      <OutlinedQuestionCircleIcon aria-label={purposeOpt.description} className="tooltip-icon-only" />
-                    </Tooltip>
-                  ) : null}
                 </SelectOption>
               ))}
             </Select>
@@ -287,7 +282,21 @@ const ActivityPurposeSelector: React.FC<{
               </div>
             </div>
           ) : null}
-          <Tooltip position="right" content={<div>Purpose for this service.</div>}>
+          <Tooltip
+            position="right"
+            content={
+              <div>
+                Purpose for this service. Definitions{' '}
+                <a
+                  href="https://docs.google.com/document/d/1B5h1YWmQuOSXVQSOPebwdc6Nij09AusvcORtqvUzPqo/edit?usp=sharing"
+                  target="_blank"
+                >
+                  here
+                </a>
+                .
+              </div>
+            }
+          >
             <OutlinedQuestionCircleIcon aria-label="Purpose for this service." className="tooltip-icon-only" />
           </Tooltip>
         </div>
