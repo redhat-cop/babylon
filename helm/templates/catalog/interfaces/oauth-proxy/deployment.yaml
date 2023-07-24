@@ -98,7 +98,7 @@ spec:
       - name: proxy-tls
         secret:
           defaultMode: 0644
-          secretName: babylon-catalog-tls
+          secretName: babylon-catalog-oauth-proxy-tls
       {{- if $oauthProxy.templates }}
       - name: templates
         configMap:

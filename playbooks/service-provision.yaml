@@ -15,12 +15,11 @@
     cloudforms_username: CHANGEME
 
     # After that don't touch
-    user_namespace: user-{{ cloudforms_username | replace('_', '-') | replace('.', '-') }}
     catalog_item_name: "{{ account | replace('_', '-') }}.{{ catalog_item | lower | regex_replace('_', '-') }}.{{ catalog_stage }}"
     platform_url: "{% if 'OPENTLC' in platform %}https://labs.opentlc.com/{% else %}https://rhpds.redhat.com/{% endif %}"
 
   tasks:
-  - name: Git minimal facts
+  - name: Gather minimal facts
     ansible.builtin.setup:
       gather_subset: min
 
@@ -72,11 +71,19 @@
         # Check AnarchyGovernor vars that are not listed in params_to_variables
         check_governor_job_vars: >-
           {{ job_vars
-           | combine({"__meta__": pruned_meta})
+           | combine({"__meta__": check_governor_pruned_meta})
            | dict2items
            | json_query(filter_var_query)
            | items2dict
           }}
+        check_governor_pruned_meta: >-
+          {{ job_vars.__meta__ | dict2items | json_query(pruned_meta_query) | items2dict }}
+        check_params: >-
+          {{ vars.catalog_item_params
+           | combine({"__meta__": check_params_pruned_meta})
+          }}
+        check_params_pruned_meta: >-
+          {{ vars.catalog_item_params.__meta__ | dict2items | json_query(pruned_meta_query) | items2dict }}
         filter_var_query: >-
           [?!contains(`{{ filter_var_list | to_json }}`, key)]
         filter_var_list: >-
@@ -84,11 +91,11 @@
            + ["agnosticv_meta"] }}
         job_vars: >-
           {{ r_governor.resources[0].spec.vars.job_vars | default({}) }}
-        pruned_meta: >-
-          {{ job_vars.__meta__ | dict2items | json_query("[?key != 'last_update']") | items2dict }}
+        pruned_meta_query: >-
+          [?!contains(['catalog','last_update'], key)]
       failed_when: >-
         r_governor.resources | length == 0 or
-        vars.catalog_item_params != vars.catalog_item_params | combine(check_governor_job_vars)
+        check_params != check_params | combine(check_governor_job_vars)
       until: r_governor is success
       delay: 5
       retries: 60
@@ -123,6 +130,8 @@
       kubeconfig: "{{ kubeconfig }}"
       definition:
         apiVersion: user.openshift.io/v1
+        identities:
+        - cfme:{{ cloudforms_username }}
         kind: User
         metadata:
           labels:
@@ -132,7 +141,7 @@
           name: "{{ cloudforms_username }}"
     register: r_user_created
 
-  - name: Update last-login annotation {{ cloudforms_username }}
+  - name: Update last-login annotation and identities for {{ cloudforms_username }}
     when: r_user.resources | length > 0
     k8s:
       api_version: user.openshift.io/v1
@@ -140,21 +149,62 @@
       kubeconfig: "{{ kubeconfig }}"
       name: "{{ cloudforms_username }}"
       definition:
+        identities:
+        - cfme:{{ cloudforms_username }}
         metadata:
           annotations:
             demo.redhat.com/last-login: "{{ now(true, '%FT%TZ') }}"
 
-  - name: Wait for namespace {{ user_namespace }} creation
+  - name: Set user_uid
+    set_fact:
+      user_uid: >-
+        {%- if r_user.resources | length > 0 -%}
+        {{ r_user.resources[0].metadata.uid }}
+        {%- else -%}
+        {{ r_user_created.result.metadata.uid }}
+        {%- endif -%}
+
+  - name: Check if identity cfme:{{ cloudforms_username }} exists
+    k8s_info:
+      kubeconfig: "{{ kubeconfig }}"
+      api_version: user.openshift.io/v1
+      kind: Identity
+      name: cfme:{{ cloudforms_username }}
+    register: r_identity
+
+  - name: Create identity cfme:{{ cloudforms_username }}
+    when: r_identity.resources | length == 0
+    k8s:
+      kubeconfig: "{{ kubeconfig }}"
+      definition:
+        apiVersion: user.openshift.io/v1
+        extra:
+          email: "{{ cloudforms_useremail }}"
+        kind: Identity
+        metadata:
+          name: cfme:{{ cloudforms_username }}
+        providerName: cfme
+        providerUserName: "{{ cloudforms_username }}"
+        user:
+          name: "{{ cloudforms_username }}"
+          uid: "{{ user_uid }}"
+
+  - name: Wait for namespace creation for {{ cloudforms_username }}}
     k8s_info:
       kubeconfig: "{{ kubeconfig }}"
       api_version: v1
       kind: Namespace
-      name: "{{ user_namespace }}"
+      label_selectors:
+      - usernamespace.gpte.redhat.com/user-uid={{ user_uid }}
     register: r_user_namespace
     failed_when: r_user_namespace.resources | length < 1
     until: r_user_namespace is successful
     retries: 10
     delay: 3
+
+  - name: Set user_namespace
+    set_fact:
+      user_namespace: "{{ r_user_namespace.resources[0].metadata.name }}"
 
   - name: Grant babylon-user-service-access for {{ cloudforms_username }} in namespace
     k8s:
@@ -447,39 +497,12 @@
         babylon.currentState:
         {{ r_claim.resources[0].status.resources[0].state.spec.vars.current_state }}
 
-  - name: Get Tower credentials and access information
-    k8s_info:
-      kubeconfig: "{{ kubeconfig }}"
-      api_version: v1
-      kind: Secret
-      namespace: "{{ anarchy_namespace }}"
-      name: babylon-tower
-    register: r_babylon_tower_secret
-
-  - name: Fail if babylon-tower secret not found
-    fail:
-      msg: "babylon-tower secret not found"
-    when: r_babylon_tower_secret.resources | length == 0
-
-  - name: Create output_dir/secrets
-    file:
-      path: "{{ output_dir }}/secrets"
-      state: directory
-      mode: u=rwx,go=
-
-  - name: Write tower information to yaml file
+  - name: Set tower_host and tower_job
+    set_fact:
+      tower_host: "{{ __anarchy_subject.status.towerJobs.provision.towerHost }}"
+      tower_job: "{{ __anarchy_subject.status.towerJobs.provision.deployerJob }}"
     vars:
-      babylon_tower_secret: "{{ r_babylon_tower_secret.resources[0] }}"
-      tower_hostname: "{{ babylon_tower_secret.data.hostname | b64decode }}"
-      tower_user: "{{ babylon_tower_secret.data.user | b64decode }}"
-      tower_password: "{{ babylon_tower_secret.data.password | b64decode }}"
-      tower_job: >-
-        {{ r_claim.resources[0].status.resources[0].state.status.towerJobs.provision.deployerJob }}
-    copy:
-      dest: "{{ output_dir }}/secrets/tower.rc"
-      content: |
-        export TOWER_HOST={{ ("https://" ~ tower_hostname) | quote }}
-        export TOWER_VERIFY_SSL=false
-        export TOWER_USERNAME={{ tower_user | quote }}
-        export TOWER_PASSWORD={{ tower_password | quote }}
-        export TOWER_JOB={{ tower_job | quote }}
+      __anarchy_subject: "{{ r_claim.resources[0].status.resources[0].state }}"
+
+  - name: Write {{ output_dir }}/secrets/tower.rc
+    import_tasks: tasks/write-tower-rc.yaml

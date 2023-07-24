@@ -97,7 +97,7 @@ catalog:
       image:
         pullPolicy: Always
         repository: registry.redhat.io/openshift4/ose-oauth-proxy
-        tag: v4.10
+        tag: v4.12
       replicaCount: 1
       resources:
         requests:
