@@ -1,4 +1,19 @@
+import kubernetes_asyncio
+
+from babylon import Babylon
+
 class ServiceNamespace:
+    @classmethod
+    async def get(cls, name):
+        try:
+            namespace = await Babylon.core_v1_api.read_namespace(name)
+            return ServiceNamespace(namespace)
+        except kubernetes_asyncio.client.rest.ApiException as e:
+            if e.status == 404:
+                return None
+            else:
+                raise
+
     def __init__(self, namespace):
         self.namespace = namespace
 

@@ -1,4 +1,25 @@
+import kubernetes_asyncio
+
+from babylon import Babylon
+
 class CatalogItem:
+    @classmethod
+    async def get(cls, name, namespace):
+        try:
+            definition = await Babylon.custom_objects_api.get_namespaced_custom_object(
+                group = Babylon.babylon_domain,
+                name = name,
+                namespace = namespace,
+                plural = 'catalogitems',
+                version = Babylon.babylon_api_version,
+            )
+            return CatalogItem(definition=definition)
+        except kubernetes_asyncio.client.rest.ApiException as e:
+            if e.status == 404:
+                return None
+            else:
+                raise
+
     def __init__(self, definition):
         self.definition = definition
 
