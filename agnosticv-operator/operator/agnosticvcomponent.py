@@ -1,7 +1,7 @@
 import json
 import kopf
 import yaml
-
+import uuid
 from copy import deepcopy
 
 from babylon import Babylon
@@ -110,6 +110,12 @@ class AgnosticVComponent(KopfObject):
     @property
     def ansible_control_plane_secret(self):
         return self.ansible_control_plane.get('secret')
+
+    @property
+    def asset_uuid(self):
+        if 'asset_uuid' in self.__meta__:
+            return self.__meta__['asset_uuid']
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, self.name.rsplit('.', 1)[0]))
 
     @property
     def bookbag(self):
@@ -479,6 +485,7 @@ class AgnosticVComponent(KopfObject):
                 #"description": self.catalog_description,
                 #"icon": self.catalog_icon,
                 #"keywords": self.catalog_keywords,
+                "assetUuid": self.asset_uuid,
                 "lastUpdate": self.last_update,
                 "lifespan": {
                     "default": self.lifespan_default,
