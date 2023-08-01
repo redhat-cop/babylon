@@ -33,14 +33,16 @@ smtp:
   # account.secretName - Override default secret name (chart name + '-smtp-credentials')
   # account.username - Account used for the SMTP server authentication
   # account.password - Password used for the SMTP Server authentication
-  from:
-  host:
+  #from:
+  #host:
   port: 25
   #tls:
   #  ca:
   #    -----BEGIN CERTIFICATE-----
   #    ...
   #    -----END CERTIFICATE-----
+  #
+  #  clientCertificateSecret: ...
   #  crt:
   #    -----BEGIN CERTIFICATE-----
   #    ...
@@ -49,6 +51,7 @@ smtp:
   #    -----BEGIN RSA PRIVATE KEY-----
   #    ...
   #    -----END RSA PRIVATE KEY-----
+  #  validateCerts: true
   #account:
   #  generateSecret: false
   #  secretName: # default use chart name + '-smtp-credentials'

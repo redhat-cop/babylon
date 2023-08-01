@@ -76,9 +76,10 @@ class ResourceClaim:
             if not state:
                 return None
             if state['kind'] == 'AnarchySubject':
-                if state['spec'].get('vars', {}).get('current_state') == 'started' \
-                and 'start' in state['status']['towerJobs']:
-                    timestamp = state['status']['towerJobs']['start']['completeTimestamp']
+                if state['spec'].get('vars', {}).get('current_state') == 'started':
+                    complete_ts = state['status'].get('towerJobs', {}).get('start', {}).get('completeTimestamp')
+                    if complete_ts:
+                        timestamp = complete_ts
                 else:
                     return None
         return timestamp
@@ -95,7 +96,9 @@ class ResourceClaim:
                 return None
             if state['kind'] == 'AnarchySubject':
                 if state['spec'].get('vars', {}).get('current_state') == 'stopped':
-                    timestamp = state['status']['towerJobs']['stop']['completeTimestamp']
+                    complete_ts = state['status'].get('towerJobs', {}).get('stop', {}).get('completeTimestamp')
+                    if complete_ts:
+                        timestamp = complete_ts
                 else:
                     return None
         return timestamp
