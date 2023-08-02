@@ -1,7 +1,6 @@
 import json
 import kopf
 import yaml
-import uuid
 from copy import deepcopy
 
 from babylon import Babylon
@@ -113,9 +112,7 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def asset_uuid(self):
-        if 'asset_uuid' in self.__meta__:
-            return self.__meta__['asset_uuid']
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, self.name.rsplit('.', 1)[0]))
+        return self.__meta__.get('asset_uuid', '')
 
     @property
     def bookbag(self):
