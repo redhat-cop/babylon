@@ -30,7 +30,11 @@ spec:
         {{- if (.Values.smtp.tls).ca }}
         - name: SMTP_TLS_CA_CERT
           value: |
-            {{- .Values.stmp.tls.ca | nindent 12 }}
+            {{- .Values.smtp.tls.ca | nindent 12 }}
+        {{- end }}
+        {{- if (.Values.smtp.tls).caCertificateSecret }}
+        - name: SMTP_TLS_CA_CERT_FILE
+          value: /smtp-tls-ca/ca.crt
         {{- end }}
         {{- if (or (.Values.smtp.tls).crt (.Values.smtp.tls).clientCertificateSecret) }}
         - name: SMTP_TLS_CERT_FILE
@@ -75,6 +79,11 @@ spec:
             port: 8080
           timeoutSeconds: 1
         volumeMounts:
+        {{- if (.Values.smtp.tls).caCertificateSecret }}
+        - name: smtp-tls-ca
+          mountPath: /smtp-tls-ca
+          readOnly: true
+        {{- end }}
         {{- if (or (.Values.smtp.tls).crt (.Values.smtp.tls).clientCertificateSecret) }}
         - name: smtp-tls
           mountPath: /smtp-tls
@@ -104,6 +113,12 @@ spec:
       - name: smtp-tls
         secret:
           defaultMode: 0440
-          secretName: {{ .Values.smtp.tls.clientCertificateSecret | default include "babylon-notifier.name" . }}-tls
+          secretName: {{ .Values.smtp.tls.clientCertificateSecret | default (printf "%s-tls" (include "babylon-notifier.name" .)) }}
+      {{- end }}
+      {{- if (.Values.smtp.tls).caCertificateSecret }}
+      - name: smtp-tls-ca
+        secret:
+          defaultMode: 0440
+          secretName: {{ .Values.smtp.tls.caCertificateSecret }}
       {{- end }}
 {{- end }}
