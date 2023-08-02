@@ -338,6 +338,9 @@ class AgnosticVComponent(KopfObject):
                 "annotations": {
                     f"{Babylon.agnosticv_api_group}/last-update": json.dumps(self.last_update),
                 },
+                "labels": {
+                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
+                },
                 "name": self.name,
                 "namespace": self.anarchy_namespace,
             },
@@ -475,6 +478,7 @@ class AgnosticVComponent(KopfObject):
                 },
                 "labels": {
                     f"{Babylon.catalog_api_group}/category": self.catalog_category,
+                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
                 },
             },
             "spec": {
@@ -482,7 +486,6 @@ class AgnosticVComponent(KopfObject):
                 #"description": self.catalog_description,
                 #"icon": self.catalog_icon,
                 #"keywords": self.catalog_keywords,
-                "assetUuid": self.asset_uuid,
                 "lastUpdate": self.last_update,
                 "lifespan": {
                     "default": self.lifespan_default,
@@ -567,6 +570,9 @@ class AgnosticVComponent(KopfObject):
             "metadata": {
                 "annotations": {
                     f"{Babylon.agnosticv_api_group}/last-update": json.dumps(self.last_update),
+                },
+                "labels": {
+                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
                 },
                 "name": self.name,
                 "namespace": Babylon.resource_broker_namespace,
