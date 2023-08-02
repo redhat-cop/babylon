@@ -67,7 +67,7 @@ if smtp_tls_key:
 if smtp_tls_ca_cert:
     smtp_tls_ca_fd, smtp_tls_ca_cert_file = mkstemp()
     with open(smtp_tls_ca_fd, 'w') as f:
-        f.write(smtp_tls_ca)
+        f.write(smtp_tls_ca_cert)
 
 smtp = aiosmtplib.SMTP(
     cert_bundle = smtp_tls_ca_cert_file,
