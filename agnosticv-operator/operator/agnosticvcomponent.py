@@ -1,6 +1,7 @@
 import json
 import kopf
 import yaml
+
 from copy import deepcopy
 
 from babylon import Babylon
@@ -109,10 +110,6 @@ class AgnosticVComponent(KopfObject):
     @property
     def ansible_control_plane_secret(self):
         return self.ansible_control_plane.get('secret')
-
-    @property
-    def asset_uuid(self):
-        return self.__meta__.get('asset_uuid', '')
 
     @property
     def bookbag(self):
@@ -338,9 +335,6 @@ class AgnosticVComponent(KopfObject):
                 "annotations": {
                     f"{Babylon.agnosticv_api_group}/last-update": json.dumps(self.last_update),
                 },
-                "labels": {
-                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
-                },
                 "name": self.name,
                 "namespace": self.anarchy_namespace,
             },
@@ -478,7 +472,6 @@ class AgnosticVComponent(KopfObject):
                 },
                 "labels": {
                     f"{Babylon.catalog_api_group}/category": self.catalog_category,
-                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
                 },
             },
             "spec": {
@@ -570,9 +563,6 @@ class AgnosticVComponent(KopfObject):
             "metadata": {
                 "annotations": {
                     f"{Babylon.agnosticv_api_group}/last-update": json.dumps(self.last_update),
-                },
-                "labels": {
-                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
                 },
                 "name": self.name,
                 "namespace": Babylon.resource_broker_namespace,
