@@ -688,6 +688,7 @@ export async function createWorkshopProvision({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        [`${BABYLON_DOMAIN}/workshop`]: workshop.metadata.name,
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`],
