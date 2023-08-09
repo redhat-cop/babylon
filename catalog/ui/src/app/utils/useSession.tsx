@@ -32,7 +32,7 @@ async function getSessionFn(dispatch: Dispatch<AnyAction>) {
       catalogNamespaces: session.catalogNamespaces,
       serviceNamespaces: session.serviceNamespaces,
       userNamespace: session.userNamespace,
-    })
+    }),
   );
 }
 

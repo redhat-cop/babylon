@@ -25,7 +25,7 @@ const UserMessage: React.FC<{
           }}
         />
       ) : null,
-    [userMessages]
+    [userMessages],
   );
 
   return (
@@ -83,7 +83,7 @@ const ServiceUsers: React.FC<{
 }> = ({ resourceClaim }) => {
   const users = {};
   const labUserInterfaceUrls = JSON.parse(
-    resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrls`] || '{}'
+    resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrls`] || '{}',
   );
 
   for (const status_resource of resourceClaim?.status?.resources || []) {
@@ -99,7 +99,7 @@ const ServiceUsers: React.FC<{
         const userLabUrl =
           labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url;
         const userDataEntries = Object.entries(userData).filter(
-          ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg'
+          ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg',
         );
         const userMessages: string = userData.msg;
         return (

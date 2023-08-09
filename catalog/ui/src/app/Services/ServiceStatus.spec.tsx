@@ -19,7 +19,7 @@ describe('ServiceStatus', () => {
         resource={anarchySubjectObj}
         resourceTemplate={anarchySubjectObj}
         resourceClaim={resourceClaimObj as ResourceClaim}
-      />
+      />,
     );
     const status = getByText('Stopped');
     await waitFor(() => expect(status).toBeInTheDocument());
@@ -31,7 +31,7 @@ describe('ServiceStatus', () => {
         resource={anarchySubjectFailedObj}
         resourceTemplate={anarchySubjectFailedObj}
         resourceClaim={resourceClaimObj as ResourceClaim}
-      />
+      />,
     );
     const status = getByText(/Start Failed/i);
     await waitFor(() => expect(status).toBeInTheDocument());

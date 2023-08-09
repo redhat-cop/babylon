@@ -59,7 +59,7 @@ const WorkshopContent: React.FC<{
           }}
         />
       ) : null,
-    [userAssignment.messages]
+    [userAssignment.messages],
   );
 
   if (userAssignment.labUserInterface?.url && labUserInterfaceRedirect === true) {
@@ -127,7 +127,7 @@ const WorkshopContent: React.FC<{
                           {yaml.dump(
                             Object.keys(userAssignment.data).length === 1
                               ? userAssignment.data[Object.keys(userAssignment.data)[0]]
-                              : userAssignment.data
+                              : userAssignment.data,
                           )}
                         </pre>
                       </DescriptionListDescription>

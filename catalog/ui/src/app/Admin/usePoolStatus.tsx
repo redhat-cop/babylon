@@ -38,7 +38,7 @@ function usePoolStatus(resourceHandles: ResourceHandle[]): { available: number; 
                   return true;
                 }
                 return false;
-              })
+              }),
             );
           }
         }
@@ -50,7 +50,7 @@ function usePoolStatus(resourceHandles: ResourceHandle[]): { available: number; 
               }
               resolve(0);
             });
-          })
+          }),
         );
       }
     }

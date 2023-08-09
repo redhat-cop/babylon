@@ -35,7 +35,7 @@ const IncidentsBanner: React.FC = () => {
       localStorage.setItem(STORAGE_KEY, itemsStr);
       setClosedItemsStr(itemsStr);
     },
-    [closedItems]
+    [closedItems],
   );
 
   if (!data || (Array.isArray(data) && data.length === 0)) return null;

@@ -13,7 +13,7 @@ function useDebounce(inner: (...args: any[]) => unknown, ms = 0): (...args: unkn
         const result = inner(...args);
         resolves.forEach((r) => r(result));
         setResolves([]);
-      }, ms)
+      }, ms),
     );
 
     return new Promise((r) => resolves.push(r));

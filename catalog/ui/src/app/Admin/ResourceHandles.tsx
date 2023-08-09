@@ -61,7 +61,7 @@ const ResourceHandles: React.FC = () => {
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')]
+    [searchParams.get('search')],
   );
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
@@ -96,7 +96,7 @@ const ResourceHandles: React.FC = () => {
         }
         return true;
       },
-    }
+    },
   );
 
   const revalidate = useCallback(
@@ -118,7 +118,7 @@ const ResourceHandles: React.FC = () => {
         }
       }
     },
-    [mutate, resourceHandlesPages]
+    [mutate, resourceHandlesPages],
   );
 
   const isReachingEnd =
@@ -139,12 +139,12 @@ const ResourceHandles: React.FC = () => {
       }
       return true;
     },
-    [keywordFilter]
+    [keywordFilter],
   );
 
   const resourceHandles: ResourceHandle[] = useMemo(
     () => [].concat(...resourceHandlesPages.map((page) => page.items)).filter(filterResourceHandle) || [],
-    [filterResourceHandle, resourceHandlesPages]
+    [filterResourceHandle, resourceHandlesPages],
   );
 
   // Trigger continue fetching more resource claims on scroll.

@@ -68,10 +68,10 @@ const ServiceOpenStackConsole: React.FC<{
 
   // Subjects must be started for console access
   const areAnySubjectsNotDesiredStarted = (resourceClaim?.status?.resources || []).some(
-    (r) => r.state?.kind === 'AnarchySubject' && r.state?.spec?.vars.desired_state !== 'started'
+    (r) => r.state?.kind === 'AnarchySubject' && r.state?.spec?.vars.desired_state !== 'started',
   );
   const areAnySubjectsNotStarted = (resourceClaim?.status?.resources || []).some(
-    (r) => r.state?.kind === 'AnarchySubject' && r.state?.spec?.vars.current_state !== 'started'
+    (r) => r.state?.kind === 'AnarchySubject' && r.state?.spec?.vars.current_state !== 'started',
   );
   if (areAnySubjectsNotDesiredStarted) {
     return (
@@ -99,7 +99,7 @@ const ServiceOpenStackConsole: React.FC<{
       serverDropdownItems.push(
         <DropdownItem id={`${server.project_id}.${server.id}`} key={`${server.project_id}.${server.id}`}>
           {server.name}
-        </DropdownItem>
+        </DropdownItem>,
       );
     }
   }

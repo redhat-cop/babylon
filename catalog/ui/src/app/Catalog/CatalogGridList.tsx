@@ -28,7 +28,7 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
         if (grid[grid.length - 1]) grid[grid.length - 1].push(item);
         return grid;
       }, []),
-    [catalogItems, catalogItemsColumnsSize]
+    [catalogItems, catalogItemsColumnsSize],
   );
 
   const Cell = useCallback(
@@ -47,7 +47,7 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
         ) : null}
       </div>
     ),
-    [catalogItemsResultAsGrid]
+    [catalogItemsResultAsGrid],
   );
 
   const Row = useCallback(
@@ -61,7 +61,7 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
         {catalogItems[index] ? <CatalogItemListItem catalogItem={catalogItems[index]} /> : null}
       </div>
     ),
-    [catalogItems]
+    [catalogItems],
   );
 
   return (

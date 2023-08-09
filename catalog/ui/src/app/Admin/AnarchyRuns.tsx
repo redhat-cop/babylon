@@ -61,7 +61,7 @@ const AnarchyRuns: React.FC = () => {
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')]
+    [searchParams.get('search')],
   );
   const stateUrlParam = searchParams.has('state') ? searchParams.get('state') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
@@ -105,7 +105,7 @@ const AnarchyRuns: React.FC = () => {
         }
         return true;
       },
-    }
+    },
   );
 
   const revalidate = useCallback(
@@ -127,7 +127,7 @@ const AnarchyRuns: React.FC = () => {
         }
       }
     },
-    [mutate, anarchyRunsPages]
+    [mutate, anarchyRunsPages],
   );
 
   const isReachingEnd = anarchyRunsPages && !anarchyRunsPages[anarchyRunsPages.length - 1].metadata.continue;
@@ -147,12 +147,12 @@ const AnarchyRuns: React.FC = () => {
       }
       return true;
     },
-    [keywordFilter]
+    [keywordFilter],
   );
 
   const anarchyRuns: AnarchyRun[] = useMemo(
     () => [].concat(...anarchyRunsPages.map((page) => page.items)).filter(filterAnarchyRun) || [],
-    [filterAnarchyRun, anarchyRunsPages]
+    [filterAnarchyRun, anarchyRunsPages],
   );
 
   // Trigger continue fetching more resource claims on scroll.

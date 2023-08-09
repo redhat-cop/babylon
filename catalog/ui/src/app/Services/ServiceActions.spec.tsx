@@ -22,7 +22,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />
+      />,
     );
     const testVar = getByText('Actions');
     await waitFor(() => expect(testVar).toBeInTheDocument());
@@ -45,7 +45,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />
+      />,
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
@@ -69,7 +69,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />
+      />,
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
@@ -93,7 +93,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />
+      />,
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
@@ -117,7 +117,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />
+      />,
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
@@ -141,7 +141,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />
+      />,
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);

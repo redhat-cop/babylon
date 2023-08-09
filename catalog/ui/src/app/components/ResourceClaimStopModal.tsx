@@ -13,7 +13,7 @@ const ResourceClaimStopModal: React.FC<{
   }, [onConfirm, setOnConfirmCb]);
   useEffect(() => {
     setTitle(
-      resourceClaims.length === 1 ? `Stop service ${displayName(resourceClaims[0])}?` : 'Stop selected services?'
+      resourceClaims.length === 1 ? `Stop service ${displayName(resourceClaims[0])}?` : 'Stop selected services?',
     );
   }, [resourceClaims, setTitle]);
   return <p>Cloud services will be stopped as supported by service deployer.</p>;
