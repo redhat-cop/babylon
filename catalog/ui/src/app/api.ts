@@ -358,8 +358,8 @@ export async function createServiceRequest({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
-        ...(catalogItem.metadata['gpte.redhat.com/asset-uuid']
-          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata['gpte.redhat.com/asset-uuid'] }
+        ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
           : {}),
         ...(catalogItem.spec.bookbag ? { [`${BABYLON_DOMAIN}/labUserInterface`]: 'bookbag' } : {}),
       },
@@ -539,8 +539,8 @@ export async function createWorkshop({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
-        ...(catalogItem.metadata['gpte.redhat.com/asset-uuid']
-          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata['gpte.redhat.com/asset-uuid'] }
+        ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
           : {}),
       },
       annotations: {
@@ -694,8 +694,8 @@ export async function createWorkshopProvision({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
-        ...(catalogItem.metadata['gpte.redhat.com/asset-uuid']
-          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata['gpte.redhat.com/asset-uuid'] }
+        ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
           : {}),
       },
       annotations: {
