@@ -51,7 +51,7 @@ import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
-import { formatCurrency, getEstimatedCost, getStage, isAutoStopDisabled } from './catalog-utils';
+import { formatCurrency, getEstimatedCost, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './catalog-item-form.css';
@@ -84,10 +84,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     [catalogItem]
   );
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
-  const maxAutoDestroyTime = Math.min(
-    parseDuration(catalogItem.spec.lifespan?.maximum),
-    parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
-  );
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
     reduceFormState(null, {
@@ -97,6 +93,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       user: { groups, roles, isAdmin },
     })
   );
+  let maxAutoDestroyTime = Math.min(
+    parseDuration(catalogItem.spec.lifespan?.maximum),
+    parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
+  );
+  let maxAutoStopTime = parseDuration(catalogItem.spec.runtime?.maximum);
+  if (formState.parameters['open_environment']?.value === true) {
+    maxAutoDestroyTime = parseDuration('365d');
+    maxAutoStopTime = maxAutoDestroyTime;
+  }
   const activityObj = ActivityOpts.find((a) => a.name === formState.activity);
   const purposeObj = PurposeOpts.find(
     (p) => activityObj && formState.purpose && activityObj.id === p.activityId && formState.purpose.startsWith(p.name)
@@ -206,7 +211,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         autoStartDate={formState.startDate}
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
         maxStartTimestamp={!!formState.workshop || !catalogItem.spec.lifespan ? null : Date.now() + maxAutoDestroyTime}
-        maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : parseDuration(catalogItem.spec.runtime?.maximum)}
+        maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : maxAutoStopTime}
         defaultRuntimeTimestamp={
           new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default)) > formState.endDate
             ? parseDuration('4h')
