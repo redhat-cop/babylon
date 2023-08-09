@@ -662,7 +662,7 @@ class AgnosticVComponent(KopfObject):
                 ],
                 "resourceRequiresClaim": self.resource_requires_claim,
                 "statusSummaryTemplate": {
-                    "provision_data": "{{ resources | default([]) | json_query('[].state.spec.vars.provision_data') }}",
+                    "provision_data": "{{ resources | default([]) | json_query('[].state.spec.vars.provision_data') | merge_list_of_dicts | object }}",
                     "runtime_default": "{{ runtime_default }}",
                     "runtime_maximum": "{{ runtime_maximum }}",
                     "state":
