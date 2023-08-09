@@ -20,7 +20,7 @@ async function setImpersonateUserFn(dispatch: Dispatch<AnyAction>, impersonateUs
       catalogNamespaces: userInfo.catalogNamespaces,
       serviceNamespaces: userInfo.serviceNamespaces,
       userNamespace: userInfo.userNamespace,
-    })
+    }),
   );
 }
 const useImpersonateUser = (): {
@@ -32,7 +32,7 @@ const useImpersonateUser = (): {
   const userImpersonated = useSelector(selectImpersonationUser);
   const setImpersonation = useCallback(
     (impersonateUser: string) => setImpersonateUserFn(dispatch, impersonateUser),
-    [dispatch]
+    [dispatch],
   );
   const clearImpersonation = useCallback(() => {
     dispatch(actionClearImpersonation());

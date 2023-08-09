@@ -97,12 +97,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           namespace: userNamespace.name,
           limit: FETCH_BATCH_LIMIT,
           continueId,
-        })
+        }),
       ),
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
-    }
+    },
   );
 
   const services: ResourceClaim[] = useMemo(
@@ -110,7 +110,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       Array.isArray(userResourceClaims)
         ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r)))
         : [],
-    [userResourceClaims]
+    [userResourceClaims],
   );
 
   const descriptionHtml = useMemo(
@@ -122,7 +122,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         }}
       />
     ),
-    [description, descriptionFormat]
+    [description, descriptionFormat],
   );
 
   const isDisabled = getIsDisabled(catalogItem);
@@ -241,7 +241,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 url={
                   new URL(
                     `/catalog?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
-                    window.location.origin
+                    window.location.origin,
                   )
                 }
                 name={catalogItemName}

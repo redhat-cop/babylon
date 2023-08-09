@@ -63,7 +63,7 @@ const ResourcePools: React.FC = () => {
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')]
+    [searchParams.get('search')],
   );
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
@@ -74,12 +74,12 @@ const ResourcePools: React.FC = () => {
         apiPaths.RESOURCE_POOLS({
           limit: FETCH_BATCH_LIMIT,
           continueId,
-        })
+        }),
       ),
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
-    }
+    },
   );
 
   const revalidate = useCallback(
@@ -111,17 +111,17 @@ const ResourcePools: React.FC = () => {
         }
       }
     },
-    [matchMutate, mutate, resourcePools]
+    [matchMutate, mutate, resourcePools],
   );
 
   const filterFunction = useCallback(
     (resourcePool: ResourcePool) => filterResourcePool(resourcePool, keywordFilter),
-    [keywordFilter]
+    [keywordFilter],
   );
 
   const _resourcePools: ResourcePool[] = useMemo(
     () => [].concat(...resourcePools.filter(filterFunction)) || [],
-    [filterFunction, resourcePools]
+    [filterFunction, resourcePools],
   );
 
   async function confirmThenDelete(): Promise<void> {

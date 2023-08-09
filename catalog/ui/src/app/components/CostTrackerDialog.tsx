@@ -20,7 +20,7 @@ const CostTrackerDialogData: React.FC<{
     : null;
 
   const { data: resourceClaim } = useSWR<ResourceClaim>(path, (path) =>
-    fetchWithUpdatedCostTracker({ path, initialResourceClaim })
+    fetchWithUpdatedCostTracker({ path, initialResourceClaim }),
   );
   const costTracker = getCostTracker(resourceClaim);
 

@@ -6,7 +6,7 @@ export default function useModal(): [
     close: () => void;
   }>,
   openModalFn: () => void,
-  closeModalFn: () => void
+  closeModalFn: () => void,
 ] {
   const modalInstance = useRef(null);
 

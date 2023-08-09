@@ -25,7 +25,7 @@ const ProjectSelector: React.FC<{
   const [abortController] = useState(new AbortController());
   const serviceNamespaces = useMemo(
     () => (isAdmin ? allNamespaces : sessionServiceNamespaces) ?? [],
-    [isAdmin, allNamespaces, sessionServiceNamespaces]
+    [isAdmin, allNamespaces, sessionServiceNamespaces],
   );
   const labelSelector =
     selector === 'users'
@@ -60,9 +60,9 @@ const ProjectSelector: React.FC<{
       serviceNamespaces.filter((ns) =>
         ns.name.toLowerCase().includes(searchValue.toLowerCase()) || ns.displayName
           ? ns.displayName.toLowerCase().includes(searchValue.toLowerCase())
-          : false
+          : false,
       ),
-    [serviceNamespaces, searchValue]
+    [serviceNamespaces, searchValue],
   );
 
   const Row = ({ index, style }) => (

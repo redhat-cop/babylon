@@ -29,8 +29,8 @@ const ResourcePoolMinAvailableInput: React.FC<{
           updateMinAvailable(n);
         },
         1000,
-        n
-      )
+        n,
+      ),
     );
   }
 

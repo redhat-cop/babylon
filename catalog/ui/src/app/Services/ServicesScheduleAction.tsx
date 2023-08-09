@@ -52,14 +52,14 @@ const ServicesScheduleAction: React.FC<{
     maxDate = resourceClaim
       ? Math.min(
           Date.parse(resourceClaim.metadata.creationTimestamp) + parseDuration(resourceClaim.status.lifespan.maximum),
-          Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum)
+          Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum),
         )
       : workshop.resourceClaims
       ? Math.min(
           ...workshop.resourceClaims.flatMap((r) => [
             Date.parse(r.metadata.creationTimestamp) + parseDuration(r.status.lifespan.maximum),
             Date.now() + parseDuration(r.status.lifespan.relativeMaximum),
-          ])
+          ]),
         )
       : null;
   } else {
@@ -109,7 +109,7 @@ const ServicesScheduleAction: React.FC<{
                     ? getMinDefaultRuntime(resourceClaim) || minDefault
                     : workshop.resourceClaims
                     ? Math.min(...workshop.resourceClaims.map((r) => getMinDefaultRuntime(r) || minDefault))
-                    : null)
+                    : null),
               );
               const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
               setSelectedDate(date);

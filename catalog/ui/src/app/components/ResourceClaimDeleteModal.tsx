@@ -13,7 +13,7 @@ const ResourceClaimDeleteModal: React.FC<{
   }, [onConfirm, setOnConfirmCb]);
   useEffect(() => {
     setTitle(
-      resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?'
+      resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?',
     );
   }, [resourceClaims, setTitle]);
   return <p>Cloud resources will be deleted. Restore for deleted resources is not available.</p>;

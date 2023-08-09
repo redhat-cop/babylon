@@ -58,7 +58,7 @@ function useScript(src: string): Status {
         }
       };
     },
-    [src] // Only re-run effect if script src changes
+    [src], // Only re-run effect if script src changes
   );
 
   return status;

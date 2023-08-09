@@ -233,7 +233,7 @@ const ActivityPurposeSelector: React.FC<{
                   id={`activity-${activityOpt.id}`}
                 ></Radio>
               </div>
-            )
+            ),
           )}
         </div>
       </FormGroup>
@@ -255,7 +255,7 @@ const ActivityPurposeSelector: React.FC<{
               variant={SelectVariant.single}
             >
               {PurposeOpts.filter(
-                (purposeOpt) => ActivityOpts.find((a) => a.id === purposeOpt.activityId).name === activity
+                (purposeOpt) => ActivityOpts.find((a) => a.id === purposeOpt.activityId).name === activity,
               ).map((purposeOpt) => (
                 <SelectOption
                   key={`${ActivityOpts.find((a) => a.id === purposeOpt.activityId).name} - ${purposeOpt.name}`}

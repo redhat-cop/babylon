@@ -71,7 +71,7 @@ const PublicHeader: React.FC = () => {
         onClick={() =>
           window.open(
             'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
-            '_blank'
+            '_blank',
           )
         }
       >

@@ -8,7 +8,7 @@ import { store } from './store';
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({}),
-  }))
+  })),
 );
 
 const wrapper = (children: React.ReactNode) => (

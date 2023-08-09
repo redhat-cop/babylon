@@ -135,7 +135,7 @@ const ComponentDetailsList: React.FC<{
           }}
         />
       ) : null,
-    [_provisionMessages]
+    [_provisionMessages],
   );
   return (
     <DescriptionList isHorizontal>
@@ -273,7 +273,7 @@ const ComponentDetailsList: React.FC<{
                               {stage}
                             </Link>
                           </ListItem>
-                        ) : null
+                        ) : null,
                       )}
                     </List>
                   </DescriptionListDescription>
@@ -313,7 +313,7 @@ const ServicesItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
   useErrorHandler(error?.status === 404 ? error : null);
 
@@ -335,7 +335,7 @@ const ServicesItemComponent: React.FC<{
   const enableFetchUserNamespaces = isAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
-    fetcher
+    fetcher,
   );
   const serviceNamespaces = useMemo(() => {
     return enableFetchUserNamespaces
@@ -423,7 +423,7 @@ const ServicesItemComponent: React.FC<{
       .find((u) => u != null);
 
   const serviceHasUsers = (resourceClaim.status?.resources || []).find(
-    (r) => r.state?.spec?.vars?.provision_data?.users
+    (r) => r.state?.spec?.vars?.provision_data?.users,
   )
     ? true
     : false;
@@ -434,7 +434,7 @@ const ServicesItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
 
   const costTracker = getCostTracker(resourceClaim);
@@ -461,7 +461,7 @@ const ServicesItemComponent: React.FC<{
             provisionUuid,
             modalState.rating.rate,
             modalState.rating.comment,
-            modalState.rating.useful
+            modalState.rating.useful,
           );
           globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
         }
@@ -473,7 +473,7 @@ const ServicesItemComponent: React.FC<{
         apiPaths.RESOURCE_CLAIM({
           namespace: resourceClaim.metadata.namespace,
           resourceClaimName: resourceClaim.metadata.name,
-        })
+        }),
       );
       cache.delete(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
       navigate(`/services/${serviceNamespaceName}`);
@@ -520,7 +520,7 @@ const ServicesItemComponent: React.FC<{
         openModalCreateWorkshop();
       }
     },
-    [openModalAction, openModalCreateWorkshop, openModalScheduleAction]
+    [openModalAction, openModalCreateWorkshop, openModalScheduleAction],
   );
 
   const toggle = (id: string) => {

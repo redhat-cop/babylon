@@ -97,7 +97,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
                         resourceProvider.metadata.namespace
                       }/${resourceProvider.apiVersion.replace('/', '~')}~${resourceProvider.kind}/${
                         resourceProvider.metadata.name
-                      }/yaml`
+                      }/yaml`,
                     )
                   }
                 />,
@@ -110,7 +110,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
                         resourceProvider.metadata.namespace
                       }/${resourceProvider.apiVersion.replace('/', '~')}~${resourceProvider.kind}/${
                         resourceProvider.metadata.name
-                      }`
+                      }`,
                     )
                   }
                 />,

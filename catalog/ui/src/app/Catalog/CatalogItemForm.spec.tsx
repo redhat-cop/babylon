@@ -30,7 +30,7 @@ jest.mock('@app/utils/useSession', () =>
         serviceNamespaces: [namespace as ServiceNamespace],
         userNamespace: namespace as UserNamespace,
       }),
-  }))
+  })),
 );
 
 describe('CatalogItemForm Component', () => {
@@ -61,12 +61,12 @@ describe('CatalogItemForm Component', () => {
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
-      })
+      }),
     );
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
-      'input[type="checkbox"]'
+      'input[type="checkbox"]',
     );
     expect(termsOfServiceAck).not.toBeChecked();
     fireEvent.click(termsOfServiceAck);
@@ -83,7 +83,7 @@ describe('CatalogItemForm Component', () => {
     const { queryByText, getByLabelText } = render(<CatalogItemForm />);
 
     const sfidLabel = await waitFor(() =>
-      getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)')
+      getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)'),
     );
     const sfidDescriptionText = 'Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.';
     expect(queryByText(sfidDescriptionText)).not.toBeInTheDocument();
@@ -118,13 +118,13 @@ describe('CatalogItemForm Component', () => {
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
-      })
+      }),
     );
 
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
-      'input[type="checkbox"]'
+      'input[type="checkbox"]',
     );
 
     fireEvent.click(termsOfServiceAck);

@@ -9,7 +9,7 @@ const TermsOfService: React.FC<{
 }> = ({ agreed, onChange, text }) => {
   const tosHtml = useMemo(
     () => <div dangerouslySetInnerHTML={{ __html: renderContent(text, { format: 'html' }) }} />,
-    [text]
+    [text],
   );
   return (
     <FormGroup fieldId="" label="IMPORTANT PLEASE READ" className="terms-of-service">

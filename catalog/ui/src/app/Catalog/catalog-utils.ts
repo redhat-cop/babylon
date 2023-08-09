@@ -81,7 +81,7 @@ export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   if (catalogItem.metadata.annotations?.[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]) {
     const now = new Date();
     const provisionDate = new Date(
-      catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]
+      catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`],
     );
     if (provisionDate < now) {
       return provisionDate.getTime();
@@ -91,7 +91,7 @@ export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   return null;
 }
 export function getStatus(
-  catalogItem: CatalogItem
+  catalogItem: CatalogItem,
 ): { code: string; name: string; updated?: { author: string; updatedAt: string } } | null {
   if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]) {
     const ops: Ops = JSON.parse(catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/ops`]);

@@ -50,7 +50,7 @@ const AnarchyGovernors: React.FC = () => {
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')]
+    [searchParams.get('search')],
   );
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
@@ -82,7 +82,7 @@ const AnarchyGovernors: React.FC = () => {
         }
         return true;
       },
-    }
+    },
   );
 
   const revalidate = useCallback(
@@ -104,7 +104,7 @@ const AnarchyGovernors: React.FC = () => {
         }
       }
     },
-    [mutate, anarchyGovernorsPages]
+    [mutate, anarchyGovernorsPages],
   );
 
   const isReachingEnd =
@@ -126,12 +126,12 @@ const AnarchyGovernors: React.FC = () => {
       }
       return true;
     },
-    [keywordFilter]
+    [keywordFilter],
   );
 
   const anarchyGovernors: AnarchyGovernor[] = useMemo(
     () => [].concat(...anarchyGovernorsPages.map((page) => page.items)).filter(filterFunction) || [],
-    [filterFunction, anarchyGovernorsPages]
+    [filterFunction, anarchyGovernorsPages],
   );
 
   // Trigger continue fetching more resource claims on scroll.

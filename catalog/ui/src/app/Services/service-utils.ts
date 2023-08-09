@@ -67,7 +67,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
         desiredState,
         Date.parse(resourceClaim.metadata.creationTimestamp),
         startTime,
-        stopTime
+        stopTime,
       ).phase,
     });
   }

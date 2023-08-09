@@ -138,8 +138,8 @@ function FloatingLinkEditor({ editor }) {
           updateLinkEditor();
           return true;
         },
-        LowPriority
-      )
+        LowPriority,
+      ),
     );
   }, [editor, updateLinkEditor]);
 
@@ -503,7 +503,7 @@ const ToolbarPlugin: React.FC = () => {
           updateToolbar();
           return false;
         },
-        LowPriority
+        LowPriority,
       ),
       editor.registerCommand(
         CAN_UNDO_COMMAND,
@@ -511,7 +511,7 @@ const ToolbarPlugin: React.FC = () => {
           setCanUndo(payload);
           return false;
         },
-        LowPriority
+        LowPriority,
       ),
       editor.registerCommand(
         CAN_REDO_COMMAND,
@@ -519,8 +519,8 @@ const ToolbarPlugin: React.FC = () => {
           setCanRedo(payload);
           return false;
         },
-        LowPriority
-      )
+        LowPriority,
+      ),
     );
   }, [editor, updateToolbar]);
 
@@ -536,7 +536,7 @@ const ToolbarPlugin: React.FC = () => {
         }
       });
     },
-    [editor, selectedElementKey]
+    [editor, selectedElementKey],
   );
 
   const insertLink = useCallback(() => {
@@ -594,7 +594,7 @@ const ToolbarPlugin: React.FC = () => {
                 toolbarRef={toolbarRef}
                 setShowBlockOptionsDropDown={setShowBlockOptionsDropDown}
               />,
-              document.body
+              document.body,
             )}
           <Divider />
         </>

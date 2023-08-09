@@ -12,7 +12,7 @@ jest.mock('@app/api', () => ({
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({}),
-  }))
+  })),
 );
 
 describe('CatalogItemDetails Component', () => {
@@ -22,7 +22,7 @@ describe('CatalogItemDetails Component', () => {
         <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItemObj} onClose={jest.fn} />}>
           <DrawerContentBody></DrawerContentBody>
         </DrawerContent>
-      </Drawer>
+      </Drawer>,
     );
 
     const catalogItemDisplayName = 'Test Config';
@@ -50,7 +50,7 @@ describe('CatalogItemDetails Component', () => {
         <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItemObj} onClose={handleClick} />}>
           <DrawerContentBody></DrawerContentBody>
         </DrawerContent>
-      </Drawer>
+      </Drawer>,
     );
     const catalogItemDisplayName = 'Test Config';
     await waitFor(() => expect(getByText(catalogItemDisplayName)).toBeInTheDocument());

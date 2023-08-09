@@ -578,7 +578,9 @@
   background: #f7f7f7;
   border: 1px solid #ccc;
   border-radius: 3px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), inset 0 0 0 0.1em #fff;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.2),
+    inset 0 0 0 0.1em #fff;
   margin: 0 0.15em;
   padding: 0.2em 0.5em;
   vertical-align: middle;

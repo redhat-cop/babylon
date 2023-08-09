@@ -30,7 +30,7 @@ const PatientNumberInput: React.FC<
         };
       });
     },
-    [max, min, onChange, onChangeDelay]
+    [max, min, onChange, onChangeDelay],
   );
 
   return (

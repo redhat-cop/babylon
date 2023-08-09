@@ -113,13 +113,13 @@ const Header: React.FC<{
     UserControlDropdownItems.push(
       <DropdownItem key="impersonate" onClick={() => setImpersonateUserModalIsOpen(true)}>
         Impersonate user
-      </DropdownItem>
+      </DropdownItem>,
     );
     if (userImpersonated) {
       UserControlDropdownItems.push(
         <DropdownItem key="clear-impersonation" onClick={clearUserImpersonation}>
           Clear user impersonation
-        </DropdownItem>
+        </DropdownItem>,
       );
     }
   }
@@ -133,7 +133,7 @@ const Header: React.FC<{
         onClick={() =>
           window.open(
             'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
-            '_blank'
+            '_blank',
           )
         }
       >
