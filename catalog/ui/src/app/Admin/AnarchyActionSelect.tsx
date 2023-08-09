@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core';
+import { MenuToggle, MenuToggleElement, Select, SelectList, SelectOption } from '@patternfly/react-core';
 
 const AnarchyActionSelect: React.FC<{
   action: string;
@@ -7,6 +7,16 @@ const AnarchyActionSelect: React.FC<{
 }> = ({ action, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle
+      ref={toggleRef}
+      onClick={() => setIsOpen((v) => !v)}
+      isExpanded={isOpen}
+    >
+      {action || '-'}
+    </MenuToggle>
+  );
+  
   return (
     <Select
       aria-label="Action Filter"
@@ -16,25 +26,26 @@ const AnarchyActionSelect: React.FC<{
         onSelect(valueKey === '-' ? null : valueKey);
         setIsOpen(false);
       }}
-      onToggle={() => setIsOpen((v) => !v)}
-      selections={action || '-'}
-      variant={SelectVariant.single}
+      onOpenChange={() => setIsOpen((v) => !v)}
+      toggle={toggle}
     >
-      <SelectOption key="-" value="-">
-        All Actions
-      </SelectOption>
-      <SelectOption key="destroy" value="destroy">
-        Destroy
-      </SelectOption>
-      <SelectOption key="provision" value="provision">
-        Provision
-      </SelectOption>
-      <SelectOption key="start" value="start">
-        Start
-      </SelectOption>
-      <SelectOption key="stop" value="stop">
-        Stop
-      </SelectOption>
+      <SelectList>
+        <SelectOption key="-" value="-">
+          All Actions
+        </SelectOption>
+        <SelectOption key="destroy" value="destroy">
+          Destroy
+        </SelectOption>
+        <SelectOption key="provision" value="provision">
+          Provision
+        </SelectOption>
+        <SelectOption key="start" value="start">
+          Start
+        </SelectOption>
+        <SelectOption key="stop" value="stop">
+          Stop
+        </SelectOption>
+      </SelectList>
     </Select>
   );
 };

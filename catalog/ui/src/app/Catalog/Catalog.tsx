@@ -12,9 +12,12 @@ import {
   DrawerPanelContent,
   EmptyState,
   EmptyStateIcon,
+  MenuToggle,
+  MenuToggleElement,
   PageSection,
   PageSectionVariants,
   Select,
+  SelectList,
   SelectOption,
   SelectVariant,
   Sidebar,
@@ -549,9 +552,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                   <li>
                                     <Select
                                       className="catalog__sort-by"
-                                      variant={SelectVariant.single}
                                       aria-label="Sort by"
-                                      onToggle={(isOpen) =>
+                                      onOpenChange={(isOpen) =>
                                         setSortBy({
                                           ...sortBy,
                                           isOpen,
@@ -564,14 +566,27 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                           isOpen: false,
                                         })
                                       }
-                                      selections={`Sort by: ${!!searchString ? 'Search' : sortBy.selected}`}
+                                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                        <MenuToggle
+                                          onClick={() => setSortBy({
+                                            ...sortBy,
+                                            isOpen: !sortBy.isOpen,
+                                          })}
+                                          isDisabled={!!searchString}
+                                          ref={toggleRef}
+                                          isExpanded={sortBy.isOpen}
+                                        >
+                                          Sort by: ${!!searchString ? 'Search' : sortBy.selected}
+                                        </MenuToggle>
+                                      )}
                                       isOpen={sortBy.isOpen}
-                                      isDisabled={!!searchString}
                                     >
-                                      <SelectOption key={0} value="Featured" />
-                                      <SelectOption key={1} value="Rating" />
-                                      <SelectOption key={2} value="AZ" />
-                                      <SelectOption key={3} value="ZA" />
+                                      <SelectList>
+                                        <SelectOption key={0} value="Featured" />
+                                        <SelectOption key={1} value="Rating" />
+                                        <SelectOption key={2} value="AZ" />
+                                        <SelectOption key={3} value="ZA" />
+                                      </SelectList>
                                     </Select>
                                   </li>
                                 </ul>

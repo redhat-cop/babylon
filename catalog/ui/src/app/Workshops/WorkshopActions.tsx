@@ -55,7 +55,6 @@ const WorkshopActions: React.FC<{
       actionDropdownItems={actionDropdownItems}
       className={className}
       isDisabled={isDisabled}
-      position={position}
     />
   );
 };

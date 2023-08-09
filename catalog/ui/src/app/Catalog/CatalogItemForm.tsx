@@ -15,6 +15,8 @@ import {
   Form,
   FormGroup,
   FormHelperText,
+  HelperText,
+  HelperTextItem,
   PageSection,
   PageSectionVariants,
   Select,
@@ -202,6 +204,17 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }
   }
 
+  const sfdcValid = formState.salesforceId.valid
+    ? 'success'
+    : formState.salesforceId.value && formState.salesforceId.required && formState.conditionChecks.completed
+    ? 'error'
+    : 'default';
+  const validated = formState.salesforceId.value && formState.salesforceId.valid
+  ? 'success'
+  : formState.salesforceId.value && formState.conditionChecks.completed
+  ? 'error'
+  : 'default';
+
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
       <CatalogItemFormAutoStopDestroyModal
@@ -311,41 +324,29 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 </span>
               </span>
             }
-            helperTextInvalid={
-              <FormHelperText icon={<ExclamationCircleIcon />} isError isHidden={false}>
-                {purposeObj && purposeObj.sfdcRequired
-                  ? 'A valid Salesforce ID is required for the selected activity / purpose'
-                  : null}
-              </FormHelperText>
-            }
-            validated={
-              formState.salesforceId.valid
-                ? 'success'
-                : formState.salesforceId.value && formState.salesforceId.required && formState.conditionChecks.completed
-                ? 'error'
-                : 'default'
-            }
           >
             <div className="catalog-item-form__group-control--single">
               <TextInput
                 type="text"
                 key="salesforce_id"
                 id="salesforce_id"
-                onChange={(value) =>
+                onChange={(_e, value) =>
                   dispatchFormState({
                     type: 'salesforceId',
                     salesforceId: { ...formState.salesforceId, value, valid: false },
                   })
                 }
                 value={formState.salesforceId.value || ''}
-                validated={
-                  formState.salesforceId.value && formState.salesforceId.valid
-                    ? 'success'
-                    : formState.salesforceId.value && formState.conditionChecks.completed
-                    ? 'error'
-                    : 'default'
-                }
+                validated={validated}
               />
+              {validated !== 'success' && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem icon={<ExclamationCircleIcon />}>
+                    {purposeObj && purposeObj.sfdcRequired ? 'A valid Salesforce ID is required for the selected activity / purpose': null}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>)}
               <Tooltip
                 position="right"
                 content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
@@ -382,18 +383,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               fieldId={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
               isRequired={formGroup.isRequired}
               label={formGroup.formGroupLabel}
-              helperTextInvalid={
-                invalidParameter?.validationMessage ? (
-                  <FormHelperText
-                    icon={<ExclamationCircleIcon />}
-                    isError={status === 'error'}
-                    isHidden={status !== 'error'}
-                  >
-                    {invalidParameter.validationMessage}
-                  </FormHelperText>
-                ) : null
-              }
-              validated={status}
             >
               {formGroup.parameters
                 .filter((p) => !p.isHidden)
@@ -425,6 +414,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         />
                       </Tooltip>
                     ) : null}
+                    {invalidParameter?.validationMessage ? (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem icon={<ExclamationCircleIcon />}>
+                          {invalidParameter.validationMessage}
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  ) : null}
                   </div>
                 ))}
             </FormGroup>
@@ -522,7 +520,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               <div className="catalog-item-form__group-control--single">
                 <TextInput
                   id="workshopDisplayName"
-                  onChange={(v) =>
+                  onChange={(_e, v) =>
                     dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, displayName: v } })
                   }
                   value={formState.workshop.displayName}
@@ -539,7 +537,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               <div className="catalog-item-form__group-control--single">
                 <TextInput
                   id="workshopAccessPassword"
-                  onChange={(v) =>
+                  onChange={(_e, v) =>
                     dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, accessPassword: v } })
                   }
                   value={formState.workshop.accessPassword}

@@ -10,11 +10,13 @@ import {
   EmptyStateIcon,
   Form,
   FormGroup,
+  MenuToggle,
+  MenuToggleElement,
   PageSection,
   PageSectionVariants,
   Select,
+  SelectList,
   SelectOption,
-  SelectVariant,
   Split,
   SplitItem,
   TextArea,
@@ -198,27 +200,36 @@ const CatalogItemAdmin: React.FC = () => {
                 setStatus(value.toString());
                 setIsOpen(false);
               }}
-              onToggle={() => setIsOpen(!isOpen)}
+              onOpenChange={() => setIsOpen(!isOpen)}
               isOpen={isOpen}
-              selections={status}
-              variant={SelectVariant.single}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsOpen((v) => !v)}
+                  isExpanded={isOpen}
+                >
+                  {status}
+                </MenuToggle>
+              )}
               className="select-wrapper"
             >
-              <SelectOption key="operational" value="operational">
-                <OperationalLogo /> Operational
-              </SelectOption>
-              <SelectOption key="degraded-performance" value="degraded-performance">
-                <DegradedPerformanceLogo /> Degraded performance
-              </SelectOption>
-              <SelectOption key="partial-outage" value="partial-outage">
-                <PartialOutageLogo /> Partial outage
-              </SelectOption>
-              <SelectOption key="major-outage" value="major-outage">
-                <MajorOutageLogo /> Major outage
-              </SelectOption>
-              <SelectOption key="under-maintenance" value="under-maintenance">
-                <UnderMaintenanceLogo /> Under maintenance
-              </SelectOption>
+              <SelectList>
+                <SelectOption key="operational" value="operational">
+                  <OperationalLogo /> Operational
+                </SelectOption>
+                <SelectOption key="degraded-performance" value="degraded-performance">
+                  <DegradedPerformanceLogo /> Degraded performance
+                </SelectOption>
+                <SelectOption key="partial-outage" value="partial-outage">
+                  <PartialOutageLogo /> Partial outage
+                </SelectOption>
+                <SelectOption key="major-outage" value="major-outage">
+                  <MajorOutageLogo /> Major outage
+                </SelectOption>
+                <SelectOption key="under-maintenance" value="under-maintenance">
+                  <UnderMaintenanceLogo /> Under maintenance
+                </SelectOption>
+              </SelectList>
             </Select>
             <Tooltip position="right" content={<div>Catalog Item status, should be the same as in StatusPage.io</div>}>
               <OutlinedQuestionCircleIcon
@@ -254,7 +265,7 @@ const CatalogItemAdmin: React.FC = () => {
         </FormGroup>
         <FormGroup fieldId="incident" label="Incident URL">
           <div className="catalog-item-admin__group-control--single">
-            <TextInput type="text" id="incident" onChange={(v) => setIncidentUrl(v)} value={incidentUrl} />
+            <TextInput type="text" id="incident" onChange={(_e, v) => setIncidentUrl(v)} value={incidentUrl} />
             <Tooltip position="right" content={<div>StatusPage.io incident URL</div>}>
               <OutlinedQuestionCircleIcon aria-label="StatusPage.io incident URL" className="tooltip-icon-only" />
             </Tooltip>
@@ -262,7 +273,7 @@ const CatalogItemAdmin: React.FC = () => {
         </FormGroup>
         <FormGroup fieldId="jiraIssueId" label="Jira Issue Id (only visible to admins)">
           <div className="catalog-item-admin__group-control--single">
-            <TextInput type="text" id="jiraIssueId" onChange={(v) => setJiraIssueId(v)} value={jiraIssueId} />
+            <TextInput type="text" id="jiraIssueId" onChange={(_e, v) => setJiraIssueId(v)} value={jiraIssueId} />
           </div>
         </FormGroup>
         <FormGroup fieldId="comment" label="Comments (only visible to admins)">
@@ -282,7 +293,7 @@ const CatalogItemAdmin: React.FC = () => {
           </ul>
           <TextArea
             id="comment"
-            onChange={(v) => setComment(v)}
+            onChange={(_e, v) => setComment(v)}
             value={comment}
             placeholder="Add comment"
             aria-label="Add comment"

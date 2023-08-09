@@ -113,7 +113,6 @@ const ServiceActions: React.FC<{
       actionDropdownItems={actionDropdownItems}
       className={className}
       isDisabled={isDisabled}
-      position={position}
       icon={iconOnly ? EllipsisVIcon : null}
       isPlain={iconOnly ? true : false}
     />
