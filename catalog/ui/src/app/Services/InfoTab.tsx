@@ -43,10 +43,11 @@ const InfoTab: React.FC<{
     const provision_vars: object = Object.assign(
       {},
       ...(resourceClaim.status?.resources || []).flatMap((resource) => ({
-        [resource.name]: resource.state?.spec.vars?.provision_data
+        [resource.name.split('.').length > 1 ? resource.name.split('.')[1] : resource.name]: resource.state?.spec.vars
+          ?.provision_data
           ? { ...resource.state.spec.vars?.provision_data }
           : null,
-      })),
+      }))
     );
 
     if (!infoMessageTemplate) {
