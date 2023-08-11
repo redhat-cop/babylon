@@ -248,9 +248,16 @@ export interface ResourceClaim extends K8sObject {
     lifespan: ResourceClaimStatusLifespan;
     resourceHandle: K8sObjectReference;
     resources: ResourceHandleResource[];
+    summary?: ResrouceClaimSummary;
   };
 }
 
+export interface ResrouceClaimSummary {
+  provision_data?: any;
+  runtime_default?: string;
+  runtime_maximum?: string;
+  state: string;
+}
 export interface ResourceClaimList {
   items: ResourceClaim[];
   metadata: K8sObjectListMeta;

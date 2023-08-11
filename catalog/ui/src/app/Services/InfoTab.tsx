@@ -77,6 +77,7 @@ const InfoTab: React.FC<{
                 resource={mostRelevantResource}
                 resourceTemplate={mostRelevantTemplate}
                 resourceClaim={resourceClaim}
+                summary={resourceClaim.status?.summary}
               />
             </DescriptionListDescription>
           </DescriptionListGroup>

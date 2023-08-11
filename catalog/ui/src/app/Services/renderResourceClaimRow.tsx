@@ -55,7 +55,7 @@ const renderResourceClaimRow = ({
     resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
     resources
       .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData,
+        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
       )
       .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
       .find((u) => u != null);
@@ -63,7 +63,7 @@ const renderResourceClaimRow = ({
     resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
     resources
       .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod,
+        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
       )
       .find((u) => u != null);
   const labUserInterfaceUrl =
@@ -142,12 +142,13 @@ const renderResourceClaimRow = ({
   const statusCell = (
     // Status
     <React.Fragment key="resource-claim-status">
-      {specResources.length >= 1 ? (
+      {specResources.length >= 1 || resourceClaim.status?.summary ? (
         <ServiceStatus
           creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
           resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
           resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
           resourceClaim={resourceClaim}
+          summary={resourceClaim.status?.summary}
         />
       ) : (
         <p>...</p>

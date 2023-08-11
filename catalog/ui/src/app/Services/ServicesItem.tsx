@@ -147,6 +147,7 @@ const ComponentDetailsList: React.FC<{
             resource={resourceState}
             resourceTemplate={resourceSpec?.template}
             resourceClaim={resourceClaim}
+            summary={resourceClaim.status?.summary}
           />
         </DescriptionListDescription>
       </DescriptionListGroup>
@@ -746,7 +747,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {resourceClaim.spec.resources?.length > 1 ? (
+                  {resourceClaim.spec.resources?.length > 1 || resourceClaim.status?.summary ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Status</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -755,6 +756,7 @@ const ServicesItemComponent: React.FC<{
                           resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
                           resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
                           resourceClaim={resourceClaim}
+                          summary={resourceClaim.status?.summary}
                         />
                       </DescriptionListDescription>
                     </DescriptionListGroup>
