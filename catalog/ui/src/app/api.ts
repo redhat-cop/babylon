@@ -1097,18 +1097,31 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim:
 
 export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: ResourceClaim, date: Date) {
   const stopTimestamp = dateToApiString(date);
-  const patch = {
-    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
-  };
-  const resourcesToStop = [];
-  for (const resource of resourceClaim.status?.resources) {
-    if (canExecuteAction(resource.state, 'stop')) {
-      resourcesToStop.push(resource.name);
+  let patch: any = {};
+  if (resourceClaim.spec?.provider?.parameterValues?.['stop_timestamp']) {
+    patch = {
+      spec: {
+        provider: {
+          parameterValues: {
+            stop_timestamp: stopTimestamp,
+          },
+        },
+      },
+    };
+  } else {
+    patch = {
+      spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
+    };
+    const resourcesToStop = [];
+    for (const resource of resourceClaim.status?.resources) {
+      if (canExecuteAction(resource.state, 'stop')) {
+        resourcesToStop.push(resource.name);
+      }
     }
-  }
-  for (let i = 0; i < patch.spec.resources.length; ++i) {
-    if (resourcesToStop.includes(patch.spec.resources[i].name)) {
-      patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+    for (let i = 0; i < patch.spec.resources.length; ++i) {
+      if (resourcesToStop.includes(patch.spec.resources[i].name)) {
+        patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+      }
     }
   }
 

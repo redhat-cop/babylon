@@ -86,7 +86,7 @@ const ServiceStatus: React.FC<{
 }> = ({ creationTime, resource, resourceTemplate, resourceClaim, summary }) => {
   if (summary) {
     let _phase: phaseProps = 'unknown';
-    let _state = summary.state;
+    let _state = summary.state.replace('-', ' ');
     if (summary.state.endsWith('-pending')) {
       _phase = 'in-progress';
     } else if (summary.state.endsWith('-pending')) {
@@ -98,7 +98,7 @@ const ServiceStatus: React.FC<{
       _phase = 'stopped';
     }
     return (
-      <span className={`service-status--${_phase}`}>
+      <span className={`service-status--${_phase}`} style={{ textTransform: 'capitalize' }}>
         <Icon phase={_phase} /> {_state}
       </span>
     );

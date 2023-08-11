@@ -184,28 +184,12 @@ export function checkResourceClaimCanStart(resourceClaim: ResourceClaim): boolea
 }
 
 export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean {
-  return !!(resourceClaim?.status?.resources || []).find((r, idx) => {
+  return !!(resourceClaim?.status?.resources || []).find((r) => {
     const state = r.state;
-    const template = resourceClaim.spec.resources?.[idx]?.template;
-    if (!state || !template) {
+    if (!state) {
       return false;
     }
-    if (!canExecuteAction(state, 'stop')) {
-      return false;
-    }
-    const currentState = state?.spec?.vars?.current_state;
-    if (currentState && (currentState.endsWith('-failed') || currentState === 'provision-canceled')) {
-      return false;
-    }
-    const startTimestamp = template?.spec?.vars?.action_schedule?.start || state?.spec?.vars?.action_schedule?.start;
-    const stopTimestamp = template?.spec?.vars?.action_schedule?.stop || state?.spec?.vars?.action_schedule?.stop;
-    if (startTimestamp && stopTimestamp) {
-      const startTime = Date.parse(startTimestamp);
-      const stopTime = Date.parse(stopTimestamp);
-      return startTime < Date.now() && stopTime > Date.now();
-    } else {
-      return false;
-    }
+    return canExecuteAction(state, 'stop');
   });
 }
 
