@@ -258,7 +258,17 @@ export interface ResourceClaimList {
 
 export interface ResourceClaimSpec {
   lifespan?: ResourceClaimSpecLifespan;
-  resources: ResourceClaimSpecResource[];
+  resources?: ResourceClaimSpecResource[];
+  provider?: ResourceClaimProvider;
+}
+
+export interface ResourceClaimProvider {
+  name: string;
+  parameterValues: {
+    purpose: string;
+    start_timestamp?: string;
+    stop_timestamp?: string;
+  };
 }
 
 export interface ResourceClaimSpecLifespan {
