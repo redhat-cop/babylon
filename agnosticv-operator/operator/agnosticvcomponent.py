@@ -160,6 +160,10 @@ class AgnosticVComponent(KopfObject):
         return self.catalog_meta.get('display_name', self.name)
 
     @property
+    def catalog_external_url(self):
+        return self.catalog_meta.get('externalUrl')
+
+    @property
     def catalog_icon(self):
         # FIXME - default icon dict?
         return self.catalog_meta.get('icon', {})
@@ -511,6 +515,9 @@ class AgnosticVComponent(KopfObject):
 
         if self.bookbag:
             definition['spec']['bookbag'] = self.bookbag
+
+        if self.catalog_external_url:
+            definition['spec']['externalUrl'] = self.catalog_external_url
 
         for key, value in self.catalog_labels.items():
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/{key}"] = value
@@ -1207,9 +1214,10 @@ class AgnosticVComponent(KopfObject):
         await self.manage_config(logger=logger)
 
     async def manage_config(self, logger):
-        await self.__manage_anarchy_governor(logger=logger)
         await self.__manage_catalog_item(logger=logger)
-        await self.__manage_resource_provider(logger=logger)
+        if not self.catalog_external_url:
+            await self.__manage_anarchy_governor(logger=logger)
+            await self.__manage_resource_provider(logger=logger)
 
 
 class LinkedComponent:
