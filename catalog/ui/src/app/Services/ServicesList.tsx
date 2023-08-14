@@ -65,12 +65,12 @@ function setResourceClaims(workshop: Workshop, resourceClaims: ResourceClaim[]) 
 async function fetchServices(namespace: string): Promise<Service[]> {
   async function fetchResourceClaims(namespace: string) {
     return (await fetcherItemsInAllPages((continueId) =>
-      apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+      apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
     )) as ResourceClaim[];
   }
   async function fetchWorksops(namespace: string) {
     return await fetcherItemsInAllPages((continueId) =>
-      apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+      apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
     ).then(async (workshops: Workshop[]) => {
       const workshopsEnrichedPromise: Promise<WorkshopWithResourceClaims>[] = [];
       const workshopsEnriched: WorkshopWithResourceClaims[] = [];
@@ -83,8 +83,8 @@ async function fetchServices(namespace: string): Promise<Service[]> {
               labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
               limit: FETCH_BATCH_LIMIT,
               continueId,
-            }),
-          ).then((r) => setResourceClaims(workshop, r)),
+            })
+          ).then((r) => setResourceClaims(workshop, r))
         );
         workshopsEnriched.push(_workshopEnriched);
       }
@@ -117,7 +117,7 @@ const ServicesList: React.FC<{
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParams.get('search')]
   );
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
@@ -139,7 +139,7 @@ const ServicesList: React.FC<{
       compare: (currentData, newData) => {
         const servicesEquals = compareK8sObjectsArr(currentData, newData);
         const currentWorkshops = (currentData ?? []).filter(
-          (x) => x.kind === 'Workshop',
+          (x) => x.kind === 'Workshop'
         ) as WorkshopWithResourceClaims[];
         const newWorkshops = (newData ?? []).filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
         const currentWorkshopsResourceClaims = currentWorkshops.flatMap((x) => x.resourceClaims);
@@ -147,7 +147,7 @@ const ServicesList: React.FC<{
         const instancesEquals = compareK8sObjectsArr(currentWorkshopsResourceClaims, newWorkshopsResourceClaims);
         return servicesEquals && instancesEquals;
       },
-    },
+    }
   );
 
   const filterFn = useCallback(
@@ -158,7 +158,7 @@ const ServicesList: React.FC<{
         if (isPartOfWorkshop) {
           return false;
         }
-        if (!isAdmin && resourceClaim.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+        if (!isAdmin && resourceClaim.spec.provider?.name === 'babylon-service-request-configmap') {
           return false;
         }
         if (!keywordFilter) {
@@ -191,7 +191,7 @@ const ServicesList: React.FC<{
       }
       return false;
     },
-    [keywordFilter, isAdmin],
+    [keywordFilter, isAdmin]
   );
 
   const services = useMemo(
@@ -199,9 +199,9 @@ const ServicesList: React.FC<{
       _services
         .filter(filterFn)
         .sort(
-          (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf(),
+          (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf()
         ),
-    [filterFn, _services],
+    [filterFn, _services]
   );
 
   const revalidate = useCallback(
@@ -219,7 +219,7 @@ const ServicesList: React.FC<{
         }
       }
     },
-    [mutate, services],
+    [mutate, services]
   );
 
   const onModalScheduleAction = useCallback(
@@ -229,7 +229,7 @@ const ServicesList: React.FC<{
         updatedItems.push(
           modalState.action === 'retirement'
             ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
-            : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date),
+            : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date)
         );
       } else if (modalState.workshop) {
         updatedItems.push(
@@ -237,13 +237,13 @@ const ServicesList: React.FC<{
             modalState.action === 'retirement'
               ? await setWorkshopLifespanEnd(modalState.workshop, date)
               : await stopWorkshop(modalState.workshop, date),
-            modalState.workshop.resourceClaims,
-          ),
+            modalState.workshop.resourceClaims
+          )
         );
       }
       revalidate({ updatedItems, action: 'update' });
     },
-    [modalState.action, modalState.resourceClaim, modalState.workshop, revalidate],
+    [modalState.action, modalState.resourceClaim, modalState.workshop, revalidate]
   );
 
   const performModalActionForResourceClaim = useCallback(
@@ -253,7 +253,7 @@ const ServicesList: React.FC<{
           apiPaths.RESOURCE_CLAIM({
             namespace: resourceClaim.metadata.namespace,
             resourceClaimName: resourceClaim.metadata.name,
-          }),
+          })
         );
         try {
           return await deleteResourceClaim(resourceClaim);
@@ -276,7 +276,7 @@ const ServicesList: React.FC<{
       console.warn(`Unkown action ${modalState.action}`);
       return resourceClaim;
     },
-    [cache, modalState.action],
+    [cache, modalState.action]
   );
 
   const performModalActionForWorkshop = useCallback(
@@ -301,7 +301,7 @@ const ServicesList: React.FC<{
         return Promise.resolve(null);
       }
     },
-    [cache, modalState.action, modalState.workshop, revalidate, mutate],
+    [cache, modalState.action, modalState.workshop, revalidate, mutate]
   );
 
   const onModalAction = useCallback(async (): Promise<void> => {
@@ -310,7 +310,7 @@ const ServicesList: React.FC<{
       serviceUpdates.push(await performModalActionForResourceClaim(modalState.resourceClaim));
     } else if (modalState.workshop) {
       serviceUpdates.push(
-        setResourceClaims(await performModalActionForWorkshop(modalState.workshop), modalState.workshop.resourceClaims),
+        setResourceClaims(await performModalActionForWorkshop(modalState.workshop), modalState.workshop.resourceClaims)
       );
     }
     if (selectedUids.length > 0) {
@@ -322,7 +322,7 @@ const ServicesList: React.FC<{
           if (service.kind === 'Workshop') {
             const _workshop = service as WorkshopWithResourceClaims;
             serviceUpdates.push(
-              setResourceClaims(await performModalActionForWorkshop(_workshop), _workshop.resourceClaims),
+              setResourceClaims(await performModalActionForWorkshop(_workshop), _workshop.resourceClaims)
             );
           }
         }
@@ -342,7 +342,7 @@ const ServicesList: React.FC<{
             provisionUuid,
             modalState.rating.rate,
             modalState.rating.comment,
-            modalState.rating.useful,
+            modalState.rating.useful
           );
           globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
         }
@@ -391,7 +391,7 @@ const ServicesList: React.FC<{
         openModalGetCost();
       }
     },
-    [openModalAction, openModalGetCost, openModalScheduleAction],
+    [openModalAction, openModalGetCost, openModalScheduleAction]
   );
 
   if (sessionServiceNamespaces.length === 0) {
@@ -540,13 +540,13 @@ const ServicesList: React.FC<{
                     showModal,
                     isAdmin,
                     navigate,
-                  }),
+                  })
                 );
               }
               if (service.kind === 'Workshop') {
                 return Object.assign(
                   selectObj,
-                  renderWorkshopRow({ workshop: service as Workshop, showModal, isAdmin }),
+                  renderWorkshopRow({ workshop: service as Workshop, showModal, isAdmin })
                 );
               }
               return null;

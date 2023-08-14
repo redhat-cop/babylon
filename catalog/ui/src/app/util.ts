@@ -46,7 +46,7 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
         return `${catalogItemDisplayName} Service Request`;
       } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
         return `${catalogItemDisplayName} Service Request - ${_item.metadata.name.substring(
-          1 + catalogItemName.length,
+          1 + catalogItemName.length
         )}`;
       } else {
         return `${_item.metadata.name} Service Request`;
@@ -132,7 +132,7 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
         .convert(content, { attributes: options.vars })
         .toString()
         .replace(/&#8203;/gi, '-'),
-      sanitize_opt,
+      sanitize_opt
     );
   }
 }
@@ -140,7 +140,7 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
 export function checkAccessControl(
   accessConfig: AccessControl,
   groups: string[],
-  isAdmin: boolean = false,
+  isAdmin: boolean = false
 ): 'allow' | 'viewOnly' | 'deny' {
   if (!accessConfig || isAdmin) {
     return 'allow';
@@ -160,7 +160,7 @@ export function checkAccessControl(
 export function checkResourceClaimCanStart(resourceClaim: ResourceClaim): boolean {
   return !!(resourceClaim?.status?.resources || []).find((r, idx) => {
     const state = r.state;
-    const template = resourceClaim.spec.resources[idx]?.template;
+    const template = resourceClaim.spec.resources?.[idx]?.template;
     if (!state || !template) {
       return false;
     }
@@ -184,35 +184,19 @@ export function checkResourceClaimCanStart(resourceClaim: ResourceClaim): boolea
 }
 
 export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean {
-  return !!(resourceClaim?.status?.resources || []).find((r, idx) => {
+  return !!(resourceClaim?.status?.resources || []).find((r) => {
     const state = r.state;
-    const template = resourceClaim.spec.resources[idx]?.template;
-    if (!state || !template) {
+    if (!state) {
       return false;
     }
-    if (!canExecuteAction(state, 'stop')) {
-      return false;
-    }
-    const currentState = state?.spec?.vars?.current_state;
-    if (currentState && (currentState.endsWith('-failed') || currentState === 'provision-canceled')) {
-      return false;
-    }
-    const startTimestamp = template?.spec?.vars?.action_schedule?.start || state?.spec?.vars?.action_schedule?.start;
-    const stopTimestamp = template?.spec?.vars?.action_schedule?.stop || state?.spec?.vars?.action_schedule?.stop;
-    if (startTimestamp && stopTimestamp) {
-      const startTime = Date.parse(startTimestamp);
-      const stopTime = Date.parse(stopTimestamp);
-      return startTime < Date.now() && stopTime > Date.now();
-    } else {
-      return false;
-    }
+    return canExecuteAction(state, 'stop');
   });
 }
 
 export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean {
   return !!(resourceClaim?.status?.resources || []).find((r, idx) => {
     const state = r.state;
-    const template = resourceClaim.spec.resources[idx]?.template;
+    const template = resourceClaim.spec.resources?.[idx]?.template;
     if (!state || !template) {
       return false;
     }
@@ -349,7 +333,7 @@ export function isLabDeveloper(groups: string[]): boolean {
 export function CSVToArray(strData: string, strDelimiter = ','): string[][] {
   const objPattern = new RegExp(
     '(\\' + strDelimiter + '|\\r?\\n|\\r|^)' + '(?:"([^"]*(?:""[^"]*)*)"|' + '([^"\\' + strDelimiter + '\\r\\n]*))',
-    'gi',
+    'gi'
   );
   const arrData: string[][] = [[]];
   let arrMatches = null;
@@ -371,7 +355,7 @@ export function CSVToArray(strData: string, strDelimiter = ','): string[][] {
 
 export function canExecuteAction(
   anarchySubject: AnarchySubject,
-  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy',
+  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy'
 ): boolean {
   if (action === 'status') {
     if (!anarchySubject?.status?.towerJobs?.provision?.completeTimestamp) {
@@ -389,7 +373,7 @@ export function stripTags(unStrippedHtml: string) {
   if (!unStrippedHtml) return '';
   const parseHTML = new DOMParser().parseFromString(
     dompurify.sanitize(unStrippedHtml.replace(/<\!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
-    'text/html',
+    'text/html'
   );
   return parseHTML.body.textContent || '';
 }

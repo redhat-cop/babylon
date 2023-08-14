@@ -13,7 +13,7 @@ export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number;
   const resources = resourceClaim.status?.resources;
   const { resources: specResources } = resourceClaim.spec;
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
-    return specResources.find((s) => s.name === name);
+    return specResources?.find((s) => s.name === name);
   }
   if (!resources) return { startTime: null, stopTime: null };
   // The start time for a multi-component service is the earliest start time of all components and the stop time is the latest stop time
@@ -41,7 +41,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
   const resources = resourceClaim.status?.resources;
   const { resources: specResources } = resourceClaim.spec;
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
-    return specResources.find((s) => s.name === name);
+    return specResources?.find((s) => s.name === name);
   }
   if (!resources) return { resource: null, template: null };
   if (resources.length === 1)
@@ -67,7 +67,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
         desiredState,
         Date.parse(resourceClaim.metadata.creationTimestamp),
         startTime,
-        stopTime,
+        stopTime
       ).phase,
     });
   }
@@ -85,6 +85,9 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
 }
 
 export function getAutoStopTime(resourceClaim: ResourceClaim): number {
+  if (resourceClaim.spec?.provider?.parameterValues?.['stop_timestamp']) {
+    return Date.parse(resourceClaim.spec.provider.parameterValues['stop_timestamp']);
+  }
   const autoStopTimes = resourceClaim.spec?.resources
     ? resourceClaim.spec.resources
         ?.map((specResource, idx) => {

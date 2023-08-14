@@ -161,7 +161,7 @@ export async function assignWorkshopUser({
   workshop: Workshop;
 }) {
   const userAssignmentIdx: number = workshop.spec.userAssignments.findIndex(
-    (item) => resourceClaimName === item.resourceClaimName && userName === item.userName,
+    (item) => resourceClaimName === item.resourceClaimName && userName === item.userName
   );
   const userAssignment = workshop.spec.userAssignments[userAssignmentIdx];
   if (!userAssignment) {
@@ -283,7 +283,7 @@ export async function bulkAssignWorkshopUsers({
 
 export async function checkSalesforceId(
   id: string,
-  debouncedApiFetch: (path: string) => Promise<unknown>,
+  debouncedApiFetch: (path: string) => Promise<unknown>
 ): Promise<boolean> {
   if (!id) {
     return false;
@@ -367,7 +367,18 @@ export async function createServiceRequest({
       namespace: serviceNamespace.name,
     },
     spec: {
-      resources: [],
+      provider: {
+        name: catalogItem.metadata.name,
+        parameterValues: {
+          purpose: parameterValues.purpose as string,
+          ...(start ? { start_timestamp: dateToApiString(start.date) } : {}),
+          ...(start && start.type === 'resource' && start.autoStop
+            ? { stop_timestamp: dateToApiString(start.autoStop) }
+            : stopDate
+            ? { stop_timestamp: dateToApiString(stopDate) }
+            : {}),
+        },
+      },
       lifespan: {
         ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
         end: dateToApiString(endDate),
@@ -375,119 +386,51 @@ export async function createServiceRequest({
     },
   };
 
-  if (access === 'allow') {
-    // Once created the ResourceClaim is completely independent of the catalog item.
-    // This allows the catalog item to be changed or removed without impacting provisioned
-    // services. All relevant configuration from the CatalogItem needs to be copied into
-    // the ResourceClaim.
+  if (access !== 'allow') {
+    return null;
+  }
+  // Once created the ResourceClaim is completely independent of the catalog item.
+  // This allows the catalog item to be changed or removed without impacting provisioned
+  // services. All relevant configuration from the CatalogItem needs to be copied into
+  // the ResourceClaim.
 
-    // Copy resources from catalog item to ResourceClaim
-    requestResourceClaim.spec.resources = JSON.parse(JSON.stringify(catalogItem.spec.resources));
-
-    // Add resources start/stop time (if present)
-    if (start && start.type === 'resource') {
-      if (!start.autoStop) {
-        throw new Error('Auto-stop data is missing when scheduling a resource start');
-      }
-      const startTimestamp = dateToApiString(start.date);
-      const stopTimestamp = dateToApiString(start.autoStop);
-      for (const resource of requestResourceClaim.spec.resources) {
-        recursiveAssign(resource, {
-          template: { spec: { vars: { action_schedule: { start: startTimestamp, stop: stopTimestamp } } } },
-        });
-      }
-    } else if (stopDate) {
-      const stopTimestamp = dateToApiString(stopDate);
-      for (const resource of requestResourceClaim.spec.resources) {
-        recursiveAssign(resource, {
-          template: { spec: { vars: { action_schedule: { stop: stopTimestamp } } } },
-        });
-      }
+  // Add display name annotations for components
+  for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
+    if (key.startsWith(`${BABYLON_DOMAIN}/displayNameComponent`)) {
+      requestResourceClaim.spec.provider.parameterValues[key] = value;
     }
+  }
 
-    // Add display name annotations for components
-    for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
-      if (key.startsWith(`${BABYLON_DOMAIN}/displayNameComponent`)) {
-        requestResourceClaim.metadata.annotations[key] = value;
-      }
+  // Copy all parameter values into the ResourceClaim
+  for (const parameter of catalogItem.spec.parameters || []) {
+    // passed parameter value or default
+    const value: boolean | number | string =
+      parameterValues?.[parameter.name] !== undefined
+        ? parameterValues[parameter.name]
+        : parameter.openAPIV3Schema?.default !== undefined
+        ? parameter.openAPIV3Schema.default
+        : parameter.value;
+
+    // Set annotation for parameter
+    if (parameter.annotation && value !== undefined) {
+      requestResourceClaim.spec.provider.parameterValues[parameter.annotation] = String(value);
     }
+  }
 
-    // Copy all parameter values into the ResourceClaim
-    for (const parameter of catalogItem.spec.parameters || []) {
-      // passed parameter value or default
-      const value: boolean | number | string =
-        parameterValues?.[parameter.name] !== undefined
-          ? parameterValues[parameter.name]
-          : parameter.openAPIV3Schema?.default !== undefined
-          ? parameter.openAPIV3Schema.default
-          : parameter.value;
-
-      // Set annotation for parameter
-      if (parameter.annotation && value !== undefined) {
-        requestResourceClaim.metadata.annotations[parameter.annotation] = String(value);
-      }
-
-      // Job variable name is either explicitly set or defaults to the parameter name unless an annotation is given.
-      const jobVarName: string = parameter.variable || (parameter.annotation ? null : parameter.name);
-      if (!jobVarName) {
-        continue;
-      }
-
-      // Determine to which resources in the resource claim the parameters apply
-      const resourceIndexes: number[] = parameter.resourceIndexes
-        ? parameter.resourceIndexes.map((i) => (i === '@' ? requestResourceClaim.spec.resources.length - 1 : i))
-        : [requestResourceClaim.spec.resources.length - 1];
-
-      for (const resourceIndex in requestResourceClaim.spec.resources) {
-        // Skip this resource if resource index does not match
-        if (!resourceIndexes.includes(parseInt(resourceIndex))) {
-          continue;
-        }
-
-        const resource = requestResourceClaim.spec.resources[resourceIndex];
-        recursiveAssign(resource, { template: { spec: { vars: { job_vars: { [jobVarName]: value } } } } });
-      }
-    }
-
-    // Purpose & SFDC
-    if (parameterValues.purpose) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
-    }
-    if (parameterValues.purpose_activity) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`] =
-        parameterValues.purpose_activity as string;
-    }
-    if (parameterValues.purpose_explanation) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] =
-        parameterValues.purpose_explanation as string;
-    }
-    if (parameterValues.salesforce_id) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] =
-        parameterValues.salesforce_id as string;
-    }
-  } else {
-    // No direct access to catalog item. Create the service-request to record
-    // the user interest in the catalog item.
-    requestResourceClaim.spec.resources[0] = {
-      provider: {
-        apiVersion: 'poolboy.gpte.redhat.com/v1',
-        kind: 'ResourceProvider',
-        name: 'babylon-service-request-configmap',
-        namespace: 'poolboy',
-      },
-      template: {
-        data: {
-          catalogItemName: catalogItem.metadata.name,
-          catalogItemNamespace: catalogItem.metadata.namespace,
-          parameters: JSON.stringify(parameterValues),
-        },
-        metadata: {
-          labels: {
-            [`${BABYLON_DOMAIN}/catalogItem`]: catalogItem.metadata.name,
-          },
-        },
-      },
-    };
+  // Purpose & SFDC
+  if (parameterValues.purpose) {
+    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
+  }
+  if (parameterValues.purpose_activity) {
+    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`] =
+      parameterValues.purpose_activity as string;
+  }
+  if (parameterValues.purpose_explanation) {
+    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] =
+      parameterValues.purpose_explanation as string;
+  }
+  if (parameterValues.salesforce_id) {
+    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] = parameterValues.salesforce_id as string;
   }
 
   let n = 0;
@@ -646,7 +589,7 @@ export async function createWorkshopForMultiuserService({
   if (resourceClaim.status?.resourceHandle) {
     definition.metadata.labels[`${BABYLON_DOMAIN}/workshop-id`] = resourceClaim.status?.resourceHandle.name.replace(
       /^guid-/,
-      '',
+      ''
     );
   }
 
@@ -663,7 +606,7 @@ export async function createWorkshopForMultiuserService({
               [`${BABYLON_DOMAIN}/workshop`]: workshop.metadata.name,
             },
           },
-        },
+        }
       );
       return { resourceClaim: patchedResourceClaim, workshop: workshop };
     } catch (error: any) {
@@ -744,7 +687,7 @@ export async function getAnarchySubject(namespace: string, name: string) {
     'v1',
     namespace,
     'anarchysubjects',
-    name,
+    name
   )) as AnarchySubject;
 }
 
@@ -772,7 +715,7 @@ export async function getResourcePool(name: string) {
     'v1',
     'poolboy',
     'resourcepools',
-    name,
+    name
   )) as ResourcePool;
 }
 
@@ -821,7 +764,7 @@ export async function deleteAnarchyAction(anarchyAction: AnarchyAction) {
     'v1',
     anarchyAction.metadata.namespace,
     'anarchyactions',
-    anarchyAction.metadata.name,
+    anarchyAction.metadata.name
   );
 }
 
@@ -831,7 +774,7 @@ export async function deleteAnarchyGovernor(anarchyGovernor: AnarchyGovernor) {
     'v1',
     anarchyGovernor.metadata.namespace,
     'anarchygovernors',
-    anarchyGovernor.metadata.name,
+    anarchyGovernor.metadata.name
   );
 }
 
@@ -841,7 +784,7 @@ export async function deleteAnarchyRun(anarchyRun: AnarchyRun) {
     'v1',
     anarchyRun.metadata.namespace,
     'anarchyruns',
-    anarchyRun.metadata.name,
+    anarchyRun.metadata.name
   );
 }
 
@@ -851,7 +794,7 @@ export async function deleteAnarchySubject(anarchySubject: AnarchySubject) {
     'v1',
     anarchySubject.metadata.namespace,
     'anarchysubjects',
-    anarchySubject.metadata.name,
+    anarchySubject.metadata.name
   );
 }
 
@@ -878,7 +821,7 @@ export async function deleteResourceClaim(resourceClaim: ResourceClaim) {
     'v1',
     resourceClaim.metadata.namespace,
     'resourceclaims',
-    resourceClaim.metadata.name,
+    resourceClaim.metadata.name
   )) as ResourceClaim;
 }
 
@@ -888,7 +831,7 @@ export async function deleteResourceHandle(resourceHandle: ResourceHandle) {
     'v1',
     resourceHandle.metadata.namespace,
     'resourcehandles',
-    resourceHandle.metadata.name,
+    resourceHandle.metadata.name
   );
 }
 
@@ -898,7 +841,7 @@ export async function deleteResourcePool(resourcePool: ResourcePool) {
     'v1',
     resourcePool.metadata.namespace,
     'resourcepools',
-    resourcePool.metadata.name,
+    resourcePool.metadata.name
   );
 }
 
@@ -908,7 +851,7 @@ export async function deleteResourceProvider(resourceProvider: ResourceProvider)
     'v1',
     resourceProvider.metadata.namespace,
     'resourcehandles',
-    resourceProvider.metadata.name,
+    resourceProvider.metadata.name
   );
 }
 
@@ -943,7 +886,7 @@ export async function startWorkshop(workshop: Workshop, dateString: string, reso
         ? resourceClaim.status.resources
             .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
             .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime))
-        : []),
+        : [])
     );
   }
   const patch = {
@@ -953,7 +896,7 @@ export async function startWorkshop(workshop: Workshop, dateString: string, reso
         stop: dateToApiString(
           defaultRuntimes.length > 0
             ? new Date(now.getTime() + Math.min(...defaultRuntimes))
-            : new Date(now.getTime() + 12 * 60 * 60 * 1000),
+            : new Date(now.getTime() + 12 * 60 * 60 * 1000)
         ),
       },
       lifespan: {
@@ -977,7 +920,7 @@ export async function startWorkshopServices(workshop: Workshop, resourceClaims: 
         ? resourceClaim.status.resources
             .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
             .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime))
-        : []),
+        : [])
     );
   }
   const patch = {
@@ -987,7 +930,7 @@ export async function startWorkshopServices(workshop: Workshop, resourceClaims: 
         stop: dateToApiString(
           defaultRuntimes.length > 0
             ? new Date(now.getTime() + Math.min(...defaultRuntimes))
-            : new Date(now.getTime() + 12 * 60 * 60 * 1000),
+            : new Date(now.getTime() + 12 * 60 * 60 * 1000)
         ),
       },
     },
@@ -1007,7 +950,7 @@ export async function forceDeleteAnarchySubject(anarchySubject: AnarchySubject) 
       anarchySubject.metadata.namespace,
       'anarchysubjects',
       anarchySubject.metadata.name,
-      { metadata: { finalizers: null } },
+      { metadata: { finalizers: null } }
     );
   }
   if (!anarchySubject.metadata.deletionTimestamp) {
@@ -1068,7 +1011,7 @@ export async function patchResourceClaim(namespace: string, name: string, patch:
     namespace,
     'resourceclaims',
     name,
-    patch,
+    patch
   )) as ResourceClaim;
 }
 
@@ -1079,7 +1022,7 @@ export async function patchResourcePool(name: string, patch: any) {
     'poolboy',
     'resourcepools',
     name,
-    patch,
+    patch
   )) as ResourcePool;
 }
 
@@ -1137,7 +1080,7 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim:
       resourcesToRequestStatus.push(resource.name);
     }
   }
-  for (let i = 0; i < data.spec.resources.length; ++i) {
+  for (let i = 0; i < data.spec.resources?.length; ++i) {
     if (resourcesToRequestStatus.includes(data.spec.resources[i].name)) {
       data.spec.resources[i].template.spec.vars.check_status_request_timestamp = requestTimestamp;
     }
@@ -1148,24 +1091,37 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim:
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name,
-    data,
+    data
   )) as ResourceClaim;
 }
 
 export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: ResourceClaim, date: Date) {
   const stopTimestamp = dateToApiString(date);
-  const patch = {
-    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
-  };
-  const resourcesToStop = [];
-  for (const resource of resourceClaim.status?.resources) {
-    if (canExecuteAction(resource.state, 'stop')) {
-      resourcesToStop.push(resource.name);
+  let patch: any = {};
+  if (resourceClaim.spec?.provider?.parameterValues?.['stop_timestamp']) {
+    patch = {
+      spec: {
+        provider: {
+          parameterValues: {
+            stop_timestamp: stopTimestamp,
+          },
+        },
+      },
+    };
+  } else {
+    patch = {
+      spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
+    };
+    const resourcesToStop = [];
+    for (const resource of resourceClaim.status?.resources) {
+      if (canExecuteAction(resource.state, 'stop')) {
+        resourcesToStop.push(resource.name);
+      }
     }
-  }
-  for (let i = 0; i < patch.spec.resources.length; ++i) {
-    if (resourcesToStop.includes(patch.spec.resources[i].name)) {
-      patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+    for (let i = 0; i < patch.spec.resources.length; ++i) {
+      if (resourcesToStop.includes(patch.spec.resources[i].name)) {
+        patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+      }
     }
   }
 
@@ -1175,14 +1131,14 @@ export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: 
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name,
-    patch,
+    patch
   )) as ResourceClaim;
 }
 
 export async function scheduleStartForAllResourcesInResourceClaim(
   resourceClaim: ResourceClaim,
   date: Date,
-  stopDate: Date,
+  stopDate: Date
 ) {
   const startTimestamp = dateToApiString(date);
   const stopTimestamp = dateToApiString(stopDate);
@@ -1208,14 +1164,14 @@ export async function scheduleStartForAllResourcesInResourceClaim(
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name,
-    patch,
+    patch
   )) as ResourceClaim;
 }
 
 export async function setLifespanEndForResourceClaim(
   resourceClaim: ResourceClaim,
   date: Date,
-  updateResourceHandle = true,
+  updateResourceHandle = true
 ) {
   const endTimestamp = dateToApiString(date);
   const data = {
@@ -1229,7 +1185,7 @@ export async function setLifespanEndForResourceClaim(
     if (date.getTime() > maxDate.getTime()) {
       updatedMaxDate =
         Math.ceil(
-          (date.getTime() - new Date(resourceClaim.metadata.creationTimestamp).getTime()) / (1000 * 60 * 60 * 24),
+          (date.getTime() - new Date(resourceClaim.metadata.creationTimestamp).getTime()) / (1000 * 60 * 60 * 24)
         ) +
         1 +
         'd';
@@ -1270,7 +1226,7 @@ export async function setLifespanEndForResourceClaim(
               : {}),
           },
         },
-      },
+      }
     )) as ResourceHandle;
   }
 
@@ -1280,14 +1236,14 @@ export async function setLifespanEndForResourceClaim(
     resourceClaim.metadata.namespace,
     'resourceclaims',
     resourceClaim.metadata.name,
-    data,
+    data
   )) as ResourceClaim;
 }
 
 export async function startAllResourcesInResourceClaim(resourceClaim: ResourceClaim): Promise<ResourceClaim> {
   const defaultRuntimes = resourceClaim.status?.resources
     ? resourceClaim.status.resources.map((r) =>
-        parseDuration(r.state?.spec.vars.action_schedule?.default_runtime || '4h'),
+        parseDuration(r.state?.spec.vars.action_schedule?.default_runtime || '4h')
       )
     : [];
   const defaultRuntime = defaultRuntimes.length > 0 ? Math.min(...defaultRuntimes) : 0;
@@ -1306,7 +1262,7 @@ async function deleteNamespacedCustomObject(
   version: string,
   namespace: string,
   plural: string,
-  name: string,
+  name: string
 ): Promise<K8sObject> {
   const resp = await apiFetch(`/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`, {
     method: 'DELETE',
@@ -1319,7 +1275,7 @@ async function getNamespacedCustomObject(
   version: string,
   namespace: string,
   plural: string,
-  name: string,
+  name: string
 ): Promise<K8sObject> {
   const resp = await apiFetch(`/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`);
   return await resp.json();
@@ -1353,7 +1309,7 @@ async function patchNamespacedCustomObject(
   plural: string,
   name: string,
   patch: Record<string, unknown>,
-  patchType = 'merge',
+  patchType = 'merge'
 ): Promise<K8sObject> {
   const resp = await apiFetch(`/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`, {
     method: 'PATCH',
@@ -1367,7 +1323,7 @@ async function patchNamespacedCustomObject(
 
 export async function getOpenStackServersForResourceClaim(resourceClaim: ResourceClaim) {
   const resp = await apiFetch(
-    `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/servers`,
+    `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/servers`
   );
   return await resp.json();
 }
@@ -1381,7 +1337,7 @@ export async function rebootOpenStackServer(resourceClaim: ResourceClaim, projec
       headers: {
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
   return await resp.json();
 }
@@ -1395,7 +1351,7 @@ export async function startOpenStackServer(resourceClaim: ResourceClaim, project
       headers: {
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
   return await resp.json();
 }
@@ -1409,7 +1365,7 @@ export async function stopOpenStackServer(resourceClaim: ResourceClaim, projectI
       headers: {
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
   return await resp.json();
 }
@@ -1417,7 +1373,7 @@ export async function stopOpenStackServer(resourceClaim: ResourceClaim, projectI
 export async function startOpenStackServerConsoleSession(
   resourceClaim: ResourceClaim,
   projectId: string,
-  serverId: string,
+  serverId: string
 ) {
   const resp = await apiFetch(
     `/api/service/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}/openstack/server/${projectId}/${serverId}/console`,
@@ -1427,7 +1383,7 @@ export async function startOpenStackServerConsoleSession(
       headers: {
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
   return await resp.json();
 }
@@ -1494,7 +1450,7 @@ export function setProvisionRating(
   provisionUuid: string,
   rating: number,
   comment: string,
-  useful: 'yes' | 'no' | 'not applicable',
+  useful: 'yes' | 'no' | 'not applicable'
 ) {
   return apiFetch(apiPaths.PROVISION_RATING({ provisionUuid }), {
     method: 'POST',

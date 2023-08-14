@@ -20,7 +20,7 @@ import './service-item-status.css';
 
 function getCheckStatusStateFromResource(
   resourceState: AnarchySubject,
-  resourceTemplate: ResourceClaimSpecResourceTemplate,
+  resourceTemplate: ResourceClaimSpecResourceTemplate
 ) {
   const resourceStateVars = resourceState?.spec?.vars;
   const resourceTemplateVars = resourceTemplate.spec?.vars;
@@ -42,7 +42,7 @@ const ServiceItemStatus: React.FC<{
   resourceClaim: ResourceClaim;
 }> = ({ onCheckStatusRequest, resourceClaim }) => {
   // Extract the last status check request timestamp
-  const lastRequestTimestamp = resourceClaim.spec.resources.reduce<string | undefined>(
+  const lastRequestTimestamp = resourceClaim.spec.resources?.reduce<string | undefined>(
     (lastTimestamp, resourceSpec) => {
       const ts = resourceSpec?.template?.spec?.vars?.check_status_request_timestamp;
       if (ts) {
@@ -55,13 +55,13 @@ const ServiceItemStatus: React.FC<{
         return lastTimestamp;
       }
     },
-    undefined,
+    undefined
   );
   const lastRequestDate = lastRequestTimestamp ? Date.parse(lastRequestTimestamp) : null;
   const lastRequestMillisecondsAgo = lastRequestDate ? Date.now() - lastRequestDate : null;
 
   // Extract the last status completion from resource status
-  const lastUpdateTimestamp = resourceClaim.status.resources.reduce((lastTimestamp, resourceStatus) => {
+  const lastUpdateTimestamp = resourceClaim.status.resources?.reduce((lastTimestamp, resourceStatus) => {
     const ts = resourceStatus?.state?.status?.towerJobs?.status?.completeTimestamp;
     if (ts) {
       if (lastTimestamp) {
@@ -78,7 +78,7 @@ const ServiceItemStatus: React.FC<{
   // - requested
   // - pending
   // - running
-  const checkStatusState = resourceClaim.spec.resources.reduce<string | undefined>(
+  const checkStatusState = resourceClaim.spec.resources?.reduce<string | undefined>(
     (reducedCheckState, resourceSpec, idx) => {
       const resourceState = resourceClaim.status.resources[idx].state;
       const resourceCheckState = getCheckStatusStateFromResource(resourceState, resourceSpec.template);
@@ -91,7 +91,7 @@ const ServiceItemStatus: React.FC<{
       }
       return undefined;
     },
-    undefined,
+    undefined
   );
 
   // Save refresh requested in state to immediately disable the refresh button

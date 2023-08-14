@@ -30,7 +30,7 @@ const WorkshopsItemServices: React.FC<{
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
-      selectedUids.includes(resourceClaim.metadata.uid),
+      selectedUids.includes(resourceClaim.metadata.uid)
     );
     setSelectedResourceClaims(selectedResourceClaims);
   }, [resourceClaims, selectedUids, setSelectedResourceClaims]);
@@ -77,7 +77,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_data
-                  : r?.data?.labUserInterfaceData,
+                  : r?.data?.labUserInterfaceData
               )
               .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
               .find((u) => u != null);
@@ -87,7 +87,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_method
-                  : r?.data?.labUserInterfaceMethod,
+                  : r?.data?.labUserInterfaceMethod
               )
               .find((u) => u != null);
           const labUserInterfaceUrl =
@@ -132,6 +132,7 @@ const WorkshopsItemServices: React.FC<{
                   resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
                   resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
                   resourceClaim={resourceClaim}
+                  summary={resourceClaim.status?.summary}
                 />
               ) : (
                 <p>...</p>

@@ -16,7 +16,7 @@ export function getStatus(
   desiredState: string,
   creationTime: number,
   startTime: number,
-  stopTime: number,
+  stopTime: number
 ): { statusName: string; phase: phaseProps } {
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
@@ -82,7 +82,27 @@ const ServiceStatus: React.FC<{
   resource?: AnarchySubject;
   resourceTemplate?: ResourceClaimSpecResourceTemplate;
   resourceClaim: ResourceClaim;
-}> = ({ creationTime, resource, resourceTemplate, resourceClaim }) => {
+  summary?: { state: string };
+}> = ({ creationTime, resource, resourceTemplate, resourceClaim, summary }) => {
+  if (summary) {
+    let _phase: phaseProps = 'unknown';
+    let _state = summary.state.replace('-', ' ');
+    if (summary.state.endsWith('-pending')) {
+      _phase = 'in-progress';
+    } else if (summary.state.endsWith('-pending')) {
+      _phase = 'failed';
+    } else if (summary.state === 'started') {
+      _phase = 'running';
+      _state = 'Running';
+    } else if (summary.state === 'stopped') {
+      _phase = 'stopped';
+    }
+    return (
+      <span className={`service-status--${_phase}`} style={{ textTransform: 'capitalize' }}>
+        <Icon phase={_phase} /> {_state}
+      </span>
+    );
+  }
   const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
   const desiredState = resourceTemplate?.spec?.vars?.desired_state;
   const { startTime, stopTime } = getAutoTimes(resourceClaim);
