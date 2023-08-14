@@ -1052,7 +1052,7 @@ class ResourceClaim:
         messages = []
 
         for idx, resource in enumerate(self.status['resources']):
-            resource_name = self.spec['resources'][idx].get('name')
+            resource_name = resource.get('name')
             resource_name_var_prefix = re.sub(r'[^a-z0-9_]', '_', resource_name) if resource_name else None
             resource_state = resource.get('state')
             if not resource_state:
@@ -1074,7 +1074,7 @@ class ResourceClaim:
     def get_users(self):
         users = []
         for idx, resource in enumerate(self.status['resources']):
-            resource_name = self.definition['spec']['resources'][idx].get('name')
+            resource_name = resource.get('name')
             resource_name_var_prefix = re.sub(r'[^a-z0-9_]', '_', resource_name) if resource_name else None
             resource_state = resource.get('state')
             if not resource_state:
