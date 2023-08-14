@@ -486,10 +486,10 @@ class AgnosticVComponent(KopfObject):
                 },
             },
             "spec": {
-                #"category": self.catalog_category,
-                #"description": self.catalog_description,
-                #"icon": self.catalog_icon,
-                #"keywords": self.catalog_keywords,
+                "category": self.catalog_category,
+                "description": self.catalog_description,
+                "displayName": self.catalog_display_name,
+                "keywords": self.catalog_keywords,
                 "lastUpdate": self.last_update,
                 "lifespan": {
                     "default": self.lifespan_default,
@@ -507,6 +507,7 @@ class AgnosticVComponent(KopfObject):
         # FIXME - weird default behavior from agnosticv-operator
         if self.catalog_icon:
             definition['metadata']['annotations'][f"{Babylon.catalog_api_group}/icon"] = json.dumps(self.catalog_icon)
+            definition['spec']['icon'] = self.catalog_icon
         else:
             definition['metadata']['annotations'][f"{Babylon.catalog_api_group}/icon"] = ''
 
@@ -526,13 +527,14 @@ class AgnosticVComponent(KopfObject):
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/stage"] = self.stage
 
         for idx, linked_component in enumerate(self.linked_components):
-            #if not 'linkedComponents' in definition['spec']:
-            #    definition['spec']['linkedComponents'] = []
+            if not 'linkedComponents' in definition['spec']:
+                definition['spec']['linkedComponents'] = []
 
-            #definition['spec']['linkedComponents'].append({
-            #    "displayName": linked_component.display_name,
-            #    "name": linked_component.name,
-            #})
+            definition['spec']['linkedComponents'].append({
+                "name": linked_component.name,
+            })
+            if linked_component.display_name:
+                definition['spec']['linkedComponents'][-1]['displayName'] = linked_component.display_name
 
             definition['spec']['resources'].append({
                 "name": linked_component.name or linked_component.short_name,
