@@ -785,6 +785,17 @@ async def send_notification_email(
     for attachment in attachments:
         msg.attach(attachment)
 
-    await smtp.connect()
-    await smtp.send_message(msg)
-    await smtp.quit()
+    await send_email_message(msg)
+
+async def send_email_message(msg, retries=5):
+    try:
+        await smtp.connect()
+        await smtp.send_message(msg)
+        await smtp.quit()
+    except aiosmtplib.errors.SMTPException:
+        if retries > 0:
+            logger.exception(f"Failed sending email to {to}, will retry.")
+            await asyncio.sleep(5)
+            await send_email_message(msg, retries=retries-1)
+        else:
+            logger.exception(f"Failed sending email to {to}.")
