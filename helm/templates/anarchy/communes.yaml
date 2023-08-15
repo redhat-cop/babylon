@@ -1,3 +1,4 @@
+{{- if .Values.anarchy.configureCommunes }}
 {{- range $namespace := .Values.anarchy.namespaces }}
 ---
 apiVersion: {{ $.Values.anarchy.api.group }}/{{ $.Values.anarchy.api.version }}
@@ -11,5 +12,6 @@ metadata:
 spec:
   runners:
     default:
-      {{- (get $.Values.anarchy.namespaceProfiles $namespace.profile) | toYaml | nindent 6 }}
+      {{- (get $.Values.anarchy.namespaceProfiles ($namespace.profile | default "default")) | toYaml | nindent 6 }}
+{{- end }}
 {{- end }}
