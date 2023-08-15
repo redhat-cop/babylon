@@ -54,9 +54,9 @@ anarchy:
     version: v1
   namespaces:
   - name: babylon-anarchy
-    profile: standard
+    profile: default
   namespaceProfiles:
-    standard:
+    default:
       consecutiveFailureLimit: 10
       maxReplicas: 10
       minReplicas: 1
