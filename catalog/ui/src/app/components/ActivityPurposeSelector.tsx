@@ -188,6 +188,7 @@ export const PurposeOpts = [
     sfdcRequired: false,
   },
 ];
+
 const ActivityPurposeSelector: React.FC<{
   onChange: (activity: string, purpose: string, explanation: string) => void;
   value?: { purpose?: string; activity?: string; explanation?: string };
