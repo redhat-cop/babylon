@@ -341,9 +341,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 validated={
                   formState.salesforceId.value && formState.salesforceId.valid
                     ? 'success'
-                    : formState.salesforceId.value &&
-                      formState.conditionChecks.completed &&
-                      formState.salesforceId.required
+                    : formState.salesforceId.value && formState.conditionChecks.completed && purposeObj?.sfdcRequired
                     ? 'error'
                     : 'default'
                 }
