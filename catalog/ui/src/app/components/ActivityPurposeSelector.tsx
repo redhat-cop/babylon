@@ -17,28 +17,28 @@ export const PurposeOpts = [
     description: 'Showing a product/solution to a customer or prospect',
     activityId: 1,
     id: 1,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Conduct a hands on workshop for one customer',
     description: 'Performing a hands on activity with an individual customer or prospect',
     activityId: 1,
     id: 2,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Build a proof of concept for a customer',
     description: 'Using an environment to build and show a customer or prospect the capabilities of Red Hat solutions',
     activityId: 1,
     id: 3,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Conduct a Marketing event with multiple customers',
     description: 'Performing a demo or workshop for a Marketing event for multiple customers (tied to a campaign ID)',
     activityId: 1,
     id: 4,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Other',
@@ -47,14 +47,14 @@ export const PurposeOpts = [
     activityId: 1,
     id: 5,
     requireUserInput: true,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Conduct a demo to a Partner',
     description: 'Showing a product/solution to a Partner',
     activityId: 2,
     id: 6,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Conduct a demo with a Partner',
@@ -84,7 +84,7 @@ export const PurposeOpts = [
       'Assist a Partner in performing a demo or workshop for multiple customers who share common business challenges',
     activityId: 2,
     id: 10,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Other',
@@ -93,21 +93,21 @@ export const PurposeOpts = [
     activityId: 2,
     id: 11,
     requireUserInput: true,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Practice for a demo',
     description: 'Setting up and practicing with an environment to be able to perform a customer demo',
     activityId: 3,
     id: 12,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Practice for a workshop',
     description: 'Setting up and practicing with an environment to be able to conduct a customer workshop',
     activityId: 3,
     id: 13,
-    sfdcRequired: true,
+    sfdcRequired: false,
   },
   {
     name: 'Learning about the product',
@@ -233,7 +233,7 @@ const ActivityPurposeSelector: React.FC<{
                   id={`activity-${activityOpt.id}`}
                 ></Radio>
               </div>
-            ),
+            )
           )}
         </div>
       </FormGroup>
@@ -255,7 +255,7 @@ const ActivityPurposeSelector: React.FC<{
               variant={SelectVariant.single}
             >
               {PurposeOpts.filter(
-                (purposeOpt) => ActivityOpts.find((a) => a.id === purposeOpt.activityId).name === activity,
+                (purposeOpt) => ActivityOpts.find((a) => a.id === purposeOpt.activityId).name === activity
               ).map((purposeOpt) => (
                 <SelectOption
                   key={`${ActivityOpts.find((a) => a.id === purposeOpt.activityId).name} - ${purposeOpt.name}`}
