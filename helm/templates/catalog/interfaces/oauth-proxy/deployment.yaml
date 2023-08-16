@@ -32,7 +32,7 @@ spec:
       containers:
       - name: oauth-proxy
         args:
-        - --cookie-domain={{ $domain }}
+        - --cookie-name=__oauth_proxy-{{ $domain }}
         - --cookie-secure=true
         {{- if $oauthProxy.templates }}
         - --custom-templates-dir=/templates
