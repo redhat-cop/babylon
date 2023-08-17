@@ -168,11 +168,11 @@ export async function checkConditionsInFormState(
 
   try {
     if (initialState.salesforceId.value) {
-      salesforceIdValid = await _checkCondition(
+      salesforceIdValid = true; /*await _checkCondition(
         'check_salesforce_id(salesforce_id)',
         { salesforce_id: initialState.salesforceId.value },
         debouncedApiFetch
-      );
+      );*/
     }
     for (const [, parameterState] of Object.entries(parameters)) {
       const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
@@ -204,11 +204,8 @@ export async function checkConditionsInFormState(
       if (parameterSpec.validation) {
         if (parameterState.value || parameterSpec.required) {
           try {
-            parameterState.validationResult = true; /*await _checkCondition(
-              parameterSpec.validation,
-              conditionValues,
-              debouncedApiFetch,
-            );*/
+            parameterState.validationResult = true;
+            await _checkCondition(parameterSpec.validation, conditionValues, debouncedApiFetch);
             parameterState.validationMessage = undefined;
           } catch (error) {
             parameterState.validationResult = false;
