@@ -18,6 +18,7 @@ import {
   deleteResourceClaim,
   fetcher,
   scheduleStopForAllResourcesInResourceClaim,
+  scheduleStopResourceClaim,
   setLifespanEndForResourceClaim,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
@@ -185,6 +186,8 @@ const ResourceClaims: React.FC<{}> = () => {
       const resourceClaimUpdate: ResourceClaim =
         modalState.action === 'retirement'
           ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
+          : modalState.resourceClaim.status?.summary
+          ? await scheduleStopResourceClaim(modalState.resourceClaim)
           : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
       revalidate({ updatedItems: [resourceClaimUpdate], action: 'update' });
     },
