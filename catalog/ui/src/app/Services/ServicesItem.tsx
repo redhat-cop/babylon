@@ -36,7 +36,9 @@ import {
   fetcher,
   fetchWithUpdatedCostTracker,
   requestStatusForAllResourcesInResourceClaim,
+  scheduleStartResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
+  scheduleStopResourceClaim,
   SERVICES_KEY,
   setLifespanEndForResourceClaim,
   setProvisionRating,
@@ -447,7 +449,11 @@ const ServicesItemComponent: React.FC<{
     if (modalState.action === 'stop' || modalState.action === 'start') {
       const resourceClaimUpdate =
         modalState.action === 'start'
-          ? await startAllResourcesInResourceClaim(resourceClaim)
+          ? resourceClaim.status?.summary
+            ? await scheduleStartResourceClaim(resourceClaim)
+            : await startAllResourcesInResourceClaim(resourceClaim)
+          : resourceClaim.status?.summary
+          ? await scheduleStopResourceClaim(resourceClaim)
           : await stopAllResourcesInResourceClaim(resourceClaim);
       mutate(resourceClaimUpdate);
       globalMutate(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
@@ -485,6 +491,8 @@ const ServicesItemComponent: React.FC<{
     const resourceClaimUpdate =
       modalState.action === 'retirement'
         ? await setLifespanEndForResourceClaim(resourceClaim, date)
+        : resourceClaim.status?.summary
+        ? await scheduleStopResourceClaim(resourceClaim)
         : await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
     mutate(resourceClaimUpdate);
   }

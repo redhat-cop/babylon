@@ -1095,6 +1095,28 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim:
   )) as ResourceClaim;
 }
 
+export async function scheduleStopResourceClaim(resourceClaim: ResourceClaim, date?: Date) {
+  const stopTimestamp = dateToApiString(date ?? new Date());
+  const patch = {
+    spec: {
+      provider: {
+        parameterValues: {
+          stop_timestamp: stopTimestamp,
+        },
+      },
+    },
+  };
+
+  return (await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com',
+    'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    patch
+  )) as ResourceClaim;
+}
+
 export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: ResourceClaim, date: Date) {
   const stopTimestamp = dateToApiString(date);
   let patch: any = {};
@@ -1125,6 +1147,25 @@ export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: 
     }
   }
 
+  return (await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com',
+    'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    patch
+  )) as ResourceClaim;
+}
+
+export async function scheduleStartResourceClaim(resourceClaim: ResourceClaim, date?: Date, stopDate?: Date) {
+  const startTimestamp = dateToApiString(date ?? new Date());
+  const defaultRuntime = parseDuration(resourceClaim.status?.summary?.runtime_default) ?? 14400000;
+  const stopTimestamp = dateToApiString(stopDate ?? new Date(new Date().getTime() + defaultRuntime));
+  const times = { start_timestamp: startTimestamp, stop_timestamp: stopTimestamp };
+  const patch = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
+  };
+  patch.spec = { provider: { parameterValues: times } };
   return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
