@@ -147,6 +147,7 @@ export interface CatalogItemSpec {
   lifespan?: CatalogItemSpecLifespan;
   lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
+  externalUrl?: string;
 }
 
 export interface CatalogItemSpecParameter {
