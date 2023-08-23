@@ -1159,11 +1159,9 @@ export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: 
 
 export async function scheduleStartResourceClaim(resourceClaim: ResourceClaim, date?: Date, stopDate?: Date) {
   const startTimestamp = dateToApiString(date ?? new Date());
-  const times = { start_timestamp: startTimestamp };
-  if (stopDate) {
-    const stopTimestamp = dateToApiString(stopDate);
-    times['stop_timetamp'] = stopTimestamp;
-  }
+  const defaultRuntime = parseDuration(resourceClaim.status?.summary?.runtime_default) ?? 14400000;
+  const stopTimestamp = dateToApiString(stopDate ?? new Date(new Date().getTime() + defaultRuntime));
+  const times = { start_timestamp: startTimestamp, stop_timestamp: stopTimestamp };
   const patch = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };

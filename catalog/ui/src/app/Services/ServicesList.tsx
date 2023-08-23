@@ -19,7 +19,9 @@ import {
   deleteResourceClaim,
   deleteWorkshop,
   fetcherItemsInAllPages,
+  scheduleStartResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
+  scheduleStopResourceClaim,
   SERVICES_KEY,
   setLifespanEndForResourceClaim,
   setProvisionRating,
@@ -229,6 +231,8 @@ const ServicesList: React.FC<{
         updatedItems.push(
           modalState.action === 'retirement'
             ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
+            : modalState.resourceClaim.status?.summary
+            ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
             : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date)
         );
       } else if (modalState.workshop) {
@@ -267,9 +271,13 @@ const ServicesList: React.FC<{
         const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
         if (isPartOfWorkshop) return resourceClaim; // If has a workshopProvision -> Do nothing.
         if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
-          return await startAllResourcesInResourceClaim(resourceClaim);
+          return modalState.resourceClaim.status?.summary
+            ? await scheduleStartResourceClaim(modalState.resourceClaim)
+            : await startAllResourcesInResourceClaim(resourceClaim);
         } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
-          return await stopAllResourcesInResourceClaim(resourceClaim);
+          return modalState.resourceClaim.status?.summary
+            ? await scheduleStopResourceClaim(resourceClaim)
+            : await stopAllResourcesInResourceClaim(resourceClaim);
         }
       }
 
