@@ -160,8 +160,8 @@ export function checkAccessControl(
 export function checkResourceClaimCanStart(resourceClaim: ResourceClaim): boolean {
   if (
     resourceClaim.status?.summary?.state === 'started' ||
-    resourceClaim.status?.summary?.state === 'start pending' ||
-    resourceClaim.status?.summary?.state === 'start scheduled' ||
+    resourceClaim.status?.summary?.state === 'start-pending' ||
+    resourceClaim.status?.summary?.state === 'start-scheduled' ||
     resourceClaim.status?.summary?.state === 'staring'
   ) {
     return false;
@@ -178,8 +178,8 @@ export function checkResourceClaimCanStart(resourceClaim: ResourceClaim): boolea
 export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean {
   if (
     resourceClaim.status?.summary?.state === 'stopped' ||
-    resourceClaim.status?.summary?.state === 'stop scheduled' ||
-    resourceClaim.status?.summary?.state === 'stop pending' ||
+    resourceClaim.status?.summary?.state === 'stop-scheduled' ||
+    resourceClaim.status?.summary?.state === 'stop-pending' ||
     resourceClaim.status?.summary?.state === 'stopping'
   ) {
     return false;
