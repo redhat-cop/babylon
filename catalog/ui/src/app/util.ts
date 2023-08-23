@@ -158,32 +158,22 @@ export function checkAccessControl(
 }
 
 export function checkResourceClaimCanStart(resourceClaim: ResourceClaim): boolean {
-  return !!(resourceClaim?.status?.resources || []).find((r, idx) => {
+  if (resourceClaim.status?.summary?.state === 'started') {
+    return false;
+  }
+  return !!(resourceClaim?.status?.resources || []).find((r) => {
     const state = r.state;
-    const template = resourceClaim.spec.resources?.[idx]?.template;
-    if (!state || !template) {
+    if (!state) {
       return false;
     }
-    if (!canExecuteAction(state, 'start')) {
-      return false;
-    }
-    const currentState = state?.spec?.vars?.current_state;
-    if (currentState && (currentState.endsWith('-failed') || currentState === 'provision-canceled')) {
-      return false;
-    }
-    const startTimestamp = template?.spec?.vars?.action_schedule?.start || state?.spec?.vars?.action_schedule?.start;
-    const stopTimestamp = template?.spec?.vars?.action_schedule?.stop || state?.spec?.vars?.action_schedule?.stop;
-    if (startTimestamp && stopTimestamp) {
-      const startTime = Date.parse(startTimestamp);
-      const stopTime = Date.parse(stopTimestamp);
-      return startTime > Date.now() || stopTime < Date.now();
-    } else {
-      return false;
-    }
+    return canExecuteAction(state, 'start');
   });
 }
 
 export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean {
+  if (resourceClaim.status?.summary?.state === 'stopped') {
+    return false;
+  }
   return !!(resourceClaim?.status?.resources || []).find((r) => {
     const state = r.state;
     if (!state) {
@@ -194,6 +184,9 @@ export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean
 }
 
 export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean {
+  if (resourceClaim.status?.summary?.state === 'started' || resourceClaim.status?.summary?.state === 'stopped') {
+    return true;
+  }
   return !!(resourceClaim?.status?.resources || []).find((r, idx) => {
     const state = r.state;
     const template = resourceClaim.spec.resources?.[idx]?.template;
