@@ -61,9 +61,9 @@ import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogContent from './CatalogContent';
 import IncidentsBanner from '@app/components/IncidentsBanner';
+import AdminSelector from './AdminSelector';
 
 import './catalog.css';
-import AdminSelector from './AdminSelector';
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -181,7 +181,7 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
 
 function filterCatalogItemByAdminFilter(catalogItem: CatalogItem, statuses: string[]) {
   if (!statuses || statuses.length === 0) return true;
-  const ann = catalogItem.metadata.annotations?.['babylon.gpte.redhat.com/ops'];
+  const ann = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`];
   if (ann) {
     const ops = JSON.parse(ann);
     if (ops.status?.id && statuses && statuses.includes(ops.status.id)) {
@@ -208,7 +208,7 @@ function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
     return await fetcherItemsInAllPages((continueId) =>
-      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     );
   }
   const catalogItems: CatalogItem[] = [];
@@ -249,11 +249,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const adminStatusString = searchParams.has('adminStatus') ? searchParams.get('adminStatus') : null;
   const selectedAdminFilter: string[] = useMemo(
     () => (adminStatusString ? JSON.parse(adminStatusString) : []),
-    [adminStatusString]
+    [adminStatusString],
   );
   const selectedLabels: { [label: string]: string[] } = useMemo(
     () => (labelsString ? JSON.parse(labelsString) : {}),
-    [labelsString]
+    [labelsString],
   );
 
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
@@ -322,17 +322,17 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       }
       return 0;
     },
-    [sortBy.selected]
+    [sortBy.selected],
   );
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
-    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
+    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames),
   );
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
-    [catalogItemsArr, groups]
+    [catalogItemsArr, groups],
   );
 
   // Filter & Sort catalog items
@@ -341,7 +341,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     catalogItemsCpy.forEach((c, i) => {
       if (c.metadata.annotations) {
         catalogItemsCpy[i].metadata.annotations['babylon.gpte.redhat.com/safe_description'] = stripTags(
-          c.metadata.annotations['babylon.gpte.redhat.com/description']
+          c.metadata.annotations['babylon.gpte.redhat.com/description'],
         );
       }
     });
@@ -404,14 +404,14 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       searchString
         ? _catalogItems.search("'" + searchString.split(' ').join(" '")).map((x) => x.item)
         : _catalogItemsCpy,
-    [searchString, _catalogItems, _catalogItemsCpy]
+    [searchString, _catalogItems, _catalogItemsCpy],
   );
 
   const openCatalogItem =
     openCatalogItemName && openCatalogItemNamespaceName
       ? catalogItems.find(
           (item) =>
-            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName
+            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName,
         )
       : null;
 
