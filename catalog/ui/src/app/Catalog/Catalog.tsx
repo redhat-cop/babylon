@@ -61,6 +61,7 @@ import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogContent from './CatalogContent';
 import IncidentsBanner from '@app/components/IncidentsBanner';
+import AdminSelector from './AdminSelector';
 
 import './catalog.css';
 
@@ -178,6 +179,20 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
   return true;
 }
 
+function filterCatalogItemByAdminFilter(catalogItem: CatalogItem, statuses: string[]) {
+  if (!statuses || statuses.length === 0) return true;
+  const ann = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`];
+  if (ann) {
+    const ops = JSON.parse(ann);
+    if (ops.status?.id && statuses && statuses.includes(ops.status.id)) {
+      return true;
+    }
+  } else {
+    return statuses && statuses.includes('operational');
+  }
+  return false;
+}
+
 function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
   const urlParams = new URLSearchParams(urlParmsString);
   if (urlParams.has('item')) {
@@ -231,6 +246,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const searchString = searchParams.has('search') ? searchParams.get('search').trim() : null;
   const selectedCategory = searchParams.has('category') ? searchParams.get('category') : null;
   const labelsString = searchParams.has('labels') ? searchParams.get('labels') : null;
+  const adminStatusString = searchParams.has('adminStatus') ? searchParams.get('adminStatus') : null;
+  const selectedAdminFilter: string[] = useMemo(
+    () => (adminStatusString ? JSON.parse(adminStatusString) : []),
+    [adminStatusString],
+  );
   const selectedLabels: { [label: string]: string[] } = useMemo(
     () => (labelsString ? JSON.parse(labelsString) : {}),
     [labelsString],
@@ -373,8 +393,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     if (selectedLabels) {
       catalogItemsFuse.remove((ci) => !filterCatalogItemByLabels(ci, selectedLabels));
     }
+    if (isAdmin && selectedAdminFilter) {
+      catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
+    }
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems]);
+  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems, selectedAdminFilter]);
 
   const catalogItemsResult = useMemo(
     () =>
@@ -436,6 +459,16 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     setSearchParams(searchParams);
   }
 
+  function onSelectAdminFilter(statuses: string[]) {
+    if (statuses && statuses.length > 0) {
+      searchParams.set('adminStatus', JSON.stringify(statuses));
+    } else {
+      searchParams.delete('adminStatus');
+    }
+    saveFilter(searchParams.toString(), catalogNamespaceName);
+    setSearchParams(searchParams);
+  }
+
   function onClearFilters() {
     saveFilter('', catalogNamespaceName);
     setSearchParams();
@@ -489,6 +522,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                         onSelect={onSelectLabels}
                         selected={selectedLabels}
                       />
+                      {isAdmin ? <AdminSelector onSelect={onSelectAdminFilter} selected={selectedAdminFilter} /> : null}
                     </SidebarPanel>
                     <SidebarContent>
                       <PageSection variant={PageSectionVariants.light} className="catalog__header">
