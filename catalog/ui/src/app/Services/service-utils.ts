@@ -10,6 +10,15 @@ import { canExecuteAction, DEMO_DOMAIN } from '@app/util';
 import { phaseProps, getStatus } from './ServiceStatus';
 
 export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number; stopTime: number } {
+  if (
+    resourceClaim.spec.provider?.parameterValues?.start_timestamp &&
+    resourceClaim.spec.provider?.parameterValues?.stop_timestamp
+  ) {
+    return {
+      startTime: Date.parse(resourceClaim.spec.provider.parameterValues.start_timestamp),
+      stopTime: Date.parse(resourceClaim.spec.provider.parameterValues.stop_timestamp),
+    };
+  }
   const resources = resourceClaim.status?.resources;
   const { resources: specResources } = resourceClaim.spec;
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
@@ -85,8 +94,8 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
 }
 
 export function getAutoStopTime(resourceClaim: ResourceClaim): number {
-  if (resourceClaim.spec?.provider?.parameterValues?.['stop_timestamp']) {
-    return Date.parse(resourceClaim.spec.provider.parameterValues['stop_timestamp']);
+  if (resourceClaim.spec?.provider?.parameterValues?.stop_timestamp) {
+    return Date.parse(resourceClaim.spec.provider.parameterValues.stop_timestamp);
   }
   const autoStopTimes = resourceClaim.spec?.resources
     ? resourceClaim.spec.resources
@@ -108,6 +117,9 @@ export function getAutoStopTime(resourceClaim: ResourceClaim): number {
 }
 
 export function getMinDefaultRuntime(resourceClaim: ResourceClaim): number {
+  if (resourceClaim.status?.summary?.runtime_default) {
+    return parseDuration(resourceClaim.status.summary.runtime_default);
+  }
   const defaultAutoStops = resourceClaim.status?.resources
     ? resourceClaim.status.resources
         .map((statusResource) => {
@@ -124,6 +136,9 @@ export function getMinDefaultRuntime(resourceClaim: ResourceClaim): number {
 }
 
 export function getStartTime(resourceClaim: ResourceClaim): number {
+  if (resourceClaim.spec.provider?.parameterValues?.start_timestamp) {
+    return Date.parse(resourceClaim.spec.provider.parameterValues.start_timestamp);
+  }
   const autoStartTimes = resourceClaim.status?.resources
     ? resourceClaim.status.resources
         .map((r) => {
