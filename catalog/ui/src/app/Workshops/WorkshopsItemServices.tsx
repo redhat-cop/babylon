@@ -126,7 +126,7 @@ const WorkshopsItemServices: React.FC<{
 
             // Status
             <>
-              {specResources.length >= 1 ? (
+              {specResources.length >= 1 || resourceClaim.status?.summary ? (
                 <ServiceStatus
                   creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                   resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
