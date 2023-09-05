@@ -55,7 +55,7 @@
     "jest-environment-jsdom": "^29.6.4",
     "jest-fetch-mock": "^3.0.3",
     "mini-css-extract-plugin": "^2.7.6",
-    "postcss": "^8.4.28",
+    "postcss": "^8.4.29",
     "postcss-custom-media": "^8.0.2",
     "postcss-loader": "^7.3.3",
     "prettier": "^3.0.3",
