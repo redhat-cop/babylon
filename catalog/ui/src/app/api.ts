@@ -413,7 +413,7 @@ export async function createServiceRequest({
 
     // Set annotation for parameter
     if (parameter.annotation && value !== undefined) {
-      requestResourceClaim.spec.provider.parameterValues[parameter.annotation] = String(value);
+      requestResourceClaim.spec.provider.parameterValues[parameter.name] = String(value);
     }
   }
 
