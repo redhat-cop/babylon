@@ -412,8 +412,8 @@ export async function createServiceRequest({
         : parameter.value;
 
     // Set annotation for parameter
-    if (parameter.annotation && value !== undefined) {
-      requestResourceClaim.spec.provider.parameterValues[parameter.annotation] = String(value);
+    if (parameter.name && value !== undefined) {
+      requestResourceClaim.spec.provider.parameterValues[parameter.name] = String(value);
     }
   }
 
