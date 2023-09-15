@@ -187,7 +187,7 @@ const ResourceClaims: React.FC<{}> = () => {
         modalState.action === 'retirement'
           ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
           : modalState.resourceClaim.status?.summary
-          ? await scheduleStopResourceClaim(modalState.resourceClaim)
+          ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
           : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
       revalidate({ updatedItems: [resourceClaimUpdate], action: 'update' });
     },
