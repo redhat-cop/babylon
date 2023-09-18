@@ -18,4 +18,22 @@ metadata:
     babylon.gpte.redhat.com/interface: {{ . | quote }}
     {{- end }}
   name: {{ $namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    description: Access for anarchy to catalog items and secrets.
+  name: babylon:anarchy:catalog-access
+  namespace: gpte
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: babylon:anarchy:catalog-access
+subjects:
+{{- range $anarchyNamespace, $anarchyConfig := $.Values.anarchy.namespaces }}
+- kind: ServiceAccount
+  name: anarchy
+  namespace: {{ $anarchyNamespace }}
+{{- end }}
 {{- end }}
