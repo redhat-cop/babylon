@@ -63,6 +63,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
@@ -106,7 +107,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const purposeObj = PurposeOpts.find(
     (p) => activityObj && formState.purpose && activityObj.id === p.activityId && formState.purpose.startsWith(p.name)
   );
-  const submitRequestEnabled = checkEnableSubmit(formState);
+  const submitRequestEnabled = checkEnableSubmit(formState) && !isLoading;
 
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
@@ -124,6 +125,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
     }
+    if (isLoading) {
+      return null;
+    }
+    setIsLoading(true);
     const parameterValues: CreateServiceRequestParameterValues = {};
     for (const parameterState of Object.values(formState.parameters)) {
       // Add parameters for request that have values and are not disabled or hidden
@@ -200,6 +205,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
+    setIsLoading(false);
   }
 
   if (catalogItem.spec.externalUrl) {
