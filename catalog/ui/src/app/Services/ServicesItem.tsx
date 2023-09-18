@@ -492,7 +492,7 @@ const ServicesItemComponent: React.FC<{
       modalState.action === 'retirement'
         ? await setLifespanEndForResourceClaim(resourceClaim, date)
         : resourceClaim.status?.summary
-        ? await scheduleStopResourceClaim(resourceClaim)
+        ? await scheduleStopResourceClaim(resourceClaim, date)
         : await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
     mutate(resourceClaimUpdate);
   }
