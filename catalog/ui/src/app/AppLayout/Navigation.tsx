@@ -80,6 +80,11 @@ const Navigation: React.FC = () => {
         </NavLink>
       </NavItem>
       <NavItem>
+        <NavLink className={locationStartsWith('/admin/ratings') ? 'pf-m-current' : ''} to="/admin/ratings">
+          Ratings
+        </NavLink>
+      </NavItem>
+      <NavItem>
         <NavLink
           className={locationStartsWith('/admin/resourceclaims') ? 'pf-m-current' : ''}
           to="/admin/resourceclaims"

@@ -60,7 +60,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        })
+        }),
       );
     } else {
       onWorkshopUpdate(
@@ -68,7 +68,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        })
+        }),
       );
     }
   }
@@ -180,7 +180,7 @@ const WorkshopsItemDetails: React.FC<{
             onSelect={(event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
               patchWorkshopSpec({ openRegistration: selectedValue === 'open' }).then(() =>
-                setUserRegistrationSelectIsOpen(false)
+                setUserRegistrationSelectIsOpen(false),
               );
             }}
           >

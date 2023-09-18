@@ -55,7 +55,7 @@ const renderResourceClaimRow = ({
     resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
     resources
       .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
+        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData,
       )
       .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
       .find((u) => u != null);
@@ -63,7 +63,7 @@ const renderResourceClaimRow = ({
     resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
     resources
       .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
+        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod,
       )
       .find((u) => u != null);
   const labUserInterfaceUrl =
