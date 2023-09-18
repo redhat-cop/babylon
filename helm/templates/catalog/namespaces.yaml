@@ -31,9 +31,9 @@ roleRef:
   kind: ClusterRole
   name: babylon:anarchy:catalog-access
 subjects:
-{{- range $anarchyNamespace, $anarchyConfig := $.Values.anarchy.namespaces }}
+{{- range $.Values.anarchy.namespaces }}
 - kind: ServiceAccount
   name: anarchy
-  namespace: {{ $anarchyNamespace }}
+  namespace: {{ .name }}
 {{- end }}
 {{- end }}
