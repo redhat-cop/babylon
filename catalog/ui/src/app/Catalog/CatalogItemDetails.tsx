@@ -230,7 +230,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 isDisabled={isAdmin ? false : isDisabled}
                 className="catalog-item-details__main-btn"
               >
-                Order
+                {catalogItem.spec.externalUrl ? 'Start' : 'Order'}
               </Button>
               {isAdmin ? (
                 <Button
