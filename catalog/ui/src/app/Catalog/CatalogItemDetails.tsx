@@ -274,7 +274,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           ) : catalogItemAccess === CatalogItemAccess.Deny ? (
             <>
               <Button key="button" isDisabled variant="primary" className="catalog-item-details__main-btn">
-                Order
+                {catalogItem.spec.externalUrl ? 'Start' : 'Order'}
               </Button>
               <div key="reason" className="catalog-item-details__access-deny-reason">
                 {catalogItemAccessDenyReason}
