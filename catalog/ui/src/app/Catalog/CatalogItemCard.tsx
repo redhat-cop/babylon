@@ -38,7 +38,7 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
       searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
     }
   }
-console.log(sla)
+
   return (
     <div className="catalog-item-card__wrapper">
       <div className="catalog-item-card__badge">
