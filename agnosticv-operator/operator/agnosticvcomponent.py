@@ -491,16 +491,6 @@ class AgnosticVComponent(KopfObject):
                 "displayName": self.catalog_display_name,
                 "keywords": self.catalog_keywords,
                 "lastUpdate": self.last_update,
-                "lifespan": {
-                    "default": self.lifespan_default,
-                    "maximum": self.lifespan_maximum,
-                    "relativeMaximum": self.lifespan_relative_maximum,
-                },
-                "resources": [],
-                "runtime": {
-                    "default": self.runtime_default,
-                    "maximum": self.runtime_maximum,
-                }
             }
         }
 
@@ -517,58 +507,69 @@ class AgnosticVComponent(KopfObject):
         if self.bookbag:
             definition['spec']['bookbag'] = self.bookbag
 
-        if self.catalog_external_url:
-            definition['spec']['externalUrl'] = self.catalog_external_url
-
         for key, value in self.catalog_labels.items():
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/{key}"] = value
 
         if self.stage in ('dev', 'test', 'prod', 'event'):
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/stage"] = self.stage
 
-        for idx, linked_component in enumerate(self.linked_components):
-            if not 'linkedComponents' in definition['spec']:
-                definition['spec']['linkedComponents'] = []
+        if self.catalog_external_url:
+            definition['spec']['externalUrl'] = self.catalog_external_url
+        else:
+            definition['spec']['lifespan'] = {
+                "default": self.lifespan_default,
+                "maximum": self.lifespan_maximum,
+                "relativeMaximum": self.lifespan_relative_maximum,
+            }
+            definition['spec']['runtime'] = {
+                "default": self.runtime_default,
+                "maximum": self.runtime_maximum,
+            }
+            definition['spec']['resources'] = []
 
-            definition['spec']['linkedComponents'].append({
-                "name": linked_component.name,
-            })
-            if linked_component.display_name:
-                definition['spec']['linkedComponents'][-1]['displayName'] = linked_component.display_name
+            for idx, linked_component in enumerate(self.linked_components):
+                if not 'linkedComponents' in definition['spec']:
+                    definition['spec']['linkedComponents'] = []
 
-            definition['spec']['resources'].append({
-                "name": linked_component.name or linked_component.short_name,
-                "provider": linked_component.resource_provider_ref,
-            })
+                definition['spec']['linkedComponents'].append({
+                    "name": linked_component.name,
+                })
+                if linked_component.display_name:
+                    definition['spec']['linkedComponents'][-1]['displayName'] = linked_component.display_name
 
-            if linked_component.display_name:
-                definition['metadata']['annotations'][
-                    f"{Babylon.catalog_api_group}/displayNameComponent{idx}"
-                ] = linked_component.display_name
+                definition['spec']['resources'].append({
+                    "name": linked_component.name or linked_component.short_name,
+                    "provider": linked_component.resource_provider_ref,
+                })
 
-        if self.deployer_type:
-            definition['spec']['resources'].append({
-                "name": self.short_name,
-                "provider": self.resource_provider_ref,
-            })
+                if linked_component.display_name:
+                    definition['metadata']['annotations'][
+                        f"{Babylon.catalog_api_group}/displayNameComponent{idx}"
+                    ] = linked_component.display_name
 
-        if self.catalog_message_templates:
-            definition['spec']['messageTemplates'] = self.catalog_message_templates
+            if self.deployer_type:
+                definition['spec']['resources'].append({
+                    "name": self.short_name,
+                    "provider": self.resource_provider_ref,
+                })
 
-        if self.catalog_multiuser:
-            definition['spec']['multiuser'] = True
+            if self.catalog_message_templates:
+                definition['spec']['messageTemplates'] = self.catalog_message_templates
 
-        if self.catalog_workshop_ui_disabled:
-            definition['spec']['workshopUiDisabled'] = True
+            if self.catalog_multiuser:
+                definition['spec']['multiuser'] = True
 
-        if self.catalog_parameters != None:
-            definition['spec']['parameters'] = self.catalog_parameters
+            if self.catalog_workshop_ui_disabled:
+                definition['spec']['workshopUiDisabled'] = True
 
-        if self.deployer_provision_time_estimate:
-            definition['spec']['provisionTimeEstimate'] = self.deployer_provision_time_estimate
+            if self.catalog_parameters != None:
+                definition['spec']['parameters'] = self.catalog_parameters
 
-        if self.catalog_terms_of_service:
-            definition['spec']['termsOfService'] = self.catalog_terms_of_service
+            if self.deployer_provision_time_estimate:
+                definition['spec']['provisionTimeEstimate'] = self.deployer_provision_time_estimate
+
+            if self.catalog_terms_of_service:
+                definition['spec']['termsOfService'] = self.catalog_terms_of_service
 
         return definition
 
