@@ -231,7 +231,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 isDisabled={isAdmin ? false : isDisabled}
                 className="catalog-item-details__main-btn"
               >
-                Order {catalogItem.spec.externalUrl ? <ExternalLinkAltIcon style={{width: '10px', paddingTop: '4px', marginLeft: '4px'}} /> : null}
+                Order{' '}
+                {catalogItem.spec.externalUrl ? (
+                  <ExternalLinkAltIcon style={{ width: '10px', paddingTop: '4px', marginLeft: '4px' }} />
+                ) : null}
               </Button>
               {isAdmin ? (
                 <Button
@@ -275,7 +278,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           ) : catalogItemAccess === CatalogItemAccess.Deny ? (
             <>
               <Button key="button" isDisabled variant="primary" className="catalog-item-details__main-btn">
-              Order {catalogItem.spec.externalUrl ? <ExternalLinkAltIcon style={{width: '10px', paddingTop: '4px', marginLeft: '4px'}} /> : null}
+                Order{' '}
+                {catalogItem.spec.externalUrl ? (
+                  <ExternalLinkAltIcon style={{ width: '10px', paddingTop: '4px', marginLeft: '4px' }} />
+                ) : null}
               </Button>
               <div key="reason" className="catalog-item-details__access-deny-reason">
                 {catalogItemAccessDenyReason}

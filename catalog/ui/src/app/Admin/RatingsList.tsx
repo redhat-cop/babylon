@@ -10,7 +10,7 @@ import { displayName, FETCH_BATCH_LIMIT, stripTags } from '@app/util';
 import SearchInputString from '@app/components/SearchInputString';
 import { CUSTOM_LABELS } from '@app/Catalog/catalog-utils';
 import { Table, TableBody, TableHeader } from '@patternfly/react-table';
-import Modal, {useModal} from '@app/Modal/Modal';
+import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
 
 import './admin.css';
@@ -30,34 +30,39 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   return catalogItems;
 }
 
-const RatingsModal: React.FC<{ciName: string}> = ({ ciName }) => {
-  const { data: ratingsHistory } = useSWR<{ratings: {comment: string, rating: number, email: string, useful: boolean}[]}>(
-    ciName !== "" ? apiPaths.RATINGS_HISTORY({ ciName }) : null,
-    fetcher,
-  );
+const RatingsModal: React.FC<{ ciName: string }> = ({ ciName }) => {
+  const { data: ratingsHistory } = useSWR<{
+    ratings: { comment: string; rating: number; email: string; useful: boolean }[];
+  }>(ciName !== '' ? apiPaths.RATINGS_HISTORY({ ciName }) : null, fetcher);
 
-  return <Table
-    aria-label="Table"
-    variant="compact"
-    cells={['Email', 'Comment', 'Rating', 'Useful']}
-    rows={ratingsHistory ? ratingsHistory.ratings.map((r) => {
-      const cells: any[] = [];
-      cells.push(
-        // Name
-        <>{r.email}</>,
-        // Project
-        <>{r.comment ?? ''}</>,
-        <>{r.rating ?? '-'}</>,
-        <>{r.useful ?? '-'}</>,
-      );
-      return {
-        cells: cells,
-      };
-    }): []}
-  >
-    <TableHeader />
-    <TableBody />
-  </Table>
+  return (
+    <Table
+      aria-label="Table"
+      variant="compact"
+      cells={['Email', 'Comment', 'Rating', 'Useful']}
+      rows={
+        ratingsHistory
+          ? ratingsHistory.ratings.map((r) => {
+              const cells: any[] = [];
+              cells.push(
+                // Name
+                <>{r.email}</>,
+                // Project
+                <>{r.comment ?? ''}</>,
+                <>{r.rating ?? '-'}</>,
+                <>{r.useful ?? '-'}</>,
+              );
+              return {
+                cells: cells,
+              };
+            })
+          : []
+      }
+    >
+      <TableHeader />
+      <TableBody />
+    </Table>
+  );
 };
 
 const RatingsList: React.FC = () => {
@@ -189,7 +194,7 @@ const RatingsList: React.FC = () => {
         : _catalogItemsCpy,
     [searchString, _catalogItems, _catalogItemsCpy],
   );
-  
+
   function showRatingsHistory(ciName: string) {
     setModalState(ciName);
     openRatingModal();
@@ -235,7 +240,15 @@ const RatingsList: React.FC = () => {
               const cells: any[] = [];
               cells.push(
                 // Name
-                <><Button variant="plain" onClick={() => showRatingsHistory(ci.metadata.name)}>{ci.metadata.name}</Button></>,
+                <>
+                  {ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] ? (
+                    <Button variant="link" onClick={() => showRatingsHistory(ci.metadata.name)}>
+                      {ci.metadata.name}
+                    </Button>
+                  ) : (
+                    <p>{ci.metadata.name}</p>
+                  )}
+                </>,
                 // Project
                 <>{ci.metadata.namespace}</>,
                 <>{ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] || '-'}</>,
@@ -250,15 +263,10 @@ const RatingsList: React.FC = () => {
           </Table>
         </PageSection>
       ) : null}
-      <Modal
-        ref={ratingModal}
-        onConfirm={() => setModalState('')}
-        title={
-          "Ratings " + modalState
-        }
-        type="ack"
-      >
-        <Suspense><RatingsModal ciName={modalState} /></Suspense>
+      <Modal ref={ratingModal} onConfirm={() => setModalState('')} title={'Ratings ' + modalState} type="ack">
+        <Suspense>
+          <RatingsModal ciName={modalState} />
+        </Suspense>
       </Modal>
     </div>
   );
