@@ -762,6 +762,14 @@ def provision_rating_get(provision_uuid):
     email = user['metadata']['name']
     return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}/users/{email}", headers=flask.request.headers)
 
+@application.route("/api/ratings/<catalog_item>/history", methods=['GET'])
+def provision_rating_get(catalog_item):
+    user = proxy_user()
+    email = user['metadata']['name']
+    if not check_admin_access(api_client):
+        flask.abort(403)
+    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/catalogitem/{catalog_item}/history", headers=flask.request.headers)
+
 @application.route("/api/admin/incidents", methods=['GET'])
 def incidents_get():
     return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents", params=flask.request.args, headers=flask.request.headers)

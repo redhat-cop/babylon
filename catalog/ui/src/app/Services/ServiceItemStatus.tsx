@@ -20,7 +20,7 @@ import './service-item-status.css';
 
 function getCheckStatusStateFromResource(
   resourceState: AnarchySubject,
-  resourceTemplate: ResourceClaimSpecResourceTemplate
+  resourceTemplate: ResourceClaimSpecResourceTemplate,
 ) {
   const resourceStateVars = resourceState?.spec?.vars;
   const resourceTemplateVars = resourceTemplate.spec?.vars;
@@ -55,7 +55,7 @@ const ServiceItemStatus: React.FC<{
         return lastTimestamp;
       }
     },
-    undefined
+    undefined,
   );
   const lastRequestDate = lastRequestTimestamp ? Date.parse(lastRequestTimestamp) : null;
   const lastRequestMillisecondsAgo = lastRequestDate ? Date.now() - lastRequestDate : null;
@@ -91,7 +91,7 @@ const ServiceItemStatus: React.FC<{
       }
       return undefined;
     },
-    undefined
+    undefined,
   );
 
   // Save refresh requested in state to immediately disable the refresh button

@@ -44,6 +44,16 @@ GET_CATALOG_ITEM_RATING = (
         AND provisions.babylon_guid IS NOT NULL
     ) AS ratings_guid;"""
 )
+GET_CATALOG_ITEM_RATING_HISTORY = (
+    """SELECT email, rating, comment, useful FROM 
+    (SELECT DISTINCT(SUBSTR(provisions.babylon_guid, 1,5)), ratings.email, ratings.rating, ratings.comment, ratings.useful  
+        FROM ratings 
+        JOIN catalog_items ON catalog_items.id=ratings.catalog_item_id 
+        JOIN provisions ON ratings.provision_uuid = provisions.uuid 
+        WHERE catalog_items.agnosticv_key=(%s)
+        AND provisions.babylon_guid IS NOT NULL
+    ) AS ratings_guid;"""
+)
 GET_PROVISION_RATING = (
     """SELECT provision_uuid, email, rating, comment, useful FROM ratings 
     WHERE provision_uuid = %(provision_uuid)s AND email = %(email)s;"""
@@ -124,4 +134,13 @@ async def catalog_item_rating_get(request):
         rating_score = round(_rating_score / 10, 2) if _rating_score is not None else None
         total_ratings = resultArr[0].get("total_ratings", 0)
         return 200, {"rating_score": rating_score, "total_ratings": total_ratings}
+    return 404, 'Not Found'
+
+@app.route("/api/ratings/v1/catalogitem/{catalog_item}/history", methods=['GET'])
+async def catalog_item_rating_history_get(request):
+    catalog_item = request.path_params.get("catalog_item")
+    query = await execute_query(GET_CATALOG_ITEM_RATING_HISTORY, (catalog_item, ))
+    resultArr = query.get("result", [])
+    if (len(resultArr) > 0):
+        return 200, {"ratings": resultArr}
     return 404, 'Not Found'

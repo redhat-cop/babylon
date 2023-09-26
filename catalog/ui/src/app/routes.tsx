@@ -16,6 +16,7 @@ const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
 const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 const IncidentsPage = React.lazy(() => import('@app/Admin/IncidentsPage'));
+const RatingsPage = React.lazy(() => import('@app/Admin/RatingsPage'));
 const AnarchyActionInstance = React.lazy(() => import('@app/Admin/AnarchyActionInstance'));
 const AnarchyActions = React.lazy(() => import('@app/Admin/AnarchyActions'));
 const AnarchyGovernorInstance = React.lazy(() => import('@app/Admin/AnarchyGovernorInstance'));
@@ -262,6 +263,12 @@ const appRoutes: IAppRoute[] = [
   {
     component: IncidentsPage,
     path: '/admin/incidents',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: RatingsPage,
+    path: '/admin/ratings',
     title: 'Babylon | Admin',
     accessControl: 'admin',
   },

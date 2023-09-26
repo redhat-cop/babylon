@@ -47,7 +47,7 @@ const InfoTab: React.FC<{
           ?.provision_data
           ? { ...resource.state.spec.vars?.provision_data }
           : null,
-      }))
+      })),
     );
 
     if (!infoMessageTemplate) {
