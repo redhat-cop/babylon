@@ -41,7 +41,7 @@ const RatingsList: React.FC = () => {
     apiPaths.CATALOG_ITEMS({ namespace: 'all-catalogs' }),
     () => fetchCatalog(catalogNamespaceNames),
   );
-  const { data: ratingsHistory } = useSWR<CatalogItem[]>(
+  const { data: ratingsHistory } = useSWR<{ratings: {comment: string, rating: number, email: string, useful: boolean}[]}>(
     modalState ? apiPaths.RATINGS_HISTORY({ ciName: modalState }) : null,
     fetcher,
   );
@@ -231,7 +231,28 @@ console.log(ratingsHistory)
           "Ratings " + modalState
         }
       >
-        <p>Provisioned services will be deleted.</p>
+        <Table
+            aria-label="Table"
+            variant="compact"
+            cells={['Email', 'Comment', 'Rating', 'Useful']}
+            rows={ratingsHistory.ratings.map((r) => {
+              const cells: any[] = [];
+              cells.push(
+                // Name
+                <>{r.email}</>,
+                // Project
+                <>{r.comment ?? ''}</>,
+                <>{r.rating ?? '-'}</>,
+                <>{r.useful ?? '-'}</>,
+              );
+              return {
+                cells: cells,
+              };
+            })}
+          >
+            <TableHeader />
+            <TableBody />
+          </Table>
       </Modal>
     </div>
   );
