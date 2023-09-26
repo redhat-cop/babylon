@@ -14,6 +14,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
 
 import './admin.css';
+import LoadingSection from '@app/components/LoadingSection';
 
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
@@ -264,7 +265,7 @@ const RatingsList: React.FC = () => {
         </PageSection>
       ) : null}
       <Modal ref={ratingModal} onConfirm={() => setModalState('')} title={'Ratings ' + modalState} type="ack">
-        <Suspense>
+        <Suspense fallback={<LoadingSection />}>
           <RatingsModal ciName={modalState} />
         </Suspense>
       </Modal>
