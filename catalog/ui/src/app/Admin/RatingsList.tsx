@@ -256,6 +256,7 @@ const RatingsList: React.FC = () => {
         title={
           "Ratings " + modalState
         }
+        type="ack"
       >
         <Suspense><RatingsModal ciName={modalState} /></Suspense>
       </Modal>
