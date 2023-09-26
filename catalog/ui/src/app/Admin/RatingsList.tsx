@@ -42,7 +42,7 @@ const RatingsList: React.FC = () => {
     () => fetchCatalog(catalogNamespaceNames),
   );
   const { data: ratingsHistory } = useSWR<{ratings: {comment: string, rating: number, email: string, useful: boolean}[]}>(
-    modalState ? apiPaths.RATINGS_HISTORY({ ciName: modalState }) : null,
+    modalState !== "" ? apiPaths.RATINGS_HISTORY({ ciName: modalState }) : null,
     fetcher,
   );
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
@@ -177,7 +177,7 @@ const RatingsList: React.FC = () => {
     }
     setSearchParams(searchParams);
   }
-console.log(ratingsHistory)
+
   return (
     <div className="admin-container">
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
@@ -235,7 +235,7 @@ console.log(ratingsHistory)
             aria-label="Table"
             variant="compact"
             cells={['Email', 'Comment', 'Rating', 'Useful']}
-            rows={ratingsHistory.ratings.map((r) => {
+            rows={ratingsHistory ? ratingsHistory.ratings.map((r) => {
               const cells: any[] = [];
               cells.push(
                 // Name
@@ -248,7 +248,7 @@ console.log(ratingsHistory)
               return {
                 cells: cells,
               };
-            })}
+            }): []}
           >
             <TableHeader />
             <TableBody />
