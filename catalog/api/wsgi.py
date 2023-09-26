@@ -765,6 +765,8 @@ def provision_rating_get(provision_uuid):
 @application.route("/api/ratings/<catalog_item>/history", methods=['GET'])
 def provision_rating_get_history(catalog_item):
     user = proxy_user()
+    session = get_user_session(user)
+    api_client = proxy_api_client(session)
     email = user['metadata']['name']
     if not check_admin_access(api_client):
         flask.abort(403)
