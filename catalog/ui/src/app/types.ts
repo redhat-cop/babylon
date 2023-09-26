@@ -566,7 +566,8 @@ export type ResourceType =
   | 'ANARCHY_GOVERNORS'
   | 'ANARCHY_GOVERNOR'
   | 'INCIDENTS'
-  | 'INCIDENT';
+  | 'INCIDENT'
+  | 'RATINGS_HISTORY';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 

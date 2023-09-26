@@ -1,17 +1,19 @@
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
-import { PageSection, PageSectionVariants, Split, SplitItem, Title } from '@patternfly/react-core';
-import { apiPaths, fetcherItemsInAllPages } from '@app/api';
+import { PageSection, PageSectionVariants, Split, SplitItem, Title, Button } from '@patternfly/react-core';
+import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
 import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
 import Fuse from 'fuse.js';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { displayName, FETCH_BATCH_LIMIT, stripTags } from '@app/util';
 import SearchInputString from '@app/components/SearchInputString';
 import { CUSTOM_LABELS } from '@app/Catalog/catalog-utils';
 import { Table, TableBody, TableHeader } from '@patternfly/react-table';
+import Modal, {useModal} from '@app/Modal/Modal';
 
 import './admin.css';
+import useSWR from 'swr';
 
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
@@ -31,11 +33,17 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
 const RatingsList: React.FC = () => {
   const { catalogNamespaces } = useSession().getSession();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [ratingModal, openRatingModal] = useModal();
+  const [modalState, setModalState] = useState('');
   const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
   const searchString = searchParams.has('search') ? searchParams.get('search').trim() : null;
   const { data: catalogItems } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: 'all-catalogs' }),
     () => fetchCatalog(catalogNamespaceNames),
+  );
+  const { data: ratingsHistory } = useSWR<CatalogItem[]>(
+    modalState ? apiPaths.RATINGS_HISTORY({ ciName: modalState }) : null,
+    fetcher,
   );
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
   const assignSearchInputStringCb = (cb: (v: string) => void) => setSearchInputStringCb(cb);
@@ -155,6 +163,12 @@ const RatingsList: React.FC = () => {
         : _catalogItemsCpy,
     [searchString, _catalogItems, _catalogItemsCpy],
   );
+  
+  function showRatingsHistory(ciName: string) {
+    setModalState(ciName);
+    openRatingModal();
+  }
+
   function onSearchChange(value: string) {
     if (value) {
       searchParams.set('search', value);
@@ -163,7 +177,7 @@ const RatingsList: React.FC = () => {
     }
     setSearchParams(searchParams);
   }
-
+console.log(ratingsHistory)
   return (
     <div className="admin-container">
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
@@ -195,7 +209,7 @@ const RatingsList: React.FC = () => {
               const cells: any[] = [];
               cells.push(
                 // Name
-                <>{ci.metadata.name}</>,
+                <Button variant="plain" onClick={() => showRatingsHistory(ci.metadata.name)}>{ci.metadata.name}</Button>,
                 // Project
                 <>{ci.metadata.namespace}</>,
                 <>{ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] || '-'}</>,
@@ -210,6 +224,15 @@ const RatingsList: React.FC = () => {
           </Table>
         </PageSection>
       ) : null}
+      <Modal
+        ref={ratingModal}
+        onConfirm={() => setModalState('')}
+        title={
+          "Ratings " + modalState
+        }
+      >
+        <p>Provisioned services will be deleted.</p>
+      </Modal>
     </div>
   );
 };
