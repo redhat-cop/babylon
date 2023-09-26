@@ -763,7 +763,7 @@ def provision_rating_get(provision_uuid):
     return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}/users/{email}", headers=flask.request.headers)
 
 @application.route("/api/ratings/<catalog_item>/history", methods=['GET'])
-def provision_rating_get(catalog_item):
+def provision_rating_get_history(catalog_item):
     user = proxy_user()
     email = user['metadata']['name']
     if not check_admin_access(api_client):
