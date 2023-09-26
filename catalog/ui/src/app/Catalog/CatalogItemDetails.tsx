@@ -65,6 +65,7 @@ import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 
 import './catalog-item-details.css';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 
 enum CatalogItemAccess {
   Allow,
@@ -230,7 +231,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 isDisabled={isAdmin ? false : isDisabled}
                 className="catalog-item-details__main-btn"
               >
-                Order
+                Order {catalogItem.spec.externalUrl ? <ExternalLinkAltIcon style={{width: '10px', paddingTop: '4px', marginLeft: '4px'}} /> : null}
               </Button>
               {isAdmin ? (
                 <Button
@@ -274,7 +275,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           ) : catalogItemAccess === CatalogItemAccess.Deny ? (
             <>
               <Button key="button" isDisabled variant="primary" className="catalog-item-details__main-btn">
-                Order
+              Order {catalogItem.spec.externalUrl ? <ExternalLinkAltIcon style={{width: '10px', paddingTop: '4px', marginLeft: '4px'}} /> : null}
               </Button>
               <div key="reason" className="catalog-item-details__access-deny-reason">
                 {catalogItemAccessDenyReason}
