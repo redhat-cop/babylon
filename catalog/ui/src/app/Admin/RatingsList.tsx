@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { PageSection, PageSectionVariants, Split, SplitItem, Title, Button } from '@patternfly/react-core';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
@@ -10,10 +10,11 @@ import { displayName, FETCH_BATCH_LIMIT, stripTags } from '@app/util';
 import SearchInputString from '@app/components/SearchInputString';
 import { CUSTOM_LABELS } from '@app/Catalog/catalog-utils';
 import { Table, TableBody, TableHeader } from '@patternfly/react-table';
-import Modal, {useModal} from '@app/Modal/Modal';
+import Modal, { useModal } from '@app/Modal/Modal';
+import useSWR from 'swr';
 
 import './admin.css';
-import useSWR from 'swr';
+import LoadingSection from '@app/components/LoadingSection';
 
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
@@ -30,6 +31,41 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   return catalogItems;
 }
 
+const RatingsModal: React.FC<{ ciName: string }> = ({ ciName }) => {
+  const { data: ratingsHistory } = useSWR<{
+    ratings: { comment: string; rating: number; email: string; useful: boolean }[];
+  }>(ciName !== '' ? apiPaths.RATINGS_HISTORY({ ciName }) : null, fetcher);
+
+  return (
+    <Table
+      aria-label="Table"
+      variant="compact"
+      cells={['Email', 'Comment', 'Rating', 'Useful']}
+      rows={
+        ratingsHistory
+          ? ratingsHistory.ratings.map((r) => {
+              const cells: any[] = [];
+              cells.push(
+                // Name
+                <>{r.email}</>,
+                // Project
+                <>{r.comment ?? ''}</>,
+                <>{r.rating ?? '-'}</>,
+                <>{r.useful ?? '-'}</>,
+              );
+              return {
+                cells: cells,
+              };
+            })
+          : []
+      }
+    >
+      <TableHeader />
+      <TableBody />
+    </Table>
+  );
+};
+
 const RatingsList: React.FC = () => {
   const { catalogNamespaces } = useSession().getSession();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -40,10 +76,6 @@ const RatingsList: React.FC = () => {
   const { data: catalogItems } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: 'all-catalogs' }),
     () => fetchCatalog(catalogNamespaceNames),
-  );
-  const { data: ratingsHistory } = useSWR<CatalogItem[]>(
-    modalState ? apiPaths.RATINGS_HISTORY({ ciName: modalState }) : null,
-    fetcher,
   );
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
   const assignSearchInputStringCb = (cb: (v: string) => void) => setSearchInputStringCb(cb);
@@ -163,7 +195,7 @@ const RatingsList: React.FC = () => {
         : _catalogItemsCpy,
     [searchString, _catalogItems, _catalogItemsCpy],
   );
-  
+
   function showRatingsHistory(ciName: string) {
     setModalState(ciName);
     openRatingModal();
@@ -177,7 +209,7 @@ const RatingsList: React.FC = () => {
     }
     setSearchParams(searchParams);
   }
-console.log(ratingsHistory)
+
   return (
     <div className="admin-container">
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
@@ -209,7 +241,15 @@ console.log(ratingsHistory)
               const cells: any[] = [];
               cells.push(
                 // Name
-                <Button variant="plain" onClick={() => showRatingsHistory(ci.metadata.name)}>{ci.metadata.name}</Button>,
+                <>
+                  {ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] ? (
+                    <Button variant="link" onClick={() => showRatingsHistory(ci.metadata.name)}>
+                      {ci.metadata.name}
+                    </Button>
+                  ) : (
+                    <p>{ci.metadata.name}</p>
+                  )}
+                </>,
                 // Project
                 <>{ci.metadata.namespace}</>,
                 <>{ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] || '-'}</>,
@@ -224,14 +264,10 @@ console.log(ratingsHistory)
           </Table>
         </PageSection>
       ) : null}
-      <Modal
-        ref={ratingModal}
-        onConfirm={() => setModalState('')}
-        title={
-          "Ratings " + modalState
-        }
-      >
-        <p>Provisioned services will be deleted.</p>
+      <Modal ref={ratingModal} onConfirm={() => setModalState('')} title={'Ratings ' + modalState} type="ack">
+        <Suspense fallback={<LoadingSection />}>
+          <RatingsModal ciName={modalState} />
+        </Suspense>
       </Modal>
     </div>
   );
