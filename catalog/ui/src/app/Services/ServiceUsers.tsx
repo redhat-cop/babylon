@@ -92,6 +92,12 @@ const ServiceUsers: React.FC<{
       Object.assign(users, resource_users);
     }
   }
+  if (resourceClaim?.status?.summary) {
+    const resource_users = resourceClaim.status.summary.provision_data?.users;
+    if (resource_users) {
+      Object.assign(users, resource_users);
+    }
+  }
 
   return (
     <>

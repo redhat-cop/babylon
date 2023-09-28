@@ -73,6 +73,8 @@ const WorkshopsItemServices: React.FC<{
           // associated with the provisioned service.
           const labUserInterfaceData =
             resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
+            resourceClaim?.status?.summary?.provision_data?.lab_ui_data ||
+            resourceClaim?.status?.summary?.provision_data?.labUserInterfaceData ||
             resources
               .map((r) =>
                 r?.kind === 'AnarchySubject'
@@ -83,6 +85,8 @@ const WorkshopsItemServices: React.FC<{
               .find((u) => u != null);
           const labUserInterfaceMethod =
             resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
+            resourceClaim?.status?.summary?.provision_data?.lab_ui_method ||
+            resourceClaim?.status?.summary?.provision_data?.labUserInterfaceMethod ||
             resources
               .map((r) =>
                 r?.kind === 'AnarchySubject'
@@ -92,6 +96,9 @@ const WorkshopsItemServices: React.FC<{
               .find((u) => u != null);
           const labUserInterfaceUrl =
             resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
+            resourceClaim?.status?.summary?.provision_data?.labUserInterfaceUrl ||
+            resourceClaim?.status?.summary?.provision_data?.lab_ui_url ||
+            resourceClaim?.status?.summary?.provision_data?.bookbag_url ||
             resources
               .map((r) => {
                 const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;

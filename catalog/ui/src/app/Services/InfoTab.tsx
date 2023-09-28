@@ -48,6 +48,7 @@ const InfoTab: React.FC<{
           ? { ...resource.state.spec.vars?.provision_data }
           : null,
       })),
+      resourceClaim.status?.summary?.provision_data || {},
     );
 
     if (!infoMessageTemplate) {

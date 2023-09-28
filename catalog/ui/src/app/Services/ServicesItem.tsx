@@ -51,6 +51,7 @@ import {
   NamespaceList,
   ResourceClaim,
   ResourceClaimSpecResource,
+  ResourceHandleResource,
   ServiceActionActions,
   Workshop,
 } from '@app/types';
@@ -96,7 +97,7 @@ const ComponentDetailsList: React.FC<{
   resourceState: AnarchySubject;
   isAdmin: boolean;
   resourceClaim: ResourceClaim;
-  resourceSpec: ResourceClaimSpecResource;
+  resourceStatus: ResourceHandleResource;
   externalPlatformUrl: string;
   isPartOfWorkshop: boolean;
   startDate: Date;
@@ -109,7 +110,7 @@ const ComponentDetailsList: React.FC<{
   resourceState,
   isAdmin,
   resourceClaim,
-  resourceSpec,
+  resourceStatus,
   externalPlatformUrl,
   isPartOfWorkshop,
   startDate,
@@ -141,18 +142,6 @@ const ComponentDetailsList: React.FC<{
   );
   return (
     <DescriptionList isHorizontal>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Status</DescriptionListTerm>
-        <DescriptionListDescription>
-          <ServiceStatus
-            creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-            resource={resourceState}
-            resourceTemplate={resourceSpec?.template}
-            resourceClaim={resourceClaim}
-            summary={resourceClaim.status?.summary}
-          />
-        </DescriptionListDescription>
-      </DescriptionListGroup>
       {resourceState?.kind === 'AnarchySubject' ? (
         <>
           {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > Date.now() ? (
@@ -360,10 +349,13 @@ const ServicesItemComponent: React.FC<{
   const statusEnabled = anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'status'))
     ? true
     : false;
-  const consoleEnabled = (resourceClaim.status?.resources || []).find((r) => {
-    const provision_data = r.state?.spec?.vars?.provision_data;
-    return provision_data?.osp_cluster_api || provision_data?.openstack_auth_url;
-  });
+  const consoleEnabled =
+    resourceClaim.status?.summary?.provision_data?.osp_cluster_api ||
+    resourceClaim.status?.summary?.provision_data?.openstack_auth_url ||
+    (resourceClaim.status?.resources || []).find((r) => {
+      const provision_data = r.state?.spec?.vars?.provision_data;
+      return provision_data?.osp_cluster_api || provision_data?.openstack_auth_url;
+    });
 
   const catalogItemDisplayName =
     resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`] ||
@@ -793,21 +785,17 @@ const ServicesItemComponent: React.FC<{
                     )}
                   >
                     <div>
-                      {(resourceClaim.spec.resources || []).map((resourceSpec, idx) => {
-                        const resourceStatus = resourceClaim.status?.resources?.[idx];
+                      {(resourceClaim.status.resources || []).map((resourceStatus, idx) => {
                         const resourceState = resourceStatus?.state;
                         const componentDisplayName =
-                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||
-                          resourceSpec.name ||
-                          resourceSpec.provider?.name;
+                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`];
                         const currentState =
                           resourceState?.kind === 'AnarchySubject'
                             ? resourceState.spec.vars?.current_state
                             : 'available';
                         const stopTimestamp =
                           resourceState?.kind === 'AnarchySubject'
-                            ? resourceSpec.template?.spec.vars?.action_schedule?.stop ||
-                              resourceState?.spec.vars.action_schedule?.stop
+                            ? resourceState?.spec.vars.action_schedule?.stop
                             : null;
                         const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
                         const stopDate = stopTime ? new Date(stopTime) : null;
@@ -844,8 +832,7 @@ const ServicesItemComponent: React.FC<{
 
                         const startTimestamp =
                           resourceState?.kind == 'AnarchySubject'
-                            ? resourceSpec.template?.spec.vars?.action_schedule?.start ||
-                              resourceState?.spec.vars.action_schedule?.start
+                            ? resourceState?.spec.vars.action_schedule?.start
                             : null;
                         const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
                         const startDate = startTime ? new Date(startTime) : null;
@@ -853,7 +840,7 @@ const ServicesItemComponent: React.FC<{
                         return (
                           <ConditionalWrapper
                             key={idx}
-                            condition={resourceClaim.spec.resources && resourceClaim.spec.resources.length > 1}
+                            condition={resourceClaim.status.resources && resourceClaim.status.resources.length > 1}
                             wrapper={(children) => (
                               <AccordionItem>
                                 <AccordionToggle
@@ -873,7 +860,7 @@ const ServicesItemComponent: React.FC<{
                               resourceState={resourceState}
                               isAdmin={isAdmin}
                               resourceClaim={resourceClaim}
-                              resourceSpec={resourceSpec}
+                              resourceStatus={resourceStatus}
                               externalPlatformUrl={externalPlatformUrl}
                               isPartOfWorkshop={isPartOfWorkshop}
                               startDate={startDate}
