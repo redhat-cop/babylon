@@ -360,7 +360,7 @@ const ServicesItemComponent: React.FC<{
   const statusEnabled = anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'status'))
     ? true
     : false;
-  const consoleEnabled = (resourceClaim.status?.resources || []).find((r) => {
+  const consoleEnabled = resourceClaim.status?.summary?.provision_data?.osp_cluster_api || resourceClaim.status?.summary?.provision_data?.openstack_auth_url || (resourceClaim.status?.resources || []).find((r) => {
     const provision_data = r.state?.spec?.vars?.provision_data;
     return provision_data?.osp_cluster_api || provision_data?.openstack_auth_url;
   });
@@ -811,7 +811,7 @@ const ServicesItemComponent: React.FC<{
                             : null;
                         const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
                         const stopDate = stopTime ? new Date(stopTime) : null;
-                        const provisionData =
+                        const provisionData = resourceClaim.status?.summary ? resourceClaim.status.summary.provision_data || '{}' :
                           resourceState?.kind === 'AnarchySubject'
                             ? resourceState.spec.vars?.provision_data
                             : JSON.parse(resourceState?.data?.userData || '{}');
