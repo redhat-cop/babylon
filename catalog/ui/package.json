@@ -36,7 +36,7 @@
     "@types/react": "^18.2.23",
     "@types/react-dom": "^18.2.7",
     "@types/react-router-dom": "^5.3.3",
-    "@types/react-window": "^1.8.5",
+    "@types/react-window": "^1.8.6",
     "@typescript-eslint/eslint-plugin": "^6.7.3",
     "@typescript-eslint/parser": "^6.7.3",
     "babel-core": "^6.26.3",
