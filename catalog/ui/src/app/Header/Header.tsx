@@ -81,7 +81,7 @@ const Header: React.FC<{
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="how-to-videos-link"
-      href="https://content.redhat.com/us/en/product/rhdp.html"
+      href="https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
       target="_blank"
       rel="noreferrer nofollow"
       isExternal
