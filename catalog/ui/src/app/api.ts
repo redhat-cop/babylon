@@ -20,17 +20,18 @@ import {
   Session,
   Nullable,
   ResourceType,
+  ResourceClaimSpec,
 } from '@app/types';
 import { store, selectImpersonationUser } from '@app/store';
 import {
   checkAccessControl,
   displayName,
-  recursiveAssign,
   BABYLON_DOMAIN,
   DEMO_DOMAIN,
   getCostTracker,
   compareStringDates,
   canExecuteAction,
+  checkResourceClaimCanStop,
 } from '@app/util';
 
 declare const window: Window &
@@ -1215,8 +1216,9 @@ export async function setLifespanEndForResourceClaim(
   updateResourceHandle = true
 ) {
   const endTimestamp = dateToApiString(date);
+  const spec = JSON.parse(JSON.stringify(resourceClaim.spec)) as ResourceClaimSpec;
   const data = {
-    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
+    spec,
   };
   let updatedMaxDate: string = null;
   let updatedRelativeMaxDate: string = null;
@@ -1243,6 +1245,16 @@ export async function setLifespanEndForResourceClaim(
     data.spec.lifespan.end = endTimestamp;
   } else {
     data.spec.lifespan = { end: endTimestamp };
+  }
+
+  const canStop = checkResourceClaimCanStop(resourceClaim);
+
+  if (
+    !canStop &&
+    data.spec.provider?.parameterValues?.['stop_timestamp'] &&
+    date.getTime() > Date.parse(data.spec.provider.parameterValues['stop_timestamp'])
+  ) {
+    data.spec.provider.parameterValues['stop_timestamp'] = endTimestamp;
   }
 
   if (updateResourceHandle && (updatedMaxDate || updatedRelativeMaxDate)) {
