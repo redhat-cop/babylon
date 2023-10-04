@@ -54,7 +54,7 @@ const ServicesActionRating: React.FC<{
                 })
               }
               label="Yes"
-              id="radio-useful"
+              id="radio-useful-yes"
             ></Radio>
             <Radio
               isChecked={actionState.rating ? actionState.rating.useful === 'no' : existingRating?.useful === 'no'}
@@ -66,7 +66,7 @@ const ServicesActionRating: React.FC<{
                 })
               }
               label="No"
-              id="radio-useful"
+              id="radio-useful-no"
             ></Radio>
             <Radio
               isChecked={
@@ -82,7 +82,7 @@ const ServicesActionRating: React.FC<{
                 })
               }
               label="Not Applicable"
-              id="radio-useful"
+              id="radio-useful-not-applicable"
             ></Radio>
           </FormGroup>
           <FormGroup
