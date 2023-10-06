@@ -1488,12 +1488,12 @@ export async function fetchWithUpdatedCostTracker({
 }
 
 export function setProvisionRating(
-  provisionUuid: string,
+  requestId: string,
   rating: number,
   comment: string,
   useful: 'yes' | 'no' | 'not applicable'
 ) {
-  return apiFetch(apiPaths.PROVISION_RATING({ provisionUuid }), {
+  return apiFetch(apiPaths.PROVISION_RATING({ requestId }), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ rating, comment, useful }),
@@ -1585,7 +1585,7 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }`,
   RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders/${resourceProviderName}`,
-  PROVISION_RATING: ({ provisionUuid }: { provisionUuid: string }) => `/api/ratings/provisions/${provisionUuid}`,
+  PROVISION_RATING: ({ requestId }: { requestId: string }) => `/api/ratings/provisions/${requestId}`,
   ANARCHY_RUNS: ({
     namespace,
     limit,

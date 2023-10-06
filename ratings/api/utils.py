@@ -36,7 +36,7 @@ async def get_secret_data(secret_name, secret_namespace=None):
     return data
 
 
-async def get_conn_params(secret_name='gpte-db-secrets'):
+async def get_conn_params(secret_name='database'):
     """Get connection parameters from the passed dictionary.
     Return a dictionary with parameters to connect to PostgreSQL server.
     """

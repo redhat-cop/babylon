@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: gpte-db-secrets
+  name: database
   namespace: {{ include "babylon-ratings.namespaceName" . }}
   labels:
     {{- include "babylon-ratings.labels" . | nindent 4 }}

@@ -13,50 +13,44 @@ from babylon import Babylon
 logger = logging.getLogger('babylon-ratings')
 
 CREATE_RATINGS_TABLE = """CREATE TABLE IF NOT EXISTS ratings (
-                    provision_uuid varchar(64) NOT NULL, email varchar NOT NULL, 
-                        catalog_item_id int NOT NULL, rating int, comment TEXT, 
+                    request_id varchar(64) NOT NULL, email varchar NOT NULL, 
+                        resource_id int NOT NULL, rating int, comment TEXT, 
+                        useful varchar,
                         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                        PRIMARY KEY(provision_uuid, email),
-                        FOREIGN KEY(provision_uuid) REFERENCES provisions(uuid) ON DELETE CASCADE,
-                        FOREIGN KEY(email) REFERENCES students(email) ON DELETE CASCADE,
-                        FOREIGN KEY(catalog_item_id) REFERENCES catalog_items(id) ON DELETE CASCADE
+                        PRIMARY KEY(request_id, email),
+                        FOREIGN KEY(email) REFERENCES users(email) ON DELETE CASCADE,
+                        FOREIGN KEY(resource_id) REFERENCES catalog_resource(id) ON DELETE CASCADE
                     );"""
-ADD_COLUMN = """ALTER TABLE ratings ADD useful varchar;"""
+
 INSERT_RATING = (
-    """INSERT INTO ratings (provision_uuid, catalog_item_id, email, rating, comment, useful) 
+    """INSERT INTO ratings (request_id, resource_id, email, rating, comment, useful) 
     VALUES ( 
         %(uuid)s, 
-        (SELECT catalog_id FROM provisions WHERE uuid = %(uuid)s),
+        (SELECT resource_id FROM provisions WHERE request_id = %(request_id)s),
         %(email)s, %(rating)s, %(comment)s, %(useful)s
     )
-    ON CONFLICT (provision_uuid, email) 
+    ON CONFLICT (request_id, email) 
         DO UPDATE SET rating = %(rating)s, comment = %(comment)s, useful = %(useful)s, updated_at = NOW() 
-        WHERE ratings.provision_uuid = %(uuid)s AND ratings.email = %(email)s;"""
+        WHERE ratings.request_id = %(request_id)s AND ratings.email = %(email)s;"""
 )
 GET_CATALOG_ITEM_RATING = (
     """SELECT AVG(rating) AS rating_score, COUNT(*) AS total_ratings FROM 
-    (SELECT DISTINCT(SUBSTR(provisions.babylon_guid, 1,5)), ratings.rating  
+    (SELECT ratings.rating  
         FROM ratings 
-        JOIN catalog_items ON catalog_items.id=ratings.catalog_item_id 
-        JOIN provisions ON ratings.provision_uuid = provisions.uuid 
-        WHERE catalog_items.agnosticv_key=(%s)
-        AND provisions.babylon_guid IS NOT NULL
-    ) AS ratings_guid;"""
+        JOIN catalog_resource ON catalog_resource.id=ratings.resource_id
+        WHERE catalog_resource.name=(%s) AND catalog_resource.active = TRUE
+    ) as ratings_select;"""
 )
 GET_CATALOG_ITEM_RATING_HISTORY = (
-    """SELECT email, rating, comment, useful FROM 
-    (SELECT DISTINCT(SUBSTR(provisions.babylon_guid, 1,5)), ratings.email, ratings.rating, ratings.comment, ratings.useful  
+    """SELECT ratings.email, ratings.rating, ratings.comment, ratings.useful  
         FROM ratings 
-        JOIN catalog_items ON catalog_items.id=ratings.catalog_item_id 
-        JOIN provisions ON ratings.provision_uuid = provisions.uuid 
-        WHERE catalog_items.agnosticv_key=(%s)
-        AND provisions.babylon_guid IS NOT NULL
-    ) AS ratings_guid;"""
+        JOIN catalog_resource ON catalog_resource.id=ratings.resource_id
+        WHERE catalog_resource.name=(%s) AND catalog_resource.active = TRUE;"""
 )
 GET_PROVISION_RATING = (
-    """SELECT provision_uuid, email, rating, comment, useful FROM ratings 
-    WHERE provision_uuid = %(provision_uuid)s AND email = %(email)s;"""
+    """SELECT request_id, email, rating, comment, useful FROM ratings 
+    WHERE request_id = %(request_id)s AND email = %(email)s;"""
 )
 
 app = App()
@@ -65,7 +59,6 @@ app = App()
 async def on_startup():
     await Babylon.on_startup()
     await execute_query(CREATE_RATINGS_TABLE)
-    await execute_query(ADD_COLUMN)
 
 @app.on_shutdown
 async def on_cleanup():
@@ -75,12 +68,12 @@ async def on_cleanup():
 async def index(request):
     return 200, '<h1>Babylon Ratings</h1>'
 
-@app.route("/api/ratings/v1/provisions/{provision_uuid}/users/{email}", methods=['GET'])
+@app.route("/api/ratings/v1/provisions/{request_id}/users/{email}", methods=['GET'])
 async def provision_rating_get(request):
-    provision_uuid = request.path_params.get("provision_uuid")
+    request_id = request.path_params.get("request_id")
     email = request.path_params.get("email")
     query = await execute_query(GET_PROVISION_RATING, {
-                'provision_uuid': provision_uuid,
+                'request_id': request_id,
                 'email': email
             })
     resultArr = query.get("result", [])
@@ -91,7 +84,7 @@ async def provision_rating_get(request):
     return 404, 'Not Found'
 
 # {"email": "user@redhat.com", "rating": 4, comment: "My comment", useful: "yes"}
-@app.route("/api/ratings/v1/provisions/{provision_uuid}", methods=['POST'])
+@app.route("/api/ratings/v1/provisions/{request_id}", methods=['POST'])
 async def provision_rating_set(request):
     schema = Schema({
         "email": And(str, len),
@@ -105,13 +98,13 @@ async def provision_rating_set(request):
     except Exception as e:
         logger.info(f"Invalid rating params for {data} - {e}")
         return 400, 'Invalid parameters'
-    uuid = request.path_params['provision_uuid']
+    uuid = request.path_params['request_id']
     email = data["email"]
     _rating = data.get("rating", None)
     rating = round(_rating * 10, 0) if _rating is not None else None
     comment = data.get("comment", None)
     useful = data.get("useful", None)
-    logger.info(f"Set new rating for: provision {uuid} - {email} - {rating} - {comment} - {useful}")
+    logger.info(f"Set new rating for: request {uuid} - {email} - {rating} - {comment} - {useful}")
     try: 
         await execute_query(INSERT_RATING, {
             'uuid': uuid,

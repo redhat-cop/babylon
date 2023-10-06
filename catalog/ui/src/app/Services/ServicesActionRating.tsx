@@ -32,7 +32,7 @@ const ServicesActionRating: React.FC<{
     rating: number;
     useful: 'yes' | 'no' | 'not applicable';
     comment: string;
-  }>(!hasError && provisionUuid ? apiPaths.PROVISION_RATING({ provisionUuid }) : null, fetcher, {
+  }>(!hasError && provisionUuid ? apiPaths.PROVISION_RATING({ requestId: resourceClaim.metadata.uid }) : null, fetcher, {
     shouldRetryOnError: false,
   });
 
