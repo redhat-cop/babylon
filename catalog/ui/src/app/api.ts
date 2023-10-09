@@ -745,7 +745,13 @@ function fetchApiSession() {
       throw new Error(response.statusText);
     })
     .catch(() => {
-      window.location.href = '/?n=' + new Date().getTime();
+      const urlParams = new URLSearchParams(window.location.search);
+      const count = parseInt(urlParams.get('count'), 10) || 0;
+      if (count > 2) {
+        window.location.href = '/oauth/sign_out';
+      } else {
+        window.location.href = '/?n=' + new Date().getTime() + '&count=' + count;
+      }
     });
   return window.sessionPromiseInstance;
 }
