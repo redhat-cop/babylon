@@ -750,7 +750,7 @@ function fetchApiSession() {
       if (count > 2) {
         window.location.href = '/oauth/sign_out';
       } else {
-        window.location.href = '/?n=' + new Date().getTime() + '&count=' + count;
+        window.location.href = '/?n=' + new Date().getTime() + '&count=' + count + 1;
       }
     });
   return window.sessionPromiseInstance;
