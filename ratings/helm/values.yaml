@@ -6,7 +6,7 @@ db:
   # Create secrets for the database connection
   deploy: false
   # Maximum number of connections in the pool
-  maxOverflow: 10
+  maxOverflow: 30
   # Time in seconds to recycle a connection in the pool
   poolRecycle: 600
   # Initial number of connections to create
