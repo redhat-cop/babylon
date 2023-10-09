@@ -749,18 +749,18 @@ def salesforce_opportunity(opportunity_id):
         return flask.jsonify({"success": True})
     flask.abort(404)
 
-@application.route("/api/ratings/provisions/<provision_uuid>", methods=['POST'])
-def provision_rating_set(provision_uuid):
+@application.route("/api/ratings/provisions/<request_id>", methods=['POST'])
+def provision_rating_set(request_id):
     user = proxy_user()
     data = flask.request.get_json()
     data["email"] = user['metadata']['name']
-    return api_proxy(method="POST", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}", data=json.dumps(data), headers=flask.request.headers)
+    return api_proxy(method="POST", url=f"{ratings_api}/api/ratings/v1/provisions/{request_id}", data=json.dumps(data), headers=flask.request.headers)
 
-@application.route("/api/ratings/provisions/<provision_uuid>", methods=['GET'])
-def provision_rating_get(provision_uuid):
+@application.route("/api/ratings/provisions/<request_id>", methods=['GET'])
+def provision_rating_get(request_id):
     user = proxy_user()
     email = user['metadata']['name']
-    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}/users/{email}", headers=flask.request.headers)
+    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/provisions/{request_id}/users/{email}", headers=flask.request.headers)
 
 @application.route("/api/ratings/<catalog_item>/history", methods=['GET'])
 def provision_rating_get_history(catalog_item):

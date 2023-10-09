@@ -21,7 +21,7 @@ async def get_secret_data(secret_name, secret_namespace=None):
     if os.path.exists('/run/secrets/kubernetes.io/serviceaccount/namespace'):
         current_namespace = open('/run/secrets/kubernetes.io/serviceaccount/namespace').read()
     else:
-        current_namespace = 'babylon-ratings-dev'
+        current_namespace = 'babylon-ratings'
     secret = await Babylon.core_v1_api.read_namespaced_secret(
         secret_name, current_namespace
     )
