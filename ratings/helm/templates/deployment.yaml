@@ -23,6 +23,34 @@ spec:
         env:
         - name: RATINGS_COMPONENT
           value: api
+        - name: TZ
+          value: 'UTC'
+        - name: DB_MAX_OVERFLOW
+          value: {{ default "40" .Values.db.maxOverflow |quote }}
+        - name: DB_POOL_SIZE
+          value: {{ default "10" .Values.db.poolSize |quote }}
+        - name: DB_HOSTNAME
+          valueFrom:
+            secretKeyRef:
+              key: hostname
+              name:  {{ default .Values.db.secretName "database" }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name:  {{ default .Values.db.secretName "database" }}
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              key: name
+              name: {{ default .Values.db.secretName "database" }}
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: {{ default .Values.db.secretName "database" }}
+        - name: DB_PORT
+          value: {{ default .Values.db.port "54327" |quote }}
         image: {{ include "babylon-ratings.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:
