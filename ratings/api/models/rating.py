@@ -25,6 +25,7 @@ from . import CustomBase, Database as db
 from .provision_request import ProvisionRequest
 from .catalog_item import CatalogItem
 
+
 class Rating(CustomBase):
     __tablename__ = 'ratings'
     __date_field__ = 'created_at'
@@ -36,6 +37,15 @@ class Rating(CustomBase):
                                                        ondelete='CASCADE'),
                                             nullable=True,
                                             index=True)
+    provision_uuid: Mapped[str] = mapped_column(ForeignKey('provisions.uuid',
+                                                           ondelete='CASCADE'),
+                                                nullable=True,
+                                                index=True)
+    catalog_item_id: Mapped[int] = mapped_column(ForeignKey('catalog_items.id',
+                                                            ondelete='CASCADE'),
+                                                 nullable=True,
+                                                 index=True)
+    email: Mapped[str] = mapped_column(String, nullable=True, index=True)
     rating: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     useful: Mapped[str] = mapped_column(String, nullable=True)
     month: Mapped[int] = mapped_column(SmallInteger, index=True)
@@ -96,7 +106,7 @@ class Rating(CustomBase):
 
             result = await session.execute(stmt)
             ratings = result.scalars().all()
-        
+
         return ratings
 
     @classmethod
@@ -148,7 +158,8 @@ class Rating(CustomBase):
             return response
 
     async def save_request_rating(self):
-        existing = await self.get_rating_by_request(self.request_id)
+        existing = await self.get_request_rating_by_email(self.request_id,
+                                                          self.email)
         if existing:
             existing.rating = self.rating
             existing.comments = self.comments
@@ -157,7 +168,7 @@ class Rating(CustomBase):
         else:
             await self.save()
 
-        return await self.get_rating_by_request(self.request_id)
+        return await self.get_request_rating_by_email(self.request_id, self.email)
 
     @classmethod
     async def get_rating_by_request(cls,
@@ -171,15 +182,28 @@ class Rating(CustomBase):
             return result.scalars().first()
 
     @classmethod
+    async def get_request_rating_by_email(cls,
+                                          request_id: str,
+                                          email: str
+                                          ) -> Optional[Rating]:
+
+        async with db.get_session() as session:
+            stmt = select(Rating).where(Rating.request_id == request_id,
+                                        Rating.email == email)
+            stmt = stmt.options(joinedload(Rating.request))
+            result = await session.execute(stmt)
+            return result.scalars().first()
+
+    @classmethod
     async def get_request_id(cls,
                              request_id: str,
                              ) -> Optional[Rating]:
 
         async with db.get_session() as session:
             stmt = select(Rating).where(Rating.request_id == request_id,)
-            stmt = stmt.options(joinedload(Rating.request))
+            stmt = stmt.options(selectinload(Rating.request))
             result = await session.execute(stmt)
-            return result.scalars().first()
+            return result.scalars().all()
 
     @classmethod
     def create_update_dates_trigger(cls):
