@@ -1,8 +1,6 @@
 from typing import List
 import logging
-from fastapi import APIRouter
-from fastapi import HTTPException
-from fastapi import Depends
+from fastapi import APIRouter, HTTPException, Depends
 from schemas import (
     RatingsListSchema,
     RatingSchema,
@@ -68,18 +66,6 @@ async def catalog_item_rating_get(asset_uuid: str,
     return rating
 
 
-@router.get("/api/ratings/v1/workshop/{workshop_id}",
-            response_model=WorkshopRequestSchema,
-            summary="Get request ID by workshop ID")
-async def workshop_rating_get(workshop_id: str) -> WorkshopRequestSchema:
-    logger.info(f"Getting request ID for workshop {workshop_id}")
-    request = await ProvisionRequest.get_request_workshop(workshop_id)
-    if not request:
-        raise HTTPException(status_code=404, detail="Workshop not found")
-
-    return {'request_id': request.id if request else None}
-
-
 @router.get("/api/ratings/v1/catalogitem/{asset_uuid}/history",
             response_model=List[RatingSchema],
             summary="Get rating history by catalog item asset UUID")
@@ -94,6 +80,18 @@ async def catalog_item_rating_history_get(asset_uuid: str,
     formatted_ratings = [rating.to_dict(True) for rating in average_rating]
 
     return formatted_ratings
+
+
+@router.get("/api/ratings/v1/workshop/{workshop_id}",
+            response_model=WorkshopRequestSchema,
+            summary="Get request ID by workshop ID")
+async def workshop_rating_get(workshop_id: str) -> WorkshopRequestSchema:
+    logger.info(f"Getting request ID for workshop {workshop_id}")
+    request = await ProvisionRequest.get_request_workshop(workshop_id)
+    if not request:
+        raise HTTPException(status_code=404, detail="Workshop not found")
+
+    return {'request_id': request.id if request else None}
 
 
 @router.post("/api/ratings/v1/request/",
