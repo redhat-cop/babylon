@@ -1591,7 +1591,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }`,
   RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders/${resourceProviderName}`,
-  CATALOG_ITEM_RATING: ({ assetUuid }: { assetUuid: string }) => `/api/ratings/catalogitem/${assetUuid}`,
   ANARCHY_RUNS: ({
     namespace,
     limit,
@@ -1660,4 +1659,5 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   INCIDENT: ({ incidentId }: { incidentId: number }) => `/api/admin/incidents/${incidentId}`,
   RATINGS_HISTORY: ({ assetUuid }: { assetUuid: string }) => `/api/ratings/catalogitem/${assetUuid}/history`,
   RATING: ({}:{}) => `/api/ratings/request`,
+  USER_RATING: ({requestUid}:{requestUid: string}) => `/api/ratings/request/${requestUid}`
 };
