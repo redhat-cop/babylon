@@ -291,7 +291,20 @@ const _Routes: React.FC = () => {
   return (
     <Routes>
       {publicRoutes.map(({ path, component: Component, title }: IAppRoute, idx) => (
-        <Route path={path} element={<Component title={title} />} key={`public-routes-${idx}`} />
+        <Route
+          path={path}
+          element={
+            <Suspense fallback={<LoadingSection />}>
+              <ErrorBoundary
+                FallbackComponent={NotFound}
+                onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
+              >
+                <Component title={title} />
+              </ErrorBoundary>
+            </Suspense>
+          }
+          key={`public-routes-${idx}`}
+        />
       ))}
       {appRoutes.map(({ path, component: Component, title, accessControl }: IAppRoute, idx) => (
         <Route
