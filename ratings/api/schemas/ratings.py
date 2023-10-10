@@ -6,9 +6,13 @@ from .request import RequestSchema
 
 logger = logging.getLogger('babylon-ratings')
 
+
 class RatingSchema(BaseModel):
     id: int = Field(..., description="The unique identifier for the rating.")
+    catalog_item_id: Optional[int] = Field(None, description="The unique identifier for the catalog item.")
     request_id: str = Field(..., description="The unique identifier for the request.")
+    provision_uuid: Optional[str] = Field(..., description="The unique identifier for the provision.")
+    email: str = Field(..., description="The email of the user who rated.")
     comments: Optional[str] = Field(None, description="The comments for the rating.")
     rating: int = Field(..., description="The rating value between 10 and 50.")
     useful: Optional[str] = Field(None, description="Indicates if the rating was useful.")
@@ -23,6 +27,7 @@ class RatingSchema(BaseModel):
 
 class RatingCreateSchema(BaseModel):
     request_id: str = Field(..., description="The unique identifier for the request.")
+    email: str = Field(..., description="The email of the user who rated.")
     rating: int = Field(..., description="The rating value between 10 and 50.")
     comments: Optional[str] = Field(None, description="The comments for the rating.")
     useful: Optional[str] = Field(None, description="Indicates if the rating was useful.")
