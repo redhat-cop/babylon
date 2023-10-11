@@ -10,6 +10,26 @@ from kopfobject import KopfObject
 import jinja2
 import kubernetes_asyncio
 
+def merge_dynamic_fields(definition, current_state):
+    merged_definition = deepcopy(definition)
+
+    if 'status' in current_state:
+        merged_definition['status'] = current_state['status']
+
+    for field in (
+        'creationTimestamp',
+        'finalizers',
+        'generateName',
+        'generation',
+        'managedFields',
+        'resourceVersion',
+        'uid',
+    ):
+        if field in current_state['metadata']:
+            merged_definition['metadata'][field] = current_state['metadata'][field]
+
+    return merged_definition
+
 def remove_none_values(dictionary):
     pruned = {}
     for key, val in dictionary.items():
@@ -1052,12 +1072,8 @@ class AgnosticVComponent(KopfObject):
                 delay=10
             )
 
-        merged_definition = deepcopy(definition)
-        merged_definition['metadata'] = deepcopy(current_state['metadata'])
-        if 'status' in current_state:
-            merged_definition['status'] = current_state['status']
+        merged_definition = merge_dynamic_fields(definition, current_state)
         merged_definition['metadata'].setdefault('annotations', {})[Babylon.last_update_annotation] = json.dumps(self.last_update)
-
 
         # FIXME - agnosticv-operator handling of None/null was unpredictable
         if remove_none_values(merged_definition) == remove_none_values(current_state):
@@ -1091,7 +1107,6 @@ class AgnosticVComponent(KopfObject):
     async def __update_catalog_item(self, current_state, definition, logger, retries):
         catalog_item_name = definition['metadata']['name']
         catalog_item_namespace = definition['metadata']['namespace']
-        merged_definition = deepcopy(definition)
 
         if 'deletionTimestamp' in current_state['metadata']:
             raise kopf.TemporaryError(
@@ -1100,20 +1115,7 @@ class AgnosticVComponent(KopfObject):
                 delay=10
             )
 
-        for field in (
-            'creationTimestamp',
-            'finalizers',
-            'generateName',
-            'generation',
-            'managedFields',
-            'resourceVersion',
-            'uid',
-        ):
-            if field in current_state['metadata']:
-                merged_definition['metadata'][field] = current_state['metadata'][field]
-
-        if 'status' in current_state:
-            merged_definition['status'] = current_state['status']
+        merged_definition = merge_dynamic_fields(definition, current_state)
 
         # Preserve annotation values
         for annotation, value in current_state['metadata'].get('annotations', {}).items():
@@ -1167,10 +1169,7 @@ class AgnosticVComponent(KopfObject):
                 raise
 
     async def __update_resource_provider(self, current_state, definition, logger, retries):
-        merged_definition = deepcopy(definition)
-        merged_definition['metadata'] = deepcopy(current_state['metadata'])
-        if 'status' in current_state:
-            merged_definition['status'] = current_state['status']
+        merged_definition = merge_dynamic_fields(definition, current_state)
         merged_definition['metadata'].setdefault('annotations', {})[Babylon.last_update_annotation] = json.dumps(self.last_update)
 
         if merged_definition == current_state:
