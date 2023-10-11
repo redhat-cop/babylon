@@ -3,11 +3,13 @@ from typing import Optional, List
 from datetime import datetime
 from sqlalchemy.orm import (
     Mapped,
+    backref,
     relationship,
     mapped_column,
     joinedload,
     selectinload,
     DeclarativeMeta,
+    aliased
 )
 from sqlalchemy import (
     DateTime,
@@ -20,10 +22,12 @@ from sqlalchemy import (
     func,
     text,
     select,
+    or_,
 )
 from . import CustomBase, Database as db
 from .provision_request import ProvisionRequest
 from .catalog_item import CatalogItem
+from .provision import Provision
 
 
 class Rating(CustomBase):
@@ -56,6 +60,8 @@ class Rating(CustomBase):
     year_month: Mapped[str] = mapped_column(String, index=True)
 
     request = relationship('ProvisionRequest')
+    provision = relationship('Provision')
+    catalog_item = relationship('CatalogItem')
 
     def to_dict(self, include_relationships=False):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
@@ -87,60 +93,102 @@ class Rating(CustomBase):
             return result.scalar()
 
     @classmethod
-    async def get_ratings_paged(cls, page: int, per_page: int) -> dict:
+    async def list_ratings_paged(cls, page: int,
+                                per_page: int,
+                                include_details: bool = False
+                                ) -> List[Rating]:
         offset = (page - 1) * per_page
 
         async with db.get_session() as session:
-            stmt = (
-                select(Rating)
-                .options(
+            stmt = select(Rating)
+
+            if include_details:
+                stmt = stmt.options(
+                    selectinload(Rating.provision).selectinload(Provision.catalog_item),
+                    selectinload(Rating.provision).selectinload(Provision.purpose),
+                    selectinload(Rating.provision).selectinload(Provision.user),
                     selectinload(Rating.request).selectinload(ProvisionRequest.catalog_item),
                     selectinload(Rating.request).selectinload(ProvisionRequest.user),
                     selectinload(Rating.request).selectinload(ProvisionRequest.provisions),
                     selectinload(Rating.request).selectinload(ProvisionRequest.workshop),
                     selectinload(Rating.request).selectinload(ProvisionRequest.purpose)
                 )
-                .offset(offset)
-                .limit(per_page)
-            )
 
+            stmt = stmt.offset(offset).limit(per_page)
+            cls.debug_query(stmt)
             result = await session.execute(stmt)
             ratings = result.scalars().all()
 
         return ratings
 
     @classmethod
-    async def get_catalog_item_rating(cls,
-                                      asset_uuid: str,
-                                      ) -> Optional[Rating]:
+    async def catalog_item_rating(cls,
+                                  asset_uuid: str,
+                                  catalog_name: str = None,
+                                  include_details: bool = False
+                                  ) -> Optional[Rating]:
 
         async with db.get_session() as session:
-            stmt = (
-                select(Rating)
-                .join(Rating.request)
-                .join(ProvisionRequest.catalog_item)
-                .where(CatalogItem.asset_uuid == asset_uuid)
-                .options(selectinload(Rating.request))
+            stmt = select(Rating)
+
+            stmt = stmt.options(
+                selectinload(Rating.request),
+                selectinload(Rating.provision).selectinload(Provision.purpose),
+                selectinload(Rating.catalog_item)
             )
 
+            conditions = []
+
+            if asset_uuid:
+                stmt = stmt.outerjoin(ProvisionRequest, ProvisionRequest.id == Rating.request_id)\
+                        .outerjoin(CatalogItem, ProvisionRequest.catalog_id == CatalogItem.id)
+                conditions.append(CatalogItem.asset_uuid == asset_uuid)
+
+            # Using catalog_name to filter
+            if catalog_name:
+                catalog_alias = aliased(CatalogItem)
+                stmt = stmt.outerjoin(catalog_alias, Rating.catalog_item_id == catalog_alias.id)
+                stmt = stmt.outerjoin(Provision, Rating.provision_uuid == Provision.uuid)
+                conditions.append(catalog_alias.name == catalog_name)
+
+            stmt = stmt.where(or_(*conditions))
+            cls.debug_query(stmt)
             result = await session.execute(stmt)
+
             return result.scalars().all()
 
     @classmethod
-    async def get_catalog_item_average(cls,
-                                       asset_uuid: str,
-                                       include_ratings: bool = False
-                                       ) -> dict:
+    async def catalog_item_average(cls,
+                                   asset_uuid: str,
+                                   catalog_name: str = None,
+                                   include_details: bool = False
+                                   ) -> dict:
         async with db.get_session() as session:
-            stmt = (
-                select(
-                    func.avg(Rating.rating).label('rating_score'),
-                    func.count(Rating.id).label('total_ratings')
-                )
-                .join(Rating.request)
-                .join(ProvisionRequest.catalog_item)
-                .where(CatalogItem.asset_uuid == asset_uuid)
+            stmt = select(
+                func.avg(Rating.rating / 10).label('rating_score'),
+                func.count(Rating.id).label('total_ratings')
             )
+
+            conditions = []
+
+            if asset_uuid:
+                condition_asset_uuid = (
+                    CatalogItem.asset_uuid == asset_uuid
+                )
+                conditions.append(condition_asset_uuid)
+                stmt = (stmt.outerjoin(ProvisionRequest, ProvisionRequest.id == Rating.request_id)
+                        .outerjoin(CatalogItem, ProvisionRequest.catalog_id == CatalogItem.id))
+
+            if catalog_name:
+                catalog_alias = aliased(CatalogItem)
+                condition_catalog_name = (
+                    catalog_alias.name == catalog_name
+                )
+                conditions.append(condition_catalog_name)
+                stmt = stmt.outerjoin(catalog_alias, Rating.catalog_item_id == catalog_alias.id)
+
+            if conditions:
+                stmt = stmt.where(or_(*conditions))
 
             result = await session.execute(stmt)
             row = result.fetchone()
@@ -150,8 +198,9 @@ class Rating(CustomBase):
                 'total_ratings': row[1]
             }
 
-            if include_ratings:
-                ratings = await cls.get_catalog_item_rating(asset_uuid)
+            if include_details:
+                ratings = await cls.get_catalog_item_rating(asset_uuid, catalog_name)
+                print(ratings)
                 formatted_ratings = [rating.to_dict(True) for rating in ratings]
                 response['ratings'] = formatted_ratings
 
@@ -169,6 +218,23 @@ class Rating(CustomBase):
             await self.save()
 
         return await self.get_request_rating_by_email(self.request_id, self.email)
+
+    async def save_provision_rating(self):
+        existing = await self.get_provision_rating_by_email(self.provision_uuid,
+                                                            self.email)
+        if existing:
+            existing.catalog_item_id = existing.provision.catalog_id
+            existing.rating = self.rating
+            existing.comments = self.comments
+            existing.useful = self.useful
+            await existing.save()
+        else:
+            provision = await Provision.get_by_uuid(self.provision_uuid)
+            if provision:
+                self.catalog_item_id = provision.catalog_id
+            await self.save()
+
+        return await self.get_provision_rating_by_email(self.provision_uuid, self.email)
 
     @classmethod
     async def get_rating_by_request(cls,
@@ -190,7 +256,34 @@ class Rating(CustomBase):
         async with db.get_session() as session:
             stmt = select(Rating).where(Rating.request_id == request_id,
                                         Rating.email == email)
-            stmt = stmt.options(joinedload(Rating.request))
+            stmt = stmt.options(
+                    selectinload(Rating.request).selectinload(ProvisionRequest.catalog_item),
+                    selectinload(Rating.request).selectinload(ProvisionRequest.user),
+                    selectinload(Rating.request).selectinload(ProvisionRequest.provisions),
+                    selectinload(Rating.request).selectinload(ProvisionRequest.workshop),
+                    selectinload(Rating.request).selectinload(ProvisionRequest.purpose)
+                    )
+
+            # stmt = stmt.options(joinedload(Rating.request))
+            result = await session.execute(stmt)
+            return result.scalars().first()
+
+    @classmethod
+    async def get_provision_rating_by_email(cls,
+                                            provision_uuid: str,
+                                            email: str
+                                            ) -> Optional[Rating]:
+
+        async with db.get_session() as session:
+            stmt = select(Rating).where(Rating.provision_uuid == provision_uuid,
+                                        Rating.email == email)
+            stmt = stmt.options(
+                    selectinload(Rating.provision).selectinload(Provision.catalog_item),
+                    selectinload(Rating.provision).selectinload(Provision.user),
+                    selectinload(Rating.provision).selectinload(Provision.workshop),
+                    selectinload(Rating.provision).selectinload(Provision.purpose)
+                    )
+
             result = await session.execute(stmt)
             return result.scalars().first()
 

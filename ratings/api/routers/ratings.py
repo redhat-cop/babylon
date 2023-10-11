@@ -5,6 +5,7 @@ from schemas import (
     RatingsListSchema,
     RatingSchema,
     RatingCreateSchema,
+    RatingProvisionCreateSchema,
     CatalogItemRatingAverageSchema,
     WorkshopRequestSchema
 )
@@ -20,6 +21,45 @@ tags = ["ratings"]
 router = APIRouter(tags=tags)
 
 
+@router.get("/api/ratings/v1/catalogitem/{asset_uuid}",
+            response_model=CatalogItemRatingAverageSchema,
+            summary="Get rating by catalog item asset UUID")
+async def catalog_item_rating_get(asset_uuid: str,
+                                  catalog_name: Optional[str] = None,
+                                  include_details: bool = False
+                                  ) -> CatalogItemRatingAverageSchema:
+
+    logger.info(f"Getting rating for catalog item {asset_uuid}")
+    rating = await Rating.catalog_item_average(asset_uuid,
+                                               catalog_name,
+                                               include_details)
+
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found")
+
+    return rating
+
+
+@router.get("/api/ratings/v1/catalogitem/{asset_uuid}/history",
+            response_model=List[RatingSchema],
+            summary="Get rating history by catalog item asset UUID")
+async def catalog_item_rating_history_get(asset_uuid: str,
+                                          catalog_name: Optional[str] = None,
+                                          include_details: bool = False
+                                          ) -> List[RatingSchema]:
+    logger.info(f"Getting rating history for catalog item {asset_uuid}")
+    average_rating = await Rating.catalog_item_rating(asset_uuid,
+                                                      catalog_name,
+                                                      include_details)
+
+    if not average_rating:
+        raise HTTPException(status_code=404, detail="No ratings found for this catalog item")
+
+    formatted_ratings = [rating.to_dict(include_details) for rating in average_rating]
+
+    return formatted_ratings
+
+
 @router.get("/api/ratings/v1/list",
             response_model=RatingsListSchema,
             summary="List all ratings",
@@ -31,15 +71,24 @@ async def list_ratings_get(pagination: dict = Depends(get_pagination_params),
     logger.info(f"Getting ratings list with pagination: {pagination}")
     page = pagination["page"]
     per_page = pagination["per_page"]
-    ratings_list = await Rating.get_ratings_paged(page=page,
-                                                  per_page=per_page,
-                                                  )
+    ratings_list = await Rating.list_ratings_paged(page,
+                                                   per_page,
+                                                   include_details
+                                                   )
 
     ratings_formatted = []
     for rating in ratings_list:
-        request = rating.request.to_dict(include_details)
+        request = None
+        provision = None
+        if include_details and rating:
+            if hasattr(rating, 'request') and rating.request:
+                request = rating.request.to_dict(include_details)
+            if hasattr(rating, 'provision') and rating.provision:
+                provision = rating.provision.to_dict(include_details)
+
         ratings_formatted.append(rating.to_dict())
-        ratings_formatted[-1]["request"] = request
+        ratings_formatted[-1]["request"] = request if request else None
+        ratings_formatted[-1]["provision"] = provision if provision else None
 
     total = await Rating.get_total_count()
     total_pages = (total // per_page) + (1 if total % per_page else 0)
@@ -52,8 +101,63 @@ async def list_ratings_get(pagination: dict = Depends(get_pagination_params),
         page=page,
         per_page=per_page,
         next_page=next_page,
-        prev_page=prev_page
+        prev_page=prev_page,
+        count=len(ratings_formatted)
     )
+
+
+@router.get("/api/ratings/v1/provisions/{provision_uuid}/email/{email}",
+            response_model=RatingSchema,
+            summary="Get rating by provision UUIDand email")
+async def provision_rating_by_email_get(provision_uuid: str,
+                                        email: str,
+                                        include_details: bool = False
+                                        ) -> RatingSchema:
+
+    logger.info(f"Getting rating for request {provision_uuid} and email {email}")
+    rating = await Rating.get_provision_rating_by_email(provision_uuid, email)
+
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found")
+
+    return rating.to_dict(include_details)
+
+
+@router.post("/api/ratings/v1/provisions/{provision_uuid}",
+             response_model=RatingSchema,
+             summary="Create or update request rating",
+             )
+async def provision_rating_post(provision_uuid: str,
+                                new_rating: RatingProvisionCreateSchema,
+                                include_details: bool = False) -> RatingSchema:
+
+    logger.info(f"Creating or updating rating for provision {provision_uuid}")
+    rating = Rating.from_dict(new_rating.model_dump())
+    rating.provision_uuid = provision_uuid
+    try:
+        rating = await rating.save_provision_rating()
+    except Exception as e:
+        logger.error(f"Error saving rating: {e}", stack_info=True)
+        raise HTTPException(status_code=404, detail="Error saving rating") from e
+
+    return rating.to_dict(include_details)
+
+
+@router.get("/api/ratings/v1/request/{request_uid}/email/{email}",
+            response_model=RatingSchema,
+            summary="Get rating by request UID and email")
+async def request_rating_by_email_get(request_uid: str,
+                                      email: str,
+                                      include_details: bool = False
+                                      ) -> RatingSchema:
+
+    logger.info(f"Getting rating for request {request_uid} and email {email}")
+    rating = await Rating.get_request_rating_by_email(request_uid, email)
+
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found")
+
+    return rating.to_dict(include_details)
 
 
 @router.get("/api/ratings/v1/request/{request_uid}",
@@ -72,54 +176,24 @@ async def request_rating_get(request_uid: str,
     return [rating.to_dict(include_details) for rating in ratings]
 
 
-@router.get("/api/ratings/v1/request/{request_uid}/email/{email}",
-            response_model=RatingSchema,
-            summary="Get rating by request UID and email")
-async def equest_rating_by_email_get(request_uid: str,
-                                     email: str,
-                                     include_details: bool = False) -> RatingSchema:
+@router.post("/api/ratings/v1/request/{request_uid}",
+             response_model=RatingSchema,
+             summary="Create or update request rating",
+             )
+async def request_rating_post(request_uid: str,
+                              new_rating: RatingCreateSchema,
+                              include_details: bool = False) -> RatingSchema:
 
-    logger.info(f"Getting rating for request {request_uid} and email {email}")
-    rating = await Rating.get_request_rating_by_email(request_uid, email)
-
-    if not rating:
-        raise HTTPException(status_code=404, detail="Rating not found")
+    logger.info(f"Creating or updating rating for request {request_uid}")
+    rating = Rating.from_dict(new_rating.model_dump())
+    rating.request_id = request_uid
+    try:
+        rating = await rating.save_request_rating()
+    except Exception as e:
+        logger.error(f"Error saving rating: {e}", stack_info=True)
+        raise HTTPException(status_code=404, detail="Error saving rating") from e
 
     return rating.to_dict(include_details)
-
-
-@router.get("/api/ratings/v1/catalogitem/{asset_uuid}",
-            response_model=CatalogItemRatingAverageSchema,
-            summary="Get rating by catalog item asset UUID")
-async def catalog_item_rating_get(asset_uuid: str,
-                                  include_details: bool = False
-                                  ) -> CatalogItemRatingAverageSchema:
-
-    logger.info(f"Getting rating for catalog item {asset_uuid}")
-    rating = await Rating.get_catalog_item_average(asset_uuid,
-                                                   include_details)
-
-    if not rating:
-        raise HTTPException(status_code=404, detail="Rating not found")
-
-    return rating
-
-
-@router.get("/api/ratings/v1/catalogitem/{asset_uuid}/history",
-            response_model=List[RatingSchema],
-            summary="Get rating history by catalog item asset UUID")
-async def catalog_item_rating_history_get(asset_uuid: str,
-                                          include_details: bool = False
-                                          ) -> List[RatingSchema]:
-    logger.info(f"Getting rating history for catalog item {asset_uuid}")
-    average_rating = await Rating.get_catalog_item_rating(asset_uuid)
-
-    if not average_rating:
-        raise HTTPException(status_code=404, detail="No ratings found for this catalog item")
-
-    formatted_ratings = [rating.to_dict(include_details) for rating in average_rating]
-
-    return formatted_ratings
 
 
 @router.get("/api/ratings/v1/workshop/{workshop_id}",
@@ -132,21 +206,3 @@ async def workshop_rating_get(workshop_id: str) -> WorkshopRequestSchema:
         raise HTTPException(status_code=404, detail="Workshop not found")
 
     return {'request_id': request.id if request else None}
-
-
-@router.post("/api/ratings/v1/request/",
-             response_model=RatingSchema,
-             summary="Create or update request rating",
-             )
-async def request_rating_post(new_rating: RatingCreateSchema,
-                              include_details: bool = False) -> RatingSchema:
-
-    logger.info(f"Creating or updating rating for request {new_rating.request_id}")
-    rating = Rating.from_dict(new_rating.model_dump())
-    try:
-        rating = await rating.save_request_rating()
-    except Exception as e:
-        logger.error(f"Error saving rating: {e}", stack_info=True)
-        raise HTTPException(status_code=404, detail="Error saving rating") from e
-
-    return rating.to_dict(include_details)
