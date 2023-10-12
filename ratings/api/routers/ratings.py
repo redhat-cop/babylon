@@ -108,7 +108,7 @@ async def list_ratings_get(pagination: dict = Depends(get_pagination_params),
 
 @router.get("/api/ratings/v1/provisions/{provision_uuid}/email/{email}",
             response_model=RatingSchema,
-            summary="Get rating by provision UUIDand email")
+            summary="Get rating by provision UUID and email")
 async def provision_rating_by_email_get(provision_uuid: str,
                                         email: str,
                                         include_details: bool = False
@@ -125,7 +125,7 @@ async def provision_rating_by_email_get(provision_uuid: str,
 
 @router.post("/api/ratings/v1/provisions/{provision_uuid}",
              response_model=RatingSchema,
-             summary="Create or update request rating",
+             summary="Create or update provision rating",
              )
 async def provision_rating_post(provision_uuid: str,
                                 new_rating: RatingProvisionCreateSchema,

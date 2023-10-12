@@ -94,9 +94,9 @@ class Rating(CustomBase):
 
     @classmethod
     async def list_ratings_paged(cls, page: int,
-                                per_page: int,
-                                include_details: bool = False
-                                ) -> List[Rating]:
+                                 per_page: int,
+                                 include_details: bool = False
+                                 ) -> List[Rating]:
         offset = (page - 1) * per_page
 
         async with db.get_session() as session:
