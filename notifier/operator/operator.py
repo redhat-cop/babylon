@@ -794,8 +794,8 @@ async def send_email_message(msg, logger, retries=5):
         await smtp.quit()
     except aiosmtplib.errors.SMTPException:
         if retries > 0:
-            logger.exception(f"Failed sending email to {to}, will retry.")
+            logger.exception(f"Failed sending email to {msg['To']}, will retry.")
             await asyncio.sleep(5)
             await send_email_message(msg, logger=logger, retries=retries-1)
         else:
-            logger.exception(f"Failed sending email to {to}.")
+            logger.exception(f"Failed sending email to {msg['To']}.")
