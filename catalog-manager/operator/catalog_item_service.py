@@ -42,24 +42,25 @@ class CatalogItemService:
         return ProvisionData(last_successful_provision)
 
     async def get_rating_from_api(self):
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{Babylon.ratings_api}/api/ratings/v1/catalogitem/{self.catalog_item.name}",
-                    ssl=False,
-                ) as resp:
-                    if resp.status == 200:
-                        self.logger.info(
-                            f"/api/ratings/v1/catalogitem/{self.catalog_item.name} - {resp.status}"
+        if hasattr(self.catalog_item.labels, "gpte.redhat.com/asset-uuid") and self.catalog_item.labels['gpte.redhat.com/asset-uuid']:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{Babylon.ratings_api}/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}",
+                        ssl=False,
+                    ) as resp:
+                        if resp.status == 200:
+                            self.logger.info(
+                                f"/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']} - {resp.status}"
+                            )
+                            response = await resp.json()
+                            return Rating(
+                                response.get("rating_score", None),
+                                response.get("total_ratings", 0),
+                            )
+                        self.logger.warn(
+                            f"/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']} - {resp.status}"
                         )
-                        response = await resp.json()
-                        return Rating(
-                            response.get("rating_score", None),
-                            response.get("total_ratings", 0),
-                        )
-                    self.logger.warn(
-                        f"/api/ratings/v1/catalogitem/{self.catalog_item.name} - {resp.status}"
-                    )
-        except Exception as e:
-            self.logger.error(f"Invalid connection with {Babylon.ratings_api} - {e}")
-            raise
+            except Exception as e:
+                self.logger.error(f"Invalid connection with {Babylon.ratings_api} - {e}")
+                raise
