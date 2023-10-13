@@ -1499,10 +1499,10 @@ export function setProvisionRating(
   comment: string,
   useful: 'yes' | 'no' | 'not applicable'
 ) {
-  return apiFetch(apiPaths.RATING({}), {
+  return apiFetch(apiPaths.RATING({ requestUid }), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ requestUid, rating, comment, useful }),
+    body: JSON.stringify({ rating, comment, useful }),
   });
 }
 
@@ -1658,6 +1658,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   INCIDENTS: ({ status }: { status?: string }) => `/api/admin/incidents${status ? '?status=' + status : ''}`,
   INCIDENT: ({ incidentId }: { incidentId: number }) => `/api/admin/incidents/${incidentId}`,
   RATINGS_HISTORY: ({ assetUuid }: { assetUuid: string }) => `/api/ratings/catalogitem/${assetUuid}/history`,
-  RATING: ({}:{}) => `/api/ratings/request`,
-  USER_RATING: ({requestUid}:{requestUid: string}) => `/api/ratings/request/${requestUid}`
+  RATING: ({}: {}) => `/api/ratings/request`,
+  USER_RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
 };
