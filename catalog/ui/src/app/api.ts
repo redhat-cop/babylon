@@ -1658,6 +1658,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   INCIDENTS: ({ status }: { status?: string }) => `/api/admin/incidents${status ? '?status=' + status : ''}`,
   INCIDENT: ({ incidentId }: { incidentId: number }) => `/api/admin/incidents/${incidentId}`,
   RATINGS_HISTORY: ({ assetUuid }: { assetUuid: string }) => `/api/ratings/catalogitem/${assetUuid}/history`,
-  RATING: ({}: {}) => `/api/ratings/request`,
+  RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
   USER_RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
 };
