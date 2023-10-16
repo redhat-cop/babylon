@@ -342,18 +342,13 @@ const ServicesList: React.FC<{
         modalState.rating &&
         (modalState.rating.rate !== null || modalState.rating.comment?.trim())
       ) {
-        const provisionUuids = modalState.resourceClaim.status.resources
-          .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
-          .filter(Boolean);
-        for (const provisionUuid of provisionUuids) {
-          await setProvisionRating(
-            provisionUuid,
-            modalState.rating.rate,
-            modalState.rating.comment,
-            modalState.rating.useful,
-          );
-          globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
-        }
+        await setProvisionRating(
+          modalState.resourceClaim.metadata.uid,
+          modalState.rating.rate,
+          modalState.rating.comment,
+          modalState.rating.useful,
+        );
+        globalMutate(apiPaths.USER_RATING({requestUuid: modalState.resourceClaim.metadata.uid}));
       }
       if (modalState.action === 'delete') {
         revalidate({ updatedItems: serviceUpdates, action: 'delete' });

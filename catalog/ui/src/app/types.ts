@@ -556,7 +556,6 @@ export type ResourceType =
   | 'RESOURCE_POOLS'
   | 'RESOURCE_PROVIDERS'
   | 'RESOURCE_PROVIDER'
-  | 'PROVISION_RATING'
   | 'ANARCHY_ACTION'
   | 'ANARCHY_ACTIONS'
   | 'ANARCHY_SUBJECT'
@@ -567,7 +566,9 @@ export type ResourceType =
   | 'ANARCHY_GOVERNOR'
   | 'INCIDENTS'
   | 'INCIDENT'
-  | 'RATINGS_HISTORY';
+  | 'RATING'
+  | 'RATINGS_HISTORY'
+  | 'USER_RATING';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 

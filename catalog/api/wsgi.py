@@ -749,28 +749,27 @@ def salesforce_opportunity(opportunity_id):
         return flask.jsonify({"success": True})
     flask.abort(404)
 
-@application.route("/api/ratings/provisions/<provision_uuid>", methods=['POST'])
-def provision_rating_set(provision_uuid):
+@application.route("/api/ratings/request/<request_uid>", methods=['POST'])
+def provision_rating_set():
     user = proxy_user()
     data = flask.request.get_json()
     data["email"] = user['metadata']['name']
-    return api_proxy(method="POST", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}", data=json.dumps(data), headers=flask.request.headers)
+    return api_proxy(method="POST", url=f"{ratings_api}/api/ratings/v1/request/{request_uid}", data=json.dumps(data), headers=flask.request.headers)
 
-@application.route("/api/ratings/provisions/<provision_uuid>", methods=['GET'])
+@application.route("/api/ratings/request/<request_uid>", methods=['GET'])
 def provision_rating_get(provision_uuid):
     user = proxy_user()
     email = user['metadata']['name']
-    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}/users/{email}", headers=flask.request.headers)
+    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/request/{request_uid}/email/{email}", headers=flask.request.headers)
 
-@application.route("/api/ratings/<catalog_item>/history", methods=['GET'])
-def provision_rating_get_history(catalog_item):
+@application.route("/api/ratings/catalogitem/<asset_uuid>/history", methods=['GET'])
+def provision_rating_get_history(asset_uuid):
     user = proxy_user()
     session = get_user_session(user)
     api_client = proxy_api_client(session)
-    email = user['metadata']['name']
     if not check_admin_access(api_client):
         flask.abort(403)
-    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/catalogitem/{catalog_item}/history", headers=flask.request.headers)
+    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/catalogitem/{asset_uuid}/history", headers=flask.request.headers)
 
 @application.route("/api/admin/incidents", methods=['GET'])
 def incidents_get():
