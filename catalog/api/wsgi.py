@@ -750,14 +750,14 @@ def salesforce_opportunity(opportunity_id):
     flask.abort(404)
 
 @application.route("/api/ratings/request/<request_uid>", methods=['POST'])
-def provision_rating_set():
+def provision_rating_set(request_uid):
     user = proxy_user()
     data = flask.request.get_json()
     data["email"] = user['metadata']['name']
     return api_proxy(method="POST", url=f"{ratings_api}/api/ratings/v1/request/{request_uid}", data=json.dumps(data), headers=flask.request.headers)
 
 @application.route("/api/ratings/request/<request_uid>", methods=['GET'])
-def provision_rating_get(provision_uuid):
+def provision_rating_get(request_uid):
     user = proxy_user()
     email = user['metadata']['name']
     return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/request/{request_uid}/email/{email}", headers=flask.request.headers)
