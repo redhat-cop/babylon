@@ -24,21 +24,17 @@ const ServicesActionRating: React.FC<{
   action: 'rate' | 'delete';
 }> = ({ actionState, setActionState, hasError = false, action }) => {
   const resourceClaim = actionState.resourceClaim;
-  const provisionUuid = resourceClaim.status?.resources
-    .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
-    .find((uuid) => uuid);
-
   const { data: existingRating } = useSWRImmutable<{
     rating: number;
     useful: 'yes' | 'no' | 'not applicable';
     comment: string;
-  }>(!hasError && provisionUuid ? apiPaths.PROVISION_RATING({ provisionUuid }) : null, fetcher, {
+  }>(!hasError && resourceClaim ? apiPaths.USER_RATING({ requestUid: resourceClaim.metadata.uid }) : null, fetcher, {
     shouldRetryOnError: false,
   });
 
   return (
     <>
-      {provisionUuid ? (
+      {resourceClaim ? (
         <Form className="services-action__rating-form">
           <FormGroup
             fieldId="useful"

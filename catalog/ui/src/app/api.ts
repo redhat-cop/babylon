@@ -1494,12 +1494,12 @@ export async function fetchWithUpdatedCostTracker({
 }
 
 export function setProvisionRating(
-  provisionUuid: string,
+  requestUid: string,
   rating: number,
   comment: string,
   useful: 'yes' | 'no' | 'not applicable'
 ) {
-  return apiFetch(apiPaths.PROVISION_RATING({ provisionUuid }), {
+  return apiFetch(apiPaths.RATING({ requestUid }), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ rating, comment, useful }),
@@ -1591,7 +1591,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }`,
   RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders/${resourceProviderName}`,
-  PROVISION_RATING: ({ provisionUuid }: { provisionUuid: string }) => `/api/ratings/provisions/${provisionUuid}`,
   ANARCHY_RUNS: ({
     namespace,
     limit,
@@ -1658,5 +1657,7 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchygovernors/${anarchyGovernorName}`,
   INCIDENTS: ({ status }: { status?: string }) => `/api/admin/incidents${status ? '?status=' + status : ''}`,
   INCIDENT: ({ incidentId }: { incidentId: number }) => `/api/admin/incidents/${incidentId}`,
-  RATINGS_HISTORY: ({ ciName }: { ciName: string }) => `/api/ratings/${ciName}/history`,
+  RATINGS_HISTORY: ({ assetUuid }: { assetUuid: string }) => `/api/ratings/catalogitem/${assetUuid}/history`,
+  RATING: ({}: {}) => `/api/ratings/request`,
+  USER_RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
 };

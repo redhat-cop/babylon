@@ -50,7 +50,6 @@ import {
   K8sObject,
   NamespaceList,
   ResourceClaim,
-  ResourceClaimSpecResource,
   ResourceHandleResource,
   ServiceActionActions,
   Workshop,
@@ -452,18 +451,13 @@ const ServicesItemComponent: React.FC<{
     }
     if (modalState.action === 'rate' || modalState.action === 'delete') {
       if (modalState.rating && (modalState.rating.rate !== null || modalState.rating.comment?.trim())) {
-        const provisionUuids = resourceClaim.status.resources
-          .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
-          .filter(Boolean);
-        for (const provisionUuid of provisionUuids) {
-          await setProvisionRating(
-            provisionUuid,
-            modalState.rating.rate,
-            modalState.rating.comment,
-            modalState.rating.useful,
-          );
-          globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
-        }
+        await setProvisionRating(
+          resourceClaim.metadata.uid,
+          modalState.rating.rate,
+          modalState.rating.comment,
+          modalState.rating.useful,
+        );
+        globalMutate(apiPaths.USER_RATING({requestUuid: resourceClaim.metadata.uid}));
       }
     }
     if (modalState.action === 'delete') {
