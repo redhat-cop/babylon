@@ -1502,7 +1502,7 @@ export function setProvisionRating(
   return apiFetch(apiPaths.RATING({ requestUid }), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ request_id: requestUid, rating: rating ? rating * 10 : rating, comment, useful }),
+    body: JSON.stringify({ request_id: requestUid, rating: rating ? rating * 10 : rating, comments: comment, useful }),
   });
 }
 
