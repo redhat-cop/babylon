@@ -66,7 +66,7 @@ class RatingProvisionCreateSchema(BaseModel):
 
 
 class CatalogItemRatingAverageSchema(BaseModel):
-    rating_score: float = Field(..., description="The average rating score for the catalog item.")
+    rating_score: Optional[float] = Field(..., description="The average rating score for the catalog item.")
     total_ratings: int = Field(..., description="The total number of ratings for the catalog item.")
     ratings: Optional[List[RatingSchema]] = Field(default=None,
                                                   alias="ratings",
