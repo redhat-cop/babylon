@@ -202,13 +202,15 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_message_templates(self):
-        return {
-            key: {
-                "template": value['template'].rstrip(),
-                "templateFormat": value.get('templateFormat', 'jinja2'),
-                "outputFormat": value.get('outputFormat', 'html'),
-            } for key, value in self.catalog_meta.get('messageTemplates', {}).items()
-        }
+        ret = {}
+        for key, value in self.catalog_meta.get('messageTemplates', {}).items():
+            value = deepcopy(value)
+            if 'outputFormat' not in value:
+                value['outputFormat'] = 'html'
+            if 'templateFormat' not in value:
+                value['templateFormat'] = 'jinja2'
+            ret[key] = value
+        return ret
 
     @property
     def catalog_meta(self):
