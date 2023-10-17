@@ -28,7 +28,7 @@ class CatalogItemService:
 
     async def get_provision_data(self):
         last_successful_provision = None
-        if hasattr(self.catalog_item.labels, "gpte.redhat.com/asset-uuid") and self.catalog_item.labels['gpte.redhat.com/asset-uuid']:
+        if len(self.catalog_item.labels['gpte.redhat.com/asset-uuid']) != 0:
             query = await execute_query(
                 GET_CATALOG_ITEM_LAST_SUCCESSFUL_PROVISION, (self.catalog_item.labels['gpte.redhat.com/asset-uuid'], )
             )
@@ -43,7 +43,7 @@ class CatalogItemService:
         return ProvisionData(last_successful_provision)
 
     async def get_rating_from_api(self):
-        if hasattr(self.catalog_item.labels, "gpte.redhat.com/asset-uuid") and self.catalog_item.labels['gpte.redhat.com/asset-uuid']:
+        if len(self.catalog_item.labels['gpte.redhat.com/asset-uuid']) != 0:
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(

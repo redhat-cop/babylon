@@ -16,7 +16,7 @@ export function getStatus(
   desiredState: string,
   creationTime: number,
   startTime: number,
-  stopTime: number,
+  stopTime: number
 ): { statusName: string; phase: phaseProps } {
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
@@ -89,7 +89,7 @@ const ServiceStatus: React.FC<{
     let _state = summary.state.replace('-', ' ');
     if (summary.state.endsWith('-pending')) {
       _phase = 'in-progress';
-    } else if (summary.state.endsWith('-pending')) {
+    } else if (summary.state.endsWith('-failed')) {
       _phase = 'failed';
     } else if (summary.state === 'started') {
       _phase = 'running';
