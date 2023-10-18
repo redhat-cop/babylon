@@ -4,4 +4,5 @@ html2text==2020.1.16
 humanize==4.7.0
 Jinja2==3.1.2
 pydantic==1.10.2
+pytimeparse==1.1.8
 redis==4.6.0

@@ -236,12 +236,15 @@ async def cancel_tasks(resource_claim, logger):
         except asyncio.CancelledError:
             pass
 
-def create_retirement_task(logger, resource_claim, **kwargs):
+def create_retirement_task(logger, catalog_item, resource_claim, **kwargs):
     retirement_timestamp = resource_claim.retirement_timestamp
     if not retirement_timestamp:
         return
     retirement_datetime = isoparse(retirement_timestamp)
-    notification_timedelta = retirement_datetime - datetime.now(timezone.utc) - timedelta(days=1, seconds=30)
+
+    notification_timedelta = (
+        retirement_datetime - datetime.now(timezone.utc) - catalog_item.notification_before_retirement_timedelta
+    )
     notification_interval = notification_timedelta.total_seconds()
     if notification_interval > 0:
         logger.info("scheduled retirement notification in " + naturaldelta(notification_timedelta))
@@ -249,6 +252,7 @@ def create_retirement_task(logger, resource_claim, **kwargs):
             notify_scheduled_retirement_after(
                 interval = notification_interval,
                 logger = kopf.LocalObjectLogger(body=resource_claim.definition, settings=kopf.OperatorSettings()),
+                catalog_item = catalog_item,
                 resource_claim = resource_claim,
                 **kwargs,
             )
@@ -702,12 +706,12 @@ def get_template_vars(catalog_item, catalog_namespace, resource_claim):
     retirement_timestamp = resource_claim.retirement_timestamp
     retirement_datetime = isoparse(retirement_timestamp) if retirement_timestamp else None
     retirement_timedelta = retirement_datetime - datetime.now(timezone.utc) if retirement_datetime else None
-    retirement_timedelta_humanized = naturaldelta(retirement_timedelta) if retirement_timedelta else None
+    retirement_timedelta_humanized = naturaldelta(retirement_timedelta + timedelta(seconds=30)) if retirement_timedelta else None
 
     stop_timestamp = resource_claim.stop_timestamp
     stop_datetime = isoparse(stop_timestamp) if stop_timestamp else None
     stop_timedelta = stop_datetime - datetime.now(timezone.utc) if stop_datetime else None
-    stop_timedelta_humanized = naturaldelta(stop_timedelta) if stop_timedelta else None
+    stop_timedelta_humanized = naturaldelta(stop_timedelta + timedelta(seconds=30)) if stop_timedelta else None
 
     return {
         **{k: v for (k, v) in provision_data.items() if isinstance(k, str)},
