@@ -288,12 +288,13 @@ export async function checkSalesforceId(
   if (!id) {
     return false;
   }
-  try {
+  return Promise.resolve(id.length > 0);
+  /*try {
     await debouncedApiFetch(`/api/salesforce/opportunity/${id}`);
   } catch (error) {
     return false;
   }
-  return true;
+  return true;*/
 }
 
 async function createK8sObject<Type extends K8sObject>(definition: Type): Promise<Type> {

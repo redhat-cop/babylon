@@ -118,7 +118,7 @@ export function checkCondition(condition: string, vars: ConditionValues): boolea
       .join('\n') +
       'return (' +
       condition +
-      ');',
+      ');'
   );
   const ret: boolean | Error = checkFunction();
   if (ret instanceof Error) {
@@ -132,7 +132,7 @@ export function checkCondition(condition: string, vars: ConditionValues): boolea
 async function _checkCondition(
   condition: string,
   vars: ConditionValues,
-  debouncedApiFetch: (path: string) => Promise<unknown>,
+  debouncedApiFetch: (path: string) => Promise<unknown>
 ): Promise<boolean> {
   const checkSalesforceIds: string[] = [];
   condition.replace(checkSalesforceIdRegex, (match, name) => {
@@ -145,13 +145,13 @@ async function _checkCondition(
   }
   return checkCondition(
     condition.replace(checkSalesforceIdRegex, () => (checkResults.shift() ? 'true' : 'false')),
-    vars,
+    vars
   );
 }
 export async function checkConditionsInFormState(
   initialState: FormState,
   dispatchFn: React.Dispatch<FormStateAction>,
-  debouncedApiFetch: (path: string) => Promise<unknown>,
+  debouncedApiFetch: (path: string) => Promise<unknown>
 ): Promise<void> {
   const parameters = Object.assign({}, initialState.parameters);
   const conditionValues: ConditionValues = {
@@ -168,11 +168,11 @@ export async function checkConditionsInFormState(
 
   try {
     if (initialState.salesforceId.value) {
-      salesforceIdValid = true; /*await _checkCondition(
+      salesforceIdValid = await _checkCondition(
         'check_salesforce_id(salesforce_id)',
         { salesforce_id: initialState.salesforceId.value },
         debouncedApiFetch
-      );*/
+      );
     }
     for (const [, parameterState] of Object.entries(parameters)) {
       const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
@@ -181,7 +181,7 @@ export async function checkConditionsInFormState(
         parameterState.isDisabled = await _checkCondition(
           parameterSpec.formDisableCondition,
           conditionValues,
-          debouncedApiFetch,
+          debouncedApiFetch
         );
       }
 
@@ -189,7 +189,7 @@ export async function checkConditionsInFormState(
         parameterState.isHidden = await _checkCondition(
           parameterSpec.formHideCondition,
           conditionValues,
-          debouncedApiFetch,
+          debouncedApiFetch
         );
       }
 
@@ -197,15 +197,18 @@ export async function checkConditionsInFormState(
         parameterState.isRequired = await _checkCondition(
           parameterSpec.formRequireCondition,
           conditionValues,
-          debouncedApiFetch,
+          debouncedApiFetch
         );
       }
 
       if (parameterSpec.validation) {
         if (parameterState.value || parameterSpec.required) {
           try {
-            parameterState.validationResult = true;
-            await _checkCondition(parameterSpec.validation, conditionValues, debouncedApiFetch);
+            parameterState.validationResult = await _checkCondition(
+              parameterSpec.validation,
+              conditionValues,
+              debouncedApiFetch
+            );
             parameterState.validationMessage = undefined;
           } catch (error) {
             parameterState.validationResult = false;
@@ -237,7 +240,7 @@ export async function checkConditionsInFormState(
 function reduceFormStateInit(
   catalogItem: CatalogItem,
   serviceNamespace: ServiceNamespace,
-  { isAdmin, groups, roles },
+  { isAdmin, groups, roles }
 ): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
@@ -319,7 +322,7 @@ function reduceFormStateComplete(
     error = '',
     salesforceIdValid,
     parameters,
-  }: { error: string; salesforceIdValid: boolean; parameters: { [name: string]: FormStateParameter } },
+  }: { error: string; salesforceIdValid: boolean; parameters: { [name: string]: FormStateParameter } }
 ): FormState {
   return {
     ...state,
@@ -337,7 +340,7 @@ function reduceFormStateComplete(
 
 function reduceFormStateParameterUpdate(
   initialState: FormState,
-  parameter: { name: string; value: boolean | number | string; isValid: boolean },
+  parameter: { name: string; value: boolean | number | string; isValid: boolean }
 ): FormState {
   const parameters = Object.assign({}, initialState.parameters);
   Object.assign(parameters[parameter.name], {
@@ -418,7 +421,7 @@ function reduceFormStatePurpose(
   initialState: FormState,
   activity: string,
   purpose: string,
-  explanation: string,
+  explanation: string
 ): FormState {
   return {
     ...initialState,
@@ -445,7 +448,7 @@ function salesforceIdRequired(state: FormState): boolean {
 
 function reduceFormStateSalesforceId(
   initialState: FormState,
-  salesforceId: { required: boolean; value: string; valid: boolean },
+  salesforceId: { required: boolean; value: string; valid: boolean }
 ): FormState {
   return {
     ...initialState,
