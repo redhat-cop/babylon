@@ -1,5 +1,8 @@
 import kubernetes_asyncio
 
+from datetime import timedelta
+from pytimeparse.timeparse import timeparse
+
 from babylon import Babylon
 
 class CatalogItem:
@@ -41,6 +44,19 @@ class CatalogItem:
     @property
     def namespace(self):
         return self.definition['metadata']['namespace']
+
+    @property
+    def notification_before_retirement_timedelta(self):
+        interval_text = (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('retirementScheduled', {}).
+            get('timeIntervalBeforeRetirement')
+        )
+        if interval_text:
+            return timedelta(seconds=timeparse(interval_text))
+        else:
+            return timedelta(days=1)
 
     @property
     def resources(self):
