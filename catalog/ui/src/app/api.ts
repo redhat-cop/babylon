@@ -289,7 +289,10 @@ export async function checkSalesforceId(
     return false;
   }
   try {
-    await debouncedApiFetch(`/api/salesforce/opportunity/${id}`);
+    if (id.length > 0) {
+      return Promise.resolve(true);
+    }
+    // await debouncedApiFetch(`/api/salesforce/opportunity/${id}`);
   } catch (error) {
     return false;
   }
