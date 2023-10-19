@@ -568,7 +568,8 @@ export type ResourceType =
   | 'INCIDENT'
   | 'RATING'
   | 'RATINGS_HISTORY'
-  | 'USER_RATING';
+  | 'USER_RATING'
+  | 'PROVISION_RATING';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
