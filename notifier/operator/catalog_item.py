@@ -59,8 +59,220 @@ class CatalogItem:
             return timedelta(days=1)
 
     @property
+    def provision_failed_email_disabled(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('provisionFailed', {}).
+            get('disabled', False)
+        )
+
+    @property
+    def provision_failed_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('provisionFailed', {}).
+            get('emailSubject',
+                "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} has failed to provision"
+            )
+        )
+
+    @property
+    def provision_started_email_disabled(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('provisionStarted', {}).
+            get('disabled', False)
+        )
+
+    @property
+    def provision_started_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('provisionStarted', {}).
+            get('emailSubject',
+                "{{catalog_namespace.display_name}} service {{service_display_name}} has begun provisioning"
+            )
+        )
+
+    @property
     def resources(self):
         return self.definition['spec']['resources']
+
+    @property
+    def retirement_scheduled_email_disabled(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('retirementScheduled', {}).
+            get('disable', False)
+        )
+
+    @property
+    def retirement_scheduled_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('retirementScheduled', {}).
+            get('emailSubject',
+                "{{catalog_namespace.display_name}} service {{service_display_name}} "
+                "retirement in {{retirement_timedelta_humanized}}"
+            )
+        )
+
+    @property
+    def service_deleted_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('serviceDeleted', {}).
+            get('emailSubject',
+                "{{catalog_namespace.display_name}} service {{service_display_name}} has been deleted"
+            )
+        )
+
+    @property
+    def service_ready_email_disabled(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('serviceReady', {}).
+            get('disable', False)
+        )
+
+    @property
+    def service_ready_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('serviceReady', {}).
+            get('emailSubject',
+                "{{catalog_namespace.display_name}} service {{service_display_name}} is ready"
+            )
+        )
+
+    @property
+    def start_complete_email_disabled(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('startComplete', {}).
+            get('disable', False)
+        )
+
+    @property
+    def start_complete_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('startComplete', {}).
+            get('emailSubject',
+                "{{catalog_namespace.display_name}} service {{service_display_name}} has started"
+            )
+        )
+
+    @property
+    def start_failed_email_disabled(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('startFailed', {}).
+            get('disable', False)
+        )
+
+    @property
+    def start_failed_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('startFailed', {}).
+            get('emailSubject',
+                "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} failed to start"
+            )
+        )
+
+    @property
+    def stop_complete_email_disabled(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('stopComplete', {}).
+            get('disable', False)
+        )
+
+    @property
+    def stop_complete_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('stopComplete', {}).
+            get('emailSubject',
+                "{{catalog_namespace.display_name}} service {{service_display_name}} has stopped",
+            )
+        )
+
+    @property
+    def stop_failed_email_disabled(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('stopFailed', {}).
+            get('disable', False)
+        )
+
+    @property
+    def stop_failed_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('stopFailed', {}).
+            get('emailSubject',
+                "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} failed to stop"
+            )
+        )
+
+    @property
+    def stop_scheduled_email_disabled(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('stopScheduled', {}).
+            get('disable', False)
+        )
+
+    @property
+    def stop_scheduled_email_subject_template(self):
+        return (self.
+            definition['spec'].
+            get('messageTemplates', {}).
+            get('delete', {}).
+            get('stopScheduled', {}).
+            get('emailSubject',
+                "{{catalog_namespace.display_name}} service {{service_display_name}} "
+                "will stop in {{stop_timedelta_humanized}}"
+            )
+        )
 
     @property
     def survey_link(self):

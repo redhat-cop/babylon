@@ -249,7 +249,7 @@ def create_retirement_task(logger, catalog_item, resource_claim, **kwargs):
     if notification_interval > 0:
         logger.info("scheduled retirement notification in " + naturaldelta(notification_timedelta))
         retirement_tasks[resource_claim.uid] = asyncio.create_task(
-            notify_scheduled_retirement_after(
+            notify_retirement_scheduled_after(
                 interval = notification_interval,
                 logger = kopf.LocalObjectLogger(body=resource_claim.definition, settings=kopf.OperatorSettings()),
                 catalog_item = catalog_item,
@@ -268,7 +268,7 @@ def create_stop_task(logger, resource_claim, **kwargs):
     if notification_interval > 0:
         logger.info("scheduled stop notification in " + naturaldelta(notification_timedelta))
         stop_tasks[resource_claim.uid] = asyncio.create_task(
-            notify_scheduled_stop_after(
+            notify_stop_scheduled_after(
                 interval = notification_interval,
                 logger = kopf.LocalObjectLogger(body=resource_claim.definition, settings=kopf.OperatorSettings()),
                 resource_claim = resource_claim,
@@ -305,16 +305,25 @@ async def get_deployer_log(deployer_job, logger):
 async def handle_resource_claim_delete(**kwargs):
     await notify_deleted(**kwargs)
 
-async def handle_resource_claim_event(**kwargs):
-    create_retirement_task(**kwargs)
-    create_stop_task(**kwargs)
-    await notify_if_provision_failed(**kwargs)
-    await notify_if_provision_started(**kwargs)
-    await notify_if_ready(**kwargs)
-    await notify_if_start_complete(**kwargs)
-    await notify_if_start_failed(**kwargs)
-    await notify_if_stop_complete(**kwargs)
-    await notify_if_stop_failed(**kwargs)
+async def handle_resource_claim_event(catalog_item, **kwargs):
+    if not catalog_item.retirement_scheduled_email_disabled:
+        create_retirement_task(catalog_item=catalog_item, **kwargs)
+    if not catalog_item.stop_scheduled_email_disabled:
+        create_stop_task(catalog_item=catalog_item, **kwargs)
+    if not catalog_item.provision_failed_email_disabled:
+        await notify_if_provision_failed(catalog_item=catalog_item, **kwargs)
+    if not catalog_item.provision_started_email_disabled:
+        await notify_if_provision_started(catalog_item=catalog_item, **kwargs)
+    if not catalog_item.service_ready_email_disabled:
+        await notify_if_ready(catalog_item=catalog_item, **kwargs)
+    if not catalog_item.start_complete_email_disabled:
+        await notify_if_start_complete(catalog_item=catalog_item, **kwargs)
+    if not catalog_item.start_failed_email_disabled:
+        await notify_if_start_failed(catalog_item=catalog_item, **kwargs)
+    if not catalog_item.stop_complete_email_disabled:
+        await notify_if_stop_complete(catalog_item=catalog_item, **kwargs)
+    if not catalog_item.stop_failed_email_disabled:
+        await notify_if_stop_failed(catalog_item=catalog_item, **kwargs)
 
 def kebabToCamelCase(kebab_string):
     return ''.join([s if i == 0 else s.capitalize() for i, s in enumerate(kebab_string.split('-'))])
@@ -514,7 +523,7 @@ async def notify_deleted(catalog_item, catalog_namespace, email_addresses, logge
         catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} has been deleted",
+        subject = catalog_item.service_deleted_email_subject_template,
         template = "service-deleted",
         to = email_addresses,
     )
@@ -537,7 +546,7 @@ async def notify_provision_failed(catalog_item, catalog_namespace, email_address
         catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} has failed to provision",
+        subject = catalog_item.provision_failed_email_subject_template,
         to = email_addresses,
         template = "provision-failed",
     )
@@ -549,7 +558,7 @@ async def notify_provision_started(catalog_item, catalog_namespace, email_addres
         catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} has begun provisioning",
+        subject = catalog_item.provision_started_email_subject_template,
         to = email_addresses,
         template = "provision-started",
         template_vars = dict(
@@ -584,20 +593,20 @@ async def notify_ready(catalog_item, catalog_namespace, email_addresses, logger,
         logger = logger,
         message_body = provision_message_body,
         resource_claim = resource_claim,
-        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} is ready",
+        subject = catalog_item.service_ready_email_subject_template,
         template = "service-ready",
         template_vars = template_vars,
         to = email_addresses,
     )
 
-async def notify_scheduled_retirement_after(interval, **kwargs):
+async def notify_retirement_scheduled_after(interval, **kwargs):
     try:
         await asyncio.sleep(interval)
-        await notify_scheduled_retirement(**kwargs)
+        await notify_retirement_scheduled(**kwargs)
     except asyncio.CancelledError:
         pass
 
-async def notify_scheduled_retirement(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+async def notify_retirement_scheduled(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
     logger.info("sending retirement schedule notification")
 
     await send_notification_email(
@@ -605,19 +614,19 @@ async def notify_scheduled_retirement(catalog_item, catalog_namespace, email_add
         catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} retirement in {{retirement_timedelta_humanized}}",
+        subject = catalog_item.retirement_scheduled_email_subject_template,
         to = email_addresses,
         template = "retirement-scheduled",
     )
 
-async def notify_scheduled_stop_after(interval, **kwargs):
+async def notify_stop_scheduled_after(interval, **kwargs):
     try:
         await asyncio.sleep(interval)
-        await notify_scheduled_stop(**kwargs)
+        await notify_stop_scheduled(**kwargs)
     except asyncio.CancelledError:
         pass
 
-async def notify_scheduled_stop(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+async def notify_stop_scheduled(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
     logger.info("sending stop schedule notification")
 
     await send_notification_email(
@@ -625,7 +634,7 @@ async def notify_scheduled_stop(catalog_item, catalog_namespace, email_addresses
         catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} will stop in {{stop_timedelta_humanized}}",
+        subject = catalog_item.stop_scheduled_email_subject_template,
         to = email_addresses,
         template = "stop-scheduled",
     )
@@ -637,7 +646,7 @@ async def notify_start_complete(catalog_item, catalog_namespace, email_addresses
        catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} has started",
+        subject = catalog_item.start_complete_email_subject_template,
         template = "start-complete",
         to = email_addresses,
     )
@@ -660,7 +669,7 @@ async def notify_start_failed(catalog_item, catalog_namespace, email_addresses, 
         catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} failed to start",
+        subject = catalog_item.start_failed_email_subject_template,
         to = email_addresses,
         template = "start-failed",
     )
@@ -672,7 +681,7 @@ async def notify_stop_complete(catalog_item, catalog_namespace, email_addresses,
         catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "{{catalog_namespace.display_name}} service {{service_display_name}} has stopped",
+        subject = catalog_item.stop_complete_email_subject_template,
         template = "stop-complete",
         to = email_addresses,
     )
@@ -695,7 +704,7 @@ async def notify_stop_failed(catalog_item, catalog_namespace, email_addresses, l
         catalog_namespace = catalog_namespace,
         logger = logger,
         resource_claim = resource_claim,
-        subject = "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} failed to stop",
+        subject = catalog_item.stop_failed_email_subject_template,
         to = email_addresses,
         template = "stop-failed",
     )
