@@ -189,6 +189,10 @@ class AgnosticVComponent(KopfObject):
         return self.catalog_meta.get('icon', {})
 
     @property
+    def catalog_item_namespace(self):
+        return jinja2env.from_string(self.catalog_meta.get('namespace')).render(self.template_vars)
+
+    @property
     def catalog_keywords(self):
         return self.catalog_meta.get('keywords', [])
 
@@ -487,7 +491,7 @@ class AgnosticVComponent(KopfObject):
 
 
     def __catalog_item_definition(self):
-        namespace = jinja2env.from_string(self.catalog_meta.get('namespace')).render(self.template_vars)
+        namespace = self.catalog_item_namespace
 
         definition = {
             "apiVersion": Babylon.catalog_api_version,
@@ -820,6 +824,10 @@ class AgnosticVComponent(KopfObject):
                 }
             }
         }
+
+        if not self.catalog_disable:
+            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemName"] = self.name
+            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemNamespace"] = self.catalog_item_namespace
 
         for idx, linked_component in enumerate(self.linked_components):
             definition['spec'].setdefault('linkedResourceProviders', []).append({
