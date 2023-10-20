@@ -320,8 +320,7 @@ const ServicesList: React.FC<{
       serviceUpdates.push(
         setResourceClaims(await performModalActionForWorkshop(modalState.workshop), modalState.workshop.resourceClaims),
       );
-    }
-    if (selectedUids.length > 0) {
+    } else if (selectedUids.length > 0) {
       for (const service of services) {
         if (selectedUids.includes(service.metadata.uid)) {
           if (service.kind === 'ResourceClaim') {
