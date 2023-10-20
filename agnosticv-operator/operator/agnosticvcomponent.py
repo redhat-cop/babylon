@@ -828,6 +828,8 @@ class AgnosticVComponent(KopfObject):
         if not self.catalog_disable:
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemName"] = self.name
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemNamespace"] = self.catalog_item_namespace
+            definition['spec']['statusSummaryTemplate']['catalog_item_name'] = self.name
+            definition['spec']['statusSummaryTemplate']['catalog_item_namespace'] = self.catalog_item_namespace
 
         for idx, linked_component in enumerate(self.linked_components):
             definition['spec'].setdefault('linkedResourceProviders', []).append({
