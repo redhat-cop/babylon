@@ -742,7 +742,7 @@ class AgnosticVComponent(KopfObject):
                         "stop-pending\n"
                         "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-pending']\") | length -%}\n"
                         "start-pending\n"
-                        "{%- elif 0 < resources | json_query("[?state.spec.vars && !contains(keys(state.spec.vars), 'current_state')]") | length -%}\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars && !contains(keys(state.spec.vars), 'current_state')]\") | length -%}\n"
                         "initalizing\n"
                         "{%- elif resources | length != resources | json_query(\"[?state]\") | length -%}\n"
                         "requested\n"
