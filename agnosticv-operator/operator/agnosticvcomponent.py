@@ -698,6 +698,14 @@ class AgnosticVComponent(KopfObject):
                 ],
                 "resourceRequiresClaim": self.resource_requires_claim,
                 "statusSummaryTemplate": {
+                    "agnosticv": {
+                        "account": self.account,
+                        "asset_uuid": self.asset_uuid,
+                        "path": self.path,
+                        "repo": self.agnosticv_repo,
+                        "short_name": self.short_name,
+                        "stage": self.stage,
+                    },
                     "provision_data": "{{ resources | default([]) | json_query('[].state.spec.vars.provision_data') | merge_list_of_dicts | object }}",
                     "runtime_default": "{{ runtime_default }}",
                     "runtime_maximum": "{{ runtime_maximum }}",
