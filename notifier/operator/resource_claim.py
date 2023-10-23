@@ -28,12 +28,22 @@ class ResourceClaim:
         self.definition = definition
 
     @property
+    def annotations(self):
+        return self.definition['metadata'].get('annotations', {})
+
+    @property
     def catalog_item_name(self):
-        return self.definition['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemName')
+        return self.definition.get('status', {}).get('summary', {}).get(
+            'catalog_item_name',
+            self.definition['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemName')
+        )
 
     @property
     def catalog_item_namespace(self):
-        return self.definition['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemNamespace')
+        return self.definition.get('status', {}).get('summary', {}).get(
+            'catalog_item_namespace',
+            self.definition['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemNamespace')
+        )
 
     @property
     def creation_timestamp(self):
@@ -113,7 +123,7 @@ class ResourceClaim:
 
     @property
     def notifier_disable(self):
-        return 'disable' == self.definition['metadata'].get('annotations', {}).get(f"babylon.gpte.redhat.com/notifier")
+        return 'disable' == self.annotations.get(f"babylon.gpte.redhat.com/notifier")
 
     @property
     def provision_complete(self):
@@ -197,7 +207,7 @@ class ResourceClaim:
 
     @property
     def service_url(self):
-        return self.definition['metadata'].get('annotations', {}).get('babylon.gpte.redhat.com/url')
+        return self.annotations.get('babylon.gpte.redhat.com/url')
 
     @property
     def start_deployer_jobs(self):
@@ -273,9 +283,9 @@ class ResourceClaim:
     def get_provision_data(self):
         merged_data = {}
         component_data = {}
-        for i, resource in enumerate(self.definition['spec']['resources']):
+        for i, resource in enumerate(self.definition.get('status', {}).get('resources', [])):
             try:
-                state = self.definition['status']['resources'][i]['state']
+                state = resource.get('state', {})
                 if state and state['kind'] == 'AnarchySubject':
                     resource_provision_data = state['spec']['vars']['provision_data']
                     merged_data = deep_update(merged_data, resource_provision_data)

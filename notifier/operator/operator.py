@@ -143,11 +143,7 @@ async def on_cleanup(**_):
     await redis_connection.close()
 
 @kopf.on.event(
-    Babylon.resource_broker_domain, Babylon.resource_broker_api_version, 'resourceclaims',
-    labels={
-        f"{Babylon.babylon_domain}/catalogItemName": kopf.PRESENT,
-        f"{Babylon.babylon_domain}/catalogItemNamespace": kopf.PRESENT,
-    }
+    Babylon.resource_broker_domain, Babylon.resource_broker_api_version, 'resourceclaims'
 )
 async def resourceclaim_event(event, logger, **_):
     resource_claim_definition = event.get('object')
@@ -190,7 +186,8 @@ async def resourceclaim_event(event, logger, **_):
     catalog_namespace = await CatalogNamespace.get(resource_claim.catalog_item_namespace)
     service_namespace = await ServiceNamespace.get(resource_claim.namespace)
 
-    email_addresses = service_namespace.contact_email_addresses
+    email_addresses = service_namespace.get_email_recipients(resource_claim)
+
     if only_send_to:
         if only_send_to in email_addresses:
             email_addresses = [only_send_to]
