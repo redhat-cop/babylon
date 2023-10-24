@@ -451,7 +451,7 @@ const ServicesItemComponent: React.FC<{
     }
     if (modalState.action === 'rate' || modalState.action === 'delete') {
       if (modalState.rating && (modalState.rating.rate !== null || modalState.rating.comment?.trim())) {
-        const provisionUuids = resourceClaim.status.resources
+        const provisionUuids = (resourceClaim.status?.resources || [])
           .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
           .filter(Boolean);
         for (const provisionUuid of provisionUuids) {
@@ -746,7 +746,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {resourceClaim.spec.resources?.length > 1 || resourceClaim.status?.summary ? (
+                  {resourceClaim.spec.resources?.length > 0 || resourceClaim.status?.summary ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Status</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -784,7 +784,7 @@ const ServicesItemComponent: React.FC<{
                     )}
                   >
                     <div>
-                      {(resourceClaim.status.resources || []).map((resourceStatus, idx) => {
+                      {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
                         const resourceState = resourceStatus?.state;
                         const componentDisplayName =
                           resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`];
@@ -839,7 +839,7 @@ const ServicesItemComponent: React.FC<{
                         return (
                           <ConditionalWrapper
                             key={idx}
-                            condition={resourceClaim.status.resources && resourceClaim.status.resources.length > 1}
+                            condition={resourceClaim.status?.resources && resourceClaim.status.resources.length > 1}
                             wrapper={(children) => (
                               <AccordionItem>
                                 <AccordionToggle
