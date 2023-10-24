@@ -743,7 +743,7 @@ class AgnosticVComponent(KopfObject):
                         "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-pending']\") | length -%}\n"
                         "start-pending\n"
                         "{%- elif 0 < resources | json_query(\"[?state.spec.vars && !contains(keys(state.spec.vars), 'current_state')]\") | length -%}\n"
-                        "initalizing\n"
+                        "initializing\n"
                         "{%- elif resources | length != resources | json_query(\"[?state]\") | length -%}\n"
                         "requested\n"
                         "{%- elif start_timestamp | default('1970-01-01T00:00:00Z') <= now(true, '%FT%TZ') and stop_timestamp | default('1970-01-01T00:00:00Z') > now(true, '%FT%TZ') -%}\n"
