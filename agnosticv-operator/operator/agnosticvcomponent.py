@@ -189,6 +189,10 @@ class AgnosticVComponent(KopfObject):
         return self.catalog_meta.get('icon', {})
 
     @property
+    def catalog_item_namespace(self):
+        return jinja2env.from_string(self.catalog_meta.get('namespace')).render(self.template_vars)
+
+    @property
     def catalog_keywords(self):
         return self.catalog_meta.get('keywords', [])
 
@@ -487,7 +491,7 @@ class AgnosticVComponent(KopfObject):
 
 
     def __catalog_item_definition(self):
-        namespace = jinja2env.from_string(self.catalog_meta.get('namespace')).render(self.template_vars)
+        namespace = self.catalog_item_namespace
 
         definition = {
             "apiVersion": Babylon.catalog_api_version,
@@ -694,6 +698,14 @@ class AgnosticVComponent(KopfObject):
                 ],
                 "resourceRequiresClaim": self.resource_requires_claim,
                 "statusSummaryTemplate": {
+                    "agnosticv": {
+                        "account": self.account,
+                        "asset_uuid": self.asset_uuid,
+                        "path": self.path,
+                        "repo": self.agnosticv_repo,
+                        "short_name": self.short_name,
+                        "stage": self.stage,
+                    },
                     "provision_data": "{{ resources | default([]) | json_query('[].state.spec.vars.provision_data') | merge_list_of_dicts | object }}",
                     "runtime_default": "{{ runtime_default }}",
                     "runtime_maximum": "{{ runtime_maximum }}",
@@ -730,6 +742,8 @@ class AgnosticVComponent(KopfObject):
                         "stop-pending\n"
                         "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-pending']\") | length -%}\n"
                         "start-pending\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars && !contains(keys(state.spec.vars), 'current_state')]\") | length -%}\n"
+                        "initalizing\n"
                         "{%- elif resources | length != resources | json_query(\"[?state]\") | length -%}\n"
                         "requested\n"
                         "{%- elif start_timestamp | default('1970-01-01T00:00:00Z') <= now(true, '%FT%TZ') and stop_timestamp | default('1970-01-01T00:00:00Z') > now(true, '%FT%TZ') -%}\n"
@@ -818,6 +832,12 @@ class AgnosticVComponent(KopfObject):
                 }
             }
         }
+
+        if not self.catalog_disable:
+            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemName"] = self.name
+            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemNamespace"] = self.catalog_item_namespace
+            definition['spec']['statusSummaryTemplate']['catalog_item_name'] = self.name
+            definition['spec']['statusSummaryTemplate']['catalog_item_namespace'] = self.catalog_item_namespace
 
         for idx, linked_component in enumerate(self.linked_components):
             definition['spec'].setdefault('linkedResourceProviders', []).append({

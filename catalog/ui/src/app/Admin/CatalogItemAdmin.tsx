@@ -90,6 +90,8 @@ const CatalogItemAdmin: React.FC = () => {
     if (status === 'operational') {
       setIsDisabled(false);
       setIsReadOnlyValue(true);
+      setJiraIssueId('');
+      setIncidentUrl('');
     } else if (status === 'major-outage') {
       setIsDisabled(true);
       setIsReadOnlyValue(true);
