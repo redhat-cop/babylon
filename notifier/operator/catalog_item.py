@@ -63,9 +63,8 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('provisionFailed', {}).
-            get('disabled', False)
+            get('disable', False)
         )
 
     @property
@@ -73,7 +72,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('provisionFailed', {}).
             get('emailSubject',
                 "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} has failed to provision"
@@ -85,9 +83,8 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('provisionStarted', {}).
-            get('disabled', False)
+            get('disable', False)
         )
 
     @property
@@ -95,7 +92,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('provisionStarted', {}).
             get('emailSubject',
                 "{{catalog_namespace.display_name}} service {{service_display_name}} has begun provisioning"
@@ -111,7 +107,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('retirementScheduled', {}).
             get('disable', False)
         )
@@ -121,7 +116,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('retirementScheduled', {}).
             get('emailSubject',
                 "{{catalog_namespace.display_name}} service {{service_display_name}} "
@@ -134,7 +128,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('serviceDeleted', {}).
             get('emailSubject',
                 "{{catalog_namespace.display_name}} service {{service_display_name}} has been deleted"
@@ -146,7 +139,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('serviceReady', {}).
             get('disable', False)
         )
@@ -156,7 +148,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('serviceReady', {}).
             get('emailSubject',
                 "{{catalog_namespace.display_name}} service {{service_display_name}} is ready"
@@ -168,7 +159,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('startComplete', {}).
             get('disable', False)
         )
@@ -178,7 +168,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('startComplete', {}).
             get('emailSubject',
                 "{{catalog_namespace.display_name}} service {{service_display_name}} has started"
@@ -190,7 +179,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('startFailed', {}).
             get('disable', False)
         )
@@ -200,7 +188,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('startFailed', {}).
             get('emailSubject',
                 "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} failed to start"
@@ -212,7 +199,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('stopComplete', {}).
             get('disable', False)
         )
@@ -222,7 +208,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('stopComplete', {}).
             get('emailSubject',
                 "{{catalog_namespace.display_name}} service {{service_display_name}} has stopped",
@@ -234,7 +219,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('stopFailed', {}).
             get('disable', False)
         )
@@ -244,7 +228,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('stopFailed', {}).
             get('emailSubject',
                 "ERROR: {{catalog_namespace.display_name}} service {{service_display_name}} failed to stop"
@@ -256,7 +239,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('stopScheduled', {}).
             get('disable', False)
         )
@@ -266,7 +248,6 @@ class CatalogItem:
         return (self.
             definition['spec'].
             get('messageTemplates', {}).
-            get('delete', {}).
             get('stopScheduled', {}).
             get('emailSubject',
                 "{{catalog_namespace.display_name}} service {{service_display_name}} "
