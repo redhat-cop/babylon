@@ -741,7 +741,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {resourceClaim.spec.resources?.length > 1 || resourceClaim.status?.summary ? (
+                  {resourceClaim.spec.resources?.length > 0 || resourceClaim.status?.summary ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Status</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -779,7 +779,7 @@ const ServicesItemComponent: React.FC<{
                     )}
                   >
                     <div>
-                      {(resourceClaim.status.resources || []).map((resourceStatus, idx) => {
+                      {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
                         const resourceState = resourceStatus?.state;
                         const componentDisplayName =
                           resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`];
@@ -834,7 +834,7 @@ const ServicesItemComponent: React.FC<{
                         return (
                           <ConditionalWrapper
                             key={idx}
-                            condition={resourceClaim.status.resources && resourceClaim.status.resources.length > 1}
+                            condition={resourceClaim.status?.resources && resourceClaim.status.resources.length > 1}
                             wrapper={(children) => (
                               <AccordionItem>
                                 <AccordionToggle
