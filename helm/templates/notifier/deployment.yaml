@@ -45,17 +45,17 @@ spec:
         - name: SMTP_TLS_KEY_FILE
           value: /smtp-tls/tls.key
         {{- end }}
-        {{- if $notifier.smtp.account }}
+        {{- if $notifier.smtp.auth }}
         - name: SMTP_USER
           valueFrom:
             secretKeyRef:
-              key: smtp_account
-              name: {{ ($notifier.smtp.tls).clientCertificateSecret | default "babylon-notifier-smtp-credentials" }}
+              key: smtp_user
+              name: {{ ($notifier.smtp.auth).secretName | default "babylon-notifier-smtp-credentials" }}
         - name: SMTP_USER_PASSWORD
           valueFrom:
             secretKeyRef:
               key: smtp_password
-              name: {{ ($notifier.smtp.tls).clientCertificateSecret | default "babylon-notifier-smtp-credentials" }}
+              name: {{ ($notifier.smtp.auth).secretName | default "babylon-notifier-smtp-credentials" }}
         {{- end }}
         - name: REDIS_HOST
           value: babylon-notifier-redis
