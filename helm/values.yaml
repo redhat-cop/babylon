@@ -150,7 +150,7 @@ notifier:
   image:
     repository: quay.io/redhat-gpte/babylon-notifier
     pullPolicy: IfNotPresent
-    tag: v0.6.0
+    tag: v0.6.1
   namespace:
     create: true
     name: babylon-notifier
