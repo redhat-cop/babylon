@@ -1,8 +1,8 @@
-aiohttp==3.8.5
-aiosmtplib==2.0.2
+aiohttp==3.8.6
+aiosmtplib==3.0.0
 html2text==2020.1.16
-humanize==4.7.0
+humanize==4.8.0
 Jinja2==3.1.2
-pydantic==1.10.2
+pydantic==2.4.1
 pytimeparse==1.1.8
-redis==4.6.0
+redis==5.0.1
