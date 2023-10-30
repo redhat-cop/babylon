@@ -85,6 +85,7 @@ Remove resources created from the helm template:
 ---------------------------------------------
 helm template helm \
 -f vars.yaml
+--set namespace.name=babylon-admin-dev \
 --set namespace.create=false \
 | oc delete -f -
 ---------------------------------------------
