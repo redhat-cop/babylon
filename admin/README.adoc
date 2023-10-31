@@ -72,7 +72,7 @@ db:
 helm template helm \
 -f vars.yaml \
 --set namespace.create=false \
---set namespace.name=babylon-admin-dev \
+--set namespace.name=babylon-admin \
 --set=image.tagOverride=- \
 --set=image.repository=$(oc get imagestream babylon-admin -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}') \
 | oc apply -f -
