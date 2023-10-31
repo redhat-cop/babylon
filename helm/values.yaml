@@ -120,9 +120,9 @@ catalog:
           memory: 256Mi
     route:
       certManager:
-        enable: true
+        enable: false
       certUtilsOperator:
-        enable: true
+        enable: false
       #host: <namespace>.<ingressDomain>
     ui:
       image:
