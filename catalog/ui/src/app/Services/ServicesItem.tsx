@@ -786,7 +786,7 @@ const ServicesItemComponent: React.FC<{
                       {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
                         const resourceState = resourceStatus?.state;
                         const componentDisplayName =
-                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`];
+                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] || resourceStatus?.name;
                         const currentState =
                           resourceState?.kind === 'AnarchySubject'
                             ? resourceState.spec.vars?.current_state
