@@ -31,10 +31,10 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   return catalogItems;
 }
 
-const RatingsModal: React.FC<{ ciName: string }> = ({ ciName }) => {
+const RatingsModal: React.FC<{ assetUuid: string }> = ({ assetUuid }) => {
   const { data: ratingsHistory } = useSWR<{
     ratings: { comment: string; rating: number; email: string; useful: boolean }[];
-  }>(ciName !== '' ? apiPaths.RATINGS_HISTORY({ ciName }) : null, fetcher);
+  }>(assetUuid !== '' ? apiPaths.RATINGS_HISTORY({ assetUuid }) : null, fetcher);
 
   return (
     <Table
@@ -196,8 +196,8 @@ const RatingsList: React.FC = () => {
     [searchString, _catalogItems, _catalogItemsCpy],
   );
 
-  function showRatingsHistory(ciName: string) {
-    setModalState(ciName);
+  function showRatingsHistory(assetUuid: string) {
+    setModalState(assetUuid);
     openRatingModal();
   }
 
@@ -242,8 +242,9 @@ const RatingsList: React.FC = () => {
               cells.push(
                 // Name
                 <>
-                  {ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] ? (
-                    <Button variant="link" onClick={() => showRatingsHistory(ci.metadata.name)}>
+                  {ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] && 
+                  ci.metadata.labels?.['gpte.redhat.com/asset-uuid'] ? (
+                    <Button variant="link" onClick={() => showRatingsHistory(ci.metadata.labels['gpte.redhat.com/asset-uuid'])}>
                       {ci.metadata.name}
                     </Button>
                   ) : (
@@ -264,9 +265,9 @@ const RatingsList: React.FC = () => {
           </Table>
         </PageSection>
       ) : null}
-      <Modal ref={ratingModal} onConfirm={() => setModalState('')} title={'Ratings ' + modalState} type="ack">
+      <Modal ref={ratingModal} onConfirm={() => setModalState('')} title={'Ratings History'} type="ack">
         <Suspense fallback={<LoadingSection />}>
-          <RatingsModal ciName={modalState} />
+          <RatingsModal assetUuid={modalState} />
         </Suspense>
       </Modal>
     </div>
