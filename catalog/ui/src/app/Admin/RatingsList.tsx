@@ -33,8 +33,8 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
 
 const RatingsModal: React.FC<{ assetUuid: string }> = ({ assetUuid }) => {
   const { data: ratingsHistory } = useSWR<{
-    ratings: { comment: string; rating: number; email: string; useful: boolean }[];
-  }>(assetUuid !== '' ? apiPaths.RATINGS_HISTORY({ assetUuid }) : null, fetcher);
+    comment: string; rating: number; email: string; useful: boolean;
+  }[]>(assetUuid !== '' ? apiPaths.RATINGS_HISTORY({ assetUuid }) : null, fetcher);
 
   return (
     <Table
@@ -43,7 +43,7 @@ const RatingsModal: React.FC<{ assetUuid: string }> = ({ assetUuid }) => {
       cells={['Email', 'Comment', 'Rating', 'Useful']}
       rows={
         ratingsHistory
-          ? ratingsHistory.ratings.map((r) => {
+          ? ratingsHistory.map((r) => {
               const cells: any[] = [];
               cells.push(
                 // Name

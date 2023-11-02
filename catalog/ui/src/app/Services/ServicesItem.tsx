@@ -50,7 +50,6 @@ import {
   K8sObject,
   NamespaceList,
   ResourceClaim,
-  ResourceHandleResource,
   ServiceActionActions,
   Workshop,
 } from '@app/types';
@@ -64,6 +63,7 @@ import {
   getStageFromK8sObject,
   compareK8sObjects,
   namespaceToServiceNamespaceMapper,
+  isLabDeveloper,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -95,8 +95,7 @@ import './services-item.css';
 const ComponentDetailsList: React.FC<{
   resourceState: AnarchySubject;
   isAdmin: boolean;
-  resourceClaim: ResourceClaim;
-  resourceStatus: ResourceHandleResource;
+  groups: string[];
   externalPlatformUrl: string;
   isPartOfWorkshop: boolean;
   startDate: Date;
@@ -108,8 +107,7 @@ const ComponentDetailsList: React.FC<{
 }> = ({
   resourceState,
   isAdmin,
-  resourceClaim,
-  resourceStatus,
+  groups,
   externalPlatformUrl,
   isPartOfWorkshop,
   startDate,
@@ -171,7 +169,7 @@ const ComponentDetailsList: React.FC<{
               <DescriptionListDescription>{provisionMessagesHtml}</DescriptionListDescription>
             </DescriptionListGroup>
           ) : null}
-          {isAdmin || (provisionDataEntries && provisionDataEntries.length > 0) ? (
+          {isAdmin || isLabDeveloper(groups) || (provisionDataEntries && provisionDataEntries.length > 0) ? (
             <ExpandableSection toggleText="Advanced settings">
               {provisionDataEntries && provisionDataEntries.length > 0 ? (
                 <DescriptionListGroup>
@@ -202,7 +200,7 @@ const ComponentDetailsList: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-              {isAdmin ? (
+              {isAdmin || isLabDeveloper(groups) ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>UUID</DescriptionListTerm>
                   <DescriptionListDescription>
@@ -254,7 +252,7 @@ const ComponentDetailsList: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-              {isAdmin && resourceState?.status?.towerJobs ? (
+              {(isAdmin || isLabDeveloper(groups)) && resourceState?.status?.towerJobs ? (
                 <DescriptionListGroup key="tower-jobs">
                   <DescriptionListTerm>Ansible Jobs</DescriptionListTerm>
                   <DescriptionListDescription>
@@ -291,7 +289,7 @@ const ServicesItemComponent: React.FC<{
 }> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [expanded, setExpanded] = useState([]);
 
@@ -859,8 +857,7 @@ const ServicesItemComponent: React.FC<{
                             <ComponentDetailsList
                               resourceState={resourceState}
                               isAdmin={isAdmin}
-                              resourceClaim={resourceClaim}
-                              resourceStatus={resourceStatus}
+                              groups={groups}
                               externalPlatformUrl={externalPlatformUrl}
                               isPartOfWorkshop={isPartOfWorkshop}
                               startDate={startDate}
