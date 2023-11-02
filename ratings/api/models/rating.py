@@ -3,7 +3,6 @@ from typing import Optional, List
 from datetime import datetime
 from sqlalchemy.orm import (
     Mapped,
-    backref,
     relationship,
     mapped_column,
     joinedload,
@@ -152,7 +151,7 @@ class Rating(CustomBase):
                 conditions.append(catalog_alias.name == catalog_name)
 
             stmt = stmt.where(or_(*conditions))
-            cls.debug_query(stmt)
+
             result = await session.execute(stmt)
 
             return result.scalars().all()
