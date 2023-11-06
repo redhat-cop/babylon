@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import {
   ActionGroup,
   Button,
+  Checkbox,
   Form,
   FormGroup,
   PageSection,
   PageSectionVariants,
   Popover,
+  Radio,
   Text,
   TextInput,
   Title,
@@ -40,6 +42,7 @@ const WorkshopLogin: React.FC<{
   const [accessPassword, setAccessPassword] = useState('');
   const [email, setEmail] = useState('');
   const [emailValidated, setEmailValidated] = useState<validateType>('default');
+  const [notifyMe, setNotifyMe] = useState('notifyMe');
   const submitDisabled = (workshop.accessPasswordRequired && !accessPassword) || emailValidated !== 'success';
 
   const handleEmail = (v: string) => {
@@ -125,6 +128,50 @@ const WorkshopLogin: React.FC<{
                 />
               </FormGroup>
             ) : null}
+            <FormGroup fieldId="notify" style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
+              <div>
+                <p className="workshop-login__checkbox-description">
+                  Red Hat may use your personal data to inform you about its products, services, and events.
+                </p>
+              </div>
+              <div className="workshop-login__checkbox">
+                <Radio
+                  id="notify-me"
+                  name="notify"
+                  label="Notify me about products, services, and events."
+                  isChecked={notifyMe === 'notifyMe'}
+                  onChange={() => setNotifyMe('notifyMe')}
+                />
+              </div>
+              <div>
+                <Radio
+                  className="workshop-login__checkbox"
+                  id="unsubscribe-me"
+                  name="notify"
+                  label="Unsubscribe me from all marketing communications about Red Hat products, services, and events, including event invitations. "
+                  isChecked={notifyMe === 'unsubscribeMe'}
+                  onChange={() => setNotifyMe('unsubscribeMe')}
+                />
+              </div>
+              <div>
+                <p className="workshop-login__checkbox-description">
+                  You can stop receiving marketing emails by clicking the unsubscribe link in each email or withdraw
+                  your consent at any time in the{' '}
+                  <a
+                    href="https://engage.redhat.com/Global-Preference-Center#unsubscribe_here"
+                    target="_blank"
+                    rel="external"
+                  >
+                    preference center
+                  </a>
+                  . See{' '}
+                  <a href="https://www.redhat.com/en/about/privacy-policy" target="_blank" rel="external">
+                    Privacy Statement
+                  </a>{' '}
+                  for details.
+                </p>
+              </div>
+            </FormGroup>
             <ActionGroup>
               <Button
                 type="submit"
