@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   ActionGroup,
   Button,
-  Checkbox,
   Form,
   FormGroup,
   PageSection,
@@ -21,6 +20,7 @@ import heroImg from '@app/bgimages/hero-img.jpeg';
 import EditorViewer from '@app/components/Editor/EditorViewer';
 import { WorkshopDetails } from './workshopApi';
 import { renderContent } from '@app/util';
+import { CountryDropdown } from 'react-country-region-selector';
 
 import './workshop-login.css';
 
@@ -41,8 +41,15 @@ const WorkshopLogin: React.FC<{
   }
   const [accessPassword, setAccessPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [country, setCountry] = useState('');
+  const [company, setCompany] = useState('');
+  const [jobRole, setJobRole] = useState('');
+  const [department, setDepartment] = useState('');
   const [emailValidated, setEmailValidated] = useState<validateType>('default');
   const [notifyMe, setNotifyMe] = useState('notifyMe');
+  const detailsRequired = notifyMe === 'notifyMe';
   const submitDisabled = (workshop.accessPasswordRequired && !accessPassword) || emailValidated !== 'success';
 
   const handleEmail = (v: string) => {
@@ -86,16 +93,6 @@ const WorkshopLogin: React.FC<{
               helperTextInvalid="Invalid email address"
               helperTextInvalidIcon={<ExclamationCircleIcon />}
               validated={emailValidated}
-              labelIcon={
-                <Popover
-                  bodyContent="Only used for identification purposes during this workshop. No email messages will be sent to this address."
-                  headerContent="Email Address"
-                >
-                  <Button variant="plain">
-                    <HelpIcon />
-                  </Button>
-                </Popover>
-              }
             >
               <TextInput
                 type="email"
@@ -128,6 +125,30 @@ const WorkshopLogin: React.FC<{
                 />
               </FormGroup>
             ) : null}
+            <FormGroup fieldId="firstName" label="First Name">
+              <TextInput type="text" id="firstName" onChange={(v) => setFirstName(v)} value={firstName} />
+            </FormGroup>
+            <FormGroup fieldId="lastName" label="Last Name">
+              <TextInput type="text" id="lastName" onChange={(v) => setLastName(v)} value={lastName} />
+            </FormGroup>
+            <FormGroup fieldId="country" isRequired={detailsRequired} label="Country">
+              <CountryDropdown value={country} onChange={(val) => setCountry(val)} />
+            </FormGroup>
+            <FormGroup fieldId="company" isRequired={detailsRequired} label="Company">
+              <TextInput
+                type="text"
+                id="company"
+                isRequired={detailsRequired}
+                onChange={(v) => setCompany(v)}
+                value={company}
+              />
+            </FormGroup>
+            <FormGroup fieldId="jobRole" label="Job Role">
+              <TextInput type="text" id="jobRole" onChange={(v) => setJobRole(v)} value={jobRole} />
+            </FormGroup>
+            <FormGroup fieldId="department" label="Department">
+              <TextInput type="text" id="department" onChange={(v) => setDepartment(v)} value={department} />
+            </FormGroup>
             <FormGroup fieldId="notify" style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
               <div>
                 <p className="workshop-login__checkbox-description">

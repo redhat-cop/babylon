@@ -22,8 +22,20 @@
   gap: var(--pf-global--spacer--md);
   box-shadow: 0 5px 12px 0 rgb(3 3 3 / 12%), 0 0 5px 0 rgb(3 3 3 / 6%);
 }
-.workshop-login__form-content input {
+.workshop-login__form-content input,
+.workshop-login__form-content select {
   max-width: 324px;
+}
+.workshop-login__form-content select {
+  height: var(--pf-c-form-control--Height);
+  text-overflow: ellipsis;
+  border-width: 1px;
+  border-color: rgb(240, 240, 240);
+  border-bottom-color: rgb(138, 141, 144);
+  border-style: solid;
+  font-size: 16px;
+  line-height: 24px;
+  padding: 5px 8px;
 }
 .workshop-login__title {
   justify-content: center;
