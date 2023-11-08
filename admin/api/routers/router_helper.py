@@ -1,5 +1,4 @@
 from fastapi import Query
-from enum import Enum
 
 
 def get_pagination_params(

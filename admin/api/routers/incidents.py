@@ -1,6 +1,7 @@
 from typing import List
 import logging
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import JSONResponse
 from schemas import IncidentSchema, IncidentCreate
 from models.babylon_admin import Incident
 from models import Database as db
@@ -28,11 +29,9 @@ async def incidents_list(status: str = Depends(get_status_params)
 
         incidents = await Incident.get_incidents_by_status(status_value)
         if not incidents:
-            raise HTTPException(status_code=404, detail="No incidents found")
+            return JSONResponse(status_code=200, content={"message": "No incidents found"})
 
         return incidents
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error getting incidents: {e}", stack_info=True)
         raise HTTPException(status_code=404, detail="Error getting incidents") from e
