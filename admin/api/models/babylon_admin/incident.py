@@ -1,18 +1,15 @@
 from __future__ import annotations
 from typing import Optional, List
-from sqlalchemy.orm import relationship
 from sqlalchemy import (
     Column,
     CheckConstraint,
-    DateTime,
     Integer,
     String,
     Text,
     select,
-    text,
     and_
 )
-from .. import Base, CustomBase, Database as db
+from .. import CustomBase, Database as db
 
 
 class Incident(CustomBase):
@@ -29,8 +26,6 @@ class Incident(CustomBase):
     incident_type = Column(String)
     level = Column(String)
     message = Column(Text)
-    created_at = Column(DateTime(True), nullable=False, server_default=text("now()"))
-    updated_at = Column(DateTime(True), nullable=False, server_default=text("now()"))
 
     async def check_existing(self) -> Optional[Incident]:
         async with db.get_session() as session:

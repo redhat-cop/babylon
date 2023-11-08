@@ -1,8 +1,7 @@
-from typing import List, Optional
+from typing import List
 import logging
-from fastapi import APIRouter, HTTPException, Depends, Request as FastAPIRequest
+from fastapi import APIRouter, HTTPException, Depends
 from schemas import IncidentSchema, IncidentCreate
-import sqlalchemy as sa
 from models.babylon_admin import Incident
 from models import Database as db
 from .router_helper import get_status_params
@@ -31,23 +30,23 @@ async def incidents_list(status: str = Depends(get_status_params)
         if not incidents:
             raise HTTPException(status_code=404, detail="No incidents found")
 
-        return incidents  # Retorna diretamente a lista de IncidentSchema
-    except HTTPException as e:
-        logger.error(f"Error getting incidents: {e}", stack_info=True)
-        raise HTTPException(status_code=404, detail="Error getting incidents") from e
+        return incidents
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting incidents: {e}", stack_info=True)
         raise HTTPException(status_code=404, detail="Error getting incidents") from e
 
 
-@router.post("/api/admin/v1/incidents", response_model=IncidentSchema)
+@router.post("/api/admin/v1/incidents",
+             response_model=IncidentSchema,
+             summary="Create incident")
 async def create_incident(incident_create: IncidentCreate):
     try:
         new_incident = Incident(**incident_create.dict())
         new_incident = await new_incident.save()
         return new_incident.to_dict(True)
     except Exception as e:
-        # Em caso de erro, retorne uma resposta de erro
         logger.error(f"Error creating incident: {e}", stack_info=True)
         raise HTTPException(status_code=500, detail="Error creating incident. Contact the administrator") from e
 
@@ -56,11 +55,8 @@ async def create_incident(incident_create: IncidentCreate):
              response_model=IncidentSchema,
              summary="Update incident by ID")
 async def update_incident(incident_id: int, incident: IncidentCreate):
-    async with db.get_session() as session:
-        stmt = sa.select(Incident)
-        stmt = stmt.where(Incident.id == incident_id)
-        result = await session.execute(stmt)
-        incident_db = result.scalars().first()
+    try:
+        incident_db = await Incident.get_incident_by_id(incident_id)
         if not incident_db:
             raise HTTPException(status_code=404, detail="Incident not found")
 
@@ -70,3 +66,8 @@ async def update_incident(incident_id: int, incident: IncidentCreate):
         incident_db.message = incident.message
         incident_db = await incident_db.save()
         return incident_db.to_dict(True)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating incident: {e}", stack_info=True)
+        raise HTTPException(status_code=500, detail="Error updating incident. Contact the administrator") from e

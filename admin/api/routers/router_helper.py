@@ -9,14 +9,6 @@ def get_pagination_params(
     return {"page": page, "per_page": per_page}
 
 
-
-
-# class IncidentStatus(str, Enum):
-#     active = "active"
-#     resolved = "resolved"
-#     all = "all"
-
-
 def get_status_params(
     status: str = Query(...,
                         example="active",
