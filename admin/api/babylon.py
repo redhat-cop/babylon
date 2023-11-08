@@ -7,8 +7,8 @@ class Babylon():
 
     @classmethod
     async def on_cleanup(cls):
-        cls.core_v1_api.api_client.close()
-        cls.custom_objects_api.api_client.close()
+        await cls.core_v1_api.api_client.close()
+        await cls.custom_objects_api.api_client.close()
 
     @classmethod
     async def on_startup(cls):

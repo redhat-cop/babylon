@@ -5,6 +5,22 @@
 deploy: true
 replicaCount: 2
 
+db:
+  # Create secrets for the database connection
+  deploy: true
+  # Maximum number of connections in the pool
+  maxOverflow: 20
+  # Time in seconds to recycle a connection in the pool
+  poolRecycle: 600
+  # Initial number of connections to create
+  poolSize: 5
+  #hostname: ''
+  #username: ''
+  #password: ''
+  #name: ''
+  port: 54327
+  secretName: database
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

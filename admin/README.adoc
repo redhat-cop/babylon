@@ -12,9 +12,86 @@ pip install -r requirements.txt
 
 === Running in Development
 
+==== Export environment variables for database connection
+
+You can get the values for these from the Bitwarden Password Manager and the
+`Demo Reporting` collection.
+-----------------------------------------------
+export DB_HOSTNAME=<<REDACTED>>
+export DB_USERNAME=<<REDATECT>>
+export DB_PASSWORD=<<REDACTED>>
+export DB_NAME=<<REDACTED>>
+export DB_PORT=<<REDACTED>>
+-----------------------------------------------
+
 Commands each time to start:
 
 ---------------------------------
 . ~/virtualenv/babylon-admin/bin/activate
 uvicorn app:app --host 0.0.0.0 --port 8080 --lifespan on --log-level info --log-config logconfig.yaml --reload
 ---------------------------------
+
+
+## Development OpenShift Build
+
+The OpenShift build process is a bit slower for development but has the advantage of being a bit closer to a normal deployment of poolboy.
+It is often best to iterate development using `odo` and also test with an OpenShift build and deployment prior to opening a pull request.
+
+. Create a project for development using `oc`:
++
+-----------------------------
+oc new-project babylon-admin-dev
+-----------------------------
+
+. Process OpenShift build template to create BuildConfig and ImageStream:
++
+---------------------------------------------------------
+oc process --local -f build-template.yaml | oc apply -f -
+---------------------------------------------------------
+
+. Build babylon-admin-dev image from local source:
++
+------------------------------------------------------------
+oc start-build babylon-admin --from-dir=.. --follow
+------------------------------------------------------------
+
+. Create `vars.yaml`` file with database connection information:
++
+--------------------------------------------------------------------------------
+db:
+  hostname: '<<database_hostname>>'
+  username: '<<database_username>>'
+  password: '<<database_password>>'
+  name: '<<database_name>>'
+  port: <<database_port>>
+--------------------------------------------------------------------------------
+
+. Deploy babylon-admin-dev from build image:
++
+--------------------------------------------------------------------------------
+helm template helm \
+-f vars.yaml \
+--set namespace.create=false \
+--set namespace.name=babylon-admin \
+--set=image.tagOverride=- \
+--set=image.repository=$(oc get imagestream babylon-admin -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}') \
+| oc apply -f -
+--------------------------------------------------------------------------------
+
+. Cleanup
++
+Remove resources created from the helm template:
++
+---------------------------------------------
+helm template helm \
+-f vars.yaml
+--set namespace.name=babylon-admin-dev \
+--set namespace.create=false \
+| oc delete -f -
+---------------------------------------------
++
+Remove BuildConfig and ImageStream:
++
+----------------------------------------------------------
+oc process --local -f build-template.yaml | oc delete -f -
+----------------------------------------------------------
