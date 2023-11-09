@@ -29,7 +29,7 @@ async def incidents_list(status: str = Depends(get_status_params)
 
         incidents = await Incident.get_incidents_by_status(status_value)
         if not incidents:
-            return JSONResponse(status_code=200, content={"message": "No incidents found"})
+            return JSONResponse(status_code=200, content=[])
 
         return incidents
     except Exception as e:
