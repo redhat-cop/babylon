@@ -81,7 +81,7 @@
   "dependencies": {
     "@lexical/react": "^0.11.1",
     "@monaco-editor/react": "^4.6.0",
-    "@patternfly/react-core": "4.278.0",
+    "@patternfly/react-core": "4.278.1",
     "@patternfly/react-icons": "^4.93.7",
     "@patternfly/react-styles": "^4.92.8",
     "@patternfly/react-table": "4.113.7",
