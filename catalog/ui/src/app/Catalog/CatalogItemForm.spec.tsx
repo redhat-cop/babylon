@@ -29,8 +29,9 @@ jest.mock('@app/utils/useSession', () =>
       generateSession({
         serviceNamespaces: [namespace as ServiceNamespace],
         userNamespace: namespace as UserNamespace,
+        groups: ['rhpds-devs', 'rhpds-admins'],
       }),
-  })),
+  }))
 );
 
 describe('CatalogItemForm Component', () => {
@@ -61,21 +62,21 @@ describe('CatalogItemForm Component', () => {
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
-      }),
+      })
     );
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
-      'input[type="checkbox"]',
+      'input[type="checkbox"]'
     );
     expect(termsOfServiceAck).not.toBeChecked();
     fireEvent.click(termsOfServiceAck);
     expect(termsOfServiceAck).toBeChecked();
     expect(button).toBeDisabled();
 
-    await userEvent.click(getByLabelText('Development'));
+    await userEvent.click(getByLabelText('Asset Development'));
     await userEvent.click(getByText('- Select purpose -').closest('button'));
-    await userEvent.click(getByText('Catalog item creation / maintenance'));
+    await userEvent.click(getByText('Other'));
     expect(button).toBeEnabled();
   });
 
@@ -83,7 +84,7 @@ describe('CatalogItemForm Component', () => {
     const { queryByText, getByLabelText } = render(<CatalogItemForm />);
 
     const sfidLabel = await waitFor(() =>
-      getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)'),
+      getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)')
     );
     const sfidDescriptionText = 'Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.';
     expect(queryByText(sfidDescriptionText)).not.toBeInTheDocument();
@@ -118,19 +119,19 @@ describe('CatalogItemForm Component', () => {
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
-      }),
+      })
     );
 
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
-      'input[type="checkbox"]',
+      'input[type="checkbox"]'
     );
 
     fireEvent.click(termsOfServiceAck);
-    await userEvent.click(getByLabelText('Development'));
+    await userEvent.click(getByLabelText('Asset Development'));
     await userEvent.click(getByText('- Select purpose -').closest('button'));
-    await userEvent.click(getByText('Catalog item creation / maintenance'));
+    await userEvent.click(getByText('Other'));
     await userEvent.click(getByLabelText('Enable workshop user interface'));
 
     expect(termsOfServiceAck).toBeChecked();
