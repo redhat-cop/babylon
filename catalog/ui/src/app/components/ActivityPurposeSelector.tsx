@@ -7,7 +7,7 @@ export const ActivityOpts = [
   { name: 'Customer Facing', id: 1 },
   { name: 'Partner Facing', id: 2 },
   { name: 'Practice / Enablement', id: 3 },
-  { name: 'Brand Event', id: 4, requiredRoles: [] },
+  { name: 'Brand Event', id: 4, requiredRoles: ['rhpds-devs-rh1','rhpds-admins'] },
   { name: 'Asset Development', id: 5, requiredRoles: ['rhpds-devs', 'rhpds-admins'] },
   { name: 'Admin', id: 6, requiredRoles: ['rhpds-admins'] },
 ];
@@ -146,7 +146,7 @@ export const PurposeOpts = [
     requireUserInput: true,
     sfdcRequired: false,
   },
-  { name: 'Tech Exchange', activityId: 4, id: 19, sfdcRequired: false },
+  { name: 'Red Hat One', activityId: 4, id: 19, sfdcRequired: false },
   { name: 'Summit', activityId: 4, id: 20, sfdcRequired: false },
   { name: 'AnsibleFest', activityId: 4, id: 21, sfdcRequired: false },
   { name: 'Other', activityId: 4, id: 22, requireUserInput: true, sfdcRequired: false },
