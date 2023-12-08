@@ -381,10 +381,10 @@ class AgnosticVRepo(CachedKopfObject):
             name = self.ssh_key_secret_name,
             namespace = self.namespace
         )
-        secret_data = secret.data.get('id_rsa')
+        secret_data = secret.data.get('ssh-privatekey', secret.data.get('id_rsa'))
         if not secret_data:
             raise kopf.TemporaryError(
-                f"Secret {self.ssh_key_secret_name} does not have id_rsa in data",
+                f"Secret {self.ssh_key_secret_name} does not have ssh-privatekey or id_rsa in data",
                 delay = 600,
             )
         return b64decode(secret_data).decode('utf-8')
