@@ -168,7 +168,7 @@ spec:
                 type: string
               sshKey:
                 description: >-
-                  Secret name containing Git access key in `id_rsa` data.
+                  Secret name containing Git access key in `id_rsa` or `ssh-privatekey` data.
                 type: string
               url:
                 description: >-
