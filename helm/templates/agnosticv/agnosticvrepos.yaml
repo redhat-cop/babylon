@@ -1,5 +1,7 @@
 {{- $agnosticv := $.Values.agnosticv }}
 {{- range $name, $repo := .Values.agnosticv.repositories }}
+{{- $ansibleRoles := ($repo.anarchy).ansibleRoles | default $.Values.anarchy.ansibleRoles }}
+{{- $ansibleRolesDeprecated := ($repo.anarchy).roles | default $.Values.anarchy.roles }}
 ---
 apiVersion: {{ $agnosticv.api.group }}/{{ $agnosticv.api.version }}
 kind: AgnosticVRepo
@@ -10,33 +12,41 @@ metadata:
   name: {{ $name }}
   namespace: {{ $.Values.configNamespace.name }}
 spec:
-{{ range $k, $v := $repo }}
-{{ if and (ne $k "anarchy") (ne $k "gitHub") (ne $k "sshKey") }}
+  {{- range $k, $v := $repo }}
+  {{- if and (ne $k "anarchy") (ne $k "gitHub") (ne $k "sshKey") }}
   {{- (dict $k $v) | toYaml | nindent 2 }}
-{{ end }}
-{{ end }}
-{{ with ($repo.anarchy).collections | default $.Values.anarchy.collections }}
+  {{- end }}
+  {{- end }}
+  {{- with ($repo.anarchy).collections | default $.Values.anarchy.collections }}
   babylonAnarchyCollections:
-  {{- . | toYaml | nindent 2 }}
-{{ end }}
-{{ with ($repo.anarchy).roles | default $.Values.anarchy.roles }}
+    {{- . | toYaml | nindent 2 }}
+  {{- end }}
+  {{- if $ansibleRolesDeprecated }}
   babylonAnarchyRoles:
-  {{- . | toYaml | nindent 2 }}
-{{ end }}
-{{ with $repo.gitHub }}
+    {{- $ansibleRolesDeprecated | toYaml | nindent 4 }}
+  {{- else }}
+  babylonAnarchyRoles:
+  {{- range $name := $ansibleRoles.pre }}
+  - name: {{ $name }}
+    {{- index $ansibleRoles.sources $name | toYaml | nindent 4 }}
+  {{- end }}
+  - name: babylon_anarchy_governor
+    {{- index $ansibleRoles.sources.babylon_anarchy_governor | toYaml | nindent 4 }}
+  {{- end }}
+{{- with $repo.gitHub }}
   gitHub:
-{{ if .tokenSecret }}
+{{- if .tokenSecret }}
     tokenSecret: {{ $repo.tokenSecret }}
-{{ else }}
+{{- else }}
     tokenSecret: {{ $name }}-github
-{{ end }}
-{{ range $k, $v := $repo.gitHub }}
-{{ if ne $k "tokenSecret" }}
+{{- end }}
+{{- range $k, $v := $repo.gitHub }}
+{{- if ne $k "tokenSecret" }}
     {{- (dict $k $v) | toYaml | nindent 4 }}
-{{ end }}
-{{ end }}
-{{ end }}
-{{ with $repo.sshKey }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- with $repo.sshKey }}
   sshKey: {{ . }}
-{{ end }}
-{{ end }}
+{{- end }}
+{{- end }}
