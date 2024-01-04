@@ -1,127 +1,71 @@
-import logging
-import psycopg2
 import os
-
-from asgi_tools import App, ResponseError
-from datetime import datetime, timezone
-from logging import Formatter, FileHandler
-from utils import execute_query
-from schema import Schema, And, Or, Use, Optional, SchemaError
-
+import logging
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from babylon import Babylon
+from routers import incidents
+from models import Database as db
+from models.custom_base import create_tables
+from datetime import datetime
 
-logger = logging.getLogger('babylon-admin-api')
 
-CREATE_INCIDENTS_TABLE = """CREATE TABLE IF NOT EXISTS incidents (
-                        id SERIAL PRIMARY KEY, 
-                        status varchar(50) NOT NULL,
-                        incident_type varchar(50),
-                        level varchar(50),
-                        message TEXT,
-                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                        CONSTRAINT check_status CHECK (status IN ('active', 'resolved')), 
-                        CONSTRAINT check_level CHECK (level IN ('critical', 'info', 'warning')), 
-                        CONSTRAINT check_incident_type CHECK (incident_type IN ('general'))
-                    );"""
-INSERT_INCIDENT = (
-    """INSERT INTO incidents (incident_type, status, level, message, updated_at, created_at) 
-    VALUES (%(incident_type)s, %(status)s, %(level)s, %(message)s, NOW(), NOW());"""
-)
-UPDATE_INCIDENT = (
-    """UPDATE incidents SET 
-        status = %(status)s, 
-        incident_type = %(incident_type)s,
-        level = %(level)s,
-        message = %(message)s, 
-        updated_at = NOW() 
-    WHERE id = %(incident_id)s;"""
-)
-GET_INCIDENTS_BY_STATUS = (
-    """SELECT * FROM incidents WHERE status = %(status)s;"""
-)
+logger = logging.getLogger('babylon-api')
 
-app = App()
 
-@app.on_startup
+app = FastAPI()
+
+
+@app.on_event("startup")
 async def on_startup():
     await Babylon.on_startup()
-    await execute_query(CREATE_INCIDENTS_TABLE)
+    await db.initialize()
+    await create_tables()
 
-@app.on_shutdown
+
+@app.on_event("shutdown")
 async def on_cleanup():
     await Babylon.on_cleanup()
+    await db.shutdown()
 
-@app.route("/", methods=['GET'])
-async def index(request):
-    return 200, '<h1>Babylon Admin API</h1>'
 
-@app.route("/api/admin/v1/incidents", methods=['GET'])
-async def incidents_get(request):
-    status = request.query.get("status", 'active')
-    query = await execute_query(GET_INCIDENTS_BY_STATUS, {
-                'status': status,
-            })
-    return query.get("result", [])
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    client_ip = request.client.host
+    msg = f"Index page requested by IP: {client_ip}"
+    user_agent = request.headers.get('user-agent')
+    msg += f", User-Agent: {user_agent}"
+    referer = request.headers.get('referer')
+    msg += f", Referer: {referer}"
+    request_method = request.method
+    msg += f", Method: {request_method}"
+    logger.warning(msg)
 
-@app.route("/api/admin/v1/incidents", methods=['POST'])
-async def create_incident(request):
-    schema = Schema({
-        "incident_type": And(str, len, lambda s: s in ('general')),
-        "status": And(str, len, lambda s: s in ('active', 'resolved')),
-        "level": And(str, len, lambda s: s in ('critical', 'info', 'warning')),
-        "message": And(str, len)
-    })
-    data = await request.data()
-    try:
-        schema.validate(data)
-    except Exception as e:
-        logger.info(f"Invalid incident params - {e}")
-        return 400, 'Invalid parameters'
-    status = data["status"]
-    incident_type = data["incident_type"]
-    level = data["level"]
-    message = data["message"]
-    logger.info(f"New incident {status} - {incident_type} - {message}")
-    try: 
-        await execute_query(INSERT_INCIDENT, {
-            'incident_type': incident_type,
-            'status': status,
-            'level': level,
-            'message': message
-        })
-    except:
-        return 400, 'Invalid parameters'
-    return 200, 'Incident created.'
+    return "<h1>Babylon Incident API</h1>"
 
-@app.route("/api/admin/v1/incidents/{incident_id}", methods=['POST'])
-async def update_incident(request):
-    schema = Schema({
-        "incident_type": And(str, len, lambda s: s in ('general')),
-        "status": And(str, len, lambda s: s in ('active', 'resolved')),
-        "level": And(str, len, lambda s: s in ('critical', 'info', 'warning')),
-        "message": And(str, len)
-    })
-    data = await request.data()
-    try:
-        schema.validate(data)
-    except Exception as e:
-        logger.info(f"Invalid incident params - {e}")
-        return 400, 'Invalid parameters'
-    incident_id = request.path_params.get("incident_id")
-    status = data["status"]
-    incident_type = data["incident_type"]
-    level = data["level"]
-    message = data["message"]
-    logger.info(f"Update incident {incident_id} - {status} - {incident_type} - {message}")
-    try: 
-        await execute_query(UPDATE_INCIDENT, {
-            'status': status,
-            'incident_type': incident_type,
-            'level': level,
-            'message': message,
-            'incident_id': incident_id
-        })
-    except:
-        return 400, 'Invalid parameters'
-    return 200, 'Incident updated.'
+
+@app.middleware("http")
+async def log_access(request: Request, call_next):
+    start_time = datetime.now()
+
+    response = await call_next(request)
+
+    end_time = datetime.now()
+    duration = (end_time - start_time).total_seconds() * 1000
+
+    log_data = {
+        "client_host": request.client.host,
+        "method": request.method,
+        "path": request.url.path,
+        "query": request.url.query,
+        "fragment": request.url.fragment,
+        "status_code": response.status_code,
+        "response_time": f"{duration}ms"
+    }
+
+    logger.info(log_data)
+
+    return response
+
+
+# Including Routers
+app.include_router(incidents.router)

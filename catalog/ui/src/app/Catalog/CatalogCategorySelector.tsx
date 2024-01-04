@@ -11,6 +11,8 @@ const CATEGORIES_DEFINITIONS = {
   demos: 'Environments used to showcase and demonstrate solutions to customers',
   workshops: 'Environments used to provide a hands-on experience to our customers with our solutions',
   open_environments: 'Environments allowing access to different cloud providers with a Chargeback component',
+  red_hat_one:
+    'Red Hat One is where the Global Sales organization unites as one selling, services, customer success, and partner team to move as one, from day one.',
 };
 
 const CatalogCategorySelector: React.FC<{
@@ -19,7 +21,7 @@ const CatalogCategorySelector: React.FC<{
   selected: string;
 }> = ({ catalogItems, onSelect, selected }) => {
   const categories = Array.from(
-    new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null)),
+    new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null))
   );
   categories.sort((a, b) => {
     const av = (a as string).toUpperCase();

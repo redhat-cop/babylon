@@ -30,7 +30,7 @@ const AllTheProviders = ({ children, history }) => {
 
 const customRender = (
   ui: ReactElement,
-  options?: { history: MemoryHistory } & Omit<RenderOptions, 'queries'>,
+  options?: { history: MemoryHistory } & Omit<RenderOptions, 'queries'>
 ): RenderResult<typeof queries> => {
   function getOptions({ history = createMemoryHistory({ initialEntries: ['/'] }), ...rest }) {
     return { rest, history };
@@ -64,6 +64,8 @@ export const generateSession = ({
     name: 'user-test-redhat-com',
     requester: 'test-redhat.com',
   } as UserNamespace,
+  roles = [],
+  groups = [],
 }) => ({
   email,
   isAdmin,
@@ -76,6 +78,6 @@ export const generateSession = ({
   ],
   serviceNamespaces,
   userNamespace,
-  groups: [],
-  roles: [],
+  groups,
+  roles,
 });

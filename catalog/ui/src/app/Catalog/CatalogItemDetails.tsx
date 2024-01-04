@@ -313,18 +313,24 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 .map(([attr, value]) => (
                   <DescriptionListGroup key={attr}>
                     <DescriptionListTerm>
-                      {formatString(attr)}
                       {attr === CUSTOM_LABELS.ESTIMATED_COST.key ? (
-                        <Tooltip content="Estimated hourly cost per instance">
-                          <InfoAltIcon
-                            style={{
-                              paddingTop: 'var(--pf-global--spacer--xs)',
-                              marginLeft: 'var(--pf-global--spacer--sm)',
-                              width: 'var(--pf-global--icon--FontSize--sm)',
-                            }}
-                          />
-                        </Tooltip>
-                      ) : null}
+                        <>
+                          {formatString(attr)}
+                          <Tooltip content="Estimated hourly cost per instance">
+                            <InfoAltIcon
+                              style={{
+                                paddingTop: 'var(--pf-global--spacer--xs)',
+                                marginLeft: 'var(--pf-global--spacer--sm)',
+                                width: 'var(--pf-global--icon--FontSize--sm)',
+                              }}
+                            />
+                          </Tooltip>
+                        </>
+                      ) : attr === CUSTOM_LABELS.SLA.key ? (
+                        'Service Level'
+                      ) : (
+                        formatString(attr)
+                      )}
                     </DescriptionListTerm>
                     <DescriptionListDescription>
                       {attr === CUSTOM_LABELS.RATING.key ? (

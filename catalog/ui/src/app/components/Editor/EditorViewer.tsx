@@ -74,7 +74,7 @@ const EditorViewer: React.FC<{
           },
         }}
       >
-        <RichTextPlugin contentEditable={<ContentEditable />} placeholder="" ErrorBoundary={LexicalErrorBoundary} />
+        <RichTextPlugin contentEditable={<ContentEditable />} placeholder={null} ErrorBoundary={LexicalErrorBoundary} />
       </LexicalComposer>
     </div>
   );

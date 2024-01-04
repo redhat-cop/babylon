@@ -47,12 +47,12 @@ class CatalogItemService:
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(
-                        f"{Babylon.ratings_api}/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}",
+                        f"{Babylon.ratings_api}/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}?catalog_name={self.catalog_item.name}",
                         ssl=False,
                     ) as resp:
                         if resp.status == 200:
                             self.logger.info(
-                                f"/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']} - {resp.status}"
+                                f"/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}?catalog_name={self.catalog_item.name} - {resp.status}"
                             )
                             response = await resp.json()
                             return Rating(
@@ -60,7 +60,7 @@ class CatalogItemService:
                                 response.get("total_ratings", 0),
                             )
                         self.logger.warn(
-                            f"/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']} - {resp.status}"
+                            f"/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}?catalog_name={self.catalog_item.name} - {resp.status}"
                         )
             except Exception as e:
                 self.logger.error(f"Invalid connection with {Babylon.ratings_api} - {e}")
