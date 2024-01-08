@@ -8,6 +8,9 @@ import {
   PageSectionVariants,
   Popover,
   Radio,
+  Select,
+  SelectOption,
+  SelectVariant,
   Text,
   TextInput,
   Title,
@@ -47,6 +50,8 @@ const WorkshopLogin: React.FC<{
   const [company, setCompany] = useState('');
   const [jobRole, setJobRole] = useState('');
   const [department, setDepartment] = useState('');
+  const [jobRoleIsOpen, setJobRoleIsOpen] = useState(false);
+  const [departmentIsOpen, setDepartmentIsOpen] = useState(false);
   const [emailValidated, setEmailValidated] = useState<validateType>('default');
   const [notifyMe, setNotifyMe] = useState('notifyMe');
   const detailsRequired = notifyMe === 'notifyMe';
@@ -125,11 +130,11 @@ const WorkshopLogin: React.FC<{
                 />
               </FormGroup>
             ) : null}
-            <FormGroup fieldId="firstName" label="First Name">
-              <TextInput type="text" id="firstName" onChange={(v) => setFirstName(v)} value={firstName} />
+            <FormGroup fieldId="firstName" label="First Name" isRequired>
+              <TextInput type="text" id="firstName" onChange={(v) => setFirstName(v)} value={firstName} isRequired />
             </FormGroup>
-            <FormGroup fieldId="lastName" label="Last Name">
-              <TextInput type="text" id="lastName" onChange={(v) => setLastName(v)} value={lastName} />
+            <FormGroup fieldId="lastName" label="Last Name" isRequired>
+              <TextInput type="text" id="lastName" onChange={(v) => setLastName(v)} value={lastName} isRequired />
             </FormGroup>
             <FormGroup fieldId="country" isRequired={detailsRequired} label="Country">
               <CountryDropdown value={country} onChange={(val) => setCountry(val)} />
@@ -143,11 +148,237 @@ const WorkshopLogin: React.FC<{
                 value={company}
               />
             </FormGroup>
-            <FormGroup fieldId="jobRole" label="Job Role">
-              <TextInput type="text" id="jobRole" onChange={(v) => setJobRole(v)} value={jobRole} />
+
+            <FormGroup fieldId="jobRole" label="Job Role" isRequired>
+              <Select
+                isOpen={jobRoleIsOpen}
+                onToggle={() => setJobRoleIsOpen((v) => !v)}
+                id="jobRole"
+                onSelect={(e, v) => {
+                  setJobRole(v.toString());
+                  setJobRoleIsOpen(false);
+                }}
+                selections={jobRole || '-'}
+                variant={SelectVariant.single}
+              >
+                <SelectOption key="Account Executive" value="Account Executive">
+                  Account Executive
+                </SelectOption>
+                <SelectOption key="Accounting" value="Accounting">
+                  Accounting
+                </SelectOption>
+                <SelectOption key="Analyst" value="Analyst">
+                  Analyst
+                </SelectOption>
+                <SelectOption key="Architect" value="Architect">
+                  Architect
+                </SelectOption>
+                <SelectOption key="Assistant" value="Assistant">
+                  Assistant
+                </SelectOption>
+                <SelectOption key="Automation Architect" value="Automation Architect">
+                  Automation Architect
+                </SelectOption>
+                <SelectOption key="CDO" value="CDO">
+                  CDO
+                </SelectOption>
+                <SelectOption key="CEO" value="CEO">
+                  CEO
+                </SelectOption>
+                <SelectOption key="CFO" value="CFO">
+                  CFO
+                </SelectOption>
+                <SelectOption key="Chairman" value="Chairman">
+                  Chairman
+                </SelectOption>
+                <SelectOption key="Chief Architect" value="Chief Architect">
+                  Chief Architect
+                </SelectOption>
+                <SelectOption key="Chief Scientist" value="Chief Scientist">
+                  Chief Scientist
+                </SelectOption>
+                <SelectOption key="CIO" value="CIO">
+                  CIO
+                </SelectOption>
+                <SelectOption key="CISO" value="CISO">
+                  CISO
+                </SelectOption>
+                <SelectOption key="CMO" value="CMO">
+                  CMO
+                </SelectOption>
+                <SelectOption key="Compliance Officer" value="Compliance Officer">
+                  Compliance Officer
+                </SelectOption>
+                <SelectOption key="Consultant" value="Consultant">
+                  Consultant
+                </SelectOption>
+                <SelectOption key="COO" value="COO">
+                  COO
+                </SelectOption>
+                <SelectOption key="CTO" value="CTO">
+                  CTO
+                </SelectOption>
+                <SelectOption key="Data Scientist" value="Data Scientist">
+                  Data Scientist
+                </SelectOption>
+
+                <SelectOption key="Database Administrator" value="Database Administrator">
+                  Database Administrator
+                </SelectOption>
+                <SelectOption key="Developer" value="Developer">
+                  Developer
+                </SelectOption>
+                <SelectOption key="Director" value="Director">
+                  Director
+                </SelectOption>
+                <SelectOption key="Engineer" value="Engineer">
+                  Engineer
+                </SelectOption>
+                <SelectOption key="Executive" value="Executive">
+                  Executive
+                </SelectOption>
+
+                <SelectOption key="Finance" value="Finance">
+                  Finance
+                </SelectOption>
+                <SelectOption key="General Counsel" value="General Counsel">
+                  General Counsel
+                </SelectOption>
+                <SelectOption key="Industry Analyst" value="Industry Analyst">
+                  Industry Analyst
+                </SelectOption>
+                <SelectOption key="IT Auditor" value="IT Auditor">
+                  IT Auditor
+                </SelectOption>
+                <SelectOption key="Lawyer" value="Lawyer">
+                  Lawyer
+                </SelectOption>
+                <SelectOption key="Legal Services" value="Legal Services">
+                  Legal Services
+                </SelectOption>
+                <SelectOption key="Manager" value="Manager">
+                  Manager
+                </SelectOption>
+                <SelectOption key="Media" value="Media">
+                  Media
+                </SelectOption>
+                <SelectOption key="Network Administrator" value="Network Administrator">
+                  Network Administrator
+                </SelectOption>
+                <SelectOption key="Owner" value="Owner">
+                  Owner
+                </SelectOption>
+                <SelectOption key="Partner" value="Partner">
+                  Partner
+                </SelectOption>
+                <SelectOption key="President" value="President">
+                  President
+                </SelectOption>
+                <SelectOption key="Procurement" value="Procurement">
+                  Procurement
+                </SelectOption>
+                <SelectOption key="Product Manager" value="Product Manager">
+                  Product Manager
+                </SelectOption>
+                <SelectOption key="Programmer" value="Programmer">
+                  Programmer
+                </SelectOption>
+                <SelectOption key="Purchasing" value="Purchasing">
+                  Purchasing
+                </SelectOption>
+                <SelectOption key="Programmer" value="Programmer">
+                  Programmer
+                </SelectOption>
+                <SelectOption key="Solicitor" value="Solicitor">
+                  Solicitor
+                </SelectOption>
+                <SelectOption key="Student" value="Student">
+                  Student
+                </SelectOption>
+                <SelectOption key="System Administrator" value="System Administrator">
+                  System Administrator
+                </SelectOption>
+                <SelectOption key="Vice President" value="Vice President">
+                  Vice President
+                </SelectOption>
+                <SelectOption key="Webmaster" value="Webmaster">
+                  Webmaster
+                </SelectOption>
+              </Select>
             </FormGroup>
-            <FormGroup fieldId="department" label="Department">
-              <TextInput type="text" id="department" onChange={(v) => setDepartment(v)} value={department} />
+            <FormGroup fieldId="department" label="Department" isRequired>
+              <Select
+                isOpen={departmentIsOpen}
+                onToggle={() => setDepartmentIsOpen((v) => !v)}
+                id="department"
+                onSelect={(e, v) => {
+                  setDepartment(v.toString());
+                  setDepartmentIsOpen(false);
+                }}
+                selections={department || '-'}
+                variant={SelectVariant.single}
+              >
+                <SelectOption key="IT - Applications / Development" value="IT - Applications / Development">
+                  IT - Applications / Development
+                </SelectOption>
+                <SelectOption key="IT - Business Intelligence" value="IT - Business Intelligence">
+                  IT - Business Intelligence
+                </SelectOption>
+                <SelectOption key="IT - Database" value="IT - Database">
+                  IT - Database
+                </SelectOption>
+                <SelectOption key="IT - Desktop / Help Desk" value="IT - Desktop / Help Desk">
+                  IT - Desktop / Help Desk
+                </SelectOption>
+                <SelectOption key="IT - Network" value="IT - Network">
+                  IT - Network
+                </SelectOption>
+                <SelectOption key="IT - Operations" value="IT - Operations">
+                  IT - Operations
+                </SelectOption>
+                <SelectOption key="IT - Project Management" value="IT - Project Management">
+                  IT - Project Management
+                </SelectOption>
+                <SelectOption key="IT - Quality / Testing" value="IT - Quality / Testing">
+                  IT - Quality / Testing
+                </SelectOption>
+                <SelectOption key="IT - Risk / Compliance / Security" value="IT - Risk / Compliance / Security">
+                  IT - Risk / Compliance / Security
+                </SelectOption>
+                <SelectOption key="IT - Server / Storage" value="IT - Server / Storage">
+                  IT - Server / Storage
+                </SelectOption>
+                <SelectOption key="IT - Telecom" value="IT - Telecom">
+                  IT - Telecom
+                </SelectOption>
+                <SelectOption key="IT - Web" value="IT - Web">
+                  IT - Web
+                </SelectOption>
+                <SelectOption key="Customer Service/Call Center" value="Customer Service/Call Center">
+                  Customer Service/Call Center
+                </SelectOption>
+                <SelectOption key="Executive Office" value="Executive Office">
+                  Executive Office
+                </SelectOption>
+                <SelectOption key="Finance" value="Finance">
+                  Finance
+                </SelectOption>
+                <SelectOption key="Human Resources" value="Human Resources">
+                  Human Resources
+                </SelectOption>
+                <SelectOption key="Legal" value="Legal">
+                  Legal
+                </SelectOption>
+                <SelectOption key="Marketing Communications" value="Marketing Communications">
+                  Marketing Communications
+                </SelectOption>
+                <SelectOption key="Research & Development" value="Research & Development">
+                  Research & Development
+                </SelectOption>
+                <SelectOption key="Sales" value="Sales">
+                  Sales
+                </SelectOption>
+              </Select>
             </FormGroup>
             <FormGroup fieldId="notify" style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
               <div>
