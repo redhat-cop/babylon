@@ -1,9 +1,8 @@
 import React from 'react';
 import { checkSalesforceId } from '@app/api';
-import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace } from '@app/types';
+import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, TPurposeOpts } from '@app/types';
 import parseDuration from 'parse-duration';
 import { isAutoStopDisabled } from './catalog-utils';
-import { ActivityOpts, PurposeOpts } from '@app/components/ActivityPurposeSelector';
 
 type ConditionValues = {
   [name: string]: boolean | number | string | string[] | undefined;
@@ -40,6 +39,7 @@ type FormState = {
   endDate: Date;
   activity: string;
   purpose: string;
+  purposeOpts: TPurposeOpts;
   explanation?: string;
   salesforceId: {
     required: boolean;
@@ -70,6 +70,7 @@ export type FormStateAction = {
   user?: UserProps;
   parameter?: ParameterProps;
   purpose?: string;
+  purposeOpts?: TPurposeOpts;
   activity?: string;
   explanation?: string;
   serviceNamespace?: ServiceNamespace;
@@ -303,6 +304,7 @@ function reduceFormStateInit(
     usePoolIfAvailable: true,
     activity: null,
     purpose: null,
+    purposeOpts: [],
     explanation: null,
     salesforceId: {
       required: false,
@@ -421,7 +423,8 @@ function reduceFormStatePurpose(
   initialState: FormState,
   activity: string,
   purpose: string,
-  explanation: string
+  explanation: string,
+  purposeOpts: TPurposeOpts
 ): FormState {
   return {
     ...initialState,
@@ -432,13 +435,13 @@ function reduceFormStatePurpose(
     activity,
     purpose,
     explanation,
+    purposeOpts,
   };
 }
 
 function salesforceIdRequired(state: FormState): boolean {
   if (state.purpose) {
-    const a = ActivityOpts.find((a) => a.name === state.activity);
-    const p = PurposeOpts.find((p) => a.id === p.activityId && state.purpose.startsWith(p.name));
+    const p = state.purposeOpts.find((p) => state.activity === p.activity && state.purpose.startsWith(p.name));
     if (p.sfdcRequired) return true;
   }
   if (state.user.isAdmin) return false;
@@ -470,7 +473,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         isValid: action.parameter.isValid,
       });
     case 'purpose':
-      return reduceFormStatePurpose(state, action.activity, action.purpose, action.explanation);
+      return reduceFormStatePurpose(state, action.activity, action.purpose, action.explanation, action.purposeOpts);
     case 'salesforceId':
       return reduceFormStateSalesforceId(state, action.salesforceId);
     case 'serviceNamespace':

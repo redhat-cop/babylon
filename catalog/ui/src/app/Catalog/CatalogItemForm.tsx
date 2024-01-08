@@ -38,14 +38,14 @@ import {
   createWorkshopProvision,
   fetcher,
 } from '@app/api';
-import { CatalogItem } from '@app/types';
+import { CatalogItem, TPurposeOpts } from '@app/types';
 import { displayName, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import DynamicFormInput from '@app/components/DynamicFormInput';
-import ActivityPurposeSelector, { ActivityOpts, PurposeOpts } from '@app/components/ActivityPurposeSelector';
+import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
 import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
@@ -67,7 +67,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
-    fetcher,
+    fetcher
   );
   const _displayName = displayName(catalogItem);
   const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), []);
@@ -82,7 +82,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
       provisionStartDelay: 30,
     }),
-    [catalogItem],
+    [catalogItem]
   );
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
   const [formState, dispatchFormState] = useReducer(
@@ -92,21 +92,19 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       catalogItem,
       serviceNamespace: userNamespace,
       user: { groups, roles, isAdmin },
-    }),
+    })
   );
   let maxAutoDestroyTime = Math.min(
     parseDuration(catalogItem.spec.lifespan?.maximum),
-    parseDuration(catalogItem.spec.lifespan?.relativeMaximum),
+    parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
   );
   let maxAutoStopTime = parseDuration(catalogItem.spec.runtime?.maximum);
   if (formState.parameters['open_environment']?.value === true) {
     maxAutoDestroyTime = parseDuration('365d');
     maxAutoStopTime = maxAutoDestroyTime;
   }
-  const activityObj = ActivityOpts.find((a) => a.name === formState.activity);
-  const purposeObj = PurposeOpts.find(
-    (p) => activityObj && formState.purpose && activityObj.id === p.activityId && formState.purpose.startsWith(p.name),
-  );
+  const purposeOpts: TPurposeOpts = catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema.enum;
+  const purposeObj = purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name));
   const submitRequestEnabled = checkEnableSubmit(formState) && !isLoading;
 
   useEffect(() => {
@@ -120,7 +118,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       scheduled,
     }: {
       scheduled: { startDate: Date; endDate: Date; stopDate: Date };
-    } = { scheduled: null },
+    } = { scheduled: null }
   ): Promise<void> {
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
@@ -196,7 +194,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 date: formState.startDate,
                 type: 'resource',
                 autoStop: new Date(
-                  scheduled.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h'),
+                  scheduled.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h')
                 ),
               },
             }
@@ -294,12 +292,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         <>
           <ActivityPurposeSelector
             value={{ purpose: formState.purpose, activity: formState.activity }}
+            purposeOpts={purposeOpts}
             onChange={(activity: string, purpose: string, explanation: string) => {
               dispatchFormState({
                 type: 'purpose',
                 activity,
                 purpose,
                 explanation,
+                purposeOpts,
               });
             }}
           />
@@ -377,7 +377,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           // check if there is an invalid parameter in the form group
           const invalidParameter = formGroup.parameters.find(
             (parameter) =>
-              !parameter.isDisabled && (parameter.isValid === false || parameter.validationResult === false),
+              !parameter.isDisabled && (parameter.isValid === false || parameter.validationResult === false)
           );
           // status is error if found an invalid parameter
           // status is success if all form group parameters are validated.
