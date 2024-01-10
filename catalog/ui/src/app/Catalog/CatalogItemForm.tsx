@@ -84,6 +84,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }),
     [catalogItem]
   );
+  const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
+    ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema.enum || []
+    : [];
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
@@ -92,6 +95,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       catalogItem,
       serviceNamespace: userNamespace,
       user: { groups, roles, isAdmin },
+      purposeOpts,
     })
   );
   let maxAutoDestroyTime = Math.min(
@@ -103,9 +107,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     maxAutoDestroyTime = parseDuration('365d');
     maxAutoStopTime = maxAutoDestroyTime;
   }
-  const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
-    ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema.enum || []
-    : [];
   const purposeObj =
     purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
   const submitRequestEnabled = checkEnableSubmit(formState) && !isLoading;
@@ -303,7 +304,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   activity,
                   purpose,
                   explanation,
-                  purposeOpts,
                 });
               }}
             />
