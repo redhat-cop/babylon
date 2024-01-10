@@ -70,7 +70,7 @@
         "validation": "check_salesforce_id(salesforce_id)"
       },
       {
-        "annotation": "pfe.redhat.com/purpose",
+        "annotation": "demo.redhat.com/purpose",
         "description": "Purpose for this service.",
         "formLabel": "Purpose",
         "name": "purpose",

@@ -241,7 +241,8 @@ export async function checkConditionsInFormState(
 function reduceFormStateInit(
   catalogItem: CatalogItem,
   serviceNamespace: ServiceNamespace,
-  { isAdmin, groups, roles }
+  { isAdmin, groups, roles },
+  purposeOpts: TPurposeOpts
 ): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
@@ -304,7 +305,7 @@ function reduceFormStateInit(
     usePoolIfAvailable: true,
     activity: null,
     purpose: null,
-    purposeOpts: [],
+    purposeOpts,
     explanation: null,
     salesforceId: {
       required: false,
@@ -423,8 +424,7 @@ function reduceFormStatePurpose(
   initialState: FormState,
   activity: string,
   purpose: string,
-  explanation: string,
-  purposeOpts: TPurposeOpts
+  explanation: string
 ): FormState {
   return {
     ...initialState,
@@ -435,7 +435,6 @@ function reduceFormStatePurpose(
     activity,
     purpose,
     explanation,
-    purposeOpts,
   };
 }
 
@@ -465,7 +464,7 @@ function reduceFormStateSalesforceId(
 export function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'init':
-      return reduceFormStateInit(action.catalogItem, action.serviceNamespace, action.user);
+      return reduceFormStateInit(action.catalogItem, action.serviceNamespace, action.user, action.purposeOpts);
     case 'parameterUpdate':
       return reduceFormStateParameterUpdate(state, {
         name: action.parameter.name,
@@ -473,7 +472,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         isValid: action.parameter.isValid,
       });
     case 'purpose':
-      return reduceFormStatePurpose(state, action.activity, action.purpose, action.explanation, action.purposeOpts);
+      return reduceFormStatePurpose(state, action.activity, action.purpose, action.explanation);
     case 'salesforceId':
       return reduceFormStateSalesforceId(state, action.salesforceId);
     case 'serviceNamespace':
