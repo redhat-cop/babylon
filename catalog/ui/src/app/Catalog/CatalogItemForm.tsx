@@ -103,8 +103,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     maxAutoDestroyTime = parseDuration('365d');
     maxAutoStopTime = maxAutoDestroyTime;
   }
-  const purposeOpts: TPurposeOpts = catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema.enum;
-  const purposeObj = purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name));
+  const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
+    ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema.enum || []
+    : [];
+  const purposeObj =
+    purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
   const submitRequestEnabled = checkEnableSubmit(formState) && !isLoading;
 
   useEffect(() => {
@@ -289,86 +292,90 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        <>
-          <ActivityPurposeSelector
-            value={{ purpose: formState.purpose, activity: formState.activity }}
-            purposeOpts={purposeOpts}
-            onChange={(activity: string, purpose: string, explanation: string) => {
-              dispatchFormState({
-                type: 'purpose',
-                activity,
-                purpose,
-                explanation,
-                purposeOpts,
-              });
-            }}
-          />
+        {purposeOpts.length > 0 ? (
+          <>
+            <ActivityPurposeSelector
+              value={{ purpose: formState.purpose, activity: formState.activity }}
+              purposeOpts={purposeOpts}
+              onChange={(activity: string, purpose: string, explanation: string) => {
+                dispatchFormState({
+                  type: 'purpose',
+                  activity,
+                  purpose,
+                  explanation,
+                  purposeOpts,
+                });
+              }}
+            />
 
-          <FormGroup
-            fieldId="salesforce_id"
-            isRequired={formState.salesforceId.required}
-            label={
-              <span>
-                Salesforce ID{' '}
-                <span
-                  style={{
-                    fontSize: 'var(--pf-global--FontSize--xs)',
-                    color: 'var(--pf-global--palette--black-600)',
-                    fontStyle: 'italic',
-                    fontWeight: 400,
-                  }}
-                >
-                  (Opportunity ID, Campaign ID, CDH Party or Project ID)
+            <FormGroup
+              fieldId="salesforce_id"
+              isRequired={formState.salesforceId.required}
+              label={
+                <span>
+                  Salesforce ID{' '}
+                  <span
+                    style={{
+                      fontSize: 'var(--pf-global--FontSize--xs)',
+                      color: 'var(--pf-global--palette--black-600)',
+                      fontStyle: 'italic',
+                      fontWeight: 400,
+                    }}
+                  >
+                    (Opportunity ID, Campaign ID, CDH Party or Project ID)
+                  </span>
                 </span>
-              </span>
-            }
-            helperTextInvalid={
-              <FormHelperText icon={<ExclamationCircleIcon />} isError isHidden={false}>
-                {purposeObj && purposeObj.sfdcRequired
-                  ? 'A valid Salesforce ID is required for the selected activity / purpose'
-                  : null}
-              </FormHelperText>
-            }
-            validated={
-              formState.salesforceId.valid
-                ? 'default'
-                : formState.salesforceId.value && formState.salesforceId.required && formState.conditionChecks.completed
-                ? 'error'
-                : 'default'
-            }
-          >
-            <div className="catalog-item-form__group-control--single">
-              <TextInput
-                type="text"
-                key="salesforce_id"
-                id="salesforce_id"
-                onChange={(value) =>
-                  dispatchFormState({
-                    type: 'salesforceId',
-                    salesforceId: { ...formState.salesforceId, value, valid: false },
-                  })
-                }
-                value={formState.salesforceId.value || ''}
-                validated={
-                  formState.salesforceId.value && formState.salesforceId.valid
-                    ? 'default'
-                    : formState.salesforceId.value && formState.conditionChecks.completed
-                    ? 'error'
-                    : 'default'
-                }
-              />
-              <Tooltip
-                position="right"
-                content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
-              >
-                <OutlinedQuestionCircleIcon
-                  aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
-                  className="tooltip-icon-only"
+              }
+              helperTextInvalid={
+                <FormHelperText icon={<ExclamationCircleIcon />} isError isHidden={false}>
+                  {purposeObj && purposeObj.sfdcRequired
+                    ? 'A valid Salesforce ID is required for the selected activity / purpose'
+                    : null}
+                </FormHelperText>
+              }
+              validated={
+                formState.salesforceId.valid
+                  ? 'default'
+                  : formState.salesforceId.value &&
+                    formState.salesforceId.required &&
+                    formState.conditionChecks.completed
+                  ? 'error'
+                  : 'default'
+              }
+            >
+              <div className="catalog-item-form__group-control--single">
+                <TextInput
+                  type="text"
+                  key="salesforce_id"
+                  id="salesforce_id"
+                  onChange={(value) =>
+                    dispatchFormState({
+                      type: 'salesforceId',
+                      salesforceId: { ...formState.salesforceId, value, valid: false },
+                    })
+                  }
+                  value={formState.salesforceId.value || ''}
+                  validated={
+                    formState.salesforceId.value && formState.salesforceId.valid
+                      ? 'default'
+                      : formState.salesforceId.value && formState.conditionChecks.completed
+                      ? 'error'
+                      : 'default'
+                  }
                 />
-              </Tooltip>
-            </div>
-          </FormGroup>
-        </>
+                <Tooltip
+                  position="right"
+                  content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+                >
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
+                    className="tooltip-icon-only"
+                  />
+                </Tooltip>
+              </div>
+            </FormGroup>
+          </>
+        ) : null}
         {formState.formGroups.map((formGroup, formGroupIdx) => {
           // do not render form group if all parameters for formGroup are hidden
           if (formGroup.parameters.every((parameter) => parameter.isHidden)) {
@@ -407,37 +414,39 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               validated={status}
             >
               {formGroup.parameters
-                .filter((p) => !p.isHidden)
-                .map((parameterState) => (
-                  <div
-                    className={`catalog-item-form__group-control--${
-                      formGroup.parameters.length > 1 ? 'multi' : 'single'
-                    }`}
-                    key={parameterState.spec.name}
-                  >
-                    <DynamicFormInput
-                      id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
-                      isDisabled={parameterState.isDisabled}
-                      parameter={parameterState.spec}
-                      validationResult={parameterState.validationResult}
-                      value={parameterState.value}
-                      onChange={(value: boolean | number | string, isValid = true) => {
-                        dispatchFormState({
-                          type: 'parameterUpdate',
-                          parameter: { name: parameterState.spec.name, value, isValid },
-                        });
-                      }}
-                    />
-                    {parameterState.spec.description ? (
-                      <Tooltip position="right" content={<div>{parameterState.spec.description}</div>}>
-                        <OutlinedQuestionCircleIcon
-                          aria-label={parameterState.spec.description}
-                          className="tooltip-icon-only"
+                ? formGroup.parameters
+                    .filter((p) => !p.isHidden)
+                    .map((parameterState) => (
+                      <div
+                        className={`catalog-item-form__group-control--${
+                          formGroup.parameters.length > 1 ? 'multi' : 'single'
+                        }`}
+                        key={parameterState.spec.name}
+                      >
+                        <DynamicFormInput
+                          id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
+                          isDisabled={parameterState.isDisabled}
+                          parameter={parameterState.spec}
+                          validationResult={parameterState.validationResult}
+                          value={parameterState.value}
+                          onChange={(value: boolean | number | string, isValid = true) => {
+                            dispatchFormState({
+                              type: 'parameterUpdate',
+                              parameter: { name: parameterState.spec.name, value, isValid },
+                            });
+                          }}
                         />
-                      </Tooltip>
-                    ) : null}
-                  </div>
-                ))}
+                        {parameterState.spec.description ? (
+                          <Tooltip position="right" content={<div>{parameterState.spec.description}</div>}>
+                            <OutlinedQuestionCircleIcon
+                              aria-label={parameterState.spec.description}
+                              className="tooltip-icon-only"
+                            />
+                          </Tooltip>
+                        ) : null}
+                      </div>
+                    ))
+                : null}
             </FormGroup>
           );
         })}

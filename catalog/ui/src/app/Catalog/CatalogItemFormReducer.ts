@@ -505,13 +505,15 @@ export function checkEnableSubmit(state: FormState): boolean {
     return false;
   }
 
-  if (!state.purpose || !state.activity) {
-    return false;
+  if (state.purposeOpts.length > 0) {
+    if (!state.purpose || !state.activity) {
+      return false;
+    }
+    if (state.salesforceId.required && !state.salesforceId.valid) {
+      return false;
+    }
   }
 
-  if (state.salesforceId.required && !state.salesforceId.valid) {
-    return false;
-  }
   for (const parameter of Object.values(state.parameters)) {
     if (!parameter.isDisabled && !parameter.isHidden) {
       if (parameter.value === undefined || parameter.value === null) {

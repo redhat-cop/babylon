@@ -424,7 +424,7 @@ export async function createServiceRequest({
           : parameter.value;
 
       // Set annotation for parameter
-      if (parameter.annotation && value !== undefined) {
+      if (parameter.annotation && value !== undefined && parameter.name !== 'purpose') {
         requestResourceClaim.metadata.annotations[parameter.annotation] = String(value);
       }
 
