@@ -10,7 +10,7 @@ RUN find ./previous -type f ! -newer ./timestamp -exec rm {} \;
 FROM registry.redhat.io/rhel9/nodejs-16-minimal:latest AS builder
 USER root 
 WORKDIR /build
-ARG STATUS_PAGE_ID
+
 ARG MONITOR_ENABLED
 ARG TRACKING_ENABLED
 ARG OPTIONAL_FLAGS

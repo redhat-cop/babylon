@@ -11,11 +11,13 @@ import {
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './header.css';
 
 const PublicHeader: React.FC = () => {
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
+  const { help_link } = useInterfaceConfig();
   const navigate = useNavigate();
 
   function LogoImg() {
@@ -23,7 +25,7 @@ const PublicHeader: React.FC = () => {
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    window.open('https://red.ht/open-support', '_blank');
+    window.open(help_link, '_blank');
   };
 
   const UserHelpDropdownItems = [
@@ -71,7 +73,7 @@ const PublicHeader: React.FC = () => {
         onClick={() =>
           window.open(
             'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
-            '_blank',
+            '_blank'
           )
         }
       >
