@@ -29,7 +29,7 @@ const WorkshopActions: React.FC<{
         isDisabled={!actionHandlers.deleteService}
         label="Delete Selected Services"
         onSelect={actionHandlers.deleteService}
-      />
+      />,
     );
   actionHandlers.start &&
     actionDropdownItems.push(
@@ -38,7 +38,7 @@ const WorkshopActions: React.FC<{
         isDisabled={!actionHandlers.start}
         label="Start Workshop instances"
         onSelect={actionHandlers.start}
-      />
+      />,
     );
   actionHandlers.stop &&
     actionDropdownItems.push(
@@ -47,7 +47,7 @@ const WorkshopActions: React.FC<{
         isDisabled={!actionHandlers.stop}
         label="Stop Workshop instances"
         onSelect={actionHandlers.stop}
-      />
+      />,
     );
 
   return (

@@ -1,0 +1,27 @@
+{{- range $namespace, $_interface := .Values.catalog.interfaces }}
+{{- $interface := merge $_interface (deepCopy $.Values.catalog.defaults) }}
+{{- $domain := $interface.route.host | default (printf "%s.%s" $namespace $.Values.ingressDomain) }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  {{- if $interface.route.certUtilsOperator.enable }}
+  annotations:
+    cert-utils-operator.redhat-cop.io/certs-from-secret: babylon-catalog-tls
+  {{- end }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: oauth-proxy
+  name: babylon-catalog
+  namespace: {{ $namespace }}
+spec:
+  host: {{ $domain }}
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: reencrypt
+  to:
+    kind: Service
+    name: babylon-catalog-oauth-proxy
+    weight: 100
+  wildcardPolicy: None
+{{- end }}

@@ -3,6 +3,7 @@ import { Button } from '@patternfly/react-core';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import ButtonCircleIcon from './ButtonCircleIcon';
 import useSession from '@app/utils/useSession';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
 
 function submitFormFromLink(e: any) {
   e.preventDefault();
@@ -15,7 +16,9 @@ const LabInterfaceLink: React.FC<{
   url: string;
   variant?: 'primary' | 'secondary' | 'circle';
 }> = ({ data, method, url, variant }) => {
-  const { authUser: user } = useSession().getSession();
+  const { authUser } = useSession().getSession();
+  const { userImpersonated } = useImpersonateUser();
+  const user = userImpersonated || authUser;
   const email = user.includes('@')
     ? user
     : user.includes('-')

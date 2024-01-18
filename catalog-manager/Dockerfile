@@ -4,8 +4,7 @@ USER root
 
 COPY . /tmp/src
 
-RUN dnf install -y @ruby && \
-    rm -rf /tmp/src/.git* && \
+RUN rm -rf /tmp/src/.git* && \
     chown -R 1001 /tmp/src && \
     chgrp -R 0 /tmp/src && \
     chmod -R g+w /tmp/src

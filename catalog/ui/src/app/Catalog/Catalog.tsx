@@ -60,6 +60,8 @@ import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogContent from './CatalogContent';
+import IncidentsBanner from '@app/components/IncidentsBanner';
+import AdminSelector from './AdminSelector';
 
 import './catalog.css';
 
@@ -131,8 +133,8 @@ function handleExportCsv(catalogItems: CatalogItem[]) {
   asyncParser.input.push(null);
 }
 
-function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: string[]) {
-  return 'deny' !== checkAccessControl(catalogItem.spec.accessControl, userGroups);
+function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: string[], isAdmin: boolean) {
+  return 'deny' !== checkAccessControl(catalogItem.spec.accessControl, userGroups, isAdmin);
 }
 
 function filterCatalogItemByCategory(catalogItem: CatalogItem, selectedCategory: string) {
@@ -177,6 +179,20 @@ function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [att
   return true;
 }
 
+function filterCatalogItemByAdminFilter(catalogItem: CatalogItem, statuses: string[]) {
+  if (!statuses || statuses.length === 0) return true;
+  const ann = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`];
+  if (ann) {
+    const ops = JSON.parse(ann);
+    if (ops.status?.id && statuses && statuses.includes(ops.status.id)) {
+      return true;
+    }
+  } else {
+    return statuses && statuses.includes('operational');
+  }
+  return false;
+}
+
 function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
   const urlParams = new URLSearchParams(urlParmsString);
   if (urlParams.has('item')) {
@@ -192,7 +208,7 @@ function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
     return await fetcherItemsInAllPages((continueId) =>
-      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     );
   }
   const catalogItems: CatalogItem[] = [];
@@ -230,9 +246,14 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const searchString = searchParams.has('search') ? searchParams.get('search').trim() : null;
   const selectedCategory = searchParams.has('category') ? searchParams.get('category') : null;
   const labelsString = searchParams.has('labels') ? searchParams.get('labels') : null;
+  const adminStatusString = searchParams.has('adminStatus') ? searchParams.get('adminStatus') : null;
+  const selectedAdminFilter: string[] = useMemo(
+    () => (adminStatusString ? JSON.parse(adminStatusString) : []),
+    [adminStatusString],
+  );
   const selectedLabels: { [label: string]: string[] } = useMemo(
     () => (labelsString ? JSON.parse(labelsString) : {}),
-    [labelsString]
+    [labelsString],
   );
 
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
@@ -261,8 +282,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
             sortBy.selected === 'Featured'
               ? `${CUSTOM_LABELS.FEATURED_SCORE.domain}/${CUSTOM_LABELS.FEATURED_SCORE.key}`
               : `${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`;
-          const aRating = a.metadata.labels[selector];
-          const bRating = b.metadata.labels[selector];
+          const aRating = a.metadata.labels?.[selector];
+          const bRating = b.metadata.labels?.[selector];
           if (aRating || bRating) {
             if (aRating && bRating) return parseInt(aRating, 10) < parseInt(bRating, 10) ? 1 : -1;
             if (bRating) return 1;
@@ -301,17 +322,17 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       }
       return 0;
     },
-    [sortBy.selected]
+    [sortBy.selected],
   );
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
-    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
+    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames),
   );
 
   const catalogItems = useMemo(
-    () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups)),
-    [catalogItemsArr, groups]
+    () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
+    [catalogItemsArr, groups],
   );
 
   // Filter & Sort catalog items
@@ -320,7 +341,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     catalogItemsCpy.forEach((c, i) => {
       if (c.metadata.annotations) {
         catalogItemsCpy[i].metadata.annotations['babylon.gpte.redhat.com/safe_description'] = stripTags(
-          c.metadata.annotations['babylon.gpte.redhat.com/description']
+          c.metadata.annotations['babylon.gpte.redhat.com/description'],
         );
       }
     });
@@ -372,22 +393,25 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     if (selectedLabels) {
       catalogItemsFuse.remove((ci) => !filterCatalogItemByLabels(ci, selectedLabels));
     }
+    if (isAdmin && selectedAdminFilter) {
+      catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
+    }
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems]);
+  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems, selectedAdminFilter]);
 
   const catalogItemsResult = useMemo(
     () =>
       searchString
         ? _catalogItems.search("'" + searchString.split(' ').join(" '")).map((x) => x.item)
         : _catalogItemsCpy,
-    [searchString, _catalogItems, _catalogItemsCpy]
+    [searchString, _catalogItems, _catalogItemsCpy],
   );
 
   const openCatalogItem =
     openCatalogItemName && openCatalogItemNamespaceName
       ? catalogItems.find(
           (item) =>
-            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName
+            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName,
         )
       : null;
 
@@ -435,6 +459,16 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     setSearchParams(searchParams);
   }
 
+  function onSelectAdminFilter(statuses: string[]) {
+    if (statuses && statuses.length > 0) {
+      searchParams.set('adminStatus', JSON.stringify(statuses));
+    } else {
+      searchParams.delete('adminStatus');
+    }
+    saveFilter(searchParams.toString(), catalogNamespaceName);
+    setSearchParams(searchParams);
+  }
+
   function onClearFilters() {
     saveFilter('', catalogNamespaceName);
     setSearchParams();
@@ -442,159 +476,165 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   }
 
   return (
-    <Drawer isExpanded={openCatalogItem ? true : false}>
-      <DrawerContent
-        panelContent={
-          openCatalogItem ? (
-            <Suspense
-              fallback={
-                <DrawerPanelContent widths={{ default: 'width_75', lg: 'width_75', xl: 'width_66', '2xl': 'width_50' }}>
-                  <PageSection variant={PageSectionVariants.light}>
-                    <EmptyState variant="full">
-                      <EmptyStateIcon icon={LoadingIcon} />
-                    </EmptyState>
-                  </PageSection>
-                </DrawerPanelContent>
-              }
-            >
-              <CatalogItemDetails catalogItem={openCatalogItem} onClose={closeCatalogItem} />
-            </Suspense>
-          ) : null
-        }
-      >
-        {openCatalogItem ? <Backdrop /> : null}
-        <DrawerContentBody>
-          {catalogNamespaces.length > 1 ? (
-            <CatalogNamespaceSelect onSelect={onSelectCatalogNamespace} selected={catalogNamespaceName} />
-          ) : null}
-          <CatalogInterfaceDescription />
-          <PageSection className="catalog__body" variant={PageSectionVariants.light}>
-            <Card>
-              <CardBody>
-                <Sidebar tabIndex={0}>
-                  <SidebarPanel className="catalog__sidebar-panel">
-                    <CatalogCategorySelector
-                      catalogItems={catalogItems}
-                      onSelect={onSelectCategory}
-                      selected={selectedCategory}
-                    />
-                    <CatalogLabelSelector
-                      catalogItems={catalogItems}
-                      filteredCatalogItems={catalogItemsResult}
-                      onSelect={onSelectLabels}
-                      selected={selectedLabels}
-                    />
-                  </SidebarPanel>
-                  <SidebarContent>
-                    <PageSection variant={PageSectionVariants.light} className="catalog__header">
-                      <Split>
-                        <SplitItem isFilled>
-                          <Title headingLevel="h2">
-                            {selectedCategory ? formatString(selectedCategory) : 'All Items'}
-                          </Title>
-                          <SearchInputString
-                            initialValue={searchString}
-                            placeholder="Search"
-                            onSearch={onSearchChange}
-                            className="catalog__searchbox"
-                            setValueCb={assignSearchInputStringCb}
-                          />
-                        </SplitItem>
-                        <SplitItem>
-                          <Stack hasGutter>
-                            <StackItem>
-                              <ul className="catalog__right-tools">
-                                <li>
-                                  <Tooltip content="Gallery view">
-                                    <Button
-                                      variant="plain"
-                                      aria-label="View as gallery"
-                                      onClick={() => setView('gallery')}
-                                      isActive={view === 'gallery'}
-                                    >
-                                      <ThIcon />
-                                    </Button>
-                                  </Tooltip>
-                                </li>
-                                <li>
-                                  <Tooltip content="List view">
-                                    <Button
-                                      variant="plain"
-                                      aria-label="View as list"
-                                      onClick={() => setView('list')}
-                                      isActive={view === 'list'}
-                                    >
-                                      <ListIcon />
-                                    </Button>
-                                  </Tooltip>
-                                </li>
-                                {isAdmin ? (
+    <>
+      <IncidentsBanner />
+      <Drawer isExpanded={openCatalogItem ? true : false}>
+        <DrawerContent
+          panelContent={
+            openCatalogItem ? (
+              <Suspense
+                fallback={
+                  <DrawerPanelContent
+                    widths={{ default: 'width_75', lg: 'width_75', xl: 'width_66', '2xl': 'width_50' }}
+                  >
+                    <PageSection variant={PageSectionVariants.light}>
+                      <EmptyState variant="full">
+                        <EmptyStateIcon icon={LoadingIcon} />
+                      </EmptyState>
+                    </PageSection>
+                  </DrawerPanelContent>
+                }
+              >
+                <CatalogItemDetails catalogItem={openCatalogItem} onClose={closeCatalogItem} />
+              </Suspense>
+            ) : null
+          }
+        >
+          {openCatalogItem ? <Backdrop /> : null}
+          <DrawerContentBody>
+            {catalogNamespaces.length > 1 ? (
+              <CatalogNamespaceSelect onSelect={onSelectCatalogNamespace} selected={catalogNamespaceName} />
+            ) : null}
+            <CatalogInterfaceDescription />
+            <PageSection className="catalog__body" variant={PageSectionVariants.light}>
+              <Card>
+                <CardBody>
+                  <Sidebar tabIndex={0}>
+                    <SidebarPanel className="catalog__sidebar-panel">
+                      <CatalogCategorySelector
+                        catalogItems={catalogItems}
+                        onSelect={onSelectCategory}
+                        selected={selectedCategory}
+                      />
+                      <CatalogLabelSelector
+                        catalogItems={catalogItems}
+                        filteredCatalogItems={catalogItemsResult}
+                        onSelect={onSelectLabels}
+                        selected={selectedLabels}
+                      />
+                      {isAdmin ? <AdminSelector onSelect={onSelectAdminFilter} selected={selectedAdminFilter} /> : null}
+                    </SidebarPanel>
+                    <SidebarContent>
+                      <PageSection variant={PageSectionVariants.light} className="catalog__header">
+                        <Split>
+                          <SplitItem isFilled>
+                            <Title headingLevel="h2">
+                              {selectedCategory ? formatString(selectedCategory) : 'All Items'}
+                            </Title>
+                            <SearchInputString
+                              initialValue={searchString}
+                              placeholder="Search"
+                              onSearch={onSearchChange}
+                              className="catalog__searchbox"
+                              setValueCb={assignSearchInputStringCb}
+                            />
+                          </SplitItem>
+                          <SplitItem>
+                            <Stack hasGutter>
+                              <StackItem>
+                                <ul className="catalog__right-tools">
                                   <li>
-                                    <Tooltip content="Export to CSV">
+                                    <Tooltip content="Gallery view">
                                       <Button
                                         variant="plain"
-                                        aria-label="Export to CSV"
-                                        onClick={() => handleExportCsv(catalogItems)}
+                                        aria-label="View as gallery"
+                                        onClick={() => setView('gallery')}
+                                        isActive={view === 'gallery'}
                                       >
-                                        <DownloadIcon />
+                                        <ThIcon />
                                       </Button>
                                     </Tooltip>
                                   </li>
-                                ) : null}
-                                <li>
-                                  <Select
-                                    className="catalog__sort-by"
-                                    variant={SelectVariant.single}
-                                    aria-label="Sort by"
-                                    onToggle={(isOpen) =>
-                                      setSortBy({
-                                        ...sortBy,
-                                        isOpen,
-                                      })
-                                    }
-                                    onSelect={(_, selection) =>
-                                      setSortBy({
-                                        ...sortBy,
-                                        selected: selection as 'Featured' | 'Rating' | 'AZ' | 'ZA',
-                                        isOpen: false,
-                                      })
-                                    }
-                                    selections={`Sort by: ${!!searchString ? 'Search' : sortBy.selected}`}
-                                    isOpen={sortBy.isOpen}
-                                    isDisabled={!!searchString}
-                                  >
-                                    <SelectOption key={0} value="Featured" />
-                                    <SelectOption key={1} value="Rating" />
-                                    <SelectOption key={2} value="AZ" />
-                                    <SelectOption key={3} value="ZA" />
-                                  </Select>
-                                </li>
-                              </ul>
-                            </StackItem>
-                            <StackItem>
-                              <p className="catalog__item-count">
-                                {catalogItemsResult.length} item{catalogItemsResult.length > 1 && 's'}
-                              </p>
-                            </StackItem>
-                          </Stack>
-                        </SplitItem>
-                      </Split>
-                    </PageSection>
-                    <CatalogContent
-                      catalogItemsResult={catalogItemsResult}
-                      onClearFilters={onClearFilters}
-                      view={view}
-                      userHasRequiredPropertiesToAccess={userHasRequiredPropertiesToAccess}
-                    />
-                  </SidebarContent>
-                </Sidebar>
-              </CardBody>
-            </Card>
-          </PageSection>
-          <Footer />
-        </DrawerContentBody>
-      </DrawerContent>
-    </Drawer>
+                                  <li>
+                                    <Tooltip content="List view">
+                                      <Button
+                                        variant="plain"
+                                        aria-label="View as list"
+                                        onClick={() => setView('list')}
+                                        isActive={view === 'list'}
+                                      >
+                                        <ListIcon />
+                                      </Button>
+                                    </Tooltip>
+                                  </li>
+                                  {isAdmin ? (
+                                    <li>
+                                      <Tooltip content="Export to CSV">
+                                        <Button
+                                          variant="plain"
+                                          aria-label="Export to CSV"
+                                          onClick={() => handleExportCsv(catalogItems)}
+                                        >
+                                          <DownloadIcon />
+                                        </Button>
+                                      </Tooltip>
+                                    </li>
+                                  ) : null}
+                                  <li>
+                                    <Select
+                                      className="catalog__sort-by"
+                                      variant={SelectVariant.single}
+                                      aria-label="Sort by"
+                                      onToggle={(isOpen) =>
+                                        setSortBy({
+                                          ...sortBy,
+                                          isOpen,
+                                        })
+                                      }
+                                      onSelect={(_, selection) =>
+                                        setSortBy({
+                                          ...sortBy,
+                                          selected: selection as 'Featured' | 'Rating' | 'AZ' | 'ZA',
+                                          isOpen: false,
+                                        })
+                                      }
+                                      selections={`Sort by: ${!!searchString ? 'Search' : sortBy.selected}`}
+                                      isOpen={sortBy.isOpen}
+                                      isDisabled={!!searchString}
+                                    >
+                                      <SelectOption key={0} value="Featured" />
+                                      <SelectOption key={1} value="Rating" />
+                                      <SelectOption key={2} value="AZ" />
+                                      <SelectOption key={3} value="ZA" />
+                                    </Select>
+                                  </li>
+                                </ul>
+                              </StackItem>
+                              <StackItem>
+                                <p className="catalog__item-count">
+                                  {catalogItemsResult.length} item{catalogItemsResult.length > 1 && 's'}
+                                </p>
+                              </StackItem>
+                            </Stack>
+                          </SplitItem>
+                        </Split>
+                      </PageSection>
+                      <CatalogContent
+                        catalogItemsResult={catalogItemsResult}
+                        onClearFilters={onClearFilters}
+                        view={view}
+                        userHasRequiredPropertiesToAccess={userHasRequiredPropertiesToAccess}
+                      />
+                    </SidebarContent>
+                  </Sidebar>
+                </CardBody>
+              </Card>
+            </PageSection>
+            <Footer />
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 };
 

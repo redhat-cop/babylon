@@ -5,7 +5,7 @@ import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-ic
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import { AnarchySubject, ResourceClaim, ResourceClaimSpecResourceTemplate } from '@app/types';
-import { getAutoTimes, getMostRelevantResourceAndTemplate } from './service-utils';
+import { getAutoTimes } from './service-utils';
 
 import './service-status.css';
 
@@ -82,7 +82,27 @@ const ServiceStatus: React.FC<{
   resource?: AnarchySubject;
   resourceTemplate?: ResourceClaimSpecResourceTemplate;
   resourceClaim: ResourceClaim;
-}> = ({ creationTime, resource, resourceTemplate, resourceClaim }) => {
+  summary?: { state: string };
+}> = ({ creationTime, resource, resourceTemplate, resourceClaim, summary }) => {
+  if (summary) {
+    let _phase: phaseProps = 'unknown';
+    let _state = summary.state.replace('-', ' ');
+    if (summary.state.endsWith('-pending')) {
+      _phase = 'in-progress';
+    } else if (summary.state.endsWith('-failed')) {
+      _phase = 'failed';
+    } else if (summary.state === 'started') {
+      _phase = 'running';
+      _state = 'Running';
+    } else if (summary.state === 'stopped') {
+      _phase = 'stopped';
+    }
+    return (
+      <span className={`service-status--${_phase}`} style={{ textTransform: 'capitalize' }}>
+        <Icon phase={_phase} /> {_state}
+      </span>
+    );
+  }
   const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
   const desiredState = resourceTemplate?.spec?.vars?.desired_state;
   const { startTime, stopTime } = getAutoTimes(resourceClaim);

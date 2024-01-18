@@ -22,6 +22,8 @@ import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
 import { WorkshopDetails } from './workshopApi';
 import { createAsciiDocAttributes } from '@app/Services/service-utils';
+import { MessageTemplate } from '@app/types';
+import AdocWrapper from '@app/components/AdocWrapper';
 
 import './workshop-content.css';
 
@@ -31,24 +33,22 @@ const WorkshopContent: React.FC<{
   const description = workshop.description;
   const displayName = workshop.displayName || 'Workshop';
   const userAssignment = workshop.assignment;
-  const template = workshop.template;
+  const labUserInterfaceRedirect = workshop.labUserInterfaceRedirect;
+  const infoMessageTemplate = JSON.parse(workshop.template) as MessageTemplate;
   let renderEditor = true;
 
   const templateHtml = useMemo(() => {
-    if (!template || !userAssignment) return null;
-    const htmlRenderedTemplate = renderContent(template, {
-      format: 'asciidoc',
-      vars: createAsciiDocAttributes(userAssignment, '__'),
+    if (!infoMessageTemplate || !userAssignment?.data) return null;
+    const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
+      format: infoMessageTemplate.templateFormat,
+      vars: createAsciiDocAttributes(userAssignment.data, '--'),
     });
     return (
-      <div
-        className="info-tab__content"
-        dangerouslySetInnerHTML={{
-          __html: htmlRenderedTemplate,
-        }}
-      />
+      <div style={{ padding: '0 var(--pf-global--spacer--md) var(--pf-global--spacer--md)' }}>
+        <AdocWrapper html={htmlRenderedTemplate} />
+      </div>
     );
-  }, [template, JSON.stringify(userAssignment.data)]);
+  }, [infoMessageTemplate, JSON.stringify(userAssignment.data)]);
 
   const userAssignmentMessagesHtml = useMemo(
     () =>
@@ -61,6 +61,10 @@ const WorkshopContent: React.FC<{
       ) : null,
     [userAssignment.messages]
   );
+
+  if (userAssignment.labUserInterface?.url && labUserInterfaceRedirect === true) {
+    window.location.href = userAssignment.labUserInterface.url;
+  }
 
   try {
     JSON.parse(description);
@@ -119,13 +123,23 @@ const WorkshopContent: React.FC<{
                     <DescriptionListGroup>
                       <DescriptionListTerm>Data</DescriptionListTerm>
                       <DescriptionListDescription>
-                        <pre>{yaml.dump(userAssignment.data)}</pre>
+                        <pre>
+                          {yaml.dump(
+                            Object.keys(userAssignment.data).length === 1
+                              ? userAssignment.data[Object.keys(userAssignment.data)[0]]
+                              : userAssignment.data
+                          )}
+                        </pre>
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   ) : null}
                 </>
               )}
             </DescriptionList>
+          </Bullseye>
+        </StackItem>
+        <StackItem>
+          <Bullseye>
             {templateHtml ? (
               <Panel>
                 <PanelMain>

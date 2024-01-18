@@ -22,7 +22,7 @@ const Workshop: React.FC<{ title: string }> = ({ title }) => {
   const [loginFailureMessage, setLoginFailureMessage] = useState('');
   const { data: workshop } = useSWRImmutable<WorkshopDetails>(
     workshopId ? apiPaths.WORKSHOP({ workshopId }) : null,
-    publicFetcher
+    publicFetcher,
   );
   const [workshopPrivateInfo, setWorkshopPrivateInfo] = useState(workshop);
 

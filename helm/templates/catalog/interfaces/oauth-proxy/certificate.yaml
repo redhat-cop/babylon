@@ -1,0 +1,31 @@
+{{- range $namespace, $_interface := .Values.catalog.interfaces }}
+{{- $interface := merge $_interface (deepCopy $.Values.catalog.defaults) }}
+{{- $domain := $interface.route.host | default (printf "%s.%s" $namespace $.Values.ingressDomain) }}
+{{- if $interface.route.certManager.enable }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: oauth-proxy
+  name: babylon-catalog
+  namespace: {{ $namespace }}
+spec:
+  dnsNames:
+  - {{ $domain }}
+  duration: 2160h0m0s # 90d
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+    group: cert-manager.io
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 4096
+  renewBefore: 360h0m0s # 15d
+  secretName: babylon-catalog-tls
+  usages:
+  - server auth
+{{- end }}
+{{- end }}

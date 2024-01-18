@@ -36,7 +36,9 @@ import {
   fetcher,
   fetchWithUpdatedCostTracker,
   requestStatusForAllResourcesInResourceClaim,
+  scheduleStartResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
+  scheduleStopResourceClaim,
   SERVICES_KEY,
   setLifespanEndForResourceClaim,
   setProvisionRating,
@@ -48,7 +50,6 @@ import {
   K8sObject,
   NamespaceList,
   ResourceClaim,
-  ResourceClaimSpecResource,
   ServiceActionActions,
   Workshop,
 } from '@app/types';
@@ -62,6 +63,7 @@ import {
   getStageFromK8sObject,
   compareK8sObjects,
   namespaceToServiceNamespaceMapper,
+  isLabDeveloper,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -93,8 +95,7 @@ import './services-item.css';
 const ComponentDetailsList: React.FC<{
   resourceState: AnarchySubject;
   isAdmin: boolean;
-  resourceClaim: ResourceClaim;
-  resourceSpec: ResourceClaimSpecResource;
+  groups: string[];
   externalPlatformUrl: string;
   isPartOfWorkshop: boolean;
   startDate: Date;
@@ -106,8 +107,7 @@ const ComponentDetailsList: React.FC<{
 }> = ({
   resourceState,
   isAdmin,
-  resourceClaim,
-  resourceSpec,
+  groups,
   externalPlatformUrl,
   isPartOfWorkshop,
   startDate,
@@ -122,8 +122,14 @@ const ComponentDetailsList: React.FC<{
       ? provisionMessages
       : provisionMessages
       ? provisionMessages
+          .map((m) => {
+            if (m.includes('~')) {
+              return `pass:[${m}]`;
+            }
+            return m;
+          })
           .join('\n')
-          .replace(/^\s+|\s+$/g, '')
+          .trim()
           .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
       : null;
   const provisionMessagesHtml = useMemo(
@@ -139,17 +145,6 @@ const ComponentDetailsList: React.FC<{
   );
   return (
     <DescriptionList isHorizontal>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Status</DescriptionListTerm>
-        <DescriptionListDescription>
-          <ServiceStatus
-            creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-            resource={resourceState}
-            resourceTemplate={resourceSpec?.template}
-            resourceClaim={resourceClaim}
-          />
-        </DescriptionListDescription>
-      </DescriptionListGroup>
       {resourceState?.kind === 'AnarchySubject' ? (
         <>
           {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > Date.now() ? (
@@ -174,7 +169,7 @@ const ComponentDetailsList: React.FC<{
               <DescriptionListDescription>{provisionMessagesHtml}</DescriptionListDescription>
             </DescriptionListGroup>
           ) : null}
-          {isAdmin || (provisionDataEntries && provisionDataEntries.length > 0) ? (
+          {isAdmin || isLabDeveloper(groups) || (provisionDataEntries && provisionDataEntries.length > 0) ? (
             <ExpandableSection toggleText="Advanced settings">
               {provisionDataEntries && provisionDataEntries.length > 0 ? (
                 <DescriptionListGroup>
@@ -189,7 +184,7 @@ const ComponentDetailsList: React.FC<{
                             <DescriptionListDescription>
                               {typeof value === 'string' ? (
                                 value.startsWith('https://') ? (
-                                  <a href={value}>
+                                  <a href={value} target="_blank" rel="noopener">
                                     <code>{value}</code>
                                   </a>
                                 ) : (
@@ -205,7 +200,7 @@ const ComponentDetailsList: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-              {isAdmin ? (
+              {isAdmin || isLabDeveloper(groups) ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>UUID</DescriptionListTerm>
                   <DescriptionListDescription>
@@ -257,7 +252,7 @@ const ComponentDetailsList: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-              {isAdmin && resourceState?.status?.towerJobs ? (
+              {(isAdmin || isLabDeveloper(groups)) && resourceState?.status?.towerJobs ? (
                 <DescriptionListGroup key="tower-jobs">
                   <DescriptionListTerm>Ansible Jobs</DescriptionListTerm>
                   <DescriptionListDescription>
@@ -294,7 +289,7 @@ const ServicesItemComponent: React.FC<{
 }> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [expanded, setExpanded] = useState([]);
 
@@ -325,6 +320,7 @@ const ServicesItemComponent: React.FC<{
     resourceClaim?: ResourceClaim;
     rating?: {
       rate: number;
+      useful: 'yes' | 'no' | 'not applicable';
       comment: string;
     };
     submitDisabled: boolean;
@@ -356,10 +352,13 @@ const ServicesItemComponent: React.FC<{
   const statusEnabled = anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'status'))
     ? true
     : false;
-  const consoleEnabled = (resourceClaim.status?.resources || []).find((r) => {
-    const provision_data = r.state?.spec?.vars?.provision_data;
-    return provision_data?.osp_cluster_api || provision_data?.openstack_auth_url;
-  });
+  const consoleEnabled =
+    resourceClaim.status?.summary?.provision_data?.osp_cluster_api ||
+    resourceClaim.status?.summary?.provision_data?.openstack_auth_url ||
+    (resourceClaim.status?.resources || []).find((r) => {
+      const provision_data = r.state?.spec?.vars?.provision_data;
+      return provision_data?.osp_cluster_api || provision_data?.openstack_auth_url;
+    });
 
   const catalogItemDisplayName =
     resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`] ||
@@ -445,20 +444,24 @@ const ServicesItemComponent: React.FC<{
     if (modalState.action === 'stop' || modalState.action === 'start') {
       const resourceClaimUpdate =
         modalState.action === 'start'
-          ? await startAllResourcesInResourceClaim(resourceClaim)
+          ? resourceClaim.status?.summary
+            ? await scheduleStartResourceClaim(resourceClaim)
+            : await startAllResourcesInResourceClaim(resourceClaim)
+          : resourceClaim.status?.summary
+          ? await scheduleStopResourceClaim(resourceClaim)
           : await stopAllResourcesInResourceClaim(resourceClaim);
       mutate(resourceClaimUpdate);
       globalMutate(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
     }
     if (modalState.action === 'rate' || modalState.action === 'delete') {
       if (modalState.rating && (modalState.rating.rate !== null || modalState.rating.comment?.trim())) {
-        const provisionUuids = resourceClaim.status.resources
-          .map((r) => r.state?.spec?.vars?.job_vars?.uuid)
-          .filter(Boolean);
-        for (const provisionUuid of provisionUuids) {
-          await setProvisionRating(provisionUuid, modalState.rating.rate, modalState.rating.comment);
-          globalMutate(apiPaths.PROVISION_RATING({ provisionUuid }));
-        }
+        await setProvisionRating(
+          resourceClaim.metadata.uid,
+          modalState.rating.rate,
+          modalState.rating.comment,
+          modalState.rating.useful
+        );
+        globalMutate(apiPaths.USER_RATING({ requestUuid: resourceClaim.metadata.uid }));
       }
     }
     if (modalState.action === 'delete') {
@@ -478,6 +481,8 @@ const ServicesItemComponent: React.FC<{
     const resourceClaimUpdate =
       modalState.action === 'retirement'
         ? await setLifespanEndForResourceClaim(resourceClaim, date)
+        : resourceClaim.status?.summary
+        ? await scheduleStopResourceClaim(resourceClaim, date)
         : await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
     mutate(resourceClaimUpdate);
   }
@@ -740,7 +745,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {resourceClaim.spec.resources.length > 1 ? (
+                  {resourceClaim.spec.resources?.length > 0 || resourceClaim.status?.summary ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Status</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -749,6 +754,7 @@ const ServicesItemComponent: React.FC<{
                           resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
                           resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
                           resourceClaim={resourceClaim}
+                          summary={resourceClaim.status?.summary}
                         />
                       </DescriptionListDescription>
                     </DescriptionListGroup>
@@ -777,21 +783,17 @@ const ServicesItemComponent: React.FC<{
                     )}
                   >
                     <div>
-                      {(resourceClaim.spec.resources || []).map((resourceSpec, idx) => {
-                        const resourceStatus = resourceClaim.status?.resources?.[idx];
+                      {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
                         const resourceState = resourceStatus?.state;
                         const componentDisplayName =
-                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||
-                          resourceSpec.name ||
-                          resourceSpec.provider?.name;
+                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] || resourceStatus?.name;
                         const currentState =
                           resourceState?.kind === 'AnarchySubject'
                             ? resourceState.spec.vars?.current_state
                             : 'available';
                         const stopTimestamp =
                           resourceState?.kind === 'AnarchySubject'
-                            ? resourceSpec.template?.spec.vars?.action_schedule?.stop ||
-                              resourceState?.spec.vars.action_schedule?.stop
+                            ? resourceState?.spec.vars.action_schedule?.stop
                             : null;
                         const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
                         const stopDate = stopTime ? new Date(stopTime) : null;
@@ -828,8 +830,7 @@ const ServicesItemComponent: React.FC<{
 
                         const startTimestamp =
                           resourceState?.kind == 'AnarchySubject'
-                            ? resourceSpec.template?.spec.vars?.action_schedule?.start ||
-                              resourceState?.spec.vars.action_schedule?.start
+                            ? resourceState?.spec.vars.action_schedule?.start
                             : null;
                         const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
                         const startDate = startTime ? new Date(startTime) : null;
@@ -837,7 +838,7 @@ const ServicesItemComponent: React.FC<{
                         return (
                           <ConditionalWrapper
                             key={idx}
-                            condition={resourceClaim.spec.resources && resourceClaim.spec.resources.length > 1}
+                            condition={resourceClaim.status?.resources && resourceClaim.status.resources.length > 1}
                             wrapper={(children) => (
                               <AccordionItem>
                                 <AccordionToggle
@@ -856,8 +857,7 @@ const ServicesItemComponent: React.FC<{
                             <ComponentDetailsList
                               resourceState={resourceState}
                               isAdmin={isAdmin}
-                              resourceClaim={resourceClaim}
-                              resourceSpec={resourceSpec}
+                              groups={groups}
                               externalPlatformUrl={externalPlatformUrl}
                               isPartOfWorkshop={isPartOfWorkshop}
                               startDate={startDate}

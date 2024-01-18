@@ -58,7 +58,7 @@ describe('CatalogItemAdmin Component', () => {
     });
     const patchObj = {
       status: { id: 'operational', updated: { author: 'test@redhat.com', updatedAt: mockDate.toISOString() } },
-      jiraIssueId: 'GPTEINFRA-123',
+      jiraIssueId: '',
       incidentUrl: '',
       updated: { author: 'test@redhat.com', updatedAt: mockDate.toISOString() },
       comments: [],

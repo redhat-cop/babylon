@@ -16,8 +16,7 @@ import {
   getInfoMessageTemplate,
   getMostRelevantResourceAndTemplate,
 } from './service-utils';
-
-import './info-tab.css';
+import AdocWrapper from '@app/components/AdocWrapper';
 
 const spinnerSvgString = `<svg style="margin: 0 8px;" class="pf-c-spinner pf-m-md" role="progressbar" aria-valuetext="Loading..." viewBox="0 0 100 100" aria-label="Contents"><circle class="pf-c-spinner__path" cx="50" cy="50" r="45" fill="none"></circle></svg>`;
 
@@ -34,9 +33,6 @@ const InfoTab: React.FC<{
   }) => void;
 }> = ({ resourceClaim, showModal }) => {
   const infoMessageTemplate = getInfoMessageTemplate(resourceClaim);
-  if (!infoMessageTemplate) {
-    return null;
-  }
   const { resource: mostRelevantResource, template: mostRelevantTemplate } =
     getMostRelevantResourceAndTemplate(resourceClaim);
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
@@ -47,24 +43,23 @@ const InfoTab: React.FC<{
     const provision_vars: object = Object.assign(
       {},
       ...(resourceClaim.status?.resources || []).flatMap((resource) => ({
-        [resource.name]: resource.state?.spec.vars?.provision_data
+        [resource.name.split('.').length > 1 ? resource.name.split('.')[1] : resource.name]: resource.state?.spec.vars
+          ?.provision_data
           ? { ...resource.state.spec.vars?.provision_data }
           : null,
-      }))
+      })),
+      resourceClaim.status?.summary?.provision_data || {},
     );
+
+    if (!infoMessageTemplate) {
+      return null;
+    }
 
     const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
       format: infoMessageTemplate.templateFormat,
       vars: createAsciiDocAttributes(provision_vars, '--'),
     }).replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString);
-    return (
-      <div
-        className="info-tab__content"
-        dangerouslySetInnerHTML={{
-          __html: htmlRenderedTemplate,
-        }}
-      />
-    );
+    return <AdocWrapper html={htmlRenderedTemplate} />;
   }, [
     infoMessageTemplate.template,
     infoMessageTemplate.templateFormat,
@@ -83,6 +78,7 @@ const InfoTab: React.FC<{
                 resource={mostRelevantResource}
                 resourceTemplate={mostRelevantTemplate}
                 resourceClaim={resourceClaim}
+                summary={resourceClaim.status?.summary}
               />
             </DescriptionListDescription>
           </DescriptionListGroup>

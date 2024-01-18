@@ -1,0 +1,82 @@
+{{- $agnosticv := .Values.agnosticv }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agnosticv-operator
+  namespace: {{ .Values.configNamespace.name }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: agnosticv-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: agnosticv-operator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: agnosticv-operator
+    spec:
+      {{- with $agnosticv.operator.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: manager
+        env:
+        - name: AGNOSTICV_API_GROUP
+          value: {{ .Values.agnosticv.api.group }}
+        - name: AGNOSTICV_VERSION
+          value: {{ .Values.agnosticv.api.version }}
+        - name: ANARCHY_API_GROUP
+          value: {{ .Values.anarchy.api.group }}
+        - name: ANARCHY_VERSION
+          value: {{ .Values.anarchy.api.version }}
+        - name: CATALOG_API_GROUP
+          value: {{ .Values.catalog.api.group }}
+        - name: CATALOG_VERSION
+          value: {{ .Values.catalog.api.version }}
+        - name: EXECUTION_ENVIRONMENT_ALLOW_LIST
+          value: |
+            {{- $agnosticv.executionEnvironmentAllowList | toYaml | nindent 12 }}
+        - name: POLLING_INTERVAL
+          value: {{ $agnosticv.pollingInterval }}
+        - name: RESOURCE_BROKER_API_GROUP
+          value: {{ .Values.resourceBroker.api.group }}
+        - name: RESOURCE_BROKER_NAMESPACE
+          value: {{ .Values.resourceBroker.namespace }}
+        - name: RESOURCE_BROKER_VERSION
+          value: {{ .Values.resourceBroker.api.version }}
+        image: {{ $agnosticv.operator.image.repository }}:{{ $agnosticv.operator.image.tag }}
+        imagePullPolicy: {{ $agnosticv.operator.image.pullPolicy }}
+        livenessProbe:
+          failureThreshold: 5
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 10
+        ports:
+        - name: metrics
+          containerPort: 8000
+        resources:
+          {{- toYaml $agnosticv.operator.resources | nindent 10 }}
+      {{- with $agnosticv.operator.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $agnosticv.operator.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: agnosticv-operator
+      terminationGracePeriodSeconds: 30
+      {{- with $agnosticv.operator.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

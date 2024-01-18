@@ -19,9 +19,12 @@ import {
   deleteResourceClaim,
   deleteWorkshop,
   fetcherItemsInAllPages,
+  scheduleStartResourceClaim,
   scheduleStopForAllResourcesInResourceClaim,
+  scheduleStopResourceClaim,
   SERVICES_KEY,
   setLifespanEndForResourceClaim,
+  setProvisionRating,
   setWorkshopLifespanEnd,
   startAllResourcesInResourceClaim,
   startWorkshopServices,
@@ -61,15 +64,15 @@ function setResourceClaims(workshop: Workshop, resourceClaims: ResourceClaim[]) 
   return workshopWithResourceClaims;
 }
 
-async function fetchServices(namespace: string, canLoadWorkshops: boolean): Promise<Service[]> {
+async function fetchServices(namespace: string): Promise<Service[]> {
   async function fetchResourceClaims(namespace: string) {
     return (await fetcherItemsInAllPages((continueId) =>
-      apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+      apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     )) as ResourceClaim[];
   }
   async function fetchWorksops(namespace: string) {
     return await fetcherItemsInAllPages((continueId) =>
-      apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+      apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     ).then(async (workshops: Workshop[]) => {
       const workshopsEnrichedPromise: Promise<WorkshopWithResourceClaims>[] = [];
       const workshopsEnriched: WorkshopWithResourceClaims[] = [];
@@ -82,8 +85,8 @@ async function fetchServices(namespace: string, canLoadWorkshops: boolean): Prom
               labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
               limit: FETCH_BATCH_LIMIT,
               continueId,
-            })
-          ).then((r) => setResourceClaims(workshop, r))
+            }),
+          ).then((r) => setResourceClaims(workshop, r)),
         );
         workshopsEnriched.push(_workshopEnriched);
       }
@@ -94,9 +97,7 @@ async function fetchServices(namespace: string, canLoadWorkshops: boolean): Prom
   const services: Service[] = [];
   const promises = [];
   promises.push(fetchResourceClaims(namespace).then((r) => services.push(...r)));
-  if (canLoadWorkshops) {
-    promises.push(fetchWorksops(namespace).then((w) => services.push(...w)));
-  }
+  promises.push(fetchWorksops(namespace).then((w) => services.push(...w)));
   await Promise.all(promises);
   return services;
 }
@@ -107,7 +108,7 @@ const ServicesList: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
-  const { cache } = useSWRConfig();
+  const { mutate: globalMutate, cache } = useSWRConfig();
   const [searchParams, setSearchParams] = useSearchParams();
   const keywordFilter = useMemo(
     () =>
@@ -118,31 +119,29 @@ const ServicesList: React.FC<{
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')]
+    [searchParams.get('search')],
   );
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
     workshop?: WorkshopWithResourceClaims;
-    rating?: { rate: number; comment: string };
-    submitDisabled: false;
+    rating?: { rate: number; useful: 'yes' | 'no' | 'not applicable'; comment: string };
+    submitDisabled: boolean;
   }>({ action: null, submitDisabled: false });
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalGetCost, openModalGetCost] = useModal();
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
-  const canLoadWorkshops =
-    isAdmin || sessionServiceNamespaces.find((n) => n.name === serviceNamespaceName)?.workshopProvisionAccess;
   const { data: _services, mutate } = useSWR<Service[]>(
     SERVICES_KEY({ namespace: serviceNamespaceName }),
-    () => fetchServices(serviceNamespaceName, canLoadWorkshops),
+    () => fetchServices(serviceNamespaceName),
     {
       refreshInterval: 8000,
       revalidateOnMount: true,
       compare: (currentData, newData) => {
         const servicesEquals = compareK8sObjectsArr(currentData, newData);
         const currentWorkshops = (currentData ?? []).filter(
-          (x) => x.kind === 'Workshop'
+          (x) => x.kind === 'Workshop',
         ) as WorkshopWithResourceClaims[];
         const newWorkshops = (newData ?? []).filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
         const currentWorkshopsResourceClaims = currentWorkshops.flatMap((x) => x.resourceClaims);
@@ -150,7 +149,7 @@ const ServicesList: React.FC<{
         const instancesEquals = compareK8sObjectsArr(currentWorkshopsResourceClaims, newWorkshopsResourceClaims);
         return servicesEquals && instancesEquals;
       },
-    }
+    },
   );
 
   const filterFn = useCallback(
@@ -161,7 +160,7 @@ const ServicesList: React.FC<{
         if (isPartOfWorkshop) {
           return false;
         }
-        if (!isAdmin && resourceClaim.spec.resources[0].provider?.name === 'babylon-service-request-configmap') {
+        if (!isAdmin && resourceClaim.spec.provider?.name === 'babylon-service-request-configmap') {
           return false;
         }
         if (!keywordFilter) {
@@ -194,7 +193,7 @@ const ServicesList: React.FC<{
       }
       return false;
     },
-    [keywordFilter, isAdmin]
+    [keywordFilter, isAdmin],
   );
 
   const services = useMemo(
@@ -202,9 +201,9 @@ const ServicesList: React.FC<{
       _services
         .filter(filterFn)
         .sort(
-          (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf()
+          (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf(),
         ),
-    [filterFn, _services]
+    [filterFn, _services],
   );
 
   const revalidate = useCallback(
@@ -222,7 +221,7 @@ const ServicesList: React.FC<{
         }
       }
     },
-    [mutate, services]
+    [mutate, services],
   );
 
   const onModalScheduleAction = useCallback(
@@ -232,7 +231,9 @@ const ServicesList: React.FC<{
         updatedItems.push(
           modalState.action === 'retirement'
             ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
-            : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date)
+            : modalState.resourceClaim.status?.summary
+            ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
+            : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date),
         );
       } else if (modalState.workshop) {
         updatedItems.push(
@@ -240,13 +241,13 @@ const ServicesList: React.FC<{
             modalState.action === 'retirement'
               ? await setWorkshopLifespanEnd(modalState.workshop, date)
               : await stopWorkshop(modalState.workshop, date),
-            modalState.workshop.resourceClaims
-          )
+            modalState.workshop.resourceClaims,
+          ),
         );
       }
       revalidate({ updatedItems, action: 'update' });
     },
-    [modalState.action, modalState.resourceClaim, modalState.workshop, revalidate]
+    [modalState.action, modalState.resourceClaim, modalState.workshop, revalidate],
   );
 
   const performModalActionForResourceClaim = useCallback(
@@ -256,29 +257,47 @@ const ServicesList: React.FC<{
           apiPaths.RESOURCE_CLAIM({
             namespace: resourceClaim.metadata.namespace,
             resourceClaimName: resourceClaim.metadata.name,
-          })
+          }),
         );
-        return await deleteResourceClaim(resourceClaim);
+        try {
+          return await deleteResourceClaim(resourceClaim);
+        } catch (error) {
+          if (error.status === 404) {
+            return resourceClaim;
+          }
+          throw error;
+        }
       } else {
         const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
         if (isPartOfWorkshop) return resourceClaim; // If has a workshopProvision -> Do nothing.
         if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
-          return await startAllResourcesInResourceClaim(resourceClaim);
+          return modalState.resourceClaim.status?.summary
+            ? await scheduleStartResourceClaim(modalState.resourceClaim)
+            : await startAllResourcesInResourceClaim(resourceClaim);
         } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
-          return await stopAllResourcesInResourceClaim(resourceClaim);
+          return modalState.resourceClaim.status?.summary
+            ? await scheduleStopResourceClaim(resourceClaim)
+            : await stopAllResourcesInResourceClaim(resourceClaim);
         }
       }
 
       console.warn(`Unkown action ${modalState.action}`);
       return resourceClaim;
     },
-    [cache, modalState.action]
+    [cache, modalState.action],
   );
 
   const performModalActionForWorkshop = useCallback(
     async (workshop: WorkshopWithResourceClaims): Promise<WorkshopWithResourceClaims> => {
       if (modalState.action === 'delete') {
-        return await deleteWorkshop(workshop);
+        try {
+          return await deleteWorkshop(workshop);
+        } catch (error) {
+          if (error.status === 404) {
+            return workshop;
+          }
+          throw error;
+        }
       } else {
         if (Array.isArray(workshop.resourceClaims)) {
           if (modalState.action === 'start') {
@@ -290,7 +309,7 @@ const ServicesList: React.FC<{
         return Promise.resolve(null);
       }
     },
-    [cache, modalState.action, modalState.workshop, revalidate, mutate]
+    [cache, modalState.action, modalState.workshop, revalidate, mutate],
   );
 
   const onModalAction = useCallback(async (): Promise<void> => {
@@ -299,10 +318,9 @@ const ServicesList: React.FC<{
       serviceUpdates.push(await performModalActionForResourceClaim(modalState.resourceClaim));
     } else if (modalState.workshop) {
       serviceUpdates.push(
-        setResourceClaims(await performModalActionForWorkshop(modalState.workshop), modalState.workshop.resourceClaims)
+        setResourceClaims(await performModalActionForWorkshop(modalState.workshop), modalState.workshop.resourceClaims),
       );
-    }
-    if (selectedUids.length > 0) {
+    } else if (selectedUids.length > 0) {
       for (const service of services) {
         if (selectedUids.includes(service.metadata.uid)) {
           if (service.kind === 'ResourceClaim') {
@@ -311,14 +329,29 @@ const ServicesList: React.FC<{
           if (service.kind === 'Workshop') {
             const _workshop = service as WorkshopWithResourceClaims;
             serviceUpdates.push(
-              setResourceClaims(await performModalActionForWorkshop(_workshop), _workshop.resourceClaims)
+              setResourceClaims(await performModalActionForWorkshop(_workshop), _workshop.resourceClaims),
             );
           }
         }
       }
     }
-    if (modalState.action === 'delete') {
-      revalidate({ updatedItems: serviceUpdates, action: 'delete' });
+    if (modalState.action === 'rate' || modalState.action === 'delete') {
+      if (
+        modalState.resourceClaim &&
+        modalState.rating &&
+        (modalState.rating.rate !== null || modalState.rating.comment?.trim())
+      ) {
+        await setProvisionRating(
+          modalState.resourceClaim.metadata.uid,
+          modalState.rating.rate,
+          modalState.rating.comment,
+          modalState.rating.useful,
+        );
+        globalMutate(apiPaths.USER_RATING({requestUuid: modalState.resourceClaim.metadata.uid}));
+      }
+      if (modalState.action === 'delete') {
+        revalidate({ updatedItems: serviceUpdates, action: 'delete' });
+      }
     } else {
       revalidate({ updatedItems: serviceUpdates, action: 'update' });
     }
@@ -326,6 +359,8 @@ const ServicesList: React.FC<{
     modalState.action,
     modalState.resourceClaim,
     modalState.workshop,
+    modalState.rating?.rate,
+    modalState.rating?.comment,
     performModalActionForResourceClaim,
     performModalActionForWorkshop,
     services,
@@ -358,7 +393,7 @@ const ServicesList: React.FC<{
         openModalGetCost();
       }
     },
-    [openModalAction, openModalGetCost, openModalScheduleAction]
+    [openModalAction, openModalGetCost, openModalScheduleAction],
   );
 
   if (sessionServiceNamespaces.length === 0) {
@@ -386,8 +421,8 @@ const ServicesList: React.FC<{
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
-      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true}>
-        <ServicesAction actionState={modalState} />
+      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true} isDisabled={modalState.submitDisabled}>
+        <ServicesAction actionState={modalState} setActionState={setModalState} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction
@@ -507,13 +542,13 @@ const ServicesList: React.FC<{
                     showModal,
                     isAdmin,
                     navigate,
-                  })
+                  }),
                 );
               }
               if (service.kind === 'Workshop') {
                 return Object.assign(
                   selectObj,
-                  renderWorkshopRow({ workshop: service as Workshop, showModal, isAdmin })
+                  renderWorkshopRow({ workshop: service as Workshop, showModal, isAdmin }),
                 );
               }
               return null;

@@ -12,7 +12,7 @@ describe('Modal tests', () => {
           <p>My Content</p>
         </Modal>
         <div id="modal-root" />
-      </div>
+      </div>,
     );
     expect(container.querySelector('#modal-root')).toBeInTheDocument();
     expect(container.innerText).toBeFalsy();

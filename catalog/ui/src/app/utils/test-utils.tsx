@@ -57,15 +57,15 @@ export const generateSession = ({
       displayName: 'User test-redhat.com',
       name: 'user-test-redhat-com',
       requester: 'test-redhat.com',
-      workshopProvisionAccess: false,
     } as ServiceNamespace,
   ],
   userNamespace = {
     displayName: 'User test-redhat.com',
     name: 'user-test-redhat-com',
     requester: 'test-redhat.com',
-    workshopProvisionAccess: false,
   } as UserNamespace,
+  roles = [],
+  groups = [],
 }) => ({
   email,
   isAdmin,
@@ -78,6 +78,6 @@ export const generateSession = ({
   ],
   serviceNamespaces,
   userNamespace,
-  groups: [],
-  roles: [],
+  groups,
+  roles,
 });

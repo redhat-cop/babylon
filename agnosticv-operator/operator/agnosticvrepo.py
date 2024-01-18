@@ -1,13 +1,18 @@
 import json
 import os
 import re
+import traceback
 
 from base64 import b64decode
+from copy import deepcopy
+from datetime import datetime, timezone
 
 import aiofiles
 import aiofiles.os
+import aiohttp
 import aioshutil
 import asyncio
+import functools
 import git
 import kopf
 import kubernetes_asyncio
@@ -31,7 +36,7 @@ class AgnosticVComponentValidationError(AgnosticVProcessingError):
 class AgnosticVConflictError(AgnosticVProcessingError):
     pass
 
-class AgnosticVMergeError(AgnosticVProcessingError):
+class AgnosticVExecError(AgnosticVProcessingError):
     pass
 
 class AgnosticVRepo(CachedKopfObject):
@@ -46,7 +51,7 @@ class AgnosticVRepo(CachedKopfObject):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.git_hexsha = self.git_repo = None
+        self.git_hexsha = self.git_checkout_ref = self.git_repo = None
         self.git_changed_files = []
 
     @property
@@ -66,6 +71,10 @@ class AgnosticVRepo(CachedKopfObject):
             "src": "https://github.com/rhpds/babylon_anarchy_governor.git",
             "version": "main"
         }])
+
+    @property
+    def catalog_url(self):
+        return self.spec.get('catalogUrl')
 
     @property
     def context_dir(self):
@@ -98,6 +107,28 @@ class AgnosticVRepo(CachedKopfObject):
         return self.spec.get('ref')
 
     @property
+    def github_api_base_url(self):
+        if self.git_url.startswith('git@github.com:'):
+            if self.git_url.endswith('.git'):
+                return f"https://api.github.com/repos/{self.git_url[15:-4]}"
+            else:
+                return f"https://api.github.com/repos/{self.git_url[15:]}"
+        else:
+            raise kopf.TemporaryError(f"Unable to determine GitHub base url!", delay=600)
+
+    @property
+    def github_preload_pull_requests(self):
+        return 'preloadPullRequests' in self.spec.get('gitHub', {})
+
+    @property
+    def github_preload_pull_requests_mode(self):
+        return self.spec.get('gitHub', {}).get('preloadPullRequests', {}).get('mode')
+
+    @property
+    def github_token_secret_name(self):
+        return self.spec.get('gitHub', {}).get('tokenSecret')
+
+    @property
     def git_repo_path(self):
         return os.path.join(self.git_base_path, self.name)
 
@@ -124,31 +155,25 @@ class AgnosticVRepo(CachedKopfObject):
     def ssh_key_secret_name(self):
         return self.spec.get('sshKey')
 
-    def __git_repo_checkout(self, logger):
-        if self.git_ref in self.git_repo.remotes.origin.refs:
-            self.git_repo.git.checkout(f"origin/{self.git_ref}")
-            if self.git_hexsha != self.git_repo.head.commit.hexsha:
-                self.git_hexsha = self.git_repo.head.commit.hexsha
-                logger.info(f"Checked out origin/{self.git_ref} [{self.git_hexsha}]")
-        elif re.match(r'[0-9a-f]+$', self.git_ref):
+    def __git_changed_files_in_branch(self, logger, ref=None):
+        merge_base = self.git_repo.git.merge_base('origin/' + self.git_ref, 'origin/' + ref)
+        return self.git_repo.git.diff(merge_base, 'origin/' + ref, name_only=True).split()
+
+    def __git_repo_checkout(self, logger, ref=None):
+        if not ref:
+            ref = self.git_ref
+
+        if ref in self.git_repo.remotes.origin.refs:
+            self.git_repo.git.checkout(f"origin/{ref}")
+            self.git_hexsha = self.git_repo.head.commit.hexsha
+        elif re.match(r'[0-9a-f]+$', ref):
             try:
-                self.git_repo.git.checkout(self.git_ref)
+                self.git_repo.git.checkout(ref)
             except git.exc.GitCommandError:
                 raise kopf.TemporaryError(f"Unable to checkout commit {self.git_hexsha}", delay=60)
-            if self.git_hexsha != self.git_repo.head.commit.hexsha:
-                self.git_hexsha = self.git_repo.head.commit.hexsha
-                logger.info(f"Checked out commit {self.git_hexsha}")
+            self.git_hexsha = self.git_repo.head.commit.hexsha
         else:
-            raise kopf.TemporaryError(f"Unable to resolve reference {self.git_ref}", delay=60)
-
-        if self.last_successful_git_hexsha:
-            git_diff_output = self.git_repo.git.diff(
-                self.last_successful_git_hexsha, name_only=True
-            )
-            if git_diff_output:
-                self.git_changed_files = git_diff_output.split("\n")
-        else:
-            self.git_changed_files = []
+            raise kopf.TemporaryError(f"Unable to resolve reference {ref}", delay=60)
 
     def __git_repo_clone(self, logger):
         self.git_repo = git.Repo.clone_from(
@@ -157,43 +182,90 @@ class AgnosticVRepo(CachedKopfObject):
             url = self.git_url,
         )
         self.__git_repo_checkout(logger=logger)
+        logger.info(f"Cloned {self.git_ref} [{self.git_hexsha}]")
 
     def __git_repo_pull(self, logger):
         if not self.git_repo:
             self.git_repo = git.Repo(self.git_repo_path)
         with self.git_repo.git.custom_environment(**self.git_env):
             self.git_repo.remotes.origin.fetch()
+        prev_hexsha = self.git_hexsha
         self.__git_repo_checkout(logger=logger)
 
-    def validate_component_definition(self, path, definition):
+        if prev_hexsha == self.git_hexsha:
+            self.git_changed_files = []
+            return
+
+        logger.info(f"Checked out {self.git_ref} [{self.git_hexsha}]")
+
+        if self.last_successful_git_hexsha:
+            git_diff_output = self.git_repo.git.diff(
+                self.last_successful_git_hexsha, name_only=True
+            )
+            if git_diff_output:
+                self.git_changed_files = git_diff_output.split("\n")
+
+    def validate_component_definition(self, definition, source):
         self.validate_execution_environment(
-            path = path,
+            source = source,
             value = definition['__meta__'].get('deployer', {}).get('execution_environment')
         )
 
-    def validate_execution_environment(self, path, value):
+    def validate_execution_environment(self, source, value):
         if not value:
             return
         if 'name' in value:
             if 'image' in value:
                 raise AgnosticVComponentValidationError(
-                    f"{path}: Execution environment cannot specify both name and image"
+                    f"{source}: Execution environment cannot specify both name and image"
                 )
             if 'pull' in value:
                 raise AgnosticVComponentValidationError(
-                    f"{path}: Execution environment cannot specify both name and pull"
+                    f"{source}: Execution environment cannot specify both name and pull"
                 )
             for allow in self.execution_environment_allow_list:
                 if 'name' in allow and re.search(allow['name'], value['name']):
                     return
-            raise AgnosticVComponentValidationError(f"{path}: Execution environment name not allowed: {value['name']}")
+            raise AgnosticVComponentValidationError(f"{source}: Execution environment name not allowed: {value['name']}")
         elif 'image' in value:
             for allow in self.execution_environment_allow_list:
                 if 'image' in allow and re.search(allow['image'], value['image']):
                     return
-            raise AgnosticVComponentValidationError(f"{path}: Execution environment image not allowed: {value['image']}")
+            raise AgnosticVComponentValidationError(f"{source}: Execution environment image not allowed: {value['image']}")
         else:
-            raise AgnosticVComponentValidationError(f"{path}: Execution environment requires name or image")
+            raise AgnosticVComponentValidationError(f"{source}: Execution environment requires name or image")
+
+    async def agnosticv_exec(self, *cmd):
+        proc = await asyncio.create_subprocess_exec(
+            agnosticv_cli_path, *cmd,
+            stdout = asyncio.subprocess.PIPE,
+            stderr = asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        if stderr:
+            raise AgnosticVExecError(
+                "agnosticv execution failed.\n" +
+                f"agnosticv {' '.join(cmd)}\n" +
+                stderr.decode('utf-8')
+            )
+        return stdout.decode('utf-8'), stderr.decode('utf-8')
+
+    async def agnosticv_get_all_component_paths(self):
+        stdout, stderr = await self.agnosticv_exec(
+            '--list', '--has=__meta__', '--dir', self.agnosticv_path
+        )
+        return stdout.split(), stderr
+
+    async def agnosticv_get_component_paths_from_related_files(self, files):
+        if not files:
+            return [], ''
+        args = ['--related', files[0]]
+        for file in files[1:]:
+            args.extend(['--or-related', file])
+        stdout, stderr = await self.agnosticv_exec(
+            '--list', '--has=__meta__', '--dir', self.agnosticv_path, *args
+        )
+        return stdout.split(), stderr
 
     async def delete_components(self, logger):
         async for agnosticv_component in AgnosticVComponent.list(
@@ -203,16 +275,13 @@ class AgnosticVRepo(CachedKopfObject):
             logger.info(f"Propagating delete of {self} to {agnosticv_component}")
             await agnosticv_component.delete()
 
-    async def get_component_definition(self, path, logger):
-        proc = await asyncio.create_subprocess_exec(
-            agnosticv_cli_path, '--merge', os.path.join(self.agnosticv_path, path), '--output=json',
-            stdout = asyncio.subprocess.PIPE,
-            stderr = asyncio.subprocess.PIPE,
+    async def get_component_definition(self, source, logger):
+        if self.git_checkout_ref != source.ref:
+            await self.git_repo_checkout(logger=logger, ref=source.ref)
+        stdout, stderr = await self.agnosticv_exec(
+            '--merge', os.path.join(self.agnosticv_path, source.path), '--output=json',
         )
-        stdout, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            raise AgnosticVMergeError(f"agnosticv --merge failed for {path}")
-        definition = json.loads(stdout.decode('utf-8'))
+        definition = json.loads(stdout)
         if self.anarchy_collections:
             definition['__meta__'].setdefault('anarchy', {})['collections'] = self.anarchy_collections
         definition['__meta__'].setdefault('anarchy', {})['roles'] = self.anarchy_roles
@@ -229,41 +298,108 @@ class AgnosticVRepo(CachedKopfObject):
 
         return definition
 
-    async def get_component_paths(self, changed_only, logger):
-        agnosticv_cmd = [agnosticv_cli_path, '--dir', self.agnosticv_path, '--list', '--has=__meta__']
-
+    async def get_component_sources(self, changed_only, logger):
         # Add restriction to changed files if requested
-        if changed_only and self.git_changed_files:
-            agnosticv_cmd.extend(['--related', self.git_changed_files[0]])
-            for file in self.git_changed_files[1:]:
-                agnosticv_cmd.extend(['--or-related', file])
+        try:
+            if changed_only and self.git_changed_files:
+                component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(
+                    self.git_changed_files
+                )
+            else:
+                component_paths, error_msg = await self.agnosticv_get_all_component_paths()
+        except AgnosticVProcessingError as error:
+            raise kopf.TemporaryError(f"{error}", delay=60)
 
-        # FIXME - Use create_subprocess_exec instead... need to figure out chdir
-        proc = await asyncio.create_subprocess_exec(
-            *agnosticv_cmd,
-            stdout = asyncio.subprocess.PIPE,
-            stderr = asyncio.subprocess.PIPE,
+        # Base list of component sources by path
+        component_sources_by_path = {
+            path: ComponentSource(
+                path, ref=self.git_ref, hexsha=self.git_hexsha
+            ) for path in component_paths
+        }
+
+        # Collect all non-fatal error messages
+        error_messages = [error_msg] if error_msg else []
+
+        if self.github_preload_pull_requests:
+            github_token = await self.get_github_token()
+            pull_requests = []
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.github_api_base_url}/pulls",
+                    headers = {
+                        "Accept": "application/vnd.github+json",
+                        "Authorization": "Bearer " + github_token,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    }
+                ) as response:
+                    pull_requests = await response.json()
+                    pull_requests.reverse()
+                    for pull_request in pull_requests:
+                        ref = pull_request['head']['ref']
+                        await self.git_repo_checkout(logger=logger, ref=ref)
+                        logger.info(f"Checked out {ref} [{self.git_hexsha}] for PR #{pull_request['number']}")
+                        changed_files = await self.git_changed_files_in_branch(logger=logger, ref=ref)
+
+                        error_message = None
+                        try:
+                            component_paths, error_message = await self.agnosticv_get_component_paths_from_related_files(changed_files)
+                        except AgnosticVProcessingError as error:
+                            error_message = str(error)
+
+                        if error_message:
+                            error_message = f"Failed to list all components for PR #{pull_request['number']} {ref}:\n{error_message.rstrip()}\n"
+                            logger.warning(error_message)
+                            error_messages.append(error_message)
+                        else:
+                            for path in component_paths:
+                                component_sources_by_path[path] = ComponentSource(
+                                    path,
+                                    pull_request_number = pull_request['number'],
+                                    ref = ref,
+                                    hexsha = self.git_hexsha
+                                )
+
+        component_sources = list(component_sources_by_path.values())
+        component_sources.sort(key=lambda cs: cs.sortkey)
+        return component_sources, error_messages
+
+    async def get_github_token(self):
+        secret = await Babylon.core_v1_api.read_namespaced_secret(
+            name = self.github_token_secret_name,
+            namespace = self.namespace
         )
-        stdout, stderr = await proc.communicate()
-        if proc.returncode != 0:
+        secret_data = secret.data.get('token')
+        if not secret_data:
             raise kopf.TemporaryError(
-                f"agnosticv --list failed: {stderr.decode('utf-8')}",
-                delay=60,
+                f"Secret {self.github_token_secret_name} does not have token in data",
+                delay = 600,
             )
-        return stdout.decode('utf-8').split()
+        return b64decode(secret_data).decode('utf-8')
 
     async def get_ssh_key(self):
         secret = await Babylon.core_v1_api.read_namespaced_secret(
-            name=self.ssh_key_secret_name,
-            namespace=self.namespace
+            name = self.ssh_key_secret_name,
+            namespace = self.namespace
         )
-        secret_data = secret.data.get('id_rsa')
+        secret_data = secret.data.get('ssh-privatekey', secret.data.get('id_rsa'))
         if not secret_data:
             raise kopf.TemporaryError(
-                f"Secret {self.ssh_key_secret_name} does not have id_rsa in data",
+                f"Secret {self.ssh_key_secret_name} does not have ssh-privatekey or id_rsa in data",
                 delay = 600,
             )
-        return b64decode(secret_data)
+        return b64decode(secret_data).decode('utf-8')
+
+    async def git_changed_files_in_branch(self, logger, ref):
+        return await asyncio.get_event_loop().run_in_executor(
+            None, self.__git_changed_files_in_branch, logger, ref
+        )
+
+    async def git_repo_checkout(self, logger, ref=None):
+        await asyncio.get_event_loop().run_in_executor(
+            None, functools.partial(
+                self.__git_repo_checkout, logger=logger, ref=ref
+            )
+        )
 
     async def git_repo_delete(self, logger):
         try:
@@ -289,7 +425,7 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def git_ssh_key_write(self):
         await aiofiles.os.makedirs(self.git_base_path, exist_ok=True)
-        async with aiofiles.open(self.git_ssh_key_path, mode='wb') as fh:
+        async with aiofiles.open(self.git_ssh_key_path, mode='w') as fh:
             await fh.write(await self.get_ssh_key())
         await aiofiles.os.chmod(self.git_ssh_key_path, 0o600)
 
@@ -306,81 +442,233 @@ class AgnosticVRepo(CachedKopfObject):
     async def handle_update(self, logger):
         await self.manage_components(logger=logger)
 
-    async def manage_component(self, path, logger):
-        name = re.sub(r'\.(json|yaml|yml)$', '', path.lower().replace('_', '-').replace('/', '.'))
-        definition = await self.get_component_definition(path=path, logger=logger)
+    async def manage_component(self, source, logger):
+        definition = await self.get_component_definition(source=source, logger=logger)
 
-        self.validate_component_definition(path=path, definition=definition)
+        self.validate_component_definition(definition=definition, source=source)
 
         try:
-            agnosticv_component = await AgnosticVComponent.fetch(name=name, namespace=self.namespace)
+            agnosticv_component = await AgnosticVComponent.fetch(name=source.name, namespace=self.namespace)
             if agnosticv_component.agnosticv_repo != self.name:
                 raise AgnosticVConflictError(
-                    f"{path} conflicts with {agnosticv_component} from AgnosticVRepo {self.agnosticv_repo}"
+                    f"{source} conflicts with {agnosticv_component} from AgnosticVRepo {self.agnosticv_repo}"
                 )
-            elif agnosticv_component.path != path:
+            elif agnosticv_component.path != source.path:
                 raise AgnosticVConflictError(
-                    f"{path} conflicts with {agnosticv_component} at path {agnosticv_component.path}"
+                    f"{source} conflicts with {agnosticv_component} at path {agnosticv_component.path}"
                 )
-            elif agnosticv_component.definition != definition:
-                logger.info(f"Updating {agnosticv_component} definition")
-                await agnosticv_component.json_patch([{
+
+            patch = []
+            if agnosticv_component.definition != definition:
+                patch.append({
                     "op": "add",
                     "path": "/spec/definition",
                     "value": definition,
-                }])
+                })
+
+            if source.pull_request_number:
+                if agnosticv_component.pull_request_commit_hash != source.hexsha:
+                    patch.append({
+                        "op": "add",
+                        "path": "/spec/pullRequestCommitHash",
+                        "value": source.hexsha,
+                    })
+                if agnosticv_component.pull_request_number != source.pull_request_number:
+                    patch.append({
+                        "op": "add",
+                        "path": "/spec/pullRequestNumber",
+                        "value": source.pull_request_number,
+                    })
             else:
-                logger.debug("{agnosticv_component} unchanged")
+                if agnosticv_component.pull_request_commit_hash:
+                    patch.append({
+                        "op": "remove",
+                        "path": "/spec/pullRequestCommitHash",
+                    })
+                if agnosticv_component.pull_request_number:
+                    patch.append({
+                        "op": "remove",
+                        "path": "/spec/pullRequestNumber",
+                    })
+
+            if patch:
+                logger.info(f"Updating {agnosticv_component} definition for {source}")
+                await agnosticv_component.json_patch(patch)
+                return "updated"
+
+            logger.debug("{agnosticv_component} unchanged")
+            return "unchanged"
+
         except kubernetes_asyncio.client.rest.ApiException as e:
             if e.status == 404:
-                logger.info(f"Creating AgnosticVComponent for {path}")
+                logger.info(f"Creating AgnosticVComponent for {source}")
+                spec = {
+                    "agnosticvRepo": self.name,
+                    "definition": definition,
+                    "path": source.path,
+                }
                 agnosticv_component = await AgnosticVComponent.create({
                     "metadata": {
                         "labels": {
                             Babylon.agnosticv_repo_label: self.name,
                         },
-                        "name": name,
+                        "name": source.name,
                         "namespace": self.namespace,
                         "ownerReferences": [self.as_owner_ref()],
                     },
-                    "spec": {
-                        "agnosticvRepo": self.name,
-                        "definition": definition,
-                        "path": path,
-                    }
+                    "spec": spec,
                 })
+                return "created"
             else:
                 raise
 
     async def manage_components(self, logger, changed_only=False):
+        try:
+            await self.__manage_components(changed_only=changed_only, logger=logger)
+        except AgnosticVProcessingError as error:
+            await self.merge_patch_status({
+                "error": {
+                    "message": str(error),
+                    "timestamp": datetime.now(timezone.utc).strftime('%FT%TZ'),
+                }
+            })
+            logger.error(str(error))
+        except Exception as error:
+            logger.exception("manage_components failed with unexpected error.")
+            await self.merge_patch_status({
+                "error": {
+                    "message": traceback.format_exc(),
+                    "timestamp": datetime.now(timezone.utc).strftime('%FT%TZ'),
+                }
+            })
+
+    async def __manage_components(self, logger, changed_only):
         await self.git_repo_sync(logger=logger)
+        # Store the hexsha to record in status if successful
+        git_hexsha = self.git_hexsha
 
         if changed_only:
-            if self.git_hexsha == self.last_successful_git_hexsha:
-                logger.debug(f"Unchanged [{self.git_hexsha}]")
+            if git_hexsha == self.last_successful_git_hexsha:
+                logger.debug(f"Unchanged [{git_hexsha}]")
                 return
             elif self.last_successful_git_hexsha:
-                logger.info(f"Updating components from {self.last_successful_git_hexsha} to {self.git_hexsha}")
+                logger.info(f"Updating components from {self.last_successful_git_hexsha} to {git_hexsha}")
             else:
-                logger.info(f"Initial processing for {self.git_hexsha}")
+                logger.info(f"Initial processing for {git_hexsha}")
         else:
-            logger.info(f"Starting full component processing for {self.git_hexsha}")
+            logger.info(f"Starting full component processing for {git_hexsha}")
 
-        errors = []
-        for path in await self.get_component_paths(changed_only=changed_only, logger=logger):
+        pr_hexsha = {}
+        pr_messages = {}
+        errors = {}
+        component_sources, get_component_sources_error_messages = await self.get_component_sources(
+            changed_only = changed_only,
+            logger = logger,
+        )
+        for source in component_sources:
             try:
-                await self.manage_component(path=path, logger=logger)
+                result = await self.manage_component(source=source, logger=logger)
+                if not source.pull_request_number:
+                    continue
+                pr_hexsha[source.pull_request_number] = source.hexsha
+                if result == 'created':
+                    pr_messages.setdefault(source.pull_request_number, []).append(
+                        f"Created AgnosticVComponent {source.name}"
+                    )
+                elif result == 'updated':
+                    pr_messages.setdefault(source.pull_request_number, []).append(
+                        f"Updated AgnosticVComponent {source.name}"
+                    )
             except AgnosticVProcessingError as error:
-                errors.append(error)
-        if errors:
-            raise kopf.TemporaryError(
-                "Error managing components:\n" + "\n".join([str(error) for error in errors]),
-                delay = 60,
+                errors.setdefault(source.pull_request_number, []).append(error)
+
+        github_token = None
+        for pull_request_number, prerrors in errors.items():
+            if not pull_request_number:
+                continue
+            if not github_token:
+                github_token = await self.get_github_token()
+            message = "Error applying pull request for integration:\n" + "\n".join(
+                [str(error) for error in prerrors]
             )
+
+            async with aiohttp.ClientSession() as session:
+                await session.post(
+                    f"{self.github_api_base_url}/issues/{pull_request_number}/comments",
+                    headers = {
+                        "Accept": "application/vnd.github+json",
+                        "Authorization": "Bearer " + github_token,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    json = {"body": message},
+                )
+
+        for pull_request_number, messages in pr_messages.items():
+            if not pull_request_number or pull_request_number in errors:
+                continue
+            if not github_token:
+                github_token = await self.get_github_token()
+            message = (
+                f"Successfully applied revision {pr_hexsha[pull_request_number]} " +
+                "for integration testing this pull request.\n\n" +
+                "\n".join(messages)
+            )
+            if self.catalog_url:
+                message += f"\n\nThe updated catalog is available at {self.catalog_url}"
+
+            async with aiohttp.ClientSession() as session:
+                await session.post(
+                    f"{self.github_api_base_url}/issues/{pull_request_number}/comments",
+                    headers = {
+                        "Accept": "application/vnd.github+json",
+                        "Authorization": "Bearer " + github_token,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    json = {"body": message}
+                )
+                await session.post(
+                    f"{self.github_api_base_url}/issues/{pull_request_number}/labels",
+                    headers = {
+                        "Accept": "application/vnd.github+json",
+                        "Authorization": "Bearer " + github_token,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    json = {"labels": ["integration"]}
+                )
+
+        if errors or get_component_sources_error_messages:
+            error_messages = deepcopy(get_component_sources_error_messages)
+            raise AgnosticVProcessingError(
+                "AgnosticVRepo processing failed:\n\n" +
+                "\n".join(
+                    get_component_sources_error_messages +
+                    [str(error) for prerrors in errors.values() for error in prerrors]
+                )
+            )
+
         await self.merge_patch_status({
+            "error": None,
             "git": {
-                "commit": self.git_hexsha,
+                "commit": git_hexsha,
             }
         })
-        # FIXME - Delete component during full sync
-        logger.info(f"Finished managing components for {self.git_hexsha}")
+
+        # FIXME - Delete components during full sync
+
+        logger.info(f"Finished managing components for {git_hexsha}")
+
+
+class ComponentSource:
+    def __init__(self, path, ref, hexsha, pull_request_number=None):
+        self.hexsha = hexsha
+        self.name = re.sub(r'\.(json|yaml|yml)$', '', path.lower().replace('_', '-').replace('/', '.'))
+        self.path = path
+        self.pull_request_number = pull_request_number
+        self.ref = ref
+        self.sortkey = f"{pull_request_number or 0:09d} {path}"
+
+    def __str__(self):
+        if self.pull_request_number:
+            return f"{self.path} [PR {self.pull_request_number}]"
+        else:
+            return self.path

@@ -12,7 +12,8 @@ const ServicesAction: React.FC<{
     React.SetStateAction<{
       action: ServiceActionActions;
       resourceClaim?: ResourceClaim;
-      rating?: { rate: number; comment: string };
+      rating?: { rate: number; useful: 'yes' | 'no' | 'not applicable'; comment: string };
+      workshop?: WorkshopWithResourceClaims;
       submitDisabled: boolean;
     }>
   >;
@@ -20,7 +21,7 @@ const ServicesAction: React.FC<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
     workshop?: WorkshopWithResourceClaims;
-    rating?: { rate: number; comment: string };
+    rating?: { rate: number; useful: 'yes' | 'no' | 'not applicable'; comment: string };
     submitDisabled: boolean;
   };
 }> = ({ actionState, setTitle, setActionState }) => {
@@ -47,7 +48,7 @@ const ServicesAction: React.FC<{
           ? resourceClaim.status.resources
               .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
               .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
-          : [])
+          : []),
       );
     }
   }

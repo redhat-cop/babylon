@@ -54,7 +54,7 @@ const AnarchySubjects: React.FC = () => {
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')]
+    [searchParams.get('search')],
   );
   const stateFilter = searchParams.has('state') ? searchParams.get('state') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
@@ -92,7 +92,7 @@ const AnarchySubjects: React.FC = () => {
         }
         return true;
       },
-    }
+    },
   );
 
   const revalidate = useCallback(
@@ -114,7 +114,7 @@ const AnarchySubjects: React.FC = () => {
         }
       }
     },
-    [mutate, anarchySubjectsPages]
+    [mutate, anarchySubjectsPages],
   );
 
   const isReachingEnd =
@@ -135,12 +135,12 @@ const AnarchySubjects: React.FC = () => {
       }
       return true;
     },
-    [keywordFilter]
+    [keywordFilter],
   );
 
   const anarchySubjects: AnarchySubject[] = useMemo(
     () => [].concat(...anarchySubjectsPages.map((page) => page.items)).filter(filterAnarchySubject) || [],
-    [filterAnarchySubject, anarchySubjectsPages]
+    [filterAnarchySubject, anarchySubjectsPages],
   );
 
   // Trigger continue fetching more resource claims on scroll.
@@ -236,9 +236,9 @@ const AnarchySubjects: React.FC = () => {
             <ProjectSelector
               selector="anarchy"
               currentNamespaceName={namespace}
-              onSelect={(namespaceName) => {
-                if (namespaceName) {
-                  navigate(`/admin/anarchysubjects/${namespaceName}${location.search}`);
+              onSelect={(n) => {
+                if (n) {
+                  navigate(`/admin/anarchysubjects/${n.name}${location.search}`);
                 } else {
                   navigate(`/admin/anarchysubjects${location.search}`);
                 }

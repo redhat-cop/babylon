@@ -114,20 +114,22 @@ class ResourceClaim(K8sObject):
         provision_messages = []
 
         for resource in self.definition.get('status', {}).get('resources', []):
+            name =  resource.get('name')
             state = resource.get('state')
             if not state or not state['kind'] == 'AnarchySubject':
                 continue
             state_vars = state['spec']['vars']
             if 'provision_data' in state_vars:
-                provision_data.update({
+                provision_data[name] = {}
+                provision_data[name].update({
                     k: v for k, v in state_vars['provision_data'].items() if k not in self.lab_ui_url_keys
                 })
                 for lab_ui_url_key in self.lab_ui_url_keys:
-                    if lab_ui_url_key in provision_data:
+                    if lab_ui_url_key in state_vars['provision_data']:
                         lab_user_interface = LabUserInterface(
-                            url = provision_data[lab_ui_url_key]
+                            url = state_vars['provision_data'][lab_ui_url_key]
                         )
-                    break
+                        break
             if 'provision_messages' in state_vars:
                 provision_messages.extend(state_vars['provision_messages'])
 
@@ -181,7 +183,7 @@ class ResourceClaim(K8sObject):
                         user_assignment.lab_user_interface = LabUserInterface(
                             url = user_data[lab_ui_url_key]
                         )
-                    break
+                        break
 
         if Babylon.lab_ui_urls_annotation in annotations:
             try:

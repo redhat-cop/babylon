@@ -1,0 +1,35 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon:anarchy:catalog-access
+  annotations:
+    description: >-
+      This cluster role is used to allow anarchy to access catalog items and secrets.
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - template.openshift.io
+  resources:
+  - templates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch

@@ -67,7 +67,7 @@ const AnarchyGovernorInstanceComponent: React.FC<{
         if (!compareK8sObjectsArr(currentData.items, newData.items)) return false;
         return true;
       },
-    }
+    },
   );
 
   const anarchySubjects = useMemo(() => anarchySubjectsList.items, [anarchySubjectsList]);
@@ -134,8 +134,8 @@ const AnarchyGovernorInstanceComponent: React.FC<{
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}/yaml`
+                        '~',
+                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}/yaml`,
                     )
                   }
                 />,
@@ -146,8 +146,8 @@ const AnarchyGovernorInstanceComponent: React.FC<{
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}`
+                        '~',
+                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}`,
                     )
                   }
                 />,

@@ -22,7 +22,7 @@ const StarRating: React.FC<{
   const [hoverRating, setHoverRating] = useState(0);
 
   const isFilled = useCallback(
-    (index) => {
+    (index: number) => {
       if (readOnly) {
         return Math.round(rating) >= index;
       }
@@ -34,7 +34,7 @@ const StarRating: React.FC<{
 
       return false;
     },
-    [hoverRating, rating, readOnly]
+    [hoverRating, rating, readOnly],
   );
 
   const starRating = useMemo(() => {
@@ -58,7 +58,7 @@ const StarRating: React.FC<{
             onMouseEnter={() => setHoverRating(idx)}
             onMouseLeave={() => setHoverRating(0)}
           />
-        )
+        ),
       );
   }, [count, isFilled, onRating, readOnly]);
 

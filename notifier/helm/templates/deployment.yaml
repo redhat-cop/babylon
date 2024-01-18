@@ -1,4 +1,4 @@
-{{ if .Values.deploy }}
+{{- if .Values.deploy }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,28 +27,35 @@ spec:
           value: {{ required ".Values.smtp.host is required!" .Values.smtp.host | quote }}
         - name: SMTP_PORT
           value: {{ required ".Values.smtp.port is required!" .Values.smtp.port | quote }}
-        {{- if (.Values.smtp.tls).crt }}
+        {{- if (.Values.smtp.tls).ca }}
+        - name: SMTP_TLS_CA_CERT
+          value: |
+            {{- .Values.smtp.tls.ca | nindent 12 }}
+        {{- end }}
+        {{- if (.Values.smtp.tls).caCertificateSecret }}
+        - name: SMTP_TLS_CA_CERT_FILE
+          value: /smtp-tls-ca/ca.crt
+        {{- end }}
+        {{- if (or (.Values.smtp.tls).crt (.Values.smtp.tls).clientCertificateSecret) }}
         - name: SMTP_TLS_CERT_FILE
           value: /smtp-tls/tls.crt
         {{- end }}
-        {{- if (.Values.smtp.tls).key }}
+        {{- if (or (.Values.smtp.tls).key (.Values.smtp.tls).clientCertificateSecret) }}
         - name: SMTP_TLS_KEY_FILE
           value: /smtp-tls/tls.key
         {{- end }}
-        {{- if (.Values.smtp.tls).ca }}
-        - name: SMTP_TLS_CA_CERT_FILE
-          value: /smtp-tls/ca.crt
-        {{- end }}
+        - name: SMTP_TLS_VALIDATE_CERTS
+          value: "{{- (.Values.smtp.tls).validateCerts | default "true" -}}"
         {{- if .Values.smtp.account }}
         - name: SMTP_USER
           valueFrom:
             secretKeyRef:
-              key: smtp_account
+              key: user
               name: {{ include "babylon-notifier.smtpSecret" . | quote }}
         - name: SMTP_USER_PASSWORD
           valueFrom:
             secretKeyRef:
-              key: smtp_password
+              key: password
               name: {{ include "babylon-notifier.smtpSecret" . | quote }}
         {{- end }}
         - name: REDIS_HOST
@@ -72,7 +79,12 @@ spec:
             port: 8080
           timeoutSeconds: 1
         volumeMounts:
-        {{- if .Values.smtp.tls }}
+        {{- if (.Values.smtp.tls).caCertificateSecret }}
+        - name: smtp-tls-ca
+          mountPath: /smtp-tls-ca
+          readOnly: true
+        {{- end }}
+        {{- if (or (.Values.smtp.tls).crt (.Values.smtp.tls).clientCertificateSecret) }}
         - name: smtp-tls
           mountPath: /smtp-tls
           readOnly: true
@@ -97,10 +109,16 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-      {{- if .Values.smtp.tls }}
+      {{- if (or (.Values.smtp.tls).crt (.Values.smtp.tls).clientCertificateSecret) }}
       - name: smtp-tls
         secret:
           defaultMode: 0440
-          secretName: {{ include "babylon-notifier.name" . }}-tls
+          secretName: {{ .Values.smtp.tls.clientCertificateSecret | default (printf "%s-tls" (include "babylon-notifier.name" .)) }}
       {{- end }}
-{{ end }}
+      {{- if (.Values.smtp.tls).caCertificateSecret }}
+      - name: smtp-tls-ca
+        secret:
+          defaultMode: 0440
+          secretName: {{ .Values.smtp.tls.caCertificateSecret }}
+      {{- end }}
+{{- end }}

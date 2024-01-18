@@ -156,7 +156,6 @@ async def execute_query(query, positional_args=None, autocommit=True):
             "Query: '%s' \n"
             "Arguments: %s: \n"
             "Error: %s, \n"
-            "query list: %s\n"
             "" % (query, arguments, e)
         )
 
@@ -180,4 +179,3 @@ async def execute_query(query, positional_args=None, autocommit=True):
         return kw
     except Exception as e:
         logger.error(f"ERROR closing connection {e}")
-        pass

@@ -134,18 +134,41 @@ spec:
                       - always
                       - missing
                       - never
+              gitHub:
+                description: >-
+                  GitHub integration configuration.
+                type: object
+                properties:
+                  preloadPullRequests:
+                    description: >-
+                      Configuration to load configuration from open pull requests before merge.
+                      This feature is intended for use for integration testing before pull request merge.
+                    type: object
+                    required:
+                    - mode
+                    properties:
+                      mode:
+                        description: >-
+                          Pull request pre-load style.
+                          In the "override" mode the most recent pull request configuration overrides tho applied component configuration.
+                        type: string
+                        enum:
+                        - override
+                  tokenSecret:
+                    description: >-
+                      Name of secret with GitHub token as `token` in secret data.
+                    type: string
               pollingInterval:
                 description: >-
                   Polling interval for checking for AgnosticV Repo Updates
                 type: string
-                default: 1m
               ref:
                 description: >-
                   Git reference. Ex: branch, commit, or tag
                 type: string
               sshKey:
                 description: >-
-                  Secret name containing Git access key in `id_rsa` data.
+                  Secret name containing Git access key in `id_rsa` or `ssh-privatekey` data.
                 type: string
               url:
                 description: >-
@@ -154,3 +177,18 @@ spec:
           status:
             type: object
             x-kubernetes-preserve-unknown-fields: true
+            properties:
+              error:
+                description: >-
+                  Error details while handling this repository.
+                type: object
+                properties:
+                  message:
+                    description: >-
+                      Error message.
+                    type: string
+                  timestamp:
+                    description: >-
+                      Last timestamp this error was reported.
+                    type: string
+                    format: date-time

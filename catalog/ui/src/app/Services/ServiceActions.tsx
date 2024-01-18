@@ -4,7 +4,6 @@ import EllipsisVIcon from '@patternfly/react-icons/dist/js/icons/ellipsis-v-icon
 import { ResourceClaim } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import {
-  BABYLON_DOMAIN,
   checkResourceClaimCanRate,
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
@@ -44,7 +43,7 @@ const ServiceActions: React.FC<{
           !resourceClaim || !canStop || !resourceClaim?.status?.resources?.[0]?.state?.spec?.vars?.action_schedule
         }
         onSelect={actionHandlers.runtime}
-      />
+      />,
     );
   }
   if (!isPartOfWorkshop && actionHandlers.lifespan) {
@@ -54,7 +53,7 @@ const ServiceActions: React.FC<{
         label="Edit Auto-Destroy"
         isDisabled={!resourceClaim?.status?.lifespan}
         onSelect={actionHandlers.lifespan}
-      />
+      />,
     );
   }
   if (actionHandlers.delete) {
@@ -63,7 +62,7 @@ const ServiceActions: React.FC<{
         key="delete"
         label={serviceName ? `Delete ${serviceName}` : 'Delete'}
         onSelect={actionHandlers.delete}
-      />
+      />,
     );
   }
   if (!isPartOfWorkshop && actionHandlers.start) {
@@ -73,7 +72,7 @@ const ServiceActions: React.FC<{
         label={serviceName ? `Start ${serviceName}` : 'Start'}
         isDisabled={!canStart}
         onSelect={actionHandlers.start}
-      />
+      />,
     );
   }
   if (!isPartOfWorkshop && actionHandlers.stop) {
@@ -83,19 +82,19 @@ const ServiceActions: React.FC<{
         label={serviceName ? `Stop ${serviceName}` : 'Stop'}
         isDisabled={!canStop}
         onSelect={actionHandlers.stop}
-      />
+      />,
     );
   }
 
   if (actionHandlers.getCost) {
     actionDropdownItems.push(
-      <ActionDropdownItem key="getCost" label="Get amount spent" onSelect={actionHandlers.getCost} />
+      <ActionDropdownItem key="getCost" label="Get amount spent" onSelect={actionHandlers.getCost} />,
     );
   }
 
   if (actionHandlers.manageWorkshop) {
     actionDropdownItems.push(
-      <ActionDropdownItem key="manageWorkshop" label="Manage Workshop" onSelect={actionHandlers.manageWorkshop} />
+      <ActionDropdownItem key="manageWorkshop" label="Manage Workshop" onSelect={actionHandlers.manageWorkshop} />,
     );
   }
   if (!isPartOfWorkshop && actionHandlers.rate) {
@@ -106,7 +105,7 @@ const ServiceActions: React.FC<{
         onSelect={actionHandlers.rate}
         isDisabled={!canRate}
         className="action-dropdown-item__rate"
-      />
+      />,
     );
   }
   return (

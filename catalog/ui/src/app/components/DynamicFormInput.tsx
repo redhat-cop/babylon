@@ -60,7 +60,7 @@ const DynamicFormInput: React.FC<{
               ? parameter.openAPIV3Schema.minimum
               : n > parameter.openAPIV3Schema.maximum
               ? parameter.openAPIV3Schema.maximum
-              : n
+              : n,
           );
         }}
         onMinus={() => onChange(parseInt(value) - 1)}

@@ -1,6 +1,6 @@
 .odo/env
 .odo/odo-file-index.json
-agnosticvrepo.yaml
+agnosticvrepo*.yaml
 id_rsa
 id_rsa.pub
 test-helm-values.yaml

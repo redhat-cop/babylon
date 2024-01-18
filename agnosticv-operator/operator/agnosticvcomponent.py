@@ -1,7 +1,6 @@
 import json
 import kopf
 import yaml
-
 from copy import deepcopy
 
 from babylon import Babylon
@@ -10,6 +9,26 @@ from kopfobject import KopfObject
 
 import jinja2
 import kubernetes_asyncio
+
+def merge_dynamic_fields(definition, current_state):
+    merged_definition = deepcopy(definition)
+
+    if 'status' in current_state:
+        merged_definition['status'] = current_state['status']
+
+    for field in (
+        'creationTimestamp',
+        'finalizers',
+        'generateName',
+        'generation',
+        'managedFields',
+        'resourceVersion',
+        'uid',
+    ):
+        if field in current_state['metadata']:
+            merged_definition['metadata'][field] = current_state['metadata'][field]
+
+    return merged_definition
 
 def remove_none_values(dictionary):
     pruned = {}
@@ -87,7 +106,9 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def anarchy_namespace(self):
-        return self.anarchy.get('namespace', 'anarchy-operator')
+        if 'namespace' in self.anarchy:
+            return jinja2env.from_string(self.anarchy['namespace']).render(self.template_vars)
+        return 'anarchy-operator'
 
     @property
     def anarchy_remove_finished_actions_after(self):
@@ -110,6 +131,10 @@ class AgnosticVComponent(KopfObject):
         return self.ansible_control_plane.get('secret')
 
     @property
+    def asset_uuid(self):
+        return self.__meta__.get('asset_uuid', '')
+
+    @property
     def bookbag(self):
         if 'bookbag' not in self.__meta__:
             return None
@@ -126,8 +151,13 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_description(self):
-        # FIXME - Weird carry-over from agnosticv-operator strips trailing newline?
-        return self.catalog_meta.get('description', {})
+        """
+        Return description meta dictionary
+        """
+        description = self.catalog_meta.get('description', {})
+        if isinstance(description, dict):
+            return description
+        return {}
 
     @property
     def catalog_description_content(self):
@@ -150,9 +180,17 @@ class AgnosticVComponent(KopfObject):
         return self.catalog_meta.get('display_name', self.name)
 
     @property
+    def catalog_external_url(self):
+        return self.catalog_meta.get('externalUrl')
+
+    @property
     def catalog_icon(self):
         # FIXME - default icon dict?
         return self.catalog_meta.get('icon', {})
+
+    @property
+    def catalog_item_namespace(self):
+        return jinja2env.from_string(self.catalog_meta.get('namespace')).render(self.template_vars)
 
     @property
     def catalog_keywords(self):
@@ -160,26 +198,23 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_labels(self):
-        return self.catalog_meta.get('labels', {})
+        # Return labels, silently transforming spaces to underscore
+        return {
+            key.replace(' ', '_'): val.replace(' ', '_')
+            for key, val in self.catalog_meta.get('labels', {}).items()
+        }
 
     @property
     def catalog_message_templates(self):
-        # FIXME - weird whitespace trimming behavior preserved from agnosticv-operator
-        if 'messageTemplates' not in self.catalog_meta:
-            return None
-        # FIXME - preserve bug in agnosticv-operator
-        if ('info' not in self.catalog_meta['messageTemplates'] and
-            'serviceReady' not in self.catalog_meta['messageTemplates'] and
-            'serviceDeleted' not in self.catalog_meta['messageTemplates']
-        ):
-            return None
-        return {
-            key: { 
-                "template": value['template'].rstrip(),
-                "templateFormat": value.get('templateFormat', 'jinja2'),
-                "outputFormat": value.get('outputFormat', 'html'),
-            } for key, value in self.catalog_meta.get('messageTemplates').items()
-        }
+        ret = {}
+        for key, value in self.catalog_meta.get('messageTemplates', {}).items():
+            value = deepcopy(value)
+            if 'outputFormat' not in value:
+                value['outputFormat'] = 'html'
+            if 'templateFormat' not in value:
+                value['templateFormat'] = 'jinja2'
+            ret[key] = value
+        return ret
 
     @property
     def catalog_meta(self):
@@ -260,6 +295,14 @@ class AgnosticVComponent(KopfObject):
         return self.spec['path']
 
     @property
+    def pull_request_commit_hash(self):
+        return self.spec.get('pullRequestCommitHash')
+
+    @property
+    def pull_request_number(self):
+        return self.spec.get('pullRequestNumber')
+
+    @property
     def resource_provider_ref(self):
         return {
             "apiVersion": f"{Babylon.resource_broker_api_version}",
@@ -325,6 +368,9 @@ class AgnosticVComponent(KopfObject):
                 "annotations": {
                     f"{Babylon.agnosticv_api_group}/last-update": json.dumps(self.last_update),
                 },
+                "labels": {
+                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
+                },
                 "name": self.name,
                 "namespace": self.anarchy_namespace,
             },
@@ -382,8 +428,24 @@ class AgnosticVComponent(KopfObject):
         # FIXME - more should be removed from __meta__, really __meta__ should not be passed at all
         definition['spec']['vars']['job_vars']['__meta__'] = pruned_meta
 
-        for action_name, action_config in self.deployer_actions.items():
+        sandbox_api_actions = pruned_meta.get('sandbox_api', {}).get('actions', {})
+
+        for action_name in ('destroy', 'provision', 'start', 'status', 'stop'):
+            action_config = {}
+
+            # __meta__.sandbox_api.actions overrides __meta__.deployer.actions
+            if action_name in sandbox_api_actions:
+                action_config = sandbox_api_actions[action_name]
+            else:
+                if action_name in self.deployer_actions:
+                    action_config = self.deployer_actions[action_name]
+                else:
+                    continue
+
             if action_config.get('disable'):
+                continue
+            # If action has explicitely enabled=False, skip it
+            if action_config.get('enable', True) == False:
                 continue
 
             action_def = {
@@ -429,7 +491,7 @@ class AgnosticVComponent(KopfObject):
 
 
     def __catalog_item_definition(self):
-        namespace = jinja2env.from_string(self.catalog_meta.get('namespace')).render(self.template_vars)
+        namespace = self.catalog_item_namespace
 
         definition = {
             "apiVersion": Babylon.catalog_api_version,
@@ -446,30 +508,22 @@ class AgnosticVComponent(KopfObject):
                 },
                 "labels": {
                     f"{Babylon.catalog_api_group}/category": self.catalog_category,
+                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
                 },
             },
             "spec": {
-                #"category": self.catalog_category,
-                #"description": self.catalog_description,
-                #"icon": self.catalog_icon,
-                #"keywords": self.catalog_keywords,
+                "category": self.catalog_category,
+                "description": self.catalog_description,
+                "displayName": self.catalog_display_name,
+                "keywords": self.catalog_keywords,
                 "lastUpdate": self.last_update,
-                "lifespan": {
-                    "default": self.lifespan_default,
-                    "maximum": self.lifespan_maximum,
-                    "relativeMaximum": self.lifespan_relative_maximum,
-                },
-                "resources": [],
-                "runtime": {
-                    "default": self.runtime_default,
-                    "maximum": self.runtime_maximum,
-                }
             }
         }
 
         # FIXME - weird default behavior from agnosticv-operator
         if self.catalog_icon:
             definition['metadata']['annotations'][f"{Babylon.catalog_api_group}/icon"] = json.dumps(self.catalog_icon)
+            definition['spec']['icon'] = self.catalog_icon
         else:
             definition['metadata']['annotations'][f"{Babylon.catalog_api_group}/icon"] = ''
 
@@ -485,48 +539,63 @@ class AgnosticVComponent(KopfObject):
         if self.stage in ('dev', 'test', 'prod', 'event'):
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/stage"] = self.stage
 
-        for idx, linked_component in enumerate(self.linked_components):
-            #if not 'linkedComponents' in definition['spec']:
-            #    definition['spec']['linkedComponents'] = []
+        if self.catalog_external_url:
+            definition['spec']['externalUrl'] = self.catalog_external_url
+        else:
+            definition['spec']['lifespan'] = {
+                "default": self.lifespan_default,
+                "maximum": self.lifespan_maximum,
+                "relativeMaximum": self.lifespan_relative_maximum,
+            }
+            definition['spec']['runtime'] = {
+                "default": self.runtime_default,
+                "maximum": self.runtime_maximum,
+            }
+            definition['spec']['resources'] = []
 
-            #definition['spec']['linkedComponents'].append({
-            #    "displayName": linked_component.display_name,
-            #    "name": linked_component.name,
-            #})
+            for idx, linked_component in enumerate(self.linked_components):
+                if not 'linkedComponents' in definition['spec']:
+                    definition['spec']['linkedComponents'] = []
 
-            definition['spec']['resources'].append({
-                "name": linked_component.name or linked_component.short_name,
-                "provider": linked_component.resource_provider_ref,
-            })
+                definition['spec']['linkedComponents'].append({
+                    "name": linked_component.name,
+                })
+                if linked_component.display_name:
+                    definition['spec']['linkedComponents'][-1]['displayName'] = linked_component.display_name
 
-            if linked_component.display_name:
-                definition['metadata']['annotations'][ 
-                    f"{Babylon.catalog_api_group}/displayNameComponent{idx}"
-                ] = linked_component.display_name
+                definition['spec']['resources'].append({
+                    "name": linked_component.name or linked_component.short_name,
+                    "provider": linked_component.resource_provider_ref,
+                })
 
-        if self.deployer_type:
-            definition['spec']['resources'].append({
-                "name": self.short_name,
-                "provider": self.resource_provider_ref,
-            })
+                if linked_component.display_name:
+                    definition['metadata']['annotations'][
+                        f"{Babylon.catalog_api_group}/displayNameComponent{idx}"
+                    ] = linked_component.display_name
 
-        if self.catalog_message_templates:
-            definition['spec']['messageTemplates'] = self.catalog_message_templates
+            if self.deployer_type:
+                definition['spec']['resources'].append({
+                    "name": self.short_name,
+                    "provider": self.resource_provider_ref,
+                })
 
-        if self.catalog_multiuser:
-            definition['spec']['multiuser'] = True
+            if self.catalog_message_templates:
+                definition['spec']['messageTemplates'] = self.catalog_message_templates
 
-        if self.catalog_workshop_ui_disabled:
-            definition['spec']['workshopUiDisabled'] = True
+            if self.catalog_multiuser:
+                definition['spec']['multiuser'] = True
 
-        if self.catalog_parameters != None:
-            definition['spec']['parameters'] = self.catalog_parameters
+            if self.catalog_workshop_ui_disabled:
+                definition['spec']['workshopUiDisabled'] = True
 
-        if self.deployer_provision_time_estimate:
-            definition['spec']['provisionTimeEstimate'] = self.deployer_provision_time_estimate
+            if self.catalog_parameters != None:
+                definition['spec']['parameters'] = self.catalog_parameters
 
-        if self.catalog_terms_of_service:
-            definition['spec']['termsOfService'] = self.catalog_terms_of_service
+            if self.deployer_provision_time_estimate:
+                definition['spec']['provisionTimeEstimate'] = self.deployer_provision_time_estimate
+
+            if self.catalog_terms_of_service:
+                definition['spec']['termsOfService'] = self.catalog_terms_of_service
 
         return definition
 
@@ -537,6 +606,9 @@ class AgnosticVComponent(KopfObject):
             "metadata": {
                 "annotations": {
                     f"{Babylon.agnosticv_api_group}/last-update": json.dumps(self.last_update),
+                },
+                "labels": {
+                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
                 },
                 "name": self.name,
                 "namespace": Babylon.resource_broker_namespace,
@@ -576,7 +648,6 @@ class AgnosticVComponent(KopfObject):
                             },
                             "desired_state":
                                 # FIXME - clean up syntax for readability.
-                                "\n"
                                 "{%- if 0 < resource_states | map('default', {}, True) | list | json_query(\"length([?!contains(keys(status.towerJobs.provision || `{}`), 'completeTimestamp')])\") -%}\n"
                                 "{#- desired_state started until all AnarchySubjects have finished provision -#}\n"
                                 "started\n"
@@ -596,8 +667,110 @@ class AgnosticVComponent(KopfObject):
                         },
                     }
                 },
+                "parameters": [
+                    {
+                        "name": "start_timestamp",
+                        "allowUpdate": True,
+                        "default": {
+                            "template": "{{ now(true, '%FT%TZ') }}",
+                        },
+                        "required": True,
+                        "validation": {
+                            "openAPIV3Schema": {
+                                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+                                "type": "string",
+                            }
+                        }
+                    }, {
+                        "name": "stop_timestamp",
+                        "allowUpdate": True,
+                        "default": {
+                            "template": "{{ (now(true) + runtime_default | parse_time_interval).strftime('%FT%TZ') }}",
+                        },
+                        "required": True,
+                        "validation": {
+                            "openAPIV3Schema": {
+                                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+                                "type": "string",
+                            }
+                        }
+                    }
+                ],
                 "resourceRequiresClaim": self.resource_requires_claim,
+                "statusSummaryTemplate": {
+                    "agnosticv": {
+                        "account": self.account,
+                        "asset_uuid": self.asset_uuid,
+                        "path": self.path,
+                        "repo": self.agnosticv_repo,
+                        "short_name": self.short_name,
+                        "stage": self.stage,
+                    },
+                    "provision_data": "{{ resources | default([]) | json_query('[].state.spec.vars.provision_data') | merge_list_of_dicts | object }}",
+                    "runtime_default": "{{ runtime_default }}",
+                    "runtime_maximum": "{{ runtime_maximum }}",
+                    "state":
+                        "{%- if 0 < resource_claim.status.provider.validationErrors | default([]) | length -%}\n"
+                        "validation-failed\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-failed']\") | length -%}\n"
+                        "provision-failed\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-error']\") | length -%}\n"
+                        "provision-error\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-canceled']\") | length -%}\n"
+                        "provision-canceled\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-failed']\") | length -%}\n"
+                        "start-failed\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-error']\") | length -%}\n"
+                        "start-error\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-canceled']\") | length -%}\n"
+                        "start-canceled\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-failed']\") | length -%}\n"
+                        "stop-failed\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-error']\") | length -%}\n"
+                        "stop-error\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-canceled']\") | length -%}\n"
+                        "stop-canceled\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provisioning']\") | length -%}\n"
+                        "provisioning\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-pending']\") | length -%}\n"
+                        "provision-pending\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stopping']\") | length -%}\n"
+                        "stopping\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='starting']\") | length -%}\n"
+                        "starting\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-pending']\") | length -%}\n"
+                        "stop-pending\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-pending']\") | length -%}\n"
+                        "start-pending\n"
+                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars && !contains(keys(state.spec.vars), 'current_state')]\") | length -%}\n"
+                        "initializing\n"
+                        "{%- elif resources | length != resources | json_query(\"[?state]\") | length -%}\n"
+                        "requested\n"
+                        "{%- elif start_timestamp | default('1970-01-01T00:00:00Z') <= now(true, '%FT%TZ') and stop_timestamp | default('1970-01-01T00:00:00Z') > now(true, '%FT%TZ') -%}\n"
+                        "{%-   if resources | length == resources | json_query(\"[?state.spec.vars.current_state=='started']\") | length -%}\n"
+                        "started\n"
+                        "{%-   else -%}\n"
+                        "start-scheduled\n"
+                        "{%-   endif -%}\n"
+                        "{%- else -%}\n"
+                        "{%-   if resources | length == resources | json_query(\"[?state.spec.vars.current_state=='stopped']\") | length -%}\n"
+                        "stopped\n"
+                        "{%-   else -%}\n"
+                        "stop-scheduled\n"
+                        "{%-   endif -%}\n"
+                        "{%- endif -%}"
+                },
                 "template": {
+                    "definition": {
+                        "spec": {
+                            "vars": {
+                                "action_schedule": {
+                                    "start": "{{ start_timestamp | default(omit) }}",
+                                    "stop": "{{ stop_timestamp | default(omit) }}",
+                                }
+                            }
+                        }
+                    },
                     "enable": True,
                 },
                 "updateFilters": [
@@ -652,21 +825,37 @@ class AgnosticVComponent(KopfObject):
                             }
                         }
                     }
+                },
+                "vars": {
+                    "runtime_default": self.runtime_default,
+                    "runtime_maximum": self.runtime_maximum,
                 }
             }
         }
+
+        if not self.catalog_disable:
+            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemName"] = self.name
+            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemNamespace"] = self.catalog_item_namespace
+            definition['spec']['statusSummaryTemplate']['catalog_item_name'] = self.name
+            definition['spec']['statusSummaryTemplate']['catalog_item_namespace'] = self.catalog_item_namespace
 
         for idx, linked_component in enumerate(self.linked_components):
             definition['spec'].setdefault('linkedResourceProviders', []).append({
                 "name": linked_component.component_name,
                 "waitFor": f"current_state_{idx} == 'started'",
-                "templateVars": [{
-                    "name": f"current_state_{idx}",
-                    "from": "/spec/vars/current_state",
-                }, {
-                    "name": f"provision_data_{idx}",
-                    "from": "/spec/vars/provision_data",
-                }]
+                "parameterValues": {
+                    "runtime_default": "{{ runtime_default }}",
+                    "runtime_maximum": "{{ runtime_maximum }}",
+                },
+                "templateVars": [
+                    {
+                        "name": f"current_state_{idx}",
+                        "from": "/spec/vars/current_state",
+                    }, {
+                        "name": f"provision_data_{idx}",
+                        "from": "/spec/vars/provision_data",
+                    }
+                ]
             })
 
             for item in linked_component.propagate_provision_data:
@@ -686,17 +875,49 @@ class AgnosticVComponent(KopfObject):
                 "allowedOps": ["add", "replace"],
             })
 
-        # Allow altering updatable parameters
         if self.catalog_parameters:
             open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars']
             for parameter in self.catalog_parameters:
-                # Skip annotation only parameters
+                resource_broker_parameter = {
+                    'name': parameter['name'],
+                    'allowUpdate': parameter.get('allowUpdate', False),
+                    'required': parameter.get('required', False),
+                }
+                if 'openAPIV3Schema' in parameter:
+                    resource_broker_parameter.setdefault('validation', {})['openAPIV3Schema'] = parameter['openAPIV3Schema']
+
+                definition['spec']['parameters'].append(resource_broker_parameter)
+
+                # FIXME - resource indexes is a clumsy way to configure parameters
+
+                # '@' in resource indexes means current resource. Other values reference
+                # linked resource providers.
+                resource_indexes = parameter.get('resourceIndexes', ['@'])
+                current_resource_index = len(self.linked_components)
+
+                # Configure parameter propagation to linked components
+                for resource_index in resource_indexes:
+                    if resource_index == '@' or resource_index == current_resource_index:
+                        continue
+                    definition['spec']['linkedResourceProviders'][resource_index]['parameterValues'][parameter['name']] = '{{' + parameter['name'] + ' | object }}'
+
+                # Below here is customization for how the parameter value is used to manage the
+                # resource for this provider. Some parameters may only be used to propagate to
+                # other linked providers.
+                if '@' not in resource_indexes and current_resource_index not in resource_indexes:
+                    continue
+
+                # Skip annotation only parameters in template generation and validation
                 if 'annotation' in parameter and 'variable' not in parameter:
                     continue
+
                 open_api_schema_job_vars.setdefault('properties', {})
                 open_api_schema_job_vars.setdefault('required', [])
                 variable = parameter.get('variable', parameter['name'])
+                default = None
                 parameter_open_api_schema = parameter.get('openAPIV3Schema', {})
+                if 'default' in parameter_open_api_schema:
+                    default = parameter_open_api_schema['default']
                 if 'description' in parameter:
                     parameter_open_api_schema['description'] = parameter['description']
                 open_api_schema_job_vars['properties'][variable] = parameter_open_api_schema
@@ -704,9 +925,17 @@ class AgnosticVComponent(KopfObject):
                     open_api_schema_job_vars['required'].append(variable)
                 if parameter.get('allowUpdate'):
                     definition['spec']['updateFilters'].append({
-                        "pathMatch": f"/spec/vars/job_vars/variable(/.*)?"
+                        "pathMatch": f"/spec/vars/job_vars/{variable}(/.*)?"
                     })
-            
+
+                definition['spec']['template']['definition'].setdefault(
+                    'spec', {}
+                ).setdefault(
+                    'vars', {}
+                ).setdefault(
+                    'job_vars', {}
+                )[variable] = '{{ ' + parameter['name'] + ' | default(omit) | object }}'
+
         return definition
 
     async def __create_catalog_item(self, definition, logger):
@@ -865,12 +1094,8 @@ class AgnosticVComponent(KopfObject):
                 delay=10
             )
 
-        merged_definition = deepcopy(definition)
-        merged_definition['metadata'] = deepcopy(current_state['metadata'])
-        if 'status' in current_state:
-            merged_definition['status'] = current_state['status']
+        merged_definition = merge_dynamic_fields(definition, current_state)
         merged_definition['metadata'].setdefault('annotations', {})[Babylon.last_update_annotation] = json.dumps(self.last_update)
-
 
         # FIXME - agnosticv-operator handling of None/null was unpredictable
         if remove_none_values(merged_definition) == remove_none_values(current_state):
@@ -904,7 +1129,6 @@ class AgnosticVComponent(KopfObject):
     async def __update_catalog_item(self, current_state, definition, logger, retries):
         catalog_item_name = definition['metadata']['name']
         catalog_item_namespace = definition['metadata']['namespace']
-        merged_definition = deepcopy(definition)
 
         if 'deletionTimestamp' in current_state['metadata']:
             raise kopf.TemporaryError(
@@ -913,20 +1137,7 @@ class AgnosticVComponent(KopfObject):
                 delay=10
             )
 
-        for field in (
-            'creationTimestamp',
-            'finalizers',
-            'generateName',
-            'generation',
-            'managedFields',
-            'resourceVersion',
-            'uid',
-        ):
-            if field in current_state['metadata']:
-                merged_definition['metadata'][field] = current_state['metadata'][field]
-
-        if 'status' in current_state:
-            merged_definition['status'] = current_state['status']
+        merged_definition = merge_dynamic_fields(definition, current_state)
 
         # Preserve annotation values
         for annotation, value in current_state['metadata'].get('annotations', {}).items():
@@ -980,10 +1191,7 @@ class AgnosticVComponent(KopfObject):
                 raise
 
     async def __update_resource_provider(self, current_state, definition, logger, retries):
-        merged_definition = deepcopy(definition)
-        merged_definition['metadata'] = deepcopy(current_state['metadata'])
-        if 'status' in current_state:
-            merged_definition['status'] = current_state['status']
+        merged_definition = merge_dynamic_fields(definition, current_state)
         merged_definition['metadata'].setdefault('annotations', {})[Babylon.last_update_annotation] = json.dumps(self.last_update)
 
         if merged_definition == current_state:
@@ -1030,9 +1238,10 @@ class AgnosticVComponent(KopfObject):
         await self.manage_config(logger=logger)
 
     async def manage_config(self, logger):
-        await self.__manage_anarchy_governor(logger=logger)
         await self.__manage_catalog_item(logger=logger)
-        await self.__manage_resource_provider(logger=logger)
+        if not self.catalog_external_url:
+            await self.__manage_anarchy_governor(logger=logger)
+            await self.__manage_resource_provider(logger=logger)
 
 
 class LinkedComponent:

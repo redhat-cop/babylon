@@ -1,0 +1,57 @@
+{{- range $namespace, $_interface := .Values.catalog.interfaces }}
+{{- $interface := merge $_interface (deepCopy $.Values.catalog.defaults) }}
+{{- $ui := $interface.ui }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-catalog-ui
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-ui
+spec:
+  replicas: {{ $ui.replicaCount | default 1}}
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: catalog-ui
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: catalog-ui
+    spec:
+      {{- with $ui.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: ui
+        image: {{ $ui.image.repository }}:{{ $ui.image.tag }}
+        imagePullPolicy: {{ $ui.image.pullPolicy }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        {{- with $ui.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with $ui.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $ui.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: default
+      {{- with $ui.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

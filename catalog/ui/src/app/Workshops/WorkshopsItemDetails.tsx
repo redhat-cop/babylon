@@ -11,6 +11,7 @@ import {
   SelectOption,
   SelectVariant,
   Tooltip,
+  Switch,
 } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
@@ -51,6 +52,7 @@ const WorkshopsItemDetails: React.FC<{
     description?: string;
     displayName?: string;
     openRegistration?: boolean;
+    labUserInterface?: { redirect?: boolean };
   }): Promise<void> {
     if (patch.openRegistration !== null && workshop.spec.openRegistration !== patch.openRegistration) {
       onWorkshopUpdate(
@@ -58,7 +60,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        })
+        }),
       );
     } else {
       onWorkshopUpdate(
@@ -66,7 +68,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        })
+        }),
       );
     }
   }
@@ -130,6 +132,25 @@ const WorkshopsItemDetails: React.FC<{
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>
+          Redirect Users{' '}
+          <Tooltip position="right" content={<p>Upon login redirect to the Lab User Interface if is defined</p>}>
+            <OutlinedQuestionCircleIcon
+              aria-label="Upon login redirect to the Lab User Interface if is defined"
+              className="tooltip-icon-only"
+            />
+          </Tooltip>
+        </DescriptionListTerm>
+        <DescriptionListDescription>
+          <Switch
+            id="workshops-items-details__redirect"
+            aria-label="Redirect"
+            isChecked={workshop.spec.labUserInterface?.redirect === true}
+            onChange={(v) => patchWorkshopSpec({ labUserInterface: { redirect: v } })}
+          />
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+      <DescriptionListGroup>
+        <DescriptionListTerm>
           Access Password{' '}
           <Tooltip position="right" content={<p>Password the users need to introduce to access the Workshop.</p>}>
             <OutlinedQuestionCircleIcon
@@ -159,7 +180,7 @@ const WorkshopsItemDetails: React.FC<{
             onSelect={(event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
               patchWorkshopSpec({ openRegistration: selectedValue === 'open' }).then(() =>
-                setUserRegistrationSelectIsOpen(false)
+                setUserRegistrationSelectIsOpen(false),
               );
             }}
           >
@@ -194,6 +215,7 @@ const WorkshopsItemDetails: React.FC<{
                 resource={getMostRelevantResourceAndTemplate(resourceClaims[0]).resource}
                 resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaims[0]).template}
                 resourceClaim={resourceClaims[0]}
+                summary={resourceClaims[0].status?.summary}
               />
             ) : (
               <p>...</p>
@@ -242,7 +264,9 @@ const WorkshopsItemDetails: React.FC<{
             <AutoStopDestroy
               type="auto-destroy"
               onClick={() => {
-                showModal ? showModal({ resourceClaims, action: 'scheduleDelete' }) : null;
+                if (showModal) {
+                  showModal({ resourceClaims, action: 'scheduleDelete' });
+                }
               }}
               time={autoDestroyTime}
               isDisabled={!showModal}

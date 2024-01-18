@@ -1,0 +1,18 @@
+{{- range $namespace, $interface := .Values.catalog.interfaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: babylon-catalog-api:{{ $namespace }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: babylon-catalog-api
+subjects:
+- kind: ServiceAccount
+  name: babylon-catalog-api
+  namespace: {{ $namespace }}
+{{- end }}

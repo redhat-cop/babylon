@@ -15,6 +15,8 @@ const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
 const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
+const IncidentsPage = React.lazy(() => import('@app/Admin/IncidentsPage'));
+const RatingsPage = React.lazy(() => import('@app/Admin/RatingsPage'));
 const AnarchyActionInstance = React.lazy(() => import('@app/Admin/AnarchyActionInstance'));
 const AnarchyActions = React.lazy(() => import('@app/Admin/AnarchyActions'));
 const AnarchyGovernorInstance = React.lazy(() => import('@app/Admin/AnarchyGovernorInstance'));
@@ -258,6 +260,18 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | Admin',
     accessControl: 'admin',
   },
+  {
+    component: IncidentsPage,
+    path: '/admin/incidents',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: RatingsPage,
+    path: '/admin/ratings',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
 ];
 
 const publicRoutes: IAppRoute[] = [
@@ -269,7 +283,7 @@ const publicRoutes: IAppRoute[] = [
   {
     component: SupportPage,
     path: '/support',
-    title: 'Solution Support: SLAs | Babylon',
+    title: 'Solution Support: Service Level | Babylon',
   },
 ];
 
@@ -277,7 +291,20 @@ const _Routes: React.FC = () => {
   return (
     <Routes>
       {publicRoutes.map(({ path, component: Component, title }: IAppRoute, idx) => (
-        <Route path={path} element={<Component title={title} />} key={`public-routes-${idx}`} />
+        <Route
+          path={path}
+          element={
+            <Suspense fallback={<LoadingSection />}>
+              <ErrorBoundary
+                FallbackComponent={NotFound}
+                onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
+              >
+                <Component title={title} />
+              </ErrorBoundary>
+            </Suspense>
+          }
+          key={`public-routes-${idx}`}
+        />
       ))}
       {appRoutes.map(({ path, component: Component, title, accessControl }: IAppRoute, idx) => (
         <Route
@@ -297,7 +324,7 @@ const _Routes: React.FC = () => {
           }
         />
       ))}
-      <Route path="*" element={<NotFound title="404 Page Not Found" />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

@@ -1,14 +1,15 @@
 import kubernetes_asyncio
 import os
 
+
 class Babylon():
     babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
     babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
 
     @classmethod
     async def on_cleanup(cls):
-        cls.core_v1_api.api_client.close()
-        cls.custom_objects_api.api_client.close()
+        await cls.core_v1_api.api_client.close()
+        await cls.custom_objects_api.api_client.close()
 
     @classmethod
     async def on_startup(cls):

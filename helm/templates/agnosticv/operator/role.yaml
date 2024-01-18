@@ -1,0 +1,55 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: agnosticv-operator
+  name: agnosticv-operator
+  namespace: {{ $.Values.configNamespace.name }}
+rules:
+- apiGroups:
+  - {{ .Values.agnosticv.api.group }}
+  resources:
+  - agnosticvrepos
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.agnosticv.api.group }}
+  resources:
+  - agnosticvrepos/status
+  verbs:
+  - create
+  - patch
+  - update
+- apiGroups:
+  - {{ .Values.agnosticv.api.group }}
+  resources:
+  - agnosticvcomponents
+  - agnosticvcomponents/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update

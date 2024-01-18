@@ -10,10 +10,19 @@ import { canExecuteAction, DEMO_DOMAIN } from '@app/util';
 import { phaseProps, getStatus } from './ServiceStatus';
 
 export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number; stopTime: number } {
+  if (
+    resourceClaim.spec.provider?.parameterValues?.start_timestamp &&
+    resourceClaim.spec.provider?.parameterValues?.stop_timestamp
+  ) {
+    return {
+      startTime: Date.parse(resourceClaim.spec.provider.parameterValues.start_timestamp),
+      stopTime: Date.parse(resourceClaim.spec.provider.parameterValues.stop_timestamp),
+    };
+  }
   const resources = resourceClaim.status?.resources;
   const { resources: specResources } = resourceClaim.spec;
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
-    return specResources.find((s) => s.name === name);
+    return specResources?.find((s) => s.name === name);
   }
   if (!resources) return { startTime: null, stopTime: null };
   // The start time for a multi-component service is the earliest start time of all components and the stop time is the latest stop time
@@ -41,7 +50,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
   const resources = resourceClaim.status?.resources;
   const { resources: specResources } = resourceClaim.spec;
   function getSpecResourceByName(name: string): ResourceClaimSpecResource {
-    return specResources.find((s) => s.name === name);
+    return specResources?.find((s) => s.name === name);
   }
   if (!resources) return { resource: null, template: null };
   if (resources.length === 1)
@@ -67,7 +76,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
         desiredState,
         Date.parse(resourceClaim.metadata.creationTimestamp),
         startTime,
-        stopTime
+        stopTime,
       ).phase,
     });
   }
@@ -85,6 +94,9 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
 }
 
 export function getAutoStopTime(resourceClaim: ResourceClaim): number {
+  if (resourceClaim.spec?.provider?.parameterValues?.stop_timestamp) {
+    return Date.parse(resourceClaim.spec.provider.parameterValues.stop_timestamp);
+  }
   const autoStopTimes = resourceClaim.spec?.resources
     ? resourceClaim.spec.resources
         ?.map((specResource, idx) => {
@@ -105,6 +117,9 @@ export function getAutoStopTime(resourceClaim: ResourceClaim): number {
 }
 
 export function getMinDefaultRuntime(resourceClaim: ResourceClaim): number {
+  if (resourceClaim.status?.summary?.runtime_default) {
+    return parseDuration(resourceClaim.status.summary.runtime_default);
+  }
   const defaultAutoStops = resourceClaim.status?.resources
     ? resourceClaim.status.resources
         .map((statusResource) => {
@@ -121,6 +136,9 @@ export function getMinDefaultRuntime(resourceClaim: ResourceClaim): number {
 }
 
 export function getStartTime(resourceClaim: ResourceClaim): number {
+  if (resourceClaim.spec.provider?.parameterValues?.start_timestamp) {
+    return Date.parse(resourceClaim.spec.provider.parameterValues.start_timestamp);
+  }
   const autoStartTimes = resourceClaim.status?.resources
     ? resourceClaim.status.resources
         .map((r) => {

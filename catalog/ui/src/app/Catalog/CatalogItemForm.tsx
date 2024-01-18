@@ -38,7 +38,7 @@ import {
   createWorkshopProvision,
   fetcher,
 } from '@app/api';
-import { CatalogItem } from '@app/types';
+import { CatalogItem, TPurposeOpts } from '@app/types';
 import { displayName, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
@@ -51,7 +51,7 @@ import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
-import { formatCurrency, getEstimatedCost, getStage, isAutoStopDisabled } from './catalog-utils';
+import { formatCurrency, getEstimatedCost, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './catalog-item-form.css';
@@ -63,6 +63,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace } = useSession().getSession();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
@@ -83,12 +84,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }),
     [catalogItem]
   );
+  const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
+    ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema.enum || []
+    : [];
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
-  const stage = getStage(catalogItem);
-  const maxAutoDestroyTime = Math.min(
-    parseDuration(catalogItem.spec.lifespan?.maximum),
-    parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
-  );
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
     reduceFormState(null, {
@@ -96,9 +95,21 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       catalogItem,
       serviceNamespace: userNamespace,
       user: { groups, roles, isAdmin },
+      purposeOpts,
     })
   );
-  const submitRequestEnabled = checkEnableSubmit(formState);
+  let maxAutoDestroyTime = Math.min(
+    parseDuration(catalogItem.spec.lifespan?.maximum),
+    parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
+  );
+  let maxAutoStopTime = parseDuration(catalogItem.spec.runtime?.maximum);
+  if (formState.parameters['open_environment']?.value === true) {
+    maxAutoDestroyTime = parseDuration('365d');
+    maxAutoStopTime = maxAutoDestroyTime;
+  }
+  const purposeObj =
+    purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
+  const submitRequestEnabled = checkEnableSubmit(formState) && !isLoading;
 
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
@@ -116,6 +127,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
     }
+    if (isLoading) {
+      return null;
+    }
+    setIsLoading(true);
     const parameterValues: CreateServiceRequestParameterValues = {};
     for (const parameterState of Object.values(formState.parameters)) {
       // Add parameters for request that have values and are not disabled or hidden
@@ -129,8 +144,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       }
     }
     parameterValues['purpose'] = formState.purpose;
-    const [activity] = formState.purpose.split('-').map((x) => x.trim());
-    parameterValues['purpose_activity'] = activity;
+    parameterValues['purpose_activity'] = formState.activity;
+    parameterValues['purpose_explanation'] = formState.explanation;
     if (formState.salesforceId.value) {
       parameterValues['salesforce_id'] = formState.salesforceId.value;
     }
@@ -171,6 +186,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         catalogItem,
         catalogNamespaceName: catalogNamespaceName,
         groups,
+        isAdmin,
         parameterValues,
         serviceNamespace: formState.serviceNamespace,
         usePoolIfAvailable: formState.usePoolIfAvailable,
@@ -191,6 +207,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
+    setIsLoading(false);
+  }
+
+  if (catalogItem.spec.externalUrl) {
+    window.open(catalogItem.spec.externalUrl);
+    return null;
   }
 
   return (
@@ -202,7 +224,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         autoStartDate={formState.startDate}
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
         maxStartTimestamp={!!formState.workshop || !catalogItem.spec.lifespan ? null : Date.now() + maxAutoDestroyTime}
-        maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : parseDuration(catalogItem.spec.runtime?.maximum)}
+        maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : maxAutoStopTime}
         defaultRuntimeTimestamp={
           new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default)) > formState.endDate
             ? parseDuration('4h')
@@ -211,9 +233,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         maxDestroyTimestamp={maxAutoDestroyTime}
         isWorkshopEnabled={!!formState.workshop}
         onConfirm={(dates: TDates) =>
-          submitRequest({
-            scheduled: { startDate: dates.startDate, stopDate: dates.stopDate, endDate: dates.endDate },
-          })
+          autoStopDestroyModal === 'schedule'
+            ? submitRequest({
+                scheduled: { startDate: dates.startDate, stopDate: dates.stopDate, endDate: dates.endDate },
+              })
+            : autoStopDestroyModal === 'auto-destroy'
+            ? dispatchFormState({ type: 'dates', endDate: dates.endDate })
+            : autoStopDestroyModal === 'auto-stop'
+            ? dispatchFormState({ type: 'dates', stopDate: dates.stopDate })
+            : null
         }
         onClose={() => openAutoStopDestroyModal(null)}
         title={_displayName}
@@ -265,14 +293,17 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {stage !== 'event' ? (
+        {purposeOpts.length > 0 ? (
           <>
             <ActivityPurposeSelector
-              value={formState.purpose}
-              onChange={(purpose: string) => {
+              value={{ purpose: formState.purpose, activity: formState.activity }}
+              purposeOpts={purposeOpts}
+              onChange={(activity: string, purpose: string, explanation: string) => {
                 dispatchFormState({
                   type: 'purpose',
+                  activity,
                   purpose,
+                  explanation,
                 });
               }}
             />
@@ -297,14 +328,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               }
               helperTextInvalid={
                 <FormHelperText icon={<ExclamationCircleIcon />} isError isHidden={false}>
-                  {formState.purpose && formState.purpose.startsWith('Customer Activity')
-                    ? 'A valid Salesforce ID is required for all Customer Facing Events'
+                  {purposeObj && purposeObj.sfdcRequired
+                    ? 'A valid Salesforce ID is required for the selected activity / purpose'
                     : null}
                 </FormHelperText>
               }
               validated={
                 formState.salesforceId.valid
-                  ? 'success'
+                  ? 'default'
                   : formState.salesforceId.value &&
                     formState.salesforceId.required &&
                     formState.conditionChecks.completed
@@ -326,7 +357,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   value={formState.salesforceId.value || ''}
                   validated={
                     formState.salesforceId.value && formState.salesforceId.valid
-                      ? 'success'
+                      ? 'default'
                       : formState.salesforceId.value && formState.conditionChecks.completed
                       ? 'error'
                       : 'default'
@@ -344,27 +375,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               </div>
             </FormGroup>
           </>
-        ) : (
-          <ActivityPurposeSelector
-            value={formState.purpose || 'Event'}
-            isEvent
-            onChange={(purpose: string, sfdc: string) => {
-              dispatchFormState({
-                type: 'purpose',
-                purpose,
-              });
-              sfdc
-                ? dispatchFormState({
-                    type: 'salesforceId',
-                    salesforceId: { ...formState.salesforceId, value: sfdc, valid: false },
-                  })
-                : dispatchFormState({
-                    type: 'salesforceId',
-                    salesforceId: { required: false, value: null, valid: false },
-                  });
-            }}
-          />
-        )}
+        ) : null}
         {formState.formGroups.map((formGroup, formGroupIdx) => {
           // do not render form group if all parameters for formGroup are hidden
           if (formGroup.parameters.every((parameter) => parameter.isHidden)) {
@@ -403,37 +414,39 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               validated={status}
             >
               {formGroup.parameters
-                .filter((p) => !p.isHidden)
-                .map((parameterState) => (
-                  <div
-                    className={`catalog-item-form__group-control--${
-                      formGroup.parameters.length > 1 ? 'multi' : 'single'
-                    }`}
-                    key={parameterState.spec.name}
-                  >
-                    <DynamicFormInput
-                      id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
-                      isDisabled={parameterState.isDisabled}
-                      parameter={parameterState.spec}
-                      validationResult={parameterState.validationResult}
-                      value={parameterState.value}
-                      onChange={(value: boolean | number | string, isValid = true) => {
-                        dispatchFormState({
-                          type: 'parameterUpdate',
-                          parameter: { name: parameterState.spec.name, value, isValid },
-                        });
-                      }}
-                    />
-                    {parameterState.spec.description ? (
-                      <Tooltip position="right" content={<div>{parameterState.spec.description}</div>}>
-                        <OutlinedQuestionCircleIcon
-                          aria-label={parameterState.spec.description}
-                          className="tooltip-icon-only"
+                ? formGroup.parameters
+                    .filter((p) => !p.isHidden)
+                    .map((parameterState) => (
+                      <div
+                        className={`catalog-item-form__group-control--${
+                          formGroup.parameters.length > 1 ? 'multi' : 'single'
+                        }`}
+                        key={parameterState.spec.name}
+                      >
+                        <DynamicFormInput
+                          id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
+                          isDisabled={parameterState.isDisabled}
+                          parameter={parameterState.spec}
+                          validationResult={parameterState.validationResult}
+                          value={parameterState.value}
+                          onChange={(value: boolean | number | string, isValid = true) => {
+                            dispatchFormState({
+                              type: 'parameterUpdate',
+                              parameter: { name: parameterState.spec.name, value, isValid },
+                            });
+                          }}
                         />
-                      </Tooltip>
-                    ) : null}
-                  </div>
-                ))}
+                        {parameterState.spec.description ? (
+                          <Tooltip position="right" content={<div>{parameterState.spec.description}</div>}>
+                            <OutlinedQuestionCircleIcon
+                              aria-label={parameterState.spec.description}
+                              className="tooltip-icon-only"
+                            />
+                          </Tooltip>
+                        ) : null}
+                      </div>
+                    ))
+                : null}
             </FormGroup>
           );
         })}
@@ -466,7 +479,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </div>
         </FormGroup>
 
-        {!workshopUiDisabled && (isAdmin || formState.serviceNamespace?.workshopProvisionAccess) ? (
+        {!workshopUiDisabled ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch
@@ -668,7 +681,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       <div className="catalog-item-form__group-control--single">
                         <PatientNumberInput
                           min={1}
-                          max={20}
+                          max={30}
                           onChange={(v) =>
                             dispatchFormState({
                               type: 'workshop',

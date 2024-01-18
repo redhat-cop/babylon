@@ -30,7 +30,7 @@ const WorkshopsItemServices: React.FC<{
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
-      selectedUids.includes(resourceClaim.metadata.uid)
+      selectedUids.includes(resourceClaim.metadata.uid),
     );
     setSelectedResourceClaims(selectedResourceClaims);
   }, [resourceClaims, selectedUids, setSelectedResourceClaims]);
@@ -73,25 +73,32 @@ const WorkshopsItemServices: React.FC<{
           // associated with the provisioned service.
           const labUserInterfaceData =
             resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
+            resourceClaim?.status?.summary?.provision_data?.lab_ui_data ||
+            resourceClaim?.status?.summary?.provision_data?.labUserInterfaceData ||
             resources
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_data
-                  : r?.data?.labUserInterfaceData
+                  : r?.data?.labUserInterfaceData,
               )
               .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
               .find((u) => u != null);
           const labUserInterfaceMethod =
             resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
+            resourceClaim?.status?.summary?.provision_data?.lab_ui_method ||
+            resourceClaim?.status?.summary?.provision_data?.labUserInterfaceMethod ||
             resources
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_method
-                  : r?.data?.labUserInterfaceMethod
+                  : r?.data?.labUserInterfaceMethod,
               )
               .find((u) => u != null);
           const labUserInterfaceUrl =
             resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
+            resourceClaim?.status?.summary?.provision_data?.labUserInterfaceUrl ||
+            resourceClaim?.status?.summary?.provision_data?.lab_ui_url ||
+            resourceClaim?.status?.summary?.provision_data?.bookbag_url ||
             resources
               .map((r) => {
                 const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
@@ -109,7 +116,7 @@ const WorkshopsItemServices: React.FC<{
             // GUID
             <>
               {guid ? (
-                isAdmin ? (
+                isAdmin && resourceHandle ? (
                   [
                     <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
                       {guid}
@@ -126,12 +133,13 @@ const WorkshopsItemServices: React.FC<{
 
             // Status
             <>
-              {specResources.length >= 1 ? (
+              {specResources.length >= 1 || resourceClaim.status?.summary ? (
                 <ServiceStatus
                   creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
                   resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
                   resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
                   resourceClaim={resourceClaim}
+                  summary={resourceClaim.status?.summary}
                 />
               ) : (
                 <p>...</p>

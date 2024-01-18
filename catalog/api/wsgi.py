@@ -32,6 +32,7 @@ redis_connection = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
+admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
 
 if 'REDIS_PASSWORD' in os.environ:
     redis_connection = redis.StrictRedis(
@@ -206,30 +207,6 @@ def check_user_support_access(api_client):
     )
     return data.get('status', {}).get('allowed', False)
 
-def check_namespace_workshop_provision_access(namespace, api_client):
-    (data, status, headers) = api_client.call_api(
-        '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
-        'POST',
-        auth_settings = ['BearerToken'],
-        body = {
-           "apiVersion": "authorization.k8s.io/v1",
-           "kind": "SelfSubjectAccessReview",
-           "spec": {
-             "resourceAttributes": {
-               "group": "babylon.gpte.redhat.com",
-               "resource": "workshopprovisions",
-               "verb": "list",
-               "namespace": namespace
-             }
-           },
-           "status": {
-             "allowed": False
-           }
-        },
-        response_type = 'object',
-    )
-    return data.get('status', {}).get('allowed', False)
-
 def get_catalog_namespaces(api_client):
     namespaces = []
     for ns in core_v1_api.list_namespace(
@@ -299,19 +276,16 @@ def get_service_namespaces(api_client, user_namespace):
 
 def get_user_namespace(user, api_client):
     user_uid = user['metadata']['uid']
-    namespaces = []
 
     for ns in core_v1_api.list_namespace(label_selector='usernamespace.gpte.redhat.com/user-uid=' + user_uid).items:
         name = ns.metadata.name
         requester = ns.metadata.annotations.get('openshift.io/requester')
         display_name = ns.metadata.annotations.get('openshift.io/display-name', 'User ' + requester)
-        workshop_provision_access = check_namespace_workshop_provision_access(name, api_client)
 
         return {
             'name': name,
             'displayName': display_name,
             'requester': requester,
-            'workshopProvisionAccess': workshop_provision_access,
         }
 
     return None
@@ -389,10 +363,11 @@ def resolve_openstack_subjects(resource_claim):
         subjects.append(subject)
     return(subjects)
 
-def api_proxy(method, url, headers, data = None):
+def api_proxy(method, url, headers, data = None, params = None):
     resp = requests.request(method=method, url=url,
         headers={key: value for (key, value) in headers if key != 'Host'},
         data=data,
+        params=params,
         allow_redirects=False)
     excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection', 
     'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers', 'upgrade']
@@ -510,8 +485,10 @@ def salesforce_validation(salesforce_id):
         if salesforce_type == 'campaign':
             # Business rules for a invalid Campaign
             # if IsActive is false
+            current_date = datetime.utcnow().strftime("%Y-%m-%d")
+            end_date = opportunity_info.get('EndDate')
             is_active = opportunity_info.get('IsActive', False)
-            if not is_active:
+            if not is_active or current_date > end_date:
                 return False
         elif salesforce_type == 'cdh':
             return True
@@ -558,6 +535,7 @@ def get_auth_session():
         "lifetime": session_lifetime,
         "serviceNamespaces": service_namespaces,
         "userNamespace": user_namespace,
+        "roles": roles,
     }
     if not user_is_admin:
         ret['quota'] = {
@@ -745,6 +723,12 @@ def apis_proxy(path):
             query_params = [ (k, v) for k, v in flask.request.args.items() ],
             response_type = 'object',
         )
+        # Strip out metadata.managedFields
+        if 'managedFields' in data.get('metadata', {}):
+            del data['metadata']['managedFields']
+        for item in data.get('items', []):
+            if 'managedFields' in item.get('metadata', {}):
+                del item['metadata']['managedFields']
         return flask.make_response(
             json.dumps(data, separators=(',',':')),
             status,
@@ -765,18 +749,41 @@ def salesforce_opportunity(opportunity_id):
         return flask.jsonify({"success": True})
     flask.abort(404)
 
-@application.route("/api/ratings/provisions/<provision_uuid>", methods=['POST'])
-def provision_rating_set(provision_uuid):
+@application.route("/api/ratings/request/<request_uid>", methods=['POST'])
+def provision_rating_set(request_uid):
     user = proxy_user()
     data = flask.request.get_json()
     data["email"] = user['metadata']['name']
-    return api_proxy(method="POST", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}", data=json.dumps(data), headers=flask.request.headers)
+    return api_proxy(method="POST", url=f"{ratings_api}/api/ratings/v1/request/{request_uid}", data=json.dumps(data), headers=flask.request.headers)
 
-@application.route("/api/ratings/provisions/<provision_uuid>", methods=['GET'])
-def provision_rating_get(provision_uuid):
+@application.route("/api/ratings/request/<request_uid>", methods=['GET'])
+def provision_rating_get(request_uid):
     user = proxy_user()
     email = user['metadata']['name']
-    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/provisions/{provision_uuid}/users/{email}", headers=flask.request.headers)
+    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/request/{request_uid}/email/{email}", headers=flask.request.headers)
+
+@application.route("/api/ratings/catalogitem/<asset_uuid>/history", methods=['GET'])
+def provision_rating_get_history(asset_uuid):
+    user = proxy_user()
+    session = get_user_session(user)
+    api_client = proxy_api_client(session)
+    if not check_admin_access(api_client):
+        flask.abort(403)
+    return api_proxy(method="GET", url=f"{ratings_api}/api/ratings/v1/catalogitem/{asset_uuid}/history", headers=flask.request.headers)
+
+@application.route("/api/admin/incidents", methods=['GET'])
+def incidents_get():
+    return api_proxy(method="GET", url=f"{admin_api}/api/admin/v1/incidents", params=flask.request.args, headers=flask.request.headers)
+
+@application.route("/api/admin/incidents", methods=['POST'])
+def create_incident():
+    data = flask.request.get_json()
+    return api_proxy(method="POST", url=f"{admin_api}/api/admin/v1/incidents", data=json.dumps(data), headers=flask.request.headers)
+
+@application.route("/api/admin/incidents/<incident_id>", methods=['POST'])
+def update_incident(incident_id):
+    data = flask.request.get_json()
+    return api_proxy(method="POST", url=f"{admin_api}/api/admin/v1/incidents/{incident_id}", data=json.dumps(data), headers=flask.request.headers)
 
 @application.route("/api/workshop/<workshop_id>", methods=['GET'])
 def workshop_get(workshop_id):
@@ -796,7 +803,8 @@ def workshop_get(workshop_id):
         "displayName": workshop['spec'].get('displayName'),
         "name": workshop['metadata']['name'],
         "namespace": workshop['metadata']['namespace'],
-        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/workshop-template')
+        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template') 
+            or workshop['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
     }
     return flask.jsonify(ret)
 
@@ -832,11 +840,13 @@ def workshop_put(workshop_id):
 
     ret = {
         "accessPasswordRequired": True if workshop_access_password else False,
+        "labUserInterfaceRedirect": workshop['spec'].get('labUserInterface', {}).get('redirect'),
         "description": workshop['spec'].get('description'),
         "displayName": workshop['spec'].get('displayName'),
         "name": workshop_name,
         "namespace": workshop_namespace,
-        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/workshop-template')
+        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template')
+            or workshop['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
     }
 
     while not 'assignment' in ret:

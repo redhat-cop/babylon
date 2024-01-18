@@ -130,6 +130,7 @@ export interface CatalogItemSpec {
   accessControl?: AccessControl;
   bookbag?: any;
   messageTemplates?: {
+    user?: MessageTemplate;
     info?: MessageTemplate;
     serviceReady?: MessageTemplate;
     serviceDeleted?: MessageTemplate;
@@ -146,6 +147,7 @@ export interface CatalogItemSpec {
   lifespan?: CatalogItemSpecLifespan;
   lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
+  externalUrl?: string;
 }
 
 export interface CatalogItemSpecParameter {
@@ -230,7 +232,6 @@ export interface UserNamespace {
   displayName: string;
   name: string;
   requester: string;
-  workshopProvisionAccess: boolean;
 }
 export interface NamespaceList {
   items: Namespace[];
@@ -248,9 +249,16 @@ export interface ResourceClaim extends K8sObject {
     lifespan: ResourceClaimStatusLifespan;
     resourceHandle: K8sObjectReference;
     resources: ResourceHandleResource[];
+    summary?: ResrouceClaimSummary;
   };
 }
 
+export interface ResrouceClaimSummary {
+  provision_data?: any;
+  runtime_default?: string;
+  runtime_maximum?: string;
+  state: string;
+}
 export interface ResourceClaimList {
   items: ResourceClaim[];
   metadata: K8sObjectListMeta;
@@ -258,7 +266,17 @@ export interface ResourceClaimList {
 
 export interface ResourceClaimSpec {
   lifespan?: ResourceClaimSpecLifespan;
-  resources: ResourceClaimSpecResource[];
+  resources?: ResourceClaimSpecResource[];
+  provider?: ResourceClaimProvider;
+}
+
+export interface ResourceClaimProvider {
+  name: string;
+  parameterValues: {
+    purpose: string;
+    start_timestamp?: string;
+    stop_timestamp?: string;
+  };
 }
 
 export interface ResourceClaimSpecLifespan {
@@ -412,7 +430,6 @@ export interface ServiceNamespace {
   displayName: string;
   name: string;
   requester?: string;
-  workshopProvisionAccess?: boolean;
 }
 
 export interface User extends K8sObject {}
@@ -466,6 +483,7 @@ export interface WorkshopSpec {
   openRegistration?: boolean;
   provisionDisabled?: boolean;
   userAssignments: WorkshopSpecUserAssignment[];
+  labUserInterface?: { redirect?: boolean };
   actionSchedule?: {
     stop?: string;
     start?: string;
@@ -485,6 +503,7 @@ export interface WorkshopSpecUserAssignment {
     data?: object;
     method?: string;
     url: string;
+    redirect?: boolean;
   };
   messages?: string;
   resourceClaimName?: string;
@@ -537,7 +556,6 @@ export type ResourceType =
   | 'RESOURCE_POOLS'
   | 'RESOURCE_PROVIDERS'
   | 'RESOURCE_PROVIDER'
-  | 'PROVISION_RATING'
   | 'ANARCHY_ACTION'
   | 'ANARCHY_ACTIONS'
   | 'ANARCHY_SUBJECT'
@@ -545,7 +563,12 @@ export type ResourceType =
   | 'ANARCHY_RUN'
   | 'ANARCHY_RUNS'
   | 'ANARCHY_GOVERNORS'
-  | 'ANARCHY_GOVERNOR';
+  | 'ANARCHY_GOVERNOR'
+  | 'INCIDENTS'
+  | 'INCIDENT'
+  | 'RATING'
+  | 'RATINGS_HISTORY'
+  | 'USER_RATING';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
@@ -553,3 +576,22 @@ export type WorkshopWithResourceClaims = Workshop & {
   resourceClaims?: ResourceClaim[];
 };
 export type Service = ResourceClaim | WorkshopWithResourceClaims;
+
+export type Incident = {
+  id: number;
+  incident_type: 'general';
+  level: 'info' | 'warning' | 'critical';
+  message: string;
+  status: 'active' | 'resolved';
+  created_at: string;
+  updated_at: string;
+};
+
+export type TPurposeOpts = {
+  name: string;
+  description: string;
+  activity: string;
+  sfdcRequired: boolean;
+  requireUserInput?: boolean;
+  requiredRoles?: string[];
+}[];

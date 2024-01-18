@@ -1,0 +1,23 @@
+{{- $notifier := .Values.notifier }}
+{{- if $notifier.deploy }}
+{{- $redis := $notifier.redis }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: notifier-redis
+  name: babylon-notifier-redis
+  namespace: {{ $notifier.namespace.name }}
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    {{- include "babylon.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: notifier-redis
+{{- end }}

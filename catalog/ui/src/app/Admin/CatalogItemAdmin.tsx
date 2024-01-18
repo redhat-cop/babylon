@@ -90,6 +90,8 @@ const CatalogItemAdmin: React.FC = () => {
     if (status === 'operational') {
       setIsDisabled(false);
       setIsReadOnlyValue(true);
+      setJiraIssueId('');
+      setIncidentUrl('');
     } else if (status === 'major-outage') {
       setIsDisabled(true);
       setIsReadOnlyValue(true);
@@ -125,13 +127,13 @@ const CatalogItemAdmin: React.FC = () => {
   }
   async function saveForm() {
     const comments = ops?.comments || [];
-    comment
-      ? comments.push({
-          message: comment,
-          author: userEmail,
-          createdAt: new Date().toISOString(),
-        })
-      : [];
+    if (comment) {
+      comments.push({
+        message: comment,
+        author: userEmail,
+        createdAt: new Date().toISOString(),
+      });
+    }
     const patchObj = {
       status: {
         id: status,

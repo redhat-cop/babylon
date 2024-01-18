@@ -9,7 +9,6 @@ import {
   PageHeaderTools,
 } from '@patternfly/react-core';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
-import CatalogIcon from '@patternfly/react-icons/dist/js/icons/catalog-icon';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 
@@ -41,11 +40,11 @@ const PublicHeader: React.FC = () => {
       Status Page
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem key="support-sla" href="/support">
-      Solution Support: SLAs
+      Solution Support: Service Level
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="how-to-videos-link"
-      href="https://content.redhat.com/us/en/product/rhdp.html"
+      href="https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
       target="_blank"
       rel="noreferrer nofollow"
       isExternal
@@ -72,7 +71,7 @@ const PublicHeader: React.FC = () => {
         onClick={() =>
           window.open(
             'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
-            '_blank'
+            '_blank',
           )
         }
       >

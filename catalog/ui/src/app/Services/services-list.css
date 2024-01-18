@@ -34,11 +34,6 @@
   margin-top: var(--pf-global--spacer--xs);
 }
 
-.services-list__topbar.pf-c-page__main-section {
-  padding: var(--pf-global--spacer--xs) var(--pf-global--spacer--sm);
-  border-bottom: 1px solid var(--pf-global--palette--black-300);
-}
-
 .services-list__schedule-btn {
   width: auto;
   display: flex;

@@ -14,7 +14,6 @@ import {
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
-import CatalogIcon from '@patternfly/react-icons/dist/js/icons/catalog-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import ImpersonateUserModal from '@app/components/ImpersonateUserModal';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
@@ -78,11 +77,11 @@ const Header: React.FC<{
       Status Page
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem key="support-sla" href="/support">
-      Solution Support: SLAs
+      Solution Support: Service Level
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="how-to-videos-link"
-      href="https://content.redhat.com/us/en/product/rhdp.html"
+      href="https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
       target="_blank"
       rel="noreferrer nofollow"
       isExternal
@@ -114,13 +113,13 @@ const Header: React.FC<{
     UserControlDropdownItems.push(
       <DropdownItem key="impersonate" onClick={() => setImpersonateUserModalIsOpen(true)}>
         Impersonate user
-      </DropdownItem>
+      </DropdownItem>,
     );
     if (userImpersonated) {
       UserControlDropdownItems.push(
         <DropdownItem key="clear-impersonation" onClick={clearUserImpersonation}>
           Clear user impersonation
-        </DropdownItem>
+        </DropdownItem>,
       );
     }
   }
@@ -134,7 +133,7 @@ const Header: React.FC<{
         onClick={() =>
           window.open(
             'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
-            '_blank'
+            '_blank',
           )
         }
       >

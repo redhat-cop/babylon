@@ -1,0 +1,75 @@
+{{- $notifier := .Values.notifier }}
+{{- if and $notifier.deploy }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon-notifier
+  annotations:
+    description: >-
+      Access read cluster resources for babylon notifier
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: notifier
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kopf.dev
+  resources:
+  - clusterkopfpeerings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourceclaims
+  - resourcehandles
+  - resourcepools
+  - resourceproviders
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - user.openshift.io
+  resources:
+  - identities
+  - users
+  verbs:
+  - get
+  - list
+  - watch
+{{- end }}

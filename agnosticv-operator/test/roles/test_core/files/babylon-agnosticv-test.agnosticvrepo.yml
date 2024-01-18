@@ -1,0 +1,32 @@
+---
+apiVersion: gpte.redhat.com/v1
+kind: AgnosticVRepo
+metadata:
+  name: babylon-agnosticv-test
+spec:
+  babylonAnarchyRoles:
+  - name: babylon_anarchy_governor
+    src: https://github.com/rhpds/babylon_anarchy_governor.git
+    version: v0.19.1
+  default_execution_environment:
+    image: >-
+      image-registry.apps-dev.open.redhat.com/agnosticd/ee-{{
+        merged_vars.__meta__.deployer.virtualenv | default('ansible2.9-python3.6-2021-11-30')
+      }}
+    private: true
+  execution_environment_allow_list_extra:
+  - image: ^image-registry.apps(-dev|-test)?.open.redhat.com/agnosticd/ee-.*?:v[0-9]+[.][0-9]+[.][0-9]+$
+    pull: missing
+  - image: ^image-registry.apps(-dev|-test)?.open.redhat.com/agnosticd/ee-.*?:(pr-[0-9]+|latest|dev|test)$
+    pull: always
+  - image: ^registry.redhat.io/ansible-automation-platform-21/ee-
+  - image: ^image-registry.apps(-dev|-test)?.open.redhat.com/agnosticd/ee-ansible2.9-python3.6-2021-11-30$
+  - image: ^image-registry.apps(-dev|-test)?.open.redhat.com/agnosticd/ee-equinix_metal-ansible2.9-python3.6-2021-07-02$
+  - image: ^image-registry.apps(-dev|-test)?.open.redhat.com/agnosticd/ee-equinix_metal-ansible2.9-python3.6-2021-11-03$
+  - image: ^image-registry.apps(-dev|-test)?.open.redhat.com/agnosticd/ee-azure_open_envs-ansible2.9-python3.6-2022-01-10$
+  - image: ^image-registry.apps(-dev|-test)?.open.redhat.com/agnosticd/ee-ansible2.9-python3.6-2021-01-22$
+  - image: ^quay.io/agnosticd/ee-
+  pollingInterval: 10s
+  ref: main
+  sshKey: babylon-agnosticv-test
+  url: git@github.com:rhpds/babylon-agnosticv-test.git

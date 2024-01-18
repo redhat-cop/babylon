@@ -65,6 +65,7 @@ import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 
 import './catalog-item-details.css';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 
 enum CatalogItemAccess {
   Allow,
@@ -129,7 +130,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { code: statusCode, name: statusName } = getStatus(catalogItem);
   const incidentUrl = getIncidentUrl(catalogItem);
   const rating = getRating(catalogItem);
-  const accessCheckResult = checkAccessControl(accessControl, groups);
+  const accessCheckResult = checkAccessControl(accessControl, groups, isAdmin);
   let autoStopTime = catalogItem.spec.runtime?.default;
   const autoDestroyTime = catalogItem.spec.lifespan?.default;
   if (autoStopTime && autoDestroyTime) {
@@ -180,7 +181,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   }
 
   async function orderCatalogItem() {
-    navigate(`/catalog/${namespace}/order/${name}`);
+    if (catalogItem.spec.externalUrl) {
+      window.open(catalogItem.spec.externalUrl, '_blank');
+    } else {
+      navigate(`/catalog/${namespace}/order/${name}`);
+    }
   }
 
   function getHelpLink() {
@@ -226,7 +231,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 isDisabled={isAdmin ? false : isDisabled}
                 className="catalog-item-details__main-btn"
               >
-                Order
+                Order{' '}
+                {catalogItem.spec.externalUrl ? (
+                  <ExternalLinkAltIcon style={{ width: '10px', paddingTop: '4px', marginLeft: '4px' }} />
+                ) : null}
               </Button>
               {isAdmin ? (
                 <Button
@@ -270,7 +278,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           ) : catalogItemAccess === CatalogItemAccess.Deny ? (
             <>
               <Button key="button" isDisabled variant="primary" className="catalog-item-details__main-btn">
-                Order
+                Order{' '}
+                {catalogItem.spec.externalUrl ? (
+                  <ExternalLinkAltIcon style={{ width: '10px', paddingTop: '4px', marginLeft: '4px' }} />
+                ) : null}
               </Button>
               <div key="reason" className="catalog-item-details__access-deny-reason">
                 {catalogItemAccessDenyReason}
@@ -302,24 +313,34 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 .map(([attr, value]) => (
                   <DescriptionListGroup key={attr}>
                     <DescriptionListTerm>
-                      {formatString(attr)}
                       {attr === CUSTOM_LABELS.ESTIMATED_COST.key ? (
-                        <Tooltip content="Estimated hourly cost per instance">
-                          <InfoAltIcon
-                            style={{
-                              paddingTop: 'var(--pf-global--spacer--xs)',
-                              marginLeft: 'var(--pf-global--spacer--sm)',
-                              width: 'var(--pf-global--icon--FontSize--sm)',
-                            }}
-                          />
-                        </Tooltip>
-                      ) : null}
+                        <>
+                          {formatString(attr)}
+                          <Tooltip content="Estimated hourly cost per instance">
+                            <InfoAltIcon
+                              style={{
+                                paddingTop: 'var(--pf-global--spacer--xs)',
+                                marginLeft: 'var(--pf-global--spacer--sm)',
+                                width: 'var(--pf-global--icon--FontSize--sm)',
+                              }}
+                            />
+                          </Tooltip>
+                        </>
+                      ) : attr === CUSTOM_LABELS.SLA.key ? (
+                        'Service Level'
+                      ) : (
+                        formatString(attr)
+                      )}
                     </DescriptionListTerm>
                     <DescriptionListDescription>
                       {attr === CUSTOM_LABELS.RATING.key ? (
                         <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
                       ) : attr === CUSTOM_LABELS.SLA.key ? (
-                        <Link to="/support">{formatString(value)}</Link>
+                        value.includes('External') ? (
+                          formatString(value)
+                        ) : (
+                          <Link to="/support">{formatString(value)}</Link>
+                        )
                       ) : attr === CUSTOM_LABELS.ESTIMATED_COST.key ? (
                         formatCurrency(parseFloat(value))
                       ) : (
@@ -342,7 +363,17 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <DescriptionListGroup className="catalog-item-details__last-update">
                   <DescriptionListTerm>Last update</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <TimeInterval toTimestamp={lastUpdate.git.when_committer} />
+                    {isAdmin || isLabDeveloper(groups) ? (
+                      <a
+                        href={`https://github.com/rhpds/agnosticv/commit/${lastUpdate.git.hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <TimeInterval toTimestamp={lastUpdate.git.when_committer} />
+                      </a>
+                    ) : (
+                      <TimeInterval toTimestamp={lastUpdate.git.when_committer} />
+                    )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}

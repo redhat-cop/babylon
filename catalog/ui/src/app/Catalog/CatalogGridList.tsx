@@ -89,7 +89,6 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
             style={style}
             width={gridWidth}
             height={gridHeight}
-            onScroll={onScroll}
             itemCount={catalogItems.length}
             itemSize={LIST_ROW_HEIGHT + GUTTER_SIZE}
           >

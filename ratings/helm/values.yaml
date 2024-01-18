@@ -2,6 +2,23 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+db:
+  # Create secrets for the database connection
+  deploy: true
+  # Maximum number of connections in the pool
+  maxOverflow: 30
+  # Time in seconds to recycle a connection in the pool
+  poolRecycle: 600
+  # Initial number of connections to create
+  poolSize: 5
+  #hostname: ''
+  #username: ''
+  #password: ''
+  #name: ''
+  port: 54327
+  secretName: database
+
+
 deploy: true
 replicaCount: 2
 

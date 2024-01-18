@@ -29,6 +29,9 @@ const AnarchySubjectStateSelect: React.FC<{
       <SelectOption key="destroy-failed" value="destroy-failed">
         Destroy Failed
       </SelectOption>
+      <SelectOption key="destroy-error" value="destroy-error">
+        Destroy Error
+      </SelectOption>
       <SelectOption key="provisioning" value="provisioning">
         Provisioning
       </SelectOption>

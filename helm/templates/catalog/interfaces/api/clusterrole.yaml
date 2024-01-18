@@ -1,0 +1,37 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog-api
+  name: babylon-catalog-api
+rules:
+- apiGroups:
+  - ""
+  - user.openshift.io
+  resources:
+  - groups
+  - users
+  verbs:
+  - get
+  - impersonate
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - secrets
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - workshops
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+  - update

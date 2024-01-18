@@ -90,7 +90,7 @@ const AnsibleRunLog: React.FunctionComponent<AnsibleRunLogProps> = ({ ansibleRun
                           <div key={item_number} className="ansible-run-log-task-host-unknown">
                             ??: {hostname}
                           </div>
-                        )
+                        ),
                       )}
                     </div>
                   ) : host.result?.changed ? (

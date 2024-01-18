@@ -50,7 +50,7 @@ const WorkshopScheduleAction: React.FC<{
     minMaxProps.maxDate = null;
   }
   const noAutoStopSwitchIsVisible =
-    action === 'stop' && autoDestroyTime && (maxDate === null || maxDate >= autoDestroyTime);
+    action === 'stop' && autoDestroyTime && (minMaxProps.maxDate === null || minMaxProps.maxDate >= autoDestroyTime);
 
   return (
     <Form isHorizontal>

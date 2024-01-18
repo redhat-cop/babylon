@@ -12,6 +12,19 @@ pip install -r requirements.txt
 
 === Running in Development
 
+==== Export environment variables for database connection
+
+You can get the values for these from the Bitwarden Password Manager and the
+`Demo Reporting` collection.
+-----------------------------------------------
+export DB_HOSTNAME=<<REDACTED>>
+export DB_USERNAME=<<REDATECT>>
+export DB_PASSWORD=<<REDACTED>>
+export DB_NAME=<<REDACTED>>
+export DB_PORT=<<REDACTED>>
+-----------------------------------------------
+
+
 Commands each time to start:
 
 ---------------------------------

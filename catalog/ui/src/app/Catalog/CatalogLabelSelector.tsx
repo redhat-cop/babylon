@@ -109,7 +109,7 @@ const CatalogLabelSelector: React.FC<{
       }
       onSelect(Object.keys(updated).length === 0 ? null : updated);
     },
-    [onSelect, selected]
+    [onSelect, selected],
   );
 
   const onClearFilter = useCallback(
@@ -122,7 +122,7 @@ const CatalogLabelSelector: React.FC<{
       }
       onSelect(Object.keys(updated).length === 0 ? null : updated);
     },
-    [onSelect, selected]
+    [onSelect, selected],
   );
 
   const featuredLabels = ['sales_play'];
@@ -150,7 +150,7 @@ const CatalogLabelSelector: React.FC<{
               {Object.entries(attr.values).some(([valueKey]) =>
                 (selected?.[attrKey] || []).includes(valueKey) || attrKey === CUSTOM_LABELS.RATING.key
                   ? selected?.[attrKey]
-                  : false
+                  : false,
               ) ? (
                 <Tooltip content={<div>Clear filter</div>}>
                   <Button

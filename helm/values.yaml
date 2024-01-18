@@ -1,0 +1,189 @@
+---
+agnosticv:
+  api:
+    group: gpte.redhat.com
+    version: v1
+  deploy: true
+  executionEnvironmentAllowList:
+  # Allow everything from redhat official registry
+  - image: ^registry.redhat.io/
+  - image: ^registry.access.redhat.com/
+  # Allow EE built-in AAP2
+  - name: ^Ansible Engine 2.9 execution environment$
+  - name: ^Automation Hub Ansible Engine 2.9 execution environment$
+  - name: ^Automation Hub Default execution environment$
+  - name: ^Automation Hub Minimal execution environment$
+  - name: ^Control Plane Execution Environment$
+  - name: ^Default execution environment$
+  - name: ^Minimal execution environment$
+  # Allow AgnosticD ee images
+  - image: ^quay.io/agnosticd/ee-
+  # Allow custom aap2-workshop image
+  - name: ^aap2-workshop$
+  operator:
+    image:
+      repository: quay.io/rhpds/babylon-agnosticv-operator
+      tag: v1.3.8
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: "1"
+        memory: 512Mi
+      requests:
+        cpu: 500m
+        memory: 256Mi
+  pollingInterval: 1m
+  repositories: {}
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 500m
+      memory: 256Mi
+
+anarchy:
+  ansibleRoles:
+    pre: []
+    sources: 
+      babylon_anarchy_governor:
+        src: https://github.com/rhpds/babylon_anarchy_governor.git
+        version: v0.20.3
+  api:
+    group: anarchy.gpte.redhat.com
+    version: v1
+  namespaces:
+  - name: babylon-anarchy
+    profile: default
+  namespaceProfiles:
+    default:
+      consecutiveFailureLimit: 10
+      maxReplicas: 10
+      minReplicas: 1
+      resources:
+        limits:
+          cpu: "1"
+          memory: "1Gi"
+        requests:
+          cpu: "500m"
+          memory: "512Mi"
+      runLimit: 500
+      scaleUpDelay: 5m
+      scaleUpThreshold: 15
+      scalingCheckInterval: 1m
+
+catalog:
+  api:
+    group: babylon.gpte.redhat.com
+    version: v1
+  defaults:
+    api:
+      gunicorn:
+        processes: 5
+        threads: 1
+      image:
+        pullPolicy: IfNotPresent
+        repository: quay.io/redhat-gpte/babylon-catalog-api
+        tag: v0.12.5
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 500m
+          memory: "2Gi"
+        limits:
+          cpu: "2"
+          memory: "2Gi"
+    oauthProxy:
+      image:
+        pullPolicy: Always
+        repository: registry.redhat.io/openshift4/ose-oauth-proxy
+        tag: v4.12
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: "256Mi"
+        limits:
+          cpu: "1"
+          memory: "256Mi"
+    redis:
+      image:
+        pullPolicy: IfNotPresent
+        repository: registry.redhat.io/rhel9/redis-6
+        tag: 1-124
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: "1"
+          memory: 256Mi
+    route:
+      certManager:
+        enable: false
+      certUtilsOperator:
+        enable: false
+      #host: <namespace>.<ingressDomain>
+    ui:
+      image:
+        pullPolicy: IfNotPresent
+        repository: quay.io/redhat-gpte/babylon-catalog-ui
+        tag: v0.30.17
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: "256Mi"
+        limits:
+          cpu: "1"
+          memory: "256Mi"
+  interfaces:
+    babylon-catalog: {}
+
+configNamespace:
+  name: babylon-config
+
+#ingressDomain: <required>
+
+notifier:
+  deploy: false
+  image:
+    repository: quay.io/redhat-gpte/babylon-notifier
+    pullPolicy: IfNotPresent
+    tag: v0.6.1
+  namespace:
+    create: true
+    name: babylon-notifier
+  redis:
+    image:
+      pullPolicy: IfNotPresent
+      repository: registry.redhat.io/rhel9/redis-6
+      tag: 1-124
+    #persistentVolumeClaim:
+    #  spec:
+    #    accessModes:
+    #    - ReadWriteOnce
+    #    resources:
+    #      requests:
+    #        storage: 1Gi
+    resources:
+      limits:
+        cpu: "1"
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+  resources:
+    limits:
+      cpu: "1"
+      memory: 640Mi
+    requests:
+      cpu: 100m
+      memory: 640Mi
+
+resourceBroker:
+  api:
+    group: poolboy.gpte.redhat.com
+    version: v1
+  namespace: poolboy
+  serviceAccountName: poolboy

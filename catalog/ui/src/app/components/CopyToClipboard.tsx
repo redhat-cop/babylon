@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import CopyIcon from '@patternfly/react-icons/dist/js/icons/copy-icon';
-import { Button, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
+import { Button, TextArea, Tooltip } from '@patternfly/react-core';
 
 const CopyToClipboard: React.FC<{
   text: string;

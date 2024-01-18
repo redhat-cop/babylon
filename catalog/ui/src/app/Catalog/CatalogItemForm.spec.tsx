@@ -22,7 +22,6 @@ const namespace = {
   displayName: 'User test-redhat.com',
   name: 'user-test-redhat-com',
   requester: 'test-redhat.com',
-  workshopProvisionAccess: true,
 };
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
@@ -30,6 +29,7 @@ jest.mock('@app/utils/useSession', () =>
       generateSession({
         serviceNamespaces: [namespace as ServiceNamespace],
         userNamespace: namespace as UserNamespace,
+        groups: ['rhpds-devs', 'rhpds-admins'],
       }),
   }))
 );
@@ -74,9 +74,9 @@ describe('CatalogItemForm Component', () => {
     expect(termsOfServiceAck).toBeChecked();
     expect(button).toBeDisabled();
 
-    await userEvent.click(getByLabelText('Development'));
+    await userEvent.click(getByLabelText('Asset Development'));
     await userEvent.click(getByText('- Select purpose -').closest('button'));
-    await userEvent.click(getByText('Catalog item creation / maintenance'));
+    await userEvent.click(getByText('Other'));
     expect(button).toBeEnabled();
   });
 
@@ -129,9 +129,9 @@ describe('CatalogItemForm Component', () => {
     );
 
     fireEvent.click(termsOfServiceAck);
-    await userEvent.click(getByLabelText('Development'));
+    await userEvent.click(getByLabelText('Asset Development'));
     await userEvent.click(getByText('- Select purpose -').closest('button'));
-    await userEvent.click(getByText('Catalog item creation / maintenance'));
+    await userEvent.click(getByText('Other'));
     await userEvent.click(getByLabelText('Enable workshop user interface'));
 
     expect(termsOfServiceAck).toBeChecked();
@@ -144,14 +144,5 @@ describe('CatalogItemForm Component', () => {
     await userEvent.clear(input);
 
     expect(button).toBeDisabled();
-  });
-
-  test('Workshop Feature disabled if user doesnt have workshopProvisionAccess', async () => {
-    (useSession as jest.Mock).mockImplementation(() => ({
-      getSession: () => generateSession({}),
-    }));
-    const { getByText, queryByLabelText } = render(<CatalogItemForm />);
-    await waitFor(() => getByText('Order'));
-    expect(queryByLabelText('Enable workshop user interface')).not.toBeInTheDocument();
   });
 });

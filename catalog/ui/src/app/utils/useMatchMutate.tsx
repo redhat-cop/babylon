@@ -12,7 +12,7 @@ import { useSWRConfig } from 'swr';
  */
 function useMatchMutate(): (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  resources: { name: ResourceType; arguments: any; data: any }[]
+  resources: { name: ResourceType; arguments: any; data: any }[],
 ) => Promise<any[]> {
   const { cache, mutate } = useSWRConfig();
   return useCallback(
@@ -33,7 +33,7 @@ function useMatchMutate(): (
       const mutations = keys.map(({ key, data }) => mutate(key, data));
       return Promise.all(mutations);
     },
-    [cache, mutate]
+    [cache, mutate],
   );
 }
 

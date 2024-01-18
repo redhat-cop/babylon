@@ -69,7 +69,7 @@ const AnarchySubjectInstanceComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
   useErrorHandler(error?.status === 404 ? error : null);
 
@@ -86,7 +86,7 @@ const AnarchySubjectInstanceComponent: React.FC<{
         if (!compareK8sObjectsArr(currentData.items, newData.items)) return false;
         return true;
       },
-    }
+    },
   );
   const anarchyActions = useMemo(() => anarchyActionsList.items, [anarchyActionsList]);
 
@@ -103,7 +103,7 @@ const AnarchySubjectInstanceComponent: React.FC<{
         if (!compareK8sObjectsArr(currentData.items, newData.items)) return false;
         return true;
       },
-    }
+    },
   );
   const anarchyRuns = useMemo(() => anarchyRunsList.items, [anarchyRunsList]);
 
@@ -111,14 +111,14 @@ const AnarchySubjectInstanceComponent: React.FC<{
     if (confirm(`Delete AnarchySubject ${anarchySubjectName}?`)) {
       await deleteAnarchySubject(anarchySubject);
       navigate(`/admin/anarchysubjects/${namespace}`);
-      mutate(null);
+      mutate(undefined);
     }
   }
 
   async function confirmThenForceDelete(): Promise<void> {
     if (
       confirm(
-        `Force delete AnarchySubject ${anarchySubjectName}? Forcing delete may orphan provisioned cloud resources!`
+        `Force delete AnarchySubject ${anarchySubjectName}? Forcing delete may orphan provisioned cloud resources!`,
       )
     ) {
       await forceDeleteAnarchySubject(anarchySubject);
@@ -139,7 +139,7 @@ const AnarchySubjectInstanceComponent: React.FC<{
       mutateAnarchyActions({
         ...anarchyActionsList,
         items: anarchyActionsList.items.filter(
-          (i) => !removedAnarchyActions.some((r) => r.metadata.uid === i.metadata.uid)
+          (i) => !removedAnarchyActions.some((r) => r.metadata.uid === i.metadata.uid),
         ),
       });
     }
@@ -213,6 +213,7 @@ const AnarchySubjectInstanceComponent: React.FC<{
                   key="force-delete"
                   label="Force Delete"
                   onSelect={() => confirmThenForceDelete()}
+                  isDisabled={!anarchySubject.metadata.deletionTimestamp}
                 />,
                 <ActionDropdownItem
                   key="deleteAnarchyActions"
@@ -233,8 +234,8 @@ const AnarchySubjectInstanceComponent: React.FC<{
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchySubject.metadata.namespace}/${anarchySubject.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${anarchySubject.kind}/${anarchySubject.metadata.name}/yaml`
+                        '~',
+                      )}~${anarchySubject.kind}/${anarchySubject.metadata.name}/yaml`,
                     )
                   }
                 />,
@@ -245,8 +246,8 @@ const AnarchySubjectInstanceComponent: React.FC<{
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchySubject.metadata.namespace}/${anarchySubject.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${anarchySubject.kind}/${anarchySubject.metadata.name}`
+                        '~',
+                      )}~${anarchySubject.kind}/${anarchySubject.metadata.name}`,
                     )
                   }
                 />,

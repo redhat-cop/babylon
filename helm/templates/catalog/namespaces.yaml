@@ -1,0 +1,44 @@
+{{- range $namespace, $config := .Values.catalog.namespaces }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    {{- with $config.description }}
+    openshift.io/description: {{ . | quote }}
+    {{- end }}
+    {{- with $config.displayName }}
+    openshift.io/display-name: {{ . | quote }}
+    {{- end }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: catalog
+    babylon.gpte.redhat.com/catalog: ""
+    {{- with $config.interface }}
+    babylon.gpte.redhat.com/interface: {{ . | quote }}
+    {{- end }}
+  name: {{ $namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    description: Access for anarchy to catalog items and secrets.
+  name: babylon:anarchy:catalog-access
+  namespace: {{ $namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: babylon:anarchy:catalog-access
+subjects:
+{{- range $.Values.anarchy.namespaces }}
+- kind: ServiceAccount
+  name: anarchy
+  namespace: {{ .name }}
+{{- end }}
+{{- range $group := $config.groups }}
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: {{ $group }}
+{{- end }}
+{{- end }}

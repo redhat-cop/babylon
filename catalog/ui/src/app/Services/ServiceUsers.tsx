@@ -19,13 +19,13 @@ const UserMessage: React.FC<{
       userMessages ? (
         <div
           dangerouslySetInnerHTML={{
-            __html: renderContent(userMessages.replace(/^\s+|\s+$/g, '').replace(/([^\n])\n(?!\n)/g, '$1 +\n'), {
+            __html: renderContent(userMessages.trim().replace(/([^\n])\n(?!\n)/g, '$1 +\n'), {
               format: 'asciidoc',
             }),
           }}
         />
       ) : null,
-    [userMessages]
+    [userMessages],
   );
 
   return (
@@ -57,7 +57,7 @@ const UserMessage: React.FC<{
                     <DescriptionListDescription>
                       {typeof value === 'string' ? (
                         value.startsWith('https://') ? (
-                          <a href={value}>
+                          <a href={value} target="_blank" rel="noopener">
                             <code>{value}</code>
                           </a>
                         ) : (
@@ -83,11 +83,17 @@ const ServiceUsers: React.FC<{
 }> = ({ resourceClaim }) => {
   const users = {};
   const labUserInterfaceUrls = JSON.parse(
-    resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrls`] || '{}'
+    resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrls`] || '{}',
   );
 
   for (const status_resource of resourceClaim?.status?.resources || []) {
     const resource_users = status_resource.state?.spec?.vars?.provision_data?.users;
+    if (resource_users) {
+      Object.assign(users, resource_users);
+    }
+  }
+  if (resourceClaim?.status?.summary) {
+    const resource_users = resourceClaim.status.summary.provision_data?.users;
     if (resource_users) {
       Object.assign(users, resource_users);
     }
@@ -99,11 +105,12 @@ const ServiceUsers: React.FC<{
         const userLabUrl =
           labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url;
         const userDataEntries = Object.entries(userData).filter(
-          ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg'
+          ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg',
         );
         const userMessages: string = userData.msg;
         return (
           <UserMessage
+            key={userLabUrl || userMessages}
             userMessages={userMessages}
             userDataEntries={userDataEntries}
             userLabUrl={userLabUrl}

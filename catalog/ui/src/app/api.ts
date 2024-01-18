@@ -21,8 +21,7 @@ import {
   Nullable,
   ResourceType,
 } from '@app/types';
-import { store } from '@app/store';
-import { selectImpersonationUser } from '@app/store';
+import { store, selectImpersonationUser } from '@app/store';
 import {
   checkAccessControl,
   displayName,
@@ -54,6 +53,7 @@ type CreateServiceRequestOpt = {
   catalogNamespaceName: string;
   serviceNamespace: ServiceNamespace;
   groups: string[];
+  isAdmin: boolean;
   parameterValues?: CreateServiceRequestParameterValues;
   usePoolIfAvailable: boolean;
   stopDate?: Date;
@@ -288,12 +288,13 @@ export async function checkSalesforceId(
   if (!id) {
     return false;
   }
-  try {
+  return Promise.resolve(id.length > 0);
+  /*try {
     await debouncedApiFetch(`/api/salesforce/opportunity/${id}`);
   } catch (error) {
     return false;
   }
-  return true;
+  return true;*/
 }
 
 async function createK8sObject<Type extends K8sObject>(definition: Type): Promise<Type> {
@@ -325,6 +326,7 @@ export async function createServiceRequest({
   catalogItem,
   catalogNamespaceName,
   groups,
+  isAdmin,
   parameterValues,
   serviceNamespace,
   start,
@@ -334,7 +336,7 @@ export async function createServiceRequest({
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
-  const access = checkAccessControl(catalogItem.spec.accessControl, groups);
+  const access = checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin);
 
   const requestResourceClaim: ResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
@@ -344,6 +346,7 @@ export async function createServiceRequest({
         [`${BABYLON_DOMAIN}/catalogDisplayName`]: catalogNamespaceName || catalogItem.metadata.namespace,
         [`${BABYLON_DOMAIN}/catalogItemDisplayName`]: displayName(catalogItem),
         [`${BABYLON_DOMAIN}/requester`]: session.user,
+        [`${BABYLON_DOMAIN}/category`]: catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`],
         [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}`,
         ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
         ...(catalogItem.spec.userData
@@ -356,6 +359,9 @@ export async function createServiceRequest({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
+          : {}),
         ...(catalogItem.spec.bookbag ? { [`${BABYLON_DOMAIN}/labUserInterface`]: 'bookbag' } : {}),
       },
       name: catalogItem.metadata.name,
@@ -418,7 +424,7 @@ export async function createServiceRequest({
           : parameter.value;
 
       // Set annotation for parameter
-      if (parameter.annotation && value !== undefined) {
+      if (parameter.annotation && value !== undefined && parameter.name !== 'purpose') {
         requestResourceClaim.metadata.annotations[parameter.annotation] = String(value);
       }
 
@@ -442,19 +448,25 @@ export async function createServiceRequest({
         const resource = requestResourceClaim.spec.resources[resourceIndex];
         recursiveAssign(resource, { template: { spec: { vars: { job_vars: { [jobVarName]: value } } } } });
       }
-    }
-
-    // Purpose & SFDC
-    if (parameterValues.purpose) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
-    }
-    if (parameterValues.purpose_activity) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`] =
-        parameterValues.purpose_activity as string;
-    }
-    if (parameterValues.salesforce_id) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] =
-        parameterValues.salesforce_id as string;
+      if (parameter.name === 'purpose') {
+        // Purpose & SFDC
+        const annotationDomain = parameter.annotation.split('/')[0];
+        if (parameterValues.purpose) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose`] = parameterValues.purpose as string;
+        }
+        if (parameterValues.purpose_activity) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-activity`] =
+            parameterValues.purpose_activity as string;
+        }
+        if (parameterValues.purpose_explanation) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-explanation`] =
+            parameterValues.purpose_explanation as string;
+        }
+        if (parameterValues.salesforce_id) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/salesforce-id`] =
+            parameterValues.salesforce_id as string;
+        }
+      }
     }
   } else {
     // No direct access to catalog item. Create the service-request to record
@@ -530,6 +542,17 @@ export async function createWorkshop({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
+          : {}),
+      },
+      annotations: {
+        [`${BABYLON_DOMAIN}/category`]: catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`],
+        ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
+          ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.user) }
+          : catalogItem.spec.messageTemplates?.info
+          ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.info) }
+          : {}),
       },
     },
     spec: {
@@ -593,6 +616,9 @@ export async function createWorkshopForMultiuserService({
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItemName,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItemNamespace,
       },
+      annotations: {
+        [`${BABYLON_DOMAIN}/category`]: resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/category`],
+      },
       ownerReferences: [
         {
           apiVersion: 'poolboy.gpte.redhat.com/v1',
@@ -627,16 +653,31 @@ export async function createWorkshopForMultiuserService({
     );
   }
 
-  const workshop = await createK8sObject(definition);
-  const patchedResourceClaim = await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
-    metadata: {
-      labels: {
-        [`${BABYLON_DOMAIN}/workshop`]: workshop.metadata.name,
-      },
-    },
-  });
-
-  return { resourceClaim: patchedResourceClaim, workshop: workshop };
+  let n = 0;
+  while (true) {
+    try {
+      const workshop = await createK8sObject(definition);
+      const patchedResourceClaim = await patchResourceClaim(
+        resourceClaim.metadata.namespace,
+        resourceClaim.metadata.name,
+        {
+          metadata: {
+            labels: {
+              [`${BABYLON_DOMAIN}/workshop`]: workshop.metadata.name,
+            },
+          },
+        }
+      );
+      return { resourceClaim: patchedResourceClaim, workshop: workshop };
+    } catch (error: any) {
+      if (error.status === 409) {
+        n++;
+        definition.metadata.name = `${definition.metadata.name}-${n}`;
+      } else {
+        throw error;
+      }
+    }
+  }
 }
 
 export async function createWorkshopProvision({
@@ -656,6 +697,12 @@ export async function createWorkshopProvision({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
+          : {}),
+      },
+      annotations: {
+        [`${BABYLON_DOMAIN}/category`]: catalogItem.metadata.labels?.[`${BABYLON_DOMAIN}/category`],
       },
       ownerReferences: [
         {
@@ -758,7 +805,13 @@ function fetchApiSession() {
       throw new Error(response.statusText);
     })
     .catch(() => {
-      window.location.href = '/?n=' + new Date().getTime();
+      const urlParams = new URLSearchParams(window.location.search);
+      const count = parseInt(urlParams.get('count'), 10) || 0;
+      if (count > 2) {
+        window.location.href = '/oauth/sign_out';
+      } else {
+        window.location.href = '/?n=' + new Date().getTime() + '&count=' + count + 1;
+      }
     });
   return window.sessionPromiseInstance;
 }
@@ -815,7 +868,7 @@ async function deleteK8sObject<Type extends K8sObject>(definition: Type): Promis
   const plural = definition.kind.toLowerCase() + 's';
   const path = definition.metadata.namespace
     ? `/apis/${definition.apiVersion}/namespaces/${definition.metadata.namespace}/${plural}/${definition.metadata.name}`
-    : `/apis/${definition.apiVersion}/${plural}/${name}`;
+    : `/apis/${definition.apiVersion}/${plural}/${definition.metadata.name}`;
   try {
     const resp = await apiFetch(path, { method: 'DELETE' });
     return await resp.json();
@@ -1017,7 +1070,7 @@ export async function patchK8sObjectByPath<Type extends K8sObject>({
   return await resp.json();
 }
 
-async function patchResourceClaim(namespace: string, name: string, patch: Record<string, unknown>) {
+export async function patchResourceClaim(namespace: string, name: string, patch: Record<string, unknown>) {
   return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
@@ -1049,15 +1102,15 @@ export async function patchWorkshop({
   namespace: string;
   jsonPatch?: JSONPatch;
   patch?: Record<string, unknown>;
-}) {
-  return (await patchK8sObject({
+}): Promise<Workshop> {
+  return await patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
     name: name,
     namespace: namespace,
     plural: 'workshops',
     patch: patch,
-  })) as Workshop;
+  });
 }
 
 export async function patchWorkshopProvision({
@@ -1070,15 +1123,15 @@ export async function patchWorkshopProvision({
   namespace: string;
   jsonPatch?: JSONPatch;
   patch?: Record<string, unknown>;
-}) {
-  return (await patchK8sObject({
+}): Promise<WorkshopProvision> {
+  return await patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch: jsonPatch,
     name: name,
     namespace: namespace,
     plural: 'workshopprovisions',
     patch: patch,
-  })) as WorkshopProvision;
+  });
 }
 
 export async function requestStatusForAllResourcesInResourceClaim(resourceClaim: ResourceClaim) {
@@ -1093,7 +1146,7 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim:
       resourcesToRequestStatus.push(resource.name);
     }
   }
-  for (let i = 0; i < data.spec.resources.length; ++i) {
+  for (let i = 0; i < data.spec.resources?.length; ++i) {
     if (resourcesToRequestStatus.includes(data.spec.resources[i].name)) {
       data.spec.resources[i].template.spec.vars.check_status_request_timestamp = requestTimestamp;
     }
@@ -1108,23 +1161,77 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim:
   )) as ResourceClaim;
 }
 
+export async function scheduleStopResourceClaim(resourceClaim: ResourceClaim, date?: Date) {
+  const stopTimestamp = dateToApiString(date ?? new Date());
+  const patch = {
+    spec: {
+      provider: {
+        parameterValues: {
+          stop_timestamp: stopTimestamp,
+        },
+      },
+    },
+  };
+
+  return (await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com',
+    'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    patch
+  )) as ResourceClaim;
+}
+
 export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: ResourceClaim, date: Date) {
   const stopTimestamp = dateToApiString(date);
-  const patch = {
-    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
-  };
-  const resourcesToStop = [];
-  for (const resource of resourceClaim.status?.resources) {
-    if (canExecuteAction(resource.state, 'stop')) {
-      resourcesToStop.push(resource.name);
+  let patch: any = {};
+  if (resourceClaim.spec?.provider?.parameterValues?.['stop_timestamp']) {
+    patch = {
+      spec: {
+        provider: {
+          parameterValues: {
+            stop_timestamp: stopTimestamp,
+          },
+        },
+      },
+    };
+  } else {
+    patch = {
+      spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
+    };
+    const resourcesToStop = [];
+    for (const resource of resourceClaim.status?.resources) {
+      if (canExecuteAction(resource.state, 'stop')) {
+        resourcesToStop.push(resource.name);
+      }
     }
-  }
-  for (let i = 0; i < patch.spec.resources.length; ++i) {
-    if (resourcesToStop.includes(patch.spec.resources[i].name)) {
-      patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+    for (let i = 0; i < patch.spec.resources.length; ++i) {
+      if (resourcesToStop.includes(patch.spec.resources[i].name)) {
+        patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
+      }
     }
   }
 
+  return (await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com',
+    'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    patch
+  )) as ResourceClaim;
+}
+
+export async function scheduleStartResourceClaim(resourceClaim: ResourceClaim, date?: Date, stopDate?: Date) {
+  const startTimestamp = dateToApiString(date ?? new Date());
+  const defaultRuntime = parseDuration(resourceClaim.status?.summary?.runtime_default) ?? 14400000;
+  const stopTimestamp = dateToApiString(stopDate ?? new Date(new Date().getTime() + defaultRuntime));
+  const times = { start_timestamp: startTimestamp, stop_timestamp: stopTimestamp };
+  const patch = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
+  };
+  patch.spec = { provider: { parameterValues: times } };
   return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
@@ -1177,8 +1284,8 @@ export async function setLifespanEndForResourceClaim(
   const data = {
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
-  let updatedMaxDate: Nullable<string> = null;
-  let updatedRelativeMaxDate: Nullable<string> = null;
+  let updatedMaxDate: string = null;
+  let updatedRelativeMaxDate: string = null;
   if (resourceClaim.status?.lifespan?.maximum) {
     const maxDate = new Date(resourceClaim.metadata.creationTimestamp);
     maxDate.setDate(maxDate.getDate() + parseInt(resourceClaim.status.lifespan.maximum.slice(0, -1), 10));
@@ -1214,8 +1321,16 @@ export async function setLifespanEndForResourceClaim(
       {
         spec: {
           lifespan: {
-            ...(updatedMaxDate ? { maximum: updatedMaxDate } : {}),
-            ...(updatedRelativeMaxDate ? { relativeMaximum: updatedRelativeMaxDate } : {}),
+            ...(updatedMaxDate
+              ? {
+                  maximum: `{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}${updatedMaxDate}{% endif %}`,
+                }
+              : {}),
+            ...(updatedRelativeMaxDate
+              ? {
+                  relativeMaximum: `{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}${updatedRelativeMaxDate}{% endif %}`,
+                }
+              : {}),
           },
         },
       }
@@ -1438,11 +1553,16 @@ export async function fetchWithUpdatedCostTracker({
   return await fetcher(path);
 }
 
-export function setProvisionRating(provisionUuid: string, rating: number, comment: string) {
-  return apiFetch(apiPaths.PROVISION_RATING({ provisionUuid }), {
+export function setProvisionRating(
+  requestUid: string,
+  rating: number,
+  comment: string,
+  useful: 'yes' | 'no' | 'not applicable'
+) {
+  return apiFetch(apiPaths.RATING({ requestUid }), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rating, comment }),
+    body: JSON.stringify({ request_id: requestUid, rating: rating ? rating * 10 : rating, comments: comment, useful }),
   });
 }
 
@@ -1531,7 +1651,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }`,
   RESOURCE_PROVIDER: ({ resourceProviderName }: { resourceProviderName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders/${resourceProviderName}`,
-  PROVISION_RATING: ({ provisionUuid }: { provisionUuid: string }) => `/api/ratings/provisions/${provisionUuid}`,
   ANARCHY_RUNS: ({
     namespace,
     limit,
@@ -1596,4 +1715,9 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }${limit ? `limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
   ANARCHY_GOVERNOR: ({ namespace, anarchyGovernorName }: { namespace: string; anarchyGovernorName: string }) =>
     `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchygovernors/${anarchyGovernorName}`,
+  INCIDENTS: ({ status }: { status?: string }) => `/api/admin/incidents${status ? '?status=' + status : ''}`,
+  INCIDENT: ({ incidentId }: { incidentId: number }) => `/api/admin/incidents/${incidentId}`,
+  RATINGS_HISTORY: ({ assetUuid }: { assetUuid: string }) => `/api/ratings/catalogitem/${assetUuid}/history`,
+  RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
+  USER_RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
 };

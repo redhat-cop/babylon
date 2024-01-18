@@ -7,6 +7,7 @@ export type WorkshopDetails = {
   assignment?: WorkshopSpecUserAssignment;
   description?: string;
   displayName?: string;
+  labUserInterfaceRedirect?: boolean;
   name: string;
   namespace: string;
   template?: string;
