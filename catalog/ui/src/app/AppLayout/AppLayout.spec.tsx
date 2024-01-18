@@ -23,6 +23,15 @@ jest.mock('@app/utils/useSession', () => {
     }),
   }));
 });
+jest.mock('@app/utils/useInterfaceConfig', () => {
+  return jest.fn(() => ({
+    incidents_enabled: false,
+    ratings_enabled: false,
+    status_page_id: '123',
+    help_link: '',
+    internal_help_link: '',
+  }));
+});
 
 describe('Catalog Page Layout Scenario', () => {
   test("When app layout renders, should display 'Catalog' option", async () => {
