@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-const DEFAULT_USER_INTERFACE = 'rhpds';
+const DEFAULT_USER_INTERFACE = 'rhdp';
 
 function getPageTitle(title: string, userInterface?: string): string {
   if (!userInterface) userInterface = DEFAULT_USER_INTERFACE;
   return userInterface === 'summit'
     ? title.replace('Babylon', 'Red Hat Summit')
-    : userInterface === 'rhpds'
+    : ['rhpds', 'rhdp', 'rhdp-partners'].includes(userInterface)
     ? title.replace('Babylon', 'Red Hat Demo Platform')
     : title;
 }

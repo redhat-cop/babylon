@@ -158,7 +158,7 @@ babylon_resources:
       values:
         api:
           replicaCount: "{{ babylon_catalog_api_replica_count | default(1) }}"
-        interfaceName: "{{ babylon_catalog_interface | default('rhpds') }}"
+        interfaceName: "{{ babylon_catalog_interface_name | default('rhdp') }}"
         oauthProxy:
           clientId: "{{ babylon_catalog_oauth_client_id | default('') }}"
           clientSecret: "{{ babylon_catalog_oauth_client_secret | default('') }}"

@@ -137,6 +137,7 @@ catalog:
         limits:
           cpu: "1"
           memory: "256Mi"
+    interfaceName: rhdp
   interfaces:
     babylon-catalog: {}
 
