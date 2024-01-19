@@ -62,6 +62,7 @@ import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogContent from './CatalogContent';
 import IncidentsBanner from '@app/components/IncidentsBanner';
 import AdminSelector from './AdminSelector';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './catalog.css';
 
@@ -208,7 +209,7 @@ function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
     return await fetcherItemsInAllPages((continueId) =>
-      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
     );
   }
   const catalogItems: CatalogItem[] = [];
@@ -226,6 +227,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const [searchParams, setSearchParams] = useSearchParams();
   const { namespace: catalogNamespaceName } = useParams();
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
+  const { incidents_enabled } = useInterfaceConfig();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
   const [sortBy, setSortBy] = useState<{ isOpen: boolean; selected: 'Featured' | 'Rating' | 'AZ' | 'ZA' }>({
     isOpen: false,
@@ -249,11 +251,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const adminStatusString = searchParams.has('adminStatus') ? searchParams.get('adminStatus') : null;
   const selectedAdminFilter: string[] = useMemo(
     () => (adminStatusString ? JSON.parse(adminStatusString) : []),
-    [adminStatusString],
+    [adminStatusString]
   );
   const selectedLabels: { [label: string]: string[] } = useMemo(
     () => (labelsString ? JSON.parse(labelsString) : {}),
-    [labelsString],
+    [labelsString]
   );
 
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
@@ -322,17 +324,17 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       }
       return 0;
     },
-    [sortBy.selected],
+    [sortBy.selected]
   );
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
-    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames),
+    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
-    [catalogItemsArr, groups],
+    [catalogItemsArr, groups]
   );
 
   // Filter & Sort catalog items
@@ -341,7 +343,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     catalogItemsCpy.forEach((c, i) => {
       if (c.metadata.annotations) {
         catalogItemsCpy[i].metadata.annotations['babylon.gpte.redhat.com/safe_description'] = stripTags(
-          c.metadata.annotations['babylon.gpte.redhat.com/description'],
+          c.metadata.annotations['babylon.gpte.redhat.com/description']
         );
       }
     });
@@ -404,14 +406,14 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       searchString
         ? _catalogItems.search("'" + searchString.split(' ').join(" '")).map((x) => x.item)
         : _catalogItemsCpy,
-    [searchString, _catalogItems, _catalogItemsCpy],
+    [searchString, _catalogItems, _catalogItemsCpy]
   );
 
   const openCatalogItem =
     openCatalogItemName && openCatalogItemNamespaceName
       ? catalogItems.find(
           (item) =>
-            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName,
+            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName
         )
       : null;
 
@@ -477,7 +479,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
 
   return (
     <>
-      <IncidentsBanner />
+      {incidents_enabled ? <IncidentsBanner /> : null}
       <Drawer isExpanded={openCatalogItem ? true : false}>
         <DrawerContent
           panelContent={

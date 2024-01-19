@@ -9,6 +9,7 @@ import {
   checkResourceClaimCanStop,
   isResourceClaimPartOfWorkshop,
 } from '@app/util';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 const ServiceActions: React.FC<{
   actionHandlers: {
@@ -29,10 +30,11 @@ const ServiceActions: React.FC<{
   iconOnly?: boolean;
 }> = ({ actionHandlers, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
   const actionDropdownItems: JSX.Element[] = [];
+  const { ratings_enabled } = useInterfaceConfig();
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : false;
   const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : false;
-  const canRate = resourceClaim ? checkResourceClaimCanRate(resourceClaim) : false;
+  const canRate = resourceClaim && ratings_enabled ? checkResourceClaimCanRate(resourceClaim) : false;
 
   if (!isPartOfWorkshop && actionHandlers.runtime) {
     actionDropdownItems.push(
@@ -43,7 +45,7 @@ const ServiceActions: React.FC<{
           !resourceClaim || !canStop || !resourceClaim?.status?.resources?.[0]?.state?.spec?.vars?.action_schedule
         }
         onSelect={actionHandlers.runtime}
-      />,
+      />
     );
   }
   if (!isPartOfWorkshop && actionHandlers.lifespan) {
@@ -53,7 +55,7 @@ const ServiceActions: React.FC<{
         label="Edit Auto-Destroy"
         isDisabled={!resourceClaim?.status?.lifespan}
         onSelect={actionHandlers.lifespan}
-      />,
+      />
     );
   }
   if (actionHandlers.delete) {
@@ -62,7 +64,7 @@ const ServiceActions: React.FC<{
         key="delete"
         label={serviceName ? `Delete ${serviceName}` : 'Delete'}
         onSelect={actionHandlers.delete}
-      />,
+      />
     );
   }
   if (!isPartOfWorkshop && actionHandlers.start) {
@@ -72,7 +74,7 @@ const ServiceActions: React.FC<{
         label={serviceName ? `Start ${serviceName}` : 'Start'}
         isDisabled={!canStart}
         onSelect={actionHandlers.start}
-      />,
+      />
     );
   }
   if (!isPartOfWorkshop && actionHandlers.stop) {
@@ -82,19 +84,19 @@ const ServiceActions: React.FC<{
         label={serviceName ? `Stop ${serviceName}` : 'Stop'}
         isDisabled={!canStop}
         onSelect={actionHandlers.stop}
-      />,
+      />
     );
   }
 
   if (actionHandlers.getCost) {
     actionDropdownItems.push(
-      <ActionDropdownItem key="getCost" label="Get amount spent" onSelect={actionHandlers.getCost} />,
+      <ActionDropdownItem key="getCost" label="Get amount spent" onSelect={actionHandlers.getCost} />
     );
   }
 
   if (actionHandlers.manageWorkshop) {
     actionDropdownItems.push(
-      <ActionDropdownItem key="manageWorkshop" label="Manage Workshop" onSelect={actionHandlers.manageWorkshop} />,
+      <ActionDropdownItem key="manageWorkshop" label="Manage Workshop" onSelect={actionHandlers.manageWorkshop} />
     );
   }
   if (!isPartOfWorkshop && actionHandlers.rate) {
@@ -105,7 +107,7 @@ const ServiceActions: React.FC<{
         onSelect={actionHandlers.rate}
         isDisabled={!canRate}
         className="action-dropdown-item__rate"
-      />,
+      />
     );
   }
   return (
