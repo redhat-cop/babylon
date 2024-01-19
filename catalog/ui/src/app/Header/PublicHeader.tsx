@@ -17,7 +17,7 @@ import './header.css';
 
 const PublicHeader: React.FC = () => {
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
-  const { help_link } = useInterfaceConfig();
+  const { help_link, help_text } = useInterfaceConfig();
   const navigate = useNavigate();
 
   function LogoImg() {
@@ -30,7 +30,7 @@ const PublicHeader: React.FC = () => {
 
   const UserHelpDropdownItems = [
     <ApplicationLauncherItem key="open-support" component="button" onClick={openSupportCase} isExternal>
-      Open Support Case
+      {help_text}
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="status-page-link"

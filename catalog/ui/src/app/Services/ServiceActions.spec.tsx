@@ -10,6 +10,7 @@ jest.mock('@app/utils/useInterfaceConfig', () => {
     ratings_enabled: true,
     status_page_id: '123',
     help_link: '',
+    help_text: '',
     internal_help_link: '',
   }));
 });

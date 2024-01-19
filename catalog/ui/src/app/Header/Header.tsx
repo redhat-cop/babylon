@@ -20,6 +20,7 @@ import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
 import useHelpLink from '@app/utils/useHelpLink';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './header.css';
 
@@ -36,6 +37,7 @@ const Header: React.FC<{
   const { isAdmin, email, userInterface } = useSession().getSession();
   const navigate = useNavigate();
   const helpLink = useHelpLink();
+  const { help_text } = useInterfaceConfig();
 
   function clearUserImpersonation() {
     clearImpersonation();
@@ -64,7 +66,7 @@ const Header: React.FC<{
 
   const UserHelpDropdownItems = [
     <ApplicationLauncherItem key="open-support" component="button" onClick={openSupportCase} isExternal>
-      Open Support Case
+      {help_text}
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="status-page-link"
