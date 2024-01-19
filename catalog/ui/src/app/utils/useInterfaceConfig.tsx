@@ -6,6 +6,7 @@ type TInterface = {
     incidents_enabled: boolean,
     ratings_enabled: boolean,
     status_page_id: string,
+    help_text: string,
     help_link: string,
     internal_help_link: string
 }
@@ -18,6 +19,7 @@ export default function useInterfaceConfig() {
             ratings_enabled: false,
             status_page_id: null,
             help_link: '',
+            help_text: '',
             internal_help_link: ''
         };
     }
