@@ -36,7 +36,7 @@ const UserInterfaceLogo: React.FC<
       {userInterface === 'rhdp-partners' ? (
         <>
           <path
-            transform="translate(-232px, 0px)"
+            transform="translate(-232, 0)"
             d="M1314.087 62.739h117.826c42.298 0 76.587 25.967 76.587 58s-34.289 58-76.587 58h-117.826c-42.298 0-76.587-25.967-76.587-58s34.289-58 76.587-58Z"
             fill="#faeae8"
           />
