@@ -37,7 +37,7 @@ const Header: React.FC<{
   const { isAdmin, email, userInterface } = useSession().getSession();
   const navigate = useNavigate();
   const helpLink = useHelpLink();
-  const { help_text } = useInterfaceConfig();
+  const { help_text, status_page_url } = useInterfaceConfig();
 
   function clearUserImpersonation() {
     clearImpersonation();
@@ -70,7 +70,7 @@ const Header: React.FC<{
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="status-page-link"
-      href="https://rhdp.statuspage.io/"
+      href={status_page_url}
       target="_blank"
       rel="noreferrer nofollow"
       isExternal

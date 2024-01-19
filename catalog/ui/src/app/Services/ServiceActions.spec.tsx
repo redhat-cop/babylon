@@ -9,6 +9,7 @@ jest.mock('@app/utils/useInterfaceConfig', () => {
     incidents_enabled: true,
     ratings_enabled: true,
     status_page_id: '123',
+    status_page_url: 'https://redhat.com',
     help_link: '',
     help_text: '',
     internal_help_link: '',

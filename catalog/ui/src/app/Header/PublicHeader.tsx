@@ -17,7 +17,7 @@ import './header.css';
 
 const PublicHeader: React.FC = () => {
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
-  const { help_link, help_text } = useInterfaceConfig();
+  const { help_link, help_text, status_page_url } = useInterfaceConfig();
   const navigate = useNavigate();
 
   function LogoImg() {
@@ -34,7 +34,7 @@ const PublicHeader: React.FC = () => {
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="status-page-link"
-      href="https://rhdp.statuspage.io/"
+      href={status_page_url}
       target="_blank"
       rel="noreferrer nofollow"
       isExternal
