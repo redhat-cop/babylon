@@ -4,6 +4,16 @@ import { render, waitFor, screen, fireEvent } from '@testing-library/react';
 import { ResourceClaim } from '@app/types';
 import ServiceActions from './ServiceActions';
 
+jest.mock('@app/utils/useInterfaceConfig', () => {
+  return jest.fn(() => ({
+    incidents_enabled: true,
+    ratings_enabled: true,
+    status_page_id: '123',
+    help_link: '',
+    internal_help_link: '',
+  }));
+});
+
 describe('ServiceActions', () => {
   test('When ServiceActions layout renders, should display ServiceActions', async () => {
     const openDeleteModal = jest.fn();

@@ -20,7 +20,7 @@ Login with `oc`, then start the local development server.
 . ~/virtualenv/babylon-catalog-api/bin/activate
 export BABYLON_NAMESPACE=babylon-catalog
 export ENVIRONMENT=development
-export INTERFACE_NAME=rhdp
+export INTERFACE_NAME=rhpds
 python3 wsgi.py
 ---------------------------------
 

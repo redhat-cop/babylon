@@ -75,24 +75,8 @@ jobs:
           context: catalog/ui
           file: catalog/ui/Dockerfile
           build-args: |
-            STATUS_PAGE_ID=05mhm9ljgsqq
             MONITOR_ENABLED=true
             TRACKING_ENABLED=true
             OPTIONAL_FLAGS=default
           push: true
           tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
-
-      - name: Build and publish partners image
-        uses: docker/build-push-action@v2
-        if: steps.image_tags.outputs.IMAGE_TAGS_PARTNERS
-        with:
-          registry: ${{ secrets.REGISTRY_URI }}
-          context: catalog/ui
-          file: catalog/ui/Dockerfile
-          build-args: |
-            STATUS_PAGE_ID=j70k6yk8v2pk
-            MONITOR_ENABLED=true
-            TRACKING_ENABLED=true
-            OPTIONAL_FLAGS=default
-          push: true
-          tags: ${{ steps.image_tags.outputs.IMAGE_TAGS_PARTNERS }}

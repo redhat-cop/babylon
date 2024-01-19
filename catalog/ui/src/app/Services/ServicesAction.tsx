@@ -5,6 +5,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import { checkResourceClaimCanRate, displayName } from '@app/util';
 import ServicesActionRating from './ServicesActionRating';
 import { ErrorBoundary } from 'react-error-boundary';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 const ServicesAction: React.FC<{
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
@@ -27,8 +28,9 @@ const ServicesAction: React.FC<{
 }> = ({ actionState, setTitle, setActionState }) => {
   const action = actionState.action;
   const resourceClaim = actionState.resourceClaim;
+  const { ratings_enabled } = useInterfaceConfig();
   const workshop = actionState.workshop;
-  const canRate = resourceClaim ? checkResourceClaimCanRate(resourceClaim) : false;
+  const canRate = resourceClaim && ratings_enabled ? checkResourceClaimCanRate(resourceClaim) : false;
   const targetDisplay = resourceClaim || workshop ? displayName(resourceClaim || workshop) : 'Selected Services';
   const actionDisplay = action.charAt(0).toUpperCase() + action.slice(1);
   useEffect(() => setTitle(`${actionDisplay} ${targetDisplay}`), [actionDisplay, setTitle, targetDisplay]);
@@ -48,7 +50,7 @@ const ServicesAction: React.FC<{
           ? resourceClaim.status.resources
               .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
               .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
-          : []),
+          : [])
       );
     }
   }

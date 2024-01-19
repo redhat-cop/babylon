@@ -2,6 +2,7 @@ import React from 'react';
 import { LinkProps, NavLink, useLocation, useMatch, useResolvedPath } from 'react-router-dom';
 import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
   const resolved = useResolvedPath(to);
@@ -18,6 +19,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 };
 const Navigation: React.FC = () => {
   const location = useLocation();
+  const { incidents_enabled, ratings_enabled } = useInterfaceConfig();
   const { isAdmin, userNamespace } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
@@ -79,11 +81,13 @@ const Navigation: React.FC = () => {
           AnarchySubjects
         </NavLink>
       </NavItem>
-      <NavItem>
-        <NavLink className={locationStartsWith('/admin/ratings') ? 'pf-m-current' : ''} to="/admin/ratings">
-          Ratings
-        </NavLink>
-      </NavItem>
+      {ratings_enabled ? (
+        <NavItem>
+          <NavLink className={locationStartsWith('/admin/ratings') ? 'pf-m-current' : ''} to="/admin/ratings">
+            Ratings
+          </NavLink>
+        </NavItem>
+      ) : null}
       <NavItem>
         <NavLink
           className={locationStartsWith('/admin/resourceclaims') ? 'pf-m-current' : ''}
@@ -118,11 +122,13 @@ const Navigation: React.FC = () => {
           Workshops
         </ExactNavLink>
       </NavItem>
-      <NavItem>
-        <ExactNavLink className={locationStartsWith('/admin/incidents') ? 'pf-m-current' : ''} to="/admin/incidents">
-          Incidents
-        </ExactNavLink>
-      </NavItem>
+      {incidents_enabled ? (
+        <NavItem>
+          <ExactNavLink className={locationStartsWith('/admin/incidents') ? 'pf-m-current' : ''} to="/admin/incidents">
+            Incidents
+          </ExactNavLink>
+        </NavItem>
+      ) : null}
     </NavExpandable>
   ) : null;
 
