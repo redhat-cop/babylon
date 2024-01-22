@@ -9,7 +9,8 @@ type TInterface = {
     status_page_url: string,
     help_text: string,
     help_link: string,
-    internal_help_link: string
+    internal_help_link: string,
+    feedback_link: string,
 }
 export default function useInterfaceConfig() {
     const { userInterface } = useSession().getSession();
@@ -22,7 +23,8 @@ export default function useInterfaceConfig() {
             status_page_url: '',
             help_link: '',
             help_text: '',
-            internal_help_link: ''
+            internal_help_link: '',
+            feedback_link: ''
         };
     }
     return data;
