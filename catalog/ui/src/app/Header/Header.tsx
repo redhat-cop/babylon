@@ -37,7 +37,7 @@ const Header: React.FC<{
   const { isAdmin, email, userInterface } = useSession().getSession();
   const navigate = useNavigate();
   const helpLink = useHelpLink();
-  const { help_text, status_page_url } = useInterfaceConfig();
+  const { help_text, status_page_url, feedback_link } = useInterfaceConfig();
 
   function clearUserImpersonation() {
     clearImpersonation();
@@ -131,12 +131,7 @@ const Header: React.FC<{
         variant="link"
         icon={<CommentIcon />}
         style={{ color: '#fff' }}
-        onClick={() =>
-          window.open(
-            'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
-            '_blank'
-          )
-        }
+        onClick={() => window.open(feedback_link, '_blank')}
       >
         Feedback
       </Button>

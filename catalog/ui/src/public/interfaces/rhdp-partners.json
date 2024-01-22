@@ -5,5 +5,6 @@
     "status_page_id": "j70k6yk8v2pk",
     "help_text": "Partner Help Desk",
     "help_link": "https://connect.redhat.com/en/support",
-    "internal_help_link": "https://connect.redhat.com/en/support"
+    "internal_help_link": "https://connect.redhat.com/en/support",
+    "feedback_link": "https://forms.gle/odWDbbVrkXjbW4SN8"
 }
