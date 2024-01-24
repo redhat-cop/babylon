@@ -61,17 +61,19 @@ export default function useSession(): {
   const userInterface = useSelector(selectInterface);
   const serviceNamespaces = useSelector(selectServiceNamespaces);
   const userNamespace = useSelector(selectUserNamespace);
-  const { userImpersonated } = useImpersonateUser();
+  const { userImpersonated, setImpersonation } = useImpersonateUser();
 
-  const promise = useMemo(() => {
-    if (!email && !userImpersonated) {
+  const promise = useMemo(async () => {
+    if (userImpersonated && !email) {
+      const session = getSessionFn(dispatch);
+      await setImpersonation(userImpersonated);
+      return session; 
+    }
+    else if (!email) {
       return getSessionFn(dispatch);
     }
-    if (email) {
-      return Promise.resolve();
-    }
-    return new Promise(() => null);
-  }, [dispatch, email, userImpersonated]);
+    return Promise.resolve();
+  }, [dispatch, email]);
 
   const getSession = useCallback(() => {
     if (!email) {
@@ -80,7 +82,7 @@ export default function useSession(): {
 
     return {
       authUser,
-      email,
+      email: userImpersonated ? userImpersonated : email,
       isAdmin,
       groups,
       roles,

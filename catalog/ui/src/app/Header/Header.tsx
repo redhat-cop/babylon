@@ -76,29 +76,36 @@ const Header: React.FC<{
       isExternal
     >
       Status Page
-    </ApplicationLauncherItem>,
-    <ApplicationLauncherItem key="support-sla" href="/support">
-      Solution Support: Service Level
-    </ApplicationLauncherItem>,
-    <ApplicationLauncherItem
-      key="how-to-videos-link"
-      href="https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
-      target="_blank"
-      rel="noreferrer nofollow"
-      isExternal
-    >
-      Learn more
-    </ApplicationLauncherItem>,
-    <ApplicationLauncherItem
-      key="how-to-videos-link"
-      href="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
-      target="_blank"
-      rel="noreferrer nofollow"
-      isExternal
-    >
-      How to videos
-    </ApplicationLauncherItem>,
+    </ApplicationLauncherItem>
   ];
+  if (userInterface === 'rhpds') {
+    UserHelpDropdownItems.push(
+      <ApplicationLauncherItem key="support-sla" href="/support">
+        Solution Support: Service Level
+      </ApplicationLauncherItem>);
+    UserHelpDropdownItems.push(
+      <ApplicationLauncherItem
+        key="how-to-videos-link"
+        href="https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
+        target="_blank"
+        rel="noreferrer nofollow"
+        isExternal
+      >
+        Learn more
+      </ApplicationLauncherItem>
+    );
+    UserHelpDropdownItems.push(
+      <ApplicationLauncherItem
+        key="how-to-videos-link"
+        href="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
+        target="_blank"
+        rel="noreferrer nofollow"
+        isExternal
+      >
+        How to videos
+      </ApplicationLauncherItem>
+    );
+  }
   const UserControlDropdownItems = [
     <DropdownItem
       key="logout"
