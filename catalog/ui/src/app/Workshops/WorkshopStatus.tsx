@@ -5,7 +5,7 @@ import { getAutoTimes, getMostRelevantResourceAndTemplate } from '@app/Services/
 
 const codeLevels = ['provision-failed', 'failed', 'stopped', 'stop-error', 'in-progress', 'provisioning', 'stop-scheduled', 'start-scheduled', 'available', 'requested', 'running'];
 function cmp(a: { state: string }, b: { state: string }) {
-  return codeLevels.indexOf(a.state.toLowerCase().replace(/ /g,"-")) > codeLevels.indexOf(b.state.toLowerCase().replace(/ /g,"-")) ? 1 : -1;
+  return codeLevels.indexOf(a?.state.toLowerCase().replace(/ /g,"-")) > codeLevels.indexOf(b?.state.toLowerCase().replace(/ /g,"-")) ? 1 : -1;
 }
 
 const WorkshopStatus: React.FC<{
