@@ -5,20 +5,20 @@ import { getAutoTimes, getMostRelevantResourceAndTemplate } from '@app/Services/
 
 const codeLevels = ['provision-failed', 'failed', 'stopped', 'stop-error', 'in-progress', 'provisioning', 'stop-scheduled', 'start-scheduled', 'available', 'requested', 'running'];
 function cmp(a: { state: string }, b: { state: string }) {
-  return codeLevels.indexOf(a?.state.toLowerCase().replace(/ /g,"-")) > codeLevels.indexOf(b?.state.toLowerCase().replace(/ /g,"-")) ? 1 : -1;
+  return codeLevels.indexOf(a.state.toLowerCase().replace(/ /g,"-")) > codeLevels.indexOf(b.state.toLowerCase().replace(/ /g,"-")) ? 1 : -1;
 }
 
 const WorkshopStatus: React.FC<{
   resourceClaims: ResourceClaim[];
 }> = ({ resourceClaims }) => {
-    const resourceClaimsStatus = [];
+    const resourceClaimsStatus: {uid: string, state: string}[] = [];
     for (let resourceClaim of resourceClaims) {
         const creationTime= Date.parse(resourceClaims[0].metadata.creationTimestamp);
         const resource=getMostRelevantResourceAndTemplate(resourceClaims[0]).resource;
         const resourceTemplate=getMostRelevantResourceAndTemplate(resourceClaims[0]).template;
         const summary=resourceClaims[0].status?.summary;
         if (summary) {
-            resourceClaimsStatus.push({uuid: resourceClaim.metadata.uid, state: summary.state.replace('-', ' ')});
+            resourceClaimsStatus.push({uid: resourceClaim.metadata.uid, state: summary.state.replace('-', ' ')});
         } else {
             const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
             const desiredState = resourceTemplate?.spec?.vars?.desired_state;
@@ -33,21 +33,22 @@ const WorkshopStatus: React.FC<{
                 : null;
 
             if (typeof resource === 'undefined') {
-                resourceClaimsStatus.push({uuid: resourceClaim.metadata.uid, state: 'requested'});
+                resourceClaimsStatus.push({uid: resourceClaim.metadata.uid, state: 'requested'});
             } else {
-                resourceClaimsStatus.push({uuid: resourceClaim.metadata.uid, state: getStatus(currentState, desiredState, creationTime, _startTime, _stopTime)});
+                resourceClaimsStatus.push({uid: resourceClaim.metadata.uid, state: getStatus(currentState, desiredState, creationTime, _startTime, _stopTime).statusName});
             }
         }
     }
 
     const rc = resourceClaimsStatus.sort(cmp)[0];
+    const resourceClaim = resourceClaims.find(r => r.metadata.uid === rc.uid);
 
     return <ServiceStatus
-        creationTime={Date.parse(rc.metadata.creationTimestamp)}
-        resource={getMostRelevantResourceAndTemplate(rc).resource}
-        resourceTemplate={getMostRelevantResourceAndTemplate(rc).template}
-        resourceClaim={rc}
-        summary={rc.status?.summary}
+        creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+        resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
+        resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
+        resourceClaim={resourceClaim}
+        summary={resourceClaim.status?.summary}
     />;
 };
 
