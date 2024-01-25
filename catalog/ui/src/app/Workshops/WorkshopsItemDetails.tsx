@@ -25,10 +25,9 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import Editor from '@app/components/Editor/Editor';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
-import ServiceStatus from '@app/Services/ServiceStatus';
 import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
 import { ModalState } from './WorkshopsItem';
+import WorkshopStatus from './WorkshopStatus';
 
 import './workshops-item-details.css';
 
@@ -60,7 +59,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        }),
+        })
       );
     } else {
       onWorkshopUpdate(
@@ -68,7 +67,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        }),
+        })
       );
     }
   }
@@ -180,7 +179,7 @@ const WorkshopsItemDetails: React.FC<{
             onSelect={(event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
               patchWorkshopSpec({ openRegistration: selectedValue === 'open' }).then(() =>
-                setUserRegistrationSelectIsOpen(false),
+                setUserRegistrationSelectIsOpen(false)
               );
             }}
           >
@@ -210,13 +209,7 @@ const WorkshopsItemDetails: React.FC<{
                 <CheckCircleIcon key="scheduled-icon" /> Scheduled
               </span>
             ) : resourceClaims.length > 0 ? (
-              <ServiceStatus
-                creationTime={Date.parse(resourceClaims[0].metadata.creationTimestamp)}
-                resource={getMostRelevantResourceAndTemplate(resourceClaims[0]).resource}
-                resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaims[0]).template}
-                resourceClaim={resourceClaims[0]}
-                summary={resourceClaims[0].status?.summary}
-              />
+              <WorkshopStatus resourceClaims={resourceClaims} />
             ) : (
               <p>...</p>
             )}
