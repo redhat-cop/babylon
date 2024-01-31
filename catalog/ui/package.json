@@ -58,7 +58,7 @@
     "mini-css-extract-plugin": "^2.7.7",
     "postcss": "^8.4.33",
     "postcss-custom-media": "^8.0.2",
-    "postcss-loader": "^7.3.4",
+    "postcss-loader": "^8.1.0",
     "prettier": "^3.2.4",
     "prop-types": "^15.6.1",
     "raw-loader": "^4.0.2",
