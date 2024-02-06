@@ -24,8 +24,8 @@ created virtual environment CPython3.6.8.final.0-64 in 207ms
 Install helm
 
 ----
-curl -s https://get.helm.sh/helm-v3.2.4-linux-amd64.tar.gz | tar zxvf - -C ~/bin/ --strip-components=1 linux-amd64/helm
 mkdir ~/bin
+curl -s https://get.helm.sh/helm-v3.2.4-linux-amd64.tar.gz | tar zxvf - -C ~/bin/ --strip-components=1 linux-amd64/helm
 ----
 
 An ansible playbook is provided for Installation.
