@@ -1,4 +1,4 @@
-aiohttp==3.9.0
+aiohttp==3.9.2
 aiosmtplib==3.0.0
 html2text==2020.1.16
 humanize==4.8.0
