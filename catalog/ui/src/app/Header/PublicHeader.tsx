@@ -66,14 +66,16 @@ const PublicHeader: React.FC = () => {
 
   const HeaderTools = (
     <PageHeaderTools>
-      <Button
-        variant="link"
-        icon={<CommentIcon />}
-        style={{ color: '#fff' }}
-        onClick={() => window.open(feedback_link, '_blank')}
-      >
-        Feedback
-      </Button>
+      {feedback_link ? (
+        <Button
+          variant="link"
+          icon={<CommentIcon />}
+          style={{ color: '#fff' }}
+          onClick={() => window.open(feedback_link, '_blank')}
+        >
+          Feedback
+        </Button>
+      ) : null}
       <ApplicationLauncher
         aria-label="Help menu"
         onSelect={() => setUserHelpDropdownOpen((prevIsOpen) => !prevIsOpen)}

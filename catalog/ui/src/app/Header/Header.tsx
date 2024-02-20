@@ -76,13 +76,14 @@ const Header: React.FC<{
       isExternal
     >
       Status Page
-    </ApplicationLauncherItem>
+    </ApplicationLauncherItem>,
   ];
   if (userInterface === 'rhpds') {
     UserHelpDropdownItems.push(
       <ApplicationLauncherItem key="support-sla" href="/support">
         Solution Support: Service Level
-      </ApplicationLauncherItem>);
+      </ApplicationLauncherItem>
+    );
     UserHelpDropdownItems.push(
       <ApplicationLauncherItem
         key="how-to-videos-link"
@@ -134,14 +135,16 @@ const Header: React.FC<{
 
   const HeaderTools = (
     <PageHeaderTools>
-      <Button
-        variant="link"
-        icon={<CommentIcon />}
-        style={{ color: '#fff' }}
-        onClick={() => window.open(feedback_link, '_blank')}
-      >
-        Feedback
-      </Button>
+      {feedback_link ? (
+        <Button
+          variant="link"
+          icon={<CommentIcon />}
+          style={{ color: '#fff' }}
+          onClick={() => window.open(feedback_link, '_blank')}
+        >
+          Feedback
+        </Button>
+      ) : null}
       <ApplicationLauncher
         aria-label="Help menu"
         onSelect={() => setUserHelpDropdownOpen((prevIsOpen) => !prevIsOpen)}
