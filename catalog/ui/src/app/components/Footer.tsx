@@ -13,7 +13,7 @@ const Footer: React.FC<{ rightElement?: ReactNode }> = ({ rightElement }) => (
         </a>
       </div>
       <div id="legal" className="footer__legal">
-        <div className="copyright">Copyright © 2023 Red Hat, Inc.</div>
+        <div className="copyright">Copyright © 2024 Red Hat, Inc.</div>
         <div>
           <ul className="menu">
             <li className="first leaf">
