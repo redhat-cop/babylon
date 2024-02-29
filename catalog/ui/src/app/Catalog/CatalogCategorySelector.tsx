@@ -10,7 +10,8 @@ const CATEGORIES_DEFINITIONS = {
   labs: "Environments used to increase user's skills and knowledge",
   demos: 'Environments used to showcase and demonstrate solutions to customers',
   workshops: 'Environments used to provide a hands-on experience to our customers with our solutions',
-  open_environments: 'Environments allowing access to different cloud providers with a Chargeback component',
+  open_environments:
+    'Environments allowing access to different cloud providers without instructions on what to do with the environment',
   red_hat_one:
     'Red Hat One is where the Global Sales organization unites as one selling, services, customer success, and partner team to move as one, from day one.',
 };
