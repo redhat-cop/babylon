@@ -424,7 +424,7 @@ export async function createServiceRequest({
           : parameter.value;
 
       // Set annotation for parameter
-      if (parameter.annotation && value !== undefined) {
+      if (parameter.annotation && value !== undefined && parameter.name !== 'purpose') {
         requestResourceClaim.metadata.annotations[parameter.annotation] = String(value);
       }
 
@@ -448,23 +448,25 @@ export async function createServiceRequest({
         const resource = requestResourceClaim.spec.resources[resourceIndex];
         recursiveAssign(resource, { template: { spec: { vars: { job_vars: { [jobVarName]: value } } } } });
       }
-    }
-
-    // Purpose & SFDC
-    if (parameterValues.purpose) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
-    }
-    if (parameterValues.purpose_activity) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`] =
-        parameterValues.purpose_activity as string;
-    }
-    if (parameterValues.purpose_explanation) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] =
-        parameterValues.purpose_explanation as string;
-    }
-    if (parameterValues.salesforce_id) {
-      requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] =
-        parameterValues.salesforce_id as string;
+      if (parameter.name === 'purpose') {
+        // Purpose & SFDC
+        const annotationDomain = parameter.annotation.split('/')[0];
+        if (parameterValues.purpose) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose`] = parameterValues.purpose as string;
+        }
+        if (parameterValues.purpose_activity) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-activity`] =
+            parameterValues.purpose_activity as string;
+        }
+        if (parameterValues.purpose_explanation) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-explanation`] =
+            parameterValues.purpose_explanation as string;
+        }
+        if (parameterValues.salesforce_id) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/salesforce-id`] =
+            parameterValues.salesforce_id as string;
+        }
+      }
     }
   } else {
     // No direct access to catalog item. Create the service-request to record

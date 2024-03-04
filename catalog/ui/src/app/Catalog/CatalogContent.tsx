@@ -13,7 +13,7 @@ const CatalogContent: React.FC<{
   onClearFilters: () => void;
   view: 'gallery' | 'list';
 }> = ({ userHasRequiredPropertiesToAccess, catalogItemsResult, onClearFilters, view }) => {
-  const { groups } = useSession().getSession();
+  const { groups, userInterface } = useSession().getSession();
   const [wrapperRect, catalogWrapperRef] = useRect();
   return (
     <div ref={catalogWrapperRef}>
@@ -27,13 +27,13 @@ const CatalogContent: React.FC<{
       ) : (
         <PageSection variant={PageSectionVariants.default} className="catalog__content-box--empty">
           <EmptyState variant="full">
-            {!userHasRequiredPropertiesToAccess ? (
+            {!userHasRequiredPropertiesToAccess && userInterface === 'rhdp-partners' ? (
               <>
-                <p>Welcome to the Red Hat Demo Platform!</p>
-                <LoadingIcon />
-                <p>Please wait a few seconds while we set up your catalog. If nothing happens refresh this page.</p>
+                <p>Welcome to the Red Hat Demo Platform (RHDP)!</p>
+                <p>At this time, it appears that your account is not listed as a pilot user for the beta version of RHDP. Please reach out to your account manager or Red Hat contact to request pilot access.</p>
+                <p>Once approved, you will be able to log-in with your Red Hat credentials. We look forward to your engagement with our updated demo platform!</p>
               </>
-            ) : groups.includes('salesforce-partner') ? (
+            ) : groups.includes('salesforce-partner') && userInterface !== 'rhdp-partners' ? (
               <>
                 <p>Sorry! Red Hat Demo Platform is not yet available for partners.</p>
                 <p>

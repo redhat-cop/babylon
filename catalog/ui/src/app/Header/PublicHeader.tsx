@@ -11,11 +11,13 @@ import {
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './header.css';
 
 const PublicHeader: React.FC = () => {
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
+  const { help_link, help_text, status_page_url, feedback_link } = useInterfaceConfig();
   const navigate = useNavigate();
 
   function LogoImg() {
@@ -23,16 +25,16 @@ const PublicHeader: React.FC = () => {
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    window.open('https://red.ht/open-support', '_blank');
+    window.open(help_link, '_blank');
   };
 
   const UserHelpDropdownItems = [
     <ApplicationLauncherItem key="open-support" component="button" onClick={openSupportCase} isExternal>
-      Open Support Case
+      {help_text}
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="status-page-link"
-      href="https://rhdp.statuspage.io/"
+      href={status_page_url}
       target="_blank"
       rel="noreferrer nofollow"
       isExternal
@@ -64,19 +66,16 @@ const PublicHeader: React.FC = () => {
 
   const HeaderTools = (
     <PageHeaderTools>
-      <Button
-        variant="link"
-        icon={<CommentIcon />}
-        style={{ color: '#fff' }}
-        onClick={() =>
-          window.open(
-            'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
-            '_blank',
-          )
-        }
-      >
-        Feedback
-      </Button>
+      {feedback_link ? (
+        <Button
+          variant="link"
+          icon={<CommentIcon />}
+          style={{ color: '#fff' }}
+          onClick={() => window.open(feedback_link, '_blank')}
+        >
+          Feedback
+        </Button>
+      ) : null}
       <ApplicationLauncher
         aria-label="Help menu"
         onSelect={() => setUserHelpDropdownOpen((prevIsOpen) => !prevIsOpen)}

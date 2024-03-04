@@ -73,7 +73,6 @@ jobs:
           context: catalog/ui
           file: catalog/ui/Dockerfile
           build-args: |
-            STATUS_PAGE_ID=m7thn7y0z176
             MONITOR_ENABLED=false
             TRACKING_ENABLED=false
             OPTIONAL_FLAGS=default

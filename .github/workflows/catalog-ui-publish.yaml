@@ -37,8 +37,14 @@ jobs:
               "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION%.*}"
               "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
             )
-            # Set IMAGE_TAGS output for use in next step
+            IMAGE_TAGS_PARTNERS=(
+              '${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}-partners:latest'
+              "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}-partners:${VERSION%.*}"
+              "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}-partners:${VERSION}"
+            )
+            # Set IMAGE_TAGS and IMAGE_TAGS_PARTNERS output for use in next step
             ( IFS=$','; echo "::set-output name=IMAGE_TAGS::${IMAGE_TAGS[*]}" )
+            ( IFS=$','; echo "::set-output name=IMAGE_TAGS_PARTNERS::${IMAGE_TAGS_PARTNERS[*]}" )
           fi
 
       - name: Set up buildx
@@ -69,7 +75,6 @@ jobs:
           context: catalog/ui
           file: catalog/ui/Dockerfile
           build-args: |
-            STATUS_PAGE_ID=05mhm9ljgsqq
             MONITOR_ENABLED=true
             TRACKING_ENABLED=true
             OPTIONAL_FLAGS=default

@@ -38,7 +38,6 @@ import {
   BABYLON_DOMAIN,
   FETCH_BATCH_LIMIT,
   isLabDeveloper,
-  getHelpUrl,
   isResourceClaimPartOfWorkshop,
   compareK8sObjectsArr,
   CATALOG_MANAGER_DOMAIN,
@@ -66,6 +65,7 @@ import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 
 import './catalog-item-details.css';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import useHelpLink from '@app/utils/useHelpLink';
 
 enum CatalogItemAccess {
   Allow,
@@ -84,6 +84,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { description, descriptionFormat } = getDescription(catalogItem);
   const lastSuccessfulProvisionTime = getLastSuccessfulProvisionTime(catalogItem);
   const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
+  const helpLink = useHelpLink();
 
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
     userNamespace?.name
@@ -155,7 +156,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       <p>
         You have reached your quota of 5 services. You will not be able to request any new applications until you retire
         existing services. If you feel this is an error, please{' '}
-        <a href={getHelpLink()} target="_blank" rel="noopener noreferrer">
+        <a href={helpLink} target="_blank" rel="noopener noreferrer">
           contact us
         </a>
         .
@@ -188,13 +189,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     }
   }
 
-  function getHelpLink() {
-    const userEmail = userImpersonated ? userImpersonated : email;
-    return getHelpUrl(userEmail);
-  }
-
   function requestInformation() {
-    window.open(getHelpLink(), '_blank');
+    window.open(helpLink, '_blank');
   }
 
   return (

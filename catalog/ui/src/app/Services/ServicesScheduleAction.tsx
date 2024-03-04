@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Alert, AlertGroup, Form, FormGroup, Switch } from '@patternfly/react-core';
 import { ResourceClaim, WorkshopWithResourceClaims } from '@app/types';
-import { displayName, getHelpUrl } from '@app/util';
+import { displayName } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
 import { getAutoStopTime, getMinDefaultRuntime, getStartTime } from './service-utils';
-import useImpersonateUser from '@app/utils/useImpersonateUser';
 import { getWorkshopAutoStopTime, getWorkshopLifespan } from '@app/Workshops/workshops-utils';
+import useHelpLink from '@app/utils/useHelpLink';
 
 const minDefault = parseDuration('4h');
 
@@ -18,8 +18,7 @@ const ServicesScheduleAction: React.FC<{
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
   setState?: React.Dispatch<React.SetStateAction<Date>>;
 }> = ({ action, resourceClaim, workshop, setTitle, setState }) => {
-  const { isAdmin, email } = useSession().getSession();
-  const { userImpersonated } = useImpersonateUser();
+  const { isAdmin } = useSession().getSession();
   const autoDestroyTime = resourceClaim
     ? Date.parse(resourceClaim.spec.lifespan?.end || resourceClaim.status.lifespan?.end)
     : getWorkshopLifespan(workshop, null).end;
@@ -52,14 +51,14 @@ const ServicesScheduleAction: React.FC<{
     maxDate = resourceClaim
       ? Math.min(
           Date.parse(resourceClaim.metadata.creationTimestamp) + parseDuration(resourceClaim.status.lifespan.maximum),
-          Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum),
+          Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum)
         )
       : workshop.resourceClaims
       ? Math.min(
           ...workshop.resourceClaims.flatMap((r) => [
             Date.parse(r.metadata.creationTimestamp) + parseDuration(r.status.lifespan.maximum),
             Date.now() + parseDuration(r.status.lifespan.relativeMaximum),
-          ]),
+          ])
         )
       : null;
   } else {
@@ -79,7 +78,7 @@ const ServicesScheduleAction: React.FC<{
   const noAutoStopSwitchIsVisible =
     action === 'stop' && (minMaxProps.maxDate === null || minMaxProps.maxDate >= autoDestroyTime);
   const extendLifetimeMsgIsVisible = action === 'retirement' && minMaxProps.maxDate === null;
-  const userEmail = userImpersonated ? userImpersonated : email;
+  const helpLink = useHelpLink();
 
   return (
     <Form isHorizontal>
@@ -109,7 +108,7 @@ const ServicesScheduleAction: React.FC<{
                     ? getMinDefaultRuntime(resourceClaim) || minDefault
                     : workshop.resourceClaims
                     ? Math.min(...workshop.resourceClaims.map((r) => getMinDefaultRuntime(r) || minDefault))
-                    : null),
+                    : null)
               );
               const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
               setSelectedDate(date);
@@ -124,7 +123,7 @@ const ServicesScheduleAction: React.FC<{
             title={
               <p>
                 Auto-Destroy can be extended by submitting a{' '}
-                <a href={getHelpUrl(userEmail)} target="_blank" rel="noopener noreferrer">
+                <a href={helpLink} target="_blank" rel="noopener noreferrer">
                   support request
                 </a>
                 .

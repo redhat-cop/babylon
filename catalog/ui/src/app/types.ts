@@ -586,3 +586,12 @@ export type Incident = {
   created_at: string;
   updated_at: string;
 };
+
+export type TPurposeOpts = {
+  name: string;
+  description: string;
+  activity: string;
+  sfdcRequired: boolean;
+  requireUserInput?: boolean;
+  requiredRoles?: string[];
+}[];

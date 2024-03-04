@@ -159,6 +159,7 @@ export function setLastFilter(filter: string): void {
   sessionStorage.setItem('lastCatalogFilter', filter);
 }
 export function formatString(string: string): string {
+  if (!string) return '';
   return (string.charAt(0).toUpperCase() + string.slice(1)).replace(/_/g, ' ');
 }
 export function sortLabels([a_attr]: string[], [b_attr]: string[]) {

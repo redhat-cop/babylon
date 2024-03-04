@@ -4,8 +4,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import { Alert, AlertGroup, Form, FormGroup, HelperText, HelperTextItem, Switch } from '@patternfly/react-core';
 import InfoIcon from '@patternfly/react-icons/dist/js/icons/info-icon';
 import useSession from '@app/utils/useSession';
-import useImpersonateUser from '@app/utils/useImpersonateUser';
-import { getHelpUrl } from '@app/util';
+import useHelpLink from '@app/utils/useHelpLink';
 
 export type TDates = { startDate: Date; stopDate: Date; endDate: Date };
 export type TDatesTypes = 'auto-stop' | 'auto-destroy' | 'schedule';
@@ -39,15 +38,14 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   isAutoStopDisabled = false,
   title,
 }) => {
-  const { isAdmin, email } = useSession().getSession();
-  const { userImpersonated } = useImpersonateUser();
+  const { isAdmin } = useSession().getSession();
+  const helpLink = useHelpLink();
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useModal();
   const [dates, setDates] = useState<TDates>({
     startDate: null,
     stopDate: null,
     endDate: null,
   });
-  const userEmail = userImpersonated ? userImpersonated : email;
   const _stopDate = dates.stopDate || autoStopDate;
   const _endDate = dates.endDate || autoDestroyDate;
   const noAutoStopChecked = _stopDate && _endDate && _stopDate.getTime() >= _endDate.getTime();
@@ -138,7 +136,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                   title={
                     <p>
                       Auto-Destroy can be extended by submitting a{' '}
-                      <a href={getHelpUrl(userEmail)} target="_blank" rel="noopener noreferrer">
+                      <a href={helpLink} target="_blank" rel="noopener noreferrer">
                         support request
                       </a>
                       .

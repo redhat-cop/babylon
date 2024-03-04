@@ -84,7 +84,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v0.12.5
+        tag: v0.12.7
       replicaCount: 1
       resources:
         requests:
@@ -128,7 +128,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.30.15
+        tag: v0.30.25
       replicaCount: 1
       resources:
         requests:
@@ -137,6 +137,7 @@ catalog:
         limits:
           cpu: "1"
           memory: "256Mi"
+    interfaceName: rhpds
   interfaces:
     babylon-catalog: {}
 

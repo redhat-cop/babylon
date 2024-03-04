@@ -19,7 +19,8 @@ import ImpersonateUserModal from '@app/components/ImpersonateUserModal';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
-import { getHelpUrl } from '@app/util';
+import useHelpLink from '@app/utils/useHelpLink';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './header.css';
 
@@ -35,6 +36,8 @@ const Header: React.FC<{
   const [impersonateUserModalIsOpen, setImpersonateUserModalIsOpen] = useState(false);
   const { isAdmin, email, userInterface } = useSession().getSession();
   const navigate = useNavigate();
+  const helpLink = useHelpLink();
+  const { help_text, status_page_url, feedback_link } = useInterfaceConfig();
 
   function clearUserImpersonation() {
     clearImpersonation();
@@ -57,47 +60,53 @@ const Header: React.FC<{
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    const userEmail = userImpersonated ? userImpersonated : email;
-    const url = getHelpUrl(userEmail);
-    window.open(url, '_blank');
+    window.open(helpLink, '_blank');
     return null;
   };
 
   const UserHelpDropdownItems = [
     <ApplicationLauncherItem key="open-support" component="button" onClick={openSupportCase} isExternal>
-      Open Support Case
+      {help_text}
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="status-page-link"
-      href="https://rhdp.statuspage.io/"
+      href={status_page_url}
       target="_blank"
       rel="noreferrer nofollow"
       isExternal
     >
       Status Page
     </ApplicationLauncherItem>,
-    <ApplicationLauncherItem key="support-sla" href="/support">
-      Solution Support: Service Level
-    </ApplicationLauncherItem>,
-    <ApplicationLauncherItem
-      key="how-to-videos-link"
-      href="https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
-      target="_blank"
-      rel="noreferrer nofollow"
-      isExternal
-    >
-      Learn more
-    </ApplicationLauncherItem>,
-    <ApplicationLauncherItem
-      key="how-to-videos-link"
-      href="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
-      target="_blank"
-      rel="noreferrer nofollow"
-      isExternal
-    >
-      How to videos
-    </ApplicationLauncherItem>,
   ];
+  if (userInterface === 'rhpds') {
+    UserHelpDropdownItems.push(
+      <ApplicationLauncherItem key="support-sla" href="/support">
+        Solution Support: Service Level
+      </ApplicationLauncherItem>
+    );
+    UserHelpDropdownItems.push(
+      <ApplicationLauncherItem
+        key="how-to-videos-link"
+        href="https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
+        target="_blank"
+        rel="noreferrer nofollow"
+        isExternal
+      >
+        Learn more
+      </ApplicationLauncherItem>
+    );
+    UserHelpDropdownItems.push(
+      <ApplicationLauncherItem
+        key="how-to-videos-link"
+        href="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
+        target="_blank"
+        rel="noreferrer nofollow"
+        isExternal
+      >
+        How to videos
+      </ApplicationLauncherItem>
+    );
+  }
   const UserControlDropdownItems = [
     <DropdownItem
       key="logout"
@@ -113,32 +122,29 @@ const Header: React.FC<{
     UserControlDropdownItems.push(
       <DropdownItem key="impersonate" onClick={() => setImpersonateUserModalIsOpen(true)}>
         Impersonate user
-      </DropdownItem>,
+      </DropdownItem>
     );
     if (userImpersonated) {
       UserControlDropdownItems.push(
         <DropdownItem key="clear-impersonation" onClick={clearUserImpersonation}>
           Clear user impersonation
-        </DropdownItem>,
+        </DropdownItem>
       );
     }
   }
 
   const HeaderTools = (
     <PageHeaderTools>
-      <Button
-        variant="link"
-        icon={<CommentIcon />}
-        style={{ color: '#fff' }}
-        onClick={() =>
-          window.open(
-            'https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link',
-            '_blank',
-          )
-        }
-      >
-        Feedback
-      </Button>
+      {feedback_link ? (
+        <Button
+          variant="link"
+          icon={<CommentIcon />}
+          style={{ color: '#fff' }}
+          onClick={() => window.open(feedback_link, '_blank')}
+        >
+          Feedback
+        </Button>
+      ) : null}
       <ApplicationLauncher
         aria-label="Help menu"
         onSelect={() => setUserHelpDropdownOpen((prevIsOpen) => !prevIsOpen)}

@@ -5,6 +5,7 @@ import catalogItemObj from '../__mocks__/catalogItem.json';
 import userEvent from '@testing-library/user-event';
 import { CatalogItem, ServiceNamespace, UserNamespace } from '@app/types';
 import useSession from '@app/utils/useSession';
+import useHelpLink from '@app/utils/useHelpLink';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
@@ -33,6 +34,9 @@ jest.mock('@app/utils/useSession', () =>
       }),
   }))
 );
+jest.mock('@app/utils/useHelpLink', () => {
+  return jest.fn(() => 'https://red.ht/open-support');
+});
 
 describe('CatalogItemForm Component', () => {
   test("When renders should display 'CatalogItem' properties and parameters", async () => {

@@ -1,9 +1,8 @@
 import React from 'react';
 import { checkSalesforceId } from '@app/api';
-import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace } from '@app/types';
+import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, TPurposeOpts } from '@app/types';
 import parseDuration from 'parse-duration';
 import { isAutoStopDisabled } from './catalog-utils';
-import { ActivityOpts, PurposeOpts } from '@app/components/ActivityPurposeSelector';
 
 type ConditionValues = {
   [name: string]: boolean | number | string | string[] | undefined;
@@ -40,6 +39,7 @@ type FormState = {
   endDate: Date;
   activity: string;
   purpose: string;
+  purposeOpts: TPurposeOpts;
   explanation?: string;
   salesforceId: {
     required: boolean;
@@ -70,6 +70,7 @@ export type FormStateAction = {
   user?: UserProps;
   parameter?: ParameterProps;
   purpose?: string;
+  purposeOpts?: TPurposeOpts;
   activity?: string;
   explanation?: string;
   serviceNamespace?: ServiceNamespace;
@@ -240,7 +241,8 @@ export async function checkConditionsInFormState(
 function reduceFormStateInit(
   catalogItem: CatalogItem,
   serviceNamespace: ServiceNamespace,
-  { isAdmin, groups, roles }
+  { isAdmin, groups, roles },
+  purposeOpts: TPurposeOpts
 ): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
@@ -303,6 +305,7 @@ function reduceFormStateInit(
     usePoolIfAvailable: true,
     activity: null,
     purpose: null,
+    purposeOpts,
     explanation: null,
     salesforceId: {
       required: false,
@@ -437,8 +440,7 @@ function reduceFormStatePurpose(
 
 function salesforceIdRequired(state: FormState): boolean {
   if (state.purpose) {
-    const a = ActivityOpts.find((a) => a.name === state.activity);
-    const p = PurposeOpts.find((p) => a.id === p.activityId && state.purpose.startsWith(p.name));
+    const p = state.purposeOpts.find((p) => state.activity === p.activity && state.purpose.startsWith(p.name));
     if (p.sfdcRequired) return true;
   }
   if (state.user.isAdmin) return false;
@@ -462,7 +464,7 @@ function reduceFormStateSalesforceId(
 export function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'init':
-      return reduceFormStateInit(action.catalogItem, action.serviceNamespace, action.user);
+      return reduceFormStateInit(action.catalogItem, action.serviceNamespace, action.user, action.purposeOpts);
     case 'parameterUpdate':
       return reduceFormStateParameterUpdate(state, {
         name: action.parameter.name,
@@ -502,13 +504,15 @@ export function checkEnableSubmit(state: FormState): boolean {
     return false;
   }
 
-  if (!state.purpose || !state.activity) {
-    return false;
+  if (state.purposeOpts.length > 0) {
+    if (!state.purpose || !state.activity) {
+      return false;
+    }
+    if (state.salesforceId.required && !state.salesforceId.valid) {
+      return false;
+    }
   }
 
-  if (state.salesforceId.required && !state.salesforceId.valid) {
-    return false;
-  }
   for (const parameter of Object.values(state.parameters)) {
     if (!parameter.isDisabled && !parameter.isHidden) {
       if (parameter.value === undefined || parameter.value === null) {

@@ -77,7 +77,7 @@ const DateTimePicker: React.FC<{
   const [valueTime, setValueTime] = useState(defaultDateTime.time);
 
   const hours = Array.from(new Array(24), (_, i) => ('00' + i).slice(-2));
-  const minutes = ['00', '30'];
+  const minutes = ['00', '15', '30', '45'];
 
   // sync updated timestamp from parent
   useEffect(() => {

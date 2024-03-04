@@ -1,0 +1,10 @@
+{
+    "incidents_enabled": false,
+    "ratings_enabled": false,
+    "status_page_url": "https://rhdp-partner.statuspage.io/",
+    "status_page_id": "j70k6yk8v2pk",
+    "help_text": "Partner Help Desk",
+    "help_link": "https://connect.redhat.com/en/support",
+    "internal_help_link": "https://connect.redhat.com/en/support",
+    "feedback_link": null
+}

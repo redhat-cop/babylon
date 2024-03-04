@@ -70,24 +70,199 @@
         "validation": "check_salesforce_id(salesforce_id)"
       },
       {
-        "annotation": "pfe.redhat.com/purpose",
+        "annotation": "demo.redhat.com/purpose",
         "description": "Purpose for this service.",
         "formLabel": "Purpose",
         "name": "purpose",
         "openAPIV3Schema": {
           "enum": [
-            "Customer Activity - Customer environment testing",
-            "Customer Activity - Customer workshop/demo",
-            "Customer Activity - Informal training",
-            "Customer Activity - Multi-customer event",
-            "Customer Activity - Proof of concept",
-            "Development - Catalog item creation / maintenance",
-            "Development - PnT engineering",
-            "Development - Solution prototyping",
-            "Training - Ad-hoc or exploratory",
-            "Training - As part of course"
+            {
+              "activity": "Customer Facing",
+              "description": "Showing a product/solution to a customer or prospect",
+              "name": "Show a demo to a customer",
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Customer Facing",
+              "description": "Performing a hands on activity with an individual customer or prospect",
+              "name": "Conduct a hands on workshop for one customer",
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Customer Facing",
+              "description": "Using an environment to build and show a customer or prospect the capabilities of Red Hat solutions",
+              "name": "Build a proof of concept for a customer",
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Customer Facing",
+              "description": "Performing a demo or workshop for a Marketing event for multiple customers (tied to a campaign ID)",
+              "name": "Conduct a Marketing event with multiple customers",
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Customer Facing",
+              "description": "Only select this option if the current purpose fields do not meet your needs. You will be prompted to add a description of your purpose in a text field so that we may better understand your reason for utilizing our platform",
+              "name": "Other",
+              "requireUserInput": true,
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Partner Facing",
+              "description": "Showing a product/solution to a Partner",
+              "name": "Conduct a demo to a Partner",
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Partner Facing",
+              "description": "Performing a hands on activity with Partners",
+              "name": "Conduct an enablement workshop to Partners",
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Partner Facing",
+              "description": "Using an environment to build and show a customer or prospect the capabilities of Red Hat solutions with a Partner",
+              "name": "Assist a Partner with a proof of concept",
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Partner Facing",
+              "description": "Assist a Partner in performing a demo or workshop for multiple customers who share common business challenges",
+              "name": "Assist a Partner with running an event for multiple customers",
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Partner Facing",
+              "description": "Only select this option if the current purpose fields do not meet your needs. You will be prompted to add a description of your purpose in a text field so that we may better understand your reason for utilizing our platform",
+              "name": "Other",
+              "requireUserInput": true,
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Practice / Enablement",
+              "description": "Setting up and practicing with an environment to be able to perform a customer demo",
+              "name": "Practice for a demo",
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Practice / Enablement",
+              "description": "Setting up and practicing with an environment to be able to conduct a customer workshop",
+              "name": "Practice for a workshop",
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Practice / Enablement",
+              "description": "Exploring Red Hat products in an active terminal to better understand their business value",
+              "name": "Learning about the product",
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Practice / Enablement",
+              "description": "Setting up an environment to test a potential product solution for a business challenge",
+              "name": "Trying out a technical solution",
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Practice / Enablement",
+              "description": "For consultants to set up and practice with an environment for a service solution",
+              "name": "Preparing for a customer service engagement",
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Practice / Enablement",
+              "description": "Using an environment to train team members/perform an internal Red Hat training",
+              "name": "Conduct internal training/enablement",
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Practice / Enablement",
+              "description": "Only select this option if the current purpose fields do not meet your needs. You will be prompted to add a description of your purpose in a text field so that we may better understand your reason for utilizing our platform",
+              "name": "Other",
+              "requireUserInput": true,
+              "sfdcRequired": true
+            },
+            {
+              "activity": "Brand Event",
+              "description": "",
+              "name": "Red Hat One",
+              "requiredRoles": ["rhpds-devs-rh1", "rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Brand Event",
+              "description": "",
+              "name": "Summit",
+              "requiredRoles": ["rhpds-devs-rh1", "rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Brand Event",
+              "description": "",
+              "name": "AnsibleFest",
+              "requiredRoles": ["rhpds-devs-rh1", "rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Brand Event",
+              "description": "",
+              "name": "Other",
+              "requireUserInput": true,
+              "requiredRoles": ["rhpds-devs-rh1", "rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Asset Development",
+              "description": "For use when existing Red Hat Demo Platform assets do not meet your customer\u2019s needs and you need to develop a custom demo to show a product\u2019s business value; use when you anticipate the demo becoming an Enterprise Standard asset for the Demo Platform team to maintain and support (this means developing your code with AgnosticD/V)",
+              "name": "Developing a custom demo",
+              "requiredRoles": ["rhpds-devs", "rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Asset Development",
+              "description": "For use when existing Red Hat Demo Platform assets do not meet your customer\u2019s needs and you do not wish to develop your custom demo using AgnosticD/V; by developing a community demo, you agree to maintain the code in your own git repo. The Demo Platform team will maintain the base asset used to develop your community demo",
+              "name": "Developing a community demo",
+              "requiredRoles": ["rhpds-devs", "rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Asset Development",
+              "description": "Only select this option if the current purpose fields do not meet your needs. You will be prompted to add a description of your purpose in a text field so that we may better understand your reason for utilizing our platform",
+              "name": "Other",
+              "requireUserInput": true,
+              "requiredRoles": ["rhpds-devs", "rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Admin",
+              "description": "",
+              "name": "Asset Development",
+              "requiredRoles": ["rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Admin",
+              "description": "",
+              "name": "Asset Maintenance",
+              "requiredRoles": ["rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Admin",
+              "description": "",
+              "name": "QA",
+              "requiredRoles": ["rhpds-admins"],
+              "sfdcRequired": false
+            },
+            {
+              "activity": "Admin",
+              "description": "Only select this option if the current purpose fields do not meet your needs. You will be prompted to add a description of your purpose in a text field so that we may better understand your reason for utilizing our platform",
+              "name": "Other",
+              "requireUserInput": true,
+              "requiredRoles": ["rhpds-admins"],
+              "sfdcRequired": false
+            }
           ],
-          "type": "string"
+          "type": "object"
         },
         "required": true
       },

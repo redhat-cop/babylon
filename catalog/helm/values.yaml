@@ -6,7 +6,7 @@ namespace:
   name:
 
 # Interface name to filter which catalog namespaces to present to the user
-#interfaceName:
+interfaceName:
 
 api:
   name: # default use chart name + '-api'
@@ -15,7 +15,7 @@ api:
     threads: 1
   image:
     #override:
-    tag: v0.12.5
+    tag: v0.12.7
     repository: quay.io/redhat-gpte/babylon-catalog-api
     pullPolicy: IfNotPresent
   imagePullSecrets: []
@@ -34,7 +34,7 @@ ui:
   name: # default use chart name + '-ui'
   image:
     #override:
-    tag: v0.30.15
+    tag: v0.30.25
     repository: quay.io/redhat-gpte/babylon-catalog-ui
     pullPolicy: IfNotPresent
   replicaCount: 1

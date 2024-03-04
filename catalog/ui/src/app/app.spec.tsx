@@ -1,6 +1,6 @@
 import React from 'react';
 import App from '@app/index';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { fireEvent, generateSession } from './utils/test-utils';
 import { Provider } from 'react-redux';
 import { store } from './store';
@@ -8,8 +8,11 @@ import { store } from './store';
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({}),
-  })),
+  }))
 );
+jest.mock('@app/utils/useHelpLink', () => {
+  return jest.fn(() => 'https://red.ht/open-support');
+});
 
 const wrapper = (children: React.ReactNode) => (
   <Provider store={store}>
@@ -19,10 +22,12 @@ const wrapper = (children: React.ReactNode) => (
 );
 
 describe('App tests', () => {
-  it.only('should render a nav-toggle button', () => {
+  it.only('should render a nav-toggle button', async () => {
     const { container } = render(wrapper(<App />));
-    const button = container.querySelector('#nav-toggle');
-    expect(button).toBeInTheDocument();
+    await waitFor(() => {
+      const button = container.querySelector('#nav-toggle');
+      expect(button).toBeInTheDocument();
+    });
   });
 
   it('should hide the sidebar on smaller viewports', () => {

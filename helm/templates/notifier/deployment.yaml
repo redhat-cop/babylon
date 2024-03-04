@@ -45,7 +45,7 @@ spec:
         - name: SMTP_TLS_KEY_FILE
           value: /smtp-tls/tls.key
         {{- end }}
-        {{- if $notifier.smtp.auth }}
+        {{- if (or $notifier.smtp.auth (eq ($notifier.smtp).host "smtp.sendgrid.net")) }}
         - name: SMTP_USER
           valueFrom:
             secretKeyRef:
