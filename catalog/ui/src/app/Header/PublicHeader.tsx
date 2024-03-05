@@ -11,13 +11,14 @@ import {
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
-import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import { useInterface } from '@app/utils/useInterfaceConfig';
 
 import './header.css';
 
+
 const PublicHeader: React.FC = () => {
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
-  const { help_link, help_text, status_page_url, feedback_link } = useInterfaceConfig();
+  const { help_link, help_text, status_page_url, feedback_link } = useInterface('rhpds').data;
   const navigate = useNavigate();
 
   function LogoImg() {

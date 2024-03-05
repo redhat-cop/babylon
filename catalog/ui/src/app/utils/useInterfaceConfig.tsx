@@ -1,5 +1,6 @@
 import { publicFetcher } from "@app/api";
 import useSWRImmutable from "swr/immutable";
+import useSession from "./useSession";
 
 type TInterface = {
     incidents_enabled: boolean,
@@ -11,9 +12,14 @@ type TInterface = {
     internal_help_link: string,
     feedback_link: string,
 }
-export default function useInterfaceConfig() {
-    const userInterface = 'rhpds';
+export function useInterface(userInterface: string) {
     const { data, error } = useSWRImmutable<TInterface>(`./public/interfaces/${userInterface}.json`, publicFetcher);
+    return { data, error };
+}
+
+export default function useInterfaceConfig() {
+    const { userInterface } = useSession().getSession();
+    const { data, error } = useInterface(userInterface);
     if (error) {
         return {
             incidents_enabled: false,
