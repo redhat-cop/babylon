@@ -18,7 +18,7 @@ const Workshop: React.FC<{ title: string }> = ({ title }) => {
   useDocumentTitle(title);
   const { workshopId } = useParams();
   const [searchParams] = useSearchParams();
-  const userInterface = searchParams.get('userInterface');
+  const userInterface = searchParams.get('userInterface') || 'rhpds';
   const [loginFailureMessage, setLoginFailureMessage] = useState('');
   const { data: workshop } = useSWRImmutable<WorkshopDetails>(
     workshopId ? apiPaths.WORKSHOP({ workshopId }) : null,

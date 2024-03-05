@@ -4,7 +4,6 @@ import { IAppRoute } from './types';
 import AppLayout from './AppLayout/AppLayout';
 import { ErrorBoundary } from 'react-error-boundary';
 import LoadingSection from './components/LoadingSection';
-import useInterfaceConfig from './utils/useInterfaceConfig';
 
 const Dashboard = React.lazy(() => import('@app/Dashboard'));
 const CatalogRedirections = React.lazy(() => import('@app/Catalog/CatalogRedirections'));
@@ -34,8 +33,7 @@ const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 const CatalogItemAdmin = React.lazy(() => import('@app/Admin/CatalogItemAdmin'));
 
-const appRoutes = (incidentsEnabled: boolean, ratingsEnabled: boolean) => {
-  const routes: IAppRoute[] = [
+const appRoutes: IAppRoute[] =  [
     {
       component: Dashboard,
       path: '/',
@@ -262,26 +260,18 @@ const appRoutes = (incidentsEnabled: boolean, ratingsEnabled: boolean) => {
       title: 'Babylon | Admin',
       accessControl: 'admin',
     },
-  ];
-
-  if (incidentsEnabled) {
-    routes.push({
+    {
       component: IncidentsPage,
       path: '/admin/incidents',
       title: 'Babylon | Admin',
       accessControl: 'admin',
-    });
-  }
-  if (ratingsEnabled) {
-    routes.push({
+    },
+    {
       component: RatingsPage,
       path: '/admin/ratings',
       title: 'Babylon | Admin',
       accessControl: 'admin',
-    });
-  }
-  return routes;
-};
+  }];
 const publicRoutes: IAppRoute[] = [
   {
     component: Workshop,
@@ -296,7 +286,7 @@ const publicRoutes: IAppRoute[] = [
 ];
 
 const _Routes: React.FC = () => {
-  const { incidents_enabled, ratings_enabled } = useInterfaceConfig();
+
   return (
     <Routes>
       {publicRoutes.map(({ path, component: Component, title }: IAppRoute, idx) => (
@@ -315,26 +305,24 @@ const _Routes: React.FC = () => {
           key={`public-routes-${idx}`}
         />
       ))}
-      {appRoutes(incidents_enabled, ratings_enabled).map(
-        ({ path, component: Component, title, accessControl }: IAppRoute, idx) => (
-          <Route
-            path={path}
-            key={`app-routes-${idx}`}
-            element={
-              <AppLayout title={title} accessControl={accessControl}>
-                <Suspense fallback={<LoadingSection />}>
-                  <ErrorBoundary
-                    FallbackComponent={NotFound}
-                    onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-                  >
-                    <Component />
-                  </ErrorBoundary>
-                </Suspense>
-              </AppLayout>
-            }
-          />
-        )
-      )}
+      {appRoutes.map(({ path, component: Component, title, accessControl }: IAppRoute, idx) => (
+        <Route
+          path={path}
+          key={`app-routes-${idx}`}
+          element={
+            <AppLayout title={title} accessControl={accessControl}>
+              <Suspense fallback={<LoadingSection />}>
+                <ErrorBoundary
+                  FallbackComponent={NotFound}
+                  onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
+                >
+                  <Component />
+                </ErrorBoundary>
+              </Suspense>
+            </AppLayout>
+          }
+        />
+      ))}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

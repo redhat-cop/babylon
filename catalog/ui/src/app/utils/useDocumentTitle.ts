@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-const DEFAULT_USER_INTERFACE = 'rhdp';
+const DEFAULT_USER_INTERFACE = 'rhpds';
 
 function getPageTitle(title: string, userInterface?: string): string {
   if (!userInterface) userInterface = DEFAULT_USER_INTERFACE;
