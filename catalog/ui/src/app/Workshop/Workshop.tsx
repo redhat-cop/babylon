@@ -21,7 +21,7 @@ const Workshop: React.FC<{ title: string }> = ({ title }) => {
   const userInterface = searchParams.get('userInterface') || 'rhpds';
   const [loginFailureMessage, setLoginFailureMessage] = useState('');
   const { data: workshop } = useSWRImmutable<WorkshopDetails>(
-    workshopId ? apiPaths.WORKSHOP({ workshopId }) : null,
+    workshopId ? 'https://demo.redhat.com' + apiPaths.WORKSHOP({ workshopId }) : null,
     publicFetcher,
   );
   const [workshopPrivateInfo, setWorkshopPrivateInfo] = useState(workshop);
