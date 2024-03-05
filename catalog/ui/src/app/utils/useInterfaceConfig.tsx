@@ -1,6 +1,5 @@
 import { publicFetcher } from "@app/api";
 import useSWRImmutable from "swr/immutable";
-import useSession from "./useSession";
 
 type TInterface = {
     incidents_enabled: boolean,
