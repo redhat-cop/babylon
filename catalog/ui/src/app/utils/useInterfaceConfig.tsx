@@ -13,7 +13,7 @@ type TInterface = {
     feedback_link: string,
 }
 export default function useInterfaceConfig() {
-    const { userInterface } = useSession().getSession();
+    const userInterface = 'rhpds';
     const { data, error } = useSWRImmutable<TInterface>(`./public/interfaces/${userInterface}.json`, publicFetcher);
     if (error) {
         return {
