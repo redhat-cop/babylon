@@ -36,7 +36,7 @@ spec:
 {{- with $repo.gitHub }}
   gitHub:
 {{- if .tokenSecret }}
-    tokenSecret: {{ $repo.tokenSecret }}
+    tokenSecret: {{ .tokenSecret }}
 {{- else }}
     tokenSecret: {{ $name }}-github
 {{- end }}
