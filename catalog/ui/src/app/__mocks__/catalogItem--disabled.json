@@ -77,7 +77,7 @@
         "formLabel": "Purpose",
         "name": "purpose",
         "openAPIV3Schema": {
-          "enum": [
+          "x-form-options": [
             "Customer Activity - Customer environment testing",
             "Customer Activity - Customer workshop/demo",
             "Customer Activity - Informal training",

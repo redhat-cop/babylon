@@ -428,6 +428,26 @@ export async function createServiceRequest({
         requestResourceClaim.metadata.annotations[parameter.annotation] = String(value);
       }
 
+      if (parameter.name === 'purpose') {
+        // Purpose & SFDC
+        const annotationDomain = parameter.annotation.split('/')[0];
+        if (parameterValues.purpose) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose`] = parameterValues.purpose as string;
+        }
+        if (parameterValues.purpose_activity) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-activity`] =
+            parameterValues.purpose_activity as string;
+        }
+        if (parameterValues.purpose_explanation) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-explanation`] =
+            parameterValues.purpose_explanation as string;
+        }
+        if (parameterValues.salesforce_id) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/salesforce-id`] =
+            parameterValues.salesforce_id as string;
+        }
+      }
+
       // Job variable name is either explicitly set or defaults to the parameter name unless an annotation is given.
       const jobVarName: string = parameter.variable || (parameter.annotation ? null : parameter.name);
       if (!jobVarName) {
@@ -447,25 +467,6 @@ export async function createServiceRequest({
 
         const resource = requestResourceClaim.spec.resources[resourceIndex];
         recursiveAssign(resource, { template: { spec: { vars: { job_vars: { [jobVarName]: value } } } } });
-      }
-      if (parameter.name === 'purpose') {
-        // Purpose & SFDC
-        const annotationDomain = parameter.annotation.split('/')[0];
-        if (parameterValues.purpose) {
-          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose`] = parameterValues.purpose as string;
-        }
-        if (parameterValues.purpose_activity) {
-          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-activity`] =
-            parameterValues.purpose_activity as string;
-        }
-        if (parameterValues.purpose_explanation) {
-          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-explanation`] =
-            parameterValues.purpose_explanation as string;
-        }
-        if (parameterValues.salesforce_id) {
-          requestResourceClaim.metadata.annotations[`${annotationDomain}/salesforce-id`] =
-            parameterValues.salesforce_id as string;
-        }
       }
     }
   } else {

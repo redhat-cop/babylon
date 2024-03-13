@@ -75,7 +75,7 @@
         "formLabel": "Purpose",
         "name": "purpose",
         "openAPIV3Schema": {
-          "enum": [
+          "x-form-options": [
             {
               "activity": "Customer Facing",
               "description": "Showing a product/solution to a customer or prospect",
@@ -262,7 +262,7 @@
               "sfdcRequired": false
             }
           ],
-          "type": "object"
+          "type": "string"
         },
         "required": true
       },
