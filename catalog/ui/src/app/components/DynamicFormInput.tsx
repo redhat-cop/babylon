@@ -10,7 +10,29 @@ const DynamicFormInput: React.FC<{
   value?: any;
 }> = ({ id, isDisabled, onChange, parameter, validationResult, value }) => {
   const [isOpen, setIsOpen] = useState(false);
-  if (parameter.openAPIV3Schema?.enum) {
+  if (parameter.openAPIV3Schema?.['x-form-options']) {
+    return (
+      <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
+        <Select
+          aria-label={parameter.description}
+          isDisabled={isDisabled}
+          isOpen={isOpen}
+          onSelect={(event, value) => {
+            onChange(value);
+            setIsOpen(false);
+          }}
+          onToggle={() => setIsOpen((v) => !v)}
+          placeholderText={parameter.placeholderText || `- Select ${parameter.formLabel || parameter.name} -`}
+          selections={value}
+          variant={SelectVariant.single}
+        >
+          {parameter.openAPIV3Schema['x-form-options'].map((enumValue) => (
+            <SelectOption key={enumValue} value={enumValue} />
+          ))}
+        </Select>
+      </div>
+    );
+  } else if (parameter.openAPIV3Schema?.enum) {
     return (
       <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
         <Select
@@ -60,7 +82,7 @@ const DynamicFormInput: React.FC<{
               ? parameter.openAPIV3Schema.minimum
               : n > parameter.openAPIV3Schema.maximum
               ? parameter.openAPIV3Schema.maximum
-              : n,
+              : n
           );
         }}
         onMinus={() => onChange(parseInt(value) - 1)}

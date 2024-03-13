@@ -85,7 +85,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     [catalogItem]
   );
   const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
-    ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema.enum || []
+    ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
     : [];
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
   const [formState, dispatchFormState] = useReducer(
