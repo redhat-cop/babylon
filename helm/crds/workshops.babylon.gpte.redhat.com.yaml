@@ -155,6 +155,22 @@ spec:
             description: Status of Workshop
             type: object
             x-kubernetes-preserve-unknown-fields: true
+            properties:
+              diffBase:
+                description: Kopf diffbase
+                type: string
+              userCount:
+                type: object
+                properties:
+                  assigned:
+                    description: Assigned users for workshop.
+                    type: integer
+                  available:
+                    description: Available user assignments for workshop.
+                    type: integer
+                  total:
+                    description: Total user assignments for workshop.
+                    type: integer
         required:
         - apiVersion
         - kind

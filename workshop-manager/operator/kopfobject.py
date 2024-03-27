@@ -138,7 +138,7 @@ class KopfObject:
         self.update_from_definition(definition)
 
     async def merge_patch_status(self, patch):
-        definition = await babylon.custom_objects_api.patch_namespaced_custom_object_status(
+        definition = await Babylon.custom_objects_api.patch_namespaced_custom_object_status(
             group = self.api_group,
             name = self.name,
             namespace = self.namespace,
