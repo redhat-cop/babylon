@@ -6,13 +6,12 @@ image::docs/images/babylon-high-level.png[width=95%,align="center"]
 
 === Main Components
 
-
 * link:https://github.com/redhat-cop/agnosticd[AgnosticD - An Ansible based Cloud Agnostic Deployment Framework]
 * link:https://github.com/redhat-cop/agnosticv[AgnosticV - Catalog management, Configuration and vars for AgnosticD]
-* link:https://github.com/redhat-gpte-devopsautomation/agnosticv-operator[AgnosticV Operator]
+* link:./agnosticv-operator[AgnosticV Operator]
 * link:https://github.com/redhat-cop/anarchy.git[Anarchy - OpenShift Operator for Stateless API operations]
 * link:https://github.com/redhat-cop/poolboy.git[Poolboy - OpenShift Operator to manage OpenShift resources]
-* link:https://github.com/redhat-gpte-devopsautomation/babylon[Dark Tower - The Ansible Tower backend]
+* link:https://github.com/rhpds/babylon_anarchy_governor[Anarchy Governor]
 
 === Getting Started
 
