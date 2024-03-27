@@ -119,3 +119,15 @@ class K8sObject:
             _content_type = 'application/merge-patch+json',
         )
         self.definition = definition
+
+    async def merge_patch_status(self, patch):
+        definition = await Babylon.custom_objects_api.patch_namespaced_custom_object_status(
+            group = self.api_group,
+            name = self.name,
+            namespace = self.namespace,
+            plural = self.plural,
+            version = self.api_version,
+            body = {"status": patch},
+            _content_type = 'application/merge-patch+json',
+        )
+        self.definition = definition

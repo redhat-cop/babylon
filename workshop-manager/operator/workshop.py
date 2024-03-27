@@ -164,6 +164,7 @@ class Workshop(CachedKopfObject):
     async def manage(self, logger):
         async with self.lock:
             await self.check_resource_claims(logger=logger)
+            await self.update_status()
 
     async def manage_user_assignments_for_resource_claim(self, logger, resource_claim):
         if not self.definition:
@@ -213,6 +214,7 @@ class Workshop(CachedKopfObject):
 
         if workshop_definition_updated:
             await self.replace(workshop_definition)
+            await self.update_status()
             logger.info(f"Updated {self} for {resource_claim}")
 
     async def __manage_workshop_id_label(self, logger):
@@ -298,3 +300,21 @@ class Workshop(CachedKopfObject):
                     await self.refresh()
                 else:
                     raise
+
+    async def update_status(self):
+        assigned_user_count = 0
+        available_user_count = 0
+        total_user_count = 0
+        for user_assignment in self.spec.get('userAssignments', []):
+            total_user_count += 1
+            if 'assignment' in user_assignment:
+                assigned_user_count += 1
+            else:
+                available_user_count += 1
+        await self.merge_patch_status({
+            "userCount": {
+                "assigned": assigned_user_count,
+                "available": available_user_count,
+                "total": total_user_count,
+            }
+        })
