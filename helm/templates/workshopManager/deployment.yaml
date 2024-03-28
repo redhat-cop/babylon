@@ -1,0 +1,60 @@
+{{- $workshopManager := .Values.workshopManager }}
+{{ if $workshopManager.deploy }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-workshop-manager
+  namespace: {{ $workshopManager.namespace.name }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: workshop-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: workshop-manager
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: workshop-manager
+    spec:
+      containers:
+      - name: workshop-manager
+        env:
+        - name: KOPF_OPTIONS
+          value: "--log-format=json"
+        - name: KOPF_PEERING
+          value: babylon-workshop-manager
+        image: {{ $workshopManager.image.repository }}:{{ $workshopManager.image.tag }}
+        imagePullPolicy: {{ $workshopManager.image.pullPolicy }}
+        resources:
+          {{- toYaml $workshopManager.resources | nindent 10 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      {{- with $workshopManager.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $workshopManager.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: babylon-workshop-manager
+      terminationGracePeriodSeconds: 30
+      {{- with $workshopManager.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $workshopManager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{ end }}

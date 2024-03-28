@@ -188,3 +188,23 @@ resourceBroker:
     version: v1
   namespace: poolboy
   serviceAccountName: poolboy
+
+workshopManager:
+  api:
+    group: babylon.gpte.redhat.com
+    version: v1
+  deploy: true
+  image:
+    repository: quay.io/redhat-gpte/babylon-workshop-manager
+    pullPolicy: IfNotPresent
+    tag: v0.3.0
+  namespace:
+    create: true
+    name: babylon-workshop-manager
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 512Mi

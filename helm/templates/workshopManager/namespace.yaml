@@ -1,0 +1,11 @@
+{{- $workshopManager := .Values.workshopManager }}
+{{- if and $workshopManager.deploy $workshopManager.namespace.create }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: workshop-manager
+  name: {{ $workshopManager.namespace.name }}
+{{- end }}
