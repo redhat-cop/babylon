@@ -70,6 +70,7 @@
 .catalog-item-details__main-btn,
 .catalog-item-details__header-icon .catalog-item-icon {
   width: 90px;
+  min-width: 90px;
 }
 .catalog-item-details__main-btn--expanded {
   width: auto;
