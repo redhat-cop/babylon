@@ -15,10 +15,9 @@ import { useInterface } from '@app/utils/useInterfaceConfig';
 
 import './header.css';
 
-
 const PublicHeader: React.FC = () => {
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
-  const { help_link, help_text, status_page_url, feedback_link } = useInterface('rhpds').data;
+  const { help_link, help_text, status_page_url, feedback_link, learn_more_link } = useInterface('rhpds').data;
   const navigate = useNavigate();
 
   function LogoImg() {
@@ -47,7 +46,7 @@ const PublicHeader: React.FC = () => {
     </ApplicationLauncherItem>,
     <ApplicationLauncherItem
       key="how-to-videos-link"
-      href="https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
+      href={learn_more_link}
       target="_blank"
       rel="noreferrer nofollow"
       isExternal

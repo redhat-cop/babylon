@@ -37,7 +37,7 @@ const Header: React.FC<{
   const { isAdmin, email, userInterface } = useSession().getSession();
   const navigate = useNavigate();
   const helpLink = useHelpLink();
-  const { help_text, status_page_url, feedback_link } = useInterfaceConfig();
+  const { help_text, status_page_url, feedback_link, learn_more_link } = useInterfaceConfig();
 
   function clearUserImpersonation() {
     clearImpersonation();
@@ -78,23 +78,26 @@ const Header: React.FC<{
       Status Page
     </ApplicationLauncherItem>,
   ];
+
   if (userInterface === 'rhpds') {
     UserHelpDropdownItems.push(
       <ApplicationLauncherItem key="support-sla" href="/support">
         Solution Support: Service Level
       </ApplicationLauncherItem>
     );
-    UserHelpDropdownItems.push(
-      <ApplicationLauncherItem
-        key="how-to-videos-link"
-        href="https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
-        target="_blank"
-        rel="noreferrer nofollow"
-        isExternal
-      >
-        Learn more
-      </ApplicationLauncherItem>
-    );
+  }
+  UserHelpDropdownItems.push(
+    <ApplicationLauncherItem
+      key="learn-more"
+      href={learn_more_link}
+      target="_blank"
+      rel="noreferrer nofollow"
+      isExternal
+    >
+      Learn more
+    </ApplicationLauncherItem>
+  );
+  if (userInterface === 'rhpds') {
     UserHelpDropdownItems.push(
       <ApplicationLauncherItem
         key="how-to-videos-link"
