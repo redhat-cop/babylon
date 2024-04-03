@@ -135,12 +135,14 @@ class Workshop(CachedKopfObject):
             logger.info(f"Handling resume for {self}")
             await self.__manage_workshop_id_label(logger=logger)
             await self.manage_workshop_provisions(logger=logger)
+            await self.update_status()
 
     async def handle_update(self, logger):
         async with self.lock:
             logger.info(f"Handling update for {self}")
             await self.__manage_workshop_id_label(logger=logger)
             await self.manage_workshop_provisions(logger=logger)
+            await self.update_status()
 
     async def handle_resource_claim_deleted(self, logger, resource_claim):
         async with self.lock:
