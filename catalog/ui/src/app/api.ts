@@ -31,6 +31,7 @@ import {
   getCostTracker,
   compareStringDates,
   canExecuteAction,
+  getStageFromK8sObject,
 } from '@app/util';
 
 declare const window: Window &
@@ -337,6 +338,7 @@ export async function createServiceRequest({
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
   const access = checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin);
+  const stage = getStageFromK8sObject(catalogItem);
 
   const requestResourceClaim: ResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
@@ -373,6 +375,13 @@ export async function createServiceRequest({
         ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
         end: dateToApiString(endDate),
       },
+      ...(stage === 'prod'
+        ? {
+            autoDetach: {
+              when: `status.resources | json_query("[?state.spec.vars.current_state == 'provision-failed']") | length != 0`,
+            },
+          }
+        : {}),
     },
   };
 
