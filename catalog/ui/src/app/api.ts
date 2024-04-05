@@ -31,6 +31,7 @@ import {
   getCostTracker,
   compareStringDates,
   canExecuteAction,
+  getStageFromK8sObject,
 } from '@app/util';
 
 declare const window: Window &
@@ -59,6 +60,7 @@ type CreateServiceRequestOpt = {
   stopDate?: Date;
   endDate: Date;
   start?: CreateServiceRequestOptScheduleStartLifespan | CreateServiceRequestOptScheduleStartResource;
+  useAutoDetach: boolean;
 };
 
 type CreateWorkshopPovisionOpt = {
@@ -333,6 +335,7 @@ export async function createServiceRequest({
   stopDate,
   endDate,
   usePoolIfAvailable,
+  useAutoDetach,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
@@ -373,6 +376,13 @@ export async function createServiceRequest({
         ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
         end: dateToApiString(endDate),
       },
+      ...(useAutoDetach
+        ? {
+            autoDetach: {
+              when: `status.resources | json_query("[?state.spec.vars.current_state == 'provision-failed']") | length != 0`,
+            },
+          }
+        : {}),
     },
   };
 

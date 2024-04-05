@@ -268,6 +268,9 @@ export interface ResourceClaimSpec {
   lifespan?: ResourceClaimSpecLifespan;
   resources?: ResourceClaimSpecResource[];
   provider?: ResourceClaimProvider;
+  autoDetach?: {
+    when: string;
+  };
 }
 
 export interface ResourceClaimProvider {

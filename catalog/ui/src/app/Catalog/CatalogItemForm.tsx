@@ -190,6 +190,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         parameterValues,
         serviceNamespace: formState.serviceNamespace,
         usePoolIfAvailable: formState.usePoolIfAvailable,
+        useAutoDetach: formState.useAutoDetach,
         stopDate: formState.stopDate,
         endDate: formState.endDate,
         ...(scheduled !== null
@@ -717,23 +718,42 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             )}
           </div>
         ) : isAdmin ? (
-          <FormGroup key="pooling-switch" fieldId="pooling-switch">
-            <div className="catalog-item-form__group-control--single">
-              <Switch
-                id="pooling-switch"
-                aria-label="Use pool if available"
-                label="Use pool if available (only visible to admins)"
-                isChecked={formState.usePoolIfAvailable}
-                hasCheckIcon
-                onChange={(isChecked) =>
-                  dispatchFormState({
-                    type: 'usePoolIfAvailable',
-                    usePoolIfAvailable: isChecked,
-                  })
-                }
-              />
-            </div>
-          </FormGroup>
+          <>
+            <FormGroup key="pooling-switch" fieldId="pooling-switch">
+              <div className="catalog-item-form__group-control--single">
+                <Switch
+                  id="pooling-switch"
+                  aria-label="Use pool if available"
+                  label="Use pool if available (only visible to admins)"
+                  isChecked={formState.usePoolIfAvailable}
+                  hasCheckIcon
+                  onChange={(isChecked) =>
+                    dispatchFormState({
+                      type: 'usePoolIfAvailable',
+                      usePoolIfAvailable: isChecked,
+                    })
+                  }
+                />
+              </div>
+            </FormGroup>
+            <FormGroup key="auto-detach-switch" fieldId="auto-detach-switch">
+              <div className="catalog-item-form__group-control--single">
+                <Switch
+                  id="auto-detach-switch"
+                  aria-label="Keep instance if provision fails"
+                  label="Keep instance if provision fails (only visible to admins)"
+                  isChecked={!formState.useAutoDetach}
+                  hasCheckIcon
+                  onChange={(isChecked) =>
+                    dispatchFormState({
+                      type: 'useAutoDetach',
+                      useAutoDetach: !isChecked,
+                    })
+                  }
+                />
+              </div>
+            </FormGroup>
+          </>
         ) : null}
 
         {catalogItem.spec.termsOfService ? (
