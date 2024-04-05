@@ -60,6 +60,7 @@ type CreateServiceRequestOpt = {
   stopDate?: Date;
   endDate: Date;
   start?: CreateServiceRequestOptScheduleStartLifespan | CreateServiceRequestOptScheduleStartResource;
+  useAutoDetach: boolean;
 };
 
 type CreateWorkshopPovisionOpt = {
@@ -334,11 +335,11 @@ export async function createServiceRequest({
   stopDate,
   endDate,
   usePoolIfAvailable,
+  useAutoDetach,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
   const access = checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin);
-  const stage = getStageFromK8sObject(catalogItem);
 
   const requestResourceClaim: ResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
@@ -375,7 +376,7 @@ export async function createServiceRequest({
         ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
         end: dateToApiString(endDate),
       },
-      ...(stage === 'prod'
+      ...(useAutoDetach
         ? {
             autoDetach: {
               when: `status.resources | json_query("[?state.spec.vars.current_state == 'provision-failed']") | length != 0`,

@@ -3,6 +3,7 @@ import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, TPurposeOpts } from '@app/types';
 import parseDuration from 'parse-duration';
 import { isAutoStopDisabled } from './catalog-utils';
+import { getStageFromK8sObject } from '@app/util';
 
 type ConditionValues = {
   [name: string]: boolean | number | string | string[] | undefined;
@@ -34,6 +35,7 @@ type FormState = {
   workshop?: WorkshopProps;
   error: string;
   usePoolIfAvailable: boolean;
+  useAutoDetach: boolean;
   startDate?: Date;
   stopDate?: Date;
   endDate: Date;
@@ -61,6 +63,7 @@ export type FormStateAction = {
     | 'dates'
     | 'workshop'
     | 'usePoolIfAvailable'
+    | 'useAutoDetach'
     | 'purpose'
     | 'salesforceId'
     | 'serviceNamespace'
@@ -85,6 +88,7 @@ export type FormStateAction = {
   parameters?: { [name: string]: FormStateParameter };
   workshop?: WorkshopProps;
   usePoolIfAvailable?: boolean;
+  useAutoDetach?: boolean;
   startDate?: Date;
   stopDate?: Date;
   endDate?: Date;
@@ -246,6 +250,7 @@ function reduceFormStateInit(
 ): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
+  const stage = getStageFromK8sObject(catalogItem);
 
   for (const parameterSpec of catalogItem.spec.parameters || []) {
     if (parameterSpec.name === 'purpose' || parameterSpec.name === 'salesforce_id') continue; // Disable agnosticV purpose / salesforce_id
@@ -303,6 +308,7 @@ function reduceFormStateInit(
     workshop: null,
     error: '',
     usePoolIfAvailable: true,
+    useAutoDetach: stage === 'prod',
     activity: null,
     purpose: null,
     purposeOpts,
@@ -380,6 +386,13 @@ function reduceFormStateUsePoolIfAvailable(initialState: FormState, usePoolIfAva
   return {
     ...initialState,
     usePoolIfAvailable,
+  };
+}
+
+function reduceFormStateUseAutoDetach(initialState: FormState, useAutoDetach = true): FormState {
+  return {
+    ...initialState,
+    useAutoDetach,
   };
 }
 
@@ -485,6 +498,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormStateWorkshop(state, action.workshop);
     case 'usePoolIfAvailable':
       return reduceFormStateUsePoolIfAvailable(state, action.usePoolIfAvailable);
+    case 'useAutoDetach':
+      return reduceFormStateUseAutoDetach(state, action.useAutoDetach);
     case 'complete':
       return reduceFormStateComplete(state, {
         error: action.error,
