@@ -11,7 +11,7 @@ Flask==1.1.2
 flask-redis==0.4.0
 google-auth==1.28.0
 gunicorn==20.0.4
-idna==2.10
+idna==3.7
 iso8601==0.1.16
 itsdangerous==1.1.0
 Jinja2==2.11.3
