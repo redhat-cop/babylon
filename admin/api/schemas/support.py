@@ -15,7 +15,6 @@ class SupportCreate(BaseModel):
     guid: str
     start_time: datetime
     end_time: datetime
-    region: Literal['EMEA', 'APAC', 'NA', 'LATAM']
     email: str
 
 class SupportResponse(BaseModel):
