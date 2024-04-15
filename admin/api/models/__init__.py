@@ -15,11 +15,12 @@ async def startup():
     DB_NAME
     DB_HOSTNAME
     DB_PORT
+    SNOW_AUTH_KEY
+    SNOW_FORM_ID
     """
 
     # Define a list with the environment variables you need to check
-    required_env_vars = ["DB_USERNAME",
-                         "DB_PASSWORD", "DB_NAME", "DB_HOSTNAME"]
+    required_env_vars = ["DB_USERNAME", "DB_PASSWORD", "DB_NAME", "DB_HOSTNAME", "SNOW_AUTH_KEY", "SNOW_FORM_ID"]
 
     # Check if all environment variables exist
     for var in required_env_vars:

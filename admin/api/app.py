@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from babylon import Babylon
-from routers import incidents
+from routers import incidents, support
 from models import Database as db
 from models.custom_base import create_tables
 from datetime import datetime
@@ -69,3 +69,4 @@ async def log_access(request: Request, call_next):
 
 # Including Routers
 app.include_router(incidents.router)
+app.include_router(support.router)

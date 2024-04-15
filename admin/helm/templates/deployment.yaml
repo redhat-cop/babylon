@@ -51,6 +51,10 @@ spec:
               name: {{ default .Values.db.secretName "database" }}
         - name: DB_PORT
           value: {{ default .Values.db.port "54327" |quote }}
+        - name: SNOW_AUTH_KEY
+          value: {{ default .Values.snow.authKey "snow" }}
+        - name: SNOW_FORM_ID
+          value: {{ default .Values.snow.formId "snow" }}
         image: {{ include "babylon-admin.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:
