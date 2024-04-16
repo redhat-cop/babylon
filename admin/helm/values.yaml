@@ -24,7 +24,7 @@ db:
 snow:
   # authKey: ''
   deploy: true
-  formId: b48fe3cc870b2d508a51bbbf8bbb3576
+  workshopFormId: b48fe3cc870b2d508a51bbbf8bbb3576
   secretName: snow
 
 imagePullSecrets: []
