@@ -569,19 +569,17 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                       </Button>
                                     </Tooltip>
                                   </li>
-                                  {isAdmin ? (
-                                    <li>
-                                      <Tooltip content="Export to CSV">
-                                        <Button
-                                          variant="plain"
-                                          aria-label="Export to CSV"
-                                          onClick={() => handleExportCsv(catalogItems)}
-                                        >
-                                          <DownloadIcon />
-                                        </Button>
-                                      </Tooltip>
-                                    </li>
-                                  ) : null}
+                                  <li>
+                                    <Tooltip content="Export to CSV">
+                                      <Button
+                                        variant="plain"
+                                        aria-label="Export to CSV"
+                                        onClick={() => handleExportCsv(catalogItems)}
+                                      >
+                                        <DownloadIcon />
+                                      </Button>
+                                    </Tooltip>
+                                  </li>
                                   <li>
                                     <Select
                                       className="catalog__sort-by"
