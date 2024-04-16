@@ -68,7 +68,7 @@ def create_support_request_json(support_create, user_sys_id):
             "other_facilitators_e_mail_addresses":f"{support_create.email}",
             "universal_watch_list":f"{support_create.email}",
             "will_you_be_performing_initial_setup_of_your_environment_or_do_you_require_assistance":"i_will_perform_setup",
-            "provide_your_guid_or_the_url_from_your_browser_linking_to_your_workshop_service":f"{support_create.guid}",
+            "provide_your_guid_or_the_url_from_your_browser_linking_to_your_workshop_service":f"{support_create.url}",
             "requested_for_rf":"true",
             "workshop_or_demo_end_date_and_time":f"{support_create.end_time}",
             "number_of_attendees_demo":f"{support_create.number_of_attendees}",

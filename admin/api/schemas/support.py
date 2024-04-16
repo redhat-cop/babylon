@@ -12,7 +12,7 @@ class SupportCreate(BaseModel):
     sfdc: str
     name: str
     event_name: str
-    guid: str
+    url: str
     start_time: datetime
     end_time: datetime
     email: str

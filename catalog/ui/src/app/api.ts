@@ -741,6 +741,36 @@ export async function createWorkshopProvision({
   return await createK8sObject(definition);
 }
 
+export async function openWorkshopSupportTicket(workshop: Workshop, { number_of_attendees, sfdc, name, event_name, url, start_date, end_date, email }) {
+  function date_to_time(date: Date) {
+    const offset = date.getTimezoneOffset()
+    date = new Date(date.getTime() - (offset*60*1000))
+    const d = date.toISOString().split('T')[0]
+    const hh = date.toISOString().split('T')[1].split(':')[0]
+    const mm = date.toISOString().split('T')[1].split(':')[1]
+    return `${d} ${hh}:${mm}`
+  }
+  const resp = await apiFetch(apiPaths.WORKSHOP_SUPPORT({}), {
+    body: JSON.stringify({
+      number_of_attendees,
+      sfdc,
+      name,
+      event_name,
+      url,
+      start_time: date_to_time(start_date),
+      end_time: date_to_time(end_date),
+      email
+    }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  });
+  const workshopSuport = await resp.json();
+  workshop.metadata.annotations[`${BABYLON_DOMAIN}/snow`] = JSON.stringify(workshopSuport);
+  return await updateWorkshop(workshop);
+}
+
 export async function getApiSession(forceRefresh = false) {
   const sessionPromise = window.sessionPromiseInstance;
   let session: Session;
@@ -1731,4 +1761,5 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   RATINGS_HISTORY: ({ assetUuid }: { assetUuid: string }) => `/api/ratings/catalogitem/${assetUuid}/history`,
   RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
   USER_RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
+  WORKSHOP_SUPPORT: () => `/api/admin/workshop/support`
 };

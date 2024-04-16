@@ -571,7 +571,8 @@ export type ResourceType =
   | 'INCIDENT'
   | 'RATING'
   | 'RATINGS_HISTORY'
-  | 'USER_RATING';
+  | 'USER_RATING'
+  | 'WORKSHOP_SUPPORT';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
