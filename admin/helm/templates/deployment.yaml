@@ -52,9 +52,15 @@ spec:
         - name: DB_PORT
           value: {{ default .Values.db.port "54327" |quote }}
         - name: SNOW_AUTH_KEY
-          value: {{ default .Values.snow.authKey "snow" }}
+          valueFrom:
+            secretKeyRef:
+              key: authKey
+              name: {{ .Values.snow.secretName | default "babylon-admin-snow-credentials" }}
         - name: SNOW_FORM_ID
-          value: {{ default .Values.snow.workshopFormId "snow" }}
+          valueFrom:
+            secretKeyRef:
+              key: workshopFormId
+              name: {{ .Values.snow.secretName | default "babylon-admin-snow-credentials" }}
         image: {{ include "babylon-admin.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:
