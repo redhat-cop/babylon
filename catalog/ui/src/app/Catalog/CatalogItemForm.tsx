@@ -70,7 +70,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const { userImpersonated } = useImpersonateUser();
   let userEmail = email;
   if (userImpersonated) {
-      userEmail = userImpersonated
+    userEmail = userImpersonated;
   }
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
@@ -191,7 +191,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         const today = new Date();
         const twoWeeks = new Date(new Date().setDate(today.getDate() + 14));
         if (scheduled.startDate >= twoWeeks) {
-          await openWorkshopSupportTicket(workshop, { number_of_attendees: provisionCount, sfdc: formState.salesforceId.value, name: catalogItemName, event_name: displayName, url:  `${window.location.origin}${redirectUrl}`, start_date: scheduled.startDate, end_date: scheduled.endDate, email: userEmail});
+          await openWorkshopSupportTicket(workshop, {
+            number_of_attendees: provisionCount,
+            sfdc: formState.salesforceId.value,
+            name: catalogItemName,
+            event_name: displayName,
+            url: `${window.location.origin}${redirectUrl}`,
+            start_date: scheduled.startDate,
+            end_date: scheduled.endDate,
+            email: userEmail,
+          });
         }
       }
       navigate(redirectUrl);
