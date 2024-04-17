@@ -204,6 +204,7 @@ class WorkshopProvision(CachedKopfObject):
 
     async def handle_resume(self, logger):
         async with self.lock:
+            logger.info(f"Handling resume for {self}")
             await self.set_owner_references(logger=logger)
 
     async def handle_update(self, logger):
@@ -281,6 +282,7 @@ class WorkshopProvision(CachedKopfObject):
 
         resource_claim_count = 0
         provisioning_count = 0
+
         async for resource_claim in self.list_resource_claims():
             resource_claim_count += 1
             await resource_claim.adjust_action_schedule_and_lifetime(
@@ -289,12 +291,7 @@ class WorkshopProvision(CachedKopfObject):
                 start_datetime = self.action_schedule_start,
                 stop_datetime = self.action_schedule_stop,
             )
-            if resource_claim.provision_complete:
-                await workshop.manage_user_assignments_for_resource_claim(
-                    logger = logger,
-                    resource_claim = resource_claim,
-                )
-            else:
+            if not resource_claim.provision_complete:
                 provisioning_count += 1
 
         # Do not start any provisions if lifespan start is in the future

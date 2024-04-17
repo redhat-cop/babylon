@@ -11,8 +11,12 @@ from babylon import Babylon
 from resourceclaim import ResourceClaim
 from workshop import Workshop
 from workshopprovision import WorkshopProvision
+from workshopuserassignment import WorkshopUserAssignment
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
+from userassignment import UserAssignment
+
+import workshopuserassignment
 
 @kopf.on.startup()
 async def on_startup(settings: kopf.OperatorSettings, logger, **_):
@@ -78,7 +82,7 @@ async def workshop_resume(logger, **kwargs):
 @kopf.on.update(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
 )
-async def workshop_update(logger, **kwargs):
+async def workshop_update(logger, old, new, **kwargs):
     workshop = Workshop.load(**kwargs)
     await workshop.handle_update(logger=logger)
 
@@ -138,10 +142,32 @@ async def workshop_provision_daemon(logger, stopped, **kwargs):
         while not stopped:
             if workshop_provision.lifespan_end \
             and workshop_provision.lifespan_end < datetime.now(timezone.utc):
-                logger.info(f"Deleting {workshop_provision} for lifespan end")
+                logger.info(f"deleting {workshop_provision} for lifespan end")
                 await workshop_provision.delete()
                 return
             await workshop_provision.manage(logger=logger)
             await asyncio.sleep(workshop_provision.start_delay)
     except asyncio.CancelledError:
         pass
+
+
+@kopf.on.create(
+    WorkshopUserAssignment.api_group, WorkshopUserAssignment.api_version, WorkshopUserAssignment.plural,
+)
+async def workshop_user_assignment_create(logger, **kwargs):
+    workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)
+    await workshop_user_assignment.handle_create(logger=logger)
+
+@kopf.on.delete(
+    WorkshopUserAssignment.api_group, WorkshopUserAssignment.api_version, WorkshopUserAssignment.plural,
+)
+async def workshop_user_assignment_delete(logger, **kwargs):
+    workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)
+    await workshop_user_assignment.handle_delete(logger=logger)
+
+@kopf.on.update(
+    WorkshopUserAssignment.api_group, WorkshopUserAssignment.api_version, WorkshopUserAssignment.plural,
+)
+async def workshop_user_assignment_update(logger, **kwargs):
+    workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)
+    await workshop_user_assignment.handle_update(logger=logger)

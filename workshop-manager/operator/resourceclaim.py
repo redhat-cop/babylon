@@ -10,7 +10,9 @@ from k8sobject import K8sObject
 from labuserinterface import LabUserInterface
 from userassignment import UserAssignment
 
+import resourceclaim
 import workshop as workshop_import
+import workshopuserassignment
 
 class ResourceClaim(K8sObject):
     api_group = Babylon.poolboy_domain
@@ -28,11 +30,14 @@ class ResourceClaim(K8sObject):
             return
 
         resource_claim = cls(definition=definition)
-        if not resource_claim.provision_complete:
-            return
+        event_type = event.get('type')
+        logger.info(f"Handling {resource_claim} {event.get('type') or 'EVENT'}")
 
         if event.get('type') == 'DELETED':
-            await resource_claim.handle_deleted(logger=logger)
+            await resource_claim.delete_workshop_user_assignments(logger=logger)
+            return
+
+        if not resource_claim.provision_complete:
             return
 
         try:
@@ -42,9 +47,15 @@ class ResourceClaim(K8sObject):
                 logger.warning(
                     f"{resource_claim} references mising Workshop {resource_claim.workshop_name}"
                 )
+                return
             else:
                 raise
-        await workshop.handle_resource_claim_event(logger=logger, resource_claim=resource_claim)
+
+        async with workshop.lock:
+            await resource_claim.manage_workshop_user_assignments(
+                logger = logger,
+                workshop = workshop,
+            )
 
     @property
     def api_group_version(self):
@@ -107,7 +118,7 @@ class ResourceClaim(K8sObject):
     def workshop_name(self):
         return self.labels.get(Babylon.workshop_label)
 
-    def as_user_assignment(self, logger):
+    def as_user_assignment(self):
         annotations = self.definition['metadata'].get('annotations', {})
         lab_user_interface = None
         provision_data = {}
@@ -284,13 +295,53 @@ class ResourceClaim(K8sObject):
         if resource_claim_patch:
             await self.merge_patch(resource_claim_patch)
 
+    async def delete_workshop_user_assignments(self, logger):
+        await workshopuserassignment.WorkshopUserAssignment.delete_for_resource_claim(
+            logger = logger,
+            namespace = self.namespace,
+            resource_claim_name = self.name,
+        )
+
     async def get_workshop(self):
         return await workshop_import.Workshop.get(name=self.workshop_name, namespace=self.namespace)
 
-    async def handle_deleted(self, logger):
-        try:
-            workshop = await self.get_workshop()
-        except kubernetes_asyncio.client.rest.ApiException as exception:
-            if exception.status != 404:
-                raise
-        await workshop.handle_resource_claim_deleted(logger=logger, resource_claim=self)
+    async def manage_workshop_user_assignments(self, logger, workshop):
+        user_assignments = (
+            self.get_user_assignments(logger=logger)
+            if workshop.multiuser_services else
+            [self.as_user_assignment()]
+        )
+
+        for user_assignment in user_assignments:
+            workshop_user_assignment = await workshopuserassignment.WorkshopUserAssignment.find(
+                namespace = self.namespace,
+                resource_claim_name = self.name,
+                user_name = user_assignment.user_name,
+                workshop_name = workshop.name,
+            )
+            lab_user_interface = (
+                user_assignment.lab_user_interface.serialize()
+                if user_assignment.lab_user_interface else None
+            )
+            if workshop_user_assignment:
+                if (
+                    workshop_user_assignment.data != user_assignment.data or
+                    workshop_user_assignment.spec.get('labUserInterface') != lab_user_interface or
+                    workshop_user_assignment.messages != user_assignment.messages
+                ):
+                    await workshop_user_assignment.merge_patch({
+                        "data": user_assignment.data,
+                        "labUserInterface": lab_user_interface,
+                        "messages": user_assignment.messages,
+                    })
+            else:
+                workshop_user_assignment = await workshopuserassignment.WorkshopUserAssignment.create(
+                    data = user_assignment.data,
+                    lab_user_interface = user_assignment.lab_user_interface,
+                    messages = user_assignment.messages,
+                    namespace = self.namespace,
+                    resource_claim = self,
+                    user_name = user_assignment.user_name,
+                    workshop_name = workshop.name,
+                )
+                logger.info(f"Created {workshop_user_assignment} for {workshop} {self}")

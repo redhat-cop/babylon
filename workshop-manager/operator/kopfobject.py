@@ -34,6 +34,30 @@ class KopfObject:
             version = cls.api_version,
         )
 
+    @classmethod
+    async def list(cls, namespace, label_selector=None):
+        async for definition in cls.list_definitions(namespace=namespace, label_selector=label_selector):
+            yield cls.from_definition(definition)
+
+    @classmethod
+    async def list_definitions(cls, namespace, label_selector=None):
+        _continue = None
+        while True:
+            obj_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
+                group = cls.api_group,
+                label_selector = label_selector,
+                namespace = namespace,
+                plural = cls.plural,
+                version = cls.api_version,
+                limit = 20,
+                _continue = _continue
+            )
+            for definition in obj_list.get('items', []):
+                yield definition
+            _continue = obj_list['metadata'].get('continue')
+            if not _continue:
+                return
+
     def __init__(self, annotations, labels, meta, name, namespace, spec, status, uid, definition=None, **_):
         self.annotations = annotations
         self.definition = definition

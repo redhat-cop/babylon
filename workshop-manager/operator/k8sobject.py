@@ -61,6 +61,10 @@ class K8sObject:
         return self.metadata.get('annotations', {})
 
     @property
+    def api_group_version(self):
+        return f"{self.api_group}/{self.api_version}"
+
+    @property
     def creation_datetime(self):
         return datetime.strptime(
             self.creation_timestamp, '%Y-%m-%dT%H:%M:%SZ'
@@ -93,6 +97,19 @@ class K8sObject:
     @property
     def status(self):
         return self.definition.get('status', {})
+
+    @property
+    def uid(self):
+        return self.metadata['uid']
+
+    def as_owner_ref(self):
+        return {
+            "apiVersion": self.api_group_version,
+            "controller": True,
+            "kind": self.kind,
+            "name": self.name,
+            "uid": self.uid,
+        }
 
     async def delete(self):
         try:

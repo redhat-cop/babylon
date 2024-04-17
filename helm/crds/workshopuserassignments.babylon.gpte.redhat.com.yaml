@@ -1,0 +1,112 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: workshopuserassignments.babylon.gpte.redhat.com
+spec:
+  conversion:
+    strategy: None
+  group: babylon.gpte.redhat.com
+  names:
+    kind: WorkshopUserAssignment
+    listKind: WorkshopUserAssignmentList
+    plural: workshopuserassignments
+    singular: workshopuserassignment
+  scope: Namespaced
+  versions:
+  - name: v1
+    additionalPrinterColumns:
+    - name: ResourceClaim
+      type: string
+      jsonPath: .spec.resourceClaimName
+    - name: User
+      type: string
+      jsonPath: .spec.userName
+    - name: Assignment
+      type: string
+      jsonPath: .spec.assignment.email
+    schema:
+      openAPIV3Schema:
+        description: >-
+          Workshop user assignment for a workshop which may represent an assigned seat to a user or an available, unassigned, seat.
+        required:
+        - resourceClaimName
+        - workshopName
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            properties:
+              name:
+                maxLength: 63
+                pattern: ^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$
+                type: string
+            type: object
+          spec:
+            description: Specification of WorkshopUserAssignment.
+            type: object
+            properties:
+              assignment:
+                description: >-
+                  Assignment for workshop participant.
+                type: object
+                required:
+                - email
+                properties:
+                  email:
+                    description: >-
+                      Email address used to identify workshop participant.
+                    type: string
+              data:
+                description: >-
+                  Any data items reported for the user from the service provisioning.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              labUserInterface:
+                description: >-
+                  Lab user interface information for user access.
+                type: object
+                properties:
+                  redirect:
+                    description: >-
+                      Configure that users should be automatically redirected to the lab user interface.
+                    type: boolean
+                  url:
+                    description: >-
+                      URL for the lab user interface.
+                    type: string
+              messages:
+                description: >-
+                  Any messages reported for the user from the service provisioning.
+                type: string
+              resourceClaimName:
+                description: >-
+                  ResourceClaim name.
+                type: string
+              userName:
+                description: >-
+                  User name for lab as reported from the service provisioning.
+                type: string
+              workshopName:
+                description: >-
+                  Workshop name reference.
+                type: string
+          status:
+            description: Status of Workshop
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              diffBase:
+                description: Kopf diffbase
+                type: string
+        required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

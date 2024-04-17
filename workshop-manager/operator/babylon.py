@@ -19,16 +19,18 @@ class Babylon():
     lab_ui_url_annotation = f"{babylon_domain}/labUserInterfaceUrl"
     lab_ui_urls_annotation = f"{babylon_domain}/labUserInterfaceUrls"
     notifier_annotation = f"{babylon_domain}/notifier"
+    purpose_annotation = f"{demo_domain}/purpose"
+    purpose_activity_annotation = f"{demo_domain}/purpose-activity"
     requester_annotation = f"{babylon_domain}/requester"
+    resource_claim_label = f"{poolboy_domain}/resource-claim"
     resource_pool_annotation = f"{poolboy_domain}/resource-pool-name"
     url_annotation = f"{babylon_domain}/url"
     workshop_label = f"{babylon_domain}/workshop"
     workshop_id_label = f"{babylon_domain}/workshop-id"
     workshop_uid_label = f"{babylon_domain}/workshop-uid"
     workshop_provision_label = f"{babylon_domain}/workshop-provision"
-    purpose_annotation = f"{demo_domain}/purpose"
-    purpose_activity_annotation = f"{demo_domain}/purpose-activity"
     salesforce_id_annotation = f"{demo_domain}/salesforce-id"
+    user_name_label = f"{babylon_domain}/user-name"
 
     @classmethod
     async def on_cleanup(cls):
