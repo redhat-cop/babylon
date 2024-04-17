@@ -15,12 +15,12 @@ tags = ["support"]
 router = APIRouter(tags=tags)
 
 # Service Now params:
-SNOW_AUTH_SECRET = os.getenv('SNOW_AUTH_SECRET')
-SNOW_FORM_ID = os.getenv('SNOW_FORM_ID')
-# WORKSHOP_FORM_URL = f"https://redhat.service-now.com/api/sn_sc/v1/servicecatalog/items/{SNOW_FORM_ID}/order_now"
-WORKSHOP_FORM_URL = f"https://redhatqa.service-now.com/api/sn_sc/v1/servicecatalog/items/{SNOW_FORM_ID}/order_now"
+SERVICENOW_AUTH_SECRET = os.getenv('SERVICENOW_AUTH_SECRET')
+SERVICENOW_FORM_ID = os.getenv('SERVICENOW_FORM_ID')
+# WORKSHOP_FORM_URL = f"https://redhat.service-now.com/api/sn_sc/v1/servicecatalog/items/{SERVICENOW_FORM_ID}/order_now"
+WORKSHOP_FORM_URL = f"https://redhatqa.service-now.com/api/sn_sc/v1/servicecatalog/items/{SERVICENOW_FORM_ID}/order_now"
 SYS_USER_URL = "https://redhatqa.service-now.com/api/now/table/sys_user"
-API_HEADERS={"Authorization": f"Basic {SNOW_AUTH_SECRET}"}
+API_HEADERS={"Authorization": f"Basic {SERVICENOW_AUTH_SECRET}"}
 
 async def create_ticket(support_create):
     async with aiohttp.ClientSession(headers=API_HEADERS) as session:
