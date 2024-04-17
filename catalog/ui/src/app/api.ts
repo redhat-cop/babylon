@@ -770,7 +770,7 @@ export async function openWorkshopSupportTicket(
     method: 'POST',
   });
   const workshopSuport = await resp.json();
-  workshop.metadata.annotations[`${BABYLON_DOMAIN}/snow`] = JSON.stringify(workshopSuport);
+  workshop.metadata.annotations[`${BABYLON_DOMAIN}/servicenow`] = JSON.stringify(workshopSuport);
   return await updateWorkshop(workshop);
 }
 
