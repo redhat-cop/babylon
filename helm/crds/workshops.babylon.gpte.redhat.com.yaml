@@ -105,7 +105,8 @@ spec:
                 type: boolean
               userAssignments:
                 description: >-
-                  Users for multi-user workshop environments.
+                  Deprecated in favor of WorkshopUserAssignments objects.
+                  This value will be kept up to date in the current release while synchronizing to the new objects.
                 type: array
                 items:
                   type: object

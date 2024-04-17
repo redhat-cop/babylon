@@ -59,6 +59,8 @@ rules:
   - workshops/status
   - workshopprovisions
   - workshopprovisions/status
+  - workshopuserassignments
+  - workshopuserassignments/status
   verbs:
   - create
   - delete

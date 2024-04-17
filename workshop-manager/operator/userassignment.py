@@ -10,13 +10,17 @@ class UserAssignment:
         user_name = None,
     ):
         if definition:
+            self.assignment = definition.get('assignment')
             self.data = definition.get('data')
             self.messages = definition.get('messages')
             self.resource_claim_name = definition.get('resourceClaimName')
             self.user_name = definition.get('userName')
             if 'labUserInterface' in definition:
                 self.lab_user_interface = LabUserInterface(definition=definition['labUserInterface'])
+            else:
+                self.lab_user_interface = None
         else:
+            self.assignment = None
             self.data = data
             self.lab_user_interface = lab_user_interface
             self.messages = messages
