@@ -90,7 +90,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                 isDisabled={noAutoStopChecked}
               />
             </FormGroup>
-            {(Date.now() + maxRuntimeTimestamp) >= _endDate.getTime() ? (
+            {Date.now() + maxRuntimeTimestamp >= _endDate.getTime() ? (
               <Switch
                 id="no-auto-stop-switch"
                 aria-label="No auto-stop"
@@ -111,7 +111,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
             <FormGroup fieldId="auto-destroy-modal" label="Auto-destroy">
               <DateTimePicker
                 defaultTimestamp={autoDestroyDate.getTime()}
-                onSelect={(d) => setDates({ ...dates, endDate: d, ...(type === 'schedule'? {stopDate: d}:{}) })}
+                onSelect={(d) => setDates({ ...dates, endDate: d, ...(type === 'schedule' ? { stopDate: d } : {}) })}
                 maxDate={
                   maxDestroyTimestamp
                     ? type === 'schedule' && dates.startDate
