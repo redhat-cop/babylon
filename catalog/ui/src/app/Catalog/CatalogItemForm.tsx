@@ -37,6 +37,7 @@ import {
   createWorkshop,
   createWorkshopProvision,
   fetcher,
+  openWorkshopSupportTicket,
 } from '@app/api';
 import { CatalogItem, TPurposeOpts } from '@app/types';
 import { displayName, isLabDeveloper, randomString } from '@app/util';
@@ -53,6 +54,7 @@ import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
 import { formatCurrency, getEstimatedCost, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import useImpersonateUser from '@app/utils/useImpersonateUser';
 
 import './catalog-item-form.css';
 
@@ -64,7 +66,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { isAdmin, groups, roles, serviceNamespaces, userNamespace } = useSession().getSession();
+  const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
+  const { userImpersonated } = useImpersonateUser();
+  let userEmail = email;
+  if (userImpersonated) {
+    userEmail = userImpersonated;
+  }
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher
@@ -171,6 +178,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         ...(scheduled !== null ? { endDate: scheduled.endDate } : { endDate: formState.endDate }),
         ...(scheduled !== null ? { startDate: scheduled.startDate } : {}),
       });
+      const redirectUrl = `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`;
       await createWorkshopProvision({
         catalogItem: catalogItem,
         concurrency: provisionConcurrency,
@@ -179,8 +187,23 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         startDelay: provisionStartDelay,
         workshop: workshop,
       });
-
-      navigate(`/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`);
+      if (scheduled !== null) {
+        const today = new Date();
+        const twoWeeks = new Date(new Date().setDate(today.getDate() + 14));
+        if (scheduled.startDate >= twoWeeks) {
+          await openWorkshopSupportTicket(workshop, {
+            number_of_attendees: provisionCount,
+            sfdc: formState.salesforceId.value,
+            name: catalogItemName,
+            event_name: displayName,
+            url: `${window.location.origin}${redirectUrl}`,
+            start_date: scheduled.startDate,
+            end_date: scheduled.endDate,
+            email: userEmail,
+          });
+        }
+      }
+      navigate(redirectUrl);
     } else {
       const resourceClaim = await createServiceRequest({
         catalogItem,
@@ -780,7 +803,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             </Button>
           </ActionListItem>
 
-          {isAdmin || isLabDeveloper(groups) ? (
+          {isAdmin || isLabDeveloper(groups) || formState.workshop ? (
             <ActionListItem>
               <Button
                 isAriaDisabled={!submitRequestEnabled}

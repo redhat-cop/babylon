@@ -51,6 +51,16 @@ spec:
               name: {{ default .Values.db.secretName "database" }}
         - name: DB_PORT
           value: {{ default .Values.db.port "54327" |quote }}
+        - name: SERVICENOW_AUTH_KEY
+          valueFrom:
+            secretKeyRef:
+              key: authKey
+              name: {{ .Values.servicenow.secretName | default "babylon-admin-servicenow" }}
+        - name: SERVICENOW_FORM_ID
+          valueFrom:
+            secretKeyRef:
+              key: workshopFormId
+              name: {{ .Values.servicenow.secretName | default "babylon-admin-servicenow" }}
         image: {{ include "babylon-admin.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:

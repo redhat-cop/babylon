@@ -1144,6 +1144,7 @@ class AgnosticVComponent(KopfObject):
             if (
                 not annotation.startswith(f"{Babylon.catalog_api_group}/") or
                 annotation in (
+                    "babylon.gpte.redhat.com/servicenow",
                     "babylon.gpte.redhat.com/ops",
                     "babylon.gpte.redhat.com/totalRatings",
                 )

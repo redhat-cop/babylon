@@ -169,6 +169,7 @@ babylon_resources:
 
   - name: Babylon admin Helm Template
     when: >-
+      babylon_servicenow is defined and
       babylon_reporting_db is defined and
       babylon_admin_deploy | default(true) | bool
     helm_template:
@@ -179,6 +180,10 @@ babylon_resources:
           username: "{{ babylon_reporting_db.username | default('') }}"
           password: "{{ babylon_reporting_db.password | default('') }}"
           hostname: "{{ babylon_reporting_db.hostname | default('') }}"
+        servicenow:
+          authKey: "{{ babylon_servicenow.authKey | default('') }}"
+          workshopFormId: "{{ babylon_servicenow.workshopFormId | default('') }}"
+          
 
   - name: Babylon lab-ui-manager Helm Template
     when: >-

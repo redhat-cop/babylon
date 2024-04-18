@@ -22,6 +22,8 @@ export DB_USERNAME=<<REDATECT>>
 export DB_PASSWORD=<<REDACTED>>
 export DB_NAME=<<REDACTED>>
 export DB_PORT=<<REDACTED>>
+export SERVICENOW_AUTH_KEY=<<REDACTED>>
+export SERVICENOW_FORM_ID=<<REDACTED>>
 -----------------------------------------------
 
 Commands each time to start:

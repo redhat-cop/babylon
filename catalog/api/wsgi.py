@@ -785,6 +785,11 @@ def update_incident(incident_id):
     data = flask.request.get_json()
     return api_proxy(method="POST", url=f"{admin_api}/api/admin/v1/incidents/{incident_id}", data=json.dumps(data), headers=flask.request.headers)
 
+@application.route("/api/admin/workshop/support", methods=['POST'])
+def create_support():
+    data = flask.request.get_json()
+    return api_proxy(method="POST", url=f"{admin_api}/api/admin/v1/workshop/support", data=json.dumps(data), headers=flask.request.headers)
+
 @application.route("/api/workshop/<workshop_id>", methods=['GET'])
 def workshop_get(workshop_id):
     """
