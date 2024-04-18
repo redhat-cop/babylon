@@ -770,8 +770,9 @@ export async function openWorkshopSupportTicket(
     method: 'POST',
   });
   const workshopSuport = await resp.json();
-  workshop.metadata.annotations[`${BABYLON_DOMAIN}/servicenow`] = JSON.stringify(workshopSuport);
-  return await updateWorkshop(workshop);
+  const w = await getWorkshop(workshop.metadata.namespace, workshop.metadata.name)
+  w.metadata.annotations[`${BABYLON_DOMAIN}/servicenow`] = JSON.stringify(workshopSuport);
+  return await updateWorkshop(w);
 }
 
 export async function getApiSession(forceRefresh = false) {
