@@ -15,6 +15,9 @@ spec:
   versions:
   - name: v1
     additionalPrinterColumns:
+    - name: Workshop
+      type: string
+      jsonPath: .spec.workshopName
     - name: ResourceClaim
       type: string
       jsonPath: .spec.resourceClaimName
