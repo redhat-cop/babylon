@@ -41,10 +41,11 @@ spec:
         - name: INTERFACE_NAME
           value: {{ . | quote }}
         {{- end }}
-        {{- if .Values.salesforce }}
-        - name: SALESFORCE_SECRET
-          value: {{ include "babylonCatalog.salesforceSecretName" . }}
-        {{- end }}
+        - name: SALESFORCE_AUTHORIZATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylonCatalog.salesforceApi.secretName" . }}
+              key: salesforce-api-token
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:

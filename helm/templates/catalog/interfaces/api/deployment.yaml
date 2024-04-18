@@ -35,10 +35,11 @@ spec:
         - name: INTERFACE_NAME
           value: {{ . | quote }}
         {{- end }}
-        {{- with $interface.salesforceSecretName }}
-        - name: SALESFORCE_SECRET
-          value: {{ . | quote }}
-        {{- end }}
+        - name: SALESFORCE_AUTHORIZATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "$interface.salesforceApi.secretName" . }}
+              key: salesforce-api-token
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:

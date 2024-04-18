@@ -15,7 +15,7 @@ api:
     threads: 1
   image:
     #override:
-    tag: v0.12.8
+    tag: v0.12.9
     repository: quay.io/redhat-gpte/babylon-catalog-api
     pullPolicy: IfNotPresent
   imagePullSecrets: []
@@ -105,14 +105,6 @@ route:
   create: true
   host:
 
-# Optional Salesforce configuration for API integration
-#salesforce:
-#  secretName: babylon-salesforce-api
-#  create: true
-#  instance: ...
-#  consumer_key: ...
-#  privatekey: |
-#    -----BEGIN PRIVATE KEY-----
-#    ...
-#    -----END PRIVATE KEY-----
-#  username: ...
+salesforceApi:
+  deploy: true
+  secretName: salesforce-api

@@ -15,8 +15,6 @@ import urllib3
 from base64 import b64decode
 from hotfix import HotfixKubeApiClient
 from retrying import retry
-from simple_salesforce import Salesforce, format_soql
-from simple_salesforce.exceptions import SalesforceMalformedRequest
 import requests
 from datetime import datetime
 
@@ -33,6 +31,8 @@ session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
+salesforce_api = os.environ.get('SALESFORCE_API', 'http://salesforce-api.demo-reporting.svc.cluster.local:8080')
+salesforce_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
 
 if 'REDIS_PASSWORD' in os.environ:
     redis_connection = redis.StrictRedis(
@@ -377,140 +377,6 @@ def api_proxy(method, url, headers, data = None, params = None):
     response = flask.Response(resp.content, resp.status_code, headers)
     return response
 
-@retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
-def salesforce_connection():
-    # Cannot read salesforce secret without babylon namespace value
-    if not babylon_namespace:
-        flask.abort(400)
-
-    sfdc_instance = sfdc_consumer_key = sfdc_privatekey = sfdc_username = None
-
-    try:
-        sfdc_secret = core_v1_api.read_namespaced_secret(
-            os.environ.get('SALESFORCE_SECRET', 'salesforce'),
-            babylon_namespace
-        )
-        sfdc_consumer_key = b64decode(sfdc_secret.data['consumer_key']).decode('utf8')
-        sfdc_instance = b64decode(sfdc_secret.data['instance']).decode('utf8')
-        sfdc_privatekey = b64decode(sfdc_secret.data['privatekey']).decode('utf8')
-        sfdc_username = b64decode(sfdc_secret.data['username']).decode('utf8')
-    except kubernetes.client.rest.ApiException as e:
-        if e.status != 404:
-            flask.abort(400)
-
-    try:
-        session = requests.Session()
-        sf = Salesforce(instance=sfdc_instance,
-                        consumer_key=sfdc_consumer_key,
-                        privatekey=sfdc_privatekey,
-                        username=sfdc_username,
-                        client_id="PFE Babylon API", session=session)
-        return sf
-    except Exception as e:
-        flask.abort(400)
-
-
-@retry(stop_max_attempt_number=3, wait_exponential_multiplier=500, wait_exponential_max=5000)
-def salesforce_validation(salesforce_id):
-    opportunity_info = {}
-    salesforce_id = str(salesforce_id).strip()
-    salesforce_type = 'opportunity'
-
-    if redis_connection:
-        opportunity_json = redis_connection.get("salesforce_" + salesforce_id)
-        if opportunity_json:
-            opportunity_info = json.loads(opportunity_json)
-            salesforce_type = opportunity_info.get('salesforce_type', 'opportunity')
-
-    if not opportunity_info:
-        salesforce_api = salesforce_connection()
-
-        # if opportunity_id starts with PR it's a project id
-        if salesforce_id.startswith('PR'):
-            salesforce_type = 'project'
-            opportunity_query = format_soql("SELECT Id, pse__Start_Date__c, pse__End_Date__c, "
-                                            "pse__Is_Active__c, pse__Project_ID__c "
-                                            "FROM pse__Proj__c "
-                                            "WHERE pse__Is_Active__c = true AND pse__Project_ID__c = {}",
-                                            salesforce_id)
-        # If opportunity_id starts with 701 it's a campaign number/id
-        elif salesforce_id.startswith('701'):
-            salesforce_type = 'campaign'
-            opportunity_query = format_soql("SELECT "
-                                            "  Id, StartDate, EndDate, IsActive "
-                                            "FROM Campaign "
-                                            "WHERE Id = {}", salesforce_id)
-        else:
-            salesforce_type = 'opportunity'
-            opportunity_query = format_soql("SELECT "
-                                            "  Id, Name, AccountId, IsClosed, "
-                                            "  CloseDate, StageName, OpportunityNumber__c "
-                                            "FROM Opportunity "
-                                            "WHERE OpportunityNumber__c = {} AND IsClosed = false", salesforce_id)
-            try: 
-                opp_results = salesforce_api.query(opportunity_query)
-                totalSize = opp_results.get('totalSize', 0)
-                if totalSize == 0:
-                    salesforce_type = 'cdh'
-                    opportunity_query = format_soql("SELECT "
-                                            "  Id, CDHPartyNumber__c "
-                                            "FROM Account "
-                                            "WHERE CDHPartyNumber__c = {}", str(salesforce_id))
-            except SalesforceMalformedRequest:
-                flask.abort(404, description='Invalid SalesForce Request')
-        try:
-            opp_results = salesforce_api.query(opportunity_query)
-            opportunity_info['totalSize'] = opp_results.get('totalSize', 0)
-            for i in opp_results['records']:
-                if 'attributes' in i:
-                    del i['attributes']
-                opportunity_info.update(i)
-                opportunity_info['salesforce_type'] = salesforce_type
-                if salesforce_type == 'opportunity':
-                    # Rename custom field to be readable
-                    opportunity_info['Number'] = opportunity_info.pop('OpportunityNumber__c')
-
-        except SalesforceMalformedRequest:
-            flask.abort(404, description='Invalid SalesForce Request')
-
-    saleforce_valid = opportunity_info.get('totalSize', 0)
-
-    if redis_connection:
-        redis_connection.setex("salesforce_" + salesforce_id, session_lifetime, json.dumps(opportunity_info))
-
-    # If the opportunity not found in SFDC that means its invalid opportunity number
-    if saleforce_valid == 0:
-        return False
-    else:
-        if salesforce_type == 'campaign':
-            # Business rules for a invalid Campaign
-            # if IsActive is false
-            current_date = datetime.utcnow().strftime("%Y-%m-%d")
-            end_date = opportunity_info.get('EndDate')
-            is_active = opportunity_info.get('IsActive', False)
-            if not is_active or current_date > end_date:
-                return False
-        elif salesforce_type == 'cdh':
-            return True
-        elif salesforce_type == 'project':
-            is_active = opportunity_info.get('pse__Is_Active__c', False)
-            if not is_active:
-                return False
-        else:
-            # Business rules for invalid opportunity:
-            # If the opportunity is Closed
-            # If the current date is more than the CloseDate
-            # If opportunity's stage in Closed Booked, Closed Lost or Closed On
-            current_date = datetime.utcnow().strftime("%Y-%m-%d")
-            is_closed = opportunity_info.get('IsClosed', False)
-            close_date = opportunity_info.get('CloseDate')
-            stage_name = opportunity_info.get('StageName')
-            if is_closed or current_date > close_date or \
-                    stage_name in ('Closed Booked', 'Closed Lost', 'Closed Won'):
-                return False
-
-        return True
-
 
 @application.route("/auth/session")
 def get_auth_session():
@@ -742,13 +608,6 @@ def apis_proxy(path):
         else:
             flask.abort(flask.make_response(flask.jsonify({"reason": e.reason}), e.status))
 
-
-@application.route("/api/salesforce/opportunity/<opportunity_id>", methods=['GET'])
-def salesforce_opportunity(opportunity_id):
-    if salesforce_validation(opportunity_id):
-        return flask.jsonify({"success": True})
-    flask.abort(404)
-
 @application.route("/api/ratings/request/<request_uid>", methods=['POST'])
 def provision_rating_set(request_uid):
     user = proxy_user()
@@ -883,6 +742,18 @@ def workshop_put(workshop_id):
                     raise
 
     return flask.jsonify(ret)
+
+
+@application.route("/api/salesforce/<salesforce_id>", methods=['GET'])
+def salesforce_id_validation(salesforce_id):
+    data = {
+        "salesforce_id": salesforce_id
+    }
+    headers = {
+        "Authorization": f"Bearer {SALESFORCE_AUTHORIZATION_TOKEN}"
+        "Accept": "application/json"
+    }
+    return api_proxy(method="POST", url=f"{salesforce_api}/sales_validation", data=data, headers=headers)
 
 if __name__ == "__main__":
     application.run()
