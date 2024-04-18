@@ -9,12 +9,12 @@ logger = logging.getLogger('babylon-api')
 
 class SupportCreate(BaseModel):
     number_of_attendees: int
-    sfdc: str | None
+    sfdc: Optional[str]
     name: str
-    event_name: str | None
+    event_name: Optional[str]
     url: str
-    start_time: datetime | None
-    end_time: datetime | None
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
     email: str
 
 class SupportResponse(BaseModel):
