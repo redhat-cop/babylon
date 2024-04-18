@@ -750,7 +750,7 @@ def salesforce_id_validation(salesforce_id):
         "salesforce_id": salesforce_id
     }
     headers = {
-        "Authorization": f"Bearer {SALESFORCE_AUTHORIZATION_TOKEN}"
+        "Authorization": f"Bearer {SALESFORCE_AUTHORIZATION_TOKEN}",
         "Accept": "application/json"
     }
     return api_proxy(method="POST", url=f"{salesforce_api}/sales_validation", data=data, headers=headers)

@@ -185,3 +185,9 @@ ClusterRoleBinding name
   {{- include "babylonCatalog.namespaceName" . }}:{{ include "babylonCatalog.apiServiceAccountName" . }}
 {{- end -}}
 
+{{/*
+Saleforce API secret name
+*/}}
+{{- define "babylonCatalog.salesforceApiSecretName" -}}
+  {{- .Values.salesforceApi.secretName }}
+{{- end -}}
