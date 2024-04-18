@@ -105,14 +105,6 @@ route:
   create: true
   host:
 
-# Optional Salesforce configuration for API integration
-#salesforce:
-#  secretName: babylon-salesforce-api
-#  create: true
-#  instance: ...
-#  consumer_key: ...
-#  privatekey: |
-#    -----BEGIN PRIVATE KEY-----
-#    ...
-#    -----END PRIVATE KEY-----
-#  username: ...
+salesforceApi:
+  deploy: true
+  secretName: salesforce-api
