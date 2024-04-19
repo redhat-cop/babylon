@@ -38,7 +38,7 @@ spec:
         - name: SALESFORCE_AUTHORIZATION_TOKEN
           valueFrom:
             secretKeyRef:
-              name: salesforceApi
+              name: salesforce-api
               key: salesforce-api-token
         - name: REDIS_PASSWORD
           valueFrom:
