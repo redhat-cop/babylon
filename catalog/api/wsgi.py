@@ -17,6 +17,7 @@ from hotfix import HotfixKubeApiClient
 from retrying import retry
 import requests
 from datetime import datetime
+from werkzeug.datastructures import Headers
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -746,14 +747,10 @@ def workshop_put(workshop_id):
 
 @application.route("/api/salesforce/<salesforce_id>", methods=['GET'])
 def salesforce_id_validation(salesforce_id):
-    data = {
-        "salesforce_id": salesforce_id
-    }
-    headers = {
-        "Authorization": f"Bearer {salesforce_authorization_token}",
-        "Accept": "application/json"
-    }
-    return api_proxy(method="POST", url=f"{salesforce_api}/sales_validation", data=data, headers=headers)
+    headers = Headers({
+        "Authorization": f"Bearer {salesforce_authorization_token}"
+    })
+    return api_proxy(method="POST", url=f"{salesforce_api}/sales_validation?salesforce_id={salesforce_id}", data={}, headers=headers)
 
 if __name__ == "__main__":
     application.run()
