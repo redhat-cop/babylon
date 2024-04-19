@@ -38,7 +38,7 @@ spec:
         - name: SALESFORCE_AUTHORIZATION_TOKEN
           valueFrom:
             secretKeyRef:
-              name: {{ include "$interface.salesforceApi.secretName" . }}
+              name: salesforceApi
               key: salesforce-api-token
         - name: REDIS_PASSWORD
           valueFrom:
