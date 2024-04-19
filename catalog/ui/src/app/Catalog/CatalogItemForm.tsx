@@ -361,7 +361,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               }
               validated={
                 formState.salesforceId.valid
-                  ? 'default'
+                  ? 'success'
                   : formState.salesforceId.value &&
                     formState.salesforceId.required &&
                     formState.conditionChecks.completed
@@ -383,7 +383,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   value={formState.salesforceId.value || ''}
                   validated={
                     formState.salesforceId.value && formState.salesforceId.valid
-                      ? 'default'
+                      ? 'success'
                       : formState.salesforceId.value && formState.conditionChecks.completed
                       ? 'error'
                       : 'default'
