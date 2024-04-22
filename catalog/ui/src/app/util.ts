@@ -388,3 +388,15 @@ export function namespaceToServiceNamespaceMapper(ns: Namespace): ServiceNamespa
     requester: ns.metadata.annotations['openshift.io/requester'],
   };
 }
+
+export function getServiceNowUrl({
+  sys_id,
+  request_number,
+  request_id,
+}: {
+  sys_id: string;
+  request_number: string;
+  request_id: string;
+}) {
+  return `https://redhat.service-now.com/help?id=rh_ticket&table=sc_req_item&number=${request_number}&view=ess`;
+}

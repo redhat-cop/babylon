@@ -17,7 +17,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { patchWorkshop } from '@app/api';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
-import { BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN, getServiceNowUrl } from '@app/util';
 import useDebounce from '@app/utils/useDebounce';
 import useSession from '@app/utils/useSession';
 import EditableText from '@app/components/EditableText';
@@ -39,6 +39,8 @@ const WorkshopsItemDetails: React.FC<{
   showModal?: ({ action, resourceClaims }: ModalState) => void;
 }> = ({ onWorkshopUpdate, workshopProvisions, resourceClaims, workshop, showModal }) => {
   const { isAdmin } = useSession().getSession();
+  const serviceNowJson = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/servicenow`];
+  const serviceNowUrl = serviceNowJson ? getServiceNowUrl(JSON.parse(serviceNowJson)) : null;
   const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
@@ -267,6 +269,17 @@ const WorkshopsItemDetails: React.FC<{
               className="workshops-item__schedule-btn"
               notDefinedMessage="- Not defined -"
             />
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
+
+      {serviceNowUrl ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Support Ticket</DescriptionListTerm>
+          <DescriptionListDescription>
+            <Link to={serviceNowUrl} target="_blank" rel="noopener">
+              {serviceNowUrl}
+            </Link>
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
