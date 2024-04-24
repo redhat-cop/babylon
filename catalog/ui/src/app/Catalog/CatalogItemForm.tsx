@@ -128,7 +128,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     {
       scheduled,
     }: {
-      scheduled: { startDate: Date; endDate: Date; stopDate: Date };
+      scheduled: { startDate: Date; endDate: Date; stopDate: Date; createTicket?: boolean };
     } = { scheduled: null }
   ): Promise<void> {
     if (!submitRequestEnabled) {
@@ -189,9 +189,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       });
       if (scheduled !== null) {
         try {
-          const today = new Date();
-          const twoWeeks = new Date(new Date().setDate(today.getDate() + 14));
-          if (scheduled.startDate >= twoWeeks) {
+          if (scheduled.createTicket) {
             await openWorkshopSupportTicket(workshop, {
               number_of_attendees: provisionCount,
               sfdc: formState.salesforceId.value,
@@ -261,7 +259,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         onConfirm={(dates: TDates) =>
           autoStopDestroyModal === 'schedule'
             ? submitRequest({
-                scheduled: { startDate: dates.startDate, stopDate: dates.stopDate, endDate: dates.endDate },
+                scheduled: {
+                  startDate: dates.startDate,
+                  stopDate: dates.stopDate,
+                  endDate: dates.endDate,
+                  createTicket: dates.createTicket,
+                },
               })
             : autoStopDestroyModal === 'auto-destroy'
             ? dispatchFormState({ type: 'dates', endDate: dates.endDate })

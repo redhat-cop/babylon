@@ -6,7 +6,7 @@ import InfoIcon from '@patternfly/react-icons/dist/js/icons/info-icon';
 import useSession from '@app/utils/useSession';
 import useHelpLink from '@app/utils/useHelpLink';
 
-export type TDates = { startDate: Date; stopDate: Date; endDate: Date };
+export type TDates = { startDate: Date; stopDate: Date; endDate: Date; createTicket?: boolean };
 export type TDatesTypes = 'auto-stop' | 'auto-destroy' | 'schedule';
 
 const CatalogItemFormAutoStopDestroyModal: React.FC<{
@@ -46,6 +46,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
     stopDate: null,
     endDate: null,
   });
+  const [createTicket, setCreateTicket] = useState(false);
   const _stopDate = dates.stopDate || autoStopDate;
   const _endDate = dates.endDate || autoDestroyDate;
   const noAutoStopChecked = _stopDate && _endDate && _stopDate.getTime() >= _endDate.getTime();
@@ -61,7 +62,12 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
       ref={autoStopDestroyModal}
       onConfirm={() =>
         type === 'schedule'
-          ? onConfirm({ endDate: _endDate, stopDate: _stopDate, startDate: dates.startDate || new Date() })
+          ? onConfirm({
+              endDate: _endDate,
+              stopDate: _stopDate,
+              startDate: dates.startDate || new Date(),
+              createTicket,
+            })
           : onConfirm(dates)
       }
       title={type === 'auto-stop' || type === 'auto-destroy' ? title : 'Schedule for'}
@@ -73,11 +79,25 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
           <FormGroup fieldId="auto-start-modal" label="Start Date">
             <DateTimePicker
               defaultTimestamp={autoStartDate?.getTime() || Date.now()}
-              onSelect={(d) => setDates({ ...dates, startDate: d })}
+              onSelect={(d) => {
+                setDates({ ...dates, startDate: d });
+                const today = new Date();
+                const twoWeeks = new Date(new Date().setDate(today.getDate() + 14));
+                if (d >= twoWeeks) {
+                  setCreateTicket(true);
+                }
+              }}
               minDate={Date.now()}
               maxDate={maxStartTimestamp}
             />
           </FormGroup>
+        ) : null}
+        {isWorkshopEnabled ? (
+          <HelperText style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
+            <HelperTextItem icon={<InfoIcon />}>
+              Services will launch at the specified date and take some time to be available.
+            </HelperTextItem>
+          </HelperText>
         ) : null}
         {type === 'auto-stop' && !isAutoStopDisabled ? (
           <>
@@ -141,14 +161,22 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
             )}
           </>
         ) : null}
+
+        {type === 'schedule' ? (
+          <>
+            <Switch
+              id="support-ticket-switch"
+              aria-label="Open Support Ticket"
+              label="Open Support Ticket"
+              isChecked={createTicket}
+              hasCheckIcon
+              onChange={(isChecked) => {
+                setCreateTicket(isChecked);
+              }}
+            />
+          </>
+        ) : null}
       </Form>
-      {isWorkshopEnabled ? (
-        <HelperText style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
-          <HelperTextItem icon={<InfoIcon />}>
-            Services will launch at the specified date and take some time to be available.
-          </HelperTextItem>
-        </HelperText>
-      ) : null}
     </Modal>
   );
 };

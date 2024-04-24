@@ -12,12 +12,14 @@ import {
   SelectVariant,
   Tooltip,
   Switch,
+  Button,
+  TextInput,
 } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { patchWorkshop } from '@app/api';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
-import { BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN, getServiceNow } from '@app/util';
 import useDebounce from '@app/utils/useDebounce';
 import useSession from '@app/utils/useSession';
 import EditableText from '@app/components/EditableText';
@@ -28,6 +30,7 @@ import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
 import { ModalState } from './WorkshopsItem';
 import WorkshopStatus from './WorkshopStatus';
+import PencilAltIcon from '@patternfly/react-icons/dist/js/icons/pencil-alt-icon';
 
 import './workshops-item-details.css';
 
@@ -39,6 +42,10 @@ const WorkshopsItemDetails: React.FC<{
   showModal?: ({ action, resourceClaims }: ModalState) => void;
 }> = ({ onWorkshopUpdate, workshopProvisions, resourceClaims, workshop, showModal }) => {
   const { isAdmin } = useSession().getSession();
+  const [editingServiceNow, setEditingServiceNow] = useState(false);
+  const serviceNowJson = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/servicenow`];
+  const { url: serviceNowUrl, id: serviceNowId } = serviceNowJson ? getServiceNow(JSON.parse(serviceNowJson)) : null;
+  const [serviceNowNumber, setServiceNowNumber] = useState(serviceNowId);
   const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
@@ -70,6 +77,16 @@ const WorkshopsItemDetails: React.FC<{
         })
       );
     }
+  }
+
+  async function saveServiceNowNumber(serviceNowObj: any): Promise<void> {
+    onWorkshopUpdate(
+      await patchWorkshop({
+        name: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        patch: { metadata: { annotations: { [`${BABYLON_DOMAIN}/servicenow`]: JSON.stringify(serviceNowObj) } } },
+      })
+    );
   }
 
   return (
@@ -270,6 +287,47 @@ const WorkshopsItemDetails: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
+
+      <DescriptionListGroup>
+        <DescriptionListTerm>Support Ticket</DescriptionListTerm>
+        <DescriptionListDescription>
+          {serviceNowUrl && !editingServiceNow ? (
+            <Button variant="secondary" onClick={() => window.open(serviceNowUrl)}>
+              {serviceNowId}
+            </Button>
+          ) : editingServiceNow ? (
+            <TextInput
+              type="text"
+              id="servicenow-id"
+              aria-label="ServiceNow number"
+              value={serviceNowNumber}
+              onChange={(v) => setServiceNowNumber(v)}
+              style={{ width: 'auto', marginRight: '16px' }}
+              placeholder="RITM0000000"
+            />
+          ) : (
+            '-'
+          )}
+          <Button
+            onClick={() => {
+              if (editingServiceNow) {
+                saveServiceNowNumber(
+                  serviceNowNumber && serviceNowNumber !== ''
+                    ? { ...JSON.parse(serviceNowJson), number: serviceNowNumber }
+                    : {}
+                );
+              }
+              setEditingServiceNow(!editingServiceNow);
+            }}
+            variant={editingServiceNow ? 'secondary' : 'link'}
+            icon={editingServiceNow ? 'Save' : <PencilAltIcon />}
+            style={{ marginRight: '16px' }}
+          />
+          <Tooltip position="right" content={<p>ServiceNow support Ticket number.</p>}>
+            <OutlinedQuestionCircleIcon aria-label="ServiceNow support ticket number." className="tooltip-icon-only" />
+          </Tooltip>
+        </DescriptionListDescription>
+      </DescriptionListGroup>
     </DescriptionList>
   );
 };

@@ -17,7 +17,7 @@ export function getWorkshopStartTime(workshop: Workshop, workshopProvisions?: Wo
   const provisionsStartTime = workshopProvisions
     ? workshopProvisions
         .map((workshopProvision) =>
-          workshopProvision.spec.lifespan?.start ? Date.parse(workshopProvision.spec.lifespan.start) : null,
+          workshopProvision.spec.lifespan?.start ? Date.parse(workshopProvision.spec.lifespan.start) : null
         )
         .filter(Number)
     : [];
@@ -26,7 +26,7 @@ export function getWorkshopStartTime(workshop: Workshop, workshopProvisions?: Wo
 
 export function getWorkshopLifespan(
   workshop: Workshop,
-  workshopProvisions: WorkshopProvision[],
+  workshopProvisions: WorkshopProvision[]
 ): { start: number; end: number } {
   const endTime = workshop.spec.lifespan?.end ? Date.parse(workshop.spec.lifespan.end) : null;
   return { start: getWorkshopStartTime(workshop, workshopProvisions), end: endTime };
@@ -62,7 +62,7 @@ export function checkWorkshopCanStop(resourceClaims: ResourceClaim[] = []) {
 
 export function supportAction(
   resourceClaims: ResourceClaim[] = [],
-  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy',
+  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy'
 ) {
   function canResourceClaimExecuteAction(resourceClaim: ResourceClaim) {
     return !!(resourceClaim?.status?.resources || []).find((r) => {
