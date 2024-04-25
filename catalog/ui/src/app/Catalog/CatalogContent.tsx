@@ -4,7 +4,6 @@ import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 import { useRect } from '@app/utils/useRect';
-import LoadingIcon from '@app/components/LoadingIcon';
 import CatalogGridList from './CatalogGridList';
 
 const CatalogContent: React.FC<{
@@ -30,8 +29,14 @@ const CatalogContent: React.FC<{
             {!userHasRequiredPropertiesToAccess && userInterface === 'rhdp-partners' ? (
               <>
                 <p>Welcome to the Red Hat Demo Platform (RHDP)!</p>
-                <p>At this time, it appears that your account is not listed as a pilot user for the beta version of RHDP. Please reach out to your account manager or Red Hat contact to request pilot access.</p>
-                <p>Once approved, you will be able to log-in with your Red Hat credentials. We look forward to your engagement with our updated demo platform!</p>
+                <p>
+                  At this time, it appears that your account is not listed as a pilot user for the beta version of RHDP.
+                  Please reach out to your account manager or Red Hat contact to request pilot access.
+                </p>
+                <p>
+                  Once approved, you will be able to log-in with your Red Hat credentials. We look forward to your
+                  engagement with our updated demo platform!
+                </p>
               </>
             ) : groups.includes('salesforce-partner') && userInterface !== 'rhdp-partners' ? (
               <>
