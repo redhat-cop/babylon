@@ -30,7 +30,6 @@ import { CatalogItem, ResourceClaim } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
-import useImpersonateUser from '@app/utils/useImpersonateUser';
 import {
   checkAccessControl,
   displayName,
@@ -62,10 +61,10 @@ import {
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
-
-import './catalog-item-details.css';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import useHelpLink from '@app/utils/useHelpLink';
+
+import './catalog-item-details.css';
 
 enum CatalogItemAccess {
   Allow,
@@ -75,8 +74,7 @@ enum CatalogItemAccess {
 
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
   const navigate = useNavigate();
-  const { email, userNamespace, isAdmin, groups } = useSession().getSession();
-  const { userImpersonated } = useImpersonateUser();
+  const { userNamespace, isAdmin, groups } = useSession().getSession();
   const { provisionTimeEstimate, accessControl, lastUpdate } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);

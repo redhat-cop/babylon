@@ -31,12 +31,10 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const { code: status } = getStatus(catalogItem);
   const sla = getSLA(catalogItem);
 
-  if (!searchParams.has('item')) {
-    if (namespace) {
-      searchParams.set('item', catalogItem.metadata.name);
-    } else {
-      searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
-    }
+  if (namespace) {
+    searchParams.set('item', catalogItem.metadata.name);
+  } else {
+    searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
   }
 
   return (
