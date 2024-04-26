@@ -10,9 +10,7 @@ const CatalogRedirections: React.FC = () => {
   const { catalogNamespaces, groups } = useSession().getSession();
   const { namespace: catalogNamespaceName } = useParams();
   const userHasRequiredPropertiesToAccess =
-    catalogNamespaces.length > 0 &&
-    groups.some((g) => g.startsWith('identity-provider')) &&
-    groups.some((g) => g.startsWith('email-domain'));
+    catalogNamespaces.length > 0 && groups.some((g) => g.startsWith('identity-provider'));
 
   // Load last filter
   useEffect(() => {
