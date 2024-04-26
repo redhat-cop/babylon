@@ -13,24 +13,25 @@ import {
   EmptyState,
   EmptyStateIcon,
   Text,
+  Title,
 } from '@patternfly/react-core';
-import ErrorCircleOIcon from '@patternfly/react-icons/dist/js/icons/error-circle-o-icon';
 import { TableComposable, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
-import { Workshop } from '@app/types';
+import { WorkshopUserAssignment } from '@app/types';
 import { renderContent } from '@app/util';
 import BulkUserAssignmentModal from '@app/components/BulkUserAssignmentModal';
 import EditableText from '@app/components/EditableText';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 
 const WorkshopsItemUserAssignments: React.FC<{
-  onWorkshopUpdate: (workshop: Workshop) => void;
-  workshop: Workshop;
-}> = ({ onWorkshopUpdate, workshop }) => {
+  onUserAssignmentsUpdate: (userAssignments: WorkshopUserAssignment[]) => void;
+  userAssignments: WorkshopUserAssignment[];
+}> = ({ userAssignments, onUserAssignmentsUpdate }) => {
   const [bulkUserAssignmentMessage, setBulkUserAssignmentMessage] = useState('');
   const [bulkUserAssignmentModalIsOpen, setBulkUserAssignmentModalIsOpen] = useState(false);
-  const haveUserNames = (workshop.spec.userAssignments || []).find((ua) => ua.userName) ? true : false;
-  const resourceClaimNames = [...new Set((workshop.spec.userAssignments || []).map((ua) => ua.resourceClaimName))];
+  const haveUserNames = (userAssignments || []).find((ua) => ua.spec.userName) ? true : false;
+  const resourceClaimNames = [...new Set((userAssignments || []).map((ua) => ua.spec.resourceClaimName))];
 
   function openBulkUserAssignmentModal() {
     setBulkUserAssignmentMessage('');
@@ -38,21 +39,17 @@ const WorkshopsItemUserAssignments: React.FC<{
   }
 
   async function bulkAssignUsers(emails: string[]) {
-    const {
-      workshop: updatedWorkshop,
-      unassignedEmails,
-      userAssignments,
-    } = await bulkAssignWorkshopUsers({
+    const { unassignedEmails, workshopUserAssignments } = await bulkAssignWorkshopUsers({
       emails: emails,
-      workshop: workshop,
+      workshopUserAssignments: userAssignments,
     });
     setBulkUserAssignmentMessage(
       unassignedEmails.length === 0
         ? `Assigned ${userAssignments.length} users.`
-        : `Assigned ${userAssignments.length} users. Unable to assign ${unassignedEmails.join(', ')}`,
+        : `Assigned ${userAssignments.length} users. Unable to assign ${unassignedEmails.join(', ')}`
     );
     setBulkUserAssignmentModalIsOpen(false);
-    onWorkshopUpdate(updatedWorkshop);
+    onUserAssignmentsUpdate(workshopUserAssignments);
   }
 
   async function updateUserAssignment({
@@ -65,19 +62,22 @@ const WorkshopsItemUserAssignments: React.FC<{
     userName: string;
   }) {
     setBulkUserAssignmentMessage('');
-    const updatedWorkshop = await assignWorkshopUser({
+    const workshopUserAssigments = await assignWorkshopUser({
       email: email,
       resourceClaimName: resourceClaimName,
       userName: userName,
-      workshop: workshop,
+      workshopUserAssignments: userAssignments,
     });
-    onWorkshopUpdate(updatedWorkshop);
+    onUserAssignmentsUpdate(workshopUserAssigments);
   }
 
-  if (!workshop.spec.userAssignments) {
+  if (!userAssignments || userAssignments.length === 0) {
     return (
       <EmptyState variant="full">
-        <EmptyStateIcon icon={ErrorCircleOIcon} />
+        <EmptyStateIcon icon={ExclamationTriangleIcon} />
+        <Title headingLevel="h1" size="lg">
+          No user assignments available
+        </Title>
       </EmptyState>
     );
   }
@@ -100,54 +100,54 @@ const WorkshopsItemUserAssignments: React.FC<{
           </Tr>
         </Thead>
         <Tbody>
-          {workshop.spec.userAssignments.map((userAssignment, userAssignmentIdx) => {
+          {userAssignments.map((userAssignment, userAssignmentIdx) => {
             return (
               <Tr key={userAssignmentIdx}>
                 {resourceClaimNames.length > 1 ? (
                   <Td>
                     <Link
                       key="services"
-                      to={`/services/${workshop.metadata.namespace}/${userAssignment.resourceClaimName}`}
+                      to={`/services/${userAssignment.metadata.namespace}/${userAssignment.spec.resourceClaimName}`}
                     >
-                      {userAssignment.resourceClaimName}
+                      {userAssignment.spec.resourceClaimName}
                     </Link>
                   </Td>
                 ) : null}
-                {haveUserNames ? <Td>{userAssignment.userName}</Td> : null}
+                {haveUserNames ? <Td>{userAssignment.spec.userName}</Td> : null}
                 <Td>
                   <EditableText
-                    aria-label={`Edit assignment for ${userAssignment.userName}`}
+                    aria-label={`Edit assignment for ${userAssignment.spec.userName}`}
                     onChange={(email) =>
                       updateUserAssignment({
                         email: email,
-                        resourceClaimName: userAssignment.resourceClaimName,
-                        userName: userAssignment.userName,
+                        resourceClaimName: userAssignment.spec.resourceClaimName,
+                        userName: userAssignment.spec.userName,
                       })
                     }
                     placeholder="- unassigned -"
-                    value={userAssignment.assignment?.email || ''}
+                    value={userAssignment.spec.assignment?.email || ''}
                   />
                 </Td>
                 <Td>
                   <DescriptionList isHorizontal>
-                    {userAssignment.labUserInterface ? (
+                    {userAssignment.spec.labUserInterface ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>Lab UI</DescriptionListTerm>
                         <DescriptionListDescription>
                           <LabInterfaceLink
-                            method={userAssignment.labUserInterface.method || 'GET'}
-                            url={userAssignment.labUserInterface.url}
+                            method={userAssignment.spec.labUserInterface.method || 'GET'}
+                            url={userAssignment.spec.labUserInterface.url}
                           />
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     ) : null}
-                    {userAssignment.messages ? (
+                    {userAssignment.spec.messages ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>Messages</DescriptionListTerm>
                         <DescriptionListDescription>
                           <div
                             dangerouslySetInnerHTML={{
-                              __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n'), {
+                              __html: renderContent(userAssignment.spec.messages.replace(/\n/g, '  +\n'), {
                                 format: 'asciidoc',
                               }),
                             }}
@@ -155,12 +155,12 @@ const WorkshopsItemUserAssignments: React.FC<{
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     ) : null}
-                    {userAssignment.data ? (
+                    {userAssignment.spec.data ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>Data</DescriptionListTerm>
                         <DescriptionListDescription>
                           <CodeBlock>
-                            <CodeBlockCode>{yaml.dump(userAssignment.data)}</CodeBlockCode>
+                            <CodeBlockCode>{yaml.dump(userAssignment.spec.data)}</CodeBlockCode>
                           </CodeBlock>
                         </DescriptionListDescription>
                       </DescriptionListGroup>

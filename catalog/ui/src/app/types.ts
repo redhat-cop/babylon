@@ -485,7 +485,6 @@ export interface WorkshopSpec {
   multiuserServices?: boolean;
   openRegistration?: boolean;
   provisionDisabled?: boolean;
-  userAssignments: WorkshopSpecUserAssignment[];
   labUserInterface?: { redirect?: boolean };
   actionSchedule?: {
     stop?: string;
@@ -502,31 +501,24 @@ export interface WorkshopUserAssignmentList {
   items: WorkshopUserAssignment[];
 }
 
-export interface WorkshopUserAssignment {
-  metadata: K8sObjectMeta;
+export interface WorkshopUserAssignment extends K8sObject {
   spec: {
     data?: any;
     messages?: string;
     resourceClaimName?: string;
     userName?: string;
     workshopName: string;
+    labUserInterface?: {
+      data?: object;
+      method?: string;
+      url: string;
+      redirect?: boolean;
+    };
+    assignment?: {
+      email: string;
+    };
   };
   status?: any;
-}
-export interface WorkshopSpecUserAssignment {
-  assignment?: {
-    email: string;
-  };
-  data?: any;
-  labUserInterface?: {
-    data?: object;
-    method?: string;
-    url: string;
-    redirect?: boolean;
-  };
-  messages?: string;
-  resourceClaimName?: string;
-  userName?: string;
 }
 
 export type Session = {

@@ -134,7 +134,7 @@ const WorkshopsItemComponent: React.FC<{
       compare: compareK8sObjects,
     }
   );
-  const { data: userAssigments } = useSWR<any>(
+  const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
     apiPaths.WORKSHOP_USER_ASSIGNMENTS({
       workshopName,
       namespace: serviceNamespaceName,
@@ -142,10 +142,19 @@ const WorkshopsItemComponent: React.FC<{
     fetcher,
     {
       refreshInterval: 8000,
-      compare: compareK8sObjects,
+      compare: (currentData, newData) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.items.length === 0) return false;
+        if (!newData || newData.items.length === 0) return false;
+        if (currentData.items.length !== newData.items.length) return false;
+        for (let i = 0; i < currentData.items.length; i++) {
+          if (!compareK8sObjects(currentData.items[i], newData.items[i])) return false;
+        }
+        return true;
+      },
     }
   );
-  console.log(userAssigments);
+  const userAssigments = userAssigmentsList.items;
   const stage = getStageFromK8sObject(workshop);
 
   const { data: workshopProvisions } = useSWR<WorkshopProvision[]>(
@@ -208,6 +217,15 @@ const WorkshopsItemComponent: React.FC<{
       }
     },
     [mutate, resourceClaims]
+  );
+
+  const mutateUserAssigments = useCallback(
+    (userAssigments: WorkshopUserAssignment[]) => {
+      const userAssigmentsListClone = Object.assign({}, userAssigmentsList);
+      userAssigmentsListClone.items = userAssigments;
+      mutateUserAssigmentsList(userAssigmentsListClone);
+    },
+    [mutateUserAssigmentsList, userAssigmentsList]
   );
 
   /**
@@ -415,6 +433,7 @@ const WorkshopsItemComponent: React.FC<{
                 showModal={showModal}
                 resourceClaims={resourceClaims}
                 workshopProvisions={workshopProvisions}
+                workshopUserAssignments={userAssigments}
               />
             ) : null}
           </Tab>
@@ -442,8 +461,8 @@ const WorkshopsItemComponent: React.FC<{
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
             {activeTab === 'users' ? (
               <WorkshopsItemUserAssignments
-                onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
-                workshop={workshop}
+                userAssignments={userAssigments}
+                onUserAssignmentsUpdate={mutateUserAssigments}
               />
             ) : null}
           </Tab>
