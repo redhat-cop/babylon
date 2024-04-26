@@ -44,7 +44,9 @@ const WorkshopsItemDetails: React.FC<{
   const { isAdmin } = useSession().getSession();
   const [editingServiceNow, setEditingServiceNow] = useState(false);
   const serviceNowJson = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/servicenow`];
-  const { url: serviceNowUrl, id: serviceNowId } = serviceNowJson ? getServiceNow(JSON.parse(serviceNowJson)) : null;
+  const { url: serviceNowUrl, id: serviceNowId } = serviceNowJson
+    ? getServiceNow(JSON.parse(serviceNowJson))
+    : { url: null, id: null };
   const [serviceNowNumber, setServiceNowNumber] = useState(serviceNowId);
   const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
@@ -287,47 +289,51 @@ const WorkshopsItemDetails: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
-
-      <DescriptionListGroup>
-        <DescriptionListTerm>Support Ticket</DescriptionListTerm>
-        <DescriptionListDescription>
-          {serviceNowUrl && !editingServiceNow ? (
-            <Button variant="secondary" onClick={() => window.open(serviceNowUrl)}>
-              {serviceNowId}
-            </Button>
-          ) : editingServiceNow ? (
-            <TextInput
-              type="text"
-              id="servicenow-id"
-              aria-label="ServiceNow number"
-              value={serviceNowNumber}
-              onChange={(v) => setServiceNowNumber(v)}
-              style={{ width: 'auto', marginRight: '16px' }}
-              placeholder="RITM0000000"
+      {serviceNowUrl ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Support Ticket</DescriptionListTerm>
+          <DescriptionListDescription>
+            {!editingServiceNow ? (
+              <Button variant="secondary" onClick={() => window.open(serviceNowUrl)}>
+                {serviceNowId}
+              </Button>
+            ) : editingServiceNow ? (
+              <TextInput
+                type="text"
+                id="servicenow-id"
+                aria-label="ServiceNow number"
+                value={serviceNowNumber}
+                onChange={(v) => setServiceNowNumber(v)}
+                style={{ width: 'auto', marginRight: '16px' }}
+                placeholder="RITM0000000"
+              />
+            ) : (
+              '-'
+            )}
+            <Button
+              onClick={() => {
+                if (editingServiceNow) {
+                  saveServiceNowNumber(
+                    serviceNowNumber && serviceNowNumber !== ''
+                      ? { ...JSON.parse(serviceNowJson), number: serviceNowNumber }
+                      : {}
+                  );
+                }
+                setEditingServiceNow(!editingServiceNow);
+              }}
+              variant={editingServiceNow ? 'secondary' : 'link'}
+              icon={editingServiceNow ? 'Save' : <PencilAltIcon />}
+              style={{ marginRight: '16px' }}
             />
-          ) : (
-            '-'
-          )}
-          <Button
-            onClick={() => {
-              if (editingServiceNow) {
-                saveServiceNowNumber(
-                  serviceNowNumber && serviceNowNumber !== ''
-                    ? { ...JSON.parse(serviceNowJson), number: serviceNowNumber }
-                    : {}
-                );
-              }
-              setEditingServiceNow(!editingServiceNow);
-            }}
-            variant={editingServiceNow ? 'secondary' : 'link'}
-            icon={editingServiceNow ? 'Save' : <PencilAltIcon />}
-            style={{ marginRight: '16px' }}
-          />
-          <Tooltip position="right" content={<p>ServiceNow support Ticket number.</p>}>
-            <OutlinedQuestionCircleIcon aria-label="ServiceNow support ticket number." className="tooltip-icon-only" />
-          </Tooltip>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
+            <Tooltip position="right" content={<p>ServiceNow support Ticket number.</p>}>
+              <OutlinedQuestionCircleIcon
+                aria-label="ServiceNow support ticket number."
+                className="tooltip-icon-only"
+              />
+            </Tooltip>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
     </DescriptionList>
   );
 };
