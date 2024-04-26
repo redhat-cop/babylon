@@ -808,7 +808,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             </Button>
           </ActionListItem>
 
-          {isAdmin || isLabDeveloper(groups) || formState.workshop ? (
+          {isAdmin || isLabDeveloper(groups) /*|| formState.workshop */ ? (
             <ActionListItem>
               <Button
                 isAriaDisabled={!submitRequestEnabled}
