@@ -497,6 +497,22 @@ export interface WorkshopSpec {
   };
 }
 
+export interface WorkshopUserAssignmentList {
+  metadata: K8sObjectListMeta;
+  items: WorkshopUserAssignment[];
+}
+
+export interface WorkshopUserAssignment {
+  metadata: K8sObjectMeta;
+  spec: {
+    data?: any;
+    messages?: string;
+    resourceClaimName?: string;
+    userName?: string;
+    workshopName: string;
+  };
+  status?: any;
+}
 export interface WorkshopSpecUserAssignment {
   assignment?: {
     email: string;
@@ -572,7 +588,8 @@ export type ResourceType =
   | 'RATING'
   | 'RATINGS_HISTORY'
   | 'USER_RATING'
-  | 'WORKSHOP_SUPPORT';
+  | 'WORKSHOP_SUPPORT'
+  | 'WORKSHOP_USER_ASSIGNMENTS';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 

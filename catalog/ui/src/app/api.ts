@@ -1765,4 +1765,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
   USER_RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
   WORKSHOP_SUPPORT: () => `/api/admin/workshop/support`,
+  WORKSHOP_USER_ASSIGNMENT: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopuserassignments?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName}`,
 };
