@@ -703,6 +703,14 @@ def workshop_put(workshop_id):
     elif workshop_access_password:
         flask.abort(400)
 
+    workshop_user_assignments = custom_objects_api.list_namespaced_custom_object(
+        'babylon.gpte.redhat.com', 'v1', workshop_namespace, 'workshopuserassignments', 
+        label_selector=f"babylon.gpte.redhat.com/workshop={workshop_name}"
+    )
+
+    if not workshop_user_assignments.get('items'):
+        flask.abort(404)
+
     ret = {
         "accessPasswordRequired": True if workshop_access_password else False,
         "labUserInterfaceRedirect": workshop['spec'].get('labUserInterface', {}).get('redirect'),
@@ -715,32 +723,23 @@ def workshop_put(workshop_id):
     }
 
     while not 'assignment' in ret:
-        for user_assignment in workshop['spec'].get('userAssignments', []):
-            if email == user_assignment.get('assignment', {}).get('email'):
-                ret['assignment'] = user_assignment
+        for user_assignment in workshop_user_assignments.get('items', []):
+            if email == user_assignment['spec'].get('assignment', {}).get('email'):
+                ret['assignment'] = user_assignment['spec']
                 break
         else:
             if not workshop_open_registration:
                 flask.abort(409)
-            try:
-                for user_assignment in workshop['spec'].get('userAssignments', []):
-                    if not 'assignment' in user_assignment:
-                        user_assignment['assignment'] = {"email": email}
-                        workshop = custom_objects_api.replace_namespaced_custom_object(
-                            'babylon.gpte.redhat.com', 'v1', workshop_namespace, 'workshops', workshop_name, workshop
-                        )
-                        ret['assignment'] = user_assignment
-                        break
-                else:
-                    flask.abort(409)
-            except kubernetes.client.rest.ApiException as e:
-                if e.status == 409:
-                    # Conflict, get latest version and retry assignment of user email
-                    workshop = custom_objects_api.get_namespaced_custom_object(
-                        'babylon.gpte.redhat.com', 'v1', workshop_namespace, 'workshops', name, workshop
+            for user_assignment in workshop_user_assignments.get('items', []):
+                if not 'assignment' in user_assignment['spec']:
+                    user_assignment['spec']['assignment'] = {"email": email}
+                    workshop = custom_objects_api.replace_namespaced_custom_object(
+                        'babylon.gpte.redhat.com', 'v1', user_assignment['metadata']['namespace'], 'workshopuserassignments', user_assignment['metadata']['name'], user_assignment
                     )
-                else:
-                    raise
+                    ret['assignment'] = user_assignment['spec']
+                    break
+            else:
+                flask.abort(409)
 
     return flask.jsonify(ret)
 
