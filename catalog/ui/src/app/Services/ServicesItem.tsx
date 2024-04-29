@@ -556,7 +556,7 @@ const ServicesItemComponent: React.FC<{
   const mutateUserAssigments = useCallback(
     (userAssigments: WorkshopUserAssignment[]) => {
       const userAssigmentsListClone = Object.assign({}, userAssigmentsList);
-      userAssigmentsListClone.items = userAssigments;
+      userAssigmentsListClone.items = Array.from(userAssigments);
       mutateUserAssigmentsList(userAssigmentsListClone);
     },
     [mutateUserAssigmentsList, userAssigmentsList]
@@ -934,7 +934,7 @@ const ServicesItemComponent: React.FC<{
                 <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
                   {activeTab === 'users' ? (
                     <WorkshopsItemUserAssignments
-                      onUserAssignmentsUpdate={(userAssigments) => mutateUserAssigments(userAssigments)}
+                      onUserAssignmentsUpdate={mutateUserAssigments}
                       userAssignments={userAssigmentsList.items}
                     />
                   ) : null}

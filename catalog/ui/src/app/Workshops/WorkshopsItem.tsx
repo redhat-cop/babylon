@@ -222,7 +222,7 @@ const WorkshopsItemComponent: React.FC<{
   const mutateUserAssigments = useCallback(
     (userAssigments: WorkshopUserAssignment[]) => {
       const userAssigmentsListClone = Object.assign({}, userAssigmentsList);
-      userAssigmentsListClone.items = userAssigments;
+      userAssigmentsListClone.items = Array.from(userAssigments);
       mutateUserAssigmentsList(userAssigmentsListClone);
     },
     [mutateUserAssigmentsList, userAssigmentsList]
