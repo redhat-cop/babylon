@@ -154,7 +154,6 @@ const WorkshopsItemComponent: React.FC<{
       },
     }
   );
-  const userAssigments = userAssigmentsList.items;
   const stage = getStageFromK8sObject(workshop);
 
   const { data: workshopProvisions } = useSWR<WorkshopProvision[]>(
@@ -433,7 +432,7 @@ const WorkshopsItemComponent: React.FC<{
                 showModal={showModal}
                 resourceClaims={resourceClaims}
                 workshopProvisions={workshopProvisions}
-                workshopUserAssignments={userAssigments}
+                workshopUserAssignments={userAssigmentsList.items}
               />
             ) : null}
           </Tab>
@@ -461,7 +460,7 @@ const WorkshopsItemComponent: React.FC<{
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
             {activeTab === 'users' ? (
               <WorkshopsItemUserAssignments
-                userAssignments={userAssigments}
+                userAssignments={userAssigmentsList.items}
                 onUserAssignmentsUpdate={mutateUserAssigments}
               />
             ) : null}
