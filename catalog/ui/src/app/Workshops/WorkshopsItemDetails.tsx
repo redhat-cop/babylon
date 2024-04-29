@@ -18,7 +18,7 @@ import {
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { patchWorkshop } from '@app/api';
-import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
+import { ResourceClaim, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
 import { BABYLON_DOMAIN, getServiceNow } from '@app/util';
 import useDebounce from '@app/utils/useDebounce';
 import useSession from '@app/utils/useSession';
@@ -39,8 +39,9 @@ const WorkshopsItemDetails: React.FC<{
   workshop: Workshop;
   resourceClaims?: ResourceClaim[];
   workshopProvisions?: WorkshopProvision[];
+  workshopUserAssignments?: WorkshopUserAssignment[];
   showModal?: ({ action, resourceClaims }: ModalState) => void;
-}> = ({ onWorkshopUpdate, workshopProvisions, resourceClaims, workshop, showModal }) => {
+}> = ({ onWorkshopUpdate, workshopProvisions, resourceClaims, workshop, showModal, workshopUserAssignments }) => {
   const { isAdmin } = useSession().getSession();
   const [editingServiceNow, setEditingServiceNow] = useState(false);
   const serviceNowJson = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/servicenow`];
@@ -209,10 +210,9 @@ const WorkshopsItemDetails: React.FC<{
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>Workshop Users Assigned</DescriptionListTerm>
-        {workshop.spec.userAssignments ? (
+        {workshopUserAssignments ? (
           <DescriptionListDescription>
-            {workshop.spec.userAssignments.filter((item) => item.assignment).length} /{' '}
-            {workshop.spec.userAssignments.length}
+            {workshopUserAssignments.filter((item) => item.spec.assignment).length} / {workshopUserAssignments.length}
           </DescriptionListDescription>
         ) : (
           <DescriptionListDescription>-</DescriptionListDescription>

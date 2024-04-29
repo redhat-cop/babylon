@@ -485,7 +485,6 @@ export interface WorkshopSpec {
   multiuserServices?: boolean;
   openRegistration?: boolean;
   provisionDisabled?: boolean;
-  userAssignments: WorkshopSpecUserAssignment[];
   labUserInterface?: { redirect?: boolean };
   actionSchedule?: {
     stop?: string;
@@ -497,20 +496,29 @@ export interface WorkshopSpec {
   };
 }
 
-export interface WorkshopSpecUserAssignment {
-  assignment?: {
-    email: string;
+export interface WorkshopUserAssignmentList {
+  metadata: K8sObjectListMeta;
+  items: WorkshopUserAssignment[];
+}
+
+export interface WorkshopUserAssignment extends K8sObject {
+  spec: {
+    data?: any;
+    messages?: string;
+    resourceClaimName?: string;
+    userName?: string;
+    workshopName: string;
+    labUserInterface?: {
+      data?: object;
+      method?: string;
+      url: string;
+      redirect?: boolean;
+    };
+    assignment?: {
+      email: string;
+    };
   };
-  data?: any;
-  labUserInterface?: {
-    data?: object;
-    method?: string;
-    url: string;
-    redirect?: boolean;
-  };
-  messages?: string;
-  resourceClaimName?: string;
-  userName?: string;
+  status?: any;
 }
 
 export type Session = {
@@ -572,7 +580,8 @@ export type ResourceType =
   | 'RATING'
   | 'RATINGS_HISTORY'
   | 'USER_RATING'
-  | 'WORKSHOP_SUPPORT';
+  | 'WORKSHOP_SUPPORT'
+  | 'WORKSHOP_USER_ASSIGNMENTS';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 

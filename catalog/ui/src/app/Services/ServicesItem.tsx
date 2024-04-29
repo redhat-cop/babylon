@@ -52,6 +52,8 @@ import {
   ResourceClaim,
   ServiceActionActions,
   Workshop,
+  WorkshopUserAssignment,
+  WorkshopUserAssignmentList,
 } from '@app/types';
 import {
   BABYLON_DOMAIN,
@@ -252,7 +254,7 @@ const ComponentDetailsList: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
-              {(isAdmin || isLabDeveloper(groups)) && resourceState?.status?.towerJobs ? (
+              {(isAdmin || isLabDeveloper(groups)) && resourceState?.status?.towerJobs ? (
                 <DescriptionListGroup key="tower-jobs">
                   <DescriptionListTerm>Ansible Jobs</DescriptionListTerm>
                   <DescriptionListDescription>
@@ -434,6 +436,28 @@ const ServicesItemComponent: React.FC<{
       compare: compareK8sObjects,
     }
   );
+  const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
+    workshopName
+      ? apiPaths.WORKSHOP_USER_ASSIGNMENTS({
+          workshopName,
+          namespace: serviceNamespaceName,
+        })
+      : null,
+    fetcher,
+    {
+      refreshInterval: 8000,
+      compare: (currentData, newData) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.items.length === 0) return false;
+        if (!newData || newData.items.length === 0) return false;
+        if (currentData.items.length !== newData.items.length) return false;
+        for (let i = 0; i < currentData.items.length; i++) {
+          if (!compareK8sObjects(currentData.items[i], newData.items[i])) return false;
+        }
+        return true;
+      },
+    }
+  );
 
   const costTracker = getCostTracker(resourceClaim);
   const autoStopTime = getAutoStopTime(resourceClaim);
@@ -528,6 +552,15 @@ const ServicesItemComponent: React.FC<{
       index >= 0 ? [...expanded.slice(0, index), ...expanded.slice(index + 1, expanded.length)] : [...expanded, id];
     setExpanded(newExpanded);
   };
+
+  const mutateUserAssigments = useCallback(
+    (userAssigments: WorkshopUserAssignment[]) => {
+      const userAssigmentsListClone = Object.assign({}, userAssigmentsList);
+      userAssigmentsListClone.items = Array.from(userAssigments);
+      mutateUserAssigmentsList(userAssigmentsListClone);
+    },
+    [mutateUserAssigmentsList, userAssigmentsList]
+  );
 
   return (
     <>
@@ -786,7 +819,8 @@ const ServicesItemComponent: React.FC<{
                       {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
                         const resourceState = resourceStatus?.state;
                         const componentDisplayName =
-                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] || resourceStatus?.name;
+                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||
+                          resourceStatus?.name;
                         const currentState =
                           resourceState?.kind === 'AnarchySubject'
                             ? resourceState.spec.vars?.current_state
@@ -900,8 +934,8 @@ const ServicesItemComponent: React.FC<{
                 <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
                   {activeTab === 'users' ? (
                     <WorkshopsItemUserAssignments
-                      onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)}
-                      workshop={workshop}
+                      onUserAssignmentsUpdate={mutateUserAssigments}
+                      userAssignments={userAssigmentsList.items}
                     />
                   ) : null}
                 </Tab>,

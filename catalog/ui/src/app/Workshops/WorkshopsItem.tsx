@@ -29,7 +29,14 @@ import {
   startWorkshopServices,
   stopWorkshop,
 } from '@app/api';
-import { NamespaceList, ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
+import {
+  NamespaceList,
+  ResourceClaim,
+  Workshop,
+  WorkshopProvision,
+  WorkshopUserAssignment,
+  WorkshopUserAssignmentList,
+} from '@app/types';
 import {
   BABYLON_DOMAIN,
   compareK8sObjects,
@@ -104,14 +111,14 @@ const WorkshopsItemComponent: React.FC<{
         openModalSchedule();
       }
     },
-    [openModalAction, openModalDelete, openModalGetCost, openModalSchedule],
+    [openModalAction, openModalDelete, openModalGetCost, openModalSchedule]
   );
   const enableFetchUserNamespaces = isAdmin;
   const enableManageWorkshopProvisions =
     isAdmin || sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
-    fetcher,
+    fetcher
   );
   const serviceNamespaces = useMemo(() => {
     return enableFetchUserNamespaces
@@ -125,7 +132,27 @@ const WorkshopsItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    },
+    }
+  );
+  const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
+    apiPaths.WORKSHOP_USER_ASSIGNMENTS({
+      workshopName,
+      namespace: serviceNamespaceName,
+    }),
+    fetcher,
+    {
+      refreshInterval: 8000,
+      compare: (currentData, newData) => {
+        if (currentData === newData) return true;
+        if (!currentData || currentData.items.length === 0) return false;
+        if (!newData || newData.items.length === 0) return false;
+        if (currentData.items.length !== newData.items.length) return false;
+        for (let i = 0; i < currentData.items.length; i++) {
+          if (!compareK8sObjects(currentData.items[i], newData.items[i])) return false;
+        }
+        return true;
+      },
+    }
   );
   const stage = getStageFromK8sObject(workshop);
 
@@ -145,9 +172,9 @@ const WorkshopsItemComponent: React.FC<{
               namespace: workshop.metadata.namespace,
               limit: FETCH_BATCH_LIMIT,
               continueId,
-            }),
+            })
           )
-        : [],
+        : []
   );
 
   const { data: resourceClaims, mutate } = useSWR<ResourceClaim[]>(
@@ -165,12 +192,12 @@ const WorkshopsItemComponent: React.FC<{
           labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
           limit: FETCH_BATCH_LIMIT,
           continueId,
-        }),
+        })
       ),
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
-    },
+    }
   );
 
   const revalidate = useCallback(
@@ -188,7 +215,16 @@ const WorkshopsItemComponent: React.FC<{
         }
       }
     },
-    [mutate, resourceClaims],
+    [mutate, resourceClaims]
+  );
+
+  const mutateUserAssigments = useCallback(
+    (userAssigments: WorkshopUserAssignment[]) => {
+      const userAssigmentsListClone = Object.assign({}, userAssigmentsList);
+      userAssigmentsListClone.items = Array.from(userAssigments);
+      mutateUserAssigmentsList(userAssigmentsListClone);
+    },
+    [mutateUserAssigmentsList, userAssigmentsList]
   );
 
   /**
@@ -247,7 +283,7 @@ const WorkshopsItemComponent: React.FC<{
         namespace: serviceNamespaceName,
         labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
         limit: 'ALL',
-      }),
+      })
     );
     cache.delete(apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }));
     cache.delete(
@@ -255,7 +291,7 @@ const WorkshopsItemComponent: React.FC<{
         workshopName: workshop.metadata.name,
         namespace: workshop.metadata.namespace,
         limit: 'ALL',
-      }),
+      })
     );
     navigate(`/services/${serviceNamespaceName}`);
   }
@@ -275,7 +311,7 @@ const WorkshopsItemComponent: React.FC<{
       const workshopUpdated = await startWorkshop(
         workshop,
         !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(date) : null,
-        resourceClaims,
+        resourceClaims
       );
       mutateWorkshop(workshopUpdated);
     }
@@ -396,6 +432,7 @@ const WorkshopsItemComponent: React.FC<{
                 showModal={showModal}
                 resourceClaims={resourceClaims}
                 workshopProvisions={workshopProvisions}
+                workshopUserAssignments={userAssigmentsList.items}
               />
             ) : null}
           </Tab>
@@ -423,8 +460,8 @@ const WorkshopsItemComponent: React.FC<{
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
             {activeTab === 'users' ? (
               <WorkshopsItemUserAssignments
-                onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
-                workshop={workshop}
+                userAssignments={userAssigmentsList.items}
+                onUserAssignmentsUpdate={mutateUserAssigments}
               />
             ) : null}
           </Tab>

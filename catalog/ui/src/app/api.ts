@@ -15,11 +15,11 @@ import {
   ServiceNamespace,
   Workshop,
   WorkshopProvision,
-  WorkshopSpecUserAssignment,
   UserList,
   Session,
   Nullable,
   ResourceType,
+  WorkshopUserAssignment,
 } from '@app/types';
 import { store, selectImpersonationUser } from '@app/store';
 import {
@@ -31,7 +31,6 @@ import {
   getCostTracker,
   compareStringDates,
   canExecuteAction,
-  getStageFromK8sObject,
 } from '@app/util';
 
 declare const window: Window &
@@ -155,73 +154,76 @@ export async function assignWorkshopUser({
   resourceClaimName,
   userName,
   email,
-  workshop,
+  workshopUserAssignments,
 }: {
   resourceClaimName: string;
   userName: string;
   email: string;
-  workshop: Workshop;
+  workshopUserAssignments: WorkshopUserAssignment[];
 }) {
-  const userAssignmentIdx: number = workshop.spec.userAssignments.findIndex(
-    (item) => resourceClaimName === item.resourceClaimName && userName === item.userName
+  const userAssignmentIdx: number = workshopUserAssignments.findIndex(
+    (item) => resourceClaimName === item.spec.resourceClaimName && userName === item.spec.userName
   );
-  const userAssignment = workshop.spec.userAssignments[userAssignmentIdx];
+  const userAssignment = workshopUserAssignments[userAssignmentIdx];
   if (!userAssignment) {
     console.error(`Unable to assign, ${resourceClaimName} ${userName} not found.`);
-    return workshop;
-  } else if (userAssignment.assignment?.email === email || (!userAssignment.assignment?.email && !email)) {
-    return workshop;
+    return workshopUserAssignments;
+  } else if (userAssignment.spec.assignment?.email === email || (!userAssignment.spec.assignment?.email && !email)) {
+    return workshopUserAssignments;
   }
 
   const jsonPatch: JSONPatch = [];
   if (resourceClaimName) {
     jsonPatch.push({
       op: 'test',
-      path: `/spec/userAssignments/${userAssignmentIdx}/resourceClaimName`,
+      path: `/spec/resourceClaimName`,
       value: resourceClaimName,
     });
   }
   if (userName) {
     jsonPatch.push({
       op: 'test',
-      path: `/spec/userAssignments/${userAssignmentIdx}/userName`,
+      path: `/spec/userName`,
       value: userName,
     });
   }
-  if (userAssignment.assignment) {
+  if (userAssignment.spec.assignment) {
     jsonPatch.push({
       op: 'test',
-      path: `/spec/userAssignments/${userAssignmentIdx}/assignment/email`,
-      value: workshop.spec.userAssignments[userAssignmentIdx].assignment.email,
+      path: `/spec/assignment/email`,
+      value: userAssignment.spec.assignment.email,
     });
     if (email) {
       jsonPatch.push({
         op: 'replace',
-        path: `/spec/userAssignments/${userAssignmentIdx}/assignment/email`,
+        path: `/spec/assignment/email`,
         value: email,
       });
     } else {
       jsonPatch.push({
         op: 'remove',
-        path: `/spec/userAssignments/${userAssignmentIdx}/assignment`,
+        path: `/spec/assignment`,
       });
     }
   } else if (email) {
     jsonPatch.push({
       op: 'add',
-      path: `/spec/userAssignments/${userAssignmentIdx}/assignment`,
+      path: `/spec/assignment`,
       value: { email: email },
     });
   } else {
-    return workshop;
+    return workshopUserAssignments;
   }
 
-  const updatedWorkshop = await patchWorkshop({
-    name: workshop.metadata.name,
-    namespace: workshop.metadata.namespace,
+  const updatedWorkshopUserAssignment = await patchK8sObject<WorkshopUserAssignment>({
+    name: userAssignment.metadata.name,
+    namespace: userAssignment.metadata.namespace,
     jsonPatch: jsonPatch,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    plural: 'workshopuserassignments',
   });
-  return updatedWorkshop;
+  workshopUserAssignments[userAssignmentIdx] = updatedWorkshopUserAssignment;
+  return workshopUserAssignments;
 }
 
 export function dateToApiString(date: Date) {
@@ -230,57 +232,47 @@ export function dateToApiString(date: Date) {
 
 export async function bulkAssignWorkshopUsers({
   emails,
-  workshop,
+  workshopUserAssignments,
 }: {
   emails: string[];
-  workshop: Workshop;
-}): Promise<{ unassignedEmails: string[]; userAssignments: WorkshopSpecUserAssignment[]; workshop: Workshop }> {
-  if (!workshop.spec.userAssignments) {
+  workshopUserAssignments: WorkshopUserAssignment[];
+}): Promise<{ unassignedEmails: string[]; workshopUserAssignments: WorkshopUserAssignment[] }> {
+  if (!workshopUserAssignments) {
     return {
       unassignedEmails: emails,
-      userAssignments: [],
-      workshop: workshop,
+      workshopUserAssignments: [],
     };
   }
 
-  let _workshop = Object.assign({}, workshop);
-  while (true) {
-    const userAssignments: WorkshopSpecUserAssignment[] = [];
-    const unassignedEmails: string[] = [];
-    for (const email of emails) {
-      const userAssignment = _workshop.spec.userAssignments.find((item) => item.assignment?.email === email);
-      if (userAssignment) {
-        userAssignments.push(userAssignment);
-      } else {
-        unassignedEmails.push(email);
-      }
-    }
-    for (const userAssignment of _workshop.spec.userAssignments) {
-      if (!userAssignment.assignment) {
-        userAssignment.assignment = {
-          email: unassignedEmails.shift(),
-        };
-        userAssignments.push(userAssignment);
-      }
-      if (unassignedEmails.length === 0) {
-        break;
-      }
-    }
-    try {
-      _workshop = await updateWorkshop(_workshop);
-      return {
-        unassignedEmails: unassignedEmails,
-        userAssignments: userAssignments,
-        workshop: _workshop,
-      };
-    } catch (error: any) {
-      if (error.status === 409) {
-        _workshop = await getWorkshop(workshop.metadata.namespace, workshop.metadata.name);
-      } else {
-        throw error;
-      }
+  const userAssignments: WorkshopUserAssignment[] = [];
+  const updatedUserAssignments: WorkshopUserAssignment[] = [];
+  const unassignedEmails: string[] = [];
+  for (const email of emails) {
+    const userAssignment = workshopUserAssignments.find((item) => item.spec.assignment?.email === email);
+    if (userAssignment) {
+      userAssignments.push(userAssignment);
+    } else {
+      unassignedEmails.push(email);
     }
   }
+  for (const userAssignment of workshopUserAssignments) {
+    if (!userAssignment.spec.assignment) {
+      userAssignment.spec.assignment = {
+        email: unassignedEmails.shift(),
+      };
+      userAssignments.push(userAssignment);
+    }
+    if (unassignedEmails.length === 0) {
+      break;
+    }
+  }
+  for (const userAssignment of userAssignments) {
+    await updateK8sObject<WorkshopUserAssignment>(userAssignment);
+  }
+  return {
+    unassignedEmails: unassignedEmails,
+    workshopUserAssignments: updatedUserAssignments,
+  };
 }
 
 export async function checkSalesforceId(
@@ -568,7 +560,6 @@ export async function createWorkshop({
     spec: {
       multiuserServices: catalogItem.spec.multiuser,
       openRegistration: openRegistration,
-      userAssignments: [],
       lifespan: {
         ...(startDate ? { start: dateToApiString(startDate) } : {}),
         ...(endDate ? { end: dateToApiString(endDate) } : {}),
@@ -643,7 +634,6 @@ export async function createWorkshopForMultiuserService({
       multiuserServices: true,
       openRegistration: openRegistration,
       provisionDisabled: true,
-      userAssignments: [],
     },
   };
   if (accessPassword) {
@@ -1765,4 +1755,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
   USER_RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
   WORKSHOP_SUPPORT: () => `/api/admin/workshop/support`,
+  WORKSHOP_USER_ASSIGNMENTS: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopuserassignments?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName}`,
 };
