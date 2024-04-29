@@ -431,8 +431,8 @@ class AgnosticVComponent(KopfObject):
         sandbox_api_actions = pruned_meta.get('sandbox_api', {}).get('actions', {})
 
         for action_name in ('destroy', 'provision', 'start', 'status', 'stop'):
-            deployer_action_config = action_config.get('deployer')
-            sandbox_action_config = action_config.get('sandbox_api')
+            deployer_action_config = self.deployer_actions.get(action_name)
+            sandbox_action_config = sandbox_api_actions.get(action_name, {})
 
             # Action is disabled only if sandbox_api is not enabled and deployer is disabled
             if deployer_action_config.get('disable', False) and not sandbox_action_config.get('enable', False):
