@@ -928,6 +928,7 @@ const ServicesItemComponent: React.FC<{
                     <WorkshopsItemDetails
                       onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)}
                       workshop={workshop}
+                      workshopUserAssignments={userAssigmentsList.items}
                     />
                   ) : null}
                 </Tab>,
