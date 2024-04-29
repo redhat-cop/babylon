@@ -431,21 +431,11 @@ class AgnosticVComponent(KopfObject):
         sandbox_api_actions = pruned_meta.get('sandbox_api', {}).get('actions', {})
 
         for action_name in ('destroy', 'provision', 'start', 'status', 'stop'):
-            action_config = {}
+            deployer_action_config = self.deployer_actions.get(action_name)
+            sandbox_action_config = sandbox_api_actions.get(action_name, {})
 
-            # __meta__.sandbox_api.actions overrides __meta__.deployer.actions
-            if action_name in sandbox_api_actions:
-                action_config = sandbox_api_actions[action_name]
-            else:
-                if action_name in self.deployer_actions:
-                    action_config = self.deployer_actions[action_name]
-                else:
-                    continue
-
-            if action_config.get('disable'):
-                continue
-            # If action has explicitely enabled=False, skip it
-            if action_config.get('enable', True) == False:
+            # Action is disabled only if sandbox_api is not enabled and deployer is disabled
+            if deployer_action_config.get('disable', False) and not sandbox_action_config.get('enable', False):
                 continue
 
             action_def = {
@@ -457,8 +447,8 @@ class AgnosticVComponent(KopfObject):
                     }
                 }
             }
-            if 'time_estimate' in action_config:
-                action_def['timeEstimate'] = action_config['time_estimate']
+            if 'time_estimate' in deployer_action_config:
+                action_def['timeEstimate'] = deployer_action_config['time_estimate']
             definition['spec']['actions'][action_name] = action_def
 
         if self.ansible_control_plane_secret:
