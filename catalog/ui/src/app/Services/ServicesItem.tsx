@@ -66,7 +66,6 @@ import {
   compareK8sObjects,
   namespaceToServiceNamespaceMapper,
   isLabDeveloper,
-  compareK8sObjectsArr,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
