@@ -66,6 +66,7 @@ import {
   compareK8sObjects,
   namespaceToServiceNamespaceMapper,
   isLabDeveloper,
+  compareK8sObjectsArr,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -445,17 +446,7 @@ const ServicesItemComponent: React.FC<{
       : null,
     fetcher,
     {
-      refreshInterval: 8000,
-      compare: (currentData, newData) => {
-        if (currentData === newData) return true;
-        if (!currentData || currentData.items.length === 0) return false;
-        if (!newData || newData.items.length === 0) return false;
-        if (currentData.items.length !== newData.items.length) return false;
-        for (let i = 0; i < currentData.items.length; i++) {
-          if (!compareK8sObjects(currentData.items[i], newData.items[i])) return false;
-        }
-        return true;
-      },
+      refreshInterval: 15000,
     }
   );
 
@@ -555,15 +546,9 @@ const ServicesItemComponent: React.FC<{
 
   const mutateUserAssigments = useCallback(
     (userAssigments: WorkshopUserAssignment[]) => {
-      cache.delete(
-        apiPaths.WORKSHOP_USER_ASSIGNMENTS({
-          namespace: serviceNamespaceName,
-          workshopName,
-        })
-      );
-      /*const userAssigmentsListClone = Object.assign({}, userAssigmentsList);
+      const userAssigmentsListClone = Object.assign({}, userAssigmentsList);
       userAssigmentsListClone.items = Array.from(userAssigments);
-      mutateUserAssigmentsList(userAssigmentsListClone);*/
+      mutateUserAssigmentsList(userAssigmentsListClone);
     },
     [mutateUserAssigmentsList, userAssigmentsList]
   );

@@ -141,17 +141,7 @@ const WorkshopsItemComponent: React.FC<{
     }),
     fetcher,
     {
-      refreshInterval: 8000,
-      compare: (currentData, newData) => {
-        if (currentData === newData) return true;
-        if (!currentData || currentData.items.length === 0) return false;
-        if (!newData || newData.items.length === 0) return false;
-        if (currentData.items.length !== newData.items.length) return false;
-        for (let i = 0; i < currentData.items.length; i++) {
-          if (!compareK8sObjects(currentData.items[i], newData.items[i])) return false;
-        }
-        return true;
-      },
+      refreshInterval: 15000,
     }
   );
   const stage = getStageFromK8sObject(workshop);
