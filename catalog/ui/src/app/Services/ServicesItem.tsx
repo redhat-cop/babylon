@@ -555,9 +555,15 @@ const ServicesItemComponent: React.FC<{
 
   const mutateUserAssigments = useCallback(
     (userAssigments: WorkshopUserAssignment[]) => {
-      const userAssigmentsListClone = Object.assign({}, userAssigmentsList);
+      cache.delete(
+        apiPaths.WORKSHOP_USER_ASSIGNMENTS({
+          namespace: serviceNamespaceName,
+          workshopName,
+        })
+      );
+      /*const userAssigmentsListClone = Object.assign({}, userAssigmentsList);
       userAssigmentsListClone.items = Array.from(userAssigments);
-      mutateUserAssigmentsList(userAssigmentsListClone);
+      mutateUserAssigmentsList(userAssigmentsListClone);*/
     },
     [mutateUserAssigmentsList, userAssigmentsList]
   );
