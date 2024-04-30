@@ -29,6 +29,7 @@ rules:
   - babylon.gpte.redhat.com
   resources:
   - workshops
+  - workshopuserassignments
   verbs:
   - get
   - list
