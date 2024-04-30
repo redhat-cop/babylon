@@ -51,6 +51,7 @@ rules:
   resources:
   - workshops
   - workshopprovisions
+  - workshopuserassignments
   verbs:
   - create
   - delete
