@@ -106,6 +106,10 @@ class WorkshopUserAssignment(CachedKopfObject):
         return obj
 
     @property
+    def assignment(self):
+        return self.spec.get('assignment')
+
+    @property
     def cache_key(self):
         return (self.namespace, self.workshop_name, self.resource_claim_name, self.user_name)
 
@@ -143,28 +147,16 @@ class WorkshopUserAssignment(CachedKopfObject):
             raise
 
         async with workshop.lock:
-            index = None
-            for loop_index, user_entry in enumerate(workshop.spec.get('userAssignments', [])):
-                if (
-                    user_entry.get('resourceClaimName') == self.resource_claim_name and
-                    user_entry.get('userName') == self.user_name
-                ):
-                    index = loop_index
-                    break
-
-            json_patch_item = {
-                "value": {
-                    key: value for key, value in self.spec.items() if key != 'workshopName'
+            await workshop.merge_patch_status({
+                "userAssignments": {
+                    self.name: {
+                        "assignment": self.assignment,
+                        "resourceClaimName": self.resource_claim_name,
+                        "userName": self.user_name,
+                    }
                 }
-            }
-            if index != None:
-                json_patch_item['op'] = 'replace'
-                json_patch_item['path'] = f"/spec/userAssignments/{index}"
-            else:
-                json_patch_item['op'] = 'add'
-                json_patch_item['path'] = '/spec/userAssignments/-'
-
-            await workshop.json_patch([json_patch_item])
+            })
+            await workshop.update_status()
 
     async def get_workshop(self):
         return await workshop_import.Workshop.get(name=self.workshop_name, namespace=self.namespace)
@@ -188,16 +180,8 @@ class WorkshopUserAssignment(CachedKopfObject):
         try:
             workshop = await self.get_workshop()
             async with workshop.lock:
-                for loop_index, user_entry in reversed(list(enumerate(workshop.spec.get('userAssignments', [])))):
-                    if (
-                        user_entry.get('resourceClaimName') == self.resource_claim_name and
-                        user_entry.get('userName') == self.user_name
-                    ):
-                        await workshop.json_patch([{
-                            "op": "remove",
-                            "path": f"/spec/userAssignments/{loop_index}",
-                        }])
-                        break
+                await workshop.merge_patch_status({"userAssignments": {self.name: None}})
+                await workshop.update_status()
         except kubernetes_asyncio.client.rest.ApiException as exception:
             if exception.status != 404:
                 raise

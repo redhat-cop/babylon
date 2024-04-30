@@ -103,12 +103,19 @@ spec:
                   This is appropriate to set when a multi-user workshop environment is provisioned first and then a Workshop is created later to provide access only.
                   In this case the Workshop should also be set to be owned by the ResourceClaim for the service.
                 type: boolean
+          status:
+            description: Status of Workshop
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              diffBase:
+                description: Kopf diffbase
+                type: string
               userAssignments:
                 description: >-
-                  Deprecated in favor of WorkshopUserAssignments objects.
-                  This value will be kept up to date in the current release while synchronizing to the new objects.
-                type: array
-                items:
+                  References to WorkshopUserAssignments.
+                type: object
+                additionalProperties:
                   type: object
                   properties:
                     assignment:
@@ -122,28 +129,6 @@ spec:
                           description: >-
                             Email address used to identify workshop participant.
                           type: string
-                    data:
-                      description: >-
-                        Any data items reported for the user from the service provisioning.
-                      type: object
-                      x-kubernetes-preserve-unknown-fields: true
-                    labUserInterface:
-                      description: >-
-                        Lab user interface information for user access.
-                      type: object
-                      properties:
-                        redirect:
-                          description: >-
-                            Configure that users should be automatically redirected to the lab user interface.
-                          type: boolean
-                        url:
-                          description: >-
-                            URL for the lab user interface.
-                          type: string
-                    messages:
-                      description: >-
-                        Any messages reported for the user from the service provisioning.
-                      type: string
                     resourceClaimName:
                       description: >-
                         ResourceClaim name.
@@ -152,14 +137,6 @@ spec:
                       description: >-
                         User name for lab as reported from the service provisioning.
                       type: string
-          status:
-            description: Status of Workshop
-            type: object
-            x-kubernetes-preserve-unknown-fields: true
-            properties:
-              diffBase:
-                description: Kopf diffbase
-                type: string
               userCount:
                 type: object
                 properties:

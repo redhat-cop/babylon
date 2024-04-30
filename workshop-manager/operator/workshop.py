@@ -70,14 +70,6 @@ class Workshop(CachedKopfObject):
     def service_url(self):
         return self.annotations.get(Babylon.url_annotation)
 
-    # deprecated
-    @property
-    def user_assignments(self):
-        return [
-            UserAssignment(definition=definition)
-            for definition in self.spec.get('userAssignments', [])
-        ]
-
     @property
     def workshop_id(self):
         return self.labels.get(Babylon.workshop_id_label)
@@ -112,7 +104,6 @@ class Workshop(CachedKopfObject):
     async def handle_resume(self, logger):
         async with self.lock:
             logger.info(f"Handling resume for {self}")
-            await self.__migrate_user_assignments(logger=logger)
             await self.__manage_workshop_id_label(logger=logger)
             await self.manage_workshop_provisions(logger=logger)
             await self.update_status()
@@ -120,7 +111,6 @@ class Workshop(CachedKopfObject):
     async def handle_update(self, logger):
         async with self.lock:
             logger.info(f"Handling update for {self}")
-            await self.__migrate_user_assignments(logger=logger)
             await self.__manage_workshop_id_label(logger=logger)
             await self.manage_workshop_provisions(logger=logger)
             await self.update_status()
@@ -160,55 +150,6 @@ class Workshop(CachedKopfObject):
         logger.info(f"Assigned workshop id {workshop_id} to {self}")
         return
 
-    async def __migrate_user_assignments(self, logger):
-        resource_claims = {}
-        for user_assignment in self.user_assignments:
-            resource_claim = resource_claims.get(user_assignment.resource_claim_name)
-            if not resource_claim:
-                try:
-                    resource_claim = await resourceclaim.ResourceClaim.fetch(
-                        name = user_assignment.resource_claim_name,
-                        namespace = self.namespace,
-                    )
-                except kubernetes_asyncio.client.rest.ApiException as exception:
-                    if exception.status == 404:
-                        logger.warning(
-                            f"Unable to find ResourceClaim {user_assignment.resource_claim} "
-                            f"to migrate user assignment for {self}"
-                        )
-                    else:
-                        raise
-
-            if resource_claim:
-                await self.__migrate_user_assignment(resource_claim, user_assignment, logger)
-
-    async def __migrate_user_assignment(self, resource_claim, user_assignment, logger):
-        workshop_user_assignment = await workshopuserassignment.WorkshopUserAssignment.find(
-            namespace = self.namespace,
-            resource_claim_name = user_assignment.resource_claim_name,
-            user_name = user_assignment.user_name,
-            workshop_name = self.name,
-        )
-        if workshop_user_assignment:
-            patch = {
-                "spec": {
-                    "assignment": user_assignment.assignment,
-                },
-            }
-            await workshop_user_assignment.merge_patch(patch)
-        else:
-            workshop_user_assignment = await workshopuserassignment.WorkshopUserAssignment.create(
-                assignment = user_assignment.assignment,
-                data = user_assignment.data,
-                lab_user_interface = user_assignment.lab_user_interface,
-                messages = user_assignment.messages,
-                namespace = self.namespace,
-                resource_claim = resource_claim,
-                user_name = user_assignment.user_name,
-                workshop_name = self.name,
-            )
-            logger.info(f"Migrated {workshop_user_assignment} for {self} {resource_claim}")
-
     async def manage_workshop_provisions(self, logger):
         for workshop_provision in self.get_workshop_provisions():
             async with workshop_provision.lock:
@@ -244,7 +185,8 @@ class Workshop(CachedKopfObject):
         assigned_user_count = 0
         available_user_count = 0
         total_user_count = 0
-        for user_assignment in self.spec.get('userAssignments', []):
+
+        for user_assignment in self.status.get('userAssignments', {}).values():
             total_user_count += 1
             if 'assignment' in user_assignment:
                 assigned_user_count += 1
