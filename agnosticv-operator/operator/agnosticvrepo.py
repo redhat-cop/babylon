@@ -496,7 +496,7 @@ class AgnosticVRepo(CachedKopfObject):
                 await agnosticv_component.json_patch(patch)
                 return "updated"
 
-            logger.debug("{agnosticv_component} unchanged")
+            logger.debug(f"{agnosticv_component} unchanged")
             return "unchanged"
 
         except kubernetes_asyncio.client.rest.ApiException as e:
