@@ -25,7 +25,8 @@ from cachedkopfobject import CachedKopfObject
 # Add aiofiles wrapping for chmod
 aiofiles.os.chmod = aiofiles.os.wrap(os.chmod)
 
-agnosticv_cli_path = os.environ.get('AGNOSTICV_CLI_PATH', '/opt/app-root/bin/agnosticv')
+app_root = os.environ.get('APP_ROOT', '/opt/app-root')
+agnosticv_cli_path = os.environ.get('AGNOSTICV_CLI_PATH', f"{app_root}/bin/agnosticv")
 
 class AgnosticVProcessingError(Exception):
     pass
@@ -46,7 +47,7 @@ class AgnosticVRepo(CachedKopfObject):
     plural = 'agnosticvrepos'
     version = Babylon.agnosticv_version
 
-    git_base_path = '/opt/app-root/git'
+    git_base_path = f"{app_root}/git"
     cache = {}
 
     def __init__(self, **kwargs):
@@ -98,7 +99,7 @@ class AgnosticVRepo(CachedKopfObject):
             # FIXME - known_hosts should be configurable
             env['GIT_SSH_COMMAND'] = (
                 f"ssh -i {self.git_ssh_key_path} "
-                f"-o UserKnownHostsFile=/opt/app-root/.ssh/known_hosts"
+                f"-o UserKnownHostsFile={app_root}/.ssh/known_hosts"
             )
         return env
 
