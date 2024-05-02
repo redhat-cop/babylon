@@ -23,8 +23,7 @@ class Babylon():
 
     @classmethod
     async def on_cleanup(cls):
-        cls.core_v1_api.api_client.close()
-        cls.custom_objects_api.api_client.close()
+        await cls.api_client.close()
 
     @classmethod
     async def on_startup(cls):
@@ -42,5 +41,6 @@ class Babylon():
                     'Please set OPERATOR_NAMESPACE environment variable.'
                 )
 
-        cls.core_v1_api = kubernetes_asyncio.client.CoreV1Api()
-        cls.custom_objects_api = kubernetes_asyncio.client.CustomObjectsApi()
+        cls.api_client = kubernetes_asyncio.client.ApiClient()
+        cls.core_v1_api = kubernetes_asyncio.client.CoreV1Api(cls.api_client)
+        cls.custom_objects_api = kubernetes_asyncio.client.CustomObjectsApi(cls.api_client)
