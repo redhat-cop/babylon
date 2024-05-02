@@ -8,7 +8,7 @@ class CachedKopfObject(KopfObject):
         obj = cls.cache.get(name)
         if obj:
             return obj
-        obj = await cls.fetch(name)
+        obj = await cls.fetch(name=name)
         cls.cache[name] = obj
         return obj
 
