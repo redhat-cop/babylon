@@ -20,4 +20,4 @@ USER 1001
 CMD /usr/libexec/s2i/run
 
 EXPOSE 8080
-EXPOSE 443
+EXPOSE 8443

@@ -32,14 +32,14 @@ spec:
         livenessProbe:
           initialDelaySeconds: 30
           tcpSocket:
-            port: 443
+            port: 8080
           timeoutSeconds: 1
         {{- with $status.resources }}
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         ports:
-        - containerPort: 443
+        - containerPort: 8443
           name: public
           protocol: TCP
         volumeMounts:

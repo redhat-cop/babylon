@@ -50,7 +50,7 @@ status:
   name: # default use chart name + '-status'
   image:
     #override:
-    tag: v0.0.3
+    tag: v0.0.4
     repository: quay.io/redhat-gpte/babylon-catalog-status
     pullPolicy: IfNotPresent
   replicaCount: 1
