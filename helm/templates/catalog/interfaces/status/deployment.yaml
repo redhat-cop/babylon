@@ -46,9 +46,6 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       serviceAccountName: default
       {{- with $status.tolerations }}
       tolerations:
