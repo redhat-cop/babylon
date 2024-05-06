@@ -46,6 +46,22 @@ ui:
       cpu: "1"
       memory: "256Mi"
 
+status:
+  name: # default use chart name + '-status'
+  image:
+    #override:
+    tag: v0.0.1
+    repository: quay.io/redhat-gpte/babylon-catalog-status
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: "256Mi"
+    limits:
+      cpu: "1"
+      memory: "256Mi"
+
 oauthProxy:
   name: # default use chart name + '-oauth-proxy'
   # OAuth client id and secret, if not defined then will attempt to use service account for oauth
@@ -82,7 +98,7 @@ oauthProxy:
 
 redis:
   name: # default use chart name + '-redis'
-  deploy: true
+  deploy: false
   password:
   generatePassword: true
   image:

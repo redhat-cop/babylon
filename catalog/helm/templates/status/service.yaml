@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "babylonCatalog.statusName" . }}
+  namespace: {{ include "babylonCatalog.namespaceName" . }}
+  labels:
+    {{- include "babylonCatalog.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: proxy
+    port: 8081
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    {{- include "babylonCatalog.statusSelectorLabels" . | nindent 4 }}
+  type: ClusterIP

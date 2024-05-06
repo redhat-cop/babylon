@@ -1,0 +1,11 @@
+{
+    "incidents_enabled": false,
+    "ratings_enabled": true,
+    "status_page_url": "https://rhdp-partner.statuspage.io/",
+    "status_page_id": "j70k6yk8v2pk",
+    "help_text": "Partner Help Desk",
+    "help_link": "https://connect.redhat.com/en/support",
+    "internal_help_link": "https://connect.redhat.com/en/support",
+    "feedback_link": "https://forms.gle/qBBWtXMea8vDqZUu7",
+    "learn_more_link": "https://content.redhat.com/content/rhcc/us/en/product/cross-portfolio-initiatives/rhdp.html"
+}
