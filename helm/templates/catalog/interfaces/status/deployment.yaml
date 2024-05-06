@@ -25,10 +25,6 @@ spec:
         {{- include "babylon.selectorLabels" $ | nindent 8 }}
         app.kubernetes.io/component: catalog-status
     spec:
-      {{- with $status.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       containers:
       - name: status
         image: {{ $status.image.repository }}:{{ $status.image.tag }}
