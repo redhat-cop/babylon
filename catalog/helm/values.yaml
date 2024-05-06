@@ -49,8 +49,7 @@ ui:
 status:
   name: # default use chart name + '-status'
   image:
-    #override:
-    tag: v0.0.4
+    tag: v0.0.5
     repository: quay.io/redhat-gpte/babylon-catalog-status
     pullPolicy: IfNotPresent
   replicaCount: 1
@@ -61,7 +60,6 @@ status:
     limits:
       cpu: "1"
       memory: "256Mi"
-  host:
 
 oauthProxy:
   name: # default use chart name + '-oauth-proxy'
