@@ -1190,7 +1190,7 @@ class AgnosticVComponent(KopfObject):
         merged_definition['metadata'].setdefault('annotations', {})[Babylon.last_update_annotation] = json.dumps(self.last_update)
 
         if merged_definition == current_state:
-            logger.debug("ResourceProvider {self.name} is unchanged.")
+            logger.debug(f"ResourceProvider {self.name} is unchanged.")
             return
 
         # FIXME - Add last updated information into annotation

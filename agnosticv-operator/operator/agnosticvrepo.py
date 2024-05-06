@@ -25,7 +25,8 @@ from cachedkopfobject import CachedKopfObject
 # Add aiofiles wrapping for chmod
 aiofiles.os.chmod = aiofiles.os.wrap(os.chmod)
 
-agnosticv_cli_path = os.environ.get('AGNOSTICV_CLI_PATH', '/opt/app-root/bin/agnosticv')
+app_root = os.environ.get('APP_ROOT', '/opt/app-root')
+agnosticv_cli_path = os.environ.get('AGNOSTICV_CLI_PATH', f"{app_root}/bin/agnosticv")
 
 class AgnosticVProcessingError(Exception):
     pass
@@ -46,7 +47,7 @@ class AgnosticVRepo(CachedKopfObject):
     plural = 'agnosticvrepos'
     version = Babylon.agnosticv_version
 
-    git_base_path = '/opt/app-root/git'
+    git_base_path = f"{app_root}/git"
     cache = {}
 
     def __init__(self, **kwargs):
@@ -98,7 +99,7 @@ class AgnosticVRepo(CachedKopfObject):
             # FIXME - known_hosts should be configurable
             env['GIT_SSH_COMMAND'] = (
                 f"ssh -i {self.git_ssh_key_path} "
-                f"-o UserKnownHostsFile=/opt/app-root/.ssh/known_hosts"
+                f"-o UserKnownHostsFile={app_root}/.ssh/known_hosts"
             )
         return env
 
@@ -174,6 +175,8 @@ class AgnosticVRepo(CachedKopfObject):
             self.git_hexsha = self.git_repo.head.commit.hexsha
         else:
             raise kopf.TemporaryError(f"Unable to resolve reference {ref}", delay=60)
+
+        self.git_checkout_ref = ref
 
     def __git_repo_clone(self, logger):
         self.git_repo = git.Repo.clone_from(
@@ -256,15 +259,14 @@ class AgnosticVRepo(CachedKopfObject):
         )
         return stdout.split(), stderr
 
-    async def agnosticv_get_component_paths_from_related_files(self, files):
+    async def agnosticv_get_component_paths_from_related_files(self, files, logger):
         if not files:
             return [], ''
-        args = ['--related', files[0]]
+        args = ['--list', '--has=__meta__', '--dir', self.agnosticv_path, '--related', files[0]]
         for file in files[1:]:
             args.extend(['--or-related', file])
-        stdout, stderr = await self.agnosticv_exec(
-            '--list', '--has=__meta__', '--dir', self.agnosticv_path, *args
-        )
+        logger.debug(f"agnosticv {' '.join(args)}")
+        stdout, stderr = await self.agnosticv_exec(*args)
         return stdout.split(), stderr
 
     async def delete_components(self, logger):
@@ -303,7 +305,7 @@ class AgnosticVRepo(CachedKopfObject):
         try:
             if changed_only and self.git_changed_files:
                 component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(
-                    self.git_changed_files
+                    self.git_changed_files, logger=logger
                 )
             else:
                 component_paths, error_msg = await self.agnosticv_get_all_component_paths()
@@ -342,7 +344,9 @@ class AgnosticVRepo(CachedKopfObject):
 
                         error_message = None
                         try:
-                            component_paths, error_message = await self.agnosticv_get_component_paths_from_related_files(changed_files)
+                            logger.debug(f"Getting component paths from changed files: {changed_files}")
+                            component_paths, error_message = await self.agnosticv_get_component_paths_from_related_files(changed_files, logger=logger)
+                            logger.debug(f"Got {component_paths}")
                         except AgnosticVProcessingError as error:
                             error_message = str(error)
 
@@ -395,6 +399,11 @@ class AgnosticVRepo(CachedKopfObject):
         )
 
     async def git_repo_checkout(self, logger, ref=None):
+        if not ref:
+            ref = self.git_ref
+        if ref == self.git_checkout_ref:
+            return
+
         await asyncio.get_event_loop().run_in_executor(
             None, functools.partial(
                 self.__git_repo_checkout, logger=logger, ref=ref
@@ -496,7 +505,7 @@ class AgnosticVRepo(CachedKopfObject):
                 await agnosticv_component.json_patch(patch)
                 return "updated"
 
-            logger.debug("{agnosticv_component} unchanged")
+            logger.debug(f"{agnosticv_component} unchanged")
             return "unchanged"
 
         except kubernetes_asyncio.client.rest.ApiException as e:
