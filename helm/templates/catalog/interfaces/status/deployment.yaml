@@ -10,20 +10,20 @@ metadata:
   namespace: {{ $namespace }}
   labels:
     {{- include "babylon.labels" $ | nindent 4 }}
-    app.kubernetes.io/component: catalog-status
+    app.kubernetes.io/component: status
 spec:
   replicas: {{ $status.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "babylon.selectorLabels" $ | nindent 6 }}
-      app.kubernetes.io/component: catalog-status
+      app.kubernetes.io/component: status
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
         {{- include "babylon.selectorLabels" $ | nindent 8 }}
-        app.kubernetes.io/component: catalog-status
+        app.kubernetes.io/component: status
     spec:
       containers:
       - name: status
