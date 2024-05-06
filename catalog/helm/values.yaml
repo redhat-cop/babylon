@@ -61,6 +61,7 @@ status:
     limits:
       cpu: "1"
       memory: "256Mi"
+  host:
 
 oauthProxy:
   name: # default use chart name + '-oauth-proxy'

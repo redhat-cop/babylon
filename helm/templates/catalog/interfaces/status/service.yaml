@@ -11,7 +11,7 @@ metadata:
 spec:
   ports:
   - name: proxy
-    port: 8081
+    port: 443
     protocol: TCP
     targetPort: 8080
   selector:

@@ -1,0 +1,48 @@
+{{- if .Values.route.create }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "babylonCatalog.statusName" . }}
+  namespace: {{ include "babylonCatalog.namespaceName" . }}
+  {{- if .Values.route.certUtilsOperator.enable }}
+  annotations:
+    cert-utils-operator.redhat-cop.io/certs-from-secret:  {{ include "babylonCatalog.statusName" . }}-tls
+  {{- end }}
+  labels:
+    {{- include "babylonCatalog.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.status.host }}
+  host: {{ . }}
+  {{- end }}
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+  to:
+    kind: Service
+    name: {{ include "babylonCatalog.statusName" . }}
+{{- if and .Values.route.certManager.enable .Values.status.host }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "babylonCatalog.statusName" . }}
+  namespace: {{ include "babylonCatalog.namespaceName" . }}
+spec:
+  dnsNames:
+  - {{ .Values.status.host }}
+  duration: 2160h # 90d
+  isCA: false
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+    group: cert-manager.io
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  renewBefore: 360h # 15d
+  secretName: {{ include "babylonCatalog.statusName" . }}-tls
+  usages:
+  - server auth
+{{- end }}
+{{- end }}
