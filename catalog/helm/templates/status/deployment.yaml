@@ -41,9 +41,21 @@ spec:
         livenessProbe:
           initialDelaySeconds: 30
           tcpSocket:
-            port: 8080
+            port: 443
           timeoutSeconds: 1
         {{- with .Values.status.resources }}
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        ports:
+        - containerPort: 8443
+          name: public
+          protocol: TCP
+        volumeMounts:
+        - name: proxy-tls
+          mountPath: /etc/tls/private
+      volumes:
+      - name: proxy-tls
+        secret:
+          defaultMode: 0644
+          secretName: {{ printf "%s-tls" (include "babylonCatalog.statusName" .) }}

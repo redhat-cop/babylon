@@ -23,5 +23,7 @@ spec:
     kind: Service
     name: babylon-catalog-status
     weight: 100
+  port:
+    targetPort: proxy
   wildcardPolicy: None
 {{- end }}

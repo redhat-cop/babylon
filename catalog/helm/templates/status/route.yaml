@@ -20,6 +20,8 @@ spec:
   to:
     kind: Service
     name: {{ include "babylonCatalog.statusName" . }}
+  port:
+    targetPort: proxy
 {{- if and .Values.route.certManager.enable .Values.status.host }}
 ---
 apiVersion: cert-manager.io/v1
