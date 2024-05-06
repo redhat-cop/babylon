@@ -230,7 +230,7 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_requester_parameters(self):
-        return self.catalog_meta.get('requester_parameters')
+        return self.catalog_meta.get('requester_parameters', [])
 
     @property
     def catalog_terms_of_service(self):
@@ -604,58 +604,10 @@ class AgnosticVComponent(KopfObject):
                 "namespace": Babylon.resource_broker_namespace,
             },
             "spec": {
-                "default": {
-                    "spec": {
-                        "vars": {
-                            "action_schedule": {
-                                "start": "{{ timestamp.utcnow }}",
-                                "stop": "{{ timestamp.utcnow.add(resource_provider.spec.override.spec.vars.action_schedule.default_runtime) }}",
-                            }
-                        }
-                    }
-                },
                 "lifespan": {
                     "default": self.lifespan_default,
                     "maximum": "{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}" + self.lifespan_maximum + "{% endif %}",
                     "relativeMaximum": "{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}" + self.lifespan_relative_maximum + "{% endif %}",
-                },
-                "matchIgnore": [
-                    "/spec/vars/action_schedule(/.*)?",
-                ],
-                "override": {
-                    "apiVersion": f"{Babylon.anarchy_api_version}",
-                    "kind": "AnarchySubject",
-                    "metadata": {
-                        "name": self.name + "-{{ guid }}{% if resource_index | int > 0 or (resource_reference.name | default('')).endswith('-0') %}-{{ resource_index }}{% endif %}",
-                        "namespace": self.anarchy_namespace,
-                    },
-                    "spec": {
-                        "governor": self.anarchy_governor,
-                        "vars": {
-                            "action_schedule": {
-                                "default_runtime": self.runtime_default,
-                                "maximum_runtime": "{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}" + self.runtime_maximum + "{% endif %}",
-                            },
-                            "desired_state":
-                                # FIXME - clean up syntax for readability.
-                                "{%- if 0 < resource_states | map('default', {}, True) | list | json_query(\"length([?!contains(keys(status.towerJobs.provision || `{}`), 'completeTimestamp')])\") -%}\n"
-                                "{#- desired_state started until all AnarchySubjects have finished provision -#}\n"
-                                "started\n"
-                                "{%- elif 0 < resource_templates | json_query(\"length([?spec.vars.action_schedule.start <= '\" ~ now(True, \"%FT%TZ\") ~ \"' && spec.vars.action_schedule.stop > '\" ~ now(True, \"%FT%TZ\") ~ \"'])\") -%}\n"
-                                "{#- desired_state started for all if any should be started as determined by action schedule -#}\n"
-                                "started\n"
-                                "{%- elif 0 < resource_templates | json_query(\"length([?spec.vars.default_desired_state == 'started' && !(spec.vars.action_schedule.start || spec.vars.action_schedule.stop)])\") -%}\n"
-                                "{#- desired_state started for all if any should be started as determined by default_desired_state -#}\n"
-                                "started\n"
-                                "{%- else -%}\n"
-                                "stopped\n"
-                                "{%- endif -%}",
-                            "healthy": True,
-                            "job_vars": {
-                                "guid": "{{ guid }}{% if resource_index | int > 0 or (resource_reference.name | default('')).endswith('-0') %}-{{ resource_index }}{% endif %}"
-                            }
-                        },
-                    }
                 },
                 "parameters": [
                     {
@@ -686,7 +638,6 @@ class AgnosticVComponent(KopfObject):
                         }
                     }
                 ],
-                "resourceRequiresClaim": self.resource_requires_claim,
                 "statusSummaryTemplate": {
                     "agnosticv": {
                         "account": self.account,
@@ -750,78 +701,138 @@ class AgnosticVComponent(KopfObject):
                         "{%-   endif -%}\n"
                         "{%- endif -%}"
                 },
-                "template": {
-                    "definition": {
-                        "spec": {
-                            "vars": {
-                                "action_schedule": {
-                                    "start": "{{ start_timestamp | default(omit) }}",
-                                    "stop": "{{ stop_timestamp | default(omit) }}",
-                                }
-                            }
-                        }
-                    },
-                    "enable": True,
-                },
-                "updateFilters": [
-                    {
-                        "pathMatch": "/spec/vars/action_schedule/.*",
-                        "allowedOps": ["add", "replace"],
-                    }, {
-                        "pathMatch": "/spec/vars/desired_state",
-                        "allowedOps": ["add", "replace"],
-                    },
-                ],
-                "validation": {
-                    "openAPIV3Schema": {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "required": ["spec"],
-                        "properties": {
-                            "spec": {
-                                "type": "object",
-                                "additionalProperties": False,
-                                "required": ["vars"],
-                                "properties": {
-                                    "vars": {
-                                        "type": "object",
-                                        "additionalProperties": False,
-                                        "properties": {
-                                            "action_schedule": {
-                                                "type": "object",
-                                                "additionalProperties": False,
-                                                "properties": {
-                                                    "start": {
-                                                        "type": "string",
-                                                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
-                                                    },
-                                                    "stop": {
-                                                        "type": "string",
-                                                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
-                                                    }
-                                                }
-                                            },
-                                            "check_status_request_timestamp": {
-                                                "type": "string",
-                                                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
-                                            },
-                                            "job_vars": {
-                                                "type": "object",
-                                                "additionalProperties": False,
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
                 "vars": {
                     "runtime_default": self.runtime_default,
                     "runtime_maximum": self.runtime_maximum,
                 }
             }
         }
+
+        if self.deployer_type:
+            definition['spec']['default'] = {
+                "spec": {
+                    "vars": {
+                        "action_schedule": {
+                            "start": "{{ timestamp.utcnow }}",
+                            "stop": "{{ timestamp.utcnow.add(resource_provider.spec.override.spec.vars.action_schedule.default_runtime) }}",
+                        }
+                    }
+                }
+            }
+            definition['spec']['matchIgnore'] = ["/spec/vars/action_schedule(/.*)?"]
+            definition['spec']['override'] = {
+                "apiVersion": f"{Babylon.anarchy_api_version}",
+                "kind": "AnarchySubject",
+                "metadata": {
+                    "name": self.name + "-{{ guid }}{% if resource_index | int > 0 or (resource_reference.name | default('')).endswith('-0') %}-{{ resource_index }}{% endif %}",
+                    "namespace": self.anarchy_namespace,
+                },
+                "spec": {
+                    "governor": self.anarchy_governor,
+                    "vars": {
+                        "action_schedule": {
+                            "default_runtime": self.runtime_default,
+                            "maximum_runtime": "{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}" + self.runtime_maximum + "{% endif %}",
+                        },
+                        "desired_state":
+                            # FIXME - clean up syntax for readability.
+                            "{%- if 0 < resource_states | map('default', {}, True) | list | json_query(\"length([?!contains(keys(status.towerJobs.provision || `{}`), 'completeTimestamp')])\") -%}\n"
+                            "{#- desired_state started until all AnarchySubjects have finished provision -#}\n"
+                            "started\n"
+                            "{%- elif 0 < resource_templates | json_query(\"length([?spec.vars.action_schedule.start <= '\" ~ now(True, \"%FT%TZ\") ~ \"' && spec.vars.action_schedule.stop > '\" ~ now(True, \"%FT%TZ\") ~ \"'])\") -%}\n"
+                            "{#- desired_state started for all if any should be started as determined by action schedule -#}\n"
+                            "started\n"
+                            "{%- elif 0 < resource_templates | json_query(\"length([?spec.vars.default_desired_state == 'started' && !(spec.vars.action_schedule.start || spec.vars.action_schedule.stop)])\") -%}\n"
+                            "{#- desired_state started for all if any should be started as determined by default_desired_state -#}\n"
+                            "started\n"
+                            "{%- else -%}\n"
+                            "stopped\n"
+                            "{%- endif -%}",
+                        "healthy": True,
+                        "job_vars": {
+                            "guid": "{{ guid }}{% if resource_index | int > 0 or (resource_reference.name | default('')).endswith('-0') %}-{{ resource_index }}{% endif %}"
+                        }
+                    },
+                }
+            }
+            definition['spec']['resourceRequiresClaim'] = self.resource_requires_claim
+            definition['spec']['template'] = {
+                "definition": {
+                    "spec": {
+                        "vars": {
+                            "action_schedule": {
+                                "start": "{{ start_timestamp | default(omit) }}",
+                                "stop": "{{ stop_timestamp | default(omit) }}",
+                            }
+                        }
+                    }
+                },
+                "enable": True,
+            }
+            definition['spec']['updateFilters'] = [
+                {
+                    "pathMatch": "/spec/vars/action_schedule/.*",
+                    "allowedOps": ["add", "replace"],
+                }, {
+                    "pathMatch": "/spec/vars/desired_state",
+                    "allowedOps": ["add", "replace"],
+                },
+            ]
+            definition['spec']['validation'] = {
+                "openAPIV3Schema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["spec"],
+                    "properties": {
+                        "spec": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": ["vars"],
+                            "properties": {
+                                "vars": {
+                                    "type": "object",
+                                    "additionalProperties": False,
+                                    "properties": {
+                                        "action_schedule": {
+                                            "type": "object",
+                                            "additionalProperties": False,
+                                            "properties": {
+                                                "start": {
+                                                    "type": "string",
+                                                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+                                                },
+                                                "stop": {
+                                                    "type": "string",
+                                                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+                                                }
+                                            }
+                                        },
+                                        "check_status_request_timestamp": {
+                                            "type": "string",
+                                            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+                                        },
+                                        "job_vars": {
+                                            "type": "object",
+                                            "additionalProperties": False,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if self.catalog_requester_parameters:
+                for rp in self.catalog_requester_parameters:
+                    definition['spec']['override']['spec']['vars']['job_vars'][rp['name']] = rp['value']
+
+            # Allow requesting status checks if not explicitly disabled
+            if not self.deployer_actions['status'].get('disable'):
+                definition['spec']['updateFilters'].append({
+                    "pathMatch": "/spec/vars/check_status_request_timestamp",
+                    "allowedOps": ["add", "replace"],
+                })
 
         if not self.catalog_disable:
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemName"] = self.name
@@ -834,8 +845,8 @@ class AgnosticVComponent(KopfObject):
                 "name": linked_component.component_name,
                 "waitFor": f"current_state_{idx} == 'started'",
                 "parameterValues": {
-                    "runtime_default": "{{ runtime_default }}",
-                    "runtime_maximum": "{{ runtime_maximum }}",
+                    "start_timestamp": "{{ start_timestamp }}",
+                    "stop_timestamp": "{{ stop_timestamp }}",
                 },
                 "templateVars": [
                     {
@@ -848,25 +859,17 @@ class AgnosticVComponent(KopfObject):
                 ]
             })
 
-            for item in linked_component.propagate_provision_data:
-                if item.name:
-                    definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{ provision_data_' + str(idx) + '.' + item.name + '}}'
-                else:
-                    definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{ provision_data_' + str(idx) + ' | object }}'
+            if self.deployer_type:
+                for item in linked_component.propagate_provision_data:
+                    if item.name:
+                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{ provision_data_' + str(idx) + '.' + item.name + '}}'
+                    else:
+                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{ provision_data_' + str(idx) + ' | object }}'
 
-        if self.catalog_requester_parameters:
-            for rp in self.catalog_requester_parameters:
-                definition['spec']['override']['spec']['vars']['job_vars'][rp['name']] = rp['value']
-
-        # Allow requesting status checks if not explicitly disabled
-        if not self.deployer_actions['status'].get('disable'):
-            definition['spec']['updateFilters'].append({
-                "pathMatch": "/spec/vars/check_status_request_timestamp",
-                "allowedOps": ["add", "replace"],
-            })
 
         if self.catalog_parameters:
-            open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars']
+            if self.deployer_type:
+                open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars']
             for parameter in self.catalog_parameters:
                 resource_broker_parameter = {
                     'name': parameter['name'],
@@ -894,6 +897,8 @@ class AgnosticVComponent(KopfObject):
                 # Below here is customization for how the parameter value is used to manage the
                 # resource for this provider. Some parameters may only be used to propagate to
                 # other linked providers.
+                if not self.deployer_type:
+                    continue
                 if '@' not in resource_indexes and current_resource_index not in resource_indexes:
                     continue
 
@@ -1041,8 +1046,7 @@ class AgnosticVComponent(KopfObject):
 
     async def __manage_resource_provider(self, logger, retries=5):
         # FIXME - catalog_meta should not impact resource provider creation.
-        # FIXME - deployer_type should not impact resource provider creation.
-        if not self.deployer_type or not self.catalog_meta or self.catalog_meta.get('disable'):
+        if not self.catalog_meta or self.catalog_meta.get('disable'):
             await self.__delete_resource_provider(logger=logger)
             return
 
