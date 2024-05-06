@@ -13,7 +13,7 @@ metadata:
   namespace: {{ $namespace }}
 spec:
   dnsNames:
-  - status.{{ $domain }}
+  - status-{{ $domain }}
   duration: 2160h0m0s # 90d
   issuerRef:
     name: letsencrypt

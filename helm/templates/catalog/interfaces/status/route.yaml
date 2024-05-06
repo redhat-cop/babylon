@@ -15,7 +15,7 @@ metadata:
   name: babylon-catalog-status
   namespace: {{ $namespace }}
 spec:
-  host: status.{{ $domain }}
+  host: status-{{ $domain }}
   tls:
     insecureEdgeTerminationPolicy: Redirect
     termination: reencrypt
