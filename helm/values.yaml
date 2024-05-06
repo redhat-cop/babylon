@@ -137,6 +137,19 @@ catalog:
         limits:
           cpu: "1"
           memory: "256Mi"
+    status:
+      image:
+        tag: v0.0.1
+        repository: quay.io/redhat-gpte/babylon-catalog-status
+        pullPolicy: IfNotPresent
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: "256Mi"
+        limits:
+          cpu: "1"
+          memory: "256Mi"
     interfaceName: rhpds
   interfaces:
     babylon-catalog: {}
