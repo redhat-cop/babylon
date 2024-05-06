@@ -32,12 +32,19 @@ spec:
         livenessProbe:
           initialDelaySeconds: 30
           tcpSocket:
-            port: 8080
+            port: 443
           timeoutSeconds: 1
         {{- with $status.resources }}
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        ports:
+        - containerPort: 443
+          name: public
+          protocol: TCP
+        volumeMounts:
+        - name: proxy-tls
+          mountPath: /etc/tls/private
       {{- with $status.image.pullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -51,4 +58,9 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+      - name: proxy-tls
+        secret:
+          defaultMode: 0644
+          secretName: babylon-catalog-status-tls
 {{- end }}
