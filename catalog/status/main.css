@@ -1,0 +1,72 @@
+*, :after, :before {
+    box-sizing: border-box;
+}
+html {
+    font-size: unset !important;
+}
+#root, body, html {
+    height: 100%;
+}
+body {
+    text-align: left;
+    font-size: 1rem;
+    font-family: "Red Hat Text","Overpass",overpass,helvetica,arial,sans-serif;
+    font-weight: 400;
+    background-color: #fff;
+    line-height: 1.5;
+    padding: 0;
+    margin: 0;
+}
+
+.pf-c-page {
+    grid-template-areas:
+        "header header"
+        "nav main";
+    grid-template-columns: max-content 1fr;
+}
+.pf-c-page__header {
+    align-items: center;
+    background-color: #151515;
+    color: #fff;
+    display: grid;
+    grid-template-columns: auto auto;
+    min-height: 72px;
+    min-width: 0;
+}
+.pf-c-page__header-brand {
+    padding: 0 2rem;
+}
+.pf-c-page__header-tools {
+    grid-column: 3 / 4;
+    margin-left: auto;
+    margin-right: 2rem;
+    display: flex;
+}
+.pf-c-button, .pf-c-app-launcher__toggle {
+    border: 0;
+    display: inline-block;
+    font-size: 16px;
+    padding: 6px 16px;
+    position: relative;
+    text-align: center;
+    user-select: none;
+    white-space: nowrap;
+    background-color: transparent;
+    color: rgb(255, 255, 255);
+    text-decoration: none;
+}
+.pf-c-button__icon.pf-m-start, .pf-c-app-launcher__toggle svg {
+    margin-right: 0.25rem;
+}
+.content {
+    width: 100%;
+    display: flex;
+    height: calc(100% - 72px);
+}
+.content iframe {
+    width: 100%;
+    border: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-shadow: 0 0 0;
+}

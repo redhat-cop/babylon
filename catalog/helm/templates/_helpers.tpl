@@ -48,6 +48,13 @@ Name applied to UI resources.
 {{- end -}}
 
 {{/*
+Name applied to UI status resources.
+*/}}
+{{- define "babylonCatalog.statusName" -}}
+  {{- default (printf "%s-status" (include "babylonCatalog.name" .)) .Values.status.name -}}
+{{- end -}}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "babylonCatalog.chart" -}}
@@ -121,6 +128,17 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
 {{/*
+Status Selector labels
+*/}}
+{{- define "babylonCatalog.statusSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "babylonCatalog.name" . }}
+app.kubernetes.io/component: status
+  {{- if (ne .Release.Name "RELEASE-NAME") }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- end -}}
+{{- end -}}
+
+{{/*
 Image for the catalog api
 */}}
 {{- define "babylonCatalog.apiImage" -}}
@@ -161,6 +179,17 @@ Image for the catalog ui
      {{- .Values.ui.image.override }}
   {{- else }}
      {{- .Values.ui.image.repository }}:{{ .Values.ui.image.tag }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Image for the status
+*/}}
+{{- define "babylonCatalog.statusImage" -}}
+  {{- if .Values.status.image.override }}
+     {{- .Values.status.image.override }}
+  {{- else }}
+     {{- .Values.status.image.repository }}:{{ .Values.status.image.tag }}
   {{- end }}
 {{- end -}}
 
