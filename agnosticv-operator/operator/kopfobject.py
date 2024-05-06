@@ -33,7 +33,9 @@ class KopfObject:
         )
 
     @classmethod
-    async def fetch(cls, name, namespace):
+    async def fetch(cls, name, namespace=None):
+        if namespace == None:
+            namespace = Babylon.namespace
         return cls.from_definition(await cls.fetch_definition(name=name, namespace=namespace))
 
     @classmethod
