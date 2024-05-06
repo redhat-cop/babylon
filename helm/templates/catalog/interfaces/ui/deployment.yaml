@@ -11,7 +11,7 @@ metadata:
     {{- include "babylon.labels" $ | nindent 4 }}
     app.kubernetes.io/component: catalog-ui
 spec:
-  replicas: {{ $ui.replicaCount | default 1}}
+  replicas: {{ $ui.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "babylon.selectorLabels" $ | nindent 6 }}
