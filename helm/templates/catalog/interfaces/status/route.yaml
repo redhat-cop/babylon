@@ -18,7 +18,7 @@ spec:
   host: status-{{ $domain }}
   tls:
     insecureEdgeTerminationPolicy: Redirect
-    termination: reencrypt
+    termination: passthrough
   to:
     kind: Service
     name: babylon-catalog-status

@@ -15,7 +15,7 @@ spec:
   host: status-{{ . }}
   {{- end }}
   tls:
-    termination: reencrypt
+    termination: passthrough
     insecureEdgeTerminationPolicy: Redirect
   to:
     kind: Service
