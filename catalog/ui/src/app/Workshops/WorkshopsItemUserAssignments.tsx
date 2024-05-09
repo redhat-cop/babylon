@@ -81,6 +81,21 @@ const WorkshopsItemUserAssignments: React.FC<{
       </EmptyState>
     );
   }
+  const sortBy = (a: WorkshopUserAssignment, b: WorkshopUserAssignment) => {
+    if (a.spec.resourceClaimName < b.spec.resourceClaimName) {
+      return -1;
+    }
+    if (a.spec.resourceClaimName > b.spec.resourceClaimName) {
+      return 1;
+    }
+    if (a.spec.userName && b.spec.userName) {
+      return a.spec.userName.localeCompare(b.spec.userName, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+    }
+    return 0;
+  };
 
   return (
     <>
@@ -100,7 +115,7 @@ const WorkshopsItemUserAssignments: React.FC<{
           </Tr>
         </Thead>
         <Tbody>
-          {userAssignments.map((userAssignment, userAssignmentIdx) => {
+          {userAssignments.sort(sortBy).map((userAssignment, userAssignmentIdx) => {
             return (
               <Tr key={userAssignmentIdx}>
                 {resourceClaimNames.length > 1 ? (
@@ -172,7 +187,7 @@ const WorkshopsItemUserAssignments: React.FC<{
           })}
         </Tbody>
       </TableComposable>
-      <ActionGroup key="users-actions">
+      <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-global--spacer--md)' }}>
         <Button onClick={openBulkUserAssignmentModal}>Bulk User Assignment</Button>
       </ActionGroup>
       {bulkUserAssignmentMessage ? <Text key="users-message">{bulkUserAssignmentMessage}</Text> : null}
