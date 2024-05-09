@@ -1,10 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { EmptyState, EmptyStateBody, EmptyStateIcon, Title } from '@patternfly/react-core';
+import {
+  ActionGroup,
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateIcon,
+  Modal,
+  ModalVariant,
+  Spinner,
+  Title,
+} from '@patternfly/react-core';
 import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { K8sObjectReference, ResourceClaim } from '@app/types';
+import { K8sObjectReference, ResourceClaim, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
 import { displayName, BABYLON_DOMAIN, getCostTracker } from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
@@ -16,24 +26,72 @@ import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
 import useSession from '@app/utils/useSession';
 import { ModalState } from './WorkshopsItem';
+import { apiPaths, deleteResourceClaim, patchWorkshopProvision } from '@app/api';
+import { useSWRConfig } from 'swr';
 
 import './workshops-item-services.css';
 
 const WorkshopsItemServices: React.FC<{
   modalState: ModalState;
+  workshopProvisions: WorkshopProvision[];
   resourceClaims: ResourceClaim[];
   showModal: (modalState: ModalState) => void;
   setSelectedResourceClaims: (resourceClaims: ResourceClaim[]) => void;
-}> = ({ showModal, resourceClaims, setSelectedResourceClaims }) => {
+  userAssignments: WorkshopUserAssignment[];
+}> = ({ showModal, workshopProvisions, resourceClaims, setSelectedResourceClaims, userAssignments }) => {
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
   const { isAdmin } = useSession().getSession();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { mutate } = useSWRConfig();
+
+  const unusedResourceClaims = resourceClaims.filter(
+    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email)
+  );
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
-      selectedUids.includes(resourceClaim.metadata.uid),
+      selectedUids.includes(resourceClaim.metadata.uid)
     );
     setSelectedResourceClaims(selectedResourceClaims);
   }, [resourceClaims, selectedUids, setSelectedResourceClaims]);
+
+  const deleteUnusedInstances = useCallback(
+    async ({ count }: { count: number }) => {
+      setIsLoading(true);
+      for (let workshopProvision of workshopProvisions) {
+        await patchWorkshopProvision({
+          name: workshopProvision.metadata.name,
+          namespace: workshopProvision.metadata.namespace,
+          patch: { spec: { count } },
+        });
+        mutate(
+          apiPaths.WORKSHOP_PROVISIONS({
+            workshopName: workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`],
+            namespace: workshopProvision.metadata.namespace,
+            limit: 'ALL',
+          })
+        );
+      }
+      for (let resourceClaim of unusedResourceClaims) {
+        await deleteResourceClaim(resourceClaim);
+      }
+      for (let workshopProvision of workshopProvisions) {
+        mutate(
+          apiPaths.RESOURCE_CLAIMS({
+            namespace: workshopProvision.metadata.namespace,
+            labelSelector: `${BABYLON_DOMAIN}/workshop=${
+              workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`]
+            }`,
+            limit: 'ALL',
+          })
+        );
+      }
+      setIsLoading(false);
+      setIsOpen(false);
+    },
+    [workshopProvisions, unusedResourceClaims]
+  );
 
   if (resourceClaims.length == 0) {
     return (
@@ -51,7 +109,7 @@ const WorkshopsItemServices: React.FC<{
     <>
       <SelectableTable
         key="table"
-        columns={['Name', 'GUID', 'Status', 'Created', 'Actions']}
+        columns={['Name', 'GUID', 'Status', 'Assigned User', 'Created', 'Actions']}
         onSelectAll={(isSelected: boolean) => {
           if (isSelected) {
             setSelectedUids(resourceClaims.map((resourceClaim) => resourceClaim.metadata.uid));
@@ -79,7 +137,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_data
-                  : r?.data?.labUserInterfaceData,
+                  : r?.data?.labUserInterfaceData
               )
               .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
               .find((u) => u != null);
@@ -91,7 +149,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_method
-                  : r?.data?.labUserInterfaceMethod,
+                  : r?.data?.labUserInterfaceMethod
               )
               .find((u) => u != null);
           const labUserInterfaceUrl =
@@ -146,6 +204,15 @@ const WorkshopsItemServices: React.FC<{
               )}
             </>,
 
+            // User
+            <>
+              {userAssignments.some((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
+                ? userAssignments
+                    .filter((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
+                    .map((uA) => <p>{uA.spec.assignment?.email}</p>)
+                : '-'}
+            </>,
+
             // Created
             <>
               <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
@@ -194,7 +261,7 @@ const WorkshopsItemServices: React.FC<{
 
           return {
             cells: cells,
-            onSelect: (isSelected) =>
+            onSelect: (isSelected: boolean) =>
               setSelectedUids((uids) => {
                 if (isSelected) {
                   if (uids.includes(resourceClaim.metadata.uid)) {
@@ -210,6 +277,36 @@ const WorkshopsItemServices: React.FC<{
           };
         })}
       />
+      <Modal
+        className="delete-unused-modal"
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Delete unused instances"
+        variant={ModalVariant.medium}
+        actions={[
+          <Button
+            key="confirm"
+            variant="primary"
+            isDisabled={isLoading}
+            onClick={() => deleteUnusedInstances({ count: resourceClaims.length - unusedResourceClaims.length })}
+          >
+            {isLoading ? <Spinner size="sm" /> : null} Confirm
+          </Button>,
+          <Button key="cancel" variant="link" onClick={() => setIsOpen(false)}>
+            Cancel
+          </Button>,
+        ]}
+      >
+        <p>Unused instances: {unusedResourceClaims.length}</p>
+        <p>
+          This action will size down the workshop to {resourceClaims.length - unusedResourceClaims.length} instances
+        </p>
+      </Modal>
+      {unusedResourceClaims.length > 0 ? (
+        <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-global--spacer--md)' }}>
+          <Button onClick={() => setIsOpen(true)}>Delete unused instances</Button>
+        </ActionGroup>
+      ) : null}
     </>
   );
 };

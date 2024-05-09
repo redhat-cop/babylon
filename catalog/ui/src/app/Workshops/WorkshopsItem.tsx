@@ -444,6 +444,8 @@ const WorkshopsItemComponent: React.FC<{
                 showModal={showModal}
                 setSelectedResourceClaims={setSelectedResourceClaims}
                 resourceClaims={resourceClaims || []}
+                workshopProvisions={workshopProvisions}
+                userAssignments={userAssigmentsList.items}
               />
             ) : null}
           </Tab>
