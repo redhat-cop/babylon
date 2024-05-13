@@ -1241,9 +1241,7 @@ export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: 
       }
     }
     for (let i = 0; i < patch.spec.resources.length; ++i) {
-      if (resourcesToStop.includes(patch.spec.resources[i].name)) {
-        patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
-      }
+      patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
     }
   }
 
@@ -1293,10 +1291,8 @@ export async function scheduleStartForAllResourcesInResourceClaim(
     }
   }
   for (let i = 0; i < patch.spec.resources.length; ++i) {
-    if (resourcesToStart.includes(patch.spec.resources[i].name)) {
-      patch.spec.resources[i].template.spec.vars.action_schedule.start = startTimestamp;
-      patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
-    }
+    patch.spec.resources[i].template.spec.vars.action_schedule.start = startTimestamp;
+    patch.spec.resources[i].template.spec.vars.action_schedule.stop = stopTimestamp;
   }
 
   return (await patchNamespacedCustomObject(
