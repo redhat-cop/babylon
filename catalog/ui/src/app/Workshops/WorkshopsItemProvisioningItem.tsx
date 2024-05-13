@@ -31,7 +31,7 @@ import useDebounce from '@app/utils/useDebounce';
 
 function reducer(
   state: { salesforce_id: string; valid: boolean; completed: boolean },
-  action: { type: 'set_salesforceId' | 'complete'; salesforceId?: string; salesforceIdValid?: boolean },
+  action: { type: 'set_salesforceId' | 'complete'; salesforceId?: string; salesforceIdValid?: boolean }
 ) {
   switch (action.type) {
     case 'set_salesforceId':
@@ -64,7 +64,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
           name: workshopProvision.spec.catalogItem.name,
         })
       : null,
-    fetcher,
+    fetcher
   );
   const [salesforceObj, dispatchSalesforceObj] = useReducer(reducer, {
     salesforce_id: workshopProvision.spec.parameters?.salesforce_id || '',
@@ -86,18 +86,18 @@ const WorkshopsItemProvisioningItem: React.FC<{
           labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
           limit: FETCH_BATCH_LIMIT,
           continueId,
-        }),
+        })
       ),
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
-    },
+    }
   );
 
   useEffect(() => {
     if (!salesforceObj.completed) {
       checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch).then((isValid) =>
-        dispatchSalesforceObj({ type: 'complete', salesforceIdValid: isValid }),
+        dispatchSalesforceObj({ type: 'complete', salesforceIdValid: isValid })
       );
     } else if (workshopProvision.spec.parameters?.salesforce_id !== salesforceObj.salesforce_id) {
       patchWorkshopProvisionSpec({
@@ -129,7 +129,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
         workshopName: workshopProvision.metadata.labels['babylon.gpte.redhat.com/workshop'],
         namespace: workshopProvision.metadata.namespace,
         limit: 'ALL',
-      }),
+      })
     );
   }
 
@@ -189,12 +189,9 @@ const WorkshopsItemProvisioningItem: React.FC<{
                   : 'default'
               }
             />
-            <Tooltip
-              position="right"
-              content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
-            >
+            <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
               <OutlinedQuestionCircleIcon
-                aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
+                aria-label="Salesforce Opportunity ID, Campaign ID or Project ID."
                 className="tooltip-icon-only"
               />
             </Tooltip>
