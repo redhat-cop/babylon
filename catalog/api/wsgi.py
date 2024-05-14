@@ -637,11 +637,21 @@ def incidents_get():
 
 @application.route("/api/admin/incidents", methods=['POST'])
 def create_incident():
+    user = proxy_user()
+    session = get_user_session(user)
+    api_client = proxy_api_client(session)
+    if not check_admin_access(api_client):
+        flask.abort(403)
     data = flask.request.get_json()
     return api_proxy(method="POST", url=f"{admin_api}/api/admin/v1/incidents", data=json.dumps(data), headers=flask.request.headers)
 
 @application.route("/api/admin/incidents/<incident_id>", methods=['POST'])
 def update_incident(incident_id):
+    user = proxy_user()
+    session = get_user_session(user)
+    api_client = proxy_api_client(session)
+    if not check_admin_access(api_client):
+        flask.abort(403)
     data = flask.request.get_json()
     return api_proxy(method="POST", url=f"{admin_api}/api/admin/v1/incidents/{incident_id}", data=json.dumps(data), headers=flask.request.headers)
 
