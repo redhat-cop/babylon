@@ -1,0 +1,12 @@
+FROM registry.access.redhat.com/ubi9/python-311:latest
+
+USER 0
+COPY . /tmp/src
+RUN /usr/bin/fix-permissions /tmp/src
+USER 1001
+
+RUN /usr/libexec/s2i/assemble
+
+EXPOSE 8080
+
+CMD /usr/libexec/s2i/run
