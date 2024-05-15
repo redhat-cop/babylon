@@ -20,7 +20,7 @@ export function useInterface(userInterface: string) {
 
 export default function useInterfaceConfig() {
     const { userInterface } = useSession().getSession();
-    const { data, error } = useInterface(userInterface);
+    const { data, error } = useInterface(userInterface || 'rhpds');
     if (error) {
         return {
             incidents_enabled: false,

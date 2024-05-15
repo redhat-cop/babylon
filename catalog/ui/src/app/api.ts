@@ -278,16 +278,18 @@ export async function bulkAssignWorkshopUsers({
 export async function checkSalesforceId(
   id: string,
   debouncedApiFetch: (path: string) => Promise<unknown>
-): Promise<boolean> {
+): Promise<{ valid: boolean; message: string }> {
   if (!id) {
-    return false;
+    return { valid: false, message: 'A valid Salesforce ID is required for the selected activity / purpose' };
   }
   try {
     await debouncedApiFetch(`/api/salesforce/${id}`);
   } catch (error) {
-    return false;
+    if (error.response) {
+    }
+    return { valid: false, message: error.response.message };
   }
-  return true;
+  return { valid: true, message: '' };
 }
 
 async function createK8sObject<Type extends K8sObject>(definition: Type): Promise<Type> {
