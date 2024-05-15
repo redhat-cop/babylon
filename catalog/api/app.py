@@ -46,7 +46,7 @@ async def api_proxy(method, url, headers, data=None, params=None):
         resp = await session.request(
             allow_redirects=False,
             data=data,
-            headers={key: value for (key, value) in headers if key != 'Host'},
+            headers={key: value for (key, value) in headers.items() if key != 'Host'},
             method=method,
             params=params,
             url=url,
@@ -63,14 +63,17 @@ async def api_proxy(method, url, headers, data=None, params=None):
             'transfer-encoding',
             'upgrade',
         ]
-        headers = [
-            (name, value) for (name, value) in resp.raw_headers.items()
+        headers = {
+            name: value for (name, value) in resp.headers.items()
             if name.lower() not in excluded_headers
-        ]
+        }
+        data = gzip.compress(await resp.read(), compresslevel=5)
+        headers['Content-Encoding'] = 'gzip'
+        headers['Content-Type'] = 'application/json'
         return web.Response(
-            body=resp.content,
+            body=data,
             headers=headers,
-            status=resp.status_code,
+            status=resp.status,
         )
 
 async def on_startup(app):
@@ -280,7 +283,7 @@ async def get_service_namespaces(user, api_client):
                 'displayName': ns.metadata.annotations.get('openshift.io/display-name', f"User {requester} (shared)"),
                 'requester': requester,
             })
-
+    service_namespaces.insert(0, user_namespace)
     return user_namespace, service_namespaces
 
 async def get_user_session(request, user):
@@ -418,76 +421,6 @@ async def get_auth_users_info(request):
         await api_client.close()
         if test_api_client:
             await test_api_client.close()
-
-@routes.delete("/{path:apis?/.*}")
-@routes.get("/{path:apis?/.*}")
-@routes.patch("/{path:apis?/.*}")
-@routes.post("/{path:apis?/.*}")
-@routes.put("/{path:apis?/.*}")
-async def openshift_api_proxy(request):
-    user = await get_proxy_user(request)
-    session = await get_user_session(request, user)
-    api_client = proxy_api_client(session)
-
-    try:
-        impersonate_user = request.headers.get('Impersonate-User')
-        if impersonate_user and session.get('admin'):
-            api_client.default_headers['Impersonate-User'] = impersonate_user
-            api_client.default_headers.discard('Impersonate-Group')
-            for group in get_user_groups(impersonate_user):
-                api_client.default_headers.add('Impersonate-Group', group)
-
-        header_params = {}
-        if request.headers.get('Accept'):
-            header_params['Accept'] = request.headers['Accept']
-        if request.content_type:
-            header_params['Content-Type'] = request.content_type
-
-        response = await api_client.call_api(
-            request.path,
-            request.method,
-            auth_settings = ['BearerToken'],
-            body = await request.json() if request.can_read_body else None,
-            header_params = header_params,
-            query_params = [ (k, v) for k, v in request.query.items() ],
-            _preload_content = False,
-        )
-        data = json.loads(await response.read())
-
-        # Strip out metadata.managedFields
-        if 'managedFields' in data.get('metadata', {}):
-            del data['metadata']['managedFields']
-        for item in data.get('items', []):
-            if 'managedFields' in item.get('metadata', {}):
-                del item['metadata']['managedFields']
-
-        headers={
-            key: val for key, val in response.headers.items()
-            if key.lower() not in ('content-encoding', 'content-length', 'content-type', 'transfer-encoding')
-        }
-
-        data = gzip.compress(bytes(json.dumps(data), 'utf-8'), compresslevel=5)
-        headers['Content-Encoding'] = 'gzip'
-        headers['Content-Type'] = 'application/json'
-
-        return web.Response(
-            body=data,
-            headers=headers,
-            status=response.status,
-        )
-    except kubernetes_asyncio.client.exceptions.ApiException as exception:
-        if exception.body:
-            return web.Response(
-                body=exception.body,
-                headers={"Content-Type": "application/json"},
-                status=exception.status,
-            )
-        else:
-            return web.Response(
-                status=exception.status,
-            )
-    finally:
-        await api_client.close()
 
 @routes.get("/api/ratings/request/{request_uid}")
 async def provision_rating_get(request):
@@ -698,6 +631,77 @@ async def workshop_post(request):
                     raise
 
     raise web.HTTPConflict()
+
+@routes.delete("/{path:apis?/.*}")
+@routes.get("/{path:apis?/.*}")
+@routes.patch("/{path:apis?/.*}")
+@routes.post("/{path:apis?/.*}")
+@routes.put("/{path:apis?/.*}")
+async def openshift_api_proxy(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    api_client = proxy_api_client(session)
+
+    try:
+        impersonate_user = request.headers.get('Impersonate-User')
+        if impersonate_user and session.get('admin'):
+            api_client.default_headers['Impersonate-User'] = impersonate_user
+            api_client.default_headers.discard('Impersonate-Group')
+            for group in get_user_groups(impersonate_user):
+                api_client.default_headers.add('Impersonate-Group', group)
+
+        header_params = {}
+        if request.headers.get('Accept'):
+            header_params['Accept'] = request.headers['Accept']
+        if request.content_type:
+            header_params['Content-Type'] = request.content_type
+
+        response = await api_client.call_api(
+            request.path,
+            request.method,
+            auth_settings = ['BearerToken'],
+            body = await request.json() if request.can_read_body else None,
+            header_params = header_params,
+            query_params = [ (k, v) for k, v in request.query.items() ],
+            _preload_content = False,
+        )
+        data = json.loads(await response.read())
+
+        # Strip out metadata.managedFields
+        if 'managedFields' in data.get('metadata', {}):
+            del data['metadata']['managedFields']
+        for item in data.get('items', []):
+            if 'managedFields' in item.get('metadata', {}):
+                del item['metadata']['managedFields']
+
+        headers={
+            key: val for key, val in response.headers.items()
+            if key.lower() not in ('content-encoding', 'content-length', 'content-type', 'transfer-encoding')
+        }
+
+        data = gzip.compress(bytes(json.dumps(data), 'utf-8'), compresslevel=5)
+        headers['Content-Encoding'] = 'gzip'
+        headers['Content-Type'] = 'application/json'
+
+        return web.Response(
+            body=data,
+            headers=headers,
+            status=response.status,
+        )
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.body:
+            return web.Response(
+                body=exception.body,
+                headers={"Content-Type": "application/json"},
+                status=exception.status,
+            )
+        else:
+            return web.Response(
+                status=exception.status,
+            )
+    finally:
+        await api_client.close()
+
 
 app = web.Application()
 app.add_routes(routes)
