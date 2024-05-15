@@ -285,7 +285,7 @@ export async function checkSalesforceId(
   try {
     await debouncedApiFetch(`/api/salesforce/${id}`);
   } catch (error) {
-    return { valid: false, message: error.response?.message };
+    return { valid: false, message: error?.response?.message || '' };
   }
   return { valid: true, message: '' };
 }
