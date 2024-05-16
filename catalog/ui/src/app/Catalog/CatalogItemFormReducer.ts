@@ -482,7 +482,10 @@ function reduceFormStateSalesforceId(
 ): FormState {
   return {
     ...initialState,
-    salesforceId,
+    salesforceId: {
+      ...initialState.salesforceId,
+      ...salesforceId,
+    },
     conditionChecks: {
       completed: false,
     },
