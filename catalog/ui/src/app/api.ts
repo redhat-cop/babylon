@@ -279,15 +279,21 @@ export async function checkSalesforceId(
   id: string,
   debouncedApiFetch: (path: string) => Promise<unknown>
 ): Promise<{ valid: boolean; message: string }> {
+  const defaultMessage = 'A valid Salesforce ID is required for the selected activity / purpose';
   if (!id) {
-    return { valid: false, message: 'A valid Salesforce ID is required for the selected activity / purpose' };
+    return { valid: false, message: defaultMessage };
   }
   try {
     await debouncedApiFetch(`/api/salesforce/${id}`);
-  } catch (error: any) {
-    console.log('error: ' + error);
-    console.log(error, error?.response, error?.response?.message);
-    return { valid: false, message: error?.response?.message || '' };
+  } catch (errorResponse: any) {
+    console.log('errorM: ' + errorResponse);
+    try {
+      const error = await errorResponse.json();
+      console.log('error: ' + error);
+      return { valid: false, message: error?.message || defaultMessage };
+    } catch (_) {
+      return { valid: false, message: defaultMessage };
+    }
   }
   return { valid: true, message: '' };
 }
