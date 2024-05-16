@@ -43,10 +43,16 @@ def proxy_api_client(session):
 
 async def api_proxy(method, url, headers, data=None, params=None):
     async with aiohttp.ClientSession() as session:
+        headers = {
+            key: value for (key, value) in headers.items()
+            if key.lower() not in ('host', 'content-length')
+        }
+        if data:
+            headers['Content-Length'] = str(len(data))
         resp = await session.request(
             allow_redirects=False,
             data=data,
-            headers={key: value for (key, value) in headers.items() if key != 'Host'},
+            headers=headers,
             method=method,
             params=params,
             url=url,
@@ -653,7 +659,7 @@ async def openshift_api_proxy(request):
         header_params = {}
         if request.headers.get('Accept'):
             header_params['Accept'] = request.headers['Accept']
-        if request.content_type:
+        if request.content_type and request.can_read_body:
             header_params['Content-Type'] = request.content_type
 
         response = await api_client.call_api(
@@ -662,7 +668,7 @@ async def openshift_api_proxy(request):
             auth_settings = ['BearerToken'],
             body = await request.json() if request.can_read_body else None,
             header_params = header_params,
-            query_params = [ (k, v) for k, v in request.query.items() ],
+            query_params = [(k, v) for k, v in request.query.items()] if request.query else None,
             _preload_content = False,
         )
         data = json.loads(await response.read())

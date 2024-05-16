@@ -7,6 +7,7 @@ import urllib3
 import six
 from six.moves.urllib.parse import quote
 from urllib3.connection import HTTPHeaderDict
+from kubernetes_asyncio.client.exceptions import ApiException
 
 def urllib3_hotfix_request_encode_body(
     self,
@@ -166,7 +167,8 @@ class HotfixKubeApiClient(kubernetes_asyncio.client.ApiClient):
                 _preload_content=_preload_content,
                 _request_timeout=_request_timeout)
         except ApiException as e:
-            e.body = e.body.decode('utf-8') if six.PY3 else e.body
+            if e.body:
+                e.body = e.body.decode('utf-8') if six.PY3 else e.body
             raise e
 
         self.last_response = response_data
