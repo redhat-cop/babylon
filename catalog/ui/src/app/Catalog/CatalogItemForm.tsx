@@ -239,6 +239,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     return null;
   }
 
+  console.log(formState.salesforceId.message);
+
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
       <CatalogItemFormAutoStopDestroyModal

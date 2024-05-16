@@ -332,6 +332,7 @@ function reduceFormStateInit(
       required: false,
       value: null,
       valid: false,
+      message: '',
     },
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
