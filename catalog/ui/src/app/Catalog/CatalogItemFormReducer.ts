@@ -47,6 +47,7 @@ type FormState = {
     required: boolean;
     value?: string;
     valid: boolean;
+    message?: string;
   };
 };
 type ParameterProps = {
@@ -66,6 +67,7 @@ export type FormStateAction = {
     | 'useAutoDetach'
     | 'purpose'
     | 'salesforceId'
+    | 'salesforceIdMessage'
     | 'serviceNamespace'
     | 'complete';
   allowServiceNamespaces?: ServiceNamespace[];
@@ -82,7 +84,9 @@ export type FormStateAction = {
     required: boolean;
     value: string;
     valid: boolean;
+    message?: string;
   };
+  message?: string;
   salesforceIdValid?: boolean;
   error?: string;
   parameters?: { [name: string]: FormStateParameter };
@@ -137,7 +141,8 @@ export function checkCondition(condition: string, vars: ConditionValues): boolea
 async function _checkCondition(
   condition: string,
   vars: ConditionValues,
-  debouncedApiFetch: (path: string) => Promise<unknown>
+  debouncedApiFetch: (path: string) => Promise<unknown>,
+  dispatchFn: React.Dispatch<FormStateAction>
 ): Promise<boolean> {
   const checkSalesforceIds: string[] = [];
   condition.replace(checkSalesforceIdRegex, (match, name) => {
@@ -146,7 +151,12 @@ async function _checkCondition(
   });
   const checkResults: boolean[] = [];
   for (const name of checkSalesforceIds) {
-    checkResults.push(await checkSalesforceId(vars[name] as string, debouncedApiFetch));
+    const { valid, message } = await checkSalesforceId(vars[name] as string, debouncedApiFetch);
+    dispatchFn({
+      type: 'salesforceIdMessage',
+      message,
+    });
+    checkResults.push(valid);
   }
   return checkCondition(
     condition.replace(checkSalesforceIdRegex, () => (checkResults.shift() ? 'true' : 'false')),
@@ -176,7 +186,8 @@ export async function checkConditionsInFormState(
       salesforceIdValid = await _checkCondition(
         'check_salesforce_id(salesforce_id)',
         { salesforce_id: initialState.salesforceId.value },
-        debouncedApiFetch
+        debouncedApiFetch,
+        dispatchFn
       );
     }
     for (const [, parameterState] of Object.entries(parameters)) {
@@ -186,7 +197,8 @@ export async function checkConditionsInFormState(
         parameterState.isDisabled = await _checkCondition(
           parameterSpec.formDisableCondition,
           conditionValues,
-          debouncedApiFetch
+          debouncedApiFetch,
+          dispatchFn
         );
       }
 
@@ -194,7 +206,8 @@ export async function checkConditionsInFormState(
         parameterState.isHidden = await _checkCondition(
           parameterSpec.formHideCondition,
           conditionValues,
-          debouncedApiFetch
+          debouncedApiFetch,
+          dispatchFn
         );
       }
 
@@ -202,7 +215,8 @@ export async function checkConditionsInFormState(
         parameterState.isRequired = await _checkCondition(
           parameterSpec.formRequireCondition,
           conditionValues,
-          debouncedApiFetch
+          debouncedApiFetch,
+          dispatchFn
         );
       }
 
@@ -212,7 +226,8 @@ export async function checkConditionsInFormState(
             parameterState.validationResult = await _checkCondition(
               parameterSpec.validation,
               conditionValues,
-              debouncedApiFetch
+              debouncedApiFetch,
+              dispatchFn
             );
             parameterState.validationMessage = undefined;
           } catch (error) {
@@ -317,6 +332,7 @@ function reduceFormStateInit(
       required: false,
       value: null,
       valid: false,
+      message: '',
     },
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
@@ -467,9 +483,22 @@ function reduceFormStateSalesforceId(
 ): FormState {
   return {
     ...initialState,
-    salesforceId,
+    salesforceId: {
+      ...initialState.salesforceId,
+      ...salesforceId,
+    },
     conditionChecks: {
       completed: false,
+    },
+  };
+}
+
+function reduceFormStateSalesforceIdMessage(initialState: FormState, message: string): FormState {
+  return {
+    ...initialState,
+    salesforceId: {
+      ...initialState.salesforceId,
+      message,
     },
   };
 }
@@ -488,6 +517,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormStatePurpose(state, action.activity, action.purpose, action.explanation);
     case 'salesforceId':
       return reduceFormStateSalesforceId(state, action.salesforceId);
+    case 'salesforceIdMessage':
+      return reduceFormStateSalesforceIdMessage(state, action.message);
     case 'serviceNamespace':
       return reduceFormStateServiceNamespace(state, action.serviceNamespace);
     case 'dates':

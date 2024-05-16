@@ -96,8 +96,9 @@ const WorkshopsItemProvisioningItem: React.FC<{
 
   useEffect(() => {
     if (!salesforceObj.completed) {
-      checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch).then((isValid) =>
-        dispatchSalesforceObj({ type: 'complete', salesforceIdValid: isValid })
+      checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch).then(
+        ({ valid, message }: { valid: boolean; message?: string }) =>
+          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid })
       );
     } else if (workshopProvision.spec.parameters?.salesforce_id !== salesforceObj.salesforce_id) {
       patchWorkshopProvisionSpec({
