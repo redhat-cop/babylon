@@ -1093,7 +1093,7 @@ class AgnosticVComponent(KopfObject):
 
         # FIXME - agnosticv-operator handling of None/null was unpredictable
         if remove_none_values(merged_definition) == remove_none_values(current_state):
-            logger.debug("AnarchyGovernor {name} in {namespace} is unchaged.")
+            logger.debug("AnarchyGovernor {name} in {namespace} is unchanged.")
             return
 
         logger.info(f"Updating AnarchyGovernor {name} in {namespace}")
@@ -1147,7 +1147,7 @@ class AgnosticVComponent(KopfObject):
 
         # Preserve label values
         for label, value in current_state['metadata'].get('labels', {}).items():
-            if (
+            if not label.startswith(f"{Babylon.agnosticv_api_group}/") and (
                 not label.startswith(f"{Babylon.catalog_api_group}/") or
                 label in (
                     "babylon.gpte.redhat.com/rating",
@@ -1157,7 +1157,7 @@ class AgnosticVComponent(KopfObject):
                 merged_definition['metadata']['labels'][label] = value
 
         if merged_definition == current_state:
-            logger.debug("CatalogItem {catalog_item_name} in {catalog_item_namespace} is unchaged.")
+            logger.debug("CatalogItem {catalog_item_name} in {catalog_item_namespace} is unchanged.")
             return
 
         logger.info(f"Updating CatalogItem {catalog_item_name} in {catalog_item_namespace}")
