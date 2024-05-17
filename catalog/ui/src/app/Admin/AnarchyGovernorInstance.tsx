@@ -163,6 +163,7 @@ const AnarchyGovernorInstanceComponent: React.FC<{
             navigate(`/admin/anarchygovernors/${namespace}/${anarchyGovernorName}/${tabIndex}`)
           }
         >
+          {/* @ts-ignore */}
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
@@ -183,9 +184,11 @@ const AnarchyGovernorInstanceComponent: React.FC<{
               </DescriptionListGroup>
             </DescriptionList>
           </Tab>
+          {/* @ts-ignore */}
           <Tab eventKey="anarchysubjects" title={<TabTitleText>AnarchySubjects</TabTitleText>}>
             <AnarchySubjectsTable anarchySubjects={anarchySubjects} />
           </Tab>
+          {/* @ts-ignore */}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor
               height="500px"
