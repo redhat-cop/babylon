@@ -518,10 +518,23 @@ async def create_support(request):
         data["email"] = user['metadata']['name']
 
     return await api_proxy(
-        method="POST",
-        url=f"{admin_api}/api/admin/v1/workshop/support",
         data=json.dumps(data),
         headers=request.headers,
+        method="POST",
+        url=f"{admin_api}/api/admin/v1/workshop/support",
+    )
+
+@routes.get("/api/salesforce/{salesforce_id}")
+async def salesforce_id_validation(request):
+    salesforce_id = request.match_info.get('salesforce_id')
+    headers = {
+        "Authorization": f"Bearer {salesforce_authorization_token}"
+    }
+    return await api_proxy(
+        data={},
+        headers=headers,
+        method="POST",
+        url=f"{salesforce_api}/sales_validation?salesforce_id={salesforce_id}",
     )
 
 @routes.get("/api/workshop/{workshop_id}")
