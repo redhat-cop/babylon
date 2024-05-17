@@ -286,10 +286,8 @@ export async function checkSalesforceId(
   try {
     await debouncedApiFetch(`/api/salesforce/${id}`);
   } catch (errorResponse: any) {
-    console.log('errorM: ' + errorResponse);
     try {
       const error = await errorResponse.json();
-      console.log('error: ' + error);
       return { valid: false, message: error?.message || defaultMessage };
     } catch (_) {
       return { valid: false, message: defaultMessage };

@@ -58,7 +58,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
   async function confirmThenDelete() {
     if (confirm(`Delete ResourceProvider ${resourceProviderName}?`)) {
       await deleteResourceProvider(resourceProvider);
-      mutate(undefined);
+      mutate();
       mutateResourceProvidersList(undefined);
       navigate('/admin/resourceproviders');
     }
@@ -97,7 +97,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
                         resourceProvider.metadata.namespace
                       }/${resourceProvider.apiVersion.replace('/', '~')}~${resourceProvider.kind}/${
                         resourceProvider.metadata.name
-                      }/yaml`,
+                      }/yaml`
                     )
                   }
                 />,
@@ -110,7 +110,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
                         resourceProvider.metadata.namespace
                       }/${resourceProvider.apiVersion.replace('/', '~')}~${resourceProvider.kind}/${
                         resourceProvider.metadata.name
-                      }`,
+                      }`
                     )
                   }
                 />,
@@ -124,6 +124,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/resourceproviders/${resourceProviderName}/${tabIndex}`)}
         >
+          {/* @ts-ignore */}
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
@@ -162,6 +163,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
               </DescriptionListGroup>
             </DescriptionList>
           </Tab>
+          {/* @ts-ignore */}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor
               height="500px"

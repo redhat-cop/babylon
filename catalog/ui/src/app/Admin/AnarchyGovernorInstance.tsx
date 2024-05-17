@@ -67,7 +67,7 @@ const AnarchyGovernorInstanceComponent: React.FC<{
         if (!compareK8sObjectsArr(currentData.items, newData.items)) return false;
         return true;
       },
-    },
+    }
   );
 
   const anarchySubjects = useMemo(() => anarchySubjectsList.items, [anarchySubjectsList]);
@@ -75,7 +75,7 @@ const AnarchyGovernorInstanceComponent: React.FC<{
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchyGovernor ${anarchyGovernorName}?`)) {
       await deleteAnarchyGovernor(anarchyGovernor);
-      mutate(undefined);
+      mutate();
       navigate(`/admin/anarchygovernors/${namespace}`);
     }
   }
@@ -134,8 +134,8 @@ const AnarchyGovernorInstanceComponent: React.FC<{
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace(
                         '/',
-                        '~',
-                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}/yaml`,
+                        '~'
+                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}/yaml`
                     )
                   }
                 />,
@@ -146,8 +146,8 @@ const AnarchyGovernorInstanceComponent: React.FC<{
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace(
                         '/',
-                        '~',
-                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}`,
+                        '~'
+                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}`
                     )
                   }
                 />,
@@ -163,6 +163,7 @@ const AnarchyGovernorInstanceComponent: React.FC<{
             navigate(`/admin/anarchygovernors/${namespace}/${anarchyGovernorName}/${tabIndex}`)
           }
         >
+          {/* @ts-ignore */}
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
@@ -183,9 +184,11 @@ const AnarchyGovernorInstanceComponent: React.FC<{
               </DescriptionListGroup>
             </DescriptionList>
           </Tab>
+          {/* @ts-ignore */}
           <Tab eventKey="anarchysubjects" title={<TabTitleText>AnarchySubjects</TabTitleText>}>
             <AnarchySubjectsTable anarchySubjects={anarchySubjects} />
           </Tab>
+          {/* @ts-ignore */}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor
               height="500px"

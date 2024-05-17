@@ -51,29 +51,33 @@ const CatalogCategorySelector: React.FC<{
         '2xl': 'insetNone',
       }}
     >
+      {/* @ts-ignore */}
       <Tab key="all" eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
-      {categories.map((category) => (
-        <Tab
-          key={category}
-          eventKey={category}
-          title={
-            <TabTitleText>
-              {formatString(category)}
-              {category.toLowerCase() in CATEGORIES_DEFINITIONS ? (
-                <Tooltip content={CATEGORIES_DEFINITIONS[category.toLowerCase()]}>
-                  <InfoAltIcon
-                    style={{
-                      paddingTop: 'var(--pf-global--spacer--xs)',
-                      marginLeft: 'var(--pf-global--spacer--sm)',
-                      width: 'var(--pf-global--icon--FontSize--sm)',
-                    }}
-                  />
-                </Tooltip>
-              ) : null}
-            </TabTitleText>
-          }
-        ></Tab>
-      ))}
+      {categories.map((category) => {
+        return (
+          /* @ts-ignore */
+          <Tab
+            key={category}
+            eventKey={category}
+            title={
+              <TabTitleText>
+                {formatString(category)}
+                {category.toLowerCase() in CATEGORIES_DEFINITIONS ? (
+                  <Tooltip content={CATEGORIES_DEFINITIONS[category.toLowerCase()]}>
+                    <InfoAltIcon
+                      style={{
+                        paddingTop: 'var(--pf-global--spacer--xs)',
+                        marginLeft: 'var(--pf-global--spacer--sm)',
+                        width: 'var(--pf-global--icon--FontSize--sm)',
+                      }}
+                    />
+                  </Tooltip>
+                ) : null}
+              </TabTitleText>
+            }
+          ></Tab>
+        );
+      })}
     </Tabs>
   );
 };

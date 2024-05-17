@@ -658,12 +658,14 @@ const ServicesItemComponent: React.FC<{
             onSelect={(e, tabIndex) => navigate(`/services/${serviceNamespaceName}/${resourceClaimName}/${tabIndex}`)}
           >
             {hasInfoMessageTemplate ? (
+              /* @ts-ignore */
               <Tab eventKey="info" title={<TabTitleText>Info</TabTitleText>}>
                 {activeTab === 'info' || !activeTab ? (
                   <InfoTab resourceClaim={resourceClaim} showModal={showModal} />
                 ) : null}
               </Tab>
             ) : null}
+            {/* @ts-ignore */}
             <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
               {activeTab === 'details' || (!activeTab && !hasInfoMessageTemplate) ? (
                 <DescriptionList isHorizontal>
@@ -900,6 +902,7 @@ const ServicesItemComponent: React.FC<{
               ) : null}
             </Tab>
             {statusEnabled ? (
+              /* @ts-ignore */
               <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
                 {activeTab === 'status' ? (
                   <ServiceItemStatus onCheckStatusRequest={onCheckStatusRequest} resourceClaim={resourceClaim} />
@@ -907,12 +910,14 @@ const ServicesItemComponent: React.FC<{
               </Tab>
             ) : null}
             {consoleEnabled ? (
+              /* @ts-ignore */
               <Tab eventKey="console" title={<TabTitleText>Console</TabTitleText>}>
                 {activeTab === 'console' ? <ServiceOpenStackConsole resourceClaim={resourceClaim} /> : null}
               </Tab>
             ) : null}
             {workshopName && !isPartOfWorkshop ? (
               [
+                /* @ts-ignore */
                 <Tab eventKey="workshop" key="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
                   {activeTab === 'workshop' ? (
                     <WorkshopsItemDetails
@@ -932,6 +937,7 @@ const ServicesItemComponent: React.FC<{
                 </Tab>,
               ]
             ) : serviceHasUsers ? (
+              /* @ts-ignore */
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
                 {activeTab === 'users' ? (
                   <>
@@ -950,6 +956,7 @@ const ServicesItemComponent: React.FC<{
                 ) : null}
               </Tab>
             ) : null}
+            {/* @ts-ignore */}
             <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
               {activeTab === 'yaml' ? (
                 <Editor

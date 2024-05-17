@@ -14,11 +14,13 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import Editor from '@app/components/Editor/Editor';
 import { EditorState, LexicalEditor } from 'lexical';
-
-import './admin.css';
 import EditorViewer from '@app/components/Editor/EditorViewer';
 
+import './admin.css';
+
 type IncidentData = Omit<Incident, 'updated_at' | 'created_at'>;
+
+
 const initialState: IncidentData = {
   id: null,
   message: '',
@@ -34,7 +36,7 @@ function reducer(
     message?: string;
     status?: 'active' | 'resolved';
     level?: 'info' | 'critical' | 'warning';
-  },
+  }
 ) {
   switch (action.type) {
     case 'clear_state': {
@@ -87,7 +89,7 @@ const IncidentsAlertList: React.FC = () => {
       }),
     });
 
-    mutate(undefined);
+    // mutate();
   }
 
   return (
@@ -225,7 +227,7 @@ const IncidentsAlertList: React.FC = () => {
               </Tbody>
             </TableComposable>
           ) : (
-            <p style={{ padding: 'var(--pf-global--spacer--md)' }}>No active incidents 🥳</p>
+            <p style={{ padding: 'var(--pf-global--spacer--md)' }}>No active incidents.</p>
           )}
         </PanelMain>
       </Panel>

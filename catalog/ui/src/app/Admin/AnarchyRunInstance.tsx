@@ -58,14 +58,14 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    },
+    }
   );
   useErrorHandler(error?.status === 404 ? error : null);
 
   async function confirmThenDelete() {
     if (confirm(`Delete AnarchyRun ${anarchyRunName}?`)) {
       await deleteAnarchyRun(anarchyRun);
-      mutate(undefined);
+      mutate();
       matchMutate([{ name: 'ANARCHY_RUNS', arguments: { limit: FETCH_BATCH_LIMIT, namespace }, data: undefined }]);
       navigate(`/admin/anarchyruns/${namespace}`);
     }
@@ -109,8 +109,8 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace(
                         '/',
-                        '~',
-                      )}~${anarchyRun.kind}/${anarchyRun.metadata.name}/yaml`,
+                        '~'
+                      )}~${anarchyRun.kind}/${anarchyRun.metadata.name}/yaml`
                     )
                   }
                 />,
@@ -121,8 +121,8 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace(
                         '/',
-                        '~',
-                      )}~${anarchyRun.kind}/${anarchyRun.metadata.name}`,
+                        '~'
+                      )}~${anarchyRun.kind}/${anarchyRun.metadata.name}`
                     )
                   }
                 />,
@@ -136,6 +136,7 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/anarchyruns/${namespace}/${anarchyRunName}/${tabIndex}`)}
         >
+          {/* @ts-ignore */}
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
@@ -217,6 +218,7 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
               </DescriptionListGroup>
             </DescriptionList>
           </Tab>
+          {/* @ts-ignore */}
           <Tab eventKey="log" title={<TabTitleText>Ansible Log</TabTitleText>}>
             {anarchyRun.spec?.result?.ansibleRun || anarchyRun.status?.result?.ansibleRun ? (
               <AnsibleRunLog
@@ -231,6 +233,7 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
               </EmptyState>
             )}
           </Tab>
+          {/* @ts-ignore */}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor
               height="500px"
