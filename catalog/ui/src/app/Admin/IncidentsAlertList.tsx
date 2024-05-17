@@ -89,7 +89,7 @@ const IncidentsAlertList: React.FC = () => {
   const [incidentModal, openIncidentModal] = useModal();
   const { data: activeIncidents, mutate } = useSWR<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher, {
     refreshInterval: 8000,
-    compare: (a1, a2) => a1.length === a2.length && a1.every((o, idx) => shallowEqual(o, a2[idx])),
+    compare: (a1, a2) => a1 && a2 && a1.length === a2.length && a1.every((o, idx) => shallowEqual(o, a2[idx])),
   });
 
   async function upsertIncident(incident: IncidentData) {
