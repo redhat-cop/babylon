@@ -1,7 +1,7 @@
 const interface = {
-    "demo.redhat.com": "/interfaces/rhpds.json",
-    "partner.demo.redhat.com": "/interfaces/rhdp-partners.json",
-    "default": "/interfaces/rhdp-partners.json"
+    "demo.redhat.com": "/status/interfaces/rhpds.json",
+    "partner.demo.redhat.com": "/status/interfaces/rhdp-partners.json",
+    "default": "/status/interfaces/rhdp-partners.json"
 };
 
 (function() {
