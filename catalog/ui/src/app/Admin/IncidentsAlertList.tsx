@@ -73,7 +73,6 @@ const IncidentsAlertList: React.FC = () => {
   const [incidentModal, openIncidentModal] = useModal();
   const { data: activeIncidents, mutate } = useSWR<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher, {
     refreshInterval: 8000,
-    compare: () => true
   });
 
   async function upsertIncident(incident: IncidentData) {
