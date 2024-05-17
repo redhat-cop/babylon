@@ -238,7 +238,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     window.open(catalogItem.spec.externalUrl);
     return null;
   }
-  console.log(formState);
+  
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
       <CatalogItemFormAutoStopDestroyModal

@@ -20,24 +20,6 @@ import './admin.css';
 
 type IncidentData = Omit<Incident, 'updated_at' | 'created_at'>;
 
-function shallowEqual(object1: object, object2: object) {
-  const keys1 = Object.keys(object1);
-  const keys2 = Object.keys(object2);
-
-  if (keys1.length !== keys2.length) {
-    return false;
-  }
-
-  for (let key of keys1) {
-    console.log(object1[key], object2[key]);
-    if (object1[key] !== object2[key]) {
-      return false;
-    }
-  }
-  console.log('equals');
-
-  return true;
-}
 
 const initialState: IncidentData = {
   id: null,
@@ -91,10 +73,7 @@ const IncidentsAlertList: React.FC = () => {
   const [incidentModal, openIncidentModal] = useModal();
   const { data: activeIncidents, mutate } = useSWR<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher, {
     refreshInterval: 8000,
-    compare: (a1, a2) => {
-      if (!a1 || !a2) return false;
-      return a1.every((o, idx) => shallowEqual(o, a2[idx]));
-    },
+    compare: () => true
   });
 
   async function upsertIncident(incident: IncidentData) {
@@ -249,7 +228,7 @@ const IncidentsAlertList: React.FC = () => {
               </Tbody>
             </TableComposable>
           ) : (
-            <p style={{ padding: 'var(--pf-global--spacer--md)' }}>No active incidents 🥳</p>
+            <p style={{ padding: 'var(--pf-global--spacer--md)' }}>No active incidents.</p>
           )}
         </PanelMain>
       </Panel>
