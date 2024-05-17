@@ -49,7 +49,7 @@ function fetchResourceHandlesFromResourcePool(resourcePoolName: string) {
       labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
       limit: FETCH_BATCH_LIMIT,
       continueId,
-    }),
+    })
   );
 }
 
@@ -74,7 +74,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    },
+    }
   );
   useErrorHandler(error?.status === 404 ? error : null);
 
@@ -85,7 +85,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
           limit: FETCH_BATCH_LIMIT,
         })
       : null,
-    () => fetchResourceHandlesFromResourcePool(resourcePoolName),
+    () => fetchResourceHandlesFromResourcePool(resourcePoolName)
   );
   const { total, taken, available } = usePoolStatus(resourceHandles);
 
@@ -96,8 +96,8 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete ResourcePool ${resourcePoolName}?`)) {
       await deleteResourcePool(resourcePool);
-      mutate(undefined);
-      mutateResourceHandles(undefined);
+      mutate();
+      mutateResourceHandles();
       mutateResourcePoolsList(undefined);
       navigate('/admin/resourcepools');
     }
@@ -154,8 +154,8 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                     window.open(
                       `${consoleUrl}/k8s/ns/${resourcePool.metadata.namespace}/${resourcePool.apiVersion.replace(
                         '/',
-                        '~',
-                      )}~${resourcePool.kind}/${resourcePool.metadata.name}/yaml`,
+                        '~'
+                      )}~${resourcePool.kind}/${resourcePool.metadata.name}/yaml`
                     )
                   }
                 />,
@@ -166,8 +166,8 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                     window.open(
                       `${consoleUrl}/k8s/ns/${resourcePool.metadata.namespace}/${resourcePool.apiVersion.replace(
                         '/',
-                        '~',
-                      )}~${resourcePool.kind}/${resourcePool.metadata.name}`,
+                        '~'
+                      )}~${resourcePool.kind}/${resourcePool.metadata.name}`
                     )
                   }
                 />,

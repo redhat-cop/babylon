@@ -68,7 +68,7 @@ const AnarchyActionInstanceComponent: React.FC<{ anarchyActionName: string; name
         if (!compareK8sObjectsArr(currentData.items, newData.items)) return false;
         return true;
       },
-    },
+    }
   );
 
   const anarchyRuns = useMemo(() => anarchyRunsList.items, [anarchyRunsList]);
@@ -76,7 +76,7 @@ const AnarchyActionInstanceComponent: React.FC<{ anarchyActionName: string; name
   async function confirmThenDelete(): Promise<void> {
     if (confirm(`Delete AnarchyAction ${anarchyActionName}?`)) {
       await deleteAnarchyAction(anarchyAction);
-      mutate(undefined);
+      mutate();
       matchMutate([{ name: 'ANARCHY_ACTIONS', arguments: { namespace }, data: undefined }]);
       navigate(`/admin/anarchyactions/${namespace}`);
     }
@@ -120,8 +120,8 @@ const AnarchyActionInstanceComponent: React.FC<{ anarchyActionName: string; name
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyAction.metadata.namespace}/${anarchyAction.apiVersion.replace(
                         '/',
-                        '~',
-                      )}~${anarchyAction.kind}/${anarchyAction.metadata.name}/yaml`,
+                        '~'
+                      )}~${anarchyAction.kind}/${anarchyAction.metadata.name}/yaml`
                     )
                   }
                 />,
@@ -132,8 +132,8 @@ const AnarchyActionInstanceComponent: React.FC<{ anarchyActionName: string; name
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyAction.metadata.namespace}/${anarchyAction.apiVersion.replace(
                         '/',
-                        '~',
-                      )}~${anarchyAction.kind}/${anarchyAction.metadata.name}`,
+                        '~'
+                      )}~${anarchyAction.kind}/${anarchyAction.metadata.name}`
                     )
                   }
                 />,
