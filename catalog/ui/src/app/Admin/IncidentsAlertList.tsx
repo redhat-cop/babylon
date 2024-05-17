@@ -89,7 +89,7 @@ const IncidentsAlertList: React.FC = () => {
       }),
     });
 
-    mutate();
+    // mutate();
   }
 
   return (
