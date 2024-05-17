@@ -48,14 +48,6 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         ports:
-        - containerPort: 8443
+        - containerPort: 8080
           name: public
           protocol: TCP
-        volumeMounts:
-        - name: proxy-tls
-          mountPath: /etc/tls/private
-      volumes:
-      - name: proxy-tls
-        secret:
-          defaultMode: 0644
-          secretName: {{ printf "%s-tls" (include "babylonCatalog.statusName" .) }}
