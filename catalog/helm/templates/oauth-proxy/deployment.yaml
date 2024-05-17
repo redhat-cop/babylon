@@ -51,6 +51,7 @@ spec:
         - --tls-cert=/etc/tls/private/tls.crt
         - --tls-key=/etc/tls/private/tls.key
         - {{ (printf "--openshift-service-account=%s" (include "babylonCatalog.oauthProxyName" .)) | quote }}
+        - {{ (printf "--upstream=http://%s:8080/status/" (include "babylonCatalog.statusName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080/api/" (include "babylonCatalog.apiName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080/apis/" (include "babylonCatalog.apiName" .)) | quote }}
         - {{ (printf "--upstream=http://%s:8080/auth/" (include "babylonCatalog.apiName" .)) | quote }}
