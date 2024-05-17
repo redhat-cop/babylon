@@ -9,6 +9,7 @@ module.exports = merge(common('development'), {
   devtool: 'eval-source-map',
   devServer: {
     static: './dist',
+    server: 'http',
     host: HOST,
     port: PORT,
     compress: true,
@@ -21,9 +22,9 @@ module.exports = merge(common('development'), {
       ],
     },
     open: true,
-    https: false,
-    proxy: {
-      '/api': {
+    proxy: [
+      {
+        context: ['/api'],
         target: 'http://localhost:5000',
         secure: false,
         changeOrigin: true,
@@ -31,7 +32,8 @@ module.exports = merge(common('development'), {
           Connection: 'keep-alive',
         },
       },
-      '/apis': {
+      {
+        context: ['/apis'],
         target: 'http://localhost:5000',
         secure: false,
         changeOrigin: true,
@@ -39,7 +41,8 @@ module.exports = merge(common('development'), {
           Connection: 'keep-alive',
         },
       },
-      '/auth': {
+      {
+        context: ['/auth'],
         target: 'http://localhost:5000',
         secure: false,
         changeOrigin: true,
@@ -47,7 +50,7 @@ module.exports = merge(common('development'), {
           Connection: 'keep-alive',
         },
       },
-    },
+    ],
   },
   module: {
     rules: [

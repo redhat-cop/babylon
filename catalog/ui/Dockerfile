@@ -7,7 +7,7 @@ RUN touch -t $(date -d "-3 months" +'%Y%m%d0000') ./timestamp
 RUN find ./previous -type f ! -newer ./timestamp -exec rm {} \;
 
 # Builder image
-FROM registry.redhat.io/rhel9/nodejs-16-minimal:latest AS builder
+FROM registry.redhat.io/rhel9/nodejs-20-minimal:latest AS builder
 USER root 
 WORKDIR /build
 

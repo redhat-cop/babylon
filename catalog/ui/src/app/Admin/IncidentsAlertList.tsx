@@ -29,10 +29,12 @@ function shallowEqual(object1: object, object2: object) {
   }
 
   for (let key of keys1) {
+    console.log(object1[key], object2[key]);
     if (object1[key] !== object2[key]) {
       return false;
     }
   }
+  console.log('equals');
 
   return true;
 }
@@ -91,7 +93,6 @@ const IncidentsAlertList: React.FC = () => {
     refreshInterval: 8000,
     compare: (a1, a2) => {
       if (!a1 || !a2) return false;
-      if (a1.length !== a2.length) return false;
       return a1.every((o, idx) => shallowEqual(o, a2[idx]));
     },
   });
