@@ -480,7 +480,7 @@ async def create_incident(request):
     session = await get_user_session(request, user)
     if not session.get('admin'):
         raise web.HTTPForbidden()
-    data = await request.json(),
+    data = await request.json()
     return await api_proxy(
         data=json.dumps(data),
         headers=request.headers,
@@ -495,12 +495,12 @@ async def update_incident(request):
     session = await get_user_session(request, user)
     if not session.get('admin'):
         raise web.HTTPForbidden()
-    data = await request.json(),
+    data = await request.json()
     return await api_proxy(
         data=json.dumps(data),
         headers=request.headers,
         method="POST",
-        url=f"{admin_api}/api/admin/v1/incidents",
+        url=f"{admin_api}/api/admin/v1/incidents/{incident_id}",
     )
 
 @routes.post("/api/admin/workshop/support")
