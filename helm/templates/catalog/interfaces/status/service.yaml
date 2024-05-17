@@ -11,9 +11,9 @@ metadata:
 spec:
   ports:
   - name: proxy
-    port: 443
+    port: 8080
     protocol: TCP
-    targetPort: 8443
+    targetPort: 8080
   selector:
     {{- include "babylon.selectorLabels" $ | nindent 4 }}
     app.kubernetes.io/component: status
