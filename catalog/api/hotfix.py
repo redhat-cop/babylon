@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
-import kubernetes
+import kubernetes_asyncio
+import re
 import urllib3
 
+import six
 from six.moves.urllib.parse import quote
 from urllib3.connection import HTTPHeaderDict
+from kubernetes_asyncio.client.exceptions import ApiException
 
 def urllib3_hotfix_request_encode_body(
     self,
@@ -47,7 +50,7 @@ def urllib3_hotfix_request_encode_body(
     extra_kw.update(urlopen_kw)
     return self.urlopen(method, url, **extra_kw)
 
-class HotfixKubeApiClient(kubernetes.client.ApiClient):
+class HotfixKubeApiClient(kubernetes_asyncio.client.ApiClient):
     """
     Kubernetes API client with fixed support for multiple Impersonate-Group header values.
     """
@@ -79,22 +82,24 @@ class HotfixKubeApiClient(kubernetes.client.ApiClient):
             return super().sanitize_for_serialization(cls, obj)
 
     # Force override of private method in ApiClient class
-    def _ApiClient__call_api(
+    async def _ApiClient__call_api(
         self,
         resource_path,
-        method, path_params=None,
+        method,
+        path_params=None,
         query_params=None,
         header_params=None,
         body=None,
         post_params=None,
         files=None,
-        response_type=None,
+        response_types_map=None,
         auth_settings=None,
         _return_http_data_only=None,
         collection_formats=None,
         _preload_content=True,
         _request_timeout=None,
-        _host=None
+        _host=None,
+        _request_auth=None,
     ):
         """
         Override of __call_api from ApiClient class with hotfixes to preserve multi-value headers.
@@ -139,7 +144,9 @@ class HotfixKubeApiClient(kubernetes.client.ApiClient):
             post_params.extend(self.files_parameters(files))
 
         # auth setting
-        self.update_params_for_auth(headers, query_params, auth_settings)
+        self.update_params_for_auth(
+            headers, query_params, auth_settings,
+            request_auth=_request_auth)
 
         # body
         if body:
@@ -152,22 +159,41 @@ class HotfixKubeApiClient(kubernetes.client.ApiClient):
             # use server/host defined in path or operation instead
             url = _host + resource_path
 
-        # perform request and return response
-        response_data = self.request(
-            method, url, query_params=query_params, headers=headers,
-            post_params=post_params, body=body,
-            _preload_content=_preload_content,
-            _request_timeout=_request_timeout)
+        try:
+            # perform request and return response
+            response_data = await self.request(
+                method, url, query_params=query_params, headers=headers,
+                post_params=post_params, body=body,
+                _preload_content=_preload_content,
+                _request_timeout=_request_timeout)
+        except ApiException as e:
+            if e.body:
+                e.body = e.body.decode('utf-8') if six.PY3 else e.body
+            raise e
 
         self.last_response = response_data
 
         return_data = response_data
-        if _preload_content:
-            # deserialize response data
-            if response_type:
-                return_data = self.deserialize(response_data, response_type)
-            else:
-                return_data = None
+
+        if not _preload_content:
+            return return_data
+
+        response_type = response_types_map.get(response_data.status, None)
+
+        if six.PY3 and response_type not in ["file", "bytes"]:
+            match = None
+            content_type = response_data.getheader('content-type')
+            if content_type is not None:
+                match = re.search(r"charset=([a-zA-Z\-\d]+)[\s\;]?", content_type)
+            encoding = match.group(1) if match else "utf-8"
+            response_data.data = response_data.data.decode(encoding)
+
+        # deserialize response data
+
+        if response_type:
+            return_data = self.deserialize(response_data, response_type)
+        else:
+            return_data = None
 
         if _return_http_data_only:
             return (return_data)

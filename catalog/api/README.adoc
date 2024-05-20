@@ -21,7 +21,7 @@ Login with `oc`, then start the local development server.
 export BABYLON_NAMESPACE=babylon-catalog
 export ENVIRONMENT=development
 export INTERFACE_NAME=rhpds
-python3 wsgi.py
+python3 app.py
 ---------------------------------
 
 The ReactJS user interface is configured to proxy requests to the server on port 5000.

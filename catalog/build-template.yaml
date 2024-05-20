@@ -14,7 +14,7 @@ parameters:
 - name: GIT_REF
   value: main
 - name: PYTHON_S2I_IMAGE
-  value: registry.access.redhat.com/ubi8/python-38:latest
+  value: registry.access.redhat.com/ubi9/python-311:latest
 
 objects:
 - apiVersion: image.openshift.io/v1
