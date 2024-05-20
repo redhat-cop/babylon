@@ -78,13 +78,11 @@ catalog:
     version: v1
   defaults:
     api:
-      gunicorn:
-        processes: 5
-        threads: 1
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v0.12.13
+        tag: v1.0.0
+      loggingLevel: INFO
       replicaCount: 1
       resources:
         requests:

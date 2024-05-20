@@ -49,10 +49,8 @@ spec:
           value: babylon-catalog-redis
         - name: REDIS_PORT
           value: "6379"
-        - name: GUNICORN_PROCESSES
-          value: "{{ $api.gunicorn.processes }}"
-        - name: GUNICORN_THREADS
-          value: "{{ $api.gunicorn.threads }}"
+        - name: LOGGING_LEVEL
+          value: "{{ $api.loggingLevel }}"
         image: {{ $api.image.repository }}:{{ $api.image.tag }}
         imagePullPolicy: {{ $api.image.pullPolicy }}
         livenessProbe:
