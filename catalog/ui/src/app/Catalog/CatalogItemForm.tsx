@@ -17,6 +17,7 @@ import {
   FormHelperText,
   PageSection,
   PageSectionVariants,
+  Radio,
   Select,
   SelectOption,
   SelectVariant,
@@ -155,6 +156,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     parameterValues['purpose_explanation'] = formState.explanation;
     if (formState.salesforceId.value) {
       parameterValues['salesforce_id'] = formState.salesforceId.value;
+      parameterValues['sales_type'] = formState.salesforceId.type;
     }
 
     if (formState.workshop) {
@@ -238,7 +240,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     window.open(catalogItem.spec.externalUrl);
     return null;
   }
-  
+
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
       <CatalogItemFormAutoStopDestroyModal
@@ -351,7 +353,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       fontWeight: 400,
                     }}
                   >
-                    (Opportunity ID, Campaign ID or Project ID)
+                    (Opportunity ID, Campaign ID, CDH Party or Project ID)
                   </span>
                 </span>
               }
@@ -374,32 +376,117 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   : 'default'
               }
             >
-              <div className="catalog-item-form__group-control--single">
-                <TextInput
-                  type="text"
-                  key="salesforce_id"
-                  id="salesforce_id"
-                  onChange={(value) =>
-                    dispatchFormState({
-                      type: 'salesforceId',
-                      salesforceId: { ...formState.salesforceId, value, valid: false },
-                    })
-                  }
-                  value={formState.salesforceId.value || ''}
-                  validated={
-                    formState.salesforceId.value && formState.salesforceId.valid
-                      ? 'success'
-                      : formState.salesforceId.value && formState.conditionChecks.completed
-                      ? 'error'
-                      : 'default'
-                  }
-                />
-                <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Salesforce Opportunity ID, Campaign ID or Project ID."
-                    className="tooltip-icon-only"
+              <div>
+                <div className="catalog-item-form__group-control--single" style={{ paddingBottom: '16px' }}>
+                  <Radio
+                    isChecked={'campaign' === formState.salesforceId.type}
+                    name="sfdc-type"
+                    onChange={() => {
+                      dispatchFormState({
+                        type: 'salesforceId',
+                        salesforceId: {
+                          ...formState.salesforceId,
+                          value: formState.salesforceId.value,
+                          type: 'campaign',
+                          valid: false,
+                        },
+                      });
+                    }}
+                    label="Campaign"
+                    id="sfdc-type-campaign"
+                  ></Radio>
+                  <Radio
+                    isChecked={'cdh' === formState.salesforceId.type}
+                    name="sfdc-type"
+                    onChange={() => {
+                      dispatchFormState({
+                        type: 'salesforceId',
+                        salesforceId: {
+                          ...formState.salesforceId,
+                          value: formState.salesforceId.value,
+                          type: 'cdh',
+                          valid: false,
+                        },
+                      });
+                    }}
+                    label="CDH"
+                    id="sfdc-type-cdh"
+                  ></Radio>
+                  <Radio
+                    isChecked={'opportunity' === formState.salesforceId.type}
+                    name="sfdc-type"
+                    onChange={() => {
+                      dispatchFormState({
+                        type: 'salesforceId',
+                        salesforceId: {
+                          ...formState.salesforceId,
+                          value: formState.salesforceId.value,
+                          type: 'opportunity',
+                          valid: false,
+                        },
+                      });
+                    }}
+                    label="Opportunity"
+                    id="sfdc-type-opportunity"
+                  ></Radio>
+                  <Radio
+                    isChecked={'project' === formState.salesforceId.type}
+                    name="sfdc-type"
+                    onChange={() => {
+                      dispatchFormState({
+                        type: 'salesforceId',
+                        salesforceId: {
+                          ...formState.salesforceId,
+                          value: formState.salesforceId.value,
+                          type: 'project',
+                          valid: false,
+                        },
+                      });
+                    }}
+                    label="Project"
+                    id="sfdc-type-project"
+                  ></Radio>
+                  <Tooltip
+                    position="right"
+                    content={<div>Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+                  >
+                    <OutlinedQuestionCircleIcon
+                      aria-label="Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID."
+                      className="tooltip-icon-only"
+                    />
+                  </Tooltip>
+                </div>
+                <div className="catalog-item-form__group-control--single">
+                  <TextInput
+                    type="text"
+                    key="salesforce_id"
+                    id="salesforce_id"
+                    onChange={(value) =>
+                      dispatchFormState({
+                        type: 'salesforceId',
+                        salesforceId: { ...formState.salesforceId, value, valid: false },
+                      })
+                    }
+                    placeholder="Salesforce ID"
+                    value={formState.salesforceId.value || ''}
+                    validated={
+                      formState.salesforceId.value && formState.salesforceId.valid
+                        ? 'success'
+                        : formState.salesforceId.value && formState.conditionChecks.completed
+                        ? 'error'
+                        : 'default'
+                    }
                   />
-                </Tooltip>
+                  <Tooltip
+                    position="right"
+                    content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+                  >
+                    <OutlinedQuestionCircleIcon
+                      aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
+                      className="tooltip-icon-only"
+                    />
+                  </Tooltip>
+                </div>
               </div>
             </FormGroup>
           </>

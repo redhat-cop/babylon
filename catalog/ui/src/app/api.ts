@@ -277,14 +277,15 @@ export async function bulkAssignWorkshopUsers({
 
 export async function checkSalesforceId(
   id: string,
-  debouncedApiFetch: (path: string) => Promise<unknown>
+  debouncedApiFetch: (path: string) => Promise<unknown>,
+  sales_type?: string
 ): Promise<{ valid: boolean; message: string }> {
   const defaultMessage = 'A valid Salesforce ID is required for the selected activity / purpose';
   if (!id) {
     return { valid: false, message: defaultMessage };
   }
   try {
-    await debouncedApiFetch(`/api/salesforce/${id}`);
+    await debouncedApiFetch(`/api/salesforce/${id}?${sales_type ? `sales_type=${sales_type}` : ''}`);
   } catch (errorResponse: any) {
     try {
       const error = await errorResponse.json();
@@ -452,6 +453,10 @@ export async function createServiceRequest({
         if (parameterValues.salesforce_id) {
           requestResourceClaim.metadata.annotations[`${annotationDomain}/salesforce-id`] =
             parameterValues.salesforce_id as string;
+        }
+        if (parameterValues.sales_type) {
+          requestResourceClaim.metadata.annotations[`${annotationDomain}/sales-type`] =
+            parameterValues.sales_type as string;
         }
       }
 
