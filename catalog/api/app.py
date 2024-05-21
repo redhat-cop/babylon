@@ -530,12 +530,15 @@ async def salesforce_id_validation(request):
     headers = {
         "Authorization": f"Bearer {salesforce_authorization_token}"
     }
+    queryString = f"salesforce_id={salesforce_id}"
+    salesType = request.query.get("sales_type")
+    if salesType:
+        queryString = f"{queryString}&sales_type={salesType}"
     return await api_proxy(
         data={},
         headers=headers,
         method="POST",
-        params=request.query,
-        url=f"{salesforce_api}/sales_validation?salesforce_id={salesforce_id}",
+        url=f"{salesforce_api}/sales_validation?{queryString}",
     )
 
 @routes.get("/api/workshop/{workshop_id}")
