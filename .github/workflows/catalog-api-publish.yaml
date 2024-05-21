@@ -58,6 +58,6 @@ jobs:
       if: steps.image_tags.outputs.IMAGE_TAGS
       with:
         context: catalog/api
-        file: catalog/api/Dockerfile
+        file: catalog/api/Containerfile
         push: true
         tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
