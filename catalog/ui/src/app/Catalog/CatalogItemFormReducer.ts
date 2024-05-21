@@ -48,6 +48,7 @@ type FormState = {
     value?: string;
     valid: boolean;
     message?: string;
+    type?: 'campaign' | 'cdh' | 'project' | 'opportunity';
   };
 };
 type ParameterProps = {
@@ -85,6 +86,7 @@ export type FormStateAction = {
     value: string;
     valid: boolean;
     message?: string;
+    type?: 'campaign' | 'cdh' | 'project' | 'opportunity';
   };
   message?: string;
   salesforceIdValid?: boolean;
@@ -151,7 +153,11 @@ async function _checkCondition(
   });
   const checkResults: boolean[] = [];
   for (const name of checkSalesforceIds) {
-    const { valid, message } = await checkSalesforceId(vars[name] as string, debouncedApiFetch);
+    const { valid, message } = await checkSalesforceId(
+      vars[name] as string,
+      debouncedApiFetch,
+      vars['sales_type'] as 'string'
+    );
     dispatchFn({
       type: 'salesforceIdMessage',
       message,
@@ -185,7 +191,7 @@ export async function checkConditionsInFormState(
     if (initialState.salesforceId.value) {
       salesforceIdValid = await _checkCondition(
         'check_salesforce_id(salesforce_id)',
-        { salesforce_id: initialState.salesforceId.value },
+        { salesforce_id: initialState.salesforceId.value, sales_type: initialState.salesforceId.type },
         debouncedApiFetch,
         dispatchFn
       );

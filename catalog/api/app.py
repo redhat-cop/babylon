@@ -534,6 +534,7 @@ async def salesforce_id_validation(request):
         data={},
         headers=headers,
         method="POST",
+        params=request.query,
         url=f"{salesforce_api}/sales_validation?salesforce_id={salesforce_id}",
     )
 

@@ -15,7 +15,7 @@ api:
     threads: 1
   image:
     #override:
-    tag: v0.12.13
+    tag: v0.12.14
     repository: quay.io/redhat-gpte/babylon-catalog-api
     pullPolicy: IfNotPresent
   imagePullSecrets: []
@@ -34,7 +34,7 @@ ui:
   name: # default use chart name + '-ui'
   image:
     #override:
-    tag: v0.31.6
+    tag: v0.31.7
     repository: quay.io/redhat-gpte/babylon-catalog-ui
     pullPolicy: IfNotPresent
   replicaCount: 1

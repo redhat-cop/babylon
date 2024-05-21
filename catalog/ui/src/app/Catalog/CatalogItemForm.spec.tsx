@@ -42,7 +42,7 @@ describe('CatalogItemForm Component', () => {
   test("When renders should display 'CatalogItem' properties and parameters", async () => {
     const { getByText, getByLabelText } = render(<CatalogItemForm />);
     const catalogItemDisplayName = await waitFor(() => getByText('Order Test Config'));
-    const sfidLabel = getByLabelText('Salesforce ID (Opportunity ID, Campaign ID or Project ID)');
+    const sfidLabel = getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)');
     const purposeLabel = getByText('Purpose');
     const purposePlaceholder = '- Select purpose -';
     const termsOfServiceLabel = getByText('IMPORTANT PLEASE READ');
@@ -87,11 +87,13 @@ describe('CatalogItemForm Component', () => {
   test('Description should be visible when hovering', async () => {
     const { queryByText, getByLabelText } = render(<CatalogItemForm />);
 
-    const sfidLabel = await waitFor(() => getByLabelText('Salesforce ID (Opportunity ID, Campaign ID or Project ID)'));
-    const sfidDescriptionText = 'Salesforce Opportunity ID, Campaign ID or Project ID.';
-    expect(queryByText(sfidDescriptionText)).not.toBeInTheDocument();
+    const sfidLabel = await waitFor(() =>
+      getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)')
+    );
+    const sfidTypeDescriptionText = 'Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.';
+    expect(queryByText(sfidTypeDescriptionText)).not.toBeInTheDocument();
     await userEvent.hover(sfidLabel.closest('.pf-c-form__group').querySelector('.tooltip-icon-only'));
-    await waitFor(() => expect(queryByText(sfidDescriptionText)).toBeInTheDocument());
+    await waitFor(() => expect(queryByText(sfidTypeDescriptionText)).toBeInTheDocument());
   });
 
   test('Enabling Workshop switch should display form', async () => {

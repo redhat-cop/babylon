@@ -190,9 +190,12 @@ const WorkshopsItemProvisioningItem: React.FC<{
                   : 'default'
               }
             />
-            <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
+            <Tooltip
+              position="right"
+              content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+            >
               <OutlinedQuestionCircleIcon
-                aria-label="Salesforce Opportunity ID, Campaign ID or Project ID."
+                aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
                 className="tooltip-icon-only"
               />
             </Tooltip>
