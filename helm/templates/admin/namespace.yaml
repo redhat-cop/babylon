@@ -1,0 +1,10 @@
+{{- if and .Values.admin.deploy .Values.admin.namespace.create }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: admin
+  name: {{ .Values.admin.namespace.name }}
+{{- end }}

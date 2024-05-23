@@ -1,0 +1,97 @@
+{{- $admin := .Values.admin }}
+{{- if $admin.deploy }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-admin
+  namespace: {{ $admin.namespace.name }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin
+spec:
+  replicas: {{ $admin.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: admin
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: admin
+    spec:
+      containers:
+      - name: admin-api
+        env:
+        - name: COMPONENT
+          value: api
+        - name: TZ
+          value: 'UTC'
+        - name: DB_MAX_OVERFLOW
+          value: {{ default "40" $admin.db.maxOverflow |quote }}
+        - name: DB_POOL_SIZE
+          value: {{ default "10" $admin.db.poolSize |quote }}
+        - name: DB_HOSTNAME
+          valueFrom:
+            secretKeyRef:
+              key: hostname
+              name:  {{ default $admin.db.secretName "database" }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name:  {{ default $admin.db.secretName "database" }}
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              key: name
+              name: {{ default $admin.db.secretName "database" }}
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: {{ default $admin.db.secretName "database" }}
+        - name: DB_PORT
+          value: {{ default $admin.db.port "54327" |quote }}
+        - name: SERVICENOW_AUTH_KEY
+          valueFrom:
+            secretKeyRef:
+              key: authKey
+              name: {{ $admin.servicenow.secretName | default "babylon-admin-servicenow" }}
+        - name: SERVICENOW_FORM_ID
+          valueFrom:
+            secretKeyRef:
+              key: workshopFormId
+              name: {{ $admin.servicenow.secretName | default "babylon-admin-servicenow" }}
+        image: {{ $admin.image.repository }}:{{ $admin.image.tag }}
+        imagePullPolicy: {{ $admin.image.pullPolicy }}
+        resources:
+          {{- toYaml $admin.resources | nindent 10 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      {{- with $admin.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $admin.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: babylon-admin
+      terminationGracePeriodSeconds: 30
+      {{- with $admin.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $admin.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{ end }}
