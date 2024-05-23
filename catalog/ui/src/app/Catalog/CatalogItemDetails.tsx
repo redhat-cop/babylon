@@ -25,8 +25,8 @@ import {
 } from '@patternfly/react-core';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import useSWR from 'swr';
-import { apiPaths, fetcherItemsInAllPages } from '@app/api';
-import { CatalogItem, ResourceClaim } from '@app/types';
+import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
+import { AssetMetrics, CatalogItem, ResourceClaim } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
@@ -63,6 +63,7 @@ import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import useHelpLink from '@app/utils/useHelpLink';
+import useSWRImmutable from 'swr/dist/immutable';
 
 import './catalog-item-details.css';
 
@@ -75,13 +76,12 @@ enum CatalogItemAccess {
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
   const navigate = useNavigate();
   const { userNamespace, isAdmin, groups } = useSession().getSession();
-  const { provisionTimeEstimate, accessControl, lastUpdate } = catalogItem.spec;
+  const { accessControl, lastUpdate } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const provider = getProvider(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
   const lastSuccessfulProvisionTime = getLastSuccessfulProvisionTime(catalogItem);
-  const displayProvisionTime = provisionTimeEstimate && formatTime(provisionTimeEstimate);
   const helpLink = useHelpLink();
 
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
@@ -104,7 +104,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       compare: compareK8sObjectsArr,
     }
   );
-
+  const { data: metrics } = useSWRImmutable<AssetMetrics>(
+    catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+      ? apiPaths.ASSET_METRICS({ asset_uuid: catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] })
+      : null,
+    fetcher
+  );
   const services: ResourceClaim[] = useMemo(
     () =>
       Array.isArray(userResourceClaims)
@@ -307,24 +312,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 .map(([attr, value]) => (
                   <DescriptionListGroup key={attr}>
                     <DescriptionListTerm>
-                      {attr === CUSTOM_LABELS.ESTIMATED_COST.key ? (
-                        <>
-                          {formatString(attr)}
-                          <Tooltip content="Estimated hourly cost per instance">
-                            <InfoAltIcon
-                              style={{
-                                paddingTop: 'var(--pf-global--spacer--xs)',
-                                marginLeft: 'var(--pf-global--spacer--sm)',
-                                width: 'var(--pf-global--icon--FontSize--sm)',
-                              }}
-                            />
-                          </Tooltip>
-                        </>
-                      ) : attr === CUSTOM_LABELS.SLA.key ? (
-                        'Service Level'
-                      ) : (
-                        formatString(attr)
-                      )}
+                      {attr === CUSTOM_LABELS.ESTIMATED_COST.key
+                        ? null
+                        : attr === CUSTOM_LABELS.SLA.key
+                        ? 'Service Level'
+                        : formatString(attr)}
                     </DescriptionListTerm>
                     <DescriptionListDescription>
                       {attr === CUSTOM_LABELS.RATING.key ? (
@@ -335,20 +327,36 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                         ) : (
                           <Link to="/support">{formatString(value)}</Link>
                         )
-                      ) : attr === CUSTOM_LABELS.ESTIMATED_COST.key ? (
-                        formatCurrency(parseFloat(value))
-                      ) : (
+                      ) : attr === CUSTOM_LABELS.ESTIMATED_COST.key ? null : (
                         formatString(value)
                       )}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 ))}
 
-              {provisionTimeEstimate ? (
+              {metrics?.averageRuntimeCostPerHourPerExperience ? (
+                <DescriptionListGroup className="catalog-item-details__estimated-cost">
+                  <DescriptionListTerm>Estimated hourly cost</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {formatCurrency(metrics?.averageRuntimeCostPerHourPerExperience)}
+                    <Tooltip content="Estimated hourly cost per instance">
+                      <InfoAltIcon
+                        style={{
+                          paddingTop: 'var(--pf-global--spacer--xs)',
+                          marginLeft: 'var(--pf-global--spacer--sm)',
+                          width: 'var(--pf-global--icon--FontSize--sm)',
+                        }}
+                      />
+                    </Tooltip>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
+
+              {metrics?.averageProvisionHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {displayProvisionTime !== '-' ? `Up to ${displayProvisionTime}` : displayProvisionTime}
+                    {`Up to ${formatTime(`${metrics?.averageProvisionHour}h`)}`}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}

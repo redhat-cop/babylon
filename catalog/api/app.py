@@ -25,8 +25,8 @@ groups = []
 groups_last_update = 0
 admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
 ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
-salesforce_api = os.environ.get('SALESFORCE_API', 'http://salesforce-api.demo-reporting.svc.cluster.local:8080')
-salesforce_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
+reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
+reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 
@@ -528,17 +528,28 @@ async def create_support(request):
 async def salesforce_id_validation(request):
     salesforce_id = request.match_info.get('salesforce_id')
     headers = {
-        "Authorization": f"Bearer {salesforce_authorization_token}"
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
     queryString = f"salesforce_id={salesforce_id}"
     salesType = request.query.get("sales_type")
     if salesType:
         queryString = f"{queryString}&sales_type={salesType}"
     return await api_proxy(
-        data={},
         headers=headers,
-        method="POST",
-        url=f"{salesforce_api}/sales_validation?{queryString}",
+        method="GET",
+        url=f"{reporting_api}/sales_validation?{queryString}",
+    )
+
+@routes.get("/api/catalog_item/metrics/{asset_uuid}")
+async def catalog_item_metrics(request):
+    asset_uuid = request.match_info.get('asset_uuid')
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/catalog_item/metrics/{asset_uuid}?use_cache=true",
     )
 
 @routes.get("/api/workshop/{workshop_id}")

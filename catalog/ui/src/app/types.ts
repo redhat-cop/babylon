@@ -554,6 +554,7 @@ export type IAppRoute = {
 
 export type ResourceType =
   | 'CATALOG_ITEM'
+  | 'ASSET_METRICS'
   | 'CATALOG_ITEMS'
   | 'RESOURCE_CLAIMS'
   | 'RESOURCE_CLAIM'
@@ -608,3 +609,34 @@ export type TPurposeOpts = {
   requireUserInput?: boolean;
   requiredRoles?: string[];
 }[];
+
+export type AssetMetrics = {
+  assetName: string;
+  assetUuid: string;
+  averageCostPerProvision: number;
+  averageLifetimeCostByHour: number;
+  averageLifetimeCostPerHourPerExperience: number;
+  averageLifetimeHour: number;
+  averageProvisionHour: number;
+  averageRating: number;
+  averageRuntimeCostByHour: number;
+  averageRuntimeCostPerHourPerExperience: number;
+  averageRuntimeHour: number;
+  lifetimeHoursTotal: number;
+  medianCostPerProvision: number;
+  medianCostPerProvisionPerHour: number;
+  medianLifetimeCostByHour: number;
+  medianProvisionHour: number;
+  medianRuntimeCostByHour: number;
+  provisionHoursTotal: number;
+  provisionsTotal: number;
+  ratingsTotal: number;
+  runtimeHoursTotal: number;
+  stddevCostPerProvision: number;
+  stddevCostPerProvisionPerHour: number;
+  stddevLifetimeCostByHour: number;
+  stddevProvisionHour: number;
+  stddevRuntimeCostByHour: number;
+  usageAmountTotal: number;
+  userExperiencesTotal: number;
+};
