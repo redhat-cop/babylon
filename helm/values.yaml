@@ -219,3 +219,32 @@ workshopManager:
     requests:
       cpu: 200m
       memory: 1Gi
+
+admin:
+  deploy: true
+  namespace:
+    create: true
+    name: babylon-admin
+  image:
+    tag: v1.0.6
+    repository: quay.io/redhat-gpte/babylon-admin
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: "256Mi"
+    limits:
+      cpu: "1"
+      memory: "256Mi"
+  db:
+    deploy: false
+    maxOverflow: 20
+    poolRecycle: 600
+    poolSize: 5
+    port: 54327
+    secretName: database
+  servicenow:
+    deploy: true
+    workshopFormId: b48fe3cc870b2d508a51bbbf8bbb3576
+    secretName: servicenow

@@ -1,0 +1,22 @@
+{{- $admin := .Values.admin }}
+{{- if $admin.deploy }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin
+  name: babylon-admin
+  namespace: {{ $admin.namespace.name }}
+spec:
+  type: ClusterIP
+  ports:
+  - name: admin-api
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    {{- include "babylon.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: admin
+{{- end }}
