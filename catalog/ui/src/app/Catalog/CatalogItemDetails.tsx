@@ -63,7 +63,7 @@ import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import useHelpLink from '@app/utils/useHelpLink';
-import useSWRImmutable from 'swr/dist/immutable';
+import useSWRImmutable from 'swr/immutable';
 
 import './catalog-item-details.css';
 
