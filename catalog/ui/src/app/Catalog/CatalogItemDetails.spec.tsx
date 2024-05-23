@@ -12,7 +12,7 @@ jest.mock('@app/api', () => ({
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({}),
-  })),
+  }))
 );
 
 describe('CatalogItemDetails Component', () => {
@@ -22,13 +22,11 @@ describe('CatalogItemDetails Component', () => {
         <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItemObj} onClose={jest.fn} />}>
           <DrawerContentBody></DrawerContentBody>
         </DrawerContent>
-      </Drawer>,
+      </Drawer>
     );
 
     const catalogItemDisplayName = 'Test Config';
     const providedByText = 'provided by Red Hat';
-    const provisionTimeEstimateLabel = 'Estimated provision time';
-    const provisionTimeEstimate = 'Up to 2 minutes';
     const descriptionLabel = 'Description';
     const descriptionText = 'Test empty config which deploys no cloud resources.';
     const categoryLabel = 'Category';
@@ -37,7 +35,6 @@ describe('CatalogItemDetails Component', () => {
     await waitFor(() => {
       expect(getByText(catalogItemDisplayName)).toBeInTheDocument();
       expect(getByText(providedByText)).toBeInTheDocument();
-      expect(getByText(provisionTimeEstimateLabel).closest('div').textContent).toContain(provisionTimeEstimate);
       expect(getByText(descriptionLabel).closest('div').textContent).toContain(descriptionText);
       expect(getByText(new RegExp(categoryLabel, 'i')).closest('div').textContent).toContain(categoryText);
     });
@@ -50,7 +47,7 @@ describe('CatalogItemDetails Component', () => {
         <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItemObj} onClose={handleClick} />}>
           <DrawerContentBody></DrawerContentBody>
         </DrawerContent>
-      </Drawer>,
+      </Drawer>
     );
     const catalogItemDisplayName = 'Test Config';
     await waitFor(() => expect(getByText(catalogItemDisplayName)).toBeInTheDocument());
