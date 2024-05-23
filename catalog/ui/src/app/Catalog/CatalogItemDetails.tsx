@@ -334,12 +334,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   </DescriptionListGroup>
                 ))}
 
-              {metrics?.averageRuntimeCostPerHourPerExperience ? (
+              {metrics?.medianRuntimeCostByHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-cost">
                   <DescriptionListTerm>Estimated hourly cost</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {formatCurrency(metrics?.averageRuntimeCostPerHourPerExperience)}
-                    <Tooltip content="Estimated hourly cost per instance">
+                    {formatCurrency(metrics?.medianRuntimeCostByHour * 1.15)}
+                    <Tooltip content="Estimated hourly cost per running instance. Chargeback to your cost center.">
                       <InfoAltIcon
                         style={{
                           paddingTop: 'var(--pf-global--spacer--xs)',
@@ -352,11 +352,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 </DescriptionListGroup>
               ) : null}
 
-              {metrics?.averageProvisionHour ? (
+              {metrics?.medianProvisionHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {`Up to ${formatTime(`${metrics?.averageProvisionHour}h`)}`}
+                    {`Up to ${formatTime(`${metrics?.medianProvisionHour * 1.15}h`)}`}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
