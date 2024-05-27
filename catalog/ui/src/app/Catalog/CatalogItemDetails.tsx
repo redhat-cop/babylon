@@ -108,7 +108,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
       ? apiPaths.ASSET_METRICS({ asset_uuid: catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] })
       : null,
-    fetcher
+    fetcher,
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    }
   );
   const services: ResourceClaim[] = useMemo(
     () =>
@@ -338,7 +342,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <DescriptionListGroup className="catalog-item-details__estimated-cost">
                   <DescriptionListTerm>Estimated hourly cost</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {formatCurrency(metrics?.medianRuntimeCostByHour * 1.15)}
+                    {formatCurrency(metrics?.medianRuntimeCostByHour * 1.1)}
                     <Tooltip content="Estimated hourly cost per running instance. Chargeback to your cost center.">
                       <InfoAltIcon
                         style={{
@@ -356,7 +360,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {`Up to ${formatTime(`${metrics?.medianProvisionHour * 1.15}h`)}`}
+                    {`Up to ${formatTime(`${metrics?.medianProvisionHour * 60 * 1.1}m`)}`}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
