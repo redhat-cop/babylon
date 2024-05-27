@@ -25,7 +25,7 @@ import {
 } from '@patternfly/react-core';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import useSWR from 'swr';
-import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
+import { apiPaths, fetcherItemsInAllPages, fetcherSilent } from '@app/api';
 import { AssetMetrics, CatalogItem, ResourceClaim } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
@@ -108,7 +108,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
       ? apiPaths.ASSET_METRICS({ asset_uuid: catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] })
       : null,
-    fetcher
+    fetcherSilent
   );
   const services: ResourceClaim[] = useMemo(
     () =>

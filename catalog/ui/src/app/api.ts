@@ -139,6 +139,14 @@ export async function fetcher(path: string, opt?: Record<string, unknown>) {
   return response.json();
 }
 
+export async function fetcherSilent(path: string, opt?: Record<string, unknown>) {
+  try {
+    return fetcher(path, opt);
+  } catch(_) {
+    return null;
+  }
+}
+
 export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
   const items = [];
   let continueId: Nullable<string> = null;
