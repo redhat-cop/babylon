@@ -10,7 +10,7 @@ metadata:
     {{- include "babylon.labels" . | nindent 4 }}
     app.kubernetes.io/component: admin
 spec:
-  replicas: {{ $admin.replicaCount }}
+  replicas: {{ $admin.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "babylon.selectorLabels" . | nindent 6 }}
