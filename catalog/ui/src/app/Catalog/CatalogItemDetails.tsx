@@ -360,7 +360,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {`Up to ${formatTime(`${metrics?.medianProvisionHour * 1.15}h`)}`}
+                    {`Up to ${formatTime(`${metrics?.medianProvisionHour * 60 * 1.15}min`)}`}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
