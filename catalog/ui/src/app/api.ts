@@ -139,14 +139,6 @@ export async function fetcher(path: string, opt?: Record<string, unknown>) {
   return response.json();
 }
 
-export async function fetcherSilent(path: string, opt?: Record<string, unknown>) {
-  try {
-    return fetcher(path, opt);
-  } catch(_) {
-    return null;
-  }
-}
-
 export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
   const items = [];
   let continueId: Nullable<string> = null;
@@ -1620,7 +1612,7 @@ export const SERVICES_KEY = ({ namespace }: { namespace: string }) => `services/
 export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
-  ASSET_METRICS: ({ asset_uuid } : { asset_uuid: string }) => `/api/catalog_item/metrics/${asset_uuid}`,
+  ASSET_METRICS: ({ asset_uuid }: { asset_uuid: string }) => `/api/catalog_item/metrics/${asset_uuid}`,
   CATALOG_ITEMS: ({
     namespace,
     limit,
