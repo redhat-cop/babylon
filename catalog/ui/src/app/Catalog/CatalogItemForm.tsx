@@ -894,7 +894,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             </Button>
           </ActionListItem>
 
-          {isAdmin || isLabDeveloper(groups) /*|| formState.workshop */ ? (
+          {formState.workshop ? (
             <ActionListItem>
               <Button
                 isAriaDisabled={!submitRequestEnabled}
@@ -908,7 +908,21 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 }}
                 icon={<OutlinedCalendarAltIcon />}
               >
-                Schedule
+                Schedule{' '}
+                <span
+                  style={{
+                    backgroundColor: '#faeae8',
+                    borderRadius: '10px',
+                    color: '#7d1007',
+                    fontStyle: 'italic',
+                    fontWeight: 300,
+                    fontSize: '12px',
+                    padding: '0 8px',
+                    marginLeft: '8px',
+                  }}
+                >
+                  Beta
+                </span>
               </Button>
             </ActionListItem>
           ) : null}

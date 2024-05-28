@@ -83,7 +83,16 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { description, descriptionFormat } = getDescription(catalogItem);
   const lastSuccessfulProvisionTime = getLastSuccessfulProvisionTime(catalogItem);
   const helpLink = useHelpLink();
-
+  const { data: metrics } = useSWRImmutable<AssetMetrics>(
+    catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+      ? apiPaths.ASSET_METRICS({ asset_uuid: catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] })
+      : null,
+    fetcher,
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    }
+  );
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
     userNamespace?.name
       ? apiPaths.RESOURCE_CLAIMS({
@@ -104,16 +113,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       compare: compareK8sObjectsArr,
     }
   );
-  const { data: metrics } = useSWRImmutable<AssetMetrics>(
-    catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
-      ? apiPaths.ASSET_METRICS({ asset_uuid: catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] })
-      : null,
-    fetcher,
-    {
-      shouldRetryOnError: false,
-      suspense: false,
-    }
-  );
+
   const services: ResourceClaim[] = useMemo(
     () =>
       Array.isArray(userResourceClaims)

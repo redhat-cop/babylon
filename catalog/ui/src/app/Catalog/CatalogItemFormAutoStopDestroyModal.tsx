@@ -76,7 +76,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
     >
       <Form isHorizontal={type !== 'schedule'}>
         {type === 'schedule' ? (
-          <FormGroup fieldId="auto-start-modal" label="Start Date">
+          <FormGroup fieldId="auto-start-modal" label="Start Deployment Date">
             <DateTimePicker
               defaultTimestamp={autoStartDate?.getTime() || Date.now()}
               onSelect={(d) => {
@@ -139,7 +139,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                       : Date.now() + maxDestroyTimestamp
                     : null
                 }
-                minDate={Date.now()}
+                minDate={type === 'schedule' && dates.startDate ? dates.startDate.getTime() : Date.now()}
               />
             </FormGroup>
             {isAdmin ? null : (
