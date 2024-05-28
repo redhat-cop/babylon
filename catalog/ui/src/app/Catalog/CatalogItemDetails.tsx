@@ -340,10 +340,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
 
               {metrics?.medianRuntimeCostByHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-cost">
-                  <DescriptionListTerm>Estimated hourly cost</DescriptionListTerm>
+                  <DescriptionListTerm>Estimated Hourly Cost if not stopped</DescriptionListTerm>
                   <DescriptionListDescription>
                     {formatCurrency(metrics?.medianRuntimeCostByHour * 1.1)}
-                    <Tooltip content="Estimated hourly cost per running instance. Chargeback to your cost center.">
+                    <Tooltip content="Estimated hourly cost per running instance.">
                       <InfoAltIcon
                         style={{
                           paddingTop: 'var(--pf-global--spacer--xs)',
@@ -360,7 +360,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {`Up to ${formatTime(`${metrics?.medianProvisionHour * 60 * 1.1}m`)}`}
+                    {`±${formatTime(`${metrics?.medianProvisionHour * 60 * 1.1}m`)}`}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
