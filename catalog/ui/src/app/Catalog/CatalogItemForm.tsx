@@ -911,9 +911,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 Schedule{' '}
                 <span
                   style={{
-                    backgroundColor: '#faeae8',
+                    backgroundColor: submitRequestEnabled ? '#f0f0f0' : '#bee1f4',
                     borderRadius: '10px',
-                    color: '#7d1007',
+                    color: submitRequestEnabled ? '#8a8d90' : '#06c',
                     fontStyle: 'italic',
                     fontWeight: 300,
                     fontSize: '12px',
