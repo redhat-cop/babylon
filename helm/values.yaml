@@ -81,7 +81,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v1.0.3
+        tag: v1.0.4
       loggingLevel: INFO
       replicaCount: 1
       resources:
@@ -126,7 +126,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.31.7
+        tag: v0.31.8
       replicaCount: 1
       resources:
         requests:

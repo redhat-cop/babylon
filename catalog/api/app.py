@@ -681,7 +681,8 @@ async def openshift_api_proxy(request):
         if impersonate_user and session.get('admin'):
             api_client.default_headers['Impersonate-User'] = impersonate_user
             api_client.default_headers.discard('Impersonate-Group')
-            for group in get_user_groups(impersonate_user):
+            groups = await get_user_groups(impersonate_user)
+            for group in groups:
                 api_client.default_headers.add('Impersonate-Group', group)
 
         header_params = {}
