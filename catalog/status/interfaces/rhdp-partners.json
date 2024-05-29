@@ -1,5 +1,5 @@
 {
-    "incidents_enabled": false,
+    "incidents_enabled": true,
     "ratings_enabled": true,
     "status_page_url": "https://rhdp-partner.statuspage.io/",
     "status_page_id": "j70k6yk8v2pk",
