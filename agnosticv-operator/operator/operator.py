@@ -6,12 +6,14 @@ import logging
 from agnosticvrepo import AgnosticVRepo
 from agnosticvcomponent import AgnosticVComponent
 from babylon import Babylon
+from catalogitem import CatalogItem
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 
 @kopf.on.startup()
 async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     await Babylon.on_startup()
+    await CatalogItem.on_startup()
 
     # Never give up from network errors
     settings.networking.error_backoffs = InfiniteRelativeBackoff()
@@ -35,6 +37,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
 
 @kopf.on.cleanup()
 async def on_cleanup(**_):
+    await CatalogItem.on_cleanup()
     await Babylon.on_cleanup()
 
 @kopf.on.create(AgnosticVComponent.api_group, AgnosticVComponent.version, 'agnosticvcomponents')

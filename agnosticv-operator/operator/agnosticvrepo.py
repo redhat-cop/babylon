@@ -28,6 +28,9 @@ aiofiles.os.chmod = aiofiles.os.wrap(os.chmod)
 app_root = os.environ.get('APP_ROOT', '/opt/app-root')
 agnosticv_cli_path = os.environ.get('AGNOSTICV_CLI_PATH', f"{app_root}/bin/agnosticv")
 
+def path_to_name(path):
+    return re.sub(r'\.(json|yaml|yml)$', '', path.lower().replace('_', '-').replace('/', '.'))
+
 class AgnosticVProcessingError(Exception):
     pass
 
@@ -54,6 +57,7 @@ class AgnosticVRepo(CachedKopfObject):
         super().__init__(**kwargs)
         self.git_hexsha = self.git_checkout_ref = self.git_repo = None
         self.git_changed_files = []
+        self.git_deleted_files = set()
 
     @property
     def agnosticv_path(self):
@@ -195,18 +199,24 @@ class AgnosticVRepo(CachedKopfObject):
         prev_hexsha = self.git_hexsha
         self.__git_repo_checkout(logger=logger)
 
+        self.git_changed_files.clear()
+        self.git_deleted_files.clear()
+
         if prev_hexsha == self.git_hexsha:
-            self.git_changed_files = []
             return
 
         logger.info(f"Checked out {self.git_ref} [{self.git_hexsha}]")
 
         if self.last_successful_git_hexsha:
-            git_diff_output = self.git_repo.git.diff(
-                self.last_successful_git_hexsha, name_only=True
+            git_diff = self.git_repo.git.diff(
+                self.last_successful_git_hexsha, name_status=True, no_renames=True
             )
-            if git_diff_output:
-                self.git_changed_files = git_diff_output.split("\n")
+            for line in git_diff.split("\n"):
+                change, path = line.split()
+                if change == 'D':
+                    self.git_deleted_files.add(path)
+                else:
+                    self.git_changed_files.append(path)
 
     def validate_component_definition(self, definition, source):
         self.validate_execution_environment(
@@ -301,16 +311,39 @@ class AgnosticVRepo(CachedKopfObject):
         return definition
 
     async def get_component_sources(self, changed_only, logger):
+        # Collect all non-fatal error messages
+        error_messages = []
+
         # Add restriction to changed files if requested
         try:
-            if changed_only and self.git_changed_files:
-                component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(
-                    self.git_changed_files, logger=logger
-                )
+            if changed_only:
+                if self.git_changed_files:
+                    component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(
+                        self.git_changed_files, logger=logger
+                    )
+                else:
+                    component_paths = []
+                    error_msg = None
+
+                # This is best-guess logic to avoid a more expensive and
+                # complicated means of determining deleted components.
+                deleted_component_paths = {
+                    path for path in self.git_deleted_files
+                    if(
+                        not path.startswith('.') and
+                        not re.search(r'/\.', path) and
+                        not re.search(r'/(account|common)\.(json|ya?ml)$', path) and
+                        re.search(r'\.(json|ya?ml)$', path)
+                    )
+                }
             else:
                 component_paths, error_msg = await self.agnosticv_get_all_component_paths()
+                deleted_component_paths = set()
         except AgnosticVProcessingError as error:
             raise kopf.TemporaryError(f"{error}", delay=60)
+
+        if error_msg:
+            error_messages.append(error_msg)
 
         # Base list of component sources by path
         component_sources_by_path = {
@@ -318,9 +351,6 @@ class AgnosticVRepo(CachedKopfObject):
                 path, ref=self.git_ref, hexsha=self.git_hexsha
             ) for path in component_paths
         }
-
-        # Collect all non-fatal error messages
-        error_messages = [error_msg] if error_msg else []
 
         if self.github_preload_pull_requests:
             github_token = await self.get_github_token()
@@ -345,7 +375,9 @@ class AgnosticVRepo(CachedKopfObject):
                         error_message = None
                         try:
                             logger.debug(f"Getting component paths from changed files: {changed_files}")
-                            component_paths, error_message = await self.agnosticv_get_component_paths_from_related_files(changed_files, logger=logger)
+                            component_paths, error_message = await self.agnosticv_get_component_paths_from_related_files(
+                                changed_files, logger=logger
+                            )
                             logger.debug(f"Got {component_paths}")
                         except AgnosticVProcessingError as error:
                             error_message = str(error)
@@ -356,6 +388,7 @@ class AgnosticVRepo(CachedKopfObject):
                             error_messages.append(error_message)
                         else:
                             for path in component_paths:
+                                deleted_component_paths.discard(path)
                                 component_sources_by_path[path] = ComponentSource(
                                     path,
                                     pull_request_number = pull_request['number'],
@@ -363,9 +396,13 @@ class AgnosticVRepo(CachedKopfObject):
                                     hexsha = self.git_hexsha
                                 )
 
+        deleted_component_names = {
+            path_to_name(path) for path in deleted_component_paths
+        }
+
         component_sources = list(component_sources_by_path.values())
         component_sources.sort(key=lambda cs: cs.sortkey)
-        return component_sources, error_messages
+        return component_sources, deleted_component_names, error_messages
 
     async def get_github_token(self):
         secret = await Babylon.core_v1_api.read_namespaced_secret(
@@ -570,13 +607,27 @@ class AgnosticVRepo(CachedKopfObject):
         pr_hexsha = {}
         pr_messages = {}
         errors = {}
-        component_sources, get_component_sources_error_messages = await self.get_component_sources(
+        component_sources, deleted_component_names, get_component_sources_error_messages = await self.get_component_sources(
             changed_only = changed_only,
             logger = logger,
         )
+        handled_component_names = set()
+
+        # When syncing changed only we get a set of deleted component names
+        for name in deleted_component_names:
+            try:
+                agnosticv_component = await AgnosticVComponent.fetch(name=name)
+                if not agnosticv_component.deletion_timestamp:
+                    logger.info(f"Deleting AgnosticVComponent {name} after deleted from {self}")
+                    await agnosticv_component.delete()
+            except kubernetes_asyncio.client.rest.ApiException as e:
+                if e.status != 404:
+                    raise
+
         for source in component_sources:
             try:
                 result = await self.manage_component(source=source, logger=logger)
+                handled_component_names.add(source.name)
                 if not source.pull_request_number:
                     continue
                 pr_hexsha[source.pull_request_number] = source.hexsha
@@ -662,7 +713,15 @@ class AgnosticVRepo(CachedKopfObject):
             }
         })
 
-        # FIXME - Delete components during full sync
+        # On full sync we delete any components from the repo that were not handled
+        if not changed_only:
+            async for agnosticv_component in AgnosticVComponent.list(
+                label_selector = f"{Babylon.agnosticv_repo_label}={self.name}",
+                namespace = self.namespace,
+            ):
+                if agnosticv_component.name not in handled_component_names:
+                    logger.info(f"Deleting {agnosticv_component} after deleted from {self}")
+                    await agnosticv_component.delete()
 
         logger.info(f"Finished managing components for {git_hexsha}")
 
@@ -670,7 +729,7 @@ class AgnosticVRepo(CachedKopfObject):
 class ComponentSource:
     def __init__(self, path, ref, hexsha, pull_request_number=None):
         self.hexsha = hexsha
-        self.name = re.sub(r'\.(json|yaml|yml)$', '', path.lower().replace('_', '-').replace('/', '.'))
+        self.name = path_to_name(path)
         self.path = path
         self.pull_request_number = pull_request_number
         self.ref = ref

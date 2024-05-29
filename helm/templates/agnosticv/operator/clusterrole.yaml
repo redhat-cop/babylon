@@ -43,3 +43,11 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourceclaims
+  verbs:
+  - get
+  - list
+  - watch
