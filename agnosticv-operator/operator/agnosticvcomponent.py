@@ -241,6 +241,10 @@ class AgnosticVComponent(KopfObject):
         return self.catalog_meta.get('workshopUiDisabled', False)
 
     @property
+    def catalog_workshop_ui_max_instances(self):
+        return self.catalog_meta.get('workshopUiMaxInstances', 200)
+
+    @property
     def definition(self):
         return self.spec['definition']
 
@@ -577,6 +581,8 @@ class AgnosticVComponent(KopfObject):
 
             if self.catalog_workshop_ui_disabled:
                 definition['spec']['workshopUiDisabled'] = True
+            else:
+                definition['spec']['workshopUiMaxInstances'] = self.catalog_workshop_ui_max_instances
 
             if self.catalog_parameters != None:
                 definition['spec']['parameters'] = self.catalog_parameters
