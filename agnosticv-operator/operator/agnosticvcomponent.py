@@ -581,8 +581,7 @@ class AgnosticVComponent(KopfObject):
 
             if self.catalog_workshop_ui_disabled:
                 definition['spec']['workshopUiDisabled'] = True
-
-            if self.catalog_workshop_ui_max_instances:
+            else:
                 definition['spec']['workshopUiMaxInstances'] = self.catalog_workshop_ui_max_instances
 
             if self.catalog_parameters != None:
