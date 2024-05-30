@@ -41,7 +41,7 @@ import {
   openWorkshopSupportTicket,
 } from '@app/api';
 import { CatalogItem, TPurposeOpts } from '@app/types';
-import { displayName, isLabDeveloper, randomString } from '@app/util';
+import { displayName, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
@@ -758,7 +758,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   <div className="catalog-item-form__group-control--single">
                     <PatientNumberInput
                       min={0}
-                      max={200}
+                      max={catalogItem.spec.workshopUiMaxInstances || 200}
                       onChange={(v) =>
                         dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, provisionCount: v } })
                       }
