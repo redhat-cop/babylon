@@ -207,16 +207,20 @@ class AgnosticVRepo(CachedKopfObject):
 
         logger.info(f"Checked out {self.git_ref} [{self.git_hexsha}]")
 
-        if self.last_successful_git_hexsha:
-            git_diff = self.git_repo.git.diff(
-                self.last_successful_git_hexsha, name_status=True, no_renames=True
-            )
-            for line in git_diff.split("\n"):
-                change, path = line.split()
-                if change == 'D':
-                    self.git_deleted_files.add(path)
-                else:
-                    self.git_changed_files.append(path)
+        if not self.last_successful_git_hexsha:
+            return
+
+        git_diff = self.git_repo.git.diff(
+            self.last_successful_git_hexsha, name_status=True, no_renames=True
+        )
+        if not git_diff:
+            return
+        for line in git_diff.split("\n"):
+            change, path = line.split()
+            if change == 'D':
+                self.git_deleted_files.add(path)
+            else:
+                self.git_changed_files.append(path)
 
     def validate_component_definition(self, definition, source):
         self.validate_execution_environment(
