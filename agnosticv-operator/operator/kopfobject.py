@@ -39,7 +39,9 @@ class KopfObject:
         return cls.from_definition(await cls.fetch_definition(name=name, namespace=namespace))
 
     @classmethod
-    async def fetch_definition(cls, name, namespace):
+    async def fetch_definition(cls, name, namespace=None):
+        if namespace == None:
+            namespace = Babylon.namespace
         return await Babylon.custom_objects_api.get_namespaced_custom_object(
             group = cls.api_group,
             name = name,

@@ -18,7 +18,10 @@ class Babylon():
     agnosticv_repo_label = f"{agnosticv_api_group}/AgnosticVRepo"
     anarchy_api_version = f"{anarchy_api_group}/{anarchy_version}"
     catalog_api_version = f"{catalog_api_group}/{catalog_version}"
+    catalog_item_name_label = f"{catalog_api_group}/catalogItemName"
+    catalog_item_namespace_label = f"{catalog_api_group}/catalogItemNamespace"
     last_update_annotation = f"{agnosticv_api_group}/last-update"
+    ops_annotation = f"{catalog_api_group}/ops"
     resource_broker_api_version = f"{resource_broker_api_group}/{resource_broker_version}"
 
     @classmethod
