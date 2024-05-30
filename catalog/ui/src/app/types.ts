@@ -139,6 +139,7 @@ export interface CatalogItemSpec {
   };
   multiuser?: boolean;
   workshopUiDisabled?: boolean;
+  workshopUiMaxInstances?: number;
   parameters?: CatalogItemSpecParameter[];
   provisionTimeEstimate?: string;
   resources?: any[];
