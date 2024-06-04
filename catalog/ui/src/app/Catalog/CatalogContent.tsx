@@ -30,12 +30,12 @@ const CatalogContent: React.FC<{
               <>
                 <p>Welcome to the Red Hat Demo Platform (RHDP)!</p>
                 <p>
-                  At this time, it appears that your account is not listed as a pilot user for the beta version of RHDP.
-                  Please reach out to your account manager or Red Hat contact to request pilot access.
+                  At this time, it appears that your account is not associated with a Red Hat partner.
+                  Please click <a href="https://connect.redhat.com/en/partner-with-us/join-existing-partner-company">here</a> if you are not yet a partner, or if you need to join your account with an existing partner company.
                 </p>
                 <p>
-                  Once approved, you will be able to log-in with your Red Hat credentials. We look forward to your
-                  engagement with our updated demo platform!
+                  Once your account is set up in the system as a Red Hat partner, you will be able to log-in with your Red Hat credentials.
+                  We look forward to your engagement with our updated demo platform!
                 </p>
               </>
             ) : groups.includes('salesforce-partner') && userInterface !== 'rhdp-partners' ? (
