@@ -285,7 +285,8 @@ export async function checkSalesforceId(
     return { valid: false, message: defaultMessage };
   }
   try {
-    await debouncedApiFetch(`/api/salesforce/${id}?${sales_type ? `sales_type=${sales_type}` : ''}`);
+    return { valid: true, message: '' };
+    // await debouncedApiFetch(`/api/salesforce/${id}?${sales_type ? `sales_type=${sales_type}` : ''}`);
   } catch (errorResponse: any) {
     try {
       const error = await errorResponse.json();
