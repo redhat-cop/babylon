@@ -853,24 +853,27 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             </FormGroup>
           </>
         ) : null}
-
-        <FormGroup key="auto-detach-switch" fieldId="auto-detach-switch">
-          <div className="catalog-item-form__group-control--single">
-            <Switch
-              id="auto-detach-switch"
-              aria-label="Keep instance if provision fails"
-              label="Keep instance if provision fails (only visible to admins)"
-              isChecked={!formState.useAutoDetach}
-              hasCheckIcon
-              onChange={(isChecked) =>
-                dispatchFormState({
-                  type: 'useAutoDetach',
-                  useAutoDetach: !isChecked,
-                })
-              }
-            />
-          </div>
-        </FormGroup>
+        <>
+          {isAdmin ? (
+            <FormGroup key="auto-detach-switch" fieldId="auto-detach-switch">
+              <div className="catalog-item-form__group-control--single">
+                <Switch
+                  id="auto-detach-switch"
+                  aria-label="Keep instance if provision fails"
+                  label="Keep instance if provision fails (only visible to admins)"
+                  isChecked={!formState.useAutoDetach}
+                  hasCheckIcon
+                  onChange={(isChecked) =>
+                    dispatchFormState({
+                      type: 'useAutoDetach',
+                      useAutoDetach: !isChecked,
+                    })
+                  }
+                />
+              </div>
+            </FormGroup>
+          ) : null}
+        </>
 
         {catalogItem.spec.termsOfService ? (
           <TermsOfService
