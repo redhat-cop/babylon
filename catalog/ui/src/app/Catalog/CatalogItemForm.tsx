@@ -188,6 +188,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         parameters: parameterValues,
         startDelay: provisionStartDelay,
         workshop: workshop,
+        useAutoDetach: formState.useAutoDetach,
       });
       if (scheduled !== null) {
         try {
