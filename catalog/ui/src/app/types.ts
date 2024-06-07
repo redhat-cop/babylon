@@ -477,6 +477,9 @@ export interface WorkshopProvisionSpec {
     start?: string;
     end?: string;
   };
+  autoDetach?: {
+    when: string;
+  };
 }
 
 export interface WorkshopSpec {
