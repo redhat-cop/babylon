@@ -861,14 +861,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   id="auto-detach-switch"
                   aria-label="Keep instance if provision fails"
                   label="Keep instance if provision fails (only visible to admins)"
-                  isChecked={!formState.useAutoDetach}
+                  isChecked={formState.useAutoDetach}
                   hasCheckIcon
-                  onChange={(isChecked) =>
+                  onChange={(isChecked) => {
                     dispatchFormState({
                       type: 'useAutoDetach',
-                      useAutoDetach: !isChecked,
-                    })
-                  }
+                      useAutoDetach: isChecked,
+                    });
+                  }}
                 />
               </div>
             </FormGroup>
