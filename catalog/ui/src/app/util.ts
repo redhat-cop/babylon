@@ -3,6 +3,7 @@ import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output s
 import {
   AccessControl,
   AnarchySubject,
+  CatalogItem,
   CatalogNamespace,
   CostTracker,
   K8sObject,
@@ -30,7 +31,7 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
   if (!item) {
     return '';
   }
-  const k8sObject = item as ResourceClaim | Workshop;
+  const k8sObject = item as ResourceClaim | Workshop | CatalogItem;
   const catalog = item as CatalogNamespace;
   if (k8sObject.kind === 'ResourceClaim') {
     const _item = k8sObject as ResourceClaim;
@@ -71,6 +72,9 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
     } else {
       return _item.metadata.name;
     }
+  } else if (k8sObject.kind === 'CatalogItem') {
+    const _item = k8sObject as CatalogItem;
+    return _item.spec.displayName;
   } else {
     return (
       k8sObject.metadata?.annotations?.[`${BABYLON_DOMAIN}/displayName`] ||

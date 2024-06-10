@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import CatalogItemDetails from './CatalogItemDetails';
 import catalogItemObj from '../__mocks__/catalogItem.json';
-import { ResourceClaim } from '@app/types';
+import { CatalogItem, ResourceClaim } from '@app/types';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
@@ -15,11 +15,13 @@ jest.mock('@app/utils/useSession', () =>
   }))
 );
 
+const catalogItem = catalogItemObj as CatalogItem;
+
 describe('CatalogItemDetails Component', () => {
   test("When renders as a patternfly panelContent, should display 'CatalogItem' properties", async () => {
     const { getByText } = render(
       <Drawer isExpanded={true}>
-        <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItemObj} onClose={jest.fn} />}>
+        <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItem} onClose={jest.fn} />}>
           <DrawerContentBody></DrawerContentBody>
         </DrawerContent>
       </Drawer>
@@ -44,7 +46,7 @@ describe('CatalogItemDetails Component', () => {
     const handleClick = jest.fn();
     const { container, getByText } = render(
       <Drawer isExpanded={true}>
-        <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItemObj} onClose={handleClick} />}>
+        <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItem} onClose={handleClick} />}>
           <DrawerContentBody></DrawerContentBody>
         </DrawerContent>
       </Drawer>

@@ -7,17 +7,15 @@ export function getProvider(catalogItem: CatalogItem) {
   return catalogItem.metadata.labels?.[`${domain}/${key}`] || 'Red Hat';
 }
 export function getCategory(catalogItem: CatalogItem) {
-  const { domain, key } = CUSTOM_LABELS.CATEGORY;
-  return catalogItem.metadata.labels?.[`${domain}/${key}`];
+  return catalogItem.spec.category;
 }
 export function getDescription(catalogItem: CatalogItem): {
   description: string | null;
   descriptionFormat: 'asciidoc' | 'html';
 } {
   return {
-    description: catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/description`],
-    descriptionFormat:
-      (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/descriptionFormat`] as 'html' | 'asciidoc') || 'asciidoc',
+    description: catalogItem.spec.description.content,
+    descriptionFormat: catalogItem.spec.description.format as 'html' | 'asciidoc',
   };
 }
 

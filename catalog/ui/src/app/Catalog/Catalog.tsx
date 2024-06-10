@@ -341,10 +341,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const [_catalogItems, _catalogItemsCpy] = useMemo(() => {
     const catalogItemsCpy = [...catalogItems].sort(compareCatalogItems);
     catalogItemsCpy.forEach((c, i) => {
-      if (c.metadata.annotations) {
-        catalogItemsCpy[i].metadata.annotations['babylon.gpte.redhat.com/safe_description'] = stripTags(
-          c.metadata.annotations['babylon.gpte.redhat.com/description']
-        );
+      if (c.spec.description) {
+        catalogItemsCpy[i].spec.description.safe = stripTags(c.spec.description.content);
       }
     });
     const options = {
@@ -355,7 +353,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       useExtendedSearch: true,
       keys: [
         {
-          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/displayName'],
+          name: ['spec', 'displayName'],
           weight: 10,
         },
         {
@@ -363,7 +361,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           weight: 10,
         },
         {
-          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/keywords'],
+          name: ['spec', 'keywords'],
           weight: 5,
         },
         {
@@ -371,7 +369,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           weight: 3,
         },
         {
-          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/safe_description'],
+          name: ['spec', 'description', 'safe'],
           weight: 3,
         },
         {
