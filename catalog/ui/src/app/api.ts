@@ -69,6 +69,7 @@ type CreateWorkshopPovisionOpt = {
   parameters: any;
   startDelay: number;
   workshop: Workshop;
+  useAutoDetach: boolean;
 };
 
 export type CreateServiceRequestParameterValues = {
@@ -699,6 +700,7 @@ export async function createWorkshopProvision({
   parameters,
   startDelay,
   workshop,
+  useAutoDetach,
 }: CreateWorkshopPovisionOpt) {
   const definition: WorkshopProvision = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -736,6 +738,13 @@ export async function createWorkshopProvision({
       parameters: parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
+      ...(useAutoDetach
+        ? {
+            autoDetach: {
+              when: `status.resources | json_query("[?state.spec.vars.current_state == 'provision-failed']") | length != 0`,
+            },
+          }
+        : {}),
     },
   };
 

@@ -188,6 +188,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         parameters: parameterValues,
         startDelay: provisionStartDelay,
         workshop: workshop,
+        useAutoDetach: formState.useAutoDetach,
       });
       if (scheduled !== null) {
         try {
@@ -850,6 +851,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 />
               </div>
             </FormGroup>
+          </>
+        ) : null}
+        <>
+          {isAdmin ? (
             <FormGroup key="auto-detach-switch" fieldId="auto-detach-switch">
               <div className="catalog-item-form__group-control--single">
                 <Switch
@@ -858,17 +863,17 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   label="Keep instance if provision fails (only visible to admins)"
                   isChecked={!formState.useAutoDetach}
                   hasCheckIcon
-                  onChange={(isChecked) =>
+                  onChange={(isChecked) => {
                     dispatchFormState({
                       type: 'useAutoDetach',
                       useAutoDetach: !isChecked,
-                    })
-                  }
+                    });
+                  }}
                 />
               </div>
             </FormGroup>
-          </>
-        ) : null}
+          ) : null}
+        </>
 
         {catalogItem.spec.termsOfService ? (
           <TermsOfService
@@ -911,9 +916,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 Schedule{' '}
                 <span
                   style={{
-                    backgroundColor: submitRequestEnabled ? '#f0f0f0' : '#bee1f4',
+                    backgroundColor: !submitRequestEnabled ? '#f0f0f0' : '#bee1f4',
                     borderRadius: '10px',
-                    color: submitRequestEnabled ? '#8a8d90' : '#06c',
+                    color: !submitRequestEnabled ? '#8a8d90' : '#06c',
                     fontStyle: 'italic',
                     fontWeight: 300,
                     fontSize: '12px',
