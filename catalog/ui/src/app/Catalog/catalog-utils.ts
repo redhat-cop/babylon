@@ -15,7 +15,7 @@ export function getDescription(catalogItem: CatalogItem): {
 } {
   return {
     description: catalogItem.spec.description.content,
-    descriptionFormat: catalogItem.spec.description.format,
+    descriptionFormat: catalogItem.spec.description.format as 'html' | 'asciidoc',
   };
 }
 
