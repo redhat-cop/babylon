@@ -1,3 +1,5 @@
+import { CSSProperties } from 'react';
+
 export interface AnarchyAction extends K8sObject {
   spec: any;
   status?: any;
@@ -149,6 +151,19 @@ export interface CatalogItemSpec {
   lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
   externalUrl?: string;
+  category?: string;
+  description?: {
+    content: string;
+    format: 'html' | 'asciidoc';
+    safe?: string;
+  };
+  displayName?: string;
+  keywords?: string[];
+  icon?: {
+    alt: string;
+    url: string;
+    style?: CSSProperties;
+  };
 }
 
 export interface CatalogItemSpecParameter {

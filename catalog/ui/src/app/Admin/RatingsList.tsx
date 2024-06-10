@@ -137,9 +137,9 @@ const RatingsList: React.FC = () => {
   const [_catalogItems, _catalogItemsCpy] = useMemo(() => {
     const catalogItemsCpy = [...catalogItems].sort(compareCatalogItems);
     catalogItemsCpy.forEach((c, i) => {
-      if (c.metadata.annotations) {
-        catalogItemsCpy[i].metadata.annotations['babylon.gpte.redhat.com/safe_description'] = stripTags(
-          c.metadata.annotations['babylon.gpte.redhat.com/description'],
+      if (c.spec.description) {
+        catalogItemsCpy[i].spec.description.safe = stripTags(
+          c.spec.description.content
         );
       }
     });
@@ -151,7 +151,7 @@ const RatingsList: React.FC = () => {
       useExtendedSearch: true,
       keys: [
         {
-          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/displayName'],
+          name: ['spec', 'displayName'],
           weight: 10,
         },
         {
@@ -159,7 +159,7 @@ const RatingsList: React.FC = () => {
           weight: 10,
         },
         {
-          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/keywords'],
+          name: ['spec', 'keywords'],
           weight: 5,
         },
         {
@@ -167,7 +167,7 @@ const RatingsList: React.FC = () => {
           weight: 3,
         },
         {
-          name: ['metadata', 'annotations', 'babylon.gpte.redhat.com/safe_description'],
+          name: ['spec', 'description', 'safe'],
           weight: 3,
         },
         {
