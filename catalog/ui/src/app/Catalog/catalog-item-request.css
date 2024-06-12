@@ -1,5 +1,5 @@
 .catalog-item-request__form {
-  margin: var(--pf-global--spacer--lg) 0;
+  margin: var(--pf-v5-global--spacer--lg) 0;
 }
 
 .catalog-item-request__form .pf-c-check {
@@ -9,8 +9,8 @@
 }
 
 .catalog-item-request .terms-of-service {
-  background-color: var(--pf-global--BackgroundColor--light-300);
-  padding: var(--pf-global--spacer--md);
+  background-color: var(--pf-v5-global--BackgroundColor--light-300);
+  padding: var(--pf-v5-global--spacer--md);
 }
 .terms-of-service .pf-c-form__label {
   cursor: default;
@@ -21,11 +21,11 @@
 .terms-of-service .pf-c-form__group-control {
   display: flex;
   flex-direction: row;
-  gap: var(--pf-global--spacer--md);
+  gap: var(--pf-v5-global--spacer--md);
   align-items: center;
 }
 .catalog-item-request__group-control--multi {
-  padding-bottom: var(--pf-global--spacer--sm);
+  padding-bottom: var(--pf-v5-global--spacer--sm);
 }
 .terms-of-service .pf-c-form__group-control {
   flex-direction: column;

@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { listUsers } from '@app/api';
-import { Button, ContextSelector, ContextSelectorItem, Modal } from '@patternfly/react-core';
+import {
+	Button,
+	Modal
+} from '@patternfly/react-core';
+import {
+	ContextSelector,
+	ContextSelectorItem
+} from '@patternfly/react-core/deprecated';
 import { User, UserList } from '@app/types';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';

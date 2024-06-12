@@ -42,7 +42,11 @@ const Footer: React.FC<{ rightElement?: ReactNode }> = ({ rightElement }) => (
                 style={{ display: 'flex', flexDirection: 'row' }}
               >
                 <GithubIcon
-                  style={{ marginRight: 'var(--pf-global--spacer--xs)', textDecoration: 'none', alignSelf: 'center' }}
+                  style={{
+                    marginRight: 'var(--pf-v5-global--spacer--xs)',
+                    textDecoration: 'none',
+                    alignSelf: 'center',
+                  }}
                 />
                 Babylon
               </a>

@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Checkbox, NumberInput, Select, SelectOption, SelectVariant, TextInput } from '@patternfly/react-core';
+import {
+	Checkbox,
+	NumberInput,
+	TextInput
+} from '@patternfly/react-core';
+import {
+	Select,
+	SelectOption,
+	SelectVariant
+} from '@patternfly/react-core/deprecated';
 
 const DynamicFormInput: React.FC<{
   id?: string;
@@ -63,7 +72,7 @@ const DynamicFormInput: React.FC<{
         label={parameter.formLabel || parameter.name}
         isChecked={value}
         isDisabled={isDisabled}
-        onChange={(checked) => onChange(checked)}
+        onChange={(_event, checked) => onChange(checked)}
       />
     );
   } else if (parameter.openAPIV3Schema?.type === 'integer') {
@@ -108,7 +117,7 @@ const DynamicFormInput: React.FC<{
         key={parameter.name}
         id={id}
         isDisabled={isDisabled}
-        onChange={(v) => onChange(v, validationRegExp ? validationRegExp.test(v) : null)}
+        onChange={(_event, v) => onChange(v, validationRegExp ? validationRegExp.test(v) : null)}
         value={value || ''}
         validated={validated}
       />

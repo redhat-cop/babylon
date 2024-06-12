@@ -1,12 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { EmptyState, EmptyStateIcon, Title } from '@patternfly/react-core';
+import { EmptyState, EmptyStateIcon, EmptyStateHeader,  } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { AnarchySubject } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
-import { Table, TableBody, TableHeader } from '@patternfly/react-table';
+import {
+	Table,
+	TableBody,
+	TableHeader
+} from '@patternfly/react-table/deprecated';
 
 const AnarchySubjectsTable: React.FC<{
   anarchySubjects: AnarchySubject[];
@@ -14,10 +18,7 @@ const AnarchySubjectsTable: React.FC<{
   if (anarchySubjects.length === 0) {
     return (
       <EmptyState variant="full">
-        <EmptyStateIcon icon={ExclamationTriangleIcon} />
-        <Title headingLevel="h1" size="lg">
-          No AnarchySubjects found.
-        </Title>
+        <EmptyStateHeader titleText="No AnarchySubjects found." icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
       </EmptyState>
     );
   }

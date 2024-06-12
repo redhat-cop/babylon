@@ -346,9 +346,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                     <Tooltip content="Estimated hourly cost per running instance.">
                       <InfoAltIcon
                         style={{
-                          paddingTop: 'var(--pf-global--spacer--xs)',
-                          marginLeft: 'var(--pf-global--spacer--sm)',
-                          width: 'var(--pf-global--icon--FontSize--sm)',
+                          paddingTop: 'var(--pf-v5-global--spacer--xs)',
+                          marginLeft: 'var(--pf-v5-global--spacer--sm)',
+                          width: 'var(--pf-v5-global--icon--FontSize--sm)',
                         }}
                       />
                     </Tooltip>

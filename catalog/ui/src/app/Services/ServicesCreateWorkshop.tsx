@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Form, FormGroup, Select, SelectOption, SelectVariant, TextArea, TextInput } from '@patternfly/react-core';
+import {
+	Form,
+	FormGroup,
+	TextArea,
+	TextInput
+} from '@patternfly/react-core';
+import {
+	Select,
+	SelectOption,
+	SelectVariant
+} from '@patternfly/react-core/deprecated';
 import { createWorkshopForMultiuserService } from '@app/api';
 import { ResourceClaim } from '@app/types';
 import { displayName, randomString } from '@app/util';
@@ -37,19 +47,19 @@ const ServicesCreateWorkshop: React.FC<{
   return (
     <Form>
       <FormGroup fieldId="workshopDisplayName" isRequired={true} label="Display Name">
-        <TextInput id="workshopDisplayName" onChange={(v) => setWorkshopDisplayName(v)} value={workshopDisplayName} />
+        <TextInput id="workshopDisplayName" onChange={(_event, v) => setWorkshopDisplayName(v)} value={workshopDisplayName} />
       </FormGroup>
       <FormGroup fieldId="workshopAccessPassword" label="Access Password">
         <TextInput
           id="workshopAccessPassword"
           isRequired={true}
-          onChange={(v) => setWorkshopAccessPassword(v)}
+          onChange={(_event, v) => setWorkshopAccessPassword(v)}
           value={workshopAccessPassword}
         />
       </FormGroup>
       <FormGroup fieldId="workshopRegistration" label="User Registration">
         <Select
-          onToggle={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+          onToggle={(_event, isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
           selections={userRegistrationValue}
           variant={SelectVariant.single}
           isOpen={userRegistrationSelectIsOpen}
@@ -64,7 +74,7 @@ const ServicesCreateWorkshop: React.FC<{
       </FormGroup>
       <FormGroup fieldId="workshopDescription" label="Workshop Description">
         <TextArea
-          onChange={(v) => setWorkshopDescription(v)}
+          onChange={(_event, v) => setWorkshopDescription(v)}
           value={workshopDescription}
           aria-label="Workshop Description"
         />

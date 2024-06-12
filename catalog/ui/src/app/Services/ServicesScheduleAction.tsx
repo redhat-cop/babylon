@@ -98,7 +98,7 @@ const ServicesScheduleAction: React.FC<{
           label="No auto-stop"
           isChecked={selectedDate.getTime() >= autoDestroyTime}
           hasCheckIcon
-          onChange={(isChecked) => {
+          onChange={(_event, isChecked) => {
             if (isChecked) {
               setSelectedDate(new Date(autoDestroyTime));
             } else {

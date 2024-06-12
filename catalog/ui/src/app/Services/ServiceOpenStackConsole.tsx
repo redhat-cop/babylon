@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Dropdown, DropdownToggle, DropdownItem, Spinner } from '@patternfly/react-core';
+import {
+	Button,
+	Spinner
+} from '@patternfly/react-core';
+import {
+	Dropdown,
+	DropdownToggle,
+	DropdownItem
+} from '@patternfly/react-core/deprecated';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import {
   getOpenStackServersForResourceClaim,
@@ -87,7 +95,7 @@ const ServiceOpenStackConsole: React.FC<{
     return (
       <React.Fragment>
         <p>
-          Waiting for environment to start. <Spinner isSVG size="lg" />
+          Waiting for environment to start. <Spinner  size="lg" />
         </p>
       </React.Fragment>
     );

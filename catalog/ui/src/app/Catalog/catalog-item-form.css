@@ -3,11 +3,11 @@
 }
 
 .catalog-item-form__form {
-  margin: var(--pf-global--spacer--lg) 0;
+  margin: var(--pf-v5-global--spacer--lg) 0;
 }
 
 .catalog-item-form.pf-c-page__main-section .pf-c-title {
-  margin-top: var(--pf-global--spacer--md);
+  margin-top: var(--pf-v5-global--spacer--md);
 }
 
 .catalog-item-form__form .pf-c-check {
@@ -17,8 +17,8 @@
 }
 
 .catalog-item-form__form .terms-of-service {
-  background-color: var(--pf-global--BackgroundColor--light-300);
-  padding: var(--pf-global--spacer--md);
+  background-color: var(--pf-v5-global--BackgroundColor--light-300);
+  padding: var(--pf-v5-global--spacer--md);
 }
 .catalog-item-form__form .terms-of-service .pf-c-form__label {
   cursor: default;
@@ -29,11 +29,11 @@
 .catalog-item-form__form .terms-of-service .pf-c-form__group-control {
   display: flex;
   flex-direction: row;
-  gap: var(--pf-global--spacer--md);
+  gap: var(--pf-v5-global--spacer--md);
   align-items: center;
 }
 .catalog-item-form__group-control--multi {
-  padding-bottom: var(--pf-global--spacer--sm);
+  padding-bottom: var(--pf-v5-global--spacer--sm);
 }
 .catalog-item-form__form .terms-of-service .pf-c-form__group-control {
   flex-direction: column;
@@ -51,7 +51,7 @@
 }
 
 .catalog-item-form__workshop-form {
-  gap: var(--pf-global--gutter--md);
+  gap: var(--pf-v5-global--gutter--md);
   display: grid;
 }
 

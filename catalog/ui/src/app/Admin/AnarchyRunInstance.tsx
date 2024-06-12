@@ -17,7 +17,7 @@ import {
   Tabs,
   Tab,
   TabTitleText,
-  Title,
+  Title, EmptyStateHeader,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
@@ -226,10 +226,7 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
               />
             ) : (
               <EmptyState variant="full">
-                <EmptyStateIcon icon={ExclamationTriangleIcon} />
-                <Title headingLevel="h1" size="lg">
-                  AnarchyRun log not available.
-                </Title>
+                <EmptyStateHeader titleText="AnarchyRun log not available." icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
               </EmptyState>
             )}
           </Tab>

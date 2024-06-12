@@ -4,6 +4,7 @@ import {
   Button,
   Form,
   FormGroup,
+  HelperText,
   PageSection,
   PageSectionVariants,
   Popover,
@@ -80,9 +81,6 @@ const WorkshopLogin: React.FC<{
               fieldId="email"
               isRequired
               label="Email"
-              helperTextInvalid="Invalid email address"
-              helperTextInvalidIcon={<ExclamationCircleIcon />}
-              validated={emailValidated}
               labelIcon={
                 <Popover
                   bodyContent="Only used for identification purposes during this workshop. No email messages will be sent to this address."
@@ -99,9 +97,14 @@ const WorkshopLogin: React.FC<{
                 id="email"
                 placeholder="email@redhat.com"
                 isRequired
-                onChange={handleEmail}
+                onChange={(_event, v: string) => handleEmail(v)}
                 value={email}
               />
+              {emailValidated === 'error' ? (
+                <HelperText>
+                  <ExclamationCircleIcon /> Invalid email address
+                </HelperText>
+              ) : null}
             </FormGroup>
             {workshop.accessPasswordRequired ? (
               <FormGroup
@@ -119,7 +122,7 @@ const WorkshopLogin: React.FC<{
                 <TextInput
                   id="accessPassword"
                   isRequired
-                  onChange={setAccessPassword}
+                  onChange={(_event, val) => setAccessPassword(val)}
                   type="password"
                   value={accessPassword}
                 />

@@ -17,7 +17,7 @@ import {
   BreadcrumbItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { Table /* data-codemods */, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import useSWRImmutable from 'swr/immutable';
 import { CSVToArray } from '@app/util';
 import { publicFetcher } from '@app/api';
@@ -58,7 +58,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
             <OutlinedQuestionCircleIcon
               aria-label={tooltipDescription[0].slice(1, -1)}
               className="tooltip-icon-only"
-              style={{ marginLeft: 'var(--pf-global--spacer--xs)', width: '10px' }}
+              style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)', width: '10px' }}
             />
           </Tooltip>
         </div>,
@@ -109,7 +109,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
           </Title>
         </Hero>
         <div className="page-container">
-          <Breadcrumb style={{ paddingBottom: 'var(--pf-global--spacer--xl)' }}>
+          <Breadcrumb style={{ paddingBottom: 'var(--pf-v5-global--spacer--xl)' }}>
             <BreadcrumbItem to="/">Home</BreadcrumbItem>
             <BreadcrumbItem to="#" isActive>
               Solution Support: Service Level
@@ -119,9 +119,9 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
             <SidebarPanel style={{ marginTop: 'auto', marginBottom: 'auto' }}>
               <div
                 style={{
-                  paddingLeft: 'var(--pf-global--spacer--lg)',
+                  paddingLeft: 'var(--pf-v5-global--spacer--lg)',
                   textAlign: 'right',
-                  color: 'var(--pf-global--palette--black-600)',
+                  color: 'var(--pf-v5-global--palette--black-600)',
                 }}
               >
                 <em>
@@ -131,7 +131,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                   and not on the infrastructure. Highly appreciated!”
                 </em>
                 <br />
-                <p style={{ marginTop: 'var(--pf-global--spacer--xs)' }}>
+                <p style={{ marginTop: 'var(--pf-v5-global--spacer--xs)' }}>
                   Goetz Rieger,
                   <br /> Principal Solution Architect
                 </p>
@@ -153,7 +153,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                 </Title>
                 <TextList
                   component={TextListVariants.ul}
-                  style={{ listStyle: 'disc', marginLeft: 'var(--pf-global--spacer--lg)' }}
+                  style={{ listStyle: 'disc', marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
                 >
                   <TextListItem>Reliable and speedy deployment (minutes instead of hours)</TextListItem>
                   <TextListItem>Customer-facing workshop support from our team</TextListItem>
@@ -164,8 +164,8 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
             </SidebarContent>
           </Sidebar>
 
-          <PageSection style={{ paddingBottom: 'var(--pf-global--spacer--4xl)' }}>
-            <TableComposable variant="compact" isStriped>
+          <PageSection style={{ paddingBottom: 'var(--pf-v5-global--spacer--4xl)' }}>
+            <Table variant="compact" isStriped>
               <Thead>
                 <Tr>
                   {columns.map((column, columnIndex) => (
@@ -177,7 +177,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                           flexDirection: 'row',
                           alignItems: 'flex-start',
                           fontWeight: 700,
-                          gap: 'var(--pf-global--spacer--sm)',
+                          gap: 'var(--pf-v5-global--spacer--sm)',
                         }}
                       >
                         {column}
@@ -205,8 +205,8 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                   </Tr>
                 ))}
               </Tbody>
-            </TableComposable>
-            <Text component={TextVariants.p} style={{ padding: 'var(--pf-global--spacer--md)' }}>
+            </Table>
+            <Text component={TextVariants.p} style={{ padding: 'var(--pf-v5-global--spacer--md)' }}>
               <a href={getHelpLink()} target="_blank" rel="noopener noreferrer">
                 Contact us
               </a>{' '}
@@ -215,7 +215,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
             <Divider />
             <TextList
               component={TextListVariants.ul}
-              style={{ lineHeight: 1.1, padding: 'var(--pf-global--spacer--xs)' }}
+              style={{ lineHeight: 1.1, padding: 'var(--pf-v5-global--spacer--xs)' }}
             >
               <TextListItem>
                 <Text component={TextVariants.small}>Does not include external dependencies</Text>

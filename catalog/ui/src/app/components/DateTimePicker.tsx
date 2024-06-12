@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Dropdown,
-  DropdownToggle,
-  DropdownItem,
-  CalendarMonth,
-  InputGroup,
-  TextInput,
-  Button,
-  Popover,
-} from '@patternfly/react-core';
+import { CalendarMonth, InputGroup, TextInput, Button, Popover, InputGroupItem } from '@patternfly/react-core';
+import { Dropdown, DropdownToggle, DropdownItem } from '@patternfly/react-core/deprecated';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import { getLang } from '@app/util';
@@ -144,11 +136,15 @@ const DateTimePicker: React.FC<{
         <DropdownItem key={`${hour}-${minute}`} component="button">
           {formatAmPm(`${hour}:${minute}`)}
         </DropdownItem>
-      )),
+      ))
   );
 
   const calendar = (
-    <CalendarMonth date={new Date(valueDate)} onChange={onSelectCalendar} validators={[rangeValidatorDate]} />
+    <CalendarMonth
+      date={new Date(valueDate)}
+      onChange={(_event, newValueDate: Date) => onSelectCalendar(newValueDate)}
+      validators={[rangeValidatorDate]}
+    />
   );
 
   const time = (
@@ -158,8 +154,8 @@ const DateTimePicker: React.FC<{
         <DropdownToggle
           aria-label="Toggle the time picker menu"
           toggleIndicator={null}
-          onToggle={onToggleTime}
-          style={{ padding: '6px 16px', ...(isDisabled ? { color: 'var(--pf-global--disabled-color--100)' } : {}) }}
+          onToggle={(_event, value: boolean, e: unknown) => onToggleTime(value, e)}
+          style={{ padding: '6px 16px', ...(isDisabled ? { color: 'var(--pf-v5-global--disabled-color--100)' } : {}) }}
           isDisabled={isDisabled}
         >
           <OutlinedClockIcon />
@@ -188,16 +184,18 @@ const DateTimePicker: React.FC<{
         hasAutoWidth
       >
         <InputGroup>
-          <TextInput
-            type="text"
-            id="date-time"
-            aria-label="Date and time picker"
-            value={dateFormat(getDateTime(valueDate, valueTime), true)}
-            isReadOnly
-            className="date-time-picker__text"
-            onClick={onToggleCalendar}
-            isDisabled={isDisabled}
-          />
+          <InputGroupItem isFill>
+            <TextInput
+              type="text"
+              id="date-time"
+              aria-label="Date and time picker"
+              value={dateFormat(getDateTime(valueDate, valueTime), true)}
+              className="date-time-picker__text"
+              onClick={onToggleCalendar}
+              isDisabled={isDisabled}
+              readOnlyVariant="default"
+            />
+          </InputGroupItem>
           {calendarButton}
           {time}
         </InputGroup>

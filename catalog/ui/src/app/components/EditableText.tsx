@@ -48,7 +48,7 @@ const EditableText: React.FC<{
           aria-label={ariaLabel}
           className="editable-text-area"
           onBlur={() => finishEditing()}
-          onChange={(v) => setEditedValue(v)}
+          onChange={(_event, v) => setEditedValue(v)}
           onKeyUp={onKeyUp}
           value={editedValue}
         />
@@ -60,7 +60,7 @@ const EditableText: React.FC<{
         aria-label={ariaLabel}
         className="editable-text-input"
         onBlur={() => finishEditing()}
-        onChange={(v) => setEditedValue(v)}
+        onChange={(_event, v) => setEditedValue(v)}
         onKeyUp={onKeyUp}
         value={editedValue}
       />

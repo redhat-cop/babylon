@@ -8,7 +8,7 @@ import {
   PageSectionVariants,
   Split,
   SplitItem,
-  Title,
+  Title, EmptyStateHeader,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteResourceHandle, fetcher } from '@app/api';
@@ -222,10 +222,7 @@ const ResourceHandles: React.FC = () => {
       {resourceHandles.length === 0 ? (
         <PageSection>
           <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              No ResourceHandles found
-            </Title>
+            <EmptyStateHeader titleText="No ResourceHandles found" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
           </EmptyState>
         </PageSection>
       ) : (
@@ -320,8 +317,7 @@ const ResourceHandles: React.FC = () => {
           />
           {!isReachingEnd ? (
             <EmptyState variant="full">
-              <EmptyStateIcon icon={LoadingIcon} />
-            </EmptyState>
+              <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} /></EmptyState>
           ) : null}
         </PageSection>
       )}

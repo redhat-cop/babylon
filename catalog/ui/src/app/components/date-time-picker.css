@@ -2,5 +2,5 @@
   overflow-y: auto;
 }
 .date-time-picker__text.pf-c-form-control {
-  font-size: var(--pf-global--FontSize--sm);
+  font-size: var(--pf-v5-global--FontSize--sm);
 }

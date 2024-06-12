@@ -13,9 +13,9 @@ import {
   EmptyState,
   EmptyStateIcon,
   Text,
-  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
-import { TableComposable, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { Table /* data-codemods */, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { apiPaths, assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
 import { WorkshopUserAssignment } from '@app/types';
 import { renderContent } from '@app/util';
@@ -74,10 +74,11 @@ const WorkshopsItemUserAssignments: React.FC<{
   if (!userAssignments || userAssignments.length === 0) {
     return (
       <EmptyState variant="full">
-        <EmptyStateIcon icon={ExclamationTriangleIcon} />
-        <Title headingLevel="h1" size="lg">
-          No user assignments available
-        </Title>
+        <EmptyStateHeader
+          titleText="No user assignments available"
+          icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
+          headingLevel="h1"
+        />
       </EmptyState>
     );
   }
@@ -105,7 +106,7 @@ const WorkshopsItemUserAssignments: React.FC<{
         onClose={() => setBulkUserAssignmentModalIsOpen(false)}
         onConfirm={(emails) => bulkAssignUsers(emails)}
       />
-      <TableComposable key="users-table">
+      <Table key="users-table">
         <Thead>
           <Tr>
             {resourceClaimNames.length > 1 ? <Th>Service</Th> : null}
@@ -186,8 +187,8 @@ const WorkshopsItemUserAssignments: React.FC<{
             );
           })}
         </Tbody>
-      </TableComposable>
-      <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-global--spacer--md)' }}>
+      </Table>
+      <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-v5-global--spacer--md)' }}>
         <Button onClick={openBulkUserAssignmentModal}>Bulk User Assignment</Button>
       </ActionGroup>
       {bulkUserAssignmentMessage ? <Text key="users-message">{bulkUserAssignmentMessage}</Text> : null}

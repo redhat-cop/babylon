@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { FixedSizeList as List } from 'react-window';
-import { ContextSelector, ContextSelectorItem } from '@patternfly/react-core';
+import {
+	ContextSelector,
+	ContextSelectorItem
+} from '@patternfly/react-core/deprecated';
 import useSession from '@app/utils/useSession';
 import { ServiceNamespace } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';

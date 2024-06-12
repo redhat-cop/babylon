@@ -11,7 +11,7 @@ import useMatchMutate from '@app/utils/useMatchMutate';
 const formFieldStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'row',
-  gap: 'var(--pf-global--spacer--sm)',
+  gap: 'var(--pf-v5-global--spacer--sm)',
   alignItems: 'center',
 };
 
@@ -146,7 +146,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
             id="resourcePoolName"
             name="resourcePoolName"
             value={resourcePoolName}
-            onChange={(value) => {
+            onChange={(_event, value) => {
               setResourcePoolName(value);
             }}
             validated={!nameConflict && poolNameValidated ? 'success' : 'error'}
@@ -161,7 +161,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
           <TextArea
             id="resoucePoolDescription"
             name="resoucePoolDescription"
-            onChange={setResourcePoolDescription}
+            onChange={(_event, val) => setResourcePoolDescription(val)}
             value={resourcePoolDescription}
           />
 
@@ -209,7 +209,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
             label="enabled"
             name="stopAfterProvision"
             isChecked={stopAfterProvision}
-            onChange={(checked) => setStopAfterProvision(checked)}
+            onChange={(_event, checked) => setStopAfterProvision(checked)}
           />
 
           <Tooltip
@@ -265,7 +265,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
               <TextArea
                 id={`resource-${idx}`}
                 name={`resource-${idx}`}
-                onChange={(value) => setResourceJobVars(idx, value)}
+                onChange={(_event, value) => setResourceJobVars(idx, value)}
                 value={resource.jobVars}
               />
 

@@ -10,7 +10,7 @@ import {
   PageSectionVariants,
   Split,
   SplitItem,
-  Title,
+  Title, EmptyStateHeader, EmptyStateFooter,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
@@ -353,10 +353,7 @@ const ResourceClaims: React.FC<{}> = () => {
       {resourceClaims.length === 0 && isReachingEnd ? (
         <PageSection key="body-empty">
           <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              No Services found
-            </Title>
+            <EmptyStateHeader titleText="No Services found" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" /><EmptyStateFooter>
             {keywordFilter ? (
               <EmptyStateBody>No services matched search.</EmptyStateBody>
             ) : (
@@ -364,7 +361,7 @@ const ResourceClaims: React.FC<{}> = () => {
                 Request services using the <Link to="/catalog">catalog</Link>.
               </EmptyStateBody>
             )}
-          </EmptyState>
+          </EmptyStateFooter></EmptyState>
         </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
@@ -506,8 +503,7 @@ const ResourceClaims: React.FC<{}> = () => {
           />
           {!isReachingEnd ? (
             <EmptyState variant="full">
-              <EmptyStateIcon icon={LoadingIcon} />
-            </EmptyState>
+              <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} /></EmptyState>
           ) : null}
         </PageSection>
       )}

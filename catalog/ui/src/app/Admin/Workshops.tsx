@@ -11,6 +11,8 @@ import {
   Split,
   SplitItem,
   Title,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
@@ -235,17 +237,20 @@ const Workshops: React.FC<{}> = () => {
       {workshops.length === 0 ? (
         <PageSection key="workshops-list-empty">
           <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              No workshops found.
-            </Title>
-            {keywordFilter ? (
-              <EmptyStateBody>No workshops matched search.</EmptyStateBody>
-            ) : (
-              <EmptyStateBody>
-                Request workshops using the <Link to="/catalog">catalog</Link>.
-              </EmptyStateBody>
-            )}
+            <EmptyStateHeader
+              titleText="No workshops found."
+              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
+              headingLevel="h1"
+            />
+            <EmptyStateFooter>
+              {keywordFilter ? (
+                <EmptyStateBody>No workshops matched search.</EmptyStateBody>
+              ) : (
+                <EmptyStateBody>
+                  Request workshops using the <Link to="/catalog">catalog</Link>.
+                </EmptyStateBody>
+              )}
+            </EmptyStateFooter>
           </EmptyState>
         </PageSection>
       ) : (
@@ -304,7 +309,7 @@ const Workshops: React.FC<{}> = () => {
                     style={{
                       display: 'flex',
                       flexDirection: 'row',
-                      gap: 'var(--pf-global--spacer--sm)',
+                      gap: 'var(--pf-v5-global--spacer--sm)',
                     }}
                   >
                     <ButtonCircleIcon

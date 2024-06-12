@@ -1,12 +1,12 @@
 .service-status--available {
-  color: var(--pf-global--success-color--100);
+  color: var(--pf-v5-global--success-color--100);
 }
 
 .service-status--failed {
-  color: var(--pf-global--danger-color--100);
+  color: var(--pf-v5-global--danger-color--100);
   text-transform: capitalize;
 }
 
 .service-status--running {
-  color: var(--pf-global--success-color--100);
+  color: var(--pf-v5-global--success-color--100);
 }

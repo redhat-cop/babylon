@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@patternfly/react-core';
 import {
   ApplicationLauncher,
   ApplicationLauncherItem,
-  Button,
   Dropdown,
   DropdownItem,
   DropdownPosition,
   DropdownToggle,
   PageHeader,
   PageHeaderTools,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/deprecated';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
@@ -151,13 +151,18 @@ const Header: React.FC<{
       <ApplicationLauncher
         aria-label="Help menu"
         onSelect={() => setUserHelpDropdownOpen((prevIsOpen) => !prevIsOpen)}
-        onToggle={(isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
+        onToggle={(_event, isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
         isOpen={isUserHelpDropdownOpen}
         items={UserHelpDropdownItems}
         position={DropdownPosition.right}
         toggleIcon={
           <div
-            style={{ display: 'flex', gap: 'var(--pf-global--spacer--xs)', flexDirection: 'row', alignItems: 'center' }}
+            style={{
+              display: 'flex',
+              gap: 'var(--pf-v5-global--spacer--xs)',
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
           >
             <QuestionCircleIcon />
             Help

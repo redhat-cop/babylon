@@ -12,7 +12,7 @@ function fetchResourceHandlesFromResourcePool(resourcePoolName: string) {
       labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
       limit: FETCH_BATCH_LIMIT,
       continueId,
-    }),
+    })
   );
 }
 
@@ -25,12 +25,12 @@ const ResourcePoolStats: React.FC<{ resourcePoolName: string; minAvailable: numb
       labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
       limit: 'ALL',
     }),
-    () => fetchResourceHandlesFromResourcePool(resourcePoolName),
+    () => fetchResourceHandlesFromResourcePool(resourcePoolName)
   );
   const { total, taken, available } = usePoolStatus(resourceHandles);
 
   return (
-    <ul style={{ display: 'flex', flexDirection: 'row', gap: 'var(--pf-global--spacer--xs)' }}>
+    <ul style={{ display: 'flex', flexDirection: 'row', gap: 'var(--pf-v5-global--spacer--xs)' }}>
       <li>
         <b>Total:</b> {String(total)} /
       </li>
@@ -38,7 +38,7 @@ const ResourcePoolStats: React.FC<{ resourcePoolName: string; minAvailable: numb
         <b>Min available:</b> {String(minAvailable)} /
       </li>
       <li>
-        <b>Available:</b> {available === -1 ? <Spinner key="spinner" isSVG size="md" /> : String(available)} /
+        <b>Available:</b> {available === -1 ? <Spinner key="spinner" size="md" /> : String(available)} /
       </li>
       <li>
         <b>Taken:</b> {String(taken)}
@@ -52,7 +52,7 @@ const ResourcePoolStatsWithSuspense: React.FC<{ resourcePoolName: string; minAva
   minAvailable,
 }) => {
   return (
-    <Suspense fallback={<Spinner key="spinner" isSVG size="md" />}>
+    <Suspense fallback={<Spinner key="spinner" size="md" />}>
       <ResourcePoolStats resourcePoolName={resourcePoolName} minAvailable={minAvailable} />
     </Suspense>
   );

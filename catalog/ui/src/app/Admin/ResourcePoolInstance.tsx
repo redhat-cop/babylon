@@ -19,7 +19,7 @@ import {
   Tab,
   TabTitleText,
   Title,
-  Spinner,
+  Spinner, EmptyStateHeader,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
@@ -240,7 +240,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   <DescriptionListGroup>
                     <DescriptionListTerm>Available</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {available === -1 ? <Spinner key="spinner" isSVG size="md" /> : available}
+                      {available === -1 ? <Spinner key="spinner"  size="md" /> : available}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
@@ -287,10 +287,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
           <Tab eventKey="resourcehandles" title={<TabTitleText>ResourceHandles</TabTitleText>}>
             {resourceHandles.length === 0 ? (
               <EmptyState variant="full">
-                <EmptyStateIcon icon={ExclamationTriangleIcon} />
-                <Title headingLevel="h1" size="lg">
-                  No ResourceHandles found.
-                </Title>
+                <EmptyStateHeader titleText="No ResourceHandles found." icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
               </EmptyState>
             ) : (
               <SelectableTable

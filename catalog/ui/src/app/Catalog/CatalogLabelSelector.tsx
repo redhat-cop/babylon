@@ -168,7 +168,7 @@ const CatalogLabelSelector: React.FC<{
               ) : null}
             </div>
           }
-          onToggle={(isExpanded: boolean) => setExpandedLabels({ ...expandedLabels, [attrKey]: isExpanded })}
+          onToggle={(_event, isExpanded: boolean) => setExpandedLabels({ ...expandedLabels, [attrKey]: isExpanded })}
         >
           <FormGroup>
             {attrKey !== CUSTOM_LABELS.RATING.key ? (
@@ -180,7 +180,7 @@ const CatalogLabelSelector: React.FC<{
                     key={attrKey + '/' + valueKey}
                     label={value.displayName + ' (' + value.count + ')'}
                     isChecked={(selected?.[attrKey] || []).includes(valueKey)}
-                    onChange={(checked) => onChange(checked, attrKey, valueKey)}
+                    onChange={(_event, checked) => onChange(checked, attrKey, valueKey)}
                   />
                 ))
             ) : (

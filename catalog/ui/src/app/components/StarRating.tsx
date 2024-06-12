@@ -34,7 +34,7 @@ const StarRating: React.FC<{
 
       return false;
     },
-    [hoverRating, rating, readOnly],
+    [hoverRating, rating, readOnly]
   );
 
   const starRating = useMemo(() => {
@@ -58,7 +58,7 @@ const StarRating: React.FC<{
             onMouseEnter={() => setHoverRating(idx)}
             onMouseLeave={() => setHoverRating(0)}
           />
-        ),
+        )
       );
   }, [count, isFilled, onRating, readOnly]);
 
@@ -71,9 +71,9 @@ const StarRating: React.FC<{
         <p
           style={{
             fontWeight: 300,
-            color: 'var(--pf-global--palette--black-500)',
-            fontSize: 'var(--pf-global--FontSize--xs)',
-            marginLeft: 'var(--pf-global--spacer--sm)',
+            color: 'var(--pf-v5-global--palette--black-500)',
+            fontSize: 'var(--pf-v5-global--FontSize--xs)',
+            marginLeft: 'var(--pf-v5-global--spacer--sm)',
             paddingTop: '1px',
           }}
         >

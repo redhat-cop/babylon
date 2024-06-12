@@ -1,5 +1,5 @@
 .editor__container {
-  margin: var(--pf-global--spacer--md) 0 var(--pf-global--spacer--md) 0;
+  margin: var(--pf-v5-global--spacer--md) 0 var(--pf-v5-global--spacer--md) 0;
   max-width: 600px;
   color: #000;
   position: relative;
@@ -7,19 +7,19 @@
   font-weight: 400;
   text-align: left;
   border-radius: 10px;
-  border: 1px solid var(--pf-global--BorderColor--100);
+  border: 1px solid var(--pf-v5-global--BorderColor--100);
 }
 
 .editor__inner {
   background: transparent;
   position: relative;
-  border-top: 1px solid var(--pf-global--BorderColor--100);
+  border-top: 1px solid var(--pf-v5-global--BorderColor--100);
 }
 
 .editor__input {
   min-height: 150px;
   resize: none;
-  font-size: var(--pf-global--FontSize--sm);
+  font-size: var(--pf-v5-global--FontSize--sm);
   position: relative;
   tab-size: 1;
   outline: 0;
@@ -34,14 +34,14 @@
   text-overflow: ellipsis;
   top: 15px;
   left: 10px;
-  font-size: var(--pf-global--FontSize--sm);
+  font-size: var(--pf-v5-global--FontSize--sm);
   user-select: none;
   display: inline-block;
   pointer-events: none;
 }
 
 .editor-text-bold {
-  font-weight: var(--pf-global--FontWeight--bold);
+  font-weight: var(--pf-v5-global--FontWeight--bold);
 }
 
 .editor-text-italic {
@@ -406,10 +406,7 @@ body > .dropdown {
   z-index: 100;
   display: block;
   position: absolute;
-  box-shadow:
-    0 12px 28px 0 rgba(0, 0, 0, 0.2),
-    0 2px 4px 0 rgba(0, 0, 0, 0.1),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 12px 28px 0 rgba(0, 0, 0, 0.2), 0 2px 4px 0 rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
   border-radius: 8px;
   min-width: 100px;
   min-height: 40px;

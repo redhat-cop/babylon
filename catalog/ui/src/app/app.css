@@ -23,7 +23,7 @@ body,
 }
 
 .pf-c-page {
-  --pf-c-page__header--MinHeight: 4.5rem;
+  --pf-v5-c-page__header--MinHeight: 4.5rem;
 }
 
 #primary-app-container > .pf-c-drawer .pf-c-drawer__body {

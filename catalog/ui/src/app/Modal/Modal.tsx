@@ -190,7 +190,7 @@ const _Modal: ForwardRefRenderFunction<
                         variant="primary"
                         onClick={handleOnConfirm}
                         isDisabled={_isDisabled || isLoading}
-                        icon={isLoading ? <Spinner isSVG size="sm" /> : null}
+                        icon={isLoading ? <Spinner  size="sm" /> : null}
                       >
                         {confirmText}
                       </Button>,

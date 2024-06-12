@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { ResourceClaim } from '@app/types';
-import { EmptyState, EmptyStateIcon } from '@patternfly/react-core';
+import { EmptyState, EmptyStateIcon, EmptyStateHeader } from '@patternfly/react-core';
 import ErrorCircleOIcon from '@patternfly/react-icons/dist/js/icons/error-circle-o-icon';
 import { getCostTracker } from '@app/util';
 import useSWR from 'swr';
@@ -20,7 +20,7 @@ const CostTrackerDialogData: React.FC<{
     : null;
 
   const { data: resourceClaim } = useSWR<ResourceClaim>(path, (path) =>
-    fetchWithUpdatedCostTracker({ path, initialResourceClaim }),
+    fetchWithUpdatedCostTracker({ path, initialResourceClaim })
   );
   const costTracker = getCostTracker(resourceClaim);
 
@@ -31,9 +31,9 @@ const CostTrackerDialogData: React.FC<{
       </p>
       <p
         style={{
-          fontSize: 'var(--pf-global--FontSize--sm)',
-          marginTop: 'var(--pf-global--spacer--xs)',
-          color: 'var(--pf-global--palette--black-800)',
+          fontSize: 'var(--pf-v5-global--FontSize--sm)',
+          marginTop: 'var(--pf-v5-global--spacer--xs)',
+          color: 'var(--pf-v5-global--palette--black-800)',
           fontStyle: 'italic',
         }}
       >
@@ -51,7 +51,7 @@ const CostTrackerDialog: React.FC<{
     <Suspense
       fallback={
         <EmptyState variant="full">
-          <EmptyStateIcon icon={LoadingIcon} />
+          <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
         </EmptyState>
       }
     >

@@ -44,7 +44,7 @@ const WorkshopContent: React.FC<{
       vars: createAsciiDocAttributes(userAssignment.data, '--'),
     });
     return (
-      <div style={{ padding: '0 var(--pf-global--spacer--md) var(--pf-global--spacer--md)' }}>
+      <div style={{ padding: '0 var(--pf-v5-global--spacer--md) v--pf-v5-pf-v5-global--spacer--md)' }}>
         <AdocWrapper html={htmlRenderedTemplate} />
       </div>
     );

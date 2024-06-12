@@ -35,7 +35,7 @@ const IncidentsBanner: React.FC = () => {
       localStorage.setItem(STORAGE_KEY, itemsStr);
       setClosedItemsStr(itemsStr);
     },
-    [closedItems],
+    [closedItems]
   );
 
   if (!data || (Array.isArray(data) && data.length === 0)) return null;
@@ -48,14 +48,14 @@ const IncidentsBanner: React.FC = () => {
             key={i.id}
             isSticky
             screenReaderText={i.message}
-            variant={i.level === 'info' ? 'info' : i.level === 'critical' ? 'danger' : 'warning'}
+            variant={i.level === 'info' ? 'blue' : i.level === 'critical' ? 'red' : 'gold'}
           >
             <div
               style={{
                 display: 'flex',
-                gap: 'var(--pf-global--spacer--sm)',
+                gap: 'var(--pf-v5-global--spacer--sm)',
                 flexDirection: 'row',
-                padding: 'var(--pf-global--spacer--sm) var(--pf-global--spacer--xs)',
+                padding: 'var(--pf-v5-global--spacer--sm--pf-v5-pf-v5-pf-v5-global--spacer--xs)',
                 position: 'relative',
               }}
             >
@@ -70,7 +70,7 @@ const IncidentsBanner: React.FC = () => {
                   style={{
                     fontStyle: 'italic',
                     fontSize: 'xs',
-                    marginTop: 'var(--pf-global--spacer--sm)',
+                    marginTop: 'var(--pf-v5-global--spacer--sm)',
                     opacity: 0.75,
                   }}
                 >

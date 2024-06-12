@@ -8,13 +8,13 @@
 .catalog-item-list-item__badge--dev,
 .catalog-item-list-item__badge--test,
 .catalog-item-list-item__badge--event {
-  background-color: var(--pf-global--danger-color--100);
+  background-color: var(--pf-v5-global--danger-color--100);
 }
 
 .catalog-item-list-item__card {
   display: flex;
   flex-direction: row;
-  padding: var(--pf-global--spacer--lg);
+  padding: var(--pf-v5-global--spacer--lg);
   height: 150px;
 }
 .catalog-item-list-item__card .catalog-item-icon {
@@ -23,10 +23,10 @@
   width: 60px;
   box-sizing: border-box;
   overflow: hidden;
-  padding-bottom: var(--pf-global--spacer--md);
+  padding-bottom: var(--pf-v5-global--spacer--md);
 }
 .catalog-item-list-item:hover {
-  box-shadow: var(--pf-c-card--m-hoverable--hover--BoxShadow);
+  box-shadow: var(--pf-v5-c-card--m-hoverable--hover--BoxShadow);
   text-decoration: none;
 }
 
@@ -34,16 +34,16 @@
   padding: 0 !important;
   display: flex;
   flex-direction: column;
-  gap: var(--pf-global--spacer--xs);
+  gap: var(--pf-v5-global--spacer--xs);
 }
 
 .catalog-item-list-item__description {
   line-height: 1.25em !important;
   overflow: hidden;
-  font-weight: var(--pf-global--link--FontWeight) !important;
-  font-size: var(--pf-global--FontSize--sm) !important;
-  color: var(--pf-global--Color--100);
-  margin-top: var(--pf-global--spacer--xs);
+  font-weight: var(--pf-v5-global--link--FontWeight) !important;
+  font-size: var(--pf-v5-global--FontSize--sm) !important;
+  color: var(--pf-v5-global--Color--100);
+  margin-top: var(--pf-v5-global--spacer--xs);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -54,12 +54,12 @@
 .catalog-item-list-item__header {
   margin: 0 auto;
   padding: 0 !important;
-  margin-right: var(--pf-global--spacer--lg);
+  margin-right: var(--pf-v5-global--spacer--lg);
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 100px;
-  color: var(--pf-global--palette--black-900);
+  color: var(--pf-v5-global--palette--black-900);
 }
 
 .catalog-item-list-item__statusPageIcon {
@@ -76,8 +76,8 @@
 }
 
 .catalog-item-list-item__subtitle {
-  color: var(--pf-global--palette--black-600);
-  font-size: var(--pf-global--FontSize--xs) !important;
+  color: var(--pf-v5-global--palette--black-600);
+  font-size: var(--pf-v5-global--FontSize--xs) !important;
   line-height: 1.25 !important;
   display: flex;
   align-items: center;
@@ -85,9 +85,9 @@
 }
 
 .catalog-item-list-item__title {
-  color: var(--pf-global--Color--100);
-  font-size: var(--pf-global--FontSize--md) !important;
-  line-height: var(--pf-global--LineHeight--sm) !important;
+  color: var(--pf-v5-global--Color--100);
+  font-size: var(--pf-v5-global--FontSize--md) !important;
+  line-height: var(--pf-v5-global--LineHeight--sm) !important;
   overflow: hidden;
   display: flex;
   align-items: flex-start;

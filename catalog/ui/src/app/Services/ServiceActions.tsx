@@ -1,5 +1,7 @@
 import React from 'react';
-import { DropdownPosition } from '@patternfly/react-core';
+import {
+	DropdownPosition
+} from '@patternfly/react-core/deprecated';
 import EllipsisVIcon from '@patternfly/react-icons/dist/js/icons/ellipsis-v-icon';
 import { ResourceClaim } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';

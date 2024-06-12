@@ -15,5 +15,5 @@
   transition: fill 0.2s ease-in-out;
 }
 .button-circle-icon:hover svg {
-  fill: var(--pf-global--BackgroundColor--dark-100) !important;
+  fill: var(--pf-v5-global--BackgroundColor--dark-100) !important;
 }

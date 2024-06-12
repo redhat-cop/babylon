@@ -27,7 +27,7 @@
 .admin-header.pf-c-page__main-section {
   padding-top: 8pt;
   padding-bottom: 8pt;
-  border-bottom: 1px solid var(--pf-global--palette--black-300);
+  border-bottom: 1px solid var(--pf-v5-global--palette--black-300);
 }
 
 .admin-header.pf-c-page__main-section .pf-c-select.pf-m-expanded > .pf-c-select__menu {

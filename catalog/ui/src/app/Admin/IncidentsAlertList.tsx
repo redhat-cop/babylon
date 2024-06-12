@@ -1,10 +1,11 @@
 import React, { useReducer, useState } from 'react';
-import { Button, Form, FormGroup, Panel, PanelMain, Select, SelectOption, Switch, Title } from '@patternfly/react-core';
+import { Button, Form, FormGroup, Panel, PanelMain, Switch, Title } from '@patternfly/react-core';
+import { Select, SelectOption } from '@patternfly/react-core/deprecated';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';
 import { Incident } from '@app/types';
-import { TableComposable, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { Table /* data-codemods */, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import EditIcon from '@patternfly/react-icons/dist/js/icons/edit-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import PlusCircleIcon from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
@@ -19,7 +20,6 @@ import EditorViewer from '@app/components/Editor/EditorViewer';
 import './admin.css';
 
 type IncidentData = Omit<Incident, 'updated_at' | 'created_at'>;
-
 
 const initialState: IncidentData = {
   id: null,
@@ -127,7 +127,7 @@ const IncidentsAlertList: React.FC = () => {
                 label="Active"
                 labelOff="Resolved"
                 isChecked={state.status === 'active'}
-                onChange={(v) => dispatch({ type: 'set_status', status: v ? 'active' : 'resolved' })}
+                onChange={(_event, v) => dispatch({ type: 'set_status', status: v ? 'active' : 'resolved' })}
               />
             </div>
           </FormGroup>
@@ -137,7 +137,7 @@ const IncidentsAlertList: React.FC = () => {
                 aria-labelledby="level"
                 aria-label="Level"
                 selections={state.level === 'info' ? 'Info' : state.level === 'warning' ? 'Warning' : 'Critical'}
-                onToggle={(isOpen) => setIsOpen(isOpen)}
+                onToggle={(_event, isOpen) => setIsOpen(isOpen)}
                 isOpen={isOpen}
                 onSelect={(ev, selection) => {
                   dispatch({
@@ -156,7 +156,7 @@ const IncidentsAlertList: React.FC = () => {
         </Form>
       </Modal>
       <Panel variant="raised">
-        <div style={{ padding: 'var(--pf-global--spacer--md)' }}>
+        <div style={{ padding: 'var(--pf-v5-global--spacer--md)' }}>
           <Title headingLevel="h3" size="md">
             Active Incidents
           </Title>
@@ -176,7 +176,7 @@ const IncidentsAlertList: React.FC = () => {
         </div>
         <PanelMain>
           {activeIncidents.length > 0 ? (
-            <TableComposable aria-label="Active incidents">
+            <Table aria-label="Active incidents">
               <Thead>
                 <Tr>
                   <Th>Level</Th>
@@ -194,7 +194,7 @@ const IncidentsAlertList: React.FC = () => {
                       style={{
                         textTransform: 'capitalize',
                         display: 'flex',
-                        gap: 'var(--pf-global--spacer--xs)',
+                        gap: 'var(--pf-v5-global--spacer--xs)',
                         alignItems: 'center',
                       }}
                     >
@@ -225,9 +225,9 @@ const IncidentsAlertList: React.FC = () => {
                   </Tr>
                 ))}
               </Tbody>
-            </TableComposable>
+            </Table>
           ) : (
-            <p style={{ padding: 'var(--pf-global--spacer--md)' }}>No active incidents.</p>
+            <p style={{ padding: 'var(--pf-v5-global--spacer--md)' }}>No active incidents.</p>
           )}
         </PanelMain>
       </Panel>

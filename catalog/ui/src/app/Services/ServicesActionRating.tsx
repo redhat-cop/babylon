@@ -105,7 +105,7 @@ const ServicesActionRating: React.FC<{
           >
             <TextArea
               id="comment"
-              onChange={(comment) => {
+              onChange={(_event, comment) => {
                 const rating = { rate: existingRating?.rating, ...actionState.rating, comment };
                 setActionState({
                   ...actionState,
