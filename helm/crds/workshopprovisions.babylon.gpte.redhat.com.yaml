@@ -105,6 +105,20 @@ spec:
                 description: >-
                   Workshop name reference.
                 type: string
+              autoDetach:
+                description: |
+                  Configuration for auto-delete of the ResourceClaim.
+                type: object
+                properties:
+                  when:
+                    description: >
+                      Condition to check that is transferred to the ResourceClaim
+                      that belongs to this WorkshopProvision which triggers detach of
+                      ResourceHandle from the ResourceClaim.
+
+                      Condition is given in Jinja2 syntax similar to ansible
+                      "when" clauses.
+                    type: string
           status:
             description: Status of Workshop
             type: object
