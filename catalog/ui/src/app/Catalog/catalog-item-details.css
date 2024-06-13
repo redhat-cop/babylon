@@ -12,7 +12,7 @@
   text-align: center;
 }
 
-.catalog-item-details .pf-c-drawer__body {
+.catalog-item-details .pf-v5-c-drawer__body {
   min-height: auto !important;
 }
 
@@ -45,21 +45,21 @@
   font-size: var(--pf-v5-global--FontSize--sm);
 }
 
-.catalog-item-details__sidebar .pf-c-description-list {
+.catalog-item-details__sidebar .pf-v5-c-description-list {
   row-gap: var(--pf-v5-global--spacer--sm);
 }
 
-.catalog-item-details__sidebar .pf-c-description-list__group {
+.catalog-item-details__sidebar .pf-v5-c-description-list__group {
   row-gap: 0;
 }
 
-.catalog-item-details__sidebar .pf-c-description-list__text {
+.catalog-item-details__sidebar .pf-v5-c-description-list__text {
   text-transform: capitalize;
 }
 
-.catalog-item-details__estimated-time .pf-c-description-list__text,
-.catalog-item-details__last-update .pf-c-description-list__text,
-.catalog-item-details__last-provision .pf-c-description-list__text {
+.catalog-item-details__estimated-time .pf-v5-c-description-list__text,
+.catalog-item-details__last-update .pf-v5-c-description-list__text,
+.catalog-item-details__last-provision .pf-v5-c-description-list__text {
   text-transform: initial;
 }
 
@@ -148,37 +148,37 @@
 .catalog-item-details__status {
   display: inline-flex;
 }
-.catalog-item-details__status .pf-c-label {
+.catalog-item-details__status .pf-v5-c-label {
   margin: auto 0;
 }
-.catalog-item-details__status .pf-c-label__icon {
+.catalog-item-details__status .pf-v5-c-label__icon {
   display: flex;
 }
-.catalog-item-details__status .pf-c-label__content {
+.catalog-item-details__status .pf-v5-c-label__content {
   display: flex;
   flex-direction: row;
   gap: var(--pf-v5-global--spacer--xs);
   align-items: center;
 }
-.catalog-item-details__status--degraded-performance .pf-c-label__content:before {
+.catalog-item-details__status--degraded-performance .pf-v5-c-label__content:before {
   border-color: #f1c40f;
 }
-.catalog-item-details__status--partial-outage .pf-c-label__content:before {
+.catalog-item-details__status--partial-outage .pf-v5-c-label__content:before {
   border-color: #f9e0a2;
 }
-.catalog-item-details__status--major-outage .pf-c-label__content:before {
+.catalog-item-details__status--major-outage .pf-v5-c-label__content:before {
   border-color: #c9190b;
 }
-.catalog-item-details__status--under-maintenance .pf-c-label__content:before {
+.catalog-item-details__status--under-maintenance .pf-v5-c-label__content:before {
   border-color: #a2d9d9;
 }
-.catalog-item-details__status--degraded-performance .pf-c-label__content,
-.catalog-item-details__status--partial-outage .pf-c-label__content {
+.catalog-item-details__status--degraded-performance .pf-v5-c-label__content,
+.catalog-item-details__status--partial-outage .pf-v5-c-label__content {
   color: #3d2c00;
 }
-.catalog-item-details__status--major-outage .pf-c-label__content {
+.catalog-item-details__status--major-outage .pf-v5-c-label__content {
   color: #7d1007;
 }
-.catalog-item-details__status--under-maintenance .pf-c-label__content {
+.catalog-item-details__status--under-maintenance .pf-v5-c-label__content {
   color: #003737;
 }

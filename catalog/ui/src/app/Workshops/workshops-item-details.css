@@ -2,6 +2,6 @@
 .workshops-item-details__status--scheduled {
   color: var(--pf-v5-global--success-color--100);
 }
-.workshops-item-details.pf-c-description-list[class*='pf-m-horizontal'] {
+.workshops-item-details.pf-v5-c-description-list[class*='pf-m-horizontal'] {
   --pf-v5-c-description-list__term--width: 142px !important;
 }

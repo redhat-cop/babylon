@@ -22,11 +22,11 @@ body,
   border: 0;
 }
 
-.pf-c-page {
+.pf-v5-c-page {
   --pf-v5-c-page__header--MinHeight: 4.5rem;
 }
 
-#primary-app-container > .pf-c-drawer .pf-c-drawer__body {
+#primary-app-container > .pf-v5-c-drawer .pf-v5-c-drawer__body {
   display: flex;
   flex-direction: column;
 }

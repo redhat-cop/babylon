@@ -5,9 +5,6 @@
 .header-component__user-controls button::before {
   border: none;
 }
-.header-component__user-controls .pf-v5-c-dropdown__toggle-icon {
-  margin-left: var(--pf-v5-global--spacer--xs);
-}
 
 .header-component__user-controls--warning .pf-v5-c-dropdown__toggle-text {
   color: #ee0000;

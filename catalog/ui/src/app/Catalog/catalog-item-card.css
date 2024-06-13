@@ -58,11 +58,11 @@
   position: relative;
 }
 
-.catalog-item-card__header.pf-c-card__header > .pf-l-split {
+.catalog-item-card__header.pf-v5-c-card__header > .pf-l-split {
   width: 100%;
 }
-.catalog-item-card__header.pf-c-card__header svg,
-.catalog-item-card__header.pf-c-card__header img {
+.catalog-item-card__header.pf-v5-c-card__header svg,
+.catalog-item-card__header.pf-v5-c-card__header img {
   position: absolute;
   top: 0;
   left: 0;

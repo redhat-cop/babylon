@@ -92,10 +92,14 @@ const ProjectSelector: React.FC<{
     <Dropdown
       className="project-selector"
       isOpen={isOpen}
-      isPlain={isPlain}
       onOpenChangeKeys={['Escape']}
       toggle={(toggleRef) => (
-        <MenuToggle ref={toggleRef} onClick={toggleOpen} isExpanded={isOpen}>
+        <MenuToggle
+          ref={toggleRef}
+          onClick={toggleOpen}
+          isExpanded={isOpen}
+          variant={isPlain ? 'plainText' : 'default'}
+        >
           {`${hideLabel ? '' : 'Project: '}${currentNamespaceName ?? 'All projects'}`}
         </MenuToggle>
       )}

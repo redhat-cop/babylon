@@ -1,7 +1,7 @@
 .workshop-login__failure {
   color: var(--pf-v5-global--danger-color--200);
 }
-.workshop-login__form.pf-c-form {
+.workshop-login__form.pf-v5-c-form {
   width: 1100px;
   margin: 0 auto var(--pf-v5-global--spacer--lg);
   padding: var(--pf-v5-global--spacer--lg) var(--pf-v5-global--spacer--md);
