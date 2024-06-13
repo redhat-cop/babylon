@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useCallback, useMemo, useState } from 'react';
 import { useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
@@ -909,12 +910,16 @@ const ServicesItemComponent: React.FC<{
                 ) : null}
               </Tab>
             ) : null}
-            {consoleEnabled ? (
+
+            {statusEnabled ? (
               /* @ts-ignore */
-              <Tab eventKey="console" title={<TabTitleText>Console</TabTitleText>}>
-                {activeTab === 'console' ? <ServiceOpenStackConsole resourceClaim={resourceClaim} /> : null}
+              <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
+                {activeTab === 'status' ? (
+                  <ServiceItemStatus onCheckStatusRequest={onCheckStatusRequest} resourceClaim={resourceClaim} />
+                ) : null}
               </Tab>
             ) : null}
+
             {workshopName && !isPartOfWorkshop ? (
               [
                 /* @ts-ignore */

@@ -154,7 +154,7 @@ const DateTimePicker: React.FC<{
         <DropdownToggle
           aria-label="Toggle the time picker menu"
           toggleIndicator={null}
-          onToggle={(_event, value: boolean, e: unknown) => onToggleTime(value, e)}
+          onToggle={(_event, value: boolean) => onToggleTime(value, null)}
           style={{ padding: '6px 16px', ...(isDisabled ? { color: 'var(--pf-v5-global--disabled-color--100)' } : {}) }}
           isDisabled={isDisabled}
         >

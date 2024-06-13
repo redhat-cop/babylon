@@ -854,7 +854,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         {catalogItem.spec.termsOfService ? (
           <TermsOfService
             agreed={formState.termsOfServiceAgreed}
-            onChange={(agreed) => {
+            onChange={(ev, agreed) => {
               dispatchFormState({
                 type: 'termsOfServiceAgreed',
                 termsOfServiceAgreed: agreed,
