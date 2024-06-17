@@ -262,7 +262,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             ? submitRequest({
                 scheduled: {
                   startDate: dates.startDate,
-                  stopDate: dates.stopDate,
+                  stopDate: new Date(
+                    dates.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h')
+                  ),
                   endDate: dates.endDate,
                   createTicket: dates.createTicket,
                 },

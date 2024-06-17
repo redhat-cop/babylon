@@ -576,7 +576,10 @@ export async function createWorkshop({
         ...(startDate ? { start: dateToApiString(startDate) } : {}),
         ...(endDate ? { end: dateToApiString(endDate) } : {}),
       },
-      ...(stopDate ? { actionSchedule: { stop: dateToApiString(stopDate) } } : {}),
+      actionSchedule: {
+        ...(startDate ? { start: dateToApiString(startDate) } : {}),
+        ...(stopDate ? { stop: dateToApiString(stopDate) } : {}),
+      },
     },
   };
   if (accessPassword) {
