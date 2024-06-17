@@ -1,5 +1,5 @@
 import React, { useState, Suspense } from 'react';
-import { Page, PageSidebar } from '@patternfly/react-core';
+import { Page, PageSidebar, PageSidebarBody } from '@patternfly/react-core';
 import { IAppRouteAccessControl } from '@app/types';
 import Header from '@app/Header/Header';
 import LoadingSection from '@app/components/LoadingSection';
@@ -35,7 +35,11 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 
   const Sidebar = (
-    <PageSidebar theme="dark" nav={<Navigation />} isNavOpen={isMobileView ? isNavOpenMobile : isNavOpen} />
+    <PageSidebar theme="dark" isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen} >
+<PageSidebarBody>
+<Navigation />
+</PageSidebarBody>
+</PageSidebar>
   );
   const _Header = (
     <Header
@@ -53,7 +57,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
         mainContainerId="primary-app-container"
         header={_Header}
         sidebar={Sidebar}
-        onPageResize={onPageResize}
+        onPageResize={(_event, props: { mobileView: boolean; windowSize: number }) => onPageResize(props)}
       >
         {children}
       </Page>

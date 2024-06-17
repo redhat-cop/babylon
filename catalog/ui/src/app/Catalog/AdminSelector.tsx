@@ -41,7 +41,7 @@ const CatalogCategorySelector: React.FC<{
             ) : null}
           </div>
         }
-        onToggle={(expanded: boolean) => setIsExpanded(expanded)}
+        onToggle={(_event, expanded: boolean) => setIsExpanded(expanded)}
       >
         <FormGroup>
           <Checkbox

@@ -93,7 +93,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
           </FormGroup>
         ) : null}
         {isWorkshopEnabled ? (
-          <HelperText style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
+          <HelperText style={{ marginTop: 'var(--pf-v5-global--spacer--sm)' }}>
             <HelperTextItem icon={<InfoIcon />}>
               Services will launch at the specified date and take some time to be available.
             </HelperTextItem>
@@ -117,7 +117,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                 label="No auto-stop"
                 isChecked={noAutoStopChecked}
                 hasCheckIcon
-                onChange={(isChecked) => {
+                onChange={(_event, isChecked) => {
                   isChecked
                     ? setDates({ ...dates, stopDate: dates.endDate || autoDestroyDate })
                     : setDates({ ...dates, stopDate: new Date(Date.now() + defaultRuntimeTimestamp) });
@@ -170,7 +170,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
               label="Open Support Ticket"
               isChecked={createTicket}
               hasCheckIcon
-              onChange={(isChecked) => {
+              onChange={(_event, isChecked) => {
                 setCreateTicket(isChecked);
               }}
             />

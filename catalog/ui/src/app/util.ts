@@ -388,8 +388,8 @@ export function stripTags(unStrippedHtml: string) {
 export function namespaceToServiceNamespaceMapper(ns: Namespace): ServiceNamespace {
   return {
     name: ns.metadata.name,
-    displayName: ns.metadata.annotations['openshift.io/display-name'] || ns.metadata.name,
-    requester: ns.metadata.annotations['openshift.io/requester'],
+    displayName: ns.metadata.annotations?.['openshift.io/display-name'] || ns.metadata.name,
+    requester: ns.metadata.annotations?.['openshift.io/requester'],
   };
 }
 

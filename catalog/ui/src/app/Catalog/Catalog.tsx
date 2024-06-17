@@ -2,31 +2,33 @@ import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from
 import Fuse from 'fuse.js';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import {
-  Backdrop,
-  Button,
-  Card,
-  CardBody,
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  DrawerPanelContent,
-  EmptyState,
-  EmptyStateIcon,
-  PageSection,
-  PageSectionVariants,
-  Select,
-  SelectOption,
-  SelectVariant,
-  Sidebar,
-  SidebarContent,
-  SidebarPanel,
-  Split,
-  SplitItem,
-  Stack,
-  StackItem,
-  Title,
-  Tooltip,
+	Backdrop,
+	Button,
+	Card,
+	CardBody,
+	Drawer,
+	DrawerContent,
+	DrawerContentBody,
+	DrawerPanelContent,
+	EmptyState,
+	EmptyStateIcon,
+	PageSection,
+	PageSectionVariants,
+	Sidebar,
+	SidebarContent,
+	SidebarPanel,
+	Split,
+	SplitItem,
+	Stack,
+	StackItem,
+	Title,
+	Tooltip, EmptyStateHeader
 } from '@patternfly/react-core';
+import {
+	Select,
+	SelectOption,
+	SelectVariant
+} from '@patternfly/react-core/deprecated';
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
@@ -489,8 +491,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                   >
                     <PageSection variant={PageSectionVariants.light}>
                       <EmptyState variant="full">
-                        <EmptyStateIcon icon={LoadingIcon} />
-                      </EmptyState>
+                        <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} /></EmptyState>
                     </PageSection>
                   </DrawerPanelContent>
                 }
@@ -583,7 +584,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                       className="catalog__sort-by"
                                       variant={SelectVariant.single}
                                       aria-label="Sort by"
-                                      onToggle={(isOpen) =>
+                                      onToggle={(_event, isOpen) =>
                                         setSortBy({
                                           ...sortBy,
                                           isOpen,

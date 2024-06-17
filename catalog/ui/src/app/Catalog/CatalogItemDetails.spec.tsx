@@ -53,7 +53,7 @@ describe('CatalogItemDetails Component', () => {
     );
     const catalogItemDisplayName = 'Test Config';
     await waitFor(() => expect(getByText(catalogItemDisplayName)).toBeInTheDocument());
-    const button = container.getElementsByClassName('pf-c-drawer__close')[0].querySelectorAll('button')[0];
+    const button = container.getElementsByClassName('pf-v5-c-drawer__close')[0].querySelectorAll('button')[0];
     fireEvent.click(button);
     expect(handleClick).toHaveBeenCalledTimes(1);
   });

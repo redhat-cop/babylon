@@ -18,7 +18,7 @@ import {
   Tabs,
   Tab,
   TabTitleText,
-  Title,
+  Title, EmptyStateHeader,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
@@ -84,10 +84,7 @@ const AnarchyGovernorInstanceComponent: React.FC<{
     return (
       <PageSection>
         <EmptyState variant="full">
-          <EmptyStateIcon icon={ExclamationTriangleIcon} />
-          <Title headingLevel="h1" size="lg">
-            AnarchyGovernor not found
-          </Title>
+          <EmptyStateHeader titleText="AnarchyGovernor not found" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
           <EmptyStateBody>
             AnarchyGovernor {anarchyGovernorName} was not found in namespace {namespace}.
           </EmptyStateBody>

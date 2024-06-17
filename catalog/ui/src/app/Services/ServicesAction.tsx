@@ -59,7 +59,7 @@ const ServicesAction: React.FC<{
   return (
     <>
       {action === 'delete' ? (
-        <p style={{ paddingBottom: 'var(--pf-global--spacer--md)' }}>
+        <p style={{ paddingBottom: 'var(--pf-v5-global--spacer--md)' }}>
           Cloud resources will be deleted. Restore for deleted resources is not available.
         </p>
       ) : action === 'start' ? (

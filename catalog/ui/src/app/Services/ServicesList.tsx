@@ -10,9 +10,8 @@ import {
   PageSection,
   PageSectionVariants,
   Split,
-  SplitItem,
-  Title,
-} from '@patternfly/react-core';
+  SplitItem, EmptyStateHeader, EmptyStateFooter,
+  } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
   apiPaths,
@@ -401,10 +400,7 @@ const ServicesList: React.FC<{
       <>
         <PageSection>
           <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              No Service Access
-            </Title>
+            <EmptyStateHeader titleText="No Service Access" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
             <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
           </EmptyState>
         </PageSection>
@@ -490,10 +486,7 @@ const ServicesList: React.FC<{
       {services.length === 0 ? (
         <PageSection key="body-empty">
           <EmptyState variant="full">
-            <EmptyStateIcon icon={ExclamationTriangleIcon} />
-            <Title headingLevel="h1" size="lg">
-              No Services found
-            </Title>
+            <EmptyStateHeader titleText="No Services found" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" /><EmptyStateFooter>
             {keywordFilter ? (
               <EmptyStateBody>No services matched search.</EmptyStateBody>
             ) : (
@@ -501,7 +494,7 @@ const ServicesList: React.FC<{
                 Request services using the <Link to="/catalog">catalog</Link>.
               </EmptyStateBody>
             )}
-          </EmptyState>
+          </EmptyStateFooter></EmptyState>
         </PageSection>
       ) : (
         <PageSection key="body" className="services-list" variant={PageSectionVariants.light}>

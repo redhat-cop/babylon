@@ -1,27 +1,27 @@
-.pf-c-banner.pf-m-warning {
+.pf-v5-c-banner.pf-m-warning {
   background-color: #fdf7e7;
   border-top: 2px solid #f0ab00;
 }
-.pf-c-banner.pf-m-info {
+.pf-v5-c-banner.pf-m-info {
   background-color: #e7f1fa;
   border-top: 2px solid #2b9af3;
 }
-.pf-c-banner.pf-m-info a,
-.pf-c-banner.pf-m-info .editor-link {
+.pf-v5-c-banner.pf-m-info a,
+.pf-v5-c-banner.pf-m-info .editor-link {
   color: #151515 !important;
 }
-.pf-c-banner.pf-m-critical {
+.pf-v5-c-banner.pf-m-critical {
   background-color: #faeae8;
   color: #fff;
   border-top: 2px solid #c9190b;
 }
-.pf-c-banner.pf-m-warning svg {
+.pf-v5-c-banner.pf-m-warning svg {
   fill: #f0ab00;
 }
-.pf-c-banner.pf-m-info svg {
+.pf-v5-c-banner.pf-m-info svg {
   fill: #2b9af3;
 }
-.pf-c-banner.pf-m-critical svg {
+.pf-v5-c-banner.pf-m-critical svg {
   fill: #c9190b;
 }
 .incidents-banner__close-btn svg {

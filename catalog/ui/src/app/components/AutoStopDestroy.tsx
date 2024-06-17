@@ -42,9 +42,9 @@ const AutoStopDestroy: React.FC<{
           icon={<OutlinedClockIcon />}
           iconPosition="right"
           className={className}
-          isSmall
+          size="sm"
         >
-          <span style={{ marginRight: 'var(--pf-global--spacer--sm)' }}>{notDefinedMessage}</span>
+          <span style={{ marginRight: 'var(--pf-v5-global--spacer--sm)' }}>{notDefinedMessage}</span>
         </Button>
         {children}
       </span>
@@ -97,10 +97,10 @@ const AutoStopDestroy: React.FC<{
         icon={<OutlinedClockIcon />}
         iconPosition="right"
         className={className}
-        isSmall
+        size="sm"
       >
         {showNoAutoStop ? (
-          <span style={{ marginRight: 'var(--pf-global--spacer--sm)' }}>No auto-stop</span>
+          <span style={{ marginRight: 'var(--pf-v5-global--spacer--sm)' }}>No auto-stop</span>
         ) : (
           <>
             <LocalTimestamp variant="short" time={time} />

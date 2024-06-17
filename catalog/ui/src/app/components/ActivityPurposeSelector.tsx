@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FormGroup, Radio, Select, SelectOption, SelectVariant, TextInput, Tooltip } from '@patternfly/react-core';
+import { FormGroup, Radio, TextInput, Tooltip } from '@patternfly/react-core';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSession from '@app/utils/useSession';
 import { TPurposeOpts } from '@app/types';
@@ -29,7 +30,7 @@ const ActivityPurposeSelector: React.FC<{
             <OutlinedQuestionCircleIcon
               aria-label="Activity for this service."
               className="tooltip-icon-only"
-              style={{ marginLeft: 'var(--pf-global--spacer--sm)' }}
+              style={{ marginLeft: 'var(--pf-v5-global--spacer--sm)' }}
             />
           </Tooltip>
         }
@@ -97,7 +98,7 @@ const ActivityPurposeSelector: React.FC<{
                 <TextInput
                   aria-label="Specify purpose"
                   placeholder="Specify purpose"
-                  onChange={(_explanation) => {
+                  onChange={(_event, _explanation) => {
                     setExplanation(_explanation);
                     onChange(activity, purpose, _explanation);
                   }}

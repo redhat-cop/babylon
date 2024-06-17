@@ -13,7 +13,7 @@ const Hero: React.FC<{ image: string; children: React.ReactNode }> = ({ image, c
     backgroundPositionY: 'center',
     padding: '128px 24px',
     margin: 0,
-    marginBottom: 'var(--pf-global--spacer--md)',
+    marginBottom: 'var(--pf-v5-global--spacer--md)',
   };
   return (
     <div style={style} {...rest}>

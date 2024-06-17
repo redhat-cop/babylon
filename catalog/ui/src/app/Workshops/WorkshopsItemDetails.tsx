@@ -3,18 +3,20 @@ import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
 import {
-  DescriptionList,
-  DescriptionListTerm,
-  DescriptionListGroup,
-  DescriptionListDescription,
-  Select,
-  SelectOption,
-  SelectVariant,
-  Tooltip,
-  Switch,
-  Button,
-  TextInput,
+	DescriptionList,
+	DescriptionListTerm,
+	DescriptionListGroup,
+	DescriptionListDescription,
+	Tooltip,
+	Switch,
+	Button,
+	TextInput
 } from '@patternfly/react-core';
+import {
+	Select,
+	SelectOption,
+	SelectVariant
+} from '@patternfly/react-core/deprecated';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { patchWorkshop } from '@app/api';
@@ -164,7 +166,7 @@ const WorkshopsItemDetails: React.FC<{
             id="workshops-items-details__redirect"
             aria-label="Redirect"
             isChecked={workshop.spec.labUserInterface?.redirect === true}
-            onChange={(v) => patchWorkshopSpec({ labUserInterface: { redirect: v } })}
+            onChange={(_event, v) => patchWorkshopSpec({ labUserInterface: { redirect: v } })}
           />
         </DescriptionListDescription>
       </DescriptionListGroup>
@@ -192,7 +194,7 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListTerm>User Registration</DescriptionListTerm>
         <DescriptionListDescription>
           <Select
-            onToggle={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+            onToggle={(_event, isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
             selections={userRegistrationValue}
             variant={SelectVariant.single}
             isOpen={userRegistrationSelectIsOpen}
@@ -303,7 +305,7 @@ const WorkshopsItemDetails: React.FC<{
                 id="servicenow-id"
                 aria-label="ServiceNow number"
                 value={serviceNowNumber}
-                onChange={(v) => setServiceNowNumber(v)}
+                onChange={(_event, v) => setServiceNowNumber(v)}
                 style={{ width: 'auto', marginRight: '16px' }}
                 placeholder="RITM0000000"
               />

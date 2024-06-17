@@ -1,30 +1,30 @@
-.modal-component.pf-c-modal-box .pf-c-modal-box__title-text {
+.modal-component.pf-v5-c-modal-box .pf-v5-c-modal-box__title-text {
   white-space: normal;
-  font-size: var(--pf-global--icon--FontSize--md);
+  font-size: var(--pf-v5-global--icon--FontSize--md);
 }
 
-.modal-component.pf-c-modal-box .pf-c-modal-box__body {
+.modal-component.pf-v5-c-modal-box .pf-v5-c-modal-box__body {
   overflow-x: visible;
   overflow-y: visible;
 }
 
-.modal-component.pf-c-modal-box .pf-c-dropdown__menu {
+.modal-component.pf-v5-c-modal-box .pf-c-dropdown__menu {
   max-height: 300px;
 }
 
-.modal-component.pf-c-modal-box .pf-c-form__group-label {
+.modal-component.pf-v5-c-modal-box .pf-v5-c-form__group-label {
   text-transform: capitalize;
 }
 
-.modal-component.pf-c-modal-box .pf-c-form.pf-m-horizontal .pf-c-form__group {
+.modal-component.pf-v5-c-modal-box .pf-v5-c-form.pf-m-horizontal .pf-v5-c-form__group {
   grid-template-columns: none;
 }
 
 @media (--small-viewport) {
-  .pf-c-backdrop__open .pf-c-backdrop {
+  .pf-v5-c-backdrop__open .pf-v5-c-backdrop {
     max-width: 100vw;
   }
-  .modal-component.pf-c-modal-box {
+  .modal-component.pf-v5-c-modal-box {
     margin-bottom: auto;
     margin-top: 120px;
   }

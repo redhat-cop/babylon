@@ -1,21 +1,18 @@
-.header-component .pf-c-app-launcher__menu-item-external-icon {
+.header-component .pf-v5-c-app-launcher__menu-item-external-icon {
   opacity: 1;
-  color: var(--pf-global--icon--Color--light);
+  color: var(--pf-v5-global--icon--Color--light);
 }
-.header-component__user-controls.pf-c-dropdown .pf-c-dropdown__toggle::before {
+.header-component__user-controls button::before {
   border: none;
 }
-.header-component__user-controls.pf-c-dropdown .pf-c-dropdown__toggle .pf-c-dropdown__toggle-icon {
-  margin-left: var(--pf-global--spacer--xs);
-}
 
-.header-component__user-controls--warning .pf-c-dropdown__toggle-text {
+.header-component__user-controls--warning .pf-v5-c-dropdown__toggle-text {
   color: #ee0000;
   font-weight: bold;
 }
 
 @media (--small-viewport) {
-  .header-component.pf-c-page__header {
+  .header-component.pf-v5-c-page__header {
     grid-template-columns: 1fr 0;
   }
 }

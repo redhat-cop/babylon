@@ -1,21 +1,21 @@
-.services-schedule-action-modal.pf-c-modal-box .pf-c-modal-box__title-text {
+.services-schedule-action-modal.pf-v5-c-modal-box .pf-v5-c-modal-box__title-text {
   white-space: normal;
   font-size: 0.9em;
 }
 
-.services-schedule-action-modal.pf-c-modal-box .pf-c-modal-box__body {
+.services-schedule-action-modal.pf-v5-c-modal-box .pf-v5-c-modal-box__body {
   overflow-x: visible;
   overflow-y: visible;
 }
 
-.services-schedule-action-modal.pf-c-modal-box .pf-c-dropdown__menu {
+.services-schedule-action-modal.pf-v5-c-modal-box .pf-c-dropdown__menu {
   max-height: 300px;
 }
 
-.services-schedule-action-modal.pf-c-modal-box .pf-c-form__group-label {
+.services-schedule-action-modal.pf-v5-c-modal-box .pf-v5-c-form__group-label {
   text-transform: capitalize;
 }
 
-.services-schedule-action-modal.pf-c-modal-box .pf-c-form.pf-m-horizontal .pf-c-form__group {
+.services-schedule-action-modal.pf-v5-c-modal-box .pf-v5-c-form.pf-m-horizontal .pf-v5-c-form__group {
   grid-template-columns: none;
 }

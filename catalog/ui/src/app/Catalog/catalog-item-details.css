@@ -1,10 +1,10 @@
 .catalog-item-details__actions {
   padding: 0;
-  margin-top: var(--pf-global--spacer--sm);
+  margin-top: var(--pf-v5-global--spacer--sm);
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: var(--pf-global--gutter);
+  gap: var(--pf-v5-global--gutter);
 }
 
 .catalog-item-details__actions-loading {
@@ -12,28 +12,28 @@
   text-align: center;
 }
 
-.catalog-item-details .pf-c-drawer__body {
+.catalog-item-details .pf-v5-c-drawer__body {
   min-height: auto !important;
 }
 
 .catalog-item-details__body {
-  border-top: 1px solid var(--pf-global--palette--black-300);
-  padding-top: var(--pf-global--spacer--md) !important;
+  border-top: 1px solid var(--pf-v5-global--palette--black-300);
+  padding-top: var(--pf-v5-global--spacer--md) !important;
 }
 
 .catalog-item-details__description-label {
-  font-size: var(--pf-global--FontSize--2xl);
+  font-size: var(--pf-v5-global--FontSize--2xl);
   font-weight: normal;
-  color: var(--pf-global--palette--black-600);
-  line-height: var(--pf-c-title--m-md--LineHeight);
-  font-family: var(--pf-global--FontFamily--heading--sans-serif);
-  padding-bottom: var(--pf-global--spacer--sm);
+  color: var(--pf-v5-global--palette--black-600);
+  line-height: var(--pf-v5-c-title--m-md--LineHeight);
+  font-family: var(--pf-v5-global--FontFamily--heading--sans-serif);
+  padding-bottom: var(--pf-v5-global--spacer--sm);
 }
 
 .catalog-item-details__sidebar {
   max-width: 160px;
-  padding-top: var(--pf-global--spacer--sm);
-  padding-right: var(--pf-global--spacer--md);
+  padding-top: var(--pf-v5-global--spacer--sm);
+  padding-right: var(--pf-v5-global--spacer--md);
 }
 @media (--small-viewport) {
   .catalog-item-details__sidebar {
@@ -42,24 +42,24 @@
 }
 .catalog-item-details__sidebar dd,
 .catalog-item-details__sidebar dt {
-  font-size: var(--pf-global--FontSize--sm);
+  font-size: var(--pf-v5-global--FontSize--sm);
 }
 
-.catalog-item-details__sidebar .pf-c-description-list {
-  row-gap: var(--pf-global--spacer--sm);
+.catalog-item-details__sidebar .pf-v5-c-description-list {
+  row-gap: var(--pf-v5-global--spacer--sm);
 }
 
-.catalog-item-details__sidebar .pf-c-description-list__group {
+.catalog-item-details__sidebar .pf-v5-c-description-list__group {
   row-gap: 0;
 }
 
-.catalog-item-details__sidebar .pf-c-description-list__text {
+.catalog-item-details__sidebar .pf-v5-c-description-list__text {
   text-transform: capitalize;
 }
 
-.catalog-item-details__estimated-time .pf-c-description-list__text,
-.catalog-item-details__last-update .pf-c-description-list__text,
-.catalog-item-details__last-provision .pf-c-description-list__text {
+.catalog-item-details__estimated-time .pf-v5-c-description-list__text,
+.catalog-item-details__last-update .pf-v5-c-description-list__text,
+.catalog-item-details__last-provision .pf-v5-c-description-list__text {
   text-transform: initial;
 }
 
@@ -82,15 +82,15 @@
   justify-content: center;
 }
 .catalog-item-details__title {
-  font-weight: var(--pf-global--FontWeight--bold) !important;
-  padding-bottom: var(--pf-global--spacer--xs);
+  font-weight: var(--pf-v5-global--FontWeight--bold) !important;
+  padding-bottom: var(--pf-v5-global--spacer--xs);
 }
 
 .catalog-item-details__subtitle {
-  color: var(--pf-global--palette--black-600);
-  font-size: var(--pf-global--FontSize--sm) !important;
-  font-weight: var(--pf-global--FontWeight--bold) !important;
-  padding-bottom: var(--pf-global--spacer--xs);
+  color: var(--pf-v5-global--palette--black-600);
+  font-size: var(--pf-v5-global--FontSize--sm) !important;
+  font-weight: var(--pf-v5-global--FontWeight--bold) !important;
+  padding-bottom: var(--pf-v5-global--spacer--xs);
 }
 
 .catalog-item-details__description h1 {
@@ -129,12 +129,12 @@
 
 .catalog-item-details__description ul {
   list-style: unset;
-  margin-left: var(--pf-global--spacer--md);
+  margin-left: var(--pf-v5-global--spacer--md);
 }
 
 .catalog-item-details__description a::after {
   content: url('@app/bgimages/external-link.svg');
-  color: var(--pf-global--link--Color);
+  color: var(--pf-v5-global--link--Color);
   display: inline-block;
   width: 16px;
   padding: 0 3px;
@@ -148,37 +148,37 @@
 .catalog-item-details__status {
   display: inline-flex;
 }
-.catalog-item-details__status .pf-c-label {
+.catalog-item-details__status .pf-v5-c-label {
   margin: auto 0;
 }
-.catalog-item-details__status .pf-c-label__icon {
+.catalog-item-details__status .pf-v5-c-label__icon {
   display: flex;
 }
-.catalog-item-details__status .pf-c-label__content {
+.catalog-item-details__status .pf-v5-c-label__content {
   display: flex;
   flex-direction: row;
-  gap: var(--pf-global--spacer--xs);
+  gap: var(--pf-v5-global--spacer--xs);
   align-items: center;
 }
-.catalog-item-details__status--degraded-performance .pf-c-label__content:before {
+.catalog-item-details__status--degraded-performance .pf-v5-c-label__content:before {
   border-color: #f1c40f;
 }
-.catalog-item-details__status--partial-outage .pf-c-label__content:before {
+.catalog-item-details__status--partial-outage .pf-v5-c-label__content:before {
   border-color: #f9e0a2;
 }
-.catalog-item-details__status--major-outage .pf-c-label__content:before {
+.catalog-item-details__status--major-outage .pf-v5-c-label__content:before {
   border-color: #c9190b;
 }
-.catalog-item-details__status--under-maintenance .pf-c-label__content:before {
+.catalog-item-details__status--under-maintenance .pf-v5-c-label__content:before {
   border-color: #a2d9d9;
 }
-.catalog-item-details__status--degraded-performance .pf-c-label__content,
-.catalog-item-details__status--partial-outage .pf-c-label__content {
+.catalog-item-details__status--degraded-performance .pf-v5-c-label__content,
+.catalog-item-details__status--partial-outage .pf-v5-c-label__content {
   color: #3d2c00;
 }
-.catalog-item-details__status--major-outage .pf-c-label__content {
+.catalog-item-details__status--major-outage .pf-v5-c-label__content {
   color: #7d1007;
 }
-.catalog-item-details__status--under-maintenance .pf-c-label__content {
+.catalog-item-details__status--under-maintenance .pf-v5-c-label__content {
   color: #003737;
 }

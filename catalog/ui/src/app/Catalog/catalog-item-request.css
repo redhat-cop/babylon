@@ -1,39 +1,39 @@
 .catalog-item-request__form {
-  margin: var(--pf-global--spacer--lg) 0;
+  margin: var(--pf-v5-global--spacer--lg) 0;
 }
 
-.catalog-item-request__form .pf-c-check {
+.catalog-item-request__form .pf-v5-c-check {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
 .catalog-item-request .terms-of-service {
-  background-color: var(--pf-global--BackgroundColor--light-300);
-  padding: var(--pf-global--spacer--md);
+  background-color: var(--pf-v5-global--BackgroundColor--light-300);
+  padding: var(--pf-v5-global--spacer--md);
 }
-.terms-of-service .pf-c-form__label {
+.terms-of-service .pf-v5-c-form__label {
   cursor: default;
 }
 
 .catalog-item-request__group-control--single,
 .catalog-item-request__group-control--multi,
-.terms-of-service .pf-c-form__group-control {
+.terms-of-service .pf-v5-c-form__group-control {
   display: flex;
   flex-direction: row;
-  gap: var(--pf-global--spacer--md);
+  gap: var(--pf-v5-global--spacer--md);
   align-items: center;
 }
 .catalog-item-request__group-control--multi {
-  padding-bottom: var(--pf-global--spacer--sm);
+  padding-bottom: var(--pf-v5-global--spacer--sm);
 }
-.terms-of-service .pf-c-form__group-control {
+.terms-of-service .pf-v5-c-form__group-control {
   flex-direction: column;
   align-items: flex-start;
 }
 
 .catalog-item-request__form .select-wrapper,
-.catalog-item-request__form input:not([type='number']).pf-c-form-control {
+.catalog-item-request__form input:not([type='number']).pf-v5-c-form-control {
   max-width: var(--babylon-form-width);
   width: 100%;
 }

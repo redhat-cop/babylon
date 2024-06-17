@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useCallback, useMemo, useState } from 'react';
 import { useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
@@ -258,7 +259,7 @@ const ComponentDetailsList: React.FC<{
                 <DescriptionListGroup key="tower-jobs">
                   <DescriptionListTerm>Ansible Jobs</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <List style={{ margin: 'var(--pf-global--spacer--sm) 0' }}>
+                    <List style={{ margin: 'var(--pf-v5-global--spacer--sm) 0' }}>
                       {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
                         towerJob.towerJobURL ? (
                           <ListItem key={stage}>
@@ -792,10 +793,10 @@ const ServicesItemComponent: React.FC<{
                         <header>
                           <h3
                             style={{
-                              fontSize: 'var(--pf-global--FontSize--sm)',
-                              fontWeight: 'var(--pf-global--FontWeight--bold)',
-                              lineHeight: 'var(--pf-global--LineHeight--sm)',
-                              marginBottom: 'var(--pf-global--spacer--sm)',
+                              fontSize: 'var(--pf-v5-global--FontSize--sm)',
+                              fontWeight: 'var(--pf-v5-global--FontWeight--bold)',
+                              lineHeight: 'var(--pf-v5-global--LineHeight--sm)',
+                              marginBottom: 'var(--pf-v5-global--spacer--sm)',
                             }}
                           >
                             Components
@@ -909,12 +910,16 @@ const ServicesItemComponent: React.FC<{
                 ) : null}
               </Tab>
             ) : null}
-            {consoleEnabled ? (
+
+            {statusEnabled ? (
               /* @ts-ignore */
-              <Tab eventKey="console" title={<TabTitleText>Console</TabTitleText>}>
-                {activeTab === 'console' ? <ServiceOpenStackConsole resourceClaim={resourceClaim} /> : null}
+              <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
+                {activeTab === 'status' ? (
+                  <ServiceItemStatus onCheckStatusRequest={onCheckStatusRequest} resourceClaim={resourceClaim} />
+                ) : null}
               </Tab>
             ) : null}
+
             {workshopName && !isPartOfWorkshop ? (
               [
                 /* @ts-ignore */

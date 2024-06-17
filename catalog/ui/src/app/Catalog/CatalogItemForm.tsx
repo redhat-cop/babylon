@@ -18,16 +18,14 @@ import {
   PageSection,
   PageSectionVariants,
   Radio,
-  Select,
-  SelectOption,
-  SelectVariant,
   Switch,
   TextInput,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
+
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import useSWRImmutable from 'swr/immutable';
 import {
@@ -348,8 +346,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   Salesforce ID{' '}
                   <span
                     style={{
-                      fontSize: 'var(--pf-global--FontSize--xs)',
-                      color: 'var(--pf-global--palette--black-600)',
+                      fontSize: 'var(--pf-v5-global--FontSize--xs)',
+                      color: 'var(--pf-v5-global--palette--black-600)',
                       fontStyle: 'italic',
                       fontWeight: 400,
                     }}
@@ -357,24 +355,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     (Opportunity ID, Campaign ID, CDH Party or Project ID)
                   </span>
                 </span>
-              }
-              helperTextInvalid={
-                <FormHelperText icon={<ExclamationCircleIcon />} isError isHidden={false}>
-                  {!formState.salesforceId.valid && formState.conditionChecks.completed
-                    ? formState.salesforceId.message
-                    : purposeObj && purposeObj.sfdcRequired
-                    ? 'A valid Salesforce ID is required for the selected activity / purpose'
-                    : null}
-                </FormHelperText>
-              }
-              validated={
-                formState.salesforceId.valid
-                  ? 'success'
-                  : formState.salesforceId.value &&
-                    formState.salesforceId.required &&
-                    formState.conditionChecks.completed
-                  ? 'error'
-                  : 'default'
               }
             >
               <div>
@@ -462,7 +442,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     type="text"
                     key="salesforce_id"
                     id="salesforce_id"
-                    onChange={(value) =>
+                    onChange={(_event, value) =>
                       dispatchFormState({
                         type: 'salesforceId',
                         salesforceId: { ...formState.salesforceId, value, valid: false },
@@ -488,6 +468,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     />
                   </Tooltip>
                 </div>
+                {!formState.salesforceId.valid && formState.conditionChecks.completed ? (
+                  <FormHelperText>{formState.salesforceId.message}</FormHelperText>
+                ) : purposeObj && purposeObj.sfdcRequired ? (
+                  <FormHelperText>A valid Salesforce ID is required for the selected activity / purpose</FormHelperText>
+                ) : null}
               </div>
             </FormGroup>
           </>
@@ -516,18 +501,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               fieldId={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
               isRequired={formGroup.isRequired}
               label={formGroup.formGroupLabel}
-              helperTextInvalid={
-                invalidParameter?.validationMessage ? (
-                  <FormHelperText
-                    icon={<ExclamationCircleIcon />}
-                    isError={status === 'error'}
-                    isHidden={status !== 'error'}
-                  >
-                    {invalidParameter.validationMessage}
-                  </FormHelperText>
-                ) : null
-              }
-              validated={status}
             >
               {formGroup.parameters
                 ? formGroup.parameters
@@ -563,6 +536,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       </div>
                     ))
                 : null}
+              {invalidParameter?.validationMessage ? (
+                <FormHelperText>{invalidParameter.validationMessage}</FormHelperText>
+              ) : null}
             </FormGroup>
           );
         })}
@@ -622,7 +598,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 }
                 isChecked={!!formState.workshop}
                 hasCheckIcon
-                onChange={(isChecked) =>
+                onChange={(_event, isChecked) =>
                   dispatchFormState({
                     type: 'workshop',
                     workshop: isChecked ? workshopInitialProps : null,
@@ -658,7 +634,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               <div className="catalog-item-form__group-control--single">
                 <TextInput
                   id="workshopDisplayName"
-                  onChange={(v) =>
+                  onChange={(_event, v) =>
                     dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, displayName: v } })
                   }
                   value={formState.workshop.displayName}
@@ -675,7 +651,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               <div className="catalog-item-form__group-control--single">
                 <TextInput
                   id="workshopAccessPassword"
-                  onChange={(v) =>
+                  onChange={(_event, v) =>
                     dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, accessPassword: v } })
                   }
                   value={formState.workshop.accessPassword}
@@ -694,7 +670,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             <FormGroup fieldId="workshopRegistration" label="User Registration" className="select-wrapper">
               <div className="catalog-item-form__group-control--single">
                 <Select
-                  onToggle={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+                  onToggle={(_event, isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
                   selections={formState.workshop.userRegistration}
                   variant={SelectVariant.single}
                   isOpen={userRegistrationSelectIsOpen}
@@ -773,7 +749,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     </Tooltip>
                   </div>
                   {estimatedCost && formState.workshop.provisionCount > 1 ? (
-                    <AlertGroup style={{ marginTop: 'var(--pf-global--spacer--sm)' }}>
+                    <AlertGroup style={{ marginTop: 'var(--pf-v5-global--spacer--sm)' }}>
                       <Alert
                         title={
                           <p>
@@ -842,7 +818,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   label="Use pool if available (only visible to admins)"
                   isChecked={formState.usePoolIfAvailable}
                   hasCheckIcon
-                  onChange={(isChecked) =>
+                  onChange={(_event, isChecked) =>
                     dispatchFormState({
                       type: 'usePoolIfAvailable',
                       usePoolIfAvailable: isChecked,
@@ -863,7 +839,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   label="Keep instance if provision fails (only visible to admins)"
                   isChecked={!formState.useAutoDetach}
                   hasCheckIcon
-                  onChange={(isChecked) => {
+                  onChange={(_event, isChecked) => {
                     dispatchFormState({
                       type: 'useAutoDetach',
                       useAutoDetach: !isChecked,
@@ -878,7 +854,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         {catalogItem.spec.termsOfService ? (
           <TermsOfService
             agreed={formState.termsOfServiceAgreed}
-            onChange={(agreed) => {
+            onChange={(ev, agreed) => {
               dispatchFormState({
                 type: 'termsOfServiceAgreed',
                 termsOfServiceAgreed: agreed,

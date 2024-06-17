@@ -134,7 +134,7 @@ const renderWorkshopRow = ({
         style={{
           display: 'flex',
           flexDirection: 'row',
-          gap: 'var(--pf-global--spacer--sm)',
+          gap: 'var(--pf-v5-global--spacer--sm)',
         }}
       >
         <ButtonCircleIcon

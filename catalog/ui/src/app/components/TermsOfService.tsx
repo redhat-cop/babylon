@@ -4,12 +4,12 @@ import { renderContent } from '@app/util';
 
 const TermsOfService: React.FC<{
   agreed: boolean;
-  onChange: (checked: boolean, event: React.FormEvent<HTMLInputElement>) => void;
+  onChange: (event: React.FormEvent<HTMLInputElement>, checked: boolean) => void;
   text?: string;
 }> = ({ agreed, onChange, text }) => {
   const tosHtml = useMemo(
     () => <div dangerouslySetInnerHTML={{ __html: renderContent(text, { format: 'html' }) }} />,
-    [text],
+    [text]
   );
   return (
     <FormGroup fieldId="" label="IMPORTANT PLEASE READ" className="terms-of-service">

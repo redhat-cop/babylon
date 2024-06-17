@@ -1,5 +1,5 @@
 import React from 'react';
-import { PageHeader } from '@patternfly/react-core';
+import { PageHeader } from '@patternfly/react-core/deprecated';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import RedHatLogo from '@app/components/RedHatLogo';
 
@@ -71,7 +71,7 @@ const WorkshopHeader: React.FC<{ userInterface: string }> = ({ userInterface }) 
     );
   }
   return (
-    <div style={{ backgroundColor: 'var(--pf-c-page__header--BackgroundColor)', gridArea: 'header' }}>
+    <div style={{ backgroundColor: 'var(--pf-v5-c-page__header--BackgroundColor)', gridArea: 'header' }}>
       <PageHeader
         className="workshop"
         logo={<LogoImg />}

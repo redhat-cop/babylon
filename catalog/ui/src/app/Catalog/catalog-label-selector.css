@@ -1,28 +1,28 @@
 .catalog-label-selector {
-  gap: var(--pf-global--spacer--xs);
+  gap: var(--pf-v5-global--spacer--xs);
 }
-.catalog-label-selector .pf-c-check__label {
-  font-size: var(--pf-global--FontSize--sm) !important;
-  line-height: var(--pf-global--LineHeight--sm);
-  padding-bottom: var(--pf-global--spacer--xs);
-}
-
-.catalog-label-selector .pf-c-expandable-section {
-  margin-left: var(--pf-global--spacer--sm);
+.catalog-label-selector .pf-v5-c-check__label {
+  font-size: var(--pf-v5-global--FontSize--sm) !important;
+  line-height: var(--pf-v5-global--LineHeight--sm);
+  padding-bottom: var(--pf-v5-global--spacer--xs);
 }
 
-.catalog-label-selector .pf-c-expandable-section__content {
-  margin-left: var(--pf-global--spacer--md);
-  margin-bottom: var(--pf-global--spacer--md);
-  margin-top: var(--pf-global--spacer--sm);
+.catalog-label-selector .pf-v5-c-expandable-section {
+  margin-left: var(--pf-v5-global--spacer--sm);
 }
 
-.catalog-label-selector .pf-c-expandable-section__toggle,
-.catalog-label-selector .pf-c-expandable-section__toggle-icon {
-  color: var(--pf-global--palette--black-800);
+.catalog-label-selector .pf-v5-c-expandable-section__content {
+  margin-left: var(--pf-v5-global--spacer--md);
+  margin-bottom: var(--pf-v5-global--spacer--md);
+  margin-top: var(--pf-v5-global--spacer--sm);
 }
-.catalog-label-selector .pf-c-expandable-section__toggle,
-.catalog-label-selector .pf-c-expandable-section__toggle-text {
+
+.catalog-label-selector .pf-v5-c-expandable-section__toggle,
+.catalog-label-selector .pf-v5-c-expandable-section__toggle-icon {
+  color: var(--pf-v5-global--palette--black-800);
+}
+.catalog-label-selector .pf-v5-c-expandable-section__toggle,
+.catalog-label-selector .pf-v5-c-expandable-section__toggle-text {
   width: 100%;
 }
 
@@ -30,10 +30,10 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: var(--pf-global--spacer--xs);
+  gap: var(--pf-v5-global--spacer--xs);
 }
 
 .catalog-label-selector__rating-btn:hover svg,
 .catalog-label-selector__rating-btn.pf-m-active svg {
-  fill: var(--pf-c-button--m-link--hover--Color) !important;
+  fill: var(--pf-v5-c-button--m-link--hover--Color) !important;
 }

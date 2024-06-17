@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Table, TableBody, TableHeader } from '@patternfly/react-table';
+import {
+	Table,
+	TableBody,
+	TableHeader
+} from '@patternfly/react-table/deprecated';
 import { Pagination } from '@patternfly/react-core';
 
 const SelectableTableWithPagination: React.FC<{

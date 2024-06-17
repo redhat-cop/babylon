@@ -50,7 +50,7 @@ const _Modal: ForwardRefRenderFunction<
     confirmText = 'Confirm',
     className,
   },
-  ref,
+  ref
 ): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
@@ -86,7 +86,7 @@ const _Modal: ForwardRefRenderFunction<
       open: () => setIsOpen(true),
       close,
     }),
-    [close],
+    [close]
   );
 
   const handleEscape = useCallback(
@@ -95,7 +95,7 @@ const _Modal: ForwardRefRenderFunction<
         close();
       }
     },
-    [close],
+    [close]
   );
 
   const handleClick = useCallback(
@@ -103,7 +103,7 @@ const _Modal: ForwardRefRenderFunction<
       const targetEl = e.target as HTMLElement;
       const container = ReactDOM.findDOMNode(modalEl.current) as Element;
       const backdrop = container;
-      const modal = container?.querySelector('.pf-c-modal-box');
+      const modal = container?.querySelector('.pf-v5-c-modal-box');
       if (!modal || !backdrop) return e;
       if (e.target === backdrop || backdrop.contains(targetEl)) {
         if (e.target !== modal && !modal.contains(targetEl)) {
@@ -113,7 +113,7 @@ const _Modal: ForwardRefRenderFunction<
       }
       return e;
     },
-    [close],
+    [close]
   );
 
   useEffect(() => {
@@ -156,7 +156,7 @@ const _Modal: ForwardRefRenderFunction<
           setState,
           setOnConfirmCb,
           setIsDisabled,
-        },
+        }
       );
     }
     return child;
@@ -190,7 +190,7 @@ const _Modal: ForwardRefRenderFunction<
                         variant="primary"
                         onClick={handleOnConfirm}
                         isDisabled={_isDisabled || isLoading}
-                        icon={isLoading ? <Spinner isSVG size="sm" /> : null}
+                        icon={isLoading ? <Spinner size="sm" /> : null}
                       >
                         {confirmText}
                       </Button>,
@@ -214,7 +214,7 @@ const _Modal: ForwardRefRenderFunction<
             </Modal>
           </Suspense>
         ) : null,
-        document.getElementById('modal-root'),
+        document.getElementById('modal-root')
       )
     : null;
 };

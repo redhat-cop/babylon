@@ -1,12 +1,22 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { FixedSizeList as List } from 'react-window';
-import { ContextSelector, ContextSelectorItem } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import { ServiceNamespace } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
 import { namespaceToServiceNamespaceMapper } from '@app/util';
 import LoadingIcon from './LoadingIcon';
+import {
+  Divider,
+  Dropdown,
+  DropdownItem,
+  InputGroup,
+  InputGroupItem,
+  MenuSearch,
+  MenuSearchInput,
+  MenuToggle,
+  SearchInput,
+} from '@patternfly/react-core';
 
 import './project-selector.css';
 
@@ -21,22 +31,19 @@ const ProjectSelector: React.FC<{
   const { cache } = useSWRConfig();
   const [allNamespaces, setAllNamespaces] = useState<ServiceNamespace[]>(null);
   const [searchValue, setSearchValue] = useState('');
+  const menuRef = React.useRef<HTMLDivElement>(null);
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
-  const [abortController] = useState(new AbortController());
   const serviceNamespaces = useMemo(
     () => (isAdmin ? allNamespaces : sessionServiceNamespaces) ?? [],
-    [isAdmin, allNamespaces, sessionServiceNamespaces],
+    [isAdmin, allNamespaces, sessionServiceNamespaces]
   );
+
   const labelSelector =
     selector === 'users'
       ? 'usernamespace.gpte.redhat.com/user-uid'
       : selector === 'anarchy'
       ? 'app.kubernetes.io/name=anarchy'
       : null;
-
-  useEffect(() => {
-    return () => abortController.abort();
-  }, []);
 
   const toggleOpen = useCallback(() => {
     if (isAdmin && allNamespaces === null) {
@@ -45,7 +52,6 @@ const ProjectSelector: React.FC<{
         setAllNamespaces(data);
       } else {
         fetcher(apiPaths.NAMESPACES({ labelSelector })).then((data) => {
-          if (abortController.signal.aborted) return null;
           const namespaces = data.items.map(namespaceToServiceNamespaceMapper);
           setAllNamespaces(namespaces);
           cache.set(apiPaths.NAMESPACES({ labelSelector }), namespaces);
@@ -60,14 +66,15 @@ const ProjectSelector: React.FC<{
       serviceNamespaces.filter((ns) =>
         ns.name.toLowerCase().includes(searchValue.toLowerCase()) || ns.displayName
           ? ns.displayName.toLowerCase().includes(searchValue.toLowerCase())
-          : false,
+          : false
       ),
-    [serviceNamespaces, searchValue],
+    [serviceNamespaces, searchValue]
   );
 
   const Row = ({ index, style }) => (
     <div style={style}>
-      <ContextSelectorItem
+      <DropdownItem
+        itemId={filteredServiceNamespaces[index].name}
         key={filteredServiceNamespaces[index].name}
         onClick={() => {
           onSelect(filteredServiceNamespaces[index]);
@@ -77,31 +84,54 @@ const ProjectSelector: React.FC<{
         <span className="project-selector__item">
           {filteredServiceNamespaces[index].displayName || filteredServiceNamespaces[index].name}
         </span>
-      </ContextSelectorItem>
+      </DropdownItem>
     </div>
   );
 
   return (
-    <ContextSelector
+    <Dropdown
       className="project-selector"
       isOpen={isOpen}
-      isPlain={isPlain}
-      isText={true}
-      onSearchInputChange={(value: string) => setSearchValue(value)}
-      onToggle={toggleOpen}
-      searchInputValue={searchValue}
-      toggleText={`${hideLabel ? '' : 'Project: '}${currentNamespaceName ?? 'All projects'}`}
+      onOpenChangeKeys={['Escape']}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          onClick={toggleOpen}
+          isExpanded={isOpen}
+          variant={isPlain ? 'plainText' : 'default'}
+        >
+          {`${hideLabel ? '' : 'Project: '}${currentNamespaceName ?? 'All projects'}`}
+        </MenuToggle>
+      )}
+      ref={menuRef}
+      id="project-selector"
+      isScrollable
     >
+      <MenuSearch>
+        <MenuSearchInput>
+          <InputGroup>
+            <InputGroupItem isFill>
+              <SearchInput
+                value={searchValue}
+                placeholder={'Search'}
+                onChange={(_event, value: string) => setSearchValue(value)}
+                aria-labelledby="pf-v5-context-selector-search-button-id-1"
+              />
+            </InputGroupItem>
+          </InputGroup>
+        </MenuSearchInput>
+      </MenuSearch>
+      <Divider />
       {serviceNamespaces.length === 0 ? (
-        <ContextSelectorItem key="loading" onClick={null} className="project-selector__loading">
+        <DropdownItem key="loading" onClick={null} className="project-selector__loading">
           <LoadingIcon />
-        </ContextSelectorItem>
+        </DropdownItem>
       ) : (
         <List height={200} itemCount={filteredServiceNamespaces.length} itemSize={40} width={400}>
           {Row}
         </List>
       )}
-    </ContextSelector>
+    </Dropdown>
   );
 };
 

@@ -9,7 +9,7 @@ import {
   Modal,
   ModalVariant,
   Spinner,
-  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
@@ -96,10 +96,11 @@ const WorkshopsItemServices: React.FC<{
   if (resourceClaims.length == 0) {
     return (
       <EmptyState variant="full">
-        <EmptyStateIcon icon={ExclamationTriangleIcon} />
-        <Title headingLevel="h1" size="lg">
-          No Services Found
-        </Title>
+        <EmptyStateHeader
+          titleText="No Services Found"
+          icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
+          headingLevel="h1"
+        />
         <EmptyStateBody>No services have been provisioned for this workshop.</EmptyStateBody>
       </EmptyState>
     );
@@ -225,7 +226,7 @@ const WorkshopsItemServices: React.FC<{
                 style={{
                   display: 'flex',
                   flexDirection: 'row',
-                  gap: 'var(--pf-global--spacer--sm)',
+                  gap: 'var(--pf-v5-global--spacer--sm)',
                 }}
                 className="workshops-item-services__actions"
               >
@@ -303,7 +304,7 @@ const WorkshopsItemServices: React.FC<{
         </p>
       </Modal>
       {unusedResourceClaims.length > 0 ? (
-        <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-global--spacer--md)' }}>
+        <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-v5-global--spacer--md)' }}>
           <Button onClick={() => setIsOpen(true)}>Delete unused instances</Button>
         </ActionGroup>
       ) : null}

@@ -18,7 +18,7 @@ import {
 } from './service-utils';
 import AdocWrapper from '@app/components/AdocWrapper';
 
-const spinnerSvgString = `<svg style="margin: 0 8px;" class="pf-c-spinner pf-m-md" role="progressbar" aria-valuetext="Loading..." viewBox="0 0 100 100" aria-label="Contents"><circle class="pf-c-spinner__path" cx="50" cy="50" r="45" fill="none"></circle></svg>`;
+const spinnerSvgString = `<svg style="margin: 0 8px;" class="pf-v5-c-spinner pf-m-md" role="progressbar" aria-valuetext="Loading..." viewBox="0 0 100 100" aria-label="Contents"><circle class="pf-v5-c-spinner__path" cx="50" cy="50" r="45" fill="none"></circle></svg>`;
 
 const InfoTab: React.FC<{
   resourceClaim: ResourceClaim;
@@ -48,7 +48,7 @@ const InfoTab: React.FC<{
           ? { ...resource.state.spec.vars?.provision_data }
           : null,
       })),
-      resourceClaim.status?.summary?.provision_data || {},
+      resourceClaim.status?.summary?.provision_data || {}
     );
 
     if (!infoMessageTemplate) {

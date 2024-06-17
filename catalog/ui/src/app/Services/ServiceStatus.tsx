@@ -64,7 +64,7 @@ const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
     case 'unknown':
       return <QuestionCircleIcon />;
     case 'in-progress':
-      return <Spinner isSVG size="md" />;
+      return <Spinner  size="md" />;
     case 'available':
     case 'running':
       return <CheckCircleIcon />;
@@ -118,7 +118,7 @@ const ServiceStatus: React.FC<{
   if (typeof resource === 'undefined') {
     return (
       <span className="service-status--unknown">
-        <Spinner isSVG size="md" /> Requested
+        <Spinner  size="md" /> Requested
       </span>
     );
   }

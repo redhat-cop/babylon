@@ -173,12 +173,12 @@ const WorkshopsItemProvisioningItem: React.FC<{
         <DescriptionListGroup>
           <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
 
-          <div style={{ maxWidth: 300, display: 'flex', alignItems: 'center', gap: 'var(--pf-global--spacer--md)' }}>
+          <div style={{ maxWidth: 300, display: 'flex', alignItems: 'center', gap: 'var(--pf-v5-global--spacer--md)' }}>
             <TextInput
               type="text"
               key="salesforce_id"
               id="salesforce_id"
-              onChange={(value) => dispatchSalesforceObj({ type: 'set_salesforceId', salesforceId: value })}
+              onChange={(_event, value) => dispatchSalesforceObj({ type: 'set_salesforceId', salesforceId: value })}
               value={salesforceObj.salesforce_id}
               validated={
                 salesforceObj.salesforce_id
@@ -218,7 +218,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
               }
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
-              style={{ paddingRight: 'var(--pf-global--spacer--md)' }}
+              style={{ paddingRight: 'var(--pf-v5-global--spacer--md)' }}
             />
             <Tooltip
               position="right"
@@ -250,7 +250,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
                   max={30}
                   onChange={(value: number) => patchWorkshopProvisionSpec({ concurrency: value })}
                   value={workshopProvision.spec.concurrency}
-                  style={{ paddingRight: 'var(--pf-global--spacer--md)' }}
+                  style={{ paddingRight: 'var(--pf-v5-global--spacer--md)' }}
                 />
                 (only visible to admins)
               </DescriptionListDescription>
@@ -263,7 +263,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
                   max={999}
                   onChange={(value: number) => patchWorkshopProvisionSpec({ startDelay: value })}
                   value={workshopProvision.spec.startDelay}
-                  style={{ paddingRight: 'var(--pf-global--spacer--md)' }}
+                  style={{ paddingRight: 'var(--pf-v5-global--spacer--md)' }}
                 />
                 (only visible to admins)
               </DescriptionListDescription>

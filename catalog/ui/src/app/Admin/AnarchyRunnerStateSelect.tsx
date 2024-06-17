@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core';
+import {
+	Select,
+	SelectOption,
+	SelectVariant
+} from '@patternfly/react-core/deprecated';
 
 const AnarchyRunnerStateSelect: React.FC<{
   runnerState?: string;

@@ -1,18 +1,18 @@
-.admin-body.pf-c-page__main-section {
+.admin-body.pf-v5-c-page__main-section {
   padding-top: 0px;
   flex-grow: 1;
 }
 
-.admin-body.pf-c-page__main-section .pf-c-description-list {
+.admin-body.pf-v5-c-page__main-section .pf-v5-c-description-list {
   margin-top: 5pt;
   row-gap: 5pt;
 }
 
-.create-resourcepool .pf-c-modal-box__body {
+.create-resourcepool .pf-v5-c-modal-box__body {
   overflow-y: auto !important;
 }
 
-.admin-body.pf-c-page__main-section .pf-c-tabs {
+.admin-body.pf-v5-c-page__main-section .pf-v5-c-tabs {
   margin-left: -100px;
   padding-left: 100px;
   margin-right: -100px;
@@ -20,22 +20,22 @@
   margin-bottom: 10pt;
 }
 
-.admin-body.pf-c-page__main-section .pf-c-tab-content .pf-c-title {
+.admin-body.pf-v5-c-page__main-section .pf-v5-c-tab-content .pf-v5-c-title {
   margin-top: 1em;
 }
 
-.admin-header.pf-c-page__main-section {
+.admin-header.pf-v5-c-page__main-section {
   padding-top: 8pt;
   padding-bottom: 8pt;
-  border-bottom: 1px solid var(--pf-global--palette--black-300);
+  border-bottom: 1px solid var(--pf-v5-global--palette--black-300);
 }
 
-.admin-header.pf-c-page__main-section .pf-c-select.pf-m-expanded > .pf-c-select__menu {
+.admin-header.pf-v5-c-page__main-section .pf-v5-c-select.pf-m-expanded > .pf-v5-c-select__menu {
   max-height: 20em;
   overflow-y: scroll;
 }
 
-.admin-lifespan-select.pf-c-select.pf-m-expanded > .pf-c-select__menu {
+.admin-lifespan-select.pf-v5-c-select.pf-m-expanded > .pf-v5-c-select__menu {
   max-height: 10em;
   overflow-y: scroll;
 }

@@ -2,26 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
-  ActionList,
-  ActionListItem,
-  Button,
-  Checkbox,
-  EmptyState,
-  EmptyStateIcon,
-  Form,
-  FormGroup,
-  PageSection,
-  PageSectionVariants,
-  Select,
-  SelectOption,
-  SelectVariant,
-  Split,
-  SplitItem,
-  TextArea,
-  TextInput,
-  Title,
-  Tooltip,
+	ActionList,
+	ActionListItem,
+	Button,
+	Checkbox,
+	EmptyState,
+	EmptyStateIcon,
+	Form,
+	FormGroup,
+	PageSection,
+	PageSectionVariants,
+	Split,
+	SplitItem,
+	TextArea,
+	TextInput,
+	Title,
+	Tooltip, EmptyStateHeader
 } from '@patternfly/react-core';
+import {
+	Select,
+	SelectOption,
+	SelectVariant
+} from '@patternfly/react-core/deprecated';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { apiPaths, fetcher, patchK8sObjectByPath } from '@app/api';
@@ -173,8 +175,7 @@ const CatalogItemAdmin: React.FC = () => {
     <PageSection key="body" variant={PageSectionVariants.light}>
       {isLoading ? (
         <EmptyState variant="full" className="catalog-item-admin__loading">
-          <EmptyStateIcon icon={LoadingIcon} />
-        </EmptyState>
+          <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} /></EmptyState>
       ) : null}
       <Split>
         <SplitItem className="catalog-item-admin__header-icon">
@@ -244,7 +245,7 @@ const CatalogItemAdmin: React.FC = () => {
               label="Disabled"
               isChecked={isDisabled}
               isDisabled={isReadOnlyValue}
-              onChange={(checked) => setIsDisabled(checked)}
+              onChange={(_event, checked) => setIsDisabled(checked)}
             />
             <Tooltip position="right" content={<div>Users will not be able to order this Catalog Item</div>}>
               <OutlinedQuestionCircleIcon
@@ -256,7 +257,7 @@ const CatalogItemAdmin: React.FC = () => {
         </FormGroup>
         <FormGroup fieldId="incident" label="Incident URL">
           <div className="catalog-item-admin__group-control--single">
-            <TextInput type="text" id="incident" onChange={(v) => setIncidentUrl(v)} value={incidentUrl} />
+            <TextInput type="text" id="incident" onChange={(_event, v) => setIncidentUrl(v)} value={incidentUrl} />
             <Tooltip position="right" content={<div>StatusPage.io incident URL</div>}>
               <OutlinedQuestionCircleIcon aria-label="StatusPage.io incident URL" className="tooltip-icon-only" />
             </Tooltip>
@@ -264,7 +265,7 @@ const CatalogItemAdmin: React.FC = () => {
         </FormGroup>
         <FormGroup fieldId="jiraIssueId" label="Jira Issue Id (only visible to admins)">
           <div className="catalog-item-admin__group-control--single">
-            <TextInput type="text" id="jiraIssueId" onChange={(v) => setJiraIssueId(v)} value={jiraIssueId} />
+            <TextInput type="text" id="jiraIssueId" onChange={(_event, v) => setJiraIssueId(v)} value={jiraIssueId} />
           </div>
         </FormGroup>
         <FormGroup fieldId="comment" label="Comments (only visible to admins)">
@@ -284,7 +285,7 @@ const CatalogItemAdmin: React.FC = () => {
           </ul>
           <TextArea
             id="comment"
-            onChange={(v) => setComment(v)}
+            onChange={(_event, v) => setComment(v)}
             value={comment}
             placeholder="Add comment"
             aria-label="Add comment"

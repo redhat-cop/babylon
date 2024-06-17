@@ -9,7 +9,11 @@ import { useSearchParams } from 'react-router-dom';
 import { displayName, FETCH_BATCH_LIMIT, stripTags } from '@app/util';
 import SearchInputString from '@app/components/SearchInputString';
 import { CUSTOM_LABELS } from '@app/Catalog/catalog-utils';
-import { Table, TableBody, TableHeader } from '@patternfly/react-table';
+import {
+	Table,
+	TableBody,
+	TableHeader
+} from '@patternfly/react-table/deprecated';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
 

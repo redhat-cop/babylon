@@ -2,8 +2,9 @@
   padding: 0;
 }
 .support-page > * {
-  padding: 0 var(--pf-c-page__main-section--PaddingRight) 0 var(--pf-c-page__main-section--PaddingLeft);
+  padding: 0
+    var(--pf-v5-c-page__main-section--PaddingR--pf-v5-pf-v5-pf-v5-pf-v5-pf-v5-c-page__main-section--PaddingLeft);
 }
 .support-page > *:last-child {
-  padding-bottom: var(--pf-c-page__main-section--PaddingBottom);
+  padding-bottom: var(--pf-v5-c-page__main-section--PaddingBottom);
 }

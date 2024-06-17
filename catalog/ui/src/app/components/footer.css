@@ -8,7 +8,7 @@
   display: flex;
   flex-direction: row;
   margin: 0 auto;
-  padding: var(--pf-global--spacer--md) var(--pf-global--spacer--lg);
+  padding: var(--pf-v5-global--spacer--md) var(--pf-v5-global--spacer--lg);
 }
 .footer__legal {
   flex: 1 0 60%;
@@ -19,12 +19,12 @@
   font-size: 12px;
   display: flex;
   flex-direction: row;
-  gap: var(--pf-global--spacer--xl);
+  gap: var(--pf-v5-global--spacer--xl);
 }
 .footer__legal ul {
   display: flex;
   flex-direction: row;
-  gap: var(--pf-global--spacer--md);
+  gap: var(--pf-v5-global--spacer--md);
 }
 .footer__legal a {
   text-decoration: underline;
@@ -33,7 +33,7 @@
 .footer__legal a:after {
   content: '|';
   display: inline-block;
-  margin-left: var(--pf-global--spacer--md);
+  margin-left: var(--pf-v5-global--spacer--md);
 }
 .footer__legal li:last-child a:after,
 .footer__legal a > a:after {
