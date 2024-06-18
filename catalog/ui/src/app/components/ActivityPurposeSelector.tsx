@@ -59,7 +59,7 @@ const ActivityPurposeSelector: React.FC<{
       </FormGroup>
       <FormGroup fieldId="purpose" isRequired label="Purpose">
         <div className="catalog-item-form__group-control--single">
-          <div className="select-wrapper">
+          <div className="select-wrapper purpose-select">
             <Select
               aria-label="Purpose"
               isOpen={isOpen}
