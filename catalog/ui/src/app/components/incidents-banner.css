@@ -1,27 +1,27 @@
-.pf-v5-c-banner.pf-m-warning {
+.pf-v5-c-banner.pf-m-gold {
   background-color: #fdf7e7;
   border-top: 2px solid #f0ab00;
 }
-.pf-v5-c-banner.pf-m-info {
+.pf-v5-c-banner.pf-m-blue {
   background-color: #e7f1fa;
   border-top: 2px solid #2b9af3;
 }
-.pf-v5-c-banner.pf-m-info a,
-.pf-v5-c-banner.pf-m-info .editor-link {
+.pf-v5-c-banner.pf-m-blue a,
+.pf-v5-c-banner.pf-m-blue .editor-link {
   color: #151515 !important;
 }
-.pf-v5-c-banner.pf-m-critical {
+.pf-v5-c-banner.pf-m-red {
   background-color: #faeae8;
   color: #fff;
   border-top: 2px solid #c9190b;
 }
-.pf-v5-c-banner.pf-m-warning svg {
+.pf-v5-c-banner.pf-m-gold svg {
   fill: #f0ab00;
 }
-.pf-v5-c-banner.pf-m-info svg {
+.pf-v5-c-banner.pf-m-blue svg {
   fill: #2b9af3;
 }
-.pf-v5-c-banner.pf-m-critical svg {
+.pf-v5-c-banner.pf-m-red svg {
   fill: #c9190b;
 }
 .incidents-banner__close-btn svg {

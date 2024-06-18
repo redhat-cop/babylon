@@ -55,7 +55,7 @@ const IncidentsBanner: React.FC = () => {
                 display: 'flex',
                 gap: 'var(--pf-v5-global--spacer--sm)',
                 flexDirection: 'row',
-                padding: 'var(--pf-v5-global--spacer--sm--pf-v5-pf-v5-pf-v5-global--spacer--xs)',
+                padding: 'var(--pf-v5-global--spacer--sm) var(--pf-v5-global--spacer--xs)',
                 position: 'relative',
               }}
             >
