@@ -902,6 +902,7 @@ const ServicesItemComponent: React.FC<{
                 </DescriptionList>
               ) : null}
             </Tab>
+
             {statusEnabled ? (
               /* @ts-ignore */
               <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
@@ -911,12 +912,10 @@ const ServicesItemComponent: React.FC<{
               </Tab>
             ) : null}
 
-            {statusEnabled ? (
+            {consoleEnabled ? (
               /* @ts-ignore */
-              <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
-                {activeTab === 'status' ? (
-                  <ServiceItemStatus onCheckStatusRequest={onCheckStatusRequest} resourceClaim={resourceClaim} />
-                ) : null}
+              <Tab eventKey="console" title={<TabTitleText>Console</TabTitleText>}>
+                {activeTab === 'console' ? <ServiceOpenStackConsole resourceClaim={resourceClaim} /> : null}
               </Tab>
             ) : null}
 
