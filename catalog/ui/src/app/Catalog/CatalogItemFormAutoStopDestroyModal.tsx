@@ -46,6 +46,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
     stopDate: null,
     endDate: null,
   });
+  const defaultLifespanTime = autoDestroyDate.getTime() - new Date().getTime();
   const [createTicket, setCreateTicket] = useState(false);
   const _stopDate = dates.stopDate || autoStopDate;
   const _endDate = dates.endDate || autoDestroyDate;
@@ -80,7 +81,12 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
             <DateTimePicker
               defaultTimestamp={autoStartDate?.getTime() || Date.now()}
               onSelect={(d) => {
-                setDates({ ...dates, startDate: d });
+                const _dates = dates;
+                _dates.startDate = d;
+                if (!dates.endDate || d.getTime() + defaultLifespanTime > dates.endDate.getTime()) {
+                  _dates.endDate = new Date(d.getTime() + defaultLifespanTime);
+                }
+                setDates({ ..._dates });
                 const today = new Date();
                 const twoWeeks = new Date(new Date().setDate(today.getDate() + 14));
                 if (d >= twoWeeks) {
@@ -140,6 +146,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                     : null
                 }
                 minDate={type === 'schedule' && dates.startDate ? dates.startDate.getTime() : Date.now()}
+                forceUpdateTimestamp={dates.endDate?.getTime()}
               />
             </FormGroup>
             {isAdmin ? null : (
