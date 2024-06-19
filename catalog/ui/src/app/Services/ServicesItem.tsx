@@ -902,14 +902,6 @@ const ServicesItemComponent: React.FC<{
                 </DescriptionList>
               ) : null}
             </Tab>
-            {statusEnabled ? (
-              /* @ts-ignore */
-              <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
-                {activeTab === 'status' ? (
-                  <ServiceItemStatus onCheckStatusRequest={onCheckStatusRequest} resourceClaim={resourceClaim} />
-                ) : null}
-              </Tab>
-            ) : null}
 
             {statusEnabled ? (
               /* @ts-ignore */
