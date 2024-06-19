@@ -156,8 +156,6 @@ const DateTimePicker: React.FC<{
           onToggle={(_event, value: boolean) => onToggleTime(value, _event)}
           style={{
             padding: '6px 16px',
-            maxHeight: '380px',
-            overflowY: 'scroll',
             ...(isDisabled ? { color: 'var(--pf-v5-global--disabled-color--100)' } : {}),
           }}
           isDisabled={isDisabled}
