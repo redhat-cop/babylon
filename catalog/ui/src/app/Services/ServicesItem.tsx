@@ -912,6 +912,13 @@ const ServicesItemComponent: React.FC<{
               </Tab>
             ) : null}
 
+            {consoleEnabled ? (
+              /* @ts-ignore */
+              <Tab eventKey="console" title={<TabTitleText>Console</TabTitleText>}>
+                {activeTab === 'console' ? <ServiceOpenStackConsole resourceClaim={resourceClaim} /> : null}
+              </Tab>
+            ) : null}
+
             {workshopName && !isPartOfWorkshop ? (
               [
                 /* @ts-ignore */
