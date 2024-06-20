@@ -37,7 +37,8 @@ const Header: React.FC<{
   const { isAdmin, email, userInterface } = useSession().getSession();
   const navigate = useNavigate();
   const helpLink = useHelpLink();
-  const { help_text, status_page_url, feedback_link, learn_more_link } = useInterfaceConfig();
+  const { help_text, status_page_url, feedback_link, learn_more_link, workshop_support_text, workshop_support_link } =
+    useInterfaceConfig();
 
   function clearUserImpersonation() {
     clearImpersonation();
@@ -68,6 +69,23 @@ const Header: React.FC<{
     <ApplicationLauncherItem key="open-support" component="button" onClick={openSupportCase} isExternal>
       {help_text}
     </ApplicationLauncherItem>,
+  ];
+
+  if (userInterface === 'rhpds') {
+    UserHelpDropdownItems.push(
+      <ApplicationLauncherItem
+        key="workshop-support"
+        href={workshop_support_link}
+        target="_blank"
+        rel="noreferrer nofollow"
+        isExternal
+      >
+        {workshop_support_text}
+      </ApplicationLauncherItem>
+    );
+  }
+
+  UserHelpDropdownItems.push(
     <ApplicationLauncherItem
       key="status-page-link"
       href={status_page_url}
@@ -76,8 +94,8 @@ const Header: React.FC<{
       isExternal
     >
       Status Page
-    </ApplicationLauncherItem>,
-  ];
+    </ApplicationLauncherItem>
+  );
 
   if (userInterface === 'rhpds') {
     UserHelpDropdownItems.push(

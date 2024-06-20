@@ -25,6 +25,9 @@ body,
 .pf-v5-c-page {
   --pf-v5-c-page__header--MinHeight: 4.5rem;
 }
+#root > .pf-v5-c-page__main-section {
+  min-height: 100%;
+}
 
 #primary-app-container > .pf-v5-c-drawer .pf-v5-c-drawer__body {
   display: flex;

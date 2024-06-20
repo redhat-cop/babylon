@@ -12,6 +12,8 @@ type TInterface = {
     internal_help_link: string,
     feedback_link: string,
     learn_more_link: string,
+    workshop_support_link: string;
+    workshop_support_text: string;
 }
 export function useInterface(userInterface: string) {
     const { data, error } = useSWRImmutable<TInterface>(`./public/interfaces/${userInterface}.json`, publicFetcher);
@@ -31,7 +33,9 @@ export default function useInterfaceConfig() {
             help_text: '',
             internal_help_link: '',
             feedback_link: '',
-            learn_more_link: ''
+            learn_more_link: '',
+            workshop_support_link: '',
+            workshop_support_text: ''
         };
     }
     return data;
