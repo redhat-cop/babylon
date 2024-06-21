@@ -303,9 +303,9 @@ class WorkshopProvision(CachedKopfObject):
             return
 
         # Do not start any provisions if failure threshold is exceeded
-        failure_threshold = 60
-        if failure_threshold <= failed_count / self.count * 100:
-            return
+        if self.count != 0:
+            if Babylon.workshop_fail_percentage_threshold <= failed_count / self.count * 100:
+                return
 
         # Start provisions up to count and within concurrency limit
         if resource_claim_count < (self.count + failed_count) and provisioning_count < self.concurrency:
