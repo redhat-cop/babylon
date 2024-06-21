@@ -282,6 +282,7 @@ class WorkshopProvision(CachedKopfObject):
 
         resource_claim_count = 0
         provisioning_count = 0
+        failed_count = 0
 
         async for resource_claim in self.list_resource_claims():
             resource_claim_count += 1
@@ -294,12 +295,20 @@ class WorkshopProvision(CachedKopfObject):
             if not resource_claim.provision_complete:
                 provisioning_count += 1
 
+            if resource_claim.is_failed:
+                failed_count += 1
+
         # Do not start any provisions if lifespan start is in the future
         if self.lifespan_start and self.lifespan_start > datetime.now(timezone.utc):
             return
 
+        # Do not start any provisions if failure threshold is exceeded
+        failure_threshold = 60
+        if failure_threshold <= failed_count / self.count * 100:
+            return
+
         # Start provisions up to count and within concurrency limit
-        if resource_claim_count < self.count and provisioning_count < self.concurrency:
+        if resource_claim_count < (self.count + failed_count) and provisioning_count < self.concurrency:
             await self.create_resource_claim(logger=logger, workshop=workshop)
 
     async def set_owner_references(self, logger):
