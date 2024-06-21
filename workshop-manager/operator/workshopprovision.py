@@ -47,6 +47,10 @@ class WorkshopProvision(CachedKopfObject):
         return datetime.strptime(
             stop_timestamp, '%Y-%m-%dT%H:%M:%SZ'
         ).replace(tzinfo=timezone.utc)
+    
+    @property
+    def auto_detach_condition(self):
+        return self.spec.get('autoDetach', {}).get('when')
 
     @property
     def catalog_item_name(self):
@@ -139,6 +143,9 @@ class WorkshopProvision(CachedKopfObject):
                 "resources": deepcopy(catalog_item.resources)
             }
         }
+
+        if self.auto_detach_condition:
+            resource_claim_definition['spec']['autoDetach'] = {"when": self.auto_detach_condition}
 
         if workshop.requester:
             resource_claim_definition['metadata']['annotations'][Babylon.requester_annotation] = workshop.requester
