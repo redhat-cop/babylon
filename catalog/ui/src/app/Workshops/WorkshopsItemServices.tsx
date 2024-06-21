@@ -10,6 +10,9 @@ import {
   ModalVariant,
   Spinner,
   EmptyStateHeader,
+  NumberInput,
+  FormGroup,
+  Form,
 } from '@patternfly/react-core';
 import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
@@ -48,6 +51,7 @@ const WorkshopsItemServices: React.FC<{
   const unusedResourceClaims = resourceClaims.filter(
     (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email)
   );
+  const [instancesToDelete, setInstancesToDelete] = useState(unusedResourceClaims.length);
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
@@ -73,8 +77,10 @@ const WorkshopsItemServices: React.FC<{
           })
         );
       }
+      let i = 0;
       for (let resourceClaim of unusedResourceClaims) {
-        await deleteResourceClaim(resourceClaim);
+        if (i >= count) await deleteResourceClaim(resourceClaim);
+        i++;
       }
       for (let workshopProvision of workshopProvisions) {
         mutate(
@@ -289,7 +295,7 @@ const WorkshopsItemServices: React.FC<{
             key="confirm"
             variant="primary"
             isDisabled={isLoading}
-            onClick={() => deleteUnusedInstances({ count: resourceClaims.length - unusedResourceClaims.length })}
+            onClick={() => deleteUnusedInstances({ count: resourceClaims.length - instancesToDelete })}
           >
             {isLoading ? <Spinner size="sm" /> : null} Confirm
           </Button>,
@@ -298,10 +304,28 @@ const WorkshopsItemServices: React.FC<{
           </Button>,
         ]}
       >
-        <p>Unused instances: {unusedResourceClaims.length}</p>
-        <p>
-          This action will size down the workshop to {resourceClaims.length - unusedResourceClaims.length} instances
-        </p>
+        <Form>
+          <p>Unused instances: {unusedResourceClaims.length}</p>
+          <FormGroup label="Number of instances to delete" fieldId="delete-instances">
+            <NumberInput
+              id="delete-instances"
+              max={unusedResourceClaims.length}
+              min={0}
+              name="delete-instances"
+              value={instancesToDelete}
+              onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                const value = parseInt(event.currentTarget.value);
+                if (isNaN(value)) {
+                  return;
+                }
+                setInstancesToDelete(value);
+              }}
+              onMinus={() => setInstancesToDelete(instancesToDelete - 1)}
+              onPlus={() => setInstancesToDelete(instancesToDelete + 1)}
+            />
+          </FormGroup>
+          <p>This action will size down the workshop to {resourceClaims.length - instancesToDelete} instances</p>
+        </Form>
       </Modal>
       {unusedResourceClaims.length > 0 ? (
         <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-v5-global--spacer--md)' }}>
