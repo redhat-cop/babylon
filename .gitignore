@@ -3,3 +3,4 @@ notifier/values.yaml
 *.key
 *.swp
 __pycache__
+.vscode

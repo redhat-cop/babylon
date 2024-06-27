@@ -32,6 +32,8 @@ class Babylon():
     salesforce_id_annotation = f"{demo_domain}/salesforce-id"
     user_name_label = f"{babylon_domain}/user-name"
 
+    workshop_fail_percentage_threshold = int(os.environ.get('WORKSHOP_FAIL_PERCENTAGE_THRESHOLD', 60))
+
     @classmethod
     async def on_cleanup(cls):
         await cls.core_v1_api.api_client.close()

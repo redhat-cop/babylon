@@ -80,9 +80,38 @@ class ResourceClaim(K8sObject):
             if not state:
                 return False
             if state['kind'] == 'AnarchySubject':
+                # Anarchy Governor is not setting the completeTimestamp for failed states yet
+                # so we need to check the current_state to determine if the provision is failed which
+                # means completed provision
+                # TODO: Remove this check once Anarchy Governor sets completeTimestamp for failed states (GPTEINFRA-10007)
+                current_state = state.get('spec', {}).get('vars', {}).get('current_state')
+                if current_state is not None and (
+                    current_state.endswith('-failed') or
+                    current_state in ["provision-error", "provision-cancelled"]
+                ):
+                    return True
+            
                 if not state.get('status', {}).get('towerJobs', {}).get('provision', {}).get('completeTimestamp'):
                     return False
+                
         return True
+
+    @property
+    def is_failed(self):
+        if 'status' not in self.definition or 'resources' not in self.definition['status']:
+            return False
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return False
+            if state['kind'] == 'AnarchySubject':
+                current_state = state.get('spec', {}).get('vars', {}).get('current_state')
+                if current_state is not None and (
+                    current_state.endswith('-failed') or
+                    current_state in ["provision-error", "provision-cancelled"]
+                ):
+                    return True
+        return False
 
     @property
     def resource_handle_name(self):
