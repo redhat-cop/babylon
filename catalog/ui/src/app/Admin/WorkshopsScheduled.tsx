@@ -118,35 +118,20 @@ const WorkshopsScheduled: React.FC<{}> = () => {
           </SplitItem>
         </Split>
       </PageSection>
-      {workshops.length === 0 ? (
-        <PageSection key="workshops-list-empty">
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText="No workshops found."
-              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-              headingLevel="h1"
-            />
-            <EmptyStateFooter>
-              <EmptyStateBody>No workshops.</EmptyStateBody>
-            </EmptyStateFooter>
-          </EmptyState>
-        </PageSection>
-      ) : (
-        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body" style={{ minHeight: 750 }}>
-          <p style={{ padding: '16px 0' }}>Showing only upcoming scheduled workshops.</p>
-          <Calendar
-            localizer={localizer}
-            events={workshops.map(eventMapper).filter(Boolean).filter(filterOutRunningWorkshops)}
-            startAccessor="start"
-            endAccessor="end"
-            style={{ height: 700 }}
-            onSelectEvent={(ev: TEvent) => navigate(ev.url)}
-            eventPropGetter={eventStyleGetter}
-            showAllEvents={true}
-            showMultiDayTimes={true}
-          />
-        </PageSection>
-      )}
+      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body" style={{ minHeight: 750 }}>
+        <p style={{ padding: '16px 0' }}>Showing only upcoming scheduled workshops.</p>
+        <Calendar
+          localizer={localizer}
+          events={workshops.map(eventMapper).filter(Boolean).filter(filterOutRunningWorkshops)}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: 700 }}
+          onSelectEvent={(ev: TEvent) => navigate(ev.url)}
+          eventPropGetter={eventStyleGetter}
+          showAllEvents={true}
+          showMultiDayTimes={true}
+        />
+      </PageSection>
       <Footer />
     </div>
   );
