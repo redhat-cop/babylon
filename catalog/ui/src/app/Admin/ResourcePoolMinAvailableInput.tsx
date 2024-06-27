@@ -54,7 +54,7 @@ const ResourcePoolMinAvailableInput: React.FC<{
         onPlus={() => queueMinAvailableUpdate(minAvailable + 1)}
         value={minAvailable}
       />
-      {minAvailableUpdating ? [' ', <Spinner key="spinner"  size="md" />] : null}
+      {minAvailableUpdating ? [' ', <Spinner key="spinner" size="md" />] : null}
     </>
   );
 };

@@ -91,7 +91,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     {
       shouldRetryOnError: false,
       suspense: false,
-    }
+    },
   );
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
     userNamespace?.name
@@ -106,12 +106,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           namespace: userNamespace.name,
           limit: FETCH_BATCH_LIMIT,
           continueId,
-        })
+        }),
       ),
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
-    }
+    },
   );
 
   const services: ResourceClaim[] = useMemo(
@@ -119,7 +119,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       Array.isArray(userResourceClaims)
         ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r)))
         : [],
-    [userResourceClaims]
+    [userResourceClaims],
   );
 
   const descriptionHtml = useMemo(
@@ -131,7 +131,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         }}
       />
     ),
-    [description, descriptionFormat]
+    [description, descriptionFormat],
   );
 
   const isDisabled = getIsDisabled(catalogItem);
@@ -152,12 +152,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     isAdmin || isLabDeveloper(groups)
       ? CatalogItemAccess.Allow
       : accessCheckResult === 'deny'
-      ? CatalogItemAccess.Deny
-      : services.length >= 5
-      ? CatalogItemAccess.Deny
-      : accessCheckResult === 'allow'
-      ? CatalogItemAccess.Allow
-      : CatalogItemAccess.RequestInformation;
+        ? CatalogItemAccess.Deny
+        : services.length >= 5
+          ? CatalogItemAccess.Deny
+          : accessCheckResult === 'allow'
+            ? CatalogItemAccess.Allow
+            : CatalogItemAccess.RequestInformation;
   const catalogItemAccessDenyReason =
     catalogItemAccess !== CatalogItemAccess.Deny ? null : services.length >= 5 ? (
       <p>
@@ -252,7 +252,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 url={
                   new URL(
                     `/catalog?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
-                    window.location.origin
+                    window.location.origin,
                   )
                 }
                 name={catalogItemName}
@@ -319,8 +319,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                       {attr === CUSTOM_LABELS.ESTIMATED_COST.key
                         ? null
                         : attr === CUSTOM_LABELS.SLA.key
-                        ? 'Service Level'
-                        : formatString(attr)}
+                          ? 'Service Level'
+                          : formatString(attr)}
                     </DescriptionListTerm>
                     <DescriptionListDescription>
                       {attr === CUSTOM_LABELS.RATING.key ? (
@@ -340,10 +340,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
 
               {metrics?.medianRuntimeCostByHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-cost">
-                  <DescriptionListTerm>Estimated Hourly Cost if not stopped</DescriptionListTerm>
+                  <DescriptionListTerm>Estimated Hourly Cost</DescriptionListTerm>
                   <DescriptionListDescription>
                     {formatCurrency(metrics?.medianRuntimeCostByHour * 1.1)}
-                    <Tooltip content="Estimated hourly cost per running instance.">
+                    <Tooltip content="Estimated hourly cost if not stopped.">
                       <InfoAltIcon
                         style={{
                           paddingTop: 'var(--pf-v5-global--spacer--xs)',

@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-	Table,
-	TableHeader,
-	TableBody
-} from '@patternfly/react-table/deprecated';
+import { Table, TableHeader, TableBody } from '@patternfly/react-table/deprecated';
 
 const SelectableTable: React.FC<{
   columns: any[];

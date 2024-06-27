@@ -8,8 +8,8 @@ function getPageTitle(title: string, userInterface?: string): string {
   return userInterface === 'summit'
     ? title.replace('Babylon', 'Red Hat Summit')
     : ['rhpds', 'rhdp', 'rhdp-partners'].includes(userInterface)
-    ? title.replace('Babylon', 'Red Hat Demo Platform')
-    : title;
+      ? title.replace('Babylon', 'Red Hat Demo Platform')
+      : title;
 }
 
 // a custom hook for setting the page title

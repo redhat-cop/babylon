@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
-import {
-	PageSection,
-	PageSectionVariants
-} from '@patternfly/react-core';
-import {
-	Dropdown,
-	DropdownItem,
-	DropdownToggle
-} from '@patternfly/react-core/deprecated';
+import { PageSection, PageSectionVariants } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
 import useSession from '@app/utils/useSession';
 import { displayName } from '@app/util';
 

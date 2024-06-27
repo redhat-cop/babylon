@@ -49,13 +49,13 @@ const WorkshopsItemServices: React.FC<{
   const { mutate } = useSWRConfig();
 
   const unusedResourceClaims = resourceClaims.filter(
-    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email)
+    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email),
   );
   const [instancesToDelete, setInstancesToDelete] = useState(unusedResourceClaims.length);
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
-      selectedUids.includes(resourceClaim.metadata.uid)
+      selectedUids.includes(resourceClaim.metadata.uid),
     );
     setSelectedResourceClaims(selectedResourceClaims);
   }, [resourceClaims, selectedUids, setSelectedResourceClaims]);
@@ -74,7 +74,7 @@ const WorkshopsItemServices: React.FC<{
             workshopName: workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`],
             namespace: workshopProvision.metadata.namespace,
             limit: 'ALL',
-          })
+          }),
         );
       }
       let i = 0;
@@ -90,13 +90,13 @@ const WorkshopsItemServices: React.FC<{
               workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`]
             }`,
             limit: 'ALL',
-          })
+          }),
         );
       }
       setIsLoading(false);
       setIsOpen(false);
     },
-    [workshopProvisions, unusedResourceClaims]
+    [workshopProvisions, unusedResourceClaims],
   );
 
   if (resourceClaims.length == 0) {
@@ -144,7 +144,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_data
-                  : r?.data?.labUserInterfaceData
+                  : r?.data?.labUserInterfaceData,
               )
               .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
               .find((u) => u != null);
@@ -156,7 +156,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_method
-                  : r?.data?.labUserInterfaceMethod
+                  : r?.data?.labUserInterfaceMethod,
               )
               .find((u) => u != null);
           const labUserInterfaceUrl =

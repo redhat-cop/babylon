@@ -16,7 +16,7 @@ export function getStatus(
   desiredState: string,
   creationTime: number,
   startTime: number,
-  stopTime: number
+  stopTime: number,
 ): { statusName: string; phase: phaseProps } {
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
@@ -64,7 +64,7 @@ const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
     case 'unknown':
       return <QuestionCircleIcon />;
     case 'in-progress':
-      return <Spinner  size="md" />;
+      return <Spinner size="md" />;
     case 'available':
     case 'running':
       return <CheckCircleIcon />;
@@ -118,7 +118,7 @@ const ServiceStatus: React.FC<{
   if (typeof resource === 'undefined') {
     return (
       <span className="service-status--unknown">
-        <Spinner  size="md" /> Requested
+        <Spinner size="md" /> Requested
       </span>
     );
   }

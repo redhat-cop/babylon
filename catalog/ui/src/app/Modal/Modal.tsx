@@ -50,7 +50,7 @@ const _Modal: ForwardRefRenderFunction<
     confirmText = 'Confirm',
     className,
   },
-  ref
+  ref,
 ): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
@@ -86,7 +86,7 @@ const _Modal: ForwardRefRenderFunction<
       open: () => setIsOpen(true),
       close,
     }),
-    [close]
+    [close],
   );
 
   const handleEscape = useCallback(
@@ -95,7 +95,7 @@ const _Modal: ForwardRefRenderFunction<
         close();
       }
     },
-    [close]
+    [close],
   );
 
   const handleClick = useCallback(
@@ -113,7 +113,7 @@ const _Modal: ForwardRefRenderFunction<
       }
       return e;
     },
-    [close]
+    [close],
   );
 
   useEffect(() => {
@@ -156,7 +156,7 @@ const _Modal: ForwardRefRenderFunction<
           setState,
           setOnConfirmCb,
           setIsDisabled,
-        }
+        },
       );
     }
     return child;
@@ -214,7 +214,7 @@ const _Modal: ForwardRefRenderFunction<
             </Modal>
           </Suspense>
         ) : null,
-        document.getElementById('modal-root')
+        document.getElementById('modal-root'),
       )
     : null;
 };

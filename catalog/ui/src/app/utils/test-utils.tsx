@@ -30,7 +30,7 @@ const AllTheProviders = ({ children, history }) => {
 
 const customRender = (
   ui: ReactElement,
-  options?: { history: MemoryHistory } & Omit<RenderOptions, 'queries'>
+  options?: { history: MemoryHistory } & Omit<RenderOptions, 'queries'>,
 ): RenderResult<typeof queries> => {
   function getOptions({ history = createMemoryHistory({ initialEntries: ['/'] }), ...rest }) {
     return { rest, history };

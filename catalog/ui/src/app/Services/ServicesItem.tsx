@@ -124,17 +124,17 @@ const ComponentDetailsList: React.FC<{
     typeof provisionMessages === 'string'
       ? provisionMessages
       : provisionMessages
-      ? provisionMessages
-          .map((m) => {
-            if (m.includes('~')) {
-              return `pass:[${m}]`;
-            }
-            return m;
-          })
-          .join('\n')
-          .trim()
-          .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
-      : null;
+        ? provisionMessages
+            .map((m) => {
+              if (m.includes('~')) {
+                return `pass:[${m}]`;
+              }
+              return m;
+            })
+            .join('\n')
+            .trim()
+            .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
+        : null;
   const provisionMessagesHtml = useMemo(
     () =>
       _provisionMessages ? (
@@ -144,7 +144,7 @@ const ComponentDetailsList: React.FC<{
           }}
         />
       ) : null,
-    [_provisionMessages]
+    [_provisionMessages],
   );
   return (
     <DescriptionList isHorizontal>
@@ -271,7 +271,7 @@ const ComponentDetailsList: React.FC<{
                               {stage}
                             </Link>
                           </ListItem>
-                        ) : null
+                        ) : null,
                       )}
                     </List>
                   </DescriptionListDescription>
@@ -311,7 +311,7 @@ const ServicesItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
   useErrorHandler(error?.status === 404 ? error : null);
 
@@ -333,7 +333,7 @@ const ServicesItemComponent: React.FC<{
   const enableFetchUserNamespaces = isAdmin;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
-    fetcher
+    fetcher,
   );
   const serviceNamespaces = useMemo(() => {
     return enableFetchUserNamespaces
@@ -424,7 +424,7 @@ const ServicesItemComponent: React.FC<{
       .find((u) => u != null);
 
   const serviceHasUsers = (resourceClaim.status?.resources || []).find(
-    (r) => r.state?.spec?.vars?.provision_data?.users
+    (r) => r.state?.spec?.vars?.provision_data?.users,
   )
     ? true
     : false;
@@ -435,7 +435,7 @@ const ServicesItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
   const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
     workshopName
@@ -447,7 +447,7 @@ const ServicesItemComponent: React.FC<{
     fetcher,
     {
       refreshInterval: 15000,
-    }
+    },
   );
 
   const costTracker = getCostTracker(resourceClaim);
@@ -463,8 +463,8 @@ const ServicesItemComponent: React.FC<{
             ? await scheduleStartResourceClaim(resourceClaim)
             : await startAllResourcesInResourceClaim(resourceClaim)
           : resourceClaim.status?.summary
-          ? await scheduleStopResourceClaim(resourceClaim)
-          : await stopAllResourcesInResourceClaim(resourceClaim);
+            ? await scheduleStopResourceClaim(resourceClaim)
+            : await stopAllResourcesInResourceClaim(resourceClaim);
       mutate(resourceClaimUpdate);
       globalMutate(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
     }
@@ -474,7 +474,7 @@ const ServicesItemComponent: React.FC<{
           resourceClaim.metadata.uid,
           modalState.rating.rate,
           modalState.rating.comment,
-          modalState.rating.useful
+          modalState.rating.useful,
         );
         globalMutate(apiPaths.USER_RATING({ requestUuid: resourceClaim.metadata.uid }));
       }
@@ -485,7 +485,7 @@ const ServicesItemComponent: React.FC<{
         apiPaths.RESOURCE_CLAIM({
           namespace: resourceClaim.metadata.namespace,
           resourceClaimName: resourceClaim.metadata.name,
-        })
+        }),
       );
       cache.delete(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
       navigate(`/services/${serviceNamespaceName}`);
@@ -497,8 +497,8 @@ const ServicesItemComponent: React.FC<{
       modalState.action === 'retirement'
         ? await setLifespanEndForResourceClaim(resourceClaim, date)
         : resourceClaim.status?.summary
-        ? await scheduleStopResourceClaim(resourceClaim, date)
-        : await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
+          ? await scheduleStopResourceClaim(resourceClaim, date)
+          : await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
     mutate(resourceClaimUpdate);
   }
 
@@ -534,7 +534,7 @@ const ServicesItemComponent: React.FC<{
         openModalCreateWorkshop();
       }
     },
-    [openModalAction, openModalCreateWorkshop, openModalScheduleAction]
+    [openModalAction, openModalCreateWorkshop, openModalScheduleAction],
   );
 
   const toggle = (id: string) => {
@@ -550,7 +550,7 @@ const ServicesItemComponent: React.FC<{
       userAssigmentsListClone.items = Array.from(userAssigments);
       mutateUserAssigmentsList(userAssigmentsListClone);
     },
-    [mutateUserAssigmentsList, userAssigmentsList]
+    [mutateUserAssigmentsList, userAssigmentsList],
   );
 
   return (

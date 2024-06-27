@@ -12,7 +12,7 @@ function fetchResourceHandlesFromResourcePool(resourcePoolName: string) {
       labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
       limit: FETCH_BATCH_LIMIT,
       continueId,
-    })
+    }),
   );
 }
 
@@ -25,7 +25,7 @@ const ResourcePoolStats: React.FC<{ resourcePoolName: string; minAvailable: numb
       labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
       limit: 'ALL',
     }),
-    () => fetchResourceHandlesFromResourcePool(resourcePoolName)
+    () => fetchResourceHandlesFromResourcePool(resourcePoolName),
   );
   const { total, taken, available } = usePoolStatus(resourceHandles);
 

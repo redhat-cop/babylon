@@ -50,7 +50,7 @@ const ServicesAction: React.FC<{
           ? resourceClaim.status.resources
               .filter((r) => (r.state?.spec?.vars?.action_schedule?.default_runtime ? true : false))
               .map((r) => parseDuration(r.state.spec.vars.action_schedule.default_runtime) / 1000)
-          : [])
+          : []),
       );
     }
   }

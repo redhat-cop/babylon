@@ -1,15 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-	Form,
-	FormGroup,
-	TextArea,
-	TextInput
-} from '@patternfly/react-core';
-import {
-	Select,
-	SelectOption,
-	SelectVariant
-} from '@patternfly/react-core/deprecated';
+import { Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import { createWorkshopForMultiuserService } from '@app/api';
 import { ResourceClaim } from '@app/types';
 import { displayName, randomString } from '@app/util';
@@ -47,7 +38,11 @@ const ServicesCreateWorkshop: React.FC<{
   return (
     <Form>
       <FormGroup fieldId="workshopDisplayName" isRequired={true} label="Display Name">
-        <TextInput id="workshopDisplayName" onChange={(_event, v) => setWorkshopDisplayName(v)} value={workshopDisplayName} />
+        <TextInput
+          id="workshopDisplayName"
+          onChange={(_event, v) => setWorkshopDisplayName(v)}
+          value={workshopDisplayName}
+        />
       </FormGroup>
       <FormGroup fieldId="workshopAccessPassword" label="Access Password">
         <TextInput

@@ -31,7 +31,7 @@ import useDebounce from '@app/utils/useDebounce';
 
 function reducer(
   state: { salesforce_id: string; valid: boolean; completed: boolean },
-  action: { type: 'set_salesforceId' | 'complete'; salesforceId?: string; salesforceIdValid?: boolean }
+  action: { type: 'set_salesforceId' | 'complete'; salesforceId?: string; salesforceIdValid?: boolean },
 ) {
   switch (action.type) {
     case 'set_salesforceId':
@@ -64,7 +64,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
           name: workshopProvision.spec.catalogItem.name,
         })
       : null,
-    fetcher
+    fetcher,
   );
   const [salesforceObj, dispatchSalesforceObj] = useReducer(reducer, {
     salesforce_id: workshopProvision.spec.parameters?.salesforce_id || '',
@@ -86,19 +86,19 @@ const WorkshopsItemProvisioningItem: React.FC<{
           labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
           limit: FETCH_BATCH_LIMIT,
           continueId,
-        })
+        }),
       ),
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
-    }
+    },
   );
 
   useEffect(() => {
     if (!salesforceObj.completed) {
       checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch).then(
         ({ valid, message }: { valid: boolean; message?: string }) =>
-          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid })
+          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid }),
       );
     } else if (workshopProvision.spec.parameters?.salesforce_id !== salesforceObj.salesforce_id) {
       patchWorkshopProvisionSpec({
@@ -130,7 +130,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
         workshopName: workshopProvision.metadata.labels['babylon.gpte.redhat.com/workshop'],
         namespace: workshopProvision.metadata.namespace,
         limit: 'ALL',
-      })
+      }),
     );
   }
 
@@ -185,8 +185,8 @@ const WorkshopsItemProvisioningItem: React.FC<{
                   ? salesforceObj.completed && salesforceObj.valid
                     ? 'success'
                     : salesforceObj.completed
-                    ? 'error'
-                    : 'default'
+                      ? 'error'
+                      : 'default'
                   : 'default'
               }
             />
@@ -213,8 +213,8 @@ const WorkshopsItemProvisioningItem: React.FC<{
                 isAdmin
                   ? 200
                   : workshopProvision.spec.parameters?.salesforce_id || workshop.spec.multiuserServices
-                  ? 200
-                  : 1
+                    ? 200
+                    : 1
               }
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}

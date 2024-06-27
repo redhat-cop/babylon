@@ -135,7 +135,7 @@ const DateTimePicker: React.FC<{
         <DropdownItem key={`${hour}-${minute}`} component="button">
           {formatAmPm(`${hour}:${minute}`)}
         </DropdownItem>
-      ))
+      )),
   );
 
   const calendar = (

@@ -67,9 +67,8 @@ export default function useSession(): {
     if (userImpersonated && !email) {
       const session = getSessionFn(dispatch);
       await setImpersonation(userImpersonated);
-      return session; 
-    }
-    else if (!email) {
+      return session;
+    } else if (!email) {
       return getSessionFn(dispatch);
     }
     return Promise.resolve();

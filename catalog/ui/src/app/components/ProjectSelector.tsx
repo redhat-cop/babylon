@@ -35,15 +35,15 @@ const ProjectSelector: React.FC<{
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const serviceNamespaces = useMemo(
     () => (isAdmin ? allNamespaces : sessionServiceNamespaces) ?? [],
-    [isAdmin, allNamespaces, sessionServiceNamespaces]
+    [isAdmin, allNamespaces, sessionServiceNamespaces],
   );
 
   const labelSelector =
     selector === 'users'
       ? 'usernamespace.gpte.redhat.com/user-uid'
       : selector === 'anarchy'
-      ? 'app.kubernetes.io/name=anarchy'
-      : null;
+        ? 'app.kubernetes.io/name=anarchy'
+        : null;
 
   const toggleOpen = useCallback(() => {
     if (isAdmin && allNamespaces === null) {
@@ -66,9 +66,9 @@ const ProjectSelector: React.FC<{
       serviceNamespaces.filter((ns) =>
         ns.name.toLowerCase().includes(searchValue.toLowerCase()) || ns.displayName
           ? ns.displayName.toLowerCase().includes(searchValue.toLowerCase())
-          : false
+          : false,
       ),
-    [serviceNamespaces, searchValue]
+    [serviceNamespaces, searchValue],
   );
 
   const Row = ({ index, style }) => (

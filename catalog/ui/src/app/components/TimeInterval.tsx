@@ -10,17 +10,17 @@ const TimeInterval: React.FC<{
   const to: number | null = toDate
     ? toDate.getTime()
     : toTimestamp
-    ? Date.parse(toTimestamp)
-    : toEpochMilliseconds
-    ? toEpochMilliseconds
-    : null;
+      ? Date.parse(toTimestamp)
+      : toEpochMilliseconds
+        ? toEpochMilliseconds
+        : null;
   const intervalMilliseconds: number | null = to
     ? to - Date.now()
     : typeof interval === 'string'
-    ? parseDuration(interval)
-    : typeof interval === 'number'
-    ? interval * 1000
-    : null;
+      ? parseDuration(interval)
+      : typeof interval === 'number'
+        ? interval * 1000
+        : null;
 
   console.assert(intervalMilliseconds !== null, 'No target time provided to TimeInterval');
 

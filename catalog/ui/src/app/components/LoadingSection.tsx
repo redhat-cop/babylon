@@ -5,7 +5,8 @@ import LoadingIcon from './LoadingIcon';
 const LoadingSection: React.FC = () => (
   <PageSection>
     <EmptyState variant="full">
-      <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} /></EmptyState>
+      <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
+    </EmptyState>
   </PageSection>
 );
 

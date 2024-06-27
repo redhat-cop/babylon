@@ -59,7 +59,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
   useErrorHandler(error?.status === 404 ? error : null);
 
@@ -74,7 +74,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
 
   return (
@@ -117,8 +117,8 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
                     window.open(
                       `${consoleUrl}/k8s/ns/${resourceHandle.metadata.namespace}/${resourceHandle.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${resourceHandle.kind}/${resourceHandle.metadata.name}/yaml`
+                        '~',
+                      )}~${resourceHandle.kind}/${resourceHandle.metadata.name}/yaml`,
                     )
                   }
                 />,
@@ -128,10 +128,10 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
                     resourceHandle.spec.resourcePool
                       ? true
                       : resourceHandle.spec.resources.find(
-                          (resource) => resource.provider.name === 'babylon-user-configmap'
-                        )
-                      ? true
-                      : false
+                            (resource) => resource.provider.name === 'babylon-user-configmap',
+                          )
+                        ? true
+                        : false
                   }
                   label="Create ResourcePool from ResourceHandle"
                   onSelect={openCreateResourcePoolFromResourceHandleModal}
@@ -143,8 +143,8 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
                     window.open(
                       `${consoleUrl}/k8s/ns/${resourceHandle.metadata.namespace}/${resourceHandle.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${resourceHandle.kind}/${resourceHandle.metadata.name}`
+                        '~',
+                      )}~${resourceHandle.kind}/${resourceHandle.metadata.name}`,
                     )
                   }
                 />,

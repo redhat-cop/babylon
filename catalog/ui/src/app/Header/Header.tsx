@@ -81,7 +81,7 @@ const Header: React.FC<{
         isExternal
       >
         {workshop_support_text}
-      </ApplicationLauncherItem>
+      </ApplicationLauncherItem>,
     );
   }
 
@@ -94,14 +94,14 @@ const Header: React.FC<{
       isExternal
     >
       Status Page
-    </ApplicationLauncherItem>
+    </ApplicationLauncherItem>,
   );
 
   if (userInterface === 'rhpds') {
     UserHelpDropdownItems.push(
       <ApplicationLauncherItem key="support-sla" href="/support">
         Solution Support: Service Level
-      </ApplicationLauncherItem>
+      </ApplicationLauncherItem>,
     );
   }
   UserHelpDropdownItems.push(
@@ -113,7 +113,7 @@ const Header: React.FC<{
       isExternal
     >
       Learn more
-    </ApplicationLauncherItem>
+    </ApplicationLauncherItem>,
   );
   if (userInterface === 'rhpds') {
     UserHelpDropdownItems.push(
@@ -125,7 +125,7 @@ const Header: React.FC<{
         isExternal
       >
         How to videos
-      </ApplicationLauncherItem>
+      </ApplicationLauncherItem>,
     );
   }
   const UserControlDropdownItems = [
@@ -143,13 +143,13 @@ const Header: React.FC<{
     UserControlDropdownItems.push(
       <DropdownItem key="impersonate" onClick={() => setImpersonateUserModalIsOpen(true)}>
         Impersonate user
-      </DropdownItem>
+      </DropdownItem>,
     );
     if (userImpersonated) {
       UserControlDropdownItems.push(
         <DropdownItem key="clear-impersonation" onClick={clearUserImpersonation}>
           Clear user impersonation
-        </DropdownItem>
+        </DropdownItem>,
       );
     }
   }

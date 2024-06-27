@@ -4,5 +4,5 @@ import fetchMock from 'jest-fetch-mock';
 fetchMock.enableMocks();
 jest.mock(
   'asciidoctor',
-  () => jest.fn(() => 'mocked') // <= ...this mock function
+  () => jest.fn(() => 'mocked'), // <= ...this mock function
 );

@@ -59,7 +59,7 @@ const Workshops: React.FC<{}> = () => {
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')]
+    [searchParams.get('search')],
   );
   const [modalState, setModalState] = useState<{ action?: string; workshop?: Workshop }>({});
   const [selectedUids, setSelectedUids] = useState([]);
@@ -69,7 +69,7 @@ const Workshops: React.FC<{}> = () => {
       setModalState({ action, workshop });
       openModalAction();
     },
-    [openModalAction]
+    [openModalAction],
   );
 
   const {
@@ -100,7 +100,7 @@ const Workshops: React.FC<{}> = () => {
         }
         return true;
       },
-    }
+    },
   );
   const isReachingEnd = workshopsPages && !workshopsPages[workshopsPages.length - 1].metadata.continue;
   const isLoadingInitialData = !workshopsPages;
@@ -126,7 +126,7 @@ const Workshops: React.FC<{}> = () => {
         }
       }
     },
-    [mutate, workshopsPages]
+    [mutate, workshopsPages],
   );
   const filterWorkshop = useCallback(
     (workshop: Workshop): boolean => {
@@ -143,12 +143,12 @@ const Workshops: React.FC<{}> = () => {
       }
       return true;
     },
-    [keywordFilter]
+    [keywordFilter],
   );
 
   const workshops: Workshop[] = useMemo(
     () => [].concat(...workshopsPages.map((page) => page.items)).filter(filterWorkshop) || [],
-    [filterWorkshop, workshopsPages]
+    [filterWorkshop, workshopsPages],
   );
 
   // Trigger continue fetching more resource claims on scroll.
@@ -173,7 +173,7 @@ const Workshops: React.FC<{}> = () => {
             apiPaths.WORKSHOP({
               namespace: workshop.metadata.namespace,
               workshopName: workshop.metadata.name,
-            })
+            }),
           );
           deletedWorkshops.push(workshop);
         }
@@ -319,7 +319,7 @@ const Workshops: React.FC<{}> = () => {
                       icon={TrashIcon}
                     />
                   </div>
-                </React.Fragment>
+                </React.Fragment>,
               );
               return {
                 cells: cells,

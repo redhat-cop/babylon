@@ -9,11 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 import { displayName, FETCH_BATCH_LIMIT, stripTags } from '@app/util';
 import SearchInputString from '@app/components/SearchInputString';
 import { CUSTOM_LABELS } from '@app/Catalog/catalog-utils';
-import {
-	Table,
-	TableBody,
-	TableHeader
-} from '@patternfly/react-table/deprecated';
+import { Table, TableBody, TableHeader } from '@patternfly/react-table/deprecated';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
 
@@ -36,9 +32,14 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
 }
 
 const RatingsModal: React.FC<{ assetUuid: string }> = ({ assetUuid }) => {
-  const { data: ratingsHistory } = useSWR<{
-    comment: string; rating: number; email: string; useful: boolean;
-  }[]>(assetUuid !== '' ? apiPaths.RATINGS_HISTORY({ assetUuid }) : null, fetcher);
+  const { data: ratingsHistory } = useSWR<
+    {
+      comment: string;
+      rating: number;
+      email: string;
+      useful: boolean;
+    }[]
+  >(assetUuid !== '' ? apiPaths.RATINGS_HISTORY({ assetUuid }) : null, fetcher);
 
   return (
     <Table
@@ -113,20 +114,20 @@ const RatingsList: React.FC = () => {
       return aStage === 'prod' && bStage !== 'prod'
         ? -1
         : aStage !== 'prod' && bStage === 'prod'
-        ? 1
-        : aStage === 'event' && bStage !== 'event'
-        ? -1
-        : aStage !== 'event' && bStage === 'event'
-        ? 1
-        : aStage === 'test' && bStage !== 'test'
-        ? -1
-        : aStage !== 'test' && bStage === 'test'
-        ? 1
-        : aStage === 'dev' && bStage !== 'dev'
-        ? -1
-        : aStage !== 'dev' && bStage === 'dev'
-        ? 1
-        : 0;
+          ? 1
+          : aStage === 'event' && bStage !== 'event'
+            ? -1
+            : aStage !== 'event' && bStage === 'event'
+              ? 1
+              : aStage === 'test' && bStage !== 'test'
+                ? -1
+                : aStage !== 'test' && bStage === 'test'
+                  ? 1
+                  : aStage === 'dev' && bStage !== 'dev'
+                    ? -1
+                    : aStage !== 'dev' && bStage === 'dev'
+                      ? 1
+                      : 0;
     }
     if (a.metadata.namespace != b.metadata.namespace) {
       return a.metadata.namespace < b.metadata.namespace ? -1 : 1;
@@ -142,9 +143,7 @@ const RatingsList: React.FC = () => {
     const catalogItemsCpy = [...catalogItems].sort(compareCatalogItems);
     catalogItemsCpy.forEach((c, i) => {
       if (c.spec.description) {
-        catalogItemsCpy[i].spec.description.safe = stripTags(
-          c.spec.description.content
-        );
+        catalogItemsCpy[i].spec.description.safe = stripTags(c.spec.description.content);
       }
     });
     const options = {
@@ -246,9 +245,12 @@ const RatingsList: React.FC = () => {
               cells.push(
                 // Name
                 <>
-                  {ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] && 
+                  {ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] &&
                   ci.metadata.labels?.['gpte.redhat.com/asset-uuid'] ? (
-                    <Button variant="link" onClick={() => showRatingsHistory(ci.metadata.labels['gpte.redhat.com/asset-uuid'])}>
+                    <Button
+                      variant="link"
+                      onClick={() => showRatingsHistory(ci.metadata.labels['gpte.redhat.com/asset-uuid'])}
+                    >
                       {ci.metadata.name}
                     </Button>
                   ) : (

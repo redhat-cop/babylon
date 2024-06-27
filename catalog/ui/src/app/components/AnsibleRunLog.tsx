@@ -120,10 +120,10 @@ const AnsibleRunLog: React.FunctionComponent<AnsibleRunLogProps> = ({ ansibleRun
                     host.failures > 0
                       ? 'failed'
                       : host.unreachable > 0
-                      ? 'failed'
-                      : host.changed > 0
-                      ? 'changed'
-                      : 'default'
+                        ? 'failed'
+                        : host.changed > 0
+                          ? 'changed'
+                          : 'default'
                   }`}
                 >
                   {hostname}

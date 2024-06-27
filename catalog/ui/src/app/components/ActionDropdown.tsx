@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-	Dropdown,
-	DropdownItem,
-	DropdownPosition,
-	DropdownToggle
-} from '@patternfly/react-core/deprecated';
+import { Dropdown, DropdownItem, DropdownPosition, DropdownToggle } from '@patternfly/react-core/deprecated';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 

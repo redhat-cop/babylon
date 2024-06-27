@@ -7,7 +7,8 @@ import {
   PageSectionVariants,
   Split,
   SplitItem,
-  Title, EmptyStateHeader,
+  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import useSWRInfinite from 'swr/infinite';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
@@ -263,7 +264,11 @@ const AnarchySubjects: React.FC = () => {
       {anarchySubjects.length === 0 ? (
         <PageSection>
           <EmptyState variant="full">
-            <EmptyStateHeader titleText="No AnarchySubjects found" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
+            <EmptyStateHeader
+              titleText="No AnarchySubjects found"
+              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
+              headingLevel="h1"
+            />
           </EmptyState>
         </PageSection>
       ) : (
@@ -339,7 +344,8 @@ const AnarchySubjects: React.FC = () => {
           />
           {!isReachingEnd ? (
             <EmptyState variant="full">
-              <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} /></EmptyState>
+              <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
+            </EmptyState>
           ) : null}
         </PageSection>
       )}
