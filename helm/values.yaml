@@ -208,7 +208,7 @@ workshopManager:
   image:
     repository: quay.io/redhat-gpte/babylon-workshop-manager
     pullPolicy: IfNotPresent
-    tag: v0.5.0
+    tag: v0.6.0
   namespace:
     create: true
     name: babylon-workshop-manager
