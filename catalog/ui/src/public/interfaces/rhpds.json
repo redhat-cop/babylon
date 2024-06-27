@@ -1,13 +1,13 @@
 {
-    "incidents_enabled": true,
-    "ratings_enabled": true,
-    "status_page_url": "https://rhdp.statuspage.io/",
-    "status_page_id": "05mhm9ljgsqq",
-    "help_text": "Get Technical Help",
-    "help_link": "https://red.ht/open-support",
-    "internal_help_link": "https://red.ht/demo-help",
-    "feedback_link": "https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link",
-    "learn_more_link": "https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html",
-    "workshop_support_text": "Workshop Support",
-    "workshop_support_link": "https://redhat.service-now.com/help?id=sc_cat_item&sys_id=b48fe3cc870b2d508a51bbbf8bbb3576"
+  "incidents_enabled": true,
+  "ratings_enabled": true,
+  "status_page_url": "https://rhdp.statuspage.io/",
+  "status_page_id": "05mhm9ljgsqq",
+  "help_text": "Get Technical Help",
+  "help_link": "https://red.ht/open-support",
+  "internal_help_link": "https://red.ht/demo-help",
+  "feedback_link": "https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link",
+  "learn_more_link": "https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html",
+  "workshop_support_text": "Workshop Support",
+  "workshop_support_link": "https://redhat.service-now.com/help?id=sc_cat_item&sys_id=b48fe3cc870b2d508a51bbbf8bbb3576"
 }

@@ -17,7 +17,8 @@ import {
   Tabs,
   Tab,
   TabTitleText,
-  Title, EmptyStateHeader,
+  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
@@ -58,7 +59,7 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
   useErrorHandler(error?.status === 404 ? error : null);
 
@@ -109,8 +110,8 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${anarchyRun.kind}/${anarchyRun.metadata.name}/yaml`
+                        '~',
+                      )}~${anarchyRun.kind}/${anarchyRun.metadata.name}/yaml`,
                     )
                   }
                 />,
@@ -121,8 +122,8 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyRun.metadata.namespace}/${anarchyRun.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${anarchyRun.kind}/${anarchyRun.metadata.name}`
+                        '~',
+                      )}~${anarchyRun.kind}/${anarchyRun.metadata.name}`,
                     )
                   }
                 />,
@@ -226,7 +227,11 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
               />
             ) : (
               <EmptyState variant="full">
-                <EmptyStateHeader titleText="AnarchyRun log not available." icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
+                <EmptyStateHeader
+                  titleText="AnarchyRun log not available."
+                  icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
+                  headingLevel="h1"
+                />
               </EmptyState>
             )}
           </Tab>

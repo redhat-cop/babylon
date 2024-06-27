@@ -29,7 +29,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         resourceClaim.metadata.name.match(/-[0-9a-f]{4}$/)
         ? resourceClaim.metadata.name.substring(0, resourceClaim.metadata.name.length - 5).substring(0, 63)
         : resourceClaim.metadata.name.replace(/-[0-9]+$/, '').substring(0, 63)
-      : resourceHandle.spec.resources[0].provider.name.substring(0, 63)
+      : resourceHandle.spec.resources[0].provider.name.substring(0, 63),
   );
   const [nameConflict, setNameConflict] = useState(false);
   const [minAvailable, setMinAvailable] = useState(1);
@@ -42,7 +42,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
       name: resource.name,
       jobVars: resource.template.spec.vars?.job_vars ? yaml.dump(resource.template.spec.vars.job_vars) : '',
       provider: resource.provider,
-    }))
+    })),
   );
 
   const poolNameValidated = resourcePoolName.match(/^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$/) !== null;
@@ -65,7 +65,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         }
       }
     },
-    [poolNameValidated, setIsDisabled]
+    [poolNameValidated, setIsDisabled],
   );
 
   const onConfirm = useCallback(async () => {

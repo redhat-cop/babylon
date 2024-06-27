@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
-import {
-	Checkbox,
-	NumberInput,
-	TextInput
-} from '@patternfly/react-core';
-import {
-	Select,
-	SelectOption,
-	SelectVariant
-} from '@patternfly/react-core/deprecated';
+import { Checkbox, NumberInput, TextInput } from '@patternfly/react-core';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 
 const DynamicFormInput: React.FC<{
   id?: string;
@@ -90,8 +82,8 @@ const DynamicFormInput: React.FC<{
             n < parameter.openAPIV3Schema.minimum
               ? parameter.openAPIV3Schema.minimum
               : n > parameter.openAPIV3Schema.maximum
-              ? parameter.openAPIV3Schema.maximum
-              : n
+                ? parameter.openAPIV3Schema.maximum
+                : n,
           );
         }}
         onMinus={() => onChange(parseInt(value) - 1)}
@@ -107,10 +99,10 @@ const DynamicFormInput: React.FC<{
       value === undefined || (!parameter.required && value === '')
         ? 'default'
         : textValidationResult
-        ? 'success'
-        : textValidationResult === false
-        ? 'error'
-        : 'default';
+          ? 'success'
+          : textValidationResult === false
+            ? 'error'
+            : 'default';
     return (
       <TextInput
         type="text"

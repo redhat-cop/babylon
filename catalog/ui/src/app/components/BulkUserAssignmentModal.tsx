@@ -44,10 +44,7 @@ const BulkUserAssignmentModal: React.FunctionComponent<BulkUserAssignmentModalPr
       ]}
     >
       <Form>
-        <FormGroup
-          fieldId="emails"
-          label="User Emails"
-        >
+        <FormGroup fieldId="emails" label="User Emails">
           <HelperText>Enter workshop user email addresses separated by commas, whitespace, or blank lines.</HelperText>
           <TextArea autoFocus id="emails" onChange={(_event, v) => setEmailsText(v)} type="text" value={emailsText} />
         </FormGroup>

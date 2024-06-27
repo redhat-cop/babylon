@@ -7,7 +7,8 @@ import {
   PageSectionVariants,
   Split,
   SplitItem,
-  Title, EmptyStateHeader,
+  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteResourcePool, fetcherItemsInAllPages } from '@app/api';
@@ -173,7 +174,11 @@ const ResourcePools: React.FC = () => {
       {_resourcePools.length === 0 ? (
         <PageSection>
           <EmptyState variant="full">
-            <EmptyStateHeader titleText="No ResourcePools found" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
+            <EmptyStateHeader
+              titleText="No ResourcePools found"
+              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
+              headingLevel="h1"
+            />
           </EmptyState>
         </PageSection>
       ) : (

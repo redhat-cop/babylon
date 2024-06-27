@@ -46,7 +46,7 @@ const WorkshopsItemUserAssignments: React.FC<{
     setBulkUserAssignmentMessage(
       unassignedEmails.length === 0
         ? `Assigned ${userAssignments.length} users.`
-        : `Assigned ${userAssignments.length} users. Unable to assign ${unassignedEmails.join(', ')}`
+        : `Assigned ${userAssignments.length} users. Unable to assign ${unassignedEmails.join(', ')}`,
     );
     setBulkUserAssignmentModalIsOpen(false);
     onUserAssignmentsUpdate(workshopUserAssignments);

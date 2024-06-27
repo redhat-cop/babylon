@@ -28,7 +28,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({ isAdmin: true }),
-  }))
+  })),
 );
 
 describe('CatalogItemAdmin Component', () => {

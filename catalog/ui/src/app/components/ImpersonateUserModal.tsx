@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { listUsers } from '@app/api';
 import {
-	Button,
+  Button,
   Divider,
   Dropdown,
   DropdownItem,
@@ -11,8 +11,8 @@ import {
   MenuSearch,
   MenuSearchInput,
   MenuToggle,
-	Modal,
-  SearchInput
+  Modal,
+  SearchInput,
 } from '@patternfly/react-core';
 import { User, UserList } from '@app/types';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
@@ -51,8 +51,7 @@ const ImpersonateUserModal: React.FC<{
 
   useEffect(() => {
     onSearchButtonClick();
-  }, [userSearchValue])
-
+  }, [userSearchValue]);
 
   const onSearchButtonClick = () => {
     const filtered =
@@ -76,7 +75,7 @@ const ImpersonateUserModal: React.FC<{
     if (typeof itemId === 'number' || typeof itemId === 'undefined') {
       return;
     }
-    setUser(users.find(u => u.metadata.name === itemId));
+    setUser(users.find((u) => u.metadata.name === itemId));
     setUserSelectIsOpen(!userSelectIsOpen);
   };
 
@@ -101,48 +100,46 @@ const ImpersonateUserModal: React.FC<{
       ]}
     >
       <Dropdown
-      isOpen={userSelectIsOpen}
-      onOpenChangeKeys={['Escape']}
-      toggle={(toggleRef) => (
-        <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={userSelectIsOpen}>
-          {user?.metadata?.name || 'Select User'}
-        </MenuToggle>
-      )}
-      ref={menuRef}
-      id="context-selector"
-      onSelect={onSelect}
-      isScrollable
-    >
-      <MenuSearch>
-        <MenuSearchInput>
-          <InputGroup>
-            <InputGroupItem isFill>
-              <SearchInput
-                value={userSearchValue}
-                placeholder={user?.metadata?.name || 'Search'}
-                onChange={(_event, value) => setUserSearchValue(value)}
-                onKeyPress={onEnterPressed}
-                aria-labelledby="pf-v5-context-selector-search-button-id-1"
-              />
-            </InputGroupItem>
+        isOpen={userSelectIsOpen}
+        onOpenChangeKeys={['Escape']}
+        toggle={(toggleRef) => (
+          <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={userSelectIsOpen}>
+            {user?.metadata?.name || 'Select User'}
+          </MenuToggle>
+        )}
+        ref={menuRef}
+        id="context-selector"
+        onSelect={onSelect}
+        isScrollable
+      >
+        <MenuSearch>
+          <MenuSearchInput>
+            <InputGroup>
+              <InputGroupItem isFill>
+                <SearchInput
+                  value={userSearchValue}
+                  placeholder={user?.metadata?.name || 'Search'}
+                  onChange={(_event, value) => setUserSearchValue(value)}
+                  onKeyPress={onEnterPressed}
+                  aria-labelledby="pf-v5-context-selector-search-button-id-1"
+                />
+              </InputGroupItem>
             </InputGroup>
-            </MenuSearchInput>
-            </MenuSearch>
-            <Divider />
-      <DropdownList>
-        {filteredItems.filter(u => u.metadata.name != authUser).map((u, index) => {
-          return (
-            <DropdownItem
-              itemId={u.metadata.name}
-              key={index}
-            >
-              {u.metadata.name}
-            </DropdownItem>
-          );
-        })}
-      </DropdownList>
+          </MenuSearchInput>
+        </MenuSearch>
+        <Divider />
+        <DropdownList>
+          {filteredItems
+            .filter((u) => u.metadata.name != authUser)
+            .map((u, index) => {
+              return (
+                <DropdownItem itemId={u.metadata.name} key={index}>
+                  {u.metadata.name}
+                </DropdownItem>
+              );
+            })}
+        </DropdownList>
       </Dropdown>
-      
     </Modal>
   );
 };

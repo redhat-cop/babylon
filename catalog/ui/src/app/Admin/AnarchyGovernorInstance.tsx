@@ -18,7 +18,8 @@ import {
   Tabs,
   Tab,
   TabTitleText,
-  Title, EmptyStateHeader,
+  Title,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
@@ -67,7 +68,7 @@ const AnarchyGovernorInstanceComponent: React.FC<{
         if (!compareK8sObjectsArr(currentData.items, newData.items)) return false;
         return true;
       },
-    }
+    },
   );
 
   const anarchySubjects = useMemo(() => anarchySubjectsList.items, [anarchySubjectsList]);
@@ -84,7 +85,11 @@ const AnarchyGovernorInstanceComponent: React.FC<{
     return (
       <PageSection>
         <EmptyState variant="full">
-          <EmptyStateHeader titleText="AnarchyGovernor not found" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
+          <EmptyStateHeader
+            titleText="AnarchyGovernor not found"
+            icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
+            headingLevel="h1"
+          />
           <EmptyStateBody>
             AnarchyGovernor {anarchyGovernorName} was not found in namespace {namespace}.
           </EmptyStateBody>
@@ -131,8 +136,8 @@ const AnarchyGovernorInstanceComponent: React.FC<{
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}/yaml`
+                        '~',
+                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}/yaml`,
                     )
                   }
                 />,
@@ -143,8 +148,8 @@ const AnarchyGovernorInstanceComponent: React.FC<{
                     window.open(
                       `${consoleUrl}/k8s/ns/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}`
+                        '~',
+                      )}~${anarchyGovernor.kind}/${anarchyGovernor.metadata.name}`,
                     )
                   }
                 />,

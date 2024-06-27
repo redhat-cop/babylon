@@ -22,8 +22,8 @@ const LabInterfaceLink: React.FC<{
   const email = user.includes('@')
     ? user
     : user.includes('-')
-    ? user.substring(0, user.lastIndexOf('-')) + '@' + user.substring(1 + user.lastIndexOf('-'))
-    : `${user}@example.com`;
+      ? user.substring(0, user.lastIndexOf('-')) + '@' + user.substring(1 + user.lastIndexOf('-'))
+      : `${user}@example.com`;
 
   if (method === 'POST') {
     return (

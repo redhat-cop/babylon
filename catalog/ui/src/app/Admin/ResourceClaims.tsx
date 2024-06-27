@@ -10,7 +10,9 @@ import {
   PageSectionVariants,
   Split,
   SplitItem,
-  Title, EmptyStateHeader, EmptyStateFooter,
+  Title,
+  EmptyStateHeader,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import {
@@ -187,8 +189,8 @@ const ResourceClaims: React.FC<{}> = () => {
         modalState.action === 'retirement'
           ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
           : modalState.resourceClaim.status?.summary
-          ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
-          : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
+            ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
+            : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
       revalidate({ updatedItems: [resourceClaimUpdate], action: 'update' });
     },
     [modalState.action, modalState.resourceClaim, revalidate],
@@ -353,15 +355,21 @@ const ResourceClaims: React.FC<{}> = () => {
       {resourceClaims.length === 0 && isReachingEnd ? (
         <PageSection key="body-empty">
           <EmptyState variant="full">
-            <EmptyStateHeader titleText="No Services found" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" /><EmptyStateFooter>
-            {keywordFilter ? (
-              <EmptyStateBody>No services matched search.</EmptyStateBody>
-            ) : (
-              <EmptyStateBody>
-                Request services using the <Link to="/catalog">catalog</Link>.
-              </EmptyStateBody>
-            )}
-          </EmptyStateFooter></EmptyState>
+            <EmptyStateHeader
+              titleText="No Services found"
+              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
+              headingLevel="h1"
+            />
+            <EmptyStateFooter>
+              {keywordFilter ? (
+                <EmptyStateBody>No services matched search.</EmptyStateBody>
+              ) : (
+                <EmptyStateBody>
+                  Request services using the <Link to="/catalog">catalog</Link>.
+                </EmptyStateBody>
+              )}
+            </EmptyStateFooter>
+          </EmptyState>
         </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
@@ -503,7 +511,8 @@ const ResourceClaims: React.FC<{}> = () => {
           />
           {!isReachingEnd ? (
             <EmptyState variant="full">
-              <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} /></EmptyState>
+              <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
+            </EmptyState>
           ) : null}
         </PageSection>
       )}

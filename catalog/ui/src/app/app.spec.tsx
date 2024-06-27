@@ -8,7 +8,7 @@ import { store } from './store';
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({}),
-  }))
+  })),
 );
 jest.mock('@app/utils/useHelpLink', () => {
   return jest.fn(() => 'https://red.ht/open-support');

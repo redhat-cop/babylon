@@ -36,7 +36,7 @@ function reducer(
     message?: string;
     status?: 'active' | 'resolved';
     level?: 'info' | 'critical' | 'warning';
-  }
+  },
 ) {
   switch (action.type) {
     case 'clear_state': {

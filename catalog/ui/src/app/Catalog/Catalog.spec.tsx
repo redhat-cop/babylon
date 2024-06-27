@@ -16,7 +16,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({ isAdmin: true }),
-  }))
+  })),
 );
 
 describe('Catalog Component', () => {
@@ -36,7 +36,7 @@ describe('Catalog Component', () => {
     fireEvent.click(withinCategorySelector.getByText('Other').closest('button'));
     expect(setItemSpy).toHaveBeenCalledWith('lastCatalogFilter', 'category=Other&catalog=babylon-catalog-test');
     await waitFor(() =>
-      expect(withinCategorySelector.getByText('Other').closest('button').getAttribute('aria-selected')).toBe('true')
+      expect(withinCategorySelector.getByText('Other').closest('button').getAttribute('aria-selected')).toBe('true'),
     );
     expect(history.location.search).toBe('?category=Other');
   });

@@ -19,7 +19,8 @@ import {
   Tab,
   TabTitleText,
   Title,
-  Spinner, EmptyStateHeader,
+  Spinner,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
@@ -49,7 +50,7 @@ function fetchResourceHandlesFromResourcePool(resourcePoolName: string) {
       labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
       limit: FETCH_BATCH_LIMIT,
       continueId,
-    })
+    }),
   );
 }
 
@@ -74,7 +75,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
   useErrorHandler(error?.status === 404 ? error : null);
 
@@ -85,7 +86,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
           limit: FETCH_BATCH_LIMIT,
         })
       : null,
-    () => fetchResourceHandlesFromResourcePool(resourcePoolName)
+    () => fetchResourceHandlesFromResourcePool(resourcePoolName),
   );
   const { total, taken, available } = usePoolStatus(resourceHandles);
 
@@ -154,8 +155,8 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                     window.open(
                       `${consoleUrl}/k8s/ns/${resourcePool.metadata.namespace}/${resourcePool.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${resourcePool.kind}/${resourcePool.metadata.name}/yaml`
+                        '~',
+                      )}~${resourcePool.kind}/${resourcePool.metadata.name}/yaml`,
                     )
                   }
                 />,
@@ -166,8 +167,8 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                     window.open(
                       `${consoleUrl}/k8s/ns/${resourcePool.metadata.namespace}/${resourcePool.apiVersion.replace(
                         '/',
-                        '~'
-                      )}~${resourcePool.kind}/${resourcePool.metadata.name}`
+                        '~',
+                      )}~${resourcePool.kind}/${resourcePool.metadata.name}`,
                     )
                   }
                 />,
@@ -240,7 +241,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   <DescriptionListGroup>
                     <DescriptionListTerm>Available</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {available === -1 ? <Spinner key="spinner"  size="md" /> : available}
+                      {available === -1 ? <Spinner key="spinner" size="md" /> : available}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
@@ -287,7 +288,11 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
           <Tab eventKey="resourcehandles" title={<TabTitleText>ResourceHandles</TabTitleText>}>
             {resourceHandles.length === 0 ? (
               <EmptyState variant="full">
-                <EmptyStateHeader titleText="No ResourceHandles found." icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} headingLevel="h1" />
+                <EmptyStateHeader
+                  titleText="No ResourceHandles found."
+                  icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
+                  headingLevel="h1"
+                />
               </EmptyState>
             ) : (
               <SelectableTable

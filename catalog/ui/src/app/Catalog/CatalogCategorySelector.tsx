@@ -22,7 +22,7 @@ const CatalogCategorySelector: React.FC<{
   selected: string;
 }> = ({ catalogItems, onSelect, selected }) => {
   const categories = Array.from(
-    new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null))
+    new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null)),
   );
   categories.sort((a, b) => {
     const av = (a as string).toUpperCase();

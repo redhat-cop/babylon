@@ -3,20 +3,16 @@ import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
 import {
-	DescriptionList,
-	DescriptionListTerm,
-	DescriptionListGroup,
-	DescriptionListDescription,
-	Tooltip,
-	Switch,
-	Button,
-	TextInput
+  DescriptionList,
+  DescriptionListTerm,
+  DescriptionListGroup,
+  DescriptionListDescription,
+  Tooltip,
+  Switch,
+  Button,
+  TextInput,
 } from '@patternfly/react-core';
-import {
-	Select,
-	SelectOption,
-	SelectVariant
-} from '@patternfly/react-core/deprecated';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { patchWorkshop } from '@app/api';
@@ -71,7 +67,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        })
+        }),
       );
     } else {
       onWorkshopUpdate(
@@ -79,7 +75,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        })
+        }),
       );
     }
   }
@@ -90,7 +86,7 @@ const WorkshopsItemDetails: React.FC<{
         name: workshop.metadata.name,
         namespace: workshop.metadata.namespace,
         patch: { metadata: { annotations: { [`${BABYLON_DOMAIN}/servicenow`]: JSON.stringify(serviceNowObj) } } },
-      })
+      }),
     );
   }
 
@@ -201,7 +197,7 @@ const WorkshopsItemDetails: React.FC<{
             onSelect={(event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
               patchWorkshopSpec({ openRegistration: selectedValue === 'open' }).then(() =>
-                setUserRegistrationSelectIsOpen(false)
+                setUserRegistrationSelectIsOpen(false),
               );
             }}
           >
@@ -318,7 +314,7 @@ const WorkshopsItemDetails: React.FC<{
                   saveServiceNowNumber(
                     serviceNowNumber && serviceNowNumber !== ''
                       ? { ...JSON.parse(serviceNowJson), number: serviceNowNumber }
-                      : {}
+                      : {},
                   );
                 }
                 setEditingServiceNow(!editingServiceNow);

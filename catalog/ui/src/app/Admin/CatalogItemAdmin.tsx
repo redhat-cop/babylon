@@ -2,28 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
-	ActionList,
-	ActionListItem,
-	Button,
-	Checkbox,
-	EmptyState,
-	EmptyStateIcon,
-	Form,
-	FormGroup,
-	PageSection,
-	PageSectionVariants,
-	Split,
-	SplitItem,
-	TextArea,
-	TextInput,
-	Title,
-	Tooltip, EmptyStateHeader
+  ActionList,
+  ActionListItem,
+  Button,
+  Checkbox,
+  EmptyState,
+  EmptyStateIcon,
+  Form,
+  FormGroup,
+  PageSection,
+  PageSectionVariants,
+  Split,
+  SplitItem,
+  TextArea,
+  TextInput,
+  Title,
+  Tooltip,
+  EmptyStateHeader,
 } from '@patternfly/react-core';
-import {
-	Select,
-	SelectOption,
-	SelectVariant
-} from '@patternfly/react-core/deprecated';
+import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { apiPaths, fetcher, patchK8sObjectByPath } from '@app/api';
@@ -175,7 +172,8 @@ const CatalogItemAdmin: React.FC = () => {
     <PageSection key="body" variant={PageSectionVariants.light}>
       {isLoading ? (
         <EmptyState variant="full" className="catalog-item-admin__loading">
-          <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} /></EmptyState>
+          <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
+        </EmptyState>
       ) : null}
       <Split>
         <SplitItem className="catalog-item-admin__header-icon">

@@ -1,7 +1,5 @@
 import React from 'react';
-import {
-	DropdownPosition
-} from '@patternfly/react-core/deprecated';
+import { DropdownPosition } from '@patternfly/react-core/deprecated';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 
 const WorkshopActions: React.FC<{

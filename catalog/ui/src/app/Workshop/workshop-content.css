@@ -2,7 +2,9 @@
   padding: var(--pf-v5-global--spacer--md);
   background-color: var(--pf-v5-global--palette--white);
   border-radius: 4px;
-  box-shadow: 0 1px 5px 0 rgb(3 3 3 / 12%), 0 0 1px 0 rgb(3 3 3 / 6%);
+  box-shadow:
+    0 1px 5px 0 rgb(3 3 3 / 12%),
+    0 0 1px 0 rgb(3 3 3 / 6%);
 }
 .workshop-content__title,
 .workshop-content__description {

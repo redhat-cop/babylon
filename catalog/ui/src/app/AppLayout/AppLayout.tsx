@@ -35,11 +35,11 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 
   const Sidebar = (
-    <PageSidebar theme="dark" isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen} >
-<PageSidebarBody>
-<Navigation />
-</PageSidebarBody>
-</PageSidebar>
+    <PageSidebar theme="dark" isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen}>
+      <PageSidebarBody>
+        <Navigation />
+      </PageSidebarBody>
+    </PageSidebar>
   );
   const _Header = (
     <Header

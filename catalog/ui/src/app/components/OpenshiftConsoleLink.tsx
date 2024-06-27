@@ -23,8 +23,8 @@ const OpenshiftConsoleLink: React.FC<{
       ? `${consoleUrl}/api-resource/ns/${namespace}/${apiVersion.replace('/', '~')}~${kind}/instances`
       : `${consoleUrl}/k8s/ns/${namespace}/${apiVersion.replace('/', '~')}~${kind}/${name}`
     : linkToNamespace
-    ? `${consoleUrl}/k8s/ns/${namespace}/${plural}`
-    : `${consoleUrl}/k8s/ns/${namespace}/${plural}/${name}`;
+      ? `${consoleUrl}/k8s/ns/${namespace}/${plural}`
+      : `${consoleUrl}/k8s/ns/${namespace}/${plural}/${name}`;
 
   return (
     <a

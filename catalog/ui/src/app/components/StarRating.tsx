@@ -34,7 +34,7 @@ const StarRating: React.FC<{
 
       return false;
     },
-    [hoverRating, rating, readOnly]
+    [hoverRating, rating, readOnly],
   );
 
   const starRating = useMemo(() => {
@@ -58,7 +58,7 @@ const StarRating: React.FC<{
             onMouseEnter={() => setHoverRating(idx)}
             onMouseLeave={() => setHoverRating(0)}
           />
-        )
+        ),
       );
   }, [count, isFilled, onRating, readOnly]);
 

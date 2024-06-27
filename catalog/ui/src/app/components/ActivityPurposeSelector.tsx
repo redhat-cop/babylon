@@ -77,7 +77,7 @@ const ActivityPurposeSelector: React.FC<{
               {purposeOpts
                 .filter(
                   (purposeOpt) =>
-                    [...activityOpts.keys()].find((actName) => actName === purposeOpt.activity) === activity
+                    [...activityOpts.keys()].find((actName) => actName === purposeOpt.activity) === activity,
                 )
                 .map((purposeOpt) => (
                   <SelectOption
