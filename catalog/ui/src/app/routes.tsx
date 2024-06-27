@@ -97,13 +97,13 @@ const appRoutes: IAppRoute[] = [
   },
   {
     component: WorkshopsScheduled,
-    path: '/admin/workshops/scheduled',
-    title: 'Babylon | Workshops',
+    path: '/admin/scheduled/workshops',
+    title: 'Babylon | Scheduled Workshops',
   },
   {
     component: WorkshopsScheduled,
-    path: '/admin/workshops/scheduled/:namespace',
-    title: 'Babylon | Workshops',
+    path: '/admin/scheduled/workshops/:namespace',
+    title: 'Babylon | Scheduled Workshops',
   },
   {
     component: WorkshopsList,

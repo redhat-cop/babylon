@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import useSWR, { useSWRConfig } from 'swr';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import useSWR from 'swr';
 import {
   EmptyState,
   EmptyStateBody,
@@ -28,7 +28,15 @@ import './admin.css';
 import '!style-loader!css-loader!react-big-calendar/lib/css/react-big-calendar.css';
 
 
-const eventMapper = (workshop: Workshop) => {
+type TEvent = {
+  title: string;
+  start: Date;
+  end: Date;
+  url: string;
+  allDay: boolean;
+}
+
+const eventMapper = (workshop: Workshop): TEvent => {
     if (!workshop.spec.actionSchedule?.start) return null;
     if (workshop.spec.actionSchedule?.stop) {
       if (new Date(workshop.spec.actionSchedule.stop) <= new Date()) return null;
@@ -40,14 +48,19 @@ const eventMapper = (workshop: Workshop) => {
         title: workshop.spec.displayName,
         start: new Date(workshop.spec.actionSchedule?.start),
         end: new Date(workshop.spec.lifespan?.end),
-        resource: new Date(workshop.spec.actionSchedule?.start) > new Date ? 'WorkshopScheduled': 'Workshop',
         url: owningResourceClaimName
         ? `/services/${workshop.metadata.namespace}/${owningResourceClaimName}/workshop`
-        : `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`
+        : `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`,
+        allDay: false
       }
 }
 
-const eventStyleGetter = (event, start: Date, end: Date)  => {
+const filterOutRunningWorkshops = (ev: TEvent) => {
+  if (ev.start > new Date()) return true;
+  return false;
+}
+
+const eventStyleGetter = (event: TEvent, start: Date, end: Date)  => {
   if (start > new Date()) {
     return { style: {
       backgroundColor: '#def3ff',
@@ -66,7 +79,6 @@ const eventStyleGetter = (event, start: Date, end: Date)  => {
 const WorkshopsScheduled: React.FC<{}> = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const {
     data: workshops,
@@ -87,21 +99,21 @@ apiPaths.WORKSHOPS({
     compare: compareK8sObjectsArr,
   }
   );
-console.log(workshops.map(eventMapper).filter(Boolean))
+
   return (
     <div className="admin-container">
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
-              Workshops
+              Scheduled Workshops
             </Title>
           </SplitItem>
           <SplitItem>
             <ProjectSelector
               currentNamespaceName={namespace}
               onSelect={(n) => {
-                navigate(`/admin/workshops/${n.name}?${searchParams.toString()}`);
+                navigate(`/admin/scheduled/workshops/${n.name}`);
               }}
             />
           </SplitItem>
@@ -121,15 +133,18 @@ console.log(workshops.map(eventMapper).filter(Boolean))
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body" style={{minHeight: 750}}>
+          <p style={{padding: '16px 0'}}>Showing only upcoming scheduled workshops.</p>
           <Calendar
       localizer={localizer}
-      events={workshops.map(eventMapper).filter(Boolean)}
+      events={workshops.map(eventMapper).filter(Boolean).filter(filterOutRunningWorkshops)}
       startAccessor="start"
       endAccessor="end"
-      style={{ height: 500 }}
-      onSelectEvent={event => navigate(event.url)}
+      style={{ height: 700 }}
+      onSelectEvent={(ev: TEvent) => navigate(ev.url)}
       eventPropGetter={eventStyleGetter}
+      showAllEvents={true}
+      showMultiDayTimes={true}
     />
         </PageSection>
       )}

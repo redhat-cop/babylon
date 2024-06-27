@@ -340,10 +340,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
 
               {metrics?.medianRuntimeCostByHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-cost">
-                  <DescriptionListTerm>Estimated Hourly Cost if not stopped</DescriptionListTerm>
+                  <DescriptionListTerm>Estimated Hourly Cost</DescriptionListTerm>
                   <DescriptionListDescription>
                     {formatCurrency(metrics?.medianRuntimeCostByHour * 1.1)}
-                    <Tooltip content="Estimated hourly cost per running instance.">
+                    <Tooltip content="Estimated hourly cost if not stopped.">
                       <InfoAltIcon
                         style={{
                           paddingTop: 'var(--pf-v5-global--spacer--xs)',

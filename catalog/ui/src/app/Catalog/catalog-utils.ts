@@ -131,7 +131,7 @@ export function formatTime(time: string): string {
     return '-';
   }
   const timeUnit = time.charAt(time.length - 1);
-  const timeValue = parseInt(time.slice(0, -1), 10);
+  const timeValue = Math.ceil(parseInt(time.slice(0, -1), 10));
   const timeValueMs: number | null = (() => {
     switch (timeUnit) {
       case 's':
