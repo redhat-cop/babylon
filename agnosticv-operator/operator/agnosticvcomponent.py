@@ -610,6 +610,10 @@ class AgnosticVComponent(KopfObject):
                 "namespace": Babylon.resource_broker_namespace,
             },
             "spec": {
+                "healthCheck":
+                    "(spec.vars.current_state | default('')).endswith('-failed') or "
+                    "(spec.vars.current_state | default('')).endswith('-error') or "
+                    "spec.vars.current_state == 'provision-canceled'",
                 "lifespan": {
                     "default": self.lifespan_default,
                     "maximum": "{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}" + self.lifespan_maximum + "{% endif %}",
@@ -644,6 +648,9 @@ class AgnosticVComponent(KopfObject):
                         }
                     }
                 ],
+                "readinessCheck":
+                    "spec.vars.current_state | default('') == 'started' or "
+                    "spec.vars.current_state | default('') == 'stopped'",
                 "statusSummaryTemplate": {
                     "agnosticv": {
                         "account": self.account,
