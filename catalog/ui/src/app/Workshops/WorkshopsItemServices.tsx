@@ -60,6 +60,16 @@ const WorkshopsItemServices: React.FC<{
     setSelectedResourceClaims(selectedResourceClaims);
   }, [resourceClaims, selectedUids, setSelectedResourceClaims]);
 
+  const closeModal = () => {
+    setInstancesToDelete(unusedResourceClaims.length); // set initial value
+    setIsOpen(false);
+  };
+
+  const confirmModal = () => {
+    deleteUnusedInstances({ count: resourceClaims.length - instancesToDelete });
+    closeModal();
+  };
+
   const deleteUnusedInstances = useCallback(
     async ({ count }: { count: number }) => {
       setIsLoading(true);
@@ -287,48 +297,39 @@ const WorkshopsItemServices: React.FC<{
       <Modal
         className="delete-unused-modal"
         isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        onClose={closeModal}
         title="Delete unused instances"
         variant={ModalVariant.medium}
         actions={[
-          <Button
-            key="confirm"
-            variant="primary"
-            isDisabled={isLoading}
-            onClick={() => deleteUnusedInstances({ count: resourceClaims.length - instancesToDelete })}
-          >
+          <Button key="confirm" variant="primary" isDisabled={isLoading} onClick={confirmModal}>
             {isLoading ? <Spinner size="sm" /> : null} Confirm
           </Button>,
-          <Button key="cancel" variant="link" onClick={() => setIsOpen(false)}>
+          <Button key="cancel" variant="link" onClick={closeModal}>
             Cancel
           </Button>,
         ]}
       >
         <Form>
-          {isOpen ? (
-            <>
-              <p>Unused instances: {unusedResourceClaims.length}</p>
-              <FormGroup label="Number of instances to delete" fieldId="delete-instances">
-                <NumberInput
-                  id="delete-instances"
-                  max={unusedResourceClaims.length}
-                  min={0}
-                  name="delete-instances"
-                  value={instancesToDelete}
-                  onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                    const value = parseInt(event.currentTarget.value);
-                    if (isNaN(value)) {
-                      return;
-                    }
-                    setInstancesToDelete(value);
-                  }}
-                  onMinus={() => setInstancesToDelete(instancesToDelete - 1)}
-                  onPlus={() => setInstancesToDelete(instancesToDelete + 1)}
-                />
-              </FormGroup>
-              <p>This action will size down the workshop to {resourceClaims.length - instancesToDelete} instances</p>
-            </>
-          ) : null}
+          <p>Unused instances: {unusedResourceClaims.length}</p>
+          <FormGroup label="Number of instances to delete" fieldId="delete-instances">
+            <NumberInput
+              id="delete-instances"
+              max={unusedResourceClaims.length}
+              min={0}
+              name="delete-instances"
+              value={instancesToDelete}
+              onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                const value = parseInt(event.currentTarget.value);
+                if (isNaN(value)) {
+                  return;
+                }
+                setInstancesToDelete(value);
+              }}
+              onMinus={() => setInstancesToDelete(instancesToDelete - 1)}
+              onPlus={() => setInstancesToDelete(instancesToDelete + 1)}
+            />
+          </FormGroup>
+          <p>This action will size down the workshop to {resourceClaims.length - instancesToDelete} instances</p>
         </Form>
       </Modal>
       {unusedResourceClaims.length > 0 ? (
