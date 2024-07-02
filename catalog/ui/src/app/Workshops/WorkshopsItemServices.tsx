@@ -62,7 +62,7 @@ const WorkshopsItemServices: React.FC<{
 
   useEffect(() => {
     // sync with initial value
-    if (isOpen) {
+    if (!isOpen) {
       setInstancesToDelete(unusedResourceClaims.length);
     }
   }, [isOpen, setInstancesToDelete, unusedResourceClaims]);
