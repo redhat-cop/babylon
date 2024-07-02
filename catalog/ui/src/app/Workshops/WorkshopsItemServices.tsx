@@ -60,8 +60,14 @@ const WorkshopsItemServices: React.FC<{
     setSelectedResourceClaims(selectedResourceClaims);
   }, [resourceClaims, selectedUids, setSelectedResourceClaims]);
 
+  useEffect(() => {
+    // sync with initial value
+    if (isOpen) {
+      setInstancesToDelete(unusedResourceClaims.length);
+    }
+  }, [isOpen, setInstancesToDelete, unusedResourceClaims]);
+
   const closeModal = () => {
-    setInstancesToDelete(unusedResourceClaims.length); // set initial value
     setIsOpen(false);
   };
 
