@@ -49,16 +49,26 @@ const WorkshopsItemServices: React.FC<{
   const { mutate } = useSWRConfig();
 
   const unusedResourceClaims = resourceClaims.filter(
-    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email),
+    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email)
   );
   const [instancesToDelete, setInstancesToDelete] = useState(unusedResourceClaims.length);
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
-      selectedUids.includes(resourceClaim.metadata.uid),
+      selectedUids.includes(resourceClaim.metadata.uid)
     );
     setSelectedResourceClaims(selectedResourceClaims);
   }, [resourceClaims, selectedUids, setSelectedResourceClaims]);
+
+  const closeModal = () => {
+    setInstancesToDelete(unusedResourceClaims.length); // set initial value
+    setIsOpen(false);
+  };
+
+  const confirmModal = () => {
+    deleteUnusedInstances({ count: resourceClaims.length - instancesToDelete });
+    closeModal();
+  };
 
   const deleteUnusedInstances = useCallback(
     async ({ count }: { count: number }) => {
@@ -74,7 +84,7 @@ const WorkshopsItemServices: React.FC<{
             workshopName: workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`],
             namespace: workshopProvision.metadata.namespace,
             limit: 'ALL',
-          }),
+          })
         );
       }
       let i = 0;
@@ -90,13 +100,13 @@ const WorkshopsItemServices: React.FC<{
               workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`]
             }`,
             limit: 'ALL',
-          }),
+          })
         );
       }
       setIsLoading(false);
       setIsOpen(false);
     },
-    [workshopProvisions, unusedResourceClaims],
+    [workshopProvisions, unusedResourceClaims]
   );
 
   if (resourceClaims.length == 0) {
@@ -144,7 +154,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_data
-                  : r?.data?.labUserInterfaceData,
+                  : r?.data?.labUserInterfaceData
               )
               .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
               .find((u) => u != null);
@@ -156,7 +166,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_method
-                  : r?.data?.labUserInterfaceMethod,
+                  : r?.data?.labUserInterfaceMethod
               )
               .find((u) => u != null);
           const labUserInterfaceUrl =
@@ -287,19 +297,14 @@ const WorkshopsItemServices: React.FC<{
       <Modal
         className="delete-unused-modal"
         isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        onClose={closeModal}
         title="Delete unused instances"
         variant={ModalVariant.medium}
         actions={[
-          <Button
-            key="confirm"
-            variant="primary"
-            isDisabled={isLoading}
-            onClick={() => deleteUnusedInstances({ count: resourceClaims.length - instancesToDelete })}
-          >
+          <Button key="confirm" variant="primary" isDisabled={isLoading} onClick={confirmModal}>
             {isLoading ? <Spinner size="sm" /> : null} Confirm
           </Button>,
-          <Button key="cancel" variant="link" onClick={() => setIsOpen(false)}>
+          <Button key="cancel" variant="link" onClick={closeModal}>
             Cancel
           </Button>,
         ]}
