@@ -62,10 +62,8 @@ const WorkshopsItemServices: React.FC<{
 
   useEffect(() => {
     // sync with initial value
-    if (!isOpen) {
-      setInstancesToDelete(unusedResourceClaims.length);
-    }
-  }, [isOpen, setInstancesToDelete, unusedResourceClaims]);
+    setInstancesToDelete(unusedResourceClaims.length);
+  }, [isOpen]);
 
   const closeModal = () => {
     setIsOpen(false);
