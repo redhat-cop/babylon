@@ -51,7 +51,7 @@ const WorkshopsItemServices: React.FC<{
   const unusedResourceClaims = resourceClaims.filter(
     (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email)
   );
-  const [instancesToDelete, setInstancesToDelete] = useState(unusedResourceClaims.length);
+  const [instancesToDelete, setInstancesToDelete] = useState(0);
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
@@ -62,11 +62,12 @@ const WorkshopsItemServices: React.FC<{
 
   useEffect(() => {
     // sync with initial value
-    setInstancesToDelete(unusedResourceClaims.length);
+    setInstancesToDelete(0);
   }, [isOpen]);
 
   const closeModal = () => {
     setIsOpen(false);
+    setInstancesToDelete(0);
   };
 
   const confirmModal = () => {
