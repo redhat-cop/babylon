@@ -51,7 +51,7 @@ const WorkshopsItemServices: React.FC<{
   const unusedResourceClaims = resourceClaims.filter(
     (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email)
   );
-  const [instancesToDelete, setInstancesToDelete] = useState(unusedResourceClaims.length);
+  const [instancesToDelete, setInstancesToDelete] = useState(0);
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
@@ -62,11 +62,12 @@ const WorkshopsItemServices: React.FC<{
 
   useEffect(() => {
     // sync with initial value
-    setInstancesToDelete(unusedResourceClaims.length);
+    setInstancesToDelete(0);
   }, [isOpen]);
 
   const closeModal = () => {
     setIsOpen(false);
+    setInstancesToDelete(0);
   };
 
   const confirmModal = () => {
@@ -92,8 +93,9 @@ const WorkshopsItemServices: React.FC<{
         );
       }
       let i = 0;
+      const instancesToDelete = resourceClaims.length - count;
       for (let resourceClaim of unusedResourceClaims) {
-        if (i >= count) await deleteResourceClaim(resourceClaim);
+        if (i < instancesToDelete) await deleteResourceClaim(resourceClaim);
         i++;
       }
       for (let workshopProvision of workshopProvisions) {
@@ -110,7 +112,7 @@ const WorkshopsItemServices: React.FC<{
       setIsLoading(false);
       setIsOpen(false);
     },
-    [workshopProvisions, unusedResourceClaims]
+    [workshopProvisions, unusedResourceClaims, resourceClaims]
   );
 
   if (resourceClaims.length == 0) {
@@ -305,7 +307,12 @@ const WorkshopsItemServices: React.FC<{
         title="Delete unused instances"
         variant={ModalVariant.medium}
         actions={[
-          <Button key="confirm" variant="primary" isDisabled={isLoading} onClick={confirmModal}>
+          <Button
+            key="confirm"
+            variant="primary"
+            isDisabled={isLoading || instancesToDelete === 0}
+            onClick={confirmModal}
+          >
             {isLoading ? <Spinner size="sm" /> : null} Confirm
           </Button>,
           <Button key="cancel" variant="link" onClick={closeModal}>
@@ -333,7 +340,9 @@ const WorkshopsItemServices: React.FC<{
               onPlus={() => setInstancesToDelete(instancesToDelete + 1)}
             />
           </FormGroup>
-          <p>This action will size down the workshop to {resourceClaims.length - instancesToDelete} instances</p>
+          {instancesToDelete > 0 ? (
+            <p>This action will size down the workshop to {resourceClaims.length - instancesToDelete} instances</p>
+          ) : null}
         </Form>
       </Modal>
       {unusedResourceClaims.length > 0 ? (
