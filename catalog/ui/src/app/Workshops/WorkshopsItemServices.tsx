@@ -93,8 +93,9 @@ const WorkshopsItemServices: React.FC<{
         );
       }
       let i = 0;
+      const instancesToDelete = resourceClaims.length - count;
       for (let resourceClaim of unusedResourceClaims) {
-        if (i >= count) await deleteResourceClaim(resourceClaim);
+        if (i < instancesToDelete) await deleteResourceClaim(resourceClaim);
         i++;
       }
       for (let workshopProvision of workshopProvisions) {
@@ -111,7 +112,7 @@ const WorkshopsItemServices: React.FC<{
       setIsLoading(false);
       setIsOpen(false);
     },
-    [workshopProvisions, unusedResourceClaims]
+    [workshopProvisions, unusedResourceClaims, resourceClaims]
   );
 
   if (resourceClaims.length == 0) {
@@ -306,7 +307,12 @@ const WorkshopsItemServices: React.FC<{
         title="Delete unused instances"
         variant={ModalVariant.medium}
         actions={[
-          <Button key="confirm" variant="primary" isDisabled={isLoading} onClick={confirmModal}>
+          <Button
+            key="confirm"
+            variant="primary"
+            isDisabled={isLoading || instancesToDelete === 0}
+            onClick={confirmModal}
+          >
             {isLoading ? <Spinner size="sm" /> : null} Confirm
           </Button>,
           <Button key="cancel" variant="link" onClick={closeModal}>
@@ -334,7 +340,9 @@ const WorkshopsItemServices: React.FC<{
               onPlus={() => setInstancesToDelete(instancesToDelete + 1)}
             />
           </FormGroup>
-          <p>This action will size down the workshop to {resourceClaims.length - instancesToDelete} instances</p>
+          {instancesToDelete > 0 ? (
+            <p>This action will size down the workshop to {resourceClaims.length - instancesToDelete} instances</p>
+          ) : null}
         </Form>
       </Modal>
       {unusedResourceClaims.length > 0 ? (
