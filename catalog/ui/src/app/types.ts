@@ -613,6 +613,7 @@ export type Service = ResourceClaim | WorkshopWithResourceClaims;
 export type Incident = {
   id: number;
   incident_type: 'general';
+  interface: string;
   level: 'info' | 'warning' | 'critical';
   message: string;
   status: 'active' | 'resolved';

@@ -1768,7 +1768,7 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }${limit ? `limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
   ANARCHY_GOVERNOR: ({ namespace, anarchyGovernorName }: { namespace: string; anarchyGovernorName: string }) =>
     `/apis/anarchy.gpte.redhat.com/v1/namespaces/${namespace}/anarchygovernors/${anarchyGovernorName}`,
-  INCIDENTS: ({ status }: { status?: string }) => `/api/admin/incidents${status ? '?status=' + status : ''}`,
+  INCIDENTS: ({ status, userInterface }: { status?: string, userInterface?:string }) => `/api/admin/incidents${status ? '?status=' + status : ''}${userInterface ? '&interface=' + userInterface : ''}`,
   INCIDENT: ({ incidentId }: { incidentId: number }) => `/api/admin/incidents/${incidentId}`,
   RATINGS_HISTORY: ({ assetUuid }: { assetUuid: string }) => `/api/ratings/catalogitem/${assetUuid}/history`,
   RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,

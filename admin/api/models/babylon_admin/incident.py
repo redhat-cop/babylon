@@ -25,6 +25,7 @@ class Incident(CustomBase):
     status = Column(String, nullable=False, index=True)
     incident_type = Column(String)
     level = Column(String)
+    interface = Column(String)
     message = Column(Text)
 
     async def check_existing(self) -> Optional[Incident]:
@@ -43,11 +44,11 @@ class Incident(CustomBase):
             return result.scalars().first()
 
     @classmethod
-    async def get_incidents_by_status(cls, status: str) -> Optional[List[Incident]]:
+    async def get_incidents_by_status(cls, status: str, interface: str) -> Optional[List[Incident]]:
         async with db.get_session() as session:
             stmt = select(Incident)
             if status != "all":
-                stmt = stmt.where(Incident.status == status)
+                stmt = stmt.where(and_(Incident.status == status, Incident.interface == interface))
             stmt = stmt.order_by(Incident.updated_at)
             result = await session.execute(stmt)
             return result.scalars().all()
