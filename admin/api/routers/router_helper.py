@@ -16,9 +16,9 @@ def get_status_params(
                         description="The status of the incident (active, resolved, all).",
                         regex='^(active|resolved|all)$'),
     interface: str = Query(...,
-                            example="rhpds",
-                            alias="interface"
-                            title="Interface origin",
-                            description="The interface where the incident is going to be displayed")
+                        example="rhpds",
+                        alias="interface",
+                        title="Interface origin",
+                        description="The interface where the incident is going to be displayed")
 ) -> dict:
     return {"status": status, "interface": interface}
