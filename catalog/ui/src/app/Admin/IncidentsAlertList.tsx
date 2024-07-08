@@ -57,7 +57,7 @@ function reducer(
       };
     }
     case 'new_incident': {
-      return { ...initialState, message: action.interface };
+      return { ...initialState, interface: action.interface };
     }
     case 'set_message': {
       return { ...state, message: action.message };
