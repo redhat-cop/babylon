@@ -57,7 +57,7 @@ function reducer(
       };
     }
     case 'new_incident': {
-      return { ...initialState };
+      return { ...initialState, interface: action.interface };
     }
     case 'set_message': {
       return { ...state, message: action.message };
@@ -95,7 +95,7 @@ const IncidentsAlertList: React.FC = () => {
       }),
     });
 
-    // mutate();
+    mutate();
   }
 
   return (
@@ -168,7 +168,7 @@ const IncidentsAlertList: React.FC = () => {
           </Title>
           <Button
             onClick={() => {
-              dispatch({ type: 'new_incident' });
+              dispatch({ type: 'new_incident', interface: userInterface });
               openIncidentModal();
             }}
             icon={<PlusCircleIcon />}

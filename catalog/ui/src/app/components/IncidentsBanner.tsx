@@ -9,13 +9,15 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import CloseIcon from '@patternfly/react-icons/dist/js/icons/close-icon';
 import TimeInterval from './TimeInterval';
 import EditorViewer from './Editor/EditorViewer';
+import useSession from '@app/utils/useSession';
 
 import './incidents-banner.css';
 
 const STORAGE_KEY = `${location?.hostname || 'demo.redhat.com'}.incidents.closed`;
 
 const IncidentsBanner: React.FC = () => {
-  const { data } = useSWRImmutable<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher, {
+  const { userInterface } = useSession().getSession();
+  const { data } = useSWRImmutable<Incident[]>(apiPaths.INCIDENTS({ status: 'active', userInterface: userInterface }), fetcher, {
     shouldRetryOnError: false,
     suspense: false,
   });
