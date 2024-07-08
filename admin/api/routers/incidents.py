@@ -24,10 +24,11 @@ async def incidents_list(status: str = Depends(get_status_params)
                          ) -> List[IncidentSchema]:
     try:
         status_value = status['status']
+        status_interface = status['interface']
         if status_value not in ["active", "resolved", "all"]:
             raise HTTPException(status_code=404, detail="Invalid status")
 
-        incidents = await Incident.get_incidents_by_status(status_value)
+        incidents = await Incident.get_incidents_by_status(status_value, status_interface)
         if not incidents:
             return JSONResponse(status_code=200, content=[])
 
@@ -63,6 +64,7 @@ async def update_incident(incident_id: int, incident: IncidentCreate):
         incident_db.incident_type = incident.incident_type
         incident_db.level = incident.level
         incident_db.message = incident.message
+        incident_db.interface = incident.interface
         incident_db = await incident_db.save()
         return incident_db.to_dict(True)
     except HTTPException:

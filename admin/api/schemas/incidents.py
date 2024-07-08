@@ -43,6 +43,7 @@ class IncidentSchema(BaseModel):
     id: int = Field(..., description="Incident ID")
     status: IncidentStatus = Field(..., description="Status of the incident")
     incident_type: IncidentType = Field(..., description="Type of the incident")
+    interface: str = Field(..., description="Interface origin of the incident")
     level: IncidentLevel = Field(..., description="Level of the incident")
     message: str = Field(None, description="Message of the incident")
     created_at: datetime = Field(None, description="Date of creation of the incident")
@@ -58,3 +59,4 @@ class IncidentCreate(BaseModel):
     level: IncidentLevel = Field(default='info', description="Level of the incident")
     message: str = Field(..., description="Message of the incident")
     incident_type: IncidentType = Field(default='general', description="Type of the incident")
+    interface: str = Field(..., description="Interface origin of the incident")

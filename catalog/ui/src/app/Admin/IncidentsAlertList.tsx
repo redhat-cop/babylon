@@ -18,12 +18,14 @@ import { EditorState, LexicalEditor } from 'lexical';
 import EditorViewer from '@app/components/Editor/EditorViewer';
 
 import './admin.css';
+import useSession from '@app/utils/useSession';
 
 type IncidentData = Omit<Incident, 'updated_at' | 'created_at'>;
 
 const initialState: IncidentData = {
   id: null,
   message: '',
+  interface: '',
   level: 'info',
   incident_type: 'general',
   status: 'active',
@@ -36,6 +38,7 @@ function reducer(
     message?: string;
     status?: 'active' | 'resolved';
     level?: 'info' | 'critical' | 'warning';
+    interface?: string;
   },
 ) {
   switch (action.type) {
@@ -50,6 +53,7 @@ function reducer(
         incident_type: action.incident.incident_type,
         message: action.incident.message,
         status: action.incident.status,
+        interface: action.incident.interface
       };
     }
     case 'new_incident': {
@@ -68,10 +72,11 @@ function reducer(
 }
 
 const IncidentsAlertList: React.FC = () => {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const { userInterface } = useSession().getSession();
+  const [state, dispatch] = useReducer(reducer, {... initialState, interface: userInterface});
   const [isOpen, setIsOpen] = useState(false);
   const [incidentModal, openIncidentModal] = useModal();
-  const { data: activeIncidents, mutate } = useSWR<Incident[]>(apiPaths.INCIDENTS({ status: 'active' }), fetcher, {
+  const { data: activeIncidents, mutate } = useSWR<Incident[]>(apiPaths.INCIDENTS({ status: 'active', userInterface: userInterface }), fetcher, {
     refreshInterval: 8000,
   });
 
@@ -86,6 +91,7 @@ const IncidentsAlertList: React.FC = () => {
         status: incident.status,
         level: incident.level,
         message: incident.message,
+        interface: incident.interface
       }),
     });
 
