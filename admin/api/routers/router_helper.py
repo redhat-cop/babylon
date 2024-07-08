@@ -14,7 +14,7 @@ def get_status_params(
                         alias="status",
                         title="Incident Status",
                         description="The status of the incident (active, resolved, all).",
-                        regex='^(active|resolved|all)$')
+                        regex='^(active|resolved|all)$'),
     interface: str = Query(...,
                             example="rhpds",
                             alias="interface"
