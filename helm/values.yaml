@@ -226,7 +226,7 @@ admin:
     create: true
     name: babylon-admin
   image:
-    tag: v1.0.6
+    tag: v1.0.7
     repository: quay.io/redhat-gpte/babylon-admin
     pullPolicy: IfNotPresent
   replicaCount: 1
