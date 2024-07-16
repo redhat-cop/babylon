@@ -62,6 +62,18 @@ async def manage_catalog_item_provision_data(catalog_item, logger):
             f"Updated last successful provision time ({provision_data.last_successful_provision}) for CatalogItem: {catalog_item.name}"
         )
 
+async def manage_catalog_item_status(catalog_item, logger):
+    status_timestamps = await CatalogItemService(
+        catalog_item, logger=logger
+    ).get_status_timestamps()
+    if (len(status_timestamps) > 0):
+        last_status = status_timestamps[-1].status
+        last_status_is_disabled = last_status == 'disabled'
+        if (last_status_is_disabled == catalog_item.is_disabled):
+            return None
+    await CatalogItemService(
+        catalog_item, logger=logger
+    ).create_status_timestamps()
 
 @kopf.on.startup()
 async def on_startup(logger, settings, **_):
@@ -108,3 +120,13 @@ async def manage_catalog_item(logger, **kwargs):
         catalog_item = CatalogItem(**kwargs)
         await manage_catalog_item_rating(catalog_item, logger)
         await manage_catalog_item_provision_data(catalog_item, logger)
+
+@kopf.on.event(CatalogItem.api_group, CatalogItem.api_version, CatalogItem.plural)
+def catalogitem_event(event, logger, **_):
+    catalog_item_definition = event.get('object')
+    if not catalog_item_definition \
+    or catalog_item_definition.get('kind') != 'CatalogItem':
+        logger.warning(event)
+        return
+    catalog_item = CatalogItem(definition=catalog_item_definition)
+    await manage_catalog_item_status(catalog_item, logger)
