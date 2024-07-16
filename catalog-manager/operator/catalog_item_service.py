@@ -17,11 +17,12 @@ GET_CATALOG_ITEM_LAST_SUCCESSFUL_PROVISION = """SELECT to_char(provisions.provis
 
 GET_CATALOG_ITEM_STATUS_PERIODS = """SELECT (status_periods.status, status_periods.created_at)
         FROM status_periods
-        JOIN catalog_items.id = status_periods.catalog_item_id
+            JOIN catalog_items 
+            ON catalog_items.id = status_periods.catalog_item_id
         WHERE catalog_items.asset_uuid=(%s);"""
 
 CREATE_CATALOG_ITEM_STATUS_PERIODS = """INSERT INTO status_periods (catalog_item_id, status)
-        (SELECT asset_uuid FROM catalog_items WHERE catalog_items.uuid=(%s), %s);"""
+        SELECT catalog_items.id, (%s) FROM catalog_items WHERE catalog_items.asset_uuid=(%s);"""
 
 class ProvisionData:
     def __init__(self, last_successful_provision):
@@ -89,6 +90,6 @@ class CatalogItemService:
             if self.catalog_item.is_disabled:
                 status = 'disabled'
             await execute_query(
-                CREATE_CATALOG_ITEM_STATUS_PERIODS, (self.catalog_item.labels['gpte.redhat.com/asset-uuid'], status, )
+                CREATE_CATALOG_ITEM_STATUS_PERIODS, (status, self.catalog_item.labels['gpte.redhat.com/asset-uuid'])
             )
         return None
