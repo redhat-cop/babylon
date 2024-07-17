@@ -42,8 +42,8 @@ async def manage_catalog_item_provision_data(catalog_item, logger):
     )
     catalog_item_last_successful_provision = datetime.fromisoformat(
         catalog_item.annotations.get(
-            Babylon.catalog_item_last_successful_provision, "1970-01-01T00:00:00Z"
-        )[:-1]
+            Babylon.catalog_item_last_successful_provision, "1970-01-01T00:00:00"
+        )
     )
     if (
         provision_data.last_successful_provision is not None
@@ -62,6 +62,18 @@ async def manage_catalog_item_provision_data(catalog_item, logger):
             f"Updated last successful provision time ({provision_data.last_successful_provision}) for CatalogItem: {catalog_item.name}"
         )
 
+async def manage_catalog_item_status(catalog_item, logger):
+    status_timestamps = await CatalogItemService(
+        catalog_item, logger=logger
+    ).get_status_timestamps()
+    if (len(status_timestamps) > 0):
+        last_status = status_timestamps[-1].get("status", None)
+        last_status_is_disabled = last_status == 'disabled'
+        if (last_status == None or last_status_is_disabled == catalog_item.is_disabled):
+            return None
+    await CatalogItemService(
+        catalog_item, logger=logger
+    ).create_status_timestamps()
 
 @kopf.on.startup()
 async def on_startup(logger, settings, **_):
@@ -108,3 +120,9 @@ async def manage_catalog_item(logger, **kwargs):
         catalog_item = CatalogItem(**kwargs)
         await manage_catalog_item_rating(catalog_item, logger)
         await manage_catalog_item_provision_data(catalog_item, logger)
+
+@kopf.on.event(CatalogItem.api_group, CatalogItem.api_version, CatalogItem.plural)
+async def catalogitem_event(logger, **kwargs):
+    async with manage_catalog_item_lock:
+        catalog_item = CatalogItem(**kwargs)
+        await manage_catalog_item_status(catalog_item, logger)

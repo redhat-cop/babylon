@@ -20,6 +20,7 @@ class Babylon:
     catalog_item_rating_label = f"{catalog_manager_domain}/rating"
     catalog_item_total_ratings = f"{catalog_manager_domain}/totalRatings"
     catalog_item_last_successful_provision = f"{catalog_manager_domain}/lastSuccessfulProvision"
+    catalog_item_disabled_label = f"{babylon_domain}/disabled"
 
     @classmethod
     async def on_cleanup(cls):
