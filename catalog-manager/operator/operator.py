@@ -63,22 +63,13 @@ async def manage_catalog_item_provision_data(catalog_item, logger):
         )
 
 async def manage_catalog_item_status(catalog_item, logger):
-    logger.info(
-        f"Event starting for: {catalog_item.name}"
-    )
     status_timestamps = await CatalogItemService(
         catalog_item, logger=logger
     ).get_status_timestamps()
-    logger.info(
-        f"Num of status timestamps: {len(status_timestamps)}"
-    )
-    logger.info(
-        f"Is disabled: {catalog_item.is_disabled}"
-    )
     if (len(status_timestamps) > 0):
-        last_status = status_timestamps[-1].status
+        last_status = status_timestamps[-1].get("status", None)
         last_status_is_disabled = last_status == 'disabled'
-        if (last_status_is_disabled == catalog_item.is_disabled):
+        if (last_status == None or last_status_is_disabled == catalog_item.is_disabled):
             return None
     await CatalogItemService(
         catalog_item, logger=logger
