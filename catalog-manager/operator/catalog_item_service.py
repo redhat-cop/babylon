@@ -15,7 +15,7 @@ GET_CATALOG_ITEM_LAST_SUCCESSFUL_PROVISION = """SELECT to_char(provisions.provis
         ORDER BY provisions.provisioned_at DESC
         LIMIT 1;"""
 
-GET_CATALOG_ITEM_STATUS_PERIODS = """SELECT (status_periods.status, status_periods.created_at)
+GET_CATALOG_ITEM_STATUS_PERIODS = """SELECT status_periods.status, status_periods.created_at
         FROM status_periods
             JOIN catalog_items 
             ON catalog_items.id = status_periods.catalog_item_id
