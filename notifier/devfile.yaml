@@ -36,7 +36,7 @@ components:
       value: ""
     - name: SMTP_TLS_KEY
       value: ""
-    image: quay.io/redhat-cop/python-kopf-s2i:v1.36
+    image: quay.io/redhat-cop/python-kopf-s2i:v1.37
     mountSources: true
     sourceMapping: /tmp/projects
   name: s2i-builder
