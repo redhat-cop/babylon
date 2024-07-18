@@ -21,8 +21,8 @@ GET_CATALOG_ITEM_STATUS_PERIODS = """SELECT status_periods.status, status_period
             ON catalog_items.id = status_periods.catalog_item_id
         WHERE catalog_items.asset_uuid=(%s);"""
 
-CREATE_CATALOG_ITEM_STATUS_PERIODS = """INSERT INTO status_periods (catalog_item_id, status)
-        SELECT catalog_items.id, (%s) FROM catalog_items WHERE catalog_items.asset_uuid=(%s);"""
+CREATE_CATALOG_ITEM_STATUS_PERIODS = """INSERT INTO status_periods (catalog_item_id, status, ops_annotation)
+        SELECT catalog_items.id, (%s), (%s) FROM catalog_items WHERE catalog_items.asset_uuid=(%s);"""
 
 class ProvisionData:
     def __init__(self, last_successful_provision):
@@ -90,6 +90,7 @@ class CatalogItemService:
             if self.catalog_item.is_disabled:
                 status = 'disabled'
             await execute_query(
-                CREATE_CATALOG_ITEM_STATUS_PERIODS, (status, self.catalog_item.labels['gpte.redhat.com/asset-uuid'])
+                CREATE_CATALOG_ITEM_STATUS_PERIODS, 
+                (status, self.catalog_item.annotations.get(Babylon.catalog_item_ops_annotation, None), self.catalog_item.labels['gpte.redhat.com/asset-uuid'])
             )
         return None
