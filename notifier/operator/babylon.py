@@ -7,7 +7,10 @@ class Babylon():
     resource_broker_domain = os.environ.get('RESOURCE_BROKER_DOMAIN', 'poolboy.gpte.redhat.com')
     resource_broker_api_version = os.environ.get('RESOURCE_BROKER_API_VERSION', 'v1')
     email_recipient_annotation = os.environ.get('EMAIL_RECIPIENT_ANNOTATION')
+
+    babylon_ignore_label = f"{babylon_domain}/ignore"
     notifier_config_annotation = f"{babylon_domain}/notifierConfig"
+    resource_broker_ignore_label = f"{resource_broker_domain}/ignore"
 
     @classmethod
     async def on_cleanup(cls):

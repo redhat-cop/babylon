@@ -143,7 +143,8 @@ async def on_cleanup(**_):
     await redis_connection.close()
 
 @kopf.on.event(
-    Babylon.resource_broker_domain, Babylon.resource_broker_api_version, 'resourceclaims'
+    Babylon.resource_broker_domain, Babylon.resource_broker_api_version, 'resourceclaims',
+    labels={Babylon.resource_broker_ignore_label: kopf.ABSENT},
 )
 async def resourceclaim_event(event, logger, **_):
     resource_claim_definition = event.get('object')
@@ -604,6 +605,9 @@ async def notify_retirement_scheduled_after(interval, **kwargs):
         pass
 
 async def notify_retirement_scheduled(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    if resource_claim.ignore:
+        return
+
     logger.info("sending retirement schedule notification")
 
     await send_notification_email(
@@ -624,6 +628,9 @@ async def notify_stop_scheduled_after(interval, **kwargs):
         pass
 
 async def notify_stop_scheduled(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
+    if resource_claim.ignore:
+        return
+
     logger.info("sending stop schedule notification")
 
     await send_notification_email(

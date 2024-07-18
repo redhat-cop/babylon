@@ -2,6 +2,8 @@ import re
 
 from pydantic.utils import deep_update
 
+from babylon import Babylon
+
 class DeployerJob:
     def __init__(self, definition, namespace):
         self.definition = definition
@@ -57,6 +59,10 @@ class ResourceClaim:
     @property
     def has_status(self):
         return 'status' in self.definition
+
+    @property
+    def ignore(self):
+        return Babylon.resource_broker_ignore_label in self.labels
 
     @property
     def is_stopped(self):
