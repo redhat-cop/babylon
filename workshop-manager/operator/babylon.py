@@ -9,6 +9,7 @@ class Babylon():
     poolboy_namespace = os.environ.get('POOLBOY_NAMESPACE', 'poolboy')
     demo_domain = os.environ.get('DEMO_DOMAIN', 'demo.redhat.com')
 
+    babylon_ignore_label = f"{babylon_domain}/ignore"
     catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
     catalog_item_display_name_annotation = f"{babylon_domain}/catalogItemDisplayName"
     catalog_item_name_label = f"{babylon_domain}/catalogItemName"
@@ -22,6 +23,7 @@ class Babylon():
     purpose_annotation = f"{demo_domain}/purpose"
     purpose_activity_annotation = f"{demo_domain}/purpose-activity"
     requester_annotation = f"{babylon_domain}/requester"
+    resource_broker_ignore_label = f"{poolboy_domain}/ignore"
     resource_claim_label = f"{poolboy_domain}/resource-claim"
     resource_pool_annotation = f"{poolboy_domain}/resource-pool-name"
     url_annotation = f"{babylon_domain}/url"
