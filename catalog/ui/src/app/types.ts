@@ -369,6 +369,8 @@ export interface ResourcePoolSpec {
   lifespan?: ResourcePoolSpecLifespan;
   minAvailable: number;
   resources: ResourcePoolSpecResource[];
+  deleteUnhealthyResourceHandles?: boolean;
+  maxUnready?: number;
 }
 
 export interface ResourcePoolSpecLifespan {

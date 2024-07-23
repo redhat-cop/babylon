@@ -29,10 +29,11 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         resourceClaim.metadata.name.match(/-[0-9a-f]{4}$/)
         ? resourceClaim.metadata.name.substring(0, resourceClaim.metadata.name.length - 5).substring(0, 63)
         : resourceClaim.metadata.name.replace(/-[0-9]+$/, '').substring(0, 63)
-      : resourceHandle.spec.resources[0].provider.name.substring(0, 63),
+      : resourceHandle.spec.resources[0].provider.name.substring(0, 63)
   );
   const [nameConflict, setNameConflict] = useState(false);
   const [minAvailable, setMinAvailable] = useState(1);
+  const [maxUnready, setMaxUnready] = useState(5);
   const [stopAfterProvision, setStopAfterProvision] = useState(true);
   const [unclaimed, setUnclaimed] = useState(7);
   const [resourcePoolDescription, setResourcePoolDescription] = useState('');
@@ -42,7 +43,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
       name: resource.name,
       jobVars: resource.template.spec.vars?.job_vars ? yaml.dump(resource.template.spec.vars.job_vars) : '',
       provider: resource.provider,
-    })),
+    }))
   );
 
   const poolNameValidated = resourcePoolName.match(/^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$/) !== null;
@@ -65,7 +66,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         }
       }
     },
-    [poolNameValidated, setIsDisabled],
+    [poolNameValidated, setIsDisabled]
   );
 
   const onConfirm = useCallback(async () => {
@@ -87,6 +88,8 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
           unclaimed: `${unclaimed}d`,
         },
         minAvailable: minAvailable,
+        deleteUnhealthyResourceHandles: true,
+        maxUnready: maxUnready,
         resources: [
           ...resources.map((resource) => {
             return {
@@ -116,6 +119,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
     lifespan,
     unclaimed,
     minAvailable,
+    maxUnready,
     resources,
     matchMutate,
     navigate,
@@ -200,6 +204,26 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
           >
             <OutlinedQuestionCircleIcon aria-label="More info" className="tooltip-icon-only" />
           </Tooltip>
+        </div>
+      </FormGroup>
+      <FormGroup label="Provision concurrency" fieldId="maxUnready">
+        <div style={formFieldStyle}>
+          <NumberInput
+            id="maxUnready"
+            max={99}
+            min={0}
+            name="maxUnready"
+            value={maxUnready}
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const value = parseInt(event.currentTarget.value);
+              if (isNaN(value)) {
+                return;
+              }
+              setMaxUnready(value < 0 ? 0 : value > 99 ? 99 : value);
+            }}
+            onMinus={() => setMaxUnready(maxUnready - 1)}
+            onPlus={() => setMaxUnready(maxUnready + 1)}
+          />
         </div>
       </FormGroup>
       <FormGroup label="Stop after provision" fieldId="stopAfterProvision">
