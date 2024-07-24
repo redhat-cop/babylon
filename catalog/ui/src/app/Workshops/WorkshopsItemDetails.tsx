@@ -124,6 +124,24 @@ const WorkshopsItemDetails: React.FC<{
           />
         </DescriptionListDescription>
       </DescriptionListGroup>
+
+      {resourceClaims ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Status</DescriptionListTerm>
+          <DescriptionListDescription>
+            {autoStartTime && autoStartTime > Date.now() ? (
+              <span className="services-item__status--scheduled" key="scheduled">
+                <CheckCircleIcon key="scheduled-icon" /> Scheduled
+              </span>
+            ) : resourceClaims.length > 0 ? (
+              <WorkshopStatus resourceClaims={resourceClaims} />
+            ) : (
+              <p>...</p>
+            )}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
+      
       <DescriptionListGroup>
         <DescriptionListTerm>
           Description{' '}
@@ -216,23 +234,6 @@ const WorkshopsItemDetails: React.FC<{
           <DescriptionListDescription>-</DescriptionListDescription>
         )}
       </DescriptionListGroup>
-
-      {resourceClaims ? (
-        <DescriptionListGroup>
-          <DescriptionListTerm>Status</DescriptionListTerm>
-          <DescriptionListDescription>
-            {autoStartTime && autoStartTime > Date.now() ? (
-              <span className="services-item__status--scheduled" key="scheduled">
-                <CheckCircleIcon key="scheduled-icon" /> Scheduled
-              </span>
-            ) : resourceClaims.length > 0 ? (
-              <WorkshopStatus resourceClaims={resourceClaims} />
-            ) : (
-              <p>...</p>
-            )}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      ) : null}
 
       {autoStartTime && autoStartTime > Date.now() ? (
         <DescriptionListGroup>
