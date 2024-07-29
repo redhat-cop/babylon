@@ -69,6 +69,10 @@ class WorkshopProvision(CachedKopfObject):
         return self.spec.get('count', 0)
 
     @property
+    def ignore(self):
+        return Babylon.babylon_ignore_label in self.labels
+
+    @property
     def lifespan_end(self):
         end_timestamp = self.spec.get('lifespan', {}).get('end')
         if not end_timestamp:

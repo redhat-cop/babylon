@@ -41,6 +41,10 @@ class Workshop(CachedKopfObject):
         ).replace(tzinfo=timezone.utc)
 
     @property
+    def ignore(self):
+        return Babylon.babylon_ignore_label in self.labels
+
+    @property
     def lifespan_start(self):
         start_timestamp = self.spec.get('lifespan', {}).get('start')
         if not start_timestamp:

@@ -52,7 +52,10 @@ async def on_cleanup(**_):
 
 @kopf.on.event(
     ResourceClaim.api_group, ResourceClaim.api_version, ResourceClaim.plural,
-    labels={Babylon.workshop_label: kopf.PRESENT},
+    labels={
+        Babylon.workshop_label: kopf.PRESENT,
+        Babylon.resource_broker_ignore_label: kopf.ABSENT,
+    },
 )
 async def resource_claim_event(event, logger, **_):
     await ResourceClaim.handle_event(event, logger=logger)
@@ -60,6 +63,7 @@ async def resource_claim_event(event, logger, **_):
 
 @kopf.on.create(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_create(logger, **kwargs):
     workshop = Workshop.load(**kwargs)
@@ -67,6 +71,7 @@ async def workshop_create(logger, **kwargs):
 
 @kopf.on.delete(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_delete(logger, **kwargs):
     workshop = Workshop.load(**kwargs)
@@ -74,6 +79,7 @@ async def workshop_delete(logger, **kwargs):
 
 @kopf.on.resume(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_resume(logger, **kwargs):
     workshop = Workshop.load(**kwargs)
@@ -81,6 +87,7 @@ async def workshop_resume(logger, **kwargs):
 
 @kopf.on.update(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_update(logger, old, new, **kwargs):
     workshop = Workshop.load(**kwargs)
@@ -89,11 +96,14 @@ async def workshop_update(logger, old, new, **kwargs):
 @kopf.daemon(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
     cancellation_timeout = 1,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_daemon(logger, stopped, **kwargs):
     workshop = Workshop.load(**kwargs)
     try:
         while not stopped:
+            if workshop.ignore:
+                return
             if workshop.lifespan_end and workshop.lifespan_end < datetime.now(timezone.utc):
                 logger.info(f"Deleting {workshop} for lifespan end")
                 await workshop.delete()
@@ -106,6 +116,7 @@ async def workshop_daemon(logger, stopped, **kwargs):
 
 @kopf.on.create(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_create(logger, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
@@ -113,6 +124,7 @@ async def workshop_provision_create(logger, **kwargs):
 
 @kopf.on.delete(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_delete(logger, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
@@ -120,6 +132,7 @@ async def workshop_provision_delete(logger, **kwargs):
 
 @kopf.on.resume(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_resume(logger, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
@@ -127,6 +140,7 @@ async def workshop_provision_resume(logger, **kwargs):
 
 @kopf.on.update(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_update(logger, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
@@ -135,11 +149,14 @@ async def workshop_provision_update(logger, **kwargs):
 @kopf.daemon(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
     cancellation_timeout = 1,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_daemon(logger, stopped, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
     try:
         while not stopped:
+            if workshop_provision.ignore:
+                return
             if workshop_provision.lifespan_end \
             and workshop_provision.lifespan_end < datetime.now(timezone.utc):
                 logger.info(f"deleting {workshop_provision} for lifespan end")
@@ -153,6 +170,7 @@ async def workshop_provision_daemon(logger, stopped, **kwargs):
 
 @kopf.on.create(
     WorkshopUserAssignment.api_group, WorkshopUserAssignment.api_version, WorkshopUserAssignment.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_user_assignment_create(logger, **kwargs):
     workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)
@@ -160,6 +178,7 @@ async def workshop_user_assignment_create(logger, **kwargs):
 
 @kopf.on.delete(
     WorkshopUserAssignment.api_group, WorkshopUserAssignment.api_version, WorkshopUserAssignment.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_user_assignment_delete(logger, **kwargs):
     workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)
@@ -167,6 +186,7 @@ async def workshop_user_assignment_delete(logger, **kwargs):
 
 @kopf.on.update(
     WorkshopUserAssignment.api_group, WorkshopUserAssignment.api_version, WorkshopUserAssignment.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_user_assignment_update(logger, **kwargs):
     workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)

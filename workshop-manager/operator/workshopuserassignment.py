@@ -118,6 +118,10 @@ class WorkshopUserAssignment(CachedKopfObject):
         return self.spec.get('data', {})
 
     @property
+    def ignore(self):
+        return Babylon.babylon_ignore_label in self.labels
+
+    @property
     def lab_user_interface(self):
         if 'labUserInterface' in self.spec:
             return LabUserInterface(definition=self.spec['labUserInterface'])
