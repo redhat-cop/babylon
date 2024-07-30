@@ -206,9 +206,9 @@ workshopManager:
     version: v1
   deploy: true
   image:
-    repository: quay.io/redhat-gpte/babylon-workshop-manager
+    repository: quay.io/rhpds/babylon-workshop-manager
     pullPolicy: IfNotPresent
-    tag: v0.7.0
+    tag: v0.7.1
   namespace:
     create: true
     name: babylon-workshop-manager

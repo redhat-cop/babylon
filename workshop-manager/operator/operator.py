@@ -102,8 +102,6 @@ async def workshop_daemon(logger, stopped, **kwargs):
     workshop = Workshop.load(**kwargs)
     try:
         while not stopped:
-            if workshop.ignore:
-                return
             if workshop.lifespan_end and workshop.lifespan_end < datetime.now(timezone.utc):
                 logger.info(f"Deleting {workshop} for lifespan end")
                 await workshop.delete()
@@ -155,8 +153,6 @@ async def workshop_provision_daemon(logger, stopped, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
     try:
         while not stopped:
-            if workshop_provision.ignore:
-                return
             if workshop_provision.lifespan_end \
             and workshop_provision.lifespan_end < datetime.now(timezone.utc):
                 logger.info(f"deleting {workshop_provision} for lifespan end")
