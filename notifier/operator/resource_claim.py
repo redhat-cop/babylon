@@ -1,6 +1,6 @@
 import re
 
-from pydantic.utils import deep_update
+from pydantic.v1.utils import deep_update
 
 from babylon import Babylon
 
@@ -303,3 +303,12 @@ class ResourceClaim:
             except (IndexError, KeyError):
                 pass
         return merged_data, component_data
+
+    async def refetch(self):
+        self.definition = await Babylon.custom_objects_api.get_namespaced_custom_object(
+            group=Babylon.resource_broker_domain,
+            name=self.name,
+            namespace=self.namespace,
+            plural='resourceclaims',
+            version=Babylon.resource_broker_api_version,
+        )

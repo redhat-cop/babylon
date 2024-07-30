@@ -160,9 +160,9 @@ configNamespace:
 notifier:
   deploy: false
   image:
-    repository: quay.io/redhat-gpte/babylon-notifier
+    repository: quay.io/rhpds/babylon-notifier
     pullPolicy: IfNotPresent
-    tag: v0.7.0
+    tag: v0.7.1
   namespace:
     create: true
     name: babylon-notifier

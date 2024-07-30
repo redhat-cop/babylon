@@ -597,17 +597,16 @@ async def notify_ready(catalog_item, catalog_namespace, email_addresses, logger,
         to = email_addresses,
     )
 
-async def notify_retirement_scheduled_after(interval, **kwargs):
+async def notify_retirement_scheduled_after(interval, resource_claim, **kwargs):
     try:
         await asyncio.sleep(interval)
-        await notify_retirement_scheduled(**kwargs)
+        await resource_claim.refetch()
+        if not resource_claim.ignore:
+            await notify_retirement_scheduled(resource_claim=resource_claim, **kwargs)
     except asyncio.CancelledError:
         pass
 
 async def notify_retirement_scheduled(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
-    if resource_claim.ignore:
-        return
-
     logger.info("sending retirement schedule notification")
 
     await send_notification_email(
@@ -620,17 +619,16 @@ async def notify_retirement_scheduled(catalog_item, catalog_namespace, email_add
         template = "retirement-scheduled",
     )
 
-async def notify_stop_scheduled_after(interval, **kwargs):
+async def notify_stop_scheduled_after(interval, resource_claim, **kwargs):
     try:
         await asyncio.sleep(interval)
-        await notify_stop_scheduled(**kwargs)
+        await resource_claim.refetch()
+        if not resource_claim.ignore:
+            await notify_stop_scheduled(resource_claim=resource_claim, **kwargs)
     except asyncio.CancelledError:
         pass
 
 async def notify_stop_scheduled(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
-    if resource_claim.ignore:
-        return
-
     logger.info("sending stop schedule notification")
 
     await send_notification_email(

@@ -13,8 +13,6 @@ parameters:
   value: https://github.com/redhat-cop/babylon.git
 - name: GIT_REF
   value: main
-- name: KOPF_S2I_IMAGE
-  value: quay.io/redhat-cop/python-kopf-s2i:v1.37
 
 objects:
 - apiVersion: image.openshift.io/v1
@@ -45,7 +43,6 @@ objects:
     strategy:
       type: Docker
       dockerStrategy:
-        from:
-          kind: DockerImage
-          name: ${KOPF_S2I_IMAGE}
+        dockerfilePath: Containerfile
+        forcePull: true
     triggers: []
