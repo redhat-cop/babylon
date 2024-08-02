@@ -536,6 +536,7 @@ export async function createWorkshop({
   stopDate,
   endDate,
   startDate,
+  userEmail,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -546,6 +547,7 @@ export async function createWorkshop({
   endDate?: Date;
   stopDate?: Date;
   startDate?: Date;
+  userEmail: string;
 }): Promise<Workshop> {
   const definition: Workshop = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -567,6 +569,8 @@ export async function createWorkshop({
           : catalogItem.spec.messageTemplates?.info
           ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.info) }
           : {}),
+        [`${DEMO_DOMAIN}/scheduled`]: startDate ? 'true' : 'false',
+        [`${DEMO_DOMAIN}/orderedBy`]: userEmail,
       },
     },
     spec: {
