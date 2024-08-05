@@ -21,7 +21,11 @@ spec:
     termination: reencrypt
   to:
     kind: Service
+    {{- if $interface.route.redirectToStatus }}
+    name: babylon-catalog-status
+    {{- else }}
     name: babylon-catalog-oauth-proxy
+    {{- end }}
     weight: 100
   wildcardPolicy: None
 {{- end }}
