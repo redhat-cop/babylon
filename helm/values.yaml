@@ -122,6 +122,7 @@ catalog:
       certUtilsOperator:
         enable: false
       #host: <namespace>.<ingressDomain>
+      redirectToStatus: false
     ui:
       image:
         pullPolicy: IfNotPresent
