@@ -18,7 +18,11 @@ spec:
   host: {{ $domain }}
   tls:
     insecureEdgeTerminationPolicy: Redirect
+    {{- if $interface.route.redirectToStatus }}
+    termination: edge
+    {{- else }}
     termination: reencrypt
+    {{- end }}
   to:
     kind: Service
     {{- if $interface.route.redirectToStatus }}
