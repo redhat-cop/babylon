@@ -112,7 +112,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                 defaultTimestamp={autoStopDate ? autoStopDate.getTime() : null}
                 onSelect={(d) => setDates({ ...dates, stopDate: d })}
                 minDate={Date.now()}
-                maxDate={maxRuntimeTimestamp}
+                maxDate={Date.now() + maxRuntimeTimestamp}
                 isDisabled={noAutoStopChecked}
               />
             </FormGroup>
