@@ -791,7 +791,7 @@ async def send_notification_email(
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = email_subject
-    msg['From'] = f"{catalog_namespace.display_name} <{smtp_from}>"
+    msg['From'] = resource_claim.email_from or f"{catalog_namespace.display_name} <{smtp_from}>"
     msg['To'] = ', '.join(to)
 
     msg.attach(MIMEText(html2text(email_body), 'plain'))
