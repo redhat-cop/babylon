@@ -18,10 +18,18 @@ spec:
   host: {{ $domain }}
   tls:
     insecureEdgeTerminationPolicy: Redirect
+    {{- if $interface.route.redirectToStatus }}
+    termination: edge
+    {{- else }}
     termination: reencrypt
+    {{- end }}
   to:
     kind: Service
+    {{- if $interface.route.redirectToStatus }}
+    name: babylon-catalog-status
+    {{- else }}
     name: babylon-catalog-oauth-proxy
+    {{- end }}
     weight: 100
   wildcardPolicy: None
 {{- end }}

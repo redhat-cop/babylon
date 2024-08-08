@@ -52,6 +52,10 @@ class ResourceClaim:
         return self.definition['metadata']['creationTimestamp']
 
     @property
+    def email_from(self):
+        return self.annotations.get('babylon.gpte.redhat.com/emailFrom')
+
+    @property
     def guid(self):
         resourceHandleName = self.definition.get('status', {}).get('resourceHandle', {}).get('name')
         return re.sub(r'^guid-', '', resourceHandleName) if resourceHandleName else None
