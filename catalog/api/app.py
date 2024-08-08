@@ -524,6 +524,21 @@ async def create_support(request):
         url=f"{admin_api}/api/admin/v1/workshop/support",
     )
 
+@routes.get("/api/salesforce/accounts")
+async def list_sfdc_accounts(request):
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    queryString = ""
+    salesType = request.query.get("sales_type")
+    if salesType:
+        queryString = f"sales_type={salesType}"
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/list_accounts?{queryString}",
+    )
+    
 @routes.get("/api/salesforce/{salesforce_id}")
 async def salesforce_id_validation(request):
     salesforce_id = request.match_info.get('salesforce_id')

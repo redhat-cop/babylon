@@ -1782,4 +1782,5 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   WORKSHOP_SUPPORT: () => `/api/admin/workshop/support`,
   WORKSHOP_USER_ASSIGNMENTS: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopuserassignments?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName}`,
+  SFDC_ACCOUNTS: ({ sales_type }: { sales_type: string }) => `/api/salesforce/accounts?salyes_type=${sales_type}`,
 };

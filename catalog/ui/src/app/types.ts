@@ -603,7 +603,8 @@ export type ResourceType =
   | 'RATINGS_HISTORY'
   | 'USER_RATING'
   | 'WORKSHOP_SUPPORT'
-  | 'WORKSHOP_USER_ASSIGNMENTS';
+  | 'WORKSHOP_USER_ASSIGNMENTS'
+  | 'SFDC_ACCOUNTS';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 

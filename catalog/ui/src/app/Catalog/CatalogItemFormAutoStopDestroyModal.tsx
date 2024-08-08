@@ -130,6 +130,18 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                 }}
               />
             ) : null}
+            <AlertGroup>
+              <Alert
+                title={
+                  <p>
+                    Any change to auto stop/retirement will increase the cost. The usage costs associated with this
+                    order will be charged back to your cost center.
+                  </p>
+                }
+                variant="info"
+                isInline
+              />
+            </AlertGroup>
           </>
         ) : null}
         {type === 'auto-destroy' || type === 'schedule' ? (
@@ -149,10 +161,14 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                 forceUpdateTimestamp={dates.endDate?.getTime()}
               />
             </FormGroup>
-            {isAdmin ? null : (
-              <AlertGroup>
-                <Alert
-                  title={
+            <AlertGroup>
+              <Alert
+                title={
+                  <>
+                    <p>
+                      Any change to auto stop/retirement will increase the cost. The usage costs associated with this
+                      order will be charged back to your cost center.
+                    </p>
                     <p>
                       Auto-Destroy can be extended by submitting a{' '}
                       <a href={helpLink} target="_blank" rel="noopener noreferrer">
@@ -160,12 +176,12 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                       </a>
                       .
                     </p>
-                  }
-                  variant="info"
-                  isInline
-                />
-              </AlertGroup>
-            )}
+                  </>
+                }
+                variant="info"
+                isInline
+              />
+            </AlertGroup>
           </>
         ) : null}
 
