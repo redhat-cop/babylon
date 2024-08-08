@@ -51,7 +51,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   const _stopDate = dates.stopDate || autoStopDate;
   const _endDate = dates.endDate || autoDestroyDate;
   const noAutoStopChecked = _stopDate && _endDate && _stopDate.getTime() >= _endDate.getTime();
-  console.log(maxRuntimeTimestamp);
+
   useEffect(() => {
     if (!!type) {
       openAutoStopDestroyModal();
