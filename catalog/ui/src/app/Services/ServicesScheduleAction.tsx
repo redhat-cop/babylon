@@ -51,22 +51,22 @@ const ServicesScheduleAction: React.FC<{
     maxDate = resourceClaim
       ? Math.min(
           Date.parse(resourceClaim.metadata.creationTimestamp) + parseDuration(resourceClaim.status.lifespan.maximum),
-          Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum),
+          Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum)
         )
       : workshop.resourceClaims
-        ? Math.min(
-            ...workshop.resourceClaims.flatMap((r) => [
-              Date.parse(r.metadata.creationTimestamp) + parseDuration(r.status.lifespan.maximum),
-              Date.now() + parseDuration(r.status.lifespan.relativeMaximum),
-            ]),
-          )
-        : null;
+      ? Math.min(
+          ...workshop.resourceClaims.flatMap((r) => [
+            Date.parse(r.metadata.creationTimestamp) + parseDuration(r.status.lifespan.maximum),
+            Date.now() + parseDuration(r.status.lifespan.relativeMaximum),
+          ])
+        )
+      : null;
   } else {
     maxDate = resourceClaim
       ? getStartTime(resourceClaim)
       : workshop.resourceClaims
-        ? Math.min(...workshop.resourceClaims.map((r) => getStartTime(r)))
-        : null;
+      ? Math.min(...workshop.resourceClaims.map((r) => getStartTime(r)))
+      : null;
   }
   const minMaxProps = {
     minDate: Date.now(),
@@ -78,6 +78,7 @@ const ServicesScheduleAction: React.FC<{
   const noAutoStopSwitchIsVisible =
     action === 'stop' && (minMaxProps.maxDate === null || minMaxProps.maxDate >= autoDestroyTime);
   const extendLifetimeMsgIsVisible = action === 'retirement' && minMaxProps.maxDate === null;
+  const extendAutoStopMsgIsVisible = action === 'stop';
   const helpLink = useHelpLink();
 
   return (
@@ -107,8 +108,8 @@ const ServicesScheduleAction: React.FC<{
                   (resourceClaim
                     ? getMinDefaultRuntime(resourceClaim) || minDefault
                     : workshop.resourceClaims
-                      ? Math.min(...workshop.resourceClaims.map((r) => getMinDefaultRuntime(r) || minDefault))
-                      : null),
+                    ? Math.min(...workshop.resourceClaims.map((r) => getMinDefaultRuntime(r) || minDefault))
+                    : null)
               );
               const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
               setSelectedDate(date);
@@ -117,17 +118,39 @@ const ServicesScheduleAction: React.FC<{
           }}
         />
       ) : null}
-      {extendLifetimeMsgIsVisible ? (
+      {extendAutoStopMsgIsVisible ? (
         <AlertGroup>
           <Alert
             title={
               <p>
-                Auto-Destroy can be extended by submitting a{' '}
-                <a href={helpLink} target="_blank" rel="noopener noreferrer">
-                  support request
-                </a>
-                .
+                Any change to auto stop/retirement will increase the cost. The usage costs associated with this order
+                will be charged back to your cost center.
               </p>
+            }
+            variant="info"
+            isInline
+          />
+        </AlertGroup>
+      ) : null}
+      {extendLifetimeMsgIsVisible ? (
+        <AlertGroup>
+          <Alert
+            title={
+              <>
+                <p>
+                  Any change to auto stop/retirement will increase the cost. The usage costs associated with this order
+                  will be charged back to your cost center.
+                </p>
+                {minMaxProps.maxDate === null ? (
+                  <p>
+                    Auto-Destroy can be extended by submitting a{' '}
+                    <a href={helpLink} target="_blank" rel="noopener noreferrer">
+                      support request
+                    </a>
+                    .
+                  </p>
+                ) : null}
+              </>
             }
             variant="info"
             isInline
