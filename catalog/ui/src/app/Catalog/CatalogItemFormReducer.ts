@@ -329,7 +329,7 @@ function reduceFormStateInit(
     workshop: null,
     error: '',
     usePoolIfAvailable: true,
-    useAutoDetach: stage === 'prod',
+    useAutoDetach: true,
     activity: null,
     purpose: null,
     purposeOpts,
