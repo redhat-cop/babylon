@@ -39,7 +39,7 @@ import {
   openWorkshopSupportTicket,
 } from '@app/api';
 import { CatalogItem, TPurposeOpts } from '@app/types';
-import { displayName, randomString } from '@app/util';
+import { displayName, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
@@ -833,7 +833,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </>
         ) : null}
         <>
-          {isAdmin ? (
+          {isAdmin || isLabDeveloper(groups) ? (
             <FormGroup key="auto-detach-switch" fieldId="auto-detach-switch">
               <div className="catalog-item-form__group-control--single">
                 <Switch
