@@ -1256,14 +1256,14 @@ class LinkedComponent:
             PropagateProvisionDataItem(item) for item in definition.get('propagate_provision_data', [])
         ]
 
-        # FIXME - this will be a nice feature, but need strict agnosticv-operator compatibility
         component_name_parts = [part.lower().replace('_', '-') for part in self.item.split('/')]
-        #if len(component_name_parts) == 1:
-        #    component_name_parts.insert(0, parent.account)
-        #if len(component_name_parts) == 2:
-        #    component_name_parts.append(parent.stage)
-        #self.component_name = '.'.join(component_name_parts)
-        self.component_name = self.item.lower().replace('/', '.').replace('_', '-') + "." + parent.stage
+        # Add account to match parent if not given in the reference
+        if len(component_name_parts) == 1:
+            component_name_parts.insert(0, parent.account)
+        # Add stage to match parent if not given in the reference
+        if len(component_name_parts) == 2:
+            component_name_parts.append(parent.stage)
+        self.component_name = '.'.join(component_name_parts)
 
         self.short_name = component_name_parts[1]
 
