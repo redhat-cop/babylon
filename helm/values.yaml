@@ -138,7 +138,7 @@ catalog:
           memory: "256Mi"
     status:
       image:
-        tag: v1.0.4
+        tag: v1.0.5
         repository: quay.io/redhat-gpte/babylon-catalog-status
         pullPolicy: IfNotPresent
       replicaCount: 1
