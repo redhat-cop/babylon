@@ -531,8 +531,13 @@ async def list_sfdc_accounts(request):
     }
     queryString = ""
     salesType = request.query.get("sales_type")
+    accountValue = request.query.get("value")
     if salesType:
         queryString = f"sales_type={salesType}"
+    if accountValue:
+        queryString = f"{queryString}&value={accountValue}"
+    else:
+        queryString = f"{queryString}&value=''"
     return await api_proxy(
         headers=headers,
         method="GET",
@@ -540,7 +545,7 @@ async def list_sfdc_accounts(request):
     )
 @routes.get("/api/salesforce/accounts/{account_id}")
 async def list_sfdc_accounts(request):
-    account_id = request.match_info.get('salesforce_id')
+    account_id = request.match_info.get('account_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }

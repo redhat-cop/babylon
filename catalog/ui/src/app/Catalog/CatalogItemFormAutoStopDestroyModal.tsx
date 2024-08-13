@@ -3,7 +3,6 @@ import DateTimePicker from '@app/components/DateTimePicker';
 import Modal, { useModal } from '@app/Modal/Modal';
 import { Alert, AlertGroup, Form, FormGroup, HelperText, HelperTextItem, Switch } from '@patternfly/react-core';
 import InfoIcon from '@patternfly/react-icons/dist/js/icons/info-icon';
-import useSession from '@app/utils/useSession';
 import useHelpLink from '@app/utils/useHelpLink';
 
 export type TDates = { startDate: Date; stopDate: Date; endDate: Date; createTicket?: boolean };
@@ -38,7 +37,6 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   isAutoStopDisabled = false,
   title,
 }) => {
-  const { isAdmin } = useSession().getSession();
   const helpLink = useHelpLink();
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useModal();
   const [dates, setDates] = useState<TDates>({
