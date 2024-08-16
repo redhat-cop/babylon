@@ -916,7 +916,7 @@ class AgnosticVComponent(KopfObject):
                 apply_parameter_to_current = False
                 for component in parameter.get('components', [{"name": "current"}]):
                     component_name = component.get('name')
-                    for linked_provider_config in definition['spec']['linkedResourceProviders']:
+                    for linked_provider_config in definition['spec'].get('linkedResourceProviders', []):
                         if component_name == 'all' or component_name == linked_provider_config['name']:
                             linked_provider_config.setdefault('parameterValues', {})[parameter_name] = '{{' + parameter_name + '|object}}'
                     if component_name == 'all' or component_name == 'current':
