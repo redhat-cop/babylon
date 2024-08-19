@@ -19,7 +19,7 @@ import {
   SearchInput,
 } from '@patternfly/react-core';
 import LoadingIcon from './LoadingIcon';
-import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Opportunity } from '@app/types';
 import useDebounce from '@app/utils/useDebounce';
 
@@ -39,7 +39,7 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
 
   return (
     <div style={{ margin: '24px 0', overflow: 'scroll', maxHeight: '300px' }}>
-      <Table aria-label="Opportunity IDs" variant="compact">
+      <Table aria-label="Opportunity IDs" variant="compact" isStickyHeader>
         <Thead>
           <Tr>
             <Th>Opportunity Name</Th>
@@ -52,19 +52,19 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
         </Thead>
         <Tbody>
           {sfdcList.items.map((x) => (
-            <Tr key={x.id} style={{ opacity: x.isclosed ? 0.5 : 1 }}>
-              <Td dataLabel="name">{x.name}</Td>
-              <Td dataLabel="opportunitynumber__c">{x.opportunitynumber__c}</Td>
-              <Td dataLabel="amount">
+            <Tr key={x.id} style={{ opacity: x.isclosed ? 0.5 : 1 }} isClickable onRowClick={() => onSelectFn(x.opportunitynumber__c)}>
+              <Td dataLabel="name" modifier="breakWord">{x.name}</Td>
+              <Td dataLabel="opportunitynumber__c" modifier="nowrap">{x.opportunitynumber__c}</Td>
+              <Td dataLabel="amount" modifier="nowrap">
                 {new Intl.NumberFormat('en-US', {
                   style: 'currency',
                   currency: x.currencyisocode,
                 }).format(x.amount)}
               </Td>
-              <Td dataLabel="owner">{x.owner.email}</Td>
-              <Td dataLabel="closedate">{x.closedate}</Td>
-              <Td dataLabel="action">
-                {x.isclosed ? null : <Button onClick={() => onSelectFn(x.opportunitynumber__c)}>Select</Button>}
+              <Td dataLabel="owner" modifier="wrap">{x.owner.email}</Td>
+              <Td dataLabel="closedate" modifier="nowrap">{x.closedate}</Td>
+              <Td dataLabel="action" modifier="fitContent">
+                {x.isclosed ? null : <TableText><Button onClick={() => onSelectFn(x.opportunitynumber__c)}>Select</Button></TableText>}
               </Td>
             </Tr>
           ))}
@@ -196,12 +196,12 @@ const SearchSalesforceIdModal: React.FC<{
 
   return (
     <Modal ref={modal} type="ack" onConfirm={null} onClose={onClose} variant={ModalVariant.large}>
-      <div>
+      <div style={{minHeight: '460px'}}>
         <FormGroup
           fieldId="salesforce_id-search-type"
           isRequired={true}
           label={
-            <b>
+            <b style={{ paddingBottom: '8px',     display: 'inline-block' }}>
               Salesforce ID{' '}
               <span
                 style={{
@@ -260,7 +260,7 @@ const SearchSalesforceIdModal: React.FC<{
             fieldId="salesforce_id-search-account"
             isRequired={true}
             style={{ paddingBottom: '16px' }}
-            label={<b>Account</b>}
+            label={<b style={{ paddingBottom: '8px',display: 'inline-block' }}>Account</b>}
           >
             <Suspense fallback={<LoadingIcon />}>
               <SearchSalesforceIdOpportunity onSelectFn={onSelectFn} />
