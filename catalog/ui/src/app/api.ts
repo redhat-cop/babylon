@@ -371,7 +371,18 @@ export async function createServiceRequest({
       namespace: serviceNamespace.name,
     },
     spec: {
-      resources: [],
+      provider: {
+        name: catalogItem.metadata.name,
+        parameterValues: {
+          purpose: parameterValues.purpose as string,
+          ...(start ? { start_timestamp: dateToApiString(start.date) } : {}),
+          ...(start && start.type === 'resource' && start.autoStop
+            ? { stop_timestamp: dateToApiString(start.autoStop) }
+            : stopDate
+            ? { stop_timestamp: dateToApiString(stopDate) }
+            : {}),
+        },
+      },
       lifespan: {
         ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
         end: dateToApiString(endDate),
@@ -386,126 +397,51 @@ export async function createServiceRequest({
     },
   };
 
-  if (access === 'allow') {
-    // Once created the ResourceClaim is completely independent of the catalog item.
-    // This allows the catalog item to be changed or removed without impacting provisioned
-    // services. All relevant configuration from the CatalogItem needs to be copied into
-    // the ResourceClaim.
+  if (access !== 'allow') {
+    return null;
+  }
+  // Once created the ResourceClaim is completely independent of the catalog item.
+  // This allows the catalog item to be changed or removed without impacting provisioned
+  // services. All relevant configuration from the CatalogItem needs to be copied into
+  // the ResourceClaim.
 
-    // Copy resources from catalog item to ResourceClaim
-    requestResourceClaim.spec.resources = JSON.parse(JSON.stringify(catalogItem.spec.resources));
-
-    // Add resources start/stop time (if present)
-    if (start && start.type === 'resource') {
-      if (!start.autoStop) {
-        throw new Error('Auto-stop data is missing when scheduling a resource start');
-      }
-      const startTimestamp = dateToApiString(start.date);
-      const stopTimestamp = dateToApiString(start.autoStop);
-      for (const resource of requestResourceClaim.spec.resources) {
-        recursiveAssign(resource, {
-          template: { spec: { vars: { action_schedule: { start: startTimestamp, stop: stopTimestamp } } } },
-        });
-      }
-    } else if (stopDate) {
-      const stopTimestamp = dateToApiString(stopDate);
-      for (const resource of requestResourceClaim.spec.resources) {
-        recursiveAssign(resource, {
-          template: { spec: { vars: { action_schedule: { stop: stopTimestamp } } } },
-        });
-      }
+  // Add display name annotations for components
+  for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
+    if (key.startsWith(`${BABYLON_DOMAIN}/displayNameComponent`)) {
+      requestResourceClaim.spec.provider.parameterValues[key] = value;
     }
+  }
 
-    // Add display name annotations for components
-    for (const [key, value] of Object.entries(catalogItem.metadata.annotations || {})) {
-      if (key.startsWith(`${BABYLON_DOMAIN}/displayNameComponent`)) {
-        requestResourceClaim.metadata.annotations[key] = value;
-      }
+  // Copy all parameter values into the ResourceClaim
+  for (const parameter of catalogItem.spec.parameters || []) {
+    // passed parameter value or default
+    const value: boolean | number | string =
+      parameterValues?.[parameter.name] !== undefined
+        ? parameterValues[parameter.name]
+        : parameter.openAPIV3Schema?.default !== undefined
+        ? parameter.openAPIV3Schema.default
+        : parameter.value;
+
+    // Set annotation for parameter
+    if (parameter.name && value !== undefined) {
+      requestResourceClaim.spec.provider.parameterValues[parameter.name] = value;
     }
+  }
 
-    // Copy all parameter values into the ResourceClaim
-    for (const parameter of catalogItem.spec.parameters || []) {
-      // passed parameter value or default
-      const value: boolean | number | string =
-        parameterValues?.[parameter.name] !== undefined
-          ? parameterValues[parameter.name]
-          : parameter.openAPIV3Schema?.default !== undefined
-          ? parameter.openAPIV3Schema.default
-          : parameter.value;
-
-      // Set annotation for parameter
-      if (parameter.annotation && value !== undefined && parameter.name !== 'purpose') {
-        requestResourceClaim.metadata.annotations[parameter.annotation] = String(value);
-      }
-
-      if (parameter.name === 'purpose') {
-        // Purpose & SFDC
-        const annotationDomain = parameter.annotation.split('/')[0];
-        if (parameterValues.purpose) {
-          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose`] = parameterValues.purpose as string;
-        }
-        if (parameterValues.purpose_activity) {
-          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-activity`] =
-            parameterValues.purpose_activity as string;
-        }
-        if (parameterValues.purpose_explanation) {
-          requestResourceClaim.metadata.annotations[`${annotationDomain}/purpose-explanation`] =
-            parameterValues.purpose_explanation as string;
-        }
-        if (parameterValues.salesforce_id) {
-          requestResourceClaim.metadata.annotations[`${annotationDomain}/salesforce-id`] =
-            parameterValues.salesforce_id as string;
-        }
-        if (parameterValues.sales_type) {
-          requestResourceClaim.metadata.annotations[`${annotationDomain}/sales-type`] =
-            parameterValues.sales_type as string;
-        }
-      }
-
-      // Job variable name is either explicitly set or defaults to the parameter name unless an annotation is given.
-      const jobVarName: string = parameter.variable || (parameter.annotation ? null : parameter.name);
-      if (!jobVarName) {
-        continue;
-      }
-
-      // Determine to which resources in the resource claim the parameters apply
-      const resourceIndexes: number[] = parameter.resourceIndexes
-        ? parameter.resourceIndexes.map((i) => (i === '@' ? requestResourceClaim.spec.resources.length - 1 : i))
-        : [requestResourceClaim.spec.resources.length - 1];
-
-      for (const resourceIndex in requestResourceClaim.spec.resources) {
-        // Skip this resource if resource index does not match
-        if (!resourceIndexes.includes(parseInt(resourceIndex))) {
-          continue;
-        }
-
-        const resource = requestResourceClaim.spec.resources[resourceIndex];
-        recursiveAssign(resource, { template: { spec: { vars: { job_vars: { [jobVarName]: value } } } } });
-      }
-    }
-  } else {
-    // No direct access to catalog item. Create the service-request to record
-    // the user interest in the catalog item.
-    requestResourceClaim.spec.resources[0] = {
-      provider: {
-        apiVersion: 'poolboy.gpte.redhat.com/v1',
-        kind: 'ResourceProvider',
-        name: 'babylon-service-request-configmap',
-        namespace: 'poolboy',
-      },
-      template: {
-        data: {
-          catalogItemName: catalogItem.metadata.name,
-          catalogItemNamespace: catalogItem.metadata.namespace,
-          parameters: JSON.stringify(parameterValues),
-        },
-        metadata: {
-          labels: {
-            [`${BABYLON_DOMAIN}/catalogItem`]: catalogItem.metadata.name,
-          },
-        },
-      },
-    };
+  // Purpose & SFDC
+  if (parameterValues.purpose) {
+    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
+  }
+  if (parameterValues.purpose_activity) {
+    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`] =
+      parameterValues.purpose_activity as string;
+  }
+  if (parameterValues.purpose_explanation) {
+    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] =
+      parameterValues.purpose_explanation as string;
+  }
+  if (parameterValues.salesforce_id) {
+    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] = parameterValues.salesforce_id as string;
   }
 
   while (true) {
