@@ -149,6 +149,18 @@ spec:
                   total:
                     description: Total user assignments for workshop.
                     type: integer
+              provisionCount:
+                type: object
+                properties:
+                  provisioning:
+                    description: Number of WorkshopProvisions that are provisioning.
+                    type: integer
+                  failed:
+                    description: Number of WorkshopProvisions that have failed.
+                    type: integer
+                  completed:
+                    description: Number of WorkshopProvisions that have completed.
+                    type: integer
         required:
         - apiVersion
         - kind

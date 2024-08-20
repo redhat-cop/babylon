@@ -309,6 +309,12 @@ class WorkshopProvision(CachedKopfObject):
             if resource_claim.is_failed:
                 failed_count += 1
 
+            await workshop.update_provision_count(
+                provisioning=provisioning_count,
+                failed=failed_count,
+                completed=resource_claim_count - provisioning_count - failed_count
+            )
+
         # Do not start any provisions if lifespan start is in the future
         if self.lifespan_start and self.lifespan_start > datetime.now(timezone.utc):
             return
