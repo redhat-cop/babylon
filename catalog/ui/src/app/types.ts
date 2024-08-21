@@ -681,3 +681,9 @@ export type Opportunity = {
     id: string;
   };
 };
+
+export type SalesforceAccount = {
+  id: string;
+  name: string;
+  is_valid: boolean;
+};

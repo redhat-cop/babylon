@@ -20,11 +20,15 @@ import {
 } from '@patternfly/react-core';
 import LoadingIcon from './LoadingIcon';
 import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { Opportunity } from '@app/types';
+import { Opportunity, SalesforceAccount } from '@app/types';
 import useDebounce from '@app/utils/useDebounce';
 
-async function fetchAccounts(accountValue: string): Promise<{ id: string; name: string }[]> {
-  const acc = await fetcher(apiPaths.SFDC_ACCOUNTS({ sales_type: 'opportunity', account_value: accountValue }));
+async function fetchAccounts(
+  sfdcType: 'campaign' | 'cdh' | 'project' | 'opportunity',
+  accountValue: string,
+): Promise<SalesforceAccount[]> {
+  if (!sfdcType) return [];
+  const acc = await fetcher(apiPaths.SFDC_ACCOUNTS({ sales_type: sfdcType, account_value: accountValue }));
   return acc.items;
 }
 
@@ -52,19 +56,36 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
         </Thead>
         <Tbody>
           {sfdcList.items.map((x) => (
-            <Tr key={x.id} style={{ opacity: x.isclosed ? 0.5 : 1 }} isClickable onRowClick={() => onSelectFn(x.opportunitynumber__c)}>
-              <Td dataLabel="name" modifier="breakWord">{x.name}</Td>
-              <Td dataLabel="opportunitynumber__c" modifier="nowrap">{x.opportunitynumber__c}</Td>
+            <Tr
+              key={x.id}
+              style={{ opacity: x.isclosed ? 0.5 : 1 }}
+              isClickable
+              onRowClick={() => onSelectFn(x.opportunitynumber__c)}
+            >
+              <Td dataLabel="name" modifier="breakWord">
+                {x.name}
+              </Td>
+              <Td dataLabel="opportunitynumber__c" modifier="nowrap">
+                {x.opportunitynumber__c}
+              </Td>
               <Td dataLabel="amount" modifier="nowrap">
                 {new Intl.NumberFormat('en-US', {
                   style: 'currency',
                   currency: x.currencyisocode,
                 }).format(x.amount)}
               </Td>
-              <Td dataLabel="owner" modifier="wrap">{x.owner.email}</Td>
-              <Td dataLabel="closedate" modifier="nowrap">{x.closedate}</Td>
+              <Td dataLabel="owner" modifier="wrap">
+                {x.owner.email}
+              </Td>
+              <Td dataLabel="closedate" modifier="nowrap">
+                {x.closedate}
+              </Td>
               <Td dataLabel="action" modifier="fitContent">
-                {x.isclosed ? null : <TableText><Button onClick={() => onSelectFn(x.opportunitynumber__c)}>Select</Button></TableText>}
+                {x.isclosed ? null : (
+                  <TableText>
+                    <Button onClick={() => onSelectFn(x.opportunitynumber__c)}>Select</Button>
+                  </TableText>
+                )}
               </Td>
             </Tr>
           ))}
@@ -73,14 +94,18 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
     </div>
   );
 };
-const SearchSalesforceIdOpportunity: React.FC<{ onSelectFn: (oppId: string) => void }> = ({ onSelectFn }) => {
+const SearchSalesforceId: React.FC<{
+  sfdcType: 'campaign' | 'cdh' | 'project' | 'opportunity';
+  onSelectFn: (oppId: string) => void;
+  selectedAccount: SalesforceAccount;
+  setSelectedAccount: React.Dispatch<React.SetStateAction<SalesforceAccount>>;
+}> = ({ sfdcType, onSelectFn, selectedAccount, setSelectedAccount }) => {
   const ref = React.useRef<HTMLDivElement>(null);
   const debouncedFetchAccounts = useDebounce(fetchAccounts, 500);
-  const [selectedAccount, setSelectedAccount] = useState<{ id: string; name: string }>(null);
   const [accountValue, setAccountValue] = useState('');
   const [accountsSelectIsOpen, setAccountsSelectIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [filteredItems, setFilteredItems] = React.useState<{ id: string; name: string }[]>([]);
+  const [filteredItems, setFilteredItems] = React.useState<SalesforceAccount[]>([]);
   const onSelect = (ev: React.MouseEvent<Element, MouseEvent> | undefined, itemId: string | number | undefined) => {
     if (typeof itemId === 'number' || typeof itemId === 'undefined') {
       return;
@@ -92,15 +117,12 @@ const SearchSalesforceIdOpportunity: React.FC<{ onSelectFn: (oppId: string) => v
     }
   };
 
-  const onSearchButtonClick = useCallback(
-    async (value: string) => {
-      setIsLoading(true);
-      const accounts = (await debouncedFetchAccounts(value)) as { id: string; name: string }[];
-      setFilteredItems(accounts);
-      setIsLoading(false);
-    },
-    [setIsLoading, setFilteredItems, debouncedFetchAccounts],
-  );
+  async function onSearchButtonClick(value: string) {
+    setIsLoading(true);
+    const accounts = (await debouncedFetchAccounts(sfdcType, value)) as SalesforceAccount[];
+    setFilteredItems(accounts);
+    setIsLoading(false);
+  }
 
   const onEnterPressed = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
@@ -157,7 +179,7 @@ const SearchSalesforceIdOpportunity: React.FC<{ onSelectFn: (oppId: string) => v
           ) : null}
           {filteredItems.map((u, index: number) => {
             return (
-              <DropdownItem itemId={u.id} key={index}>
+              <DropdownItem itemId={u.id} key={index} isDisabled={!u.is_valid}>
                 {u.name}
                 <span style={{ opacity: 0.7, fontSize: '10px', paddingLeft: '12px' }}>id: {u.id}</span>
               </DropdownItem>
@@ -165,11 +187,13 @@ const SearchSalesforceIdOpportunity: React.FC<{ onSelectFn: (oppId: string) => v
           })}
         </DropdownList>
       </Dropdown>
-      <Suspense fallback={<LoadingIcon />}>
-        {selectedAccount?.id ? (
-          <OpportunityListByAccount accountId={selectedAccount.id} onSelectFn={onSelectFn} />
-        ) : null}
-      </Suspense>
+      {sfdcType === 'opportunity' ? (
+        <Suspense fallback={<LoadingIcon />}>
+          {selectedAccount?.id ? (
+            <OpportunityListByAccount accountId={selectedAccount.id} onSelectFn={onSelectFn} />
+          ) : null}
+        </Suspense>
+      ) : null}
     </div>
   );
 };
@@ -181,6 +205,7 @@ const SearchSalesforceIdModal: React.FC<{
 }> = ({ onSubmitCb, isOpen, onClose, defaultSfdcType = null }) => {
   const [modal, openModal, closeModal] = useModal();
   const [sfdcType, setSfdcType] = useState(defaultSfdcType);
+  const [selectedAccount, setSelectedAccount] = useState<SalesforceAccount>(null);
   useEffect(() => {
     if (!!isOpen) {
       openModal();
@@ -189,19 +214,25 @@ const SearchSalesforceIdModal: React.FC<{
   useEffect(() => {
     setSfdcType(defaultSfdcType);
   }, [defaultSfdcType]);
-  const onSelectFn = (oppId: string) => {
-    onSubmitCb(oppId, sfdcType);
+  const onSelectFn = (id: string) => {
+    onSubmitCb(id, sfdcType);
     closeModal();
   };
 
   return (
-    <Modal ref={modal} type="ack" onConfirm={null} onClose={onClose} variant={ModalVariant.large}>
-      <div style={{minHeight: '460px'}}>
+    <Modal
+      ref={modal}
+      onConfirm={() => onSubmitCb(selectedAccount.id, sfdcType)}
+      isDisabled={!selectedAccount || sfdcType === 'opportunity'}
+      onClose={onClose}
+      variant={ModalVariant.large}
+    >
+      <div style={{ minHeight: '460px' }}>
         <FormGroup
           fieldId="salesforce_id-search-type"
           isRequired={true}
           label={
-            <b style={{ paddingBottom: '8px',     display: 'inline-block' }}>
+            <b style={{ paddingBottom: '8px', display: 'inline-block' }}>
               Salesforce ID{' '}
               <span
                 style={{
@@ -255,20 +286,21 @@ const SearchSalesforceIdModal: React.FC<{
             ></Radio>
           </div>
         </FormGroup>
-        {sfdcType === 'opportunity' ? (
-          <FormGroup
-            fieldId="salesforce_id-search-account"
-            isRequired={true}
-            style={{ paddingBottom: '16px' }}
-            label={<b style={{ paddingBottom: '8px',display: 'inline-block' }}>Account</b>}
-          >
-            <Suspense fallback={<LoadingIcon />}>
-              <SearchSalesforceIdOpportunity onSelectFn={onSelectFn} />
-            </Suspense>
-          </FormGroup>
-        ) : sfdcType !== null ? (
-          <p>Salesforce ID type not available.</p>
-        ) : null}
+        <FormGroup
+          fieldId="salesforce_id-search-account"
+          isRequired={true}
+          style={{ paddingBottom: '16px' }}
+          label={<b style={{ paddingBottom: '8px', display: 'inline-block' }}>Account</b>}
+        >
+          <Suspense fallback={<LoadingIcon />}>
+            <SearchSalesforceId
+              sfdcType={sfdcType}
+              onSelectFn={onSelectFn}
+              selectedAccount={selectedAccount}
+              setSelectedAccount={setSelectedAccount}
+            />
+          </Suspense>
+        </FormGroup>
       </div>
     </Modal>
   );
