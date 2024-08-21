@@ -585,7 +585,30 @@ class AgnosticVComponent(KopfObject):
                 definition['spec']['workshopUiMaxInstances'] = self.catalog_workshop_ui_max_instances
 
             if self.catalog_parameters != None:
-                definition['spec']['parameters'] = self.catalog_parameters
+                definition['spec']['parameters'] = []
+                for catalog_parameter in self.catalog_parameters:
+                    parameter = {
+                        key: value for key, value in catalog_parameter.items()
+                        if key not in ('components', 'resourceIndexes')
+                    }
+                    definition['spec']['parameters'].append(parameter)
+                    # Compatibility with deprecated resourceIndexes
+                    if 'components' in catalog_parameter:
+                        resource_indexes = set()
+                        for component in catalog_parameter['components']:
+                            component_name = component['name']
+                            if component_name == 'all':
+                                for idx in range(len(self.linked_components)):
+                                    resource_indexes.add(idx)
+                                if self.deployer_type:
+                                    resource_indexes.add(len(self.linked_components))
+                            elif component_name == 'current':
+                                resource_indexes.add(len(catalog_parameter['components']))
+                            else:
+                                for idx, linked_component in enumerate(self.linked_components):
+                                    if linked_component.name == component_name:
+                                        resource_indexes.add(idx)
+                        parameter['resourceIndexes'] = list(resource_indexes)
 
             if self.deployer_provision_time_estimate:
                 definition['spec']['provisionTimeEstimate'] = self.deployer_provision_time_estimate
@@ -870,17 +893,17 @@ class AgnosticVComponent(KopfObject):
             if self.deployer_type:
                 for item in linked_component.propagate_provision_data:
                     if item.name:
-                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{ provision_data_' + str(idx) + '.' + item.name + '}}'
+                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{provision_data_' + str(idx) + '.' + item.name + '|object}}'
                     else:
-                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{ provision_data_' + str(idx) + ' | object }}'
-
+                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{provision_data_' + str(idx) + '|object}}'
 
         if self.catalog_parameters:
             if self.deployer_type:
                 open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars']
             for parameter in self.catalog_parameters:
+                parameter_name = parameter['name']
                 resource_broker_parameter = {
-                    'name': parameter['name'],
+                    'name': parameter_name,
                     'allowUpdate': parameter.get('allowUpdate', False),
                     'required': parameter.get('required', False),
                 }
@@ -889,25 +912,23 @@ class AgnosticVComponent(KopfObject):
 
                 definition['spec']['parameters'].append(resource_broker_parameter)
 
-                # FIXME - resource indexes is a clumsy way to configure parameters
-
-                # '@' in resource indexes means current resource. Other values reference
-                # linked resource providers.
-                resource_indexes = parameter.get('resourceIndexes', ['@'])
-                current_resource_index = len(self.linked_components)
-
                 # Configure parameter propagation to linked components
-                for resource_index in resource_indexes:
-                    if resource_index == '@' or resource_index == current_resource_index:
-                        continue
-                    definition['spec']['linkedResourceProviders'][resource_index]['parameterValues'][parameter['name']] = '{{' + parameter['name'] + ' | object }}'
+                apply_parameter_to_current = False
+                for component in parameter.get('components', [{"name": "current"}]):
+                    component_name = component.get('name')
+                    for linked_provider_config in definition['spec'].get('linkedResourceProviders', []):
+                        if component_name == 'all' or component_name == linked_provider_config['name']:
+                            linked_provider_config.setdefault('parameterValues', {})[parameter_name] = '{{' + parameter_name + '|object}}'
+                    if component_name == 'all' or component_name == 'current':
+                        apply_parameter_to_current = True
 
                 # Below here is customization for how the parameter value is used to manage the
                 # resource for this provider. Some parameters may only be used to propagate to
                 # other linked providers.
                 if not self.deployer_type:
                     continue
-                if '@' not in resource_indexes and current_resource_index not in resource_indexes:
+
+                if not apply_parameter_to_current:
                     continue
 
                 # Skip annotation only parameters in template generation and validation
@@ -916,7 +937,7 @@ class AgnosticVComponent(KopfObject):
 
                 open_api_schema_job_vars.setdefault('properties', {})
                 open_api_schema_job_vars.setdefault('required', [])
-                variable = parameter.get('variable', parameter['name'])
+                variable = parameter.get('variable', parameter_name)
                 default = None
                 parameter_open_api_schema = parameter.get('openAPIV3Schema', {})
                 if 'default' in parameter_open_api_schema:
@@ -937,7 +958,7 @@ class AgnosticVComponent(KopfObject):
                     'vars', {}
                 ).setdefault(
                     'job_vars', {}
-                )[variable] = '{{ ' + parameter['name'] + ' | default(omit) | object }}'
+                )[variable] = '{{' + parameter_name + '|default(omit)|object}}'
 
         return definition
 
@@ -1256,14 +1277,14 @@ class LinkedComponent:
             PropagateProvisionDataItem(item) for item in definition.get('propagate_provision_data', [])
         ]
 
-        # FIXME - this will be a nice feature, but need strict agnosticv-operator compatibility
         component_name_parts = [part.lower().replace('_', '-') for part in self.item.split('/')]
-        #if len(component_name_parts) == 1:
-        #    component_name_parts.insert(0, parent.account)
-        #if len(component_name_parts) == 2:
-        #    component_name_parts.append(parent.stage)
-        #self.component_name = '.'.join(component_name_parts)
-        self.component_name = self.item.lower().replace('/', '.').replace('_', '-') + "." + parent.stage
+        # Add account to match parent if not given in the reference
+        if len(component_name_parts) == 1:
+            component_name_parts.insert(0, parent.account)
+        # Add stage to match parent if not given in the reference
+        if len(component_name_parts) == 2:
+            component_name_parts.append(parent.stage)
+        self.component_name = '.'.join(component_name_parts)
 
         self.short_name = component_name_parts[1]
 
