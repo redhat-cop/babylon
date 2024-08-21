@@ -56,36 +56,31 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
         </Thead>
         <Tbody>
           {sfdcList.items.map((x) => (
-            <Tr
-              key={x.id}
-              style={{ opacity: x.isclosed ? 0.5 : 1 }}
-              isClickable
-              onRowClick={() => onSelectFn(x.opportunitynumber__c)}
-            >
+            <Tr key={x.id} style={{ opacity: !x.is_valid ? 0.5 : 1 }} isClickable onRowClick={() => onSelectFn(x.id)}>
               <Td dataLabel="name" modifier="breakWord">
                 {x.name}
               </Td>
               <Td dataLabel="opportunitynumber__c" modifier="nowrap">
-                {x.opportunitynumber__c}
+                {x.id}
               </Td>
               <Td dataLabel="amount" modifier="nowrap">
                 {new Intl.NumberFormat('en-US', {
                   style: 'currency',
-                  currency: x.currencyisocode,
+                  currency: x.currency_iso_code,
                 }).format(x.amount)}
               </Td>
               <Td dataLabel="owner" modifier="wrap">
                 {x.owner.email}
               </Td>
               <Td dataLabel="closedate" modifier="nowrap">
-                {x.closedate}
+                {x.close_date}
               </Td>
               <Td dataLabel="action" modifier="fitContent">
-                {x.isclosed ? null : (
+                {x.is_valid ? (
                   <TableText>
-                    <Button onClick={() => onSelectFn(x.opportunitynumber__c)}>Select</Button>
+                    <Button onClick={() => onSelectFn(x.id)}>Select</Button>
                   </TableText>
-                )}
+                ) : null}
               </Td>
             </Tr>
           ))}
