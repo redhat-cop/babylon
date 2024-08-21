@@ -37,7 +37,7 @@ class ResourceClaim(K8sObject):
             await resource_claim.delete_workshop_user_assignments(logger=logger)
             return
 
-        if not resource_claim.provision_complete:
+        if not resource_claim.provision_complete or resource_claim.is_failed:
             return
 
         try:
