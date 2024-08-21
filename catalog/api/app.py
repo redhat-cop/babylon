@@ -637,7 +637,7 @@ async def workshop_post(request):
         label_selector=f"babylon.gpte.redhat.com/workshop-id={workshop_id}"
     )
     if not workshop_list.get('items'):
-        raise web.HTTPNotFound()
+        raise web.HTTPConflict()
 
     workshop = workshop_list['items'][0]
     workshop_access_password = workshop['spec'].get('accessPassword')
