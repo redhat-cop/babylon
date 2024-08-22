@@ -17,10 +17,14 @@ const STORAGE_KEY = `${location?.hostname || 'demo.redhat.com'}.incidents.closed
 
 const IncidentsBanner: React.FC = () => {
   const { userInterface } = useSession().getSession();
-  const { data } = useSWRImmutable<Incident[]>(apiPaths.INCIDENTS({ status: 'active', userInterface: userInterface }), fetcher, {
-    shouldRetryOnError: false,
-    suspense: false,
-  });
+  const { data } = useSWRImmutable<Incident[]>(
+    apiPaths.INCIDENTS({ status: 'active', userInterface: userInterface }),
+    fetcher,
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    },
+  );
   const [closedItemsStr, setClosedItemsStr] = useState(localStorage.getItem(STORAGE_KEY));
   const closedItems: { id: number; timestamp: number }[] = useMemo(() => {
     try {

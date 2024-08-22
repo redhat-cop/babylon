@@ -141,7 +141,7 @@ const WorkshopsItemDetails: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
-      
+
       <DescriptionListGroup>
         <DescriptionListTerm>
           Description{' '}

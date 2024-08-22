@@ -12,9 +12,9 @@ import { CUSTOM_LABELS } from '@app/Catalog/catalog-utils';
 import { Table, TableBody, TableHeader } from '@patternfly/react-table/deprecated';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
+import LoadingSection from '@app/components/LoadingSection';
 
 import './admin.css';
-import LoadingSection from '@app/components/LoadingSection';
 
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {

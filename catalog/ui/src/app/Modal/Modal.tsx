@@ -36,6 +36,7 @@ const _Modal: ForwardRefRenderFunction<
     type?: 'action' | 'ack';
     confirmText?: string;
     className?: string;
+    variant?: ModalVariant;
   }
 > = (
   {
@@ -48,6 +49,7 @@ const _Modal: ForwardRefRenderFunction<
     passModifiers = false,
     type = 'action',
     confirmText = 'Confirm',
+    variant = ModalVariant.small,
     className,
   },
   ref,
@@ -150,12 +152,14 @@ const _Modal: ForwardRefRenderFunction<
           setState: React.Dispatch<unknown>;
           setOnConfirmCb: React.Dispatch<React.SetStateAction<() => Promise<void>>>;
           setIsDisabled: React.Dispatch<React.SetStateAction<boolean>>;
+          close: () => void;
         }>,
         {
           setTitle,
           setState,
           setOnConfirmCb,
           setIsDisabled,
+          close,
         },
       );
     }
@@ -167,7 +171,7 @@ const _Modal: ForwardRefRenderFunction<
         isOpen ? (
           <Suspense
             fallback={
-              <Modal ref={modalEl} isOpen variant={ModalVariant.small} onClose={close} aria-label="Modal: Loading">
+              <Modal ref={modalEl} isOpen variant={variant} onClose={close} aria-label="Modal: Loading">
                 <LoadingSection />
               </Modal>
             }
@@ -177,7 +181,7 @@ const _Modal: ForwardRefRenderFunction<
               className={`modal-component${className ? ` ${className}` : ''} ${optionalFlags
                 .map((flag) => `optional-flags__${flag}`)
                 .join(' ')}`}
-              variant={ModalVariant.small}
+              variant={variant}
               title={_title}
               onClose={close}
               aria-label={`Modal: ${_title}`}

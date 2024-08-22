@@ -604,7 +604,8 @@ export type ResourceType =
   | 'USER_RATING'
   | 'WORKSHOP_SUPPORT'
   | 'WORKSHOP_USER_ASSIGNMENTS'
-  | 'SFDC_ACCOUNTS';
+  | 'SFDC_ACCOUNTS'
+  | 'SFDC_BY_ACCOUNT';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
@@ -663,3 +664,28 @@ export type AssetMetrics = {
   usageAmountTotal: number;
   userExperiencesTotal: number;
 };
+
+export type Opportunity = {
+  id: string;
+  amount: number;
+  close_date: string;
+  currency_iso_code: string;
+  is_closed: boolean;
+  is_valid: boolean;
+  name: string;
+  owner: {
+    email: string;
+  };
+  account: {
+    name: string;
+    id: string;
+  };
+};
+
+export type SalesforceAccount = {
+  id: string;
+  name: string;
+  is_valid: boolean;
+};
+
+export type SfdcType = 'campaign' | 'cdh' | 'project' | 'opportunity';

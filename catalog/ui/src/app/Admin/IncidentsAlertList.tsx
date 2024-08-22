@@ -53,7 +53,7 @@ function reducer(
         incident_type: action.incident.incident_type,
         message: action.incident.message,
         status: action.incident.status,
-        interface: action.incident.interface
+        interface: action.incident.interface,
       };
     }
     case 'new_incident': {
@@ -73,12 +73,16 @@ function reducer(
 
 const IncidentsAlertList: React.FC = () => {
   const { userInterface } = useSession().getSession();
-  const [state, dispatch] = useReducer(reducer, {... initialState, interface: userInterface});
+  const [state, dispatch] = useReducer(reducer, { ...initialState, interface: userInterface });
   const [isOpen, setIsOpen] = useState(false);
   const [incidentModal, openIncidentModal] = useModal();
-  const { data: activeIncidents, mutate } = useSWR<Incident[]>(apiPaths.INCIDENTS({ status: 'active', userInterface: userInterface }), fetcher, {
-    refreshInterval: 8000,
-  });
+  const { data: activeIncidents, mutate } = useSWR<Incident[]>(
+    apiPaths.INCIDENTS({ status: 'active', userInterface: userInterface }),
+    fetcher,
+    {
+      refreshInterval: 8000,
+    },
+  );
 
   async function upsertIncident(incident: IncidentData) {
     await fetcher(incident.id ? apiPaths.INCIDENT({ incidentId: incident.id }) : apiPaths.INCIDENTS({}), {
@@ -91,7 +95,7 @@ const IncidentsAlertList: React.FC = () => {
         status: incident.status,
         level: incident.level,
         message: incident.message,
-        interface: incident.interface
+        interface: incident.interface,
       }),
     });
 
