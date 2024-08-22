@@ -23,10 +23,7 @@ import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-ta
 import { Opportunity, SalesforceAccount, SfdcType } from '@app/types';
 import useDebounce from '@app/utils/useDebounce';
 
-async function fetchAccounts(
-  accountValue: string,
-  sfdcType: SfdcType,
-): Promise<SalesforceAccount[]> {
+async function fetchAccounts(accountValue: string, sfdcType: SfdcType): Promise<SalesforceAccount[]> {
   if (!sfdcType) return [];
   const acc = await fetcher(apiPaths.SFDC_ACCOUNTS({ sales_type: sfdcType, account_value: accountValue }));
   return acc.items;
@@ -48,29 +45,23 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
           <Tr>
             <Th>Opportunity Name</Th>
             <Th>ID</Th>
-            <Th>Amount</Th>
-            <Th>Owner</Th>
             <Th>Close date</Th>
             <Th></Th>
           </Tr>
         </Thead>
         <Tbody>
           {sfdcList.items.map((x) => (
-            <Tr key={x.id} style={{ opacity: !x.is_valid ? 0.5 : 1 }} isClickable onRowClick={() => onSelectFn(x.id)}>
+            <Tr
+              key={x.id}
+              style={{ opacity: !x.is_valid ? 0.5 : 1 }}
+              isClickable={x.is_valid}
+              onRowClick={() => onSelectFn(x.id)}
+            >
               <Td dataLabel="name" modifier="breakWord">
                 {x.name}
               </Td>
               <Td dataLabel="opportunitynumber__c" modifier="nowrap">
                 {x.id}
-              </Td>
-              <Td dataLabel="amount" modifier="nowrap">
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: x.currency_iso_code,
-                }).format(x.amount)}
-              </Td>
-              <Td dataLabel="owner" modifier="wrap">
-                {x.owner.email}
               </Td>
               <Td dataLabel="closedate" modifier="nowrap">
                 {x.close_date}
@@ -80,7 +71,13 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
                   <TableText>
                     <Button onClick={() => onSelectFn(x.id)}>Select</Button>
                   </TableText>
-                ) : null}
+                ) : (
+                  <TableText>
+                    <Button isDisabled onClick={null}>
+                      Not valid
+                    </Button>
+                  </TableText>
+                )}
               </Td>
             </Tr>
           ))}
