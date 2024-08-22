@@ -1,0 +1,28 @@
+{{- range $namespace, $_interface := .Values.catalog.interfaces }}
+{{- $interface := merge $_interface (deepCopy $.Values.catalog.defaults) }}
+{{- $domain := $interface.route.host | default (printf "%s.%s" $namespace $.Values.ingressDomain) }}
+---
+apiVersion: secretgenerator.mittwald.de/v1alpha1
+kind: StringSecret
+metadata:
+  name: babylon-catalog-oauth-proxy-client
+  namespace: {{ $namespace }}
+spec:
+  forceRegenerate: false
+  fields:
+  - fieldName: clientSecret
+    encoding: base64
+    length: "32"
+---
+apiVersion: rhpds.redhat.com/v1
+kind: OAuthClientConfig
+metadata:
+  name: {{ $namespace }}
+spec:
+  grantMethod: auto
+  redirectURIs:
+  - https://{{ $domain }}/oauth/callback
+  secret:
+    name: babylon-catalog-oauth-proxy-client
+    namespace: {{ $namespace }}
+{{- end }}
