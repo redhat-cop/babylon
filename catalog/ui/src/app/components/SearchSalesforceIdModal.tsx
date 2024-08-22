@@ -23,10 +23,7 @@ import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-ta
 import { Opportunity, SalesforceAccount, SfdcType } from '@app/types';
 import useDebounce from '@app/utils/useDebounce';
 
-async function fetchAccounts(
-  accountValue: string,
-  sfdcType: SfdcType,
-): Promise<SalesforceAccount[]> {
+async function fetchAccounts(accountValue: string, sfdcType: SfdcType): Promise<SalesforceAccount[]> {
   if (!sfdcType) return [];
   const acc = await fetcher(apiPaths.SFDC_ACCOUNTS({ sales_type: sfdcType, account_value: accountValue }));
   return acc.items;
@@ -54,7 +51,12 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
         </Thead>
         <Tbody>
           {sfdcList.items.map((x) => (
-            <Tr key={x.id} style={{ opacity: !x.is_valid ? 0.5 : 1 }} isClickable={x.is_valid} onRowClick={() => onSelectFn(x.id)}>
+            <Tr
+              key={x.id}
+              style={{ opacity: !x.is_valid ? 0.5 : 1 }}
+              isClickable={x.is_valid}
+              onRowClick={() => onSelectFn(x.id)}
+            >
               <Td dataLabel="name" modifier="breakWord">
                 {x.name}
               </Td>
@@ -69,9 +71,13 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
                   <TableText>
                     <Button onClick={() => onSelectFn(x.id)}>Select</Button>
                   </TableText>
-                ) : <TableText>
-                <Button isDisabled onClick={null}>Not valid</Button>
-              </TableText>}
+                ) : (
+                  <TableText>
+                    <Button isDisabled onClick={null}>
+                      Not valid
+                    </Button>
+                  </TableText>
+                )}
               </Td>
             </Tr>
           ))}

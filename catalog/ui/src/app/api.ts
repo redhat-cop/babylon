@@ -379,8 +379,8 @@ export async function createServiceRequest({
           ...(start && start.type === 'resource' && start.autoStop
             ? { stop_timestamp: dateToApiString(start.autoStop) }
             : stopDate
-            ? { stop_timestamp: dateToApiString(stopDate) }
-            : {}),
+              ? { stop_timestamp: dateToApiString(stopDate) }
+              : {}),
         },
       },
       lifespan: {
@@ -419,8 +419,8 @@ export async function createServiceRequest({
       parameterValues?.[parameter.name] !== undefined
         ? parameterValues[parameter.name]
         : parameter.openAPIV3Schema?.default !== undefined
-        ? parameter.openAPIV3Schema.default
-        : parameter.value;
+          ? parameter.openAPIV3Schema.default
+          : parameter.value;
 
     // Set annotation for parameter
     if (parameter.name && value !== undefined) {
