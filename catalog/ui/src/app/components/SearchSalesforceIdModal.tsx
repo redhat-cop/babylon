@@ -56,7 +56,7 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
         </Thead>
         <Tbody>
           {sfdcList.items.map((x) => (
-            <Tr key={x.id} style={{ opacity: !x.is_valid ? 0.5 : 1 }} isClickable onRowClick={() => onSelectFn(x.id)}>
+            <Tr key={x.id} style={{ opacity: !x.is_valid ? 0.5 : 1 }} isClickable={x.is_valid} onRowClick={() => onSelectFn(x.id)}>
               <Td dataLabel="name" modifier="breakWord">
                 {x.name}
               </Td>
