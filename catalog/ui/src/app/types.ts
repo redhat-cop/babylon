@@ -687,3 +687,5 @@ export type SalesforceAccount = {
   name: string;
   is_valid: boolean;
 };
+
+export type SfdcType = 'campaign' | 'cdh' | 'project' | 'opportunity';

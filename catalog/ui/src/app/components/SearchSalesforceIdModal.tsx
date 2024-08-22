@@ -20,12 +20,12 @@ import {
 } from '@patternfly/react-core';
 import LoadingIcon from './LoadingIcon';
 import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { Opportunity, SalesforceAccount } from '@app/types';
+import { Opportunity, SalesforceAccount, SfdcType } from '@app/types';
 import useDebounce from '@app/utils/useDebounce';
 
 async function fetchAccounts(
-  sfdcType: 'campaign' | 'cdh' | 'project' | 'opportunity',
   accountValue: string,
+  sfdcType: SfdcType,
 ): Promise<SalesforceAccount[]> {
   if (!sfdcType) return [];
   const acc = await fetcher(apiPaths.SFDC_ACCOUNTS({ sales_type: sfdcType, account_value: accountValue }));
@@ -90,7 +90,7 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
   );
 };
 const SearchSalesforceId: React.FC<{
-  sfdcType: 'campaign' | 'cdh' | 'project' | 'opportunity';
+  sfdcType: SfdcType;
   onSelectFn: (oppId: string) => void;
   selectedAccount: SalesforceAccount;
   setSelectedAccount: React.Dispatch<React.SetStateAction<SalesforceAccount>>;
@@ -112,21 +112,25 @@ const SearchSalesforceId: React.FC<{
     }
   };
 
-  async function onSearchButtonClick(value: string) {
+  async function onSearchButtonClick(value: string, sfdcType: SfdcType) {
     setIsLoading(true);
-    const accounts = (await debouncedFetchAccounts(sfdcType, value)) as SalesforceAccount[];
+    const accounts = (await debouncedFetchAccounts(value, sfdcType)) as SalesforceAccount[];
     setFilteredItems(accounts);
     setIsLoading(false);
   }
 
   const onEnterPressed = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
-      onSearchButtonClick(accountValue);
+      onSearchButtonClick(accountValue, sfdcType);
     }
   };
   useEffect(() => {
-    onSearchButtonClick(accountValue);
-  }, [accountValue]);
+    onSearchButtonClick(accountValue, sfdcType);
+  }, [accountValue, sfdcType]);
+  useEffect(() => {
+    setAccountValue('');
+    setFilteredItems([]);
+  }, [sfdcType]);
 
   if (!Array.isArray(filteredItems)) {
     return null;
@@ -193,10 +197,10 @@ const SearchSalesforceId: React.FC<{
   );
 };
 const SearchSalesforceIdModal: React.FC<{
-  onSubmitCb: (value: string, type: 'campaign' | 'cdh' | 'project' | 'opportunity') => void;
+  onSubmitCb: (value: string, type: SfdcType) => void;
   isOpen: boolean;
   onClose: () => void;
-  defaultSfdcType?: 'campaign' | 'cdh' | 'project' | 'opportunity';
+  defaultSfdcType?: SfdcType;
 }> = ({ onSubmitCb, isOpen, onClose, defaultSfdcType = null }) => {
   const [modal, openModal, closeModal] = useModal();
   const [sfdcType, setSfdcType] = useState(defaultSfdcType);
@@ -209,6 +213,9 @@ const SearchSalesforceIdModal: React.FC<{
   useEffect(() => {
     setSfdcType(defaultSfdcType);
   }, [defaultSfdcType]);
+  useEffect(() => {
+    setSelectedAccount(null);
+  }, [sfdcType]);
   const onSelectFn = (id: string) => {
     onSubmitCb(id, sfdcType);
     closeModal();
