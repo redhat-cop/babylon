@@ -667,19 +667,10 @@ export type AssetMetrics = {
 
 export type Opportunity = {
   id: string;
-  amount: number;
   close_date: string;
-  currency_iso_code: string;
   is_closed: boolean;
   is_valid: boolean;
   name: string;
-  owner: {
-    email: string;
-  };
-  account: {
-    name: string;
-    id: string;
-  };
 };
 
 export type SalesforceAccount = {

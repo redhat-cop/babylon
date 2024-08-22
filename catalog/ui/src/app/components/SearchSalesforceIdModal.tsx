@@ -48,8 +48,6 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
           <Tr>
             <Th>Opportunity Name</Th>
             <Th>ID</Th>
-            <Th>Amount</Th>
-            <Th>Owner</Th>
             <Th>Close date</Th>
             <Th></Th>
           </Tr>
@@ -63,15 +61,6 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
               <Td dataLabel="opportunitynumber__c" modifier="nowrap">
                 {x.id}
               </Td>
-              <Td dataLabel="amount" modifier="nowrap">
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: x.currency_iso_code,
-                }).format(x.amount)}
-              </Td>
-              <Td dataLabel="owner" modifier="wrap">
-                {x.owner.email}
-              </Td>
               <Td dataLabel="closedate" modifier="nowrap">
                 {x.close_date}
               </Td>
@@ -80,7 +69,9 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
                   <TableText>
                     <Button onClick={() => onSelectFn(x.id)}>Select</Button>
                   </TableText>
-                ) : null}
+                ) : <TableText>
+                <Button isDisabled onClick={null}>Not valid</Button>
+              </TableText>}
               </Td>
             </Tr>
           ))}
