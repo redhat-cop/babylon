@@ -502,7 +502,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   <FormHelperText>A valid Salesforce ID is required for the selected activity / purpose</FormHelperText>
                 ) : null}
                 <div>
-                  <div className="catalog-item-form__group-control--single" style={{ padding: '16px 0' }}>
+                  <div className="catalog-item-form__group-control--single" style={{ paddingTop: '16px' }}>
                     <Checkbox
                       id="skip-salesforce-id"
                       name="skip-salesforce-id"
