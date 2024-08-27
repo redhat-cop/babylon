@@ -501,33 +501,42 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 ) : purposeObj && purposeObj.sfdcRequired ? (
                   <FormHelperText>A valid Salesforce ID is required for the selected activity / purpose</FormHelperText>
                 ) : null}
-                <Checkbox
-                  id="skip-salesforce-id"
-                  name="skip-salesforce-id"
-                  label="I'll provide the Salesforce ID within 48 hours."
-                  isChecked={formState.salesforceId.skip}
-                  onChange={(_event: any, checked: boolean) =>
-                    dispatchFormState({
-                      type: 'salesforceId',
-                      salesforceId: { ...formState.salesforceId, value: formState.salesforceId.value, skip: checked },
-                    })
-                  }
-                />
-                <Tooltip
-                  position="right"
-                  content={
-                    <div>
-                      By checking this box, you agree to provide the required number within 48 hours, in alignment with
-                      Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely submission
-                      of this information, as it is essential for the integrity and compliance of our processes.
-                    </div>
-                  }
-                >
-                  <OutlinedQuestionCircleIcon
-                    aria-label="By checking this box, you agree to provide the required number within 48 hours, in alignment with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely submission of this information, as it is essential for the integrity and compliance of our processes."
-                    className="tooltip-icon-only"
-                  />
-                </Tooltip>
+                <div>
+                  <div className="catalog-item-form__group-control--single" style={{ padding: '16px 0' }}>
+                    <Checkbox
+                      id="skip-salesforce-id"
+                      name="skip-salesforce-id"
+                      label="I'll provide the Salesforce ID within 48 hours."
+                      isChecked={formState.salesforceId.skip}
+                      onChange={(_event: any, checked: boolean) =>
+                        dispatchFormState({
+                          type: 'salesforceId',
+                          salesforceId: {
+                            ...formState.salesforceId,
+                            value: formState.salesforceId.value,
+                            skip: checked,
+                          },
+                        })
+                      }
+                    />
+                    <Tooltip
+                      position="right"
+                      content={
+                        <div>
+                          By checking this box, you agree to provide the required number within 48 hours, in alignment
+                          with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely
+                          submission of this information, as it is essential for the integrity and compliance of our
+                          processes.
+                        </div>
+                      }
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="By checking this box, you agree to provide the required number within 48 hours, in alignment with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely submission of this information, as it is essential for the integrity and compliance of our processes."
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                </div>
               </div>
             </FormGroup>
           </>
