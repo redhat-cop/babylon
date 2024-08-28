@@ -111,14 +111,14 @@ const WorkshopsItemComponent: React.FC<{
         openModalSchedule();
       }
     },
-    [openModalAction, openModalDelete, openModalGetCost, openModalSchedule],
+    [openModalAction, openModalDelete, openModalGetCost, openModalSchedule]
   );
   const enableFetchUserNamespaces = isAdmin;
   const enableManageWorkshopProvisions =
     isAdmin || sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
-    fetcher,
+    fetcher
   );
   const serviceNamespaces = useMemo(() => {
     return enableFetchUserNamespaces
@@ -132,7 +132,7 @@ const WorkshopsItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    },
+    }
   );
   const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
     apiPaths.WORKSHOP_USER_ASSIGNMENTS({
@@ -142,7 +142,7 @@ const WorkshopsItemComponent: React.FC<{
     fetcher,
     {
       refreshInterval: 15000,
-    },
+    }
   );
   const stage = getStageFromK8sObject(workshop);
 
@@ -162,9 +162,9 @@ const WorkshopsItemComponent: React.FC<{
               namespace: workshop.metadata.namespace,
               limit: FETCH_BATCH_LIMIT,
               continueId,
-            }),
+            })
           )
-        : [],
+        : []
   );
 
   const { data: resourceClaims, mutate } = useSWR<ResourceClaim[]>(
@@ -182,12 +182,12 @@ const WorkshopsItemComponent: React.FC<{
           labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
           limit: FETCH_BATCH_LIMIT,
           continueId,
-        }),
+        })
       ),
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
-    },
+    }
   );
 
   const revalidate = useCallback(
@@ -205,7 +205,7 @@ const WorkshopsItemComponent: React.FC<{
         }
       }
     },
-    [mutate, resourceClaims],
+    [mutate, resourceClaims]
   );
 
   const mutateUserAssigments = useCallback(
@@ -214,7 +214,7 @@ const WorkshopsItemComponent: React.FC<{
       userAssigmentsListClone.items = Array.from(userAssigments);
       mutateUserAssigmentsList(userAssigmentsListClone);
     },
-    [mutateUserAssigmentsList, userAssigmentsList],
+    [mutateUserAssigmentsList, userAssigmentsList]
   );
 
   /**
@@ -273,7 +273,7 @@ const WorkshopsItemComponent: React.FC<{
         namespace: serviceNamespaceName,
         labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
         limit: 'ALL',
-      }),
+      })
     );
     cache.delete(apiPaths.WORKSHOP({ namespace: serviceNamespaceName, workshopName }));
     cache.delete(
@@ -281,7 +281,7 @@ const WorkshopsItemComponent: React.FC<{
         workshopName: workshop.metadata.name,
         namespace: workshop.metadata.namespace,
         limit: 'ALL',
-      }),
+      })
     );
     navigate(`/services/${serviceNamespaceName}`);
   }
@@ -301,7 +301,7 @@ const WorkshopsItemComponent: React.FC<{
       const workshopUpdated = await startWorkshop(
         workshop,
         !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(date) : null,
-        resourceClaims,
+        resourceClaims
       );
       mutateWorkshop(workshopUpdated);
     }
@@ -337,8 +337,8 @@ const WorkshopsItemComponent: React.FC<{
             modalState.action === 'scheduleDelete'
               ? 'retirement'
               : modalState.action === 'scheduleStart'
-                ? 'start'
-                : 'stop'
+              ? 'start'
+              : 'stop'
           }
           workshop={workshop}
           resourceClaims={resourceClaims}
@@ -398,8 +398,8 @@ const WorkshopsItemComponent: React.FC<{
                         ? () => showModal({ action: 'startWorkshop', resourceClaims: [] })
                         : null
                       : checkWorkshopCanStart(resourceClaims)
-                        ? () => showModal({ action: 'startServices', resourceClaims })
-                        : null,
+                      ? () => showModal({ action: 'startServices', resourceClaims })
+                      : null,
                   stop: checkWorkshopCanStop(resourceClaims)
                     ? () => showModal({ action: 'stopServices', resourceClaims })
                     : null,
@@ -430,11 +430,7 @@ const WorkshopsItemComponent: React.FC<{
           {enableManageWorkshopProvisions ? (
             <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
               {activeTab === 'provision' ? (
-                <WorkshopsItemProvisioning
-                  workshop={workshop}
-                  workshopProvisions={workshopProvisions}
-                  serviceNamespaceName={serviceNamespaceName}
-                />
+                <WorkshopsItemProvisioning workshop={workshop} workshopProvisions={workshopProvisions} />
               ) : null}
             </Tab>
           ) : null}

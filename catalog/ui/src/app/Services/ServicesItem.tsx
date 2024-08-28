@@ -373,7 +373,7 @@ const ServicesItemComponent: React.FC<{
 
   useEffect(() => {
     if (!salesforceObj.completed) {
-      checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch).then(
+      checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
         ({ valid, message }: { valid: boolean; message?: string }) =>
           dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid })
       );
