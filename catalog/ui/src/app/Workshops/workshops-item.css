@@ -82,3 +82,9 @@
 .workshops-item__body .pf-v5-c-table tbody > tr > * {
   vertical-align: middle !important;
 }
+.workshops-item__group-control--single {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-v5-global--spacer--md);
+  align-items: center;
+}

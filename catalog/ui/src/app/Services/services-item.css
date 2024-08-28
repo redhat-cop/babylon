@@ -100,3 +100,9 @@
   font-style: italic;
   margin-left: var(--pf-v5-global--spacer--xs);
 }
+.service-item__group-control--single {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-v5-global--spacer--md);
+  align-items: center;
+}

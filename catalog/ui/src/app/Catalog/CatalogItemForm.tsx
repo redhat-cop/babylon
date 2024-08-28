@@ -12,6 +12,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
+  Checkbox,
   Form,
   FormGroup,
   FormHelperText,
@@ -76,7 +77,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   }
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
-    fetcher,
+    fetcher
   );
   const _displayName = displayName(catalogItem);
   const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), []);
@@ -91,7 +92,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
       provisionStartDelay: 30,
     }),
-    [catalogItem],
+    [catalogItem]
   );
   const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
@@ -105,11 +106,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       serviceNamespace: userNamespace,
       user: { groups, roles, isAdmin },
       purposeOpts,
-    }),
+    })
   );
   let maxAutoDestroyTime = Math.min(
     parseDuration(catalogItem.spec.lifespan?.maximum),
-    parseDuration(catalogItem.spec.lifespan?.relativeMaximum),
+    parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
   );
   let maxAutoStopTime = parseDuration(catalogItem.spec.runtime?.maximum);
   if (formState.parameters['open_environment']?.value === true) {
@@ -131,7 +132,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       scheduled,
     }: {
       scheduled: { startDate: Date; endDate: Date; stopDate: Date; createTicket?: boolean };
-    } = { scheduled: null },
+    } = { scheduled: null }
   ): Promise<void> {
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
@@ -227,7 +228,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 date: formState.startDate,
                 type: 'resource',
                 autoStop: new Date(
-                  scheduled.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h'),
+                  scheduled.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h')
                 ),
               },
             }
@@ -266,17 +267,17 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 scheduled: {
                   startDate: dates.startDate,
                   stopDate: new Date(
-                    dates.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h'),
+                    dates.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h')
                   ),
                   endDate: dates.endDate,
                   createTicket: dates.createTicket,
                 },
               })
             : autoStopDestroyModal === 'auto-destroy'
-              ? dispatchFormState({ type: 'dates', endDate: dates.endDate })
-              : autoStopDestroyModal === 'auto-stop'
-                ? dispatchFormState({ type: 'dates', stopDate: dates.stopDate })
-                : null
+            ? dispatchFormState({ type: 'dates', endDate: dates.endDate })
+            : autoStopDestroyModal === 'auto-stop'
+            ? dispatchFormState({ type: 'dates', stopDate: dates.stopDate })
+            : null
         }
         onClose={() => openAutoStopDestroyModal(null)}
         title={_displayName}
@@ -361,7 +362,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
             <FormGroup
               fieldId="salesforce_id"
-              isRequired={formState.salesforceId.required}
+              isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
               label={
                 <span>
                   Salesforce ID{' '}
@@ -475,8 +476,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       formState.salesforceId.value && formState.salesforceId.valid
                         ? 'success'
                         : formState.salesforceId.value && formState.conditionChecks.completed
-                          ? 'error'
-                          : 'default'
+                        ? 'error'
+                        : 'default'
                     }
                   />
                   <div>
@@ -500,6 +501,42 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 ) : purposeObj && purposeObj.sfdcRequired ? (
                   <FormHelperText>A valid Salesforce ID is required for the selected activity / purpose</FormHelperText>
                 ) : null}
+                <div>
+                  <div className="catalog-item-form__group-control--single" style={{ paddingTop: '16px' }}>
+                    <Checkbox
+                      id="skip-salesforce-id"
+                      name="skip-salesforce-id"
+                      label="I'll provide the Salesforce ID within 48 hours."
+                      isChecked={formState.salesforceId.skip}
+                      onChange={(_event: any, checked: boolean) =>
+                        dispatchFormState({
+                          type: 'salesforceId',
+                          salesforceId: {
+                            ...formState.salesforceId,
+                            value: formState.salesforceId.value,
+                            skip: checked,
+                          },
+                        })
+                      }
+                    />
+                    <Tooltip
+                      position="right"
+                      content={
+                        <div>
+                          By checking this box, you agree to provide the required number within 48 hours, in alignment
+                          with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely
+                          submission of this information, as it is essential for the integrity and compliance of our
+                          processes.
+                        </div>
+                      }
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="By checking this box, you agree to provide the required number within 48 hours, in alignment with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely submission of this information, as it is essential for the integrity and compliance of our processes."
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                </div>
               </div>
             </FormGroup>
           </>
@@ -512,15 +549,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           // check if there is an invalid parameter in the form group
           const invalidParameter = formGroup.parameters.find(
             (parameter) =>
-              !parameter.isDisabled && (parameter.isValid === false || parameter.validationResult === false),
+              !parameter.isDisabled && (parameter.isValid === false || parameter.validationResult === false)
           );
           // status is error if found an invalid parameter
           // status is success if all form group parameters are validated.
           const status: 'default' | 'error' | 'success' | 'warning' = invalidParameter
             ? 'error'
             : formGroup.parameters.every((parameter) => parameter.isValid && parameter.validationResult)
-              ? 'success'
-              : 'default';
+            ? 'success'
+            : 'default';
 
           return (
             <FormGroup
