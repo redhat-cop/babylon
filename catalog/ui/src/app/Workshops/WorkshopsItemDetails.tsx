@@ -50,6 +50,7 @@ function _reducer(
     salesforceType?: SfdcType;
   }
 ) {
+  console.log(action);
   switch (action.type) {
     case 'set_salesforceId':
       return {
@@ -99,6 +100,7 @@ const WorkshopsItemDetails: React.FC<{
   });
 
   useEffect(() => {
+    console.log(salesforceObj.salesforce_type, workshopProvisions);
     if (!salesforceObj.completed) {
       checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
         ({ valid, message }: { valid: boolean; message?: string }) =>
@@ -106,16 +108,22 @@ const WorkshopsItemDetails: React.FC<{
       );
     } else {
       for (let workshopProvision of workshopProvisions) {
-        if (workshopProvision.spec.parameters?.salesforce_id !== salesforceObj.salesforce_id) {
+        if (
+          workshopProvision.spec.parameters?.salesforce_id !== salesforceObj.salesforce_id ||
+          workshopProvision.spec.parameters?.sales_type !== salesforceObj.salesforce_type
+        ) {
           patchWorkshopProvisionSpec(workshopProvision.metadata.name, workshopProvision.metadata.namespace, {
             parameters: {
               ...workshopProvision.spec.parameters,
               salesforce_id: salesforceObj.salesforce_id,
-              salesforce_type: salesforceObj.salesforce_type,
+              sales_type: salesforceObj.salesforce_type,
             },
           });
           for (let resourceClaim of resourceClaims) {
-            if (resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/salesforce-id`] !== salesforceObj.salesforce_id) {
+            if (
+              resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/salesforce-id`] !== salesforceObj.salesforce_id ||
+              resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/sales-type`] !== salesforceObj.salesforce_type
+            ) {
               patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
                 metadata: {
                   annotations: {
