@@ -1,14 +1,13 @@
 import json
-import kopf
-import yaml
 from copy import deepcopy
-
-from babylon import Babylon
 from distutils.util import strtobool
-from kopfobject import KopfObject
 
 import jinja2
+import kopf
 import kubernetes_asyncio
+from babylon import Babylon
+from kopfobject import KopfObject
+
 
 def merge_dynamic_fields(definition, current_state):
     merged_definition = deepcopy(definition)
@@ -171,7 +170,7 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_disable(self):
-        if not 'namespace' in self.catalog_meta:
+        if 'namespace' not in self.catalog_meta:
             return True
         return self.catalog_meta.get('disable', False)
 
@@ -305,6 +304,14 @@ class AgnosticVComponent(KopfObject):
     @property
     def pull_request_number(self):
         return self.spec.get('pullRequestNumber')
+
+    @property
+    def reporting_labels(self):
+        # Return labels, silently transforming spaces to underscore
+        return {
+            key.replace(' ', '_'): val.replace(' ', '_')
+            for key, val in self.catalog_meta.get('reportingLabels', {}).items()
+        }
 
     @property
     def resource_provider_ref(self):
@@ -530,6 +537,9 @@ class AgnosticVComponent(KopfObject):
         for key, value in self.catalog_labels.items():
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/{key}"] = value
 
+        for key, value in self.reporting_labels.items():
+            definition['metadata']['labels'][f"{Babylon.reporting_domain}/{key}"] = value
+
         if self.stage in ('dev', 'test', 'prod', 'event'):
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/stage"] = self.stage
 
@@ -548,7 +558,7 @@ class AgnosticVComponent(KopfObject):
             definition['spec']['resources'] = []
 
             for idx, linked_component in enumerate(self.linked_components):
-                if not 'linkedComponents' in definition['spec']:
+                if 'linkedComponents' not in definition['spec']:
                     definition['spec']['linkedComponents'] = []
 
                 definition['spec']['linkedComponents'].append({
