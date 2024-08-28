@@ -1,6 +1,8 @@
 import os
+
 import kubernetes_asyncio
 import yaml
+
 
 class Babylon():
     agnosticv_api_group = os.environ.get('AGNOSTICV_API_GROUP', 'gpte.redhat.com')
@@ -9,6 +11,8 @@ class Babylon():
     anarchy_version = os.environ.get('ANARCHY_VERSION', 'v1')
     catalog_api_group = os.environ.get('CATALOG_API_GROUP', 'babylon.gpte.redhat.com')
     catalog_version = os.environ.get('CATALOG_VERSION', 'v1')
+
+    reporting_domain = os.environ.get('REPORTING_DOMAIN', 'demo.redhat.com')
     resource_broker_api_group = os.environ.get('RESOURCE_BROKER_API_GROUP', 'poolboy.gpte.redhat.com')
     resource_broker_version = os.environ.get('RESOURCE_BROKER_VERSION', 'v1')
     resource_broker_namespace = os.environ.get('RESOURCE_BROKER_NAMESPACE', 'poolboy')
