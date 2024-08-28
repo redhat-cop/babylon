@@ -50,7 +50,6 @@ function _reducer(
     salesforceType?: SfdcType;
   }
 ) {
-  console.log(action);
   switch (action.type) {
     case 'set_salesforceId':
       return {
@@ -100,7 +99,6 @@ const WorkshopsItemDetails: React.FC<{
   });
 
   useEffect(() => {
-    console.log(salesforceObj.salesforce_type, workshopProvisions);
     if (!salesforceObj.completed) {
       checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
         ({ valid, message }: { valid: boolean; message?: string }) =>
