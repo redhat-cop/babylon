@@ -16,7 +16,7 @@ export function getStatus(
   desiredState: string,
   creationTime: number,
   startTime: number,
-  stopTime: number,
+  stopTime: number
 ): { statusName: string; phase: phaseProps } {
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
@@ -96,6 +96,8 @@ const ServiceStatus: React.FC<{
       _state = 'Running';
     } else if (summary.state === 'stopped') {
       _phase = 'stopped';
+    } else if (summary.state === 'provisioning') {
+      _phase = 'in-progress';
     }
     return (
       <span className={`service-status--${_phase}`} style={{ textTransform: 'capitalize' }}>
