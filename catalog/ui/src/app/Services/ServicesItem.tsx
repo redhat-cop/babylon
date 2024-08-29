@@ -101,9 +101,9 @@ import ServiceItemStatus from './ServiceItemStatus';
 import InfoTab from './InfoTab';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
+import useDebounce from '@app/utils/useDebounce';
 
 import './services-item.css';
-import useDebounce from '@app/utils/useDebounce';
 
 const ComponentDetailsList: React.FC<{
   resourceState: AnarchySubject;
@@ -1044,18 +1044,20 @@ const ServicesItemComponent: React.FC<{
                             key={idx}
                             condition={resourceClaim.status?.resources && resourceClaim.status.resources.length > 1}
                             wrapper={(children) => (
-                              <AccordionItem>
-                                <AccordionToggle
-                                  isExpanded={expanded.includes(`item-${idx}`)}
-                                  id={`item-${idx}`}
-                                  onClick={() => toggle(`item-${idx}`)}
-                                >
-                                  {componentDisplayName}
-                                </AccordionToggle>
-                                <AccordionContent isHidden={!expanded.includes(`item-${idx}`)} id={`item-${idx}`}>
-                                  {children}
-                                </AccordionContent>
-                              </AccordionItem>
+                              <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
+                                <AccordionItem>
+                                  <AccordionToggle
+                                    isExpanded={expanded.includes(`item-${idx}`)}
+                                    id={`item-${idx}`}
+                                    onClick={() => toggle(`item-${idx}`)}
+                                  >
+                                    {componentDisplayName}
+                                  </AccordionToggle>
+                                  <AccordionContent isHidden={!expanded.includes(`item-${idx}`)} id={`item-${idx}`}>
+                                    {children}
+                                  </AccordionContent>
+                                </AccordionItem>
+                              </Accordion>
                             )}
                           >
                             <ComponentDetailsList
