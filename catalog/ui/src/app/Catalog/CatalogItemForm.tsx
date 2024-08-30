@@ -192,6 +192,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         startDelay: provisionStartDelay,
         workshop: workshop,
         useAutoDetach: formState.useAutoDetach,
+        usePoolIfAvailable: formState.usePoolIfAvailable,
       });
       if (scheduled !== null) {
         try {
@@ -873,7 +874,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               </>
             )}
           </div>
-        ) : isAdmin ? (
+        ) : null}
+        {isAdmin ? (
           <>
             <FormGroup key="pooling-switch" fieldId="pooling-switch">
               <div className="catalog-item-form__group-control--single">
