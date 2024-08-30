@@ -71,6 +71,7 @@ type CreateWorkshopPovisionOpt = {
   startDelay: number;
   workshop: Workshop;
   useAutoDetach: boolean;
+  usePoolIfAvailable: boolean;
 };
 
 export type CreateServiceRequestParameterValues = {
@@ -643,6 +644,7 @@ export async function createWorkshopProvision({
   startDelay,
   workshop,
   useAutoDetach,
+  usePoolIfAvailable
 }: CreateWorkshopPovisionOpt) {
   const definition: WorkshopProvision = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -680,6 +682,7 @@ export async function createWorkshopProvision({
       parameters: parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
+      enableResourcePools: usePoolIfAvailable,
       ...(useAutoDetach
         ? {
             autoDetach: {
