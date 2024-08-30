@@ -100,12 +100,11 @@ const WorkshopsItemProvisioningItem: React.FC<{
             <PatientNumberInput
               min={0}
               max={
-                isAdmin
-                  ? 200
-                  : workshopProvision.spec.parameters?.salesforce_id || workshop.spec.multiuserServices
-                  ? 200
+                workshopProvision.spec.parameters?.salesforce_id || workshop.spec.multiuserServices
+                  ? 30
                   : 1
               }
+              adminModifier={true}
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
               style={{ paddingRight: 'var(--pf-v5-global--spacer--md)' }}

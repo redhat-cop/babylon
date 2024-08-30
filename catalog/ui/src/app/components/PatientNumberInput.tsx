@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { NumberInput } from '@patternfly/react-core';
+import { Button, NumberInput } from '@patternfly/react-core';
+import useSession from '@app/utils/useSession';
 
 /* PatientNumberInput which aggregates consecutive changes into single events (throttle) */
 const PatientNumberInput: React.FC<
@@ -9,12 +10,14 @@ const PatientNumberInput: React.FC<
     onChange?: (value: number) => void;
     onChangeDelay?: number;
     value: number;
+    adminModifier?: boolean;
   } & Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'>
-> = ({ min, max, onChange, onChangeDelay, value, ...rest }) => {
+> = ({ min, max, onChange, onChangeDelay, value, adminModifier = false, ...rest }) => {
   const [state, setState] = useState<{
     timeout?: string | number | NodeJS.Timeout;
     value: number;
   }>({ value: value });
+  const { isAdmin } = useSession().getSession();
 
   const onValueChange = useCallback(
     (newValue: number) => {
@@ -36,7 +39,7 @@ const PatientNumberInput: React.FC<
   return (
     <NumberInput
       min={min}
-      max={max}
+      max={adminModifier && isAdmin ? 999 : max}
       onChange={(event: React.FormEvent<HTMLInputElement>) => {
         const value = parseInt(event.currentTarget.value);
         if (!isNaN(value)) {
