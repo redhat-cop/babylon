@@ -101,9 +101,9 @@ const WorkshopsItemProvisioningItem: React.FC<{
               min={0}
               max={
                 isAdmin
-                  ? 200
+                  ? 30
                   : workshopProvision.spec.parameters?.salesforce_id || workshop.spec.multiuserServices
-                  ? 200
+                  ? 30
                   : 1
               }
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
