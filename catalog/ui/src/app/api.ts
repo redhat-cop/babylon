@@ -661,7 +661,6 @@ export async function createWorkshopProvision({
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
-        ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
       },
       ownerReferences: [
         {
@@ -683,6 +682,7 @@ export async function createWorkshopProvision({
       parameters: parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
+      enableResourcePools: usePoolIfAvailable,
       ...(useAutoDetach
         ? {
             autoDetach: {
