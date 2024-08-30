@@ -800,6 +800,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     <PatientNumberInput
                       min={0}
                       max={catalogItem.spec.workshopUiMaxInstances || 30}
+                      adminModifier={true}
                       onChange={(v) =>
                         dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, provisionCount: v } })
                       }
