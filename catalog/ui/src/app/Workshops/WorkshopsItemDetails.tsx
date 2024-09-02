@@ -74,7 +74,7 @@ const WorkshopsItemDetails: React.FC<{
   workshopProvisions?: WorkshopProvision[];
   workshopUserAssignments?: WorkshopUserAssignment[];
   showModal?: ({ action, resourceClaims }: ModalState) => void;
-}> = ({ onWorkshopUpdate, workshopProvisions, resourceClaims, workshop, showModal, workshopUserAssignments }) => {
+}> = ({ onWorkshopUpdate, workshopProvisions = [], resourceClaims, workshop, showModal, workshopUserAssignments }) => {
   const { isAdmin } = useSession().getSession();
   const [editingServiceNow, setEditingServiceNow] = useState(false);
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
@@ -441,7 +441,7 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListGroup>
       ) : null}
 
-      {workshopProvisions && workshopProvisions.length > 0 ? (
+      {workshopProvisions.length > 0 ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
 
