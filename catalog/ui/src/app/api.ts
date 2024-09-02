@@ -359,6 +359,9 @@ export async function createServiceRequest({
         ...(catalogItem.spec.messageTemplates?.info
           ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.info) }
           : {}),
+        ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
+          ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.user) }
+          : {})
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
