@@ -16,7 +16,7 @@ export function getStatus(
   desiredState: string,
   creationTime: number,
   startTime: number,
-  stopTime: number
+  stopTime: number,
 ): { statusName: string; phase: phaseProps } {
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {

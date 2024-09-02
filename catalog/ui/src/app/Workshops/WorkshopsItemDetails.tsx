@@ -48,7 +48,7 @@ function _reducer(
     salesforceId?: string;
     salesforceIdValid?: boolean;
     salesforceType?: SfdcType;
-  }
+  },
 ) {
   switch (action.type) {
     case 'set_salesforceId':
@@ -74,7 +74,7 @@ const WorkshopsItemDetails: React.FC<{
   workshopProvisions?: WorkshopProvision[];
   workshopUserAssignments?: WorkshopUserAssignment[];
   showModal?: ({ action, resourceClaims }: ModalState) => void;
-}> = ({ onWorkshopUpdate, workshopProvisions, resourceClaims, workshop, showModal, workshopUserAssignments }) => {
+}> = ({ onWorkshopUpdate, workshopProvisions = [], resourceClaims, workshop, showModal, workshopUserAssignments }) => {
   const { isAdmin } = useSession().getSession();
   const [editingServiceNow, setEditingServiceNow] = useState(false);
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
@@ -92,17 +92,17 @@ const WorkshopsItemDetails: React.FC<{
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
 
   const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
-    salesforce_id: workshopProvisions[0].spec.parameters?.salesforce_id || '',
-    valid: !!workshopProvisions[0].spec.parameters?.salesforce_id,
-    completed: workshopProvisions[0].spec.parameters?.salesforce_id ? false : true,
-    salesforce_type: (workshopProvisions[0].spec.parameters?.sales_type as SfdcType) || null,
+    salesforce_id: workshopProvisions[0]?.spec.parameters?.salesforce_id || '',
+    valid: !!workshopProvisions[0]?.spec.parameters?.salesforce_id,
+    completed: workshopProvisions[0]?.spec.parameters?.salesforce_id ? false : true,
+    salesforce_type: (workshopProvisions[0]?.spec.parameters?.sales_type as SfdcType) || null,
   });
 
   useEffect(() => {
     if (!salesforceObj.completed) {
       checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
         ({ valid, message }: { valid: boolean; message?: string }) =>
-          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid })
+          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid }),
       );
     } else {
       for (let workshopProvision of workshopProvisions) {
@@ -145,7 +145,7 @@ const WorkshopsItemDetails: React.FC<{
       concurrency?: number;
       startDelay?: number;
       parameters?: any;
-    }
+    },
   ) {
     await patchWorkshopProvision({
       name,
@@ -157,7 +157,7 @@ const WorkshopsItemDetails: React.FC<{
         workshopName: workshop.metadata.name,
         namespace,
         limit: 'ALL',
-      })
+      }),
     );
   }
 
@@ -174,7 +174,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        })
+        }),
       );
     } else {
       onWorkshopUpdate(
@@ -182,7 +182,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        })
+        }),
       );
     }
   }
@@ -193,7 +193,7 @@ const WorkshopsItemDetails: React.FC<{
         name: workshop.metadata.name,
         namespace: workshop.metadata.namespace,
         patch: { metadata: { annotations: { [`${BABYLON_DOMAIN}/servicenow`]: JSON.stringify(serviceNowObj) } } },
-      })
+      }),
     );
   }
 
@@ -322,7 +322,7 @@ const WorkshopsItemDetails: React.FC<{
             onSelect={(event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
               patchWorkshopSpec({ openRegistration: selectedValue === 'open' }).then(() =>
-                setUserRegistrationSelectIsOpen(false)
+                setUserRegistrationSelectIsOpen(false),
               );
             }}
           >
@@ -422,7 +422,7 @@ const WorkshopsItemDetails: React.FC<{
                   saveServiceNowNumber(
                     serviceNowNumber && serviceNowNumber !== ''
                       ? { ...JSON.parse(serviceNowJson), number: serviceNowNumber }
-                      : {}
+                      : {},
                   );
                 }
                 setEditingServiceNow(!editingServiceNow);
@@ -441,113 +441,115 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListGroup>
       ) : null}
 
-      <DescriptionListGroup>
-        <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
+      {workshopProvisions.length > 0 ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
 
-        <div>
-          <div className="workshops-item__group-control--single" style={{ padding: '8px' }}>
-            <Radio
-              isChecked={'campaign' === salesforceObj.salesforce_type}
-              name="sfdc-type"
-              onChange={() =>
-                dispatchSalesforceObj({
-                  ...salesforceObj,
-                  salesforceType: 'campaign',
-                  type: 'set_salesforceId',
-                  salesforceId: salesforceObj.salesforce_id,
-                })
-              }
-              label="Campaign"
-              id="sfdc-type-campaign"
-            ></Radio>
-            <Radio
-              isChecked={'cdh' === salesforceObj.salesforce_type}
-              name="sfdc-type"
-              onChange={() => {
-                dispatchSalesforceObj({
-                  ...salesforceObj,
-                  salesforceType: 'cdh',
-                  type: 'set_salesforceId',
-                  salesforceId: salesforceObj.salesforce_id,
-                });
-              }}
-              label="CDH"
-              id="sfdc-type-cdh"
-            ></Radio>
-            <Radio
-              isChecked={'opportunity' === salesforceObj.salesforce_type}
-              name="sfdc-type"
-              onChange={() => {
-                dispatchSalesforceObj({
-                  ...salesforceObj,
-                  type: 'set_salesforceId',
-                  salesforceType: 'opportunity',
-                  salesforceId: salesforceObj.salesforce_id,
-                });
-              }}
-              label="Opportunity"
-              id="sfdc-type-opportunity"
-            ></Radio>
-            <Radio
-              isChecked={'project' === salesforceObj.salesforce_type}
-              name="sfdc-type"
-              onChange={() =>
-                dispatchSalesforceObj({
-                  ...salesforceObj,
-                  type: 'set_salesforceId',
-                  salesforceType: 'project',
-                  salesforceId: salesforceObj.salesforce_id,
-                })
-              }
-              label="Project"
-              id="sfdc-type-project"
-            ></Radio>
-            <Tooltip
-              position="right"
-              content={<div>Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
-            >
-              <OutlinedQuestionCircleIcon
-                aria-label="Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID."
-                className="tooltip-icon-only"
-              />
-            </Tooltip>
-          </div>
-          <div className="workshops-item__group-control--single" style={{ maxWidth: 300, paddingBottom: '16px' }}>
-            <TextInput
-              type="text"
-              key="salesforce_id"
-              id="salesforce_id"
-              onChange={(_event: any, value: string) =>
-                dispatchSalesforceObj({
-                  ...salesforceObj,
-                  type: 'set_salesforceId',
-                  salesforceId: value,
-                  salesforceType: salesforceObj.salesforce_type,
-                })
-              }
-              value={salesforceObj.salesforce_id}
-              validated={
-                salesforceObj.salesforce_id
-                  ? salesforceObj.completed && salesforceObj.valid
-                    ? 'success'
-                    : salesforceObj.completed
-                    ? 'error'
+          <div>
+            <div className="workshops-item__group-control--single" style={{ padding: '8px' }}>
+              <Radio
+                isChecked={'campaign' === salesforceObj.salesforce_type}
+                name="sfdc-type"
+                onChange={() =>
+                  dispatchSalesforceObj({
+                    ...salesforceObj,
+                    salesforceType: 'campaign',
+                    type: 'set_salesforceId',
+                    salesforceId: salesforceObj.salesforce_id,
+                  })
+                }
+                label="Campaign"
+                id="sfdc-type-campaign"
+              ></Radio>
+              <Radio
+                isChecked={'cdh' === salesforceObj.salesforce_type}
+                name="sfdc-type"
+                onChange={() => {
+                  dispatchSalesforceObj({
+                    ...salesforceObj,
+                    salesforceType: 'cdh',
+                    type: 'set_salesforceId',
+                    salesforceId: salesforceObj.salesforce_id,
+                  });
+                }}
+                label="CDH"
+                id="sfdc-type-cdh"
+              ></Radio>
+              <Radio
+                isChecked={'opportunity' === salesforceObj.salesforce_type}
+                name="sfdc-type"
+                onChange={() => {
+                  dispatchSalesforceObj({
+                    ...salesforceObj,
+                    type: 'set_salesforceId',
+                    salesforceType: 'opportunity',
+                    salesforceId: salesforceObj.salesforce_id,
+                  });
+                }}
+                label="Opportunity"
+                id="sfdc-type-opportunity"
+              ></Radio>
+              <Radio
+                isChecked={'project' === salesforceObj.salesforce_type}
+                name="sfdc-type"
+                onChange={() =>
+                  dispatchSalesforceObj({
+                    ...salesforceObj,
+                    type: 'set_salesforceId',
+                    salesforceType: 'project',
+                    salesforceId: salesforceObj.salesforce_id,
+                  })
+                }
+                label="Project"
+                id="sfdc-type-project"
+              ></Radio>
+              <Tooltip
+                position="right"
+                content={<div>Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+              >
+                <OutlinedQuestionCircleIcon
+                  aria-label="Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID."
+                  className="tooltip-icon-only"
+                />
+              </Tooltip>
+            </div>
+            <div className="workshops-item__group-control--single" style={{ maxWidth: 300, paddingBottom: '16px' }}>
+              <TextInput
+                type="text"
+                key="salesforce_id"
+                id="salesforce_id"
+                onChange={(_event: any, value: string) =>
+                  dispatchSalesforceObj({
+                    ...salesforceObj,
+                    type: 'set_salesforceId',
+                    salesforceId: value,
+                    salesforceType: salesforceObj.salesforce_type,
+                  })
+                }
+                value={salesforceObj.salesforce_id}
+                validated={
+                  salesforceObj.salesforce_id
+                    ? salesforceObj.completed && salesforceObj.valid
+                      ? 'success'
+                      : salesforceObj.completed
+                        ? 'error'
+                        : 'default'
                     : 'default'
-                  : 'default'
-              }
-            />
-            <Tooltip
-              position="right"
-              content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
-            >
-              <OutlinedQuestionCircleIcon
-                aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
-                className="tooltip-icon-only"
+                }
               />
-            </Tooltip>
+              <Tooltip
+                position="right"
+                content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+              >
+                <OutlinedQuestionCircleIcon
+                  aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
+                  className="tooltip-icon-only"
+                />
+              </Tooltip>
+            </div>
           </div>
-        </div>
-      </DescriptionListGroup>
+        </DescriptionListGroup>
+      ) : null}
     </DescriptionList>
   );
 };
