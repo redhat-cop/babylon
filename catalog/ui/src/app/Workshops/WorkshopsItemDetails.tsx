@@ -92,10 +92,10 @@ const WorkshopsItemDetails: React.FC<{
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
 
   const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
-    salesforce_id: workshopProvisions?.[0].spec.parameters?.salesforce_id || '',
-    valid: !!workshopProvisions?.[0].spec.parameters?.salesforce_id,
-    completed: workshopProvisions?.[0].spec.parameters?.salesforce_id ? false : true,
-    salesforce_type: (workshopProvisions?.[0].spec.parameters?.sales_type as SfdcType) || null,
+    salesforce_id: workshopProvisions[0]?.spec.parameters?.salesforce_id || '',
+    valid: !!workshopProvisions[0]?.spec.parameters?.salesforce_id,
+    completed: workshopProvisions[0]?.spec.parameters?.salesforce_id ? false : true,
+    salesforce_type: (workshopProvisions[0]?.spec.parameters?.sales_type as SfdcType) || null,
   });
 
   useEffect(() => {
