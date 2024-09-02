@@ -578,6 +578,9 @@ export async function createWorkshopForMultiuserService({
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/category`],
+        ...(resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/user-message-template`]
+          ? { [`${DEMO_DOMAIN}/user-message-template`]: resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/user-message-template`] }
+          : {}),
       },
       ownerReferences: [
         {
