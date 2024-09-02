@@ -441,7 +441,7 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListGroup>
       ) : null}
 
-      {workshopProvisions.length > 0 ? (
+      {workshopProvisions && workshopProvisions.length > 0 ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
 
