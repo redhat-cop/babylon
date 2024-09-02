@@ -32,7 +32,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
           name: workshopProvision.spec.catalogItem.name,
         })
       : null,
-    fetcher
+    fetcher,
   );
 
   async function patchWorkshopProvisionSpec(patch: {
@@ -51,7 +51,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
         workshopName: workshopProvision.metadata.labels['babylon.gpte.redhat.com/workshop'],
         namespace: workshopProvision.metadata.namespace,
         limit: 'ALL',
-      })
+      }),
     );
   }
 
@@ -99,11 +99,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
-              max={
-                workshopProvision.spec.parameters?.salesforce_id || workshop.spec.multiuserServices
-                  ? 30
-                  : 1
-              }
+              max={workshopProvision.spec.parameters?.salesforce_id || workshop.spec.multiuserServices ? 30 : 1}
               adminModifier={true}
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}

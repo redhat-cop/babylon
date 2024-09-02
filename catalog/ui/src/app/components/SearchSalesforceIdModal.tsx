@@ -55,7 +55,7 @@ const OpportunityListByAccount: React.FC<{ accountId: string; onSelectFn: (oppId
               key={x.id}
               style={{ opacity: !x.is_valid ? 0.5 : 1 }}
               isClickable={x.is_valid}
-              onRowClick={() => x.is_valid ? onSelectFn(x.id) : null}
+              onRowClick={() => (x.is_valid ? onSelectFn(x.id) : null)}
             >
               <Td dataLabel="name" modifier="breakWord">
                 {x.name}
