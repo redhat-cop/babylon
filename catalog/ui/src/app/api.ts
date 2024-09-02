@@ -359,6 +359,9 @@ export async function createServiceRequest({
         ...(catalogItem.spec.messageTemplates?.info
           ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.info) }
           : {}),
+        ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
+          ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.user) }
+          : {})
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -575,6 +578,9 @@ export async function createWorkshopForMultiuserService({
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/category`],
+        ...(resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/user-message-template`]
+          ? { [`${DEMO_DOMAIN}/user-message-template`]: resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/user-message-template`] }
+          : {}),
       },
       ownerReferences: [
         {
