@@ -225,7 +225,7 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_owners(self):
-        return self.__meta__.get('owners', [])
+        return self.__meta__.get('owners', {})
 
     @property
     def catalog_parameters(self):
