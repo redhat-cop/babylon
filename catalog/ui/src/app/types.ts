@@ -291,7 +291,11 @@ export interface ResourceClaimSpec {
 
 export interface ResourceClaimProvider {
   name: string;
-  parameterValues: ParameterValues;
+  parameterValues: {
+    purpose: string;
+    start_timestamp?: string;
+    stop_timestamp?: string;
+  };
 }
 
 export interface ResourceClaimSpecLifespan {
@@ -378,7 +382,7 @@ export interface ResourcePoolSpecLifespan {
 
 export interface ResourcePoolProvider {
   name: string;
-  parameterValues: any;
+  parameterValues: ParameterValues;
 }
 
 export interface ResourcePoolSpecResource {
