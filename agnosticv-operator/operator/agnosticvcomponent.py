@@ -224,6 +224,10 @@ class AgnosticVComponent(KopfObject):
         return self.catalog_meta.get('multiuser', False)
 
     @property
+    def catalog_owners(self):
+        return self.__meta__.get('owners', [])
+
+    @property
     def catalog_parameters(self):
         return self.catalog_meta.get('parameters')
 
@@ -588,6 +592,9 @@ class AgnosticVComponent(KopfObject):
 
             if self.catalog_multiuser:
                 definition['spec']['multiuser'] = True
+
+            if len(self.catalog_owners) > 0:
+                definition['spec']['owners'] = self.catalog_owners
 
             if self.catalog_workshop_ui_disabled:
                 definition['spec']['workshopUiDisabled'] = True
