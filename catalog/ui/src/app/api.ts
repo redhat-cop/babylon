@@ -20,6 +20,7 @@ import {
   Nullable,
   ResourceType,
   WorkshopUserAssignment,
+  ParameterValues,
 } from '@app/types';
 import { store, selectImpersonationUser } from '@app/store';
 import {
@@ -55,7 +56,7 @@ type CreateServiceRequestOpt = {
   serviceNamespace: ServiceNamespace;
   groups: string[];
   isAdmin: boolean;
-  parameterValues?: CreateServiceRequestParameterValues;
+  parameterValues?: ParameterValues;
   usePoolIfAvailable: boolean;
   stopDate?: Date;
   endDate: Date;
@@ -72,10 +73,6 @@ type CreateWorkshopPovisionOpt = {
   workshop: Workshop;
   useAutoDetach: boolean;
   usePoolIfAvailable: boolean;
-};
-
-export type CreateServiceRequestParameterValues = {
-  [name: string]: boolean | number | string;
 };
 
 type K8sObjectListCommonOpt = {

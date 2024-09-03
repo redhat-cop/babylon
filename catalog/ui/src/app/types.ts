@@ -291,11 +291,7 @@ export interface ResourceClaimSpec {
 
 export interface ResourceClaimProvider {
   name: string;
-  parameterValues: {
-    purpose: string;
-    start_timestamp?: string;
-    stop_timestamp?: string;
-  };
+  parameterValues: ParameterValues;
 }
 
 export interface ResourceClaimSpecLifespan {
@@ -368,7 +364,7 @@ export interface ResourcePoolList {
 export interface ResourcePoolSpec {
   lifespan?: ResourcePoolSpecLifespan;
   minAvailable: number;
-  resources: ResourcePoolSpecResource[];
+  provider: ResourcePoolProvider;
   deleteUnhealthyResourceHandles?: boolean;
   maxUnready?: number;
 }
@@ -378,6 +374,11 @@ export interface ResourcePoolSpecLifespan {
   maximum: string;
   relativeMaximum: string;
   unclaimed: string;
+}
+
+export interface ResourcePoolProvider {
+  name: string;
+  parameterValues: any;
 }
 
 export interface ResourcePoolSpecResource {
@@ -681,3 +682,7 @@ export type SalesforceAccount = {
 };
 
 export type SfdcType = 'campaign' | 'cdh' | 'project' | 'opportunity';
+
+export type ParameterValues = {
+  [name: string]: boolean | number | string;
+};
