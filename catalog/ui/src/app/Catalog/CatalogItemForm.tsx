@@ -33,13 +33,12 @@ import {
   apiFetch,
   apiPaths,
   createServiceRequest,
-  CreateServiceRequestParameterValues,
   createWorkshop,
   createWorkshopProvision,
   fetcher,
   openWorkshopSupportTicket,
 } from '@app/api';
-import { CatalogItem, TPurposeOpts } from '@app/types';
+import { CatalogItem, ParameterValues, TPurposeOpts } from '@app/types';
 import { displayName, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
@@ -141,7 +140,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       return null;
     }
     setIsLoading(true);
-    const parameterValues: CreateServiceRequestParameterValues = {};
+    const parameterValues: ParameterValues = {};
     for (const parameterState of Object.values(formState.parameters)) {
       // Add parameters for request that have values and are not disabled or hidden
       if (

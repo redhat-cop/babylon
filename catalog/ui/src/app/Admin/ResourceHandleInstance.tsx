@@ -279,7 +279,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
                   </DescriptionList>
                 </StackItem>
               ) : null}
-              {resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => {
+              {resourceHandle.spec.resources ? resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => {
                 const resourceName = resourceHandleSpecResource.name || resourceHandleSpecResource.provider.name;
                 return (
                   <StackItem key={idx}>
@@ -328,7 +328,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
                     </DescriptionList>
                   </StackItem>
                 );
-              })}
+              }):null}
             </Stack>
           </Tab>
           {/* @ts-ignore */}

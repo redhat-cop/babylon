@@ -38,7 +38,6 @@ import { useErrorHandler } from 'react-error-boundary';
 import useSWR from 'swr';
 import { BABYLON_DOMAIN, compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
-import usePoolStatus from './usePoolStatus';
 import useSession from '@app/utils/useSession';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
@@ -88,7 +87,6 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
       : null,
     () => fetchResourceHandlesFromResourcePool(resourcePoolName),
   );
-  const { total, taken, available } = usePoolStatus(resourceHandles);
 
   function mutateResourcePoolsList(data: ResourcePoolList) {
     matchMutate([{ name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data }]);
@@ -234,55 +232,41 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Total</DescriptionListTerm>
-                    <DescriptionListDescription>{total}</DescriptionListDescription>
+                    <DescriptionListTerm>Ready</DescriptionListTerm>
+                    <DescriptionListDescription>{resourcePool.status.resourceHandleCount.ready}</DescriptionListDescription>
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
                     <DescriptionListTerm>Available</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {available === -1 ? <Spinner key="spinner" size="md" /> : available}
+                      {resourcePool.status.resourceHandleCount.available}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+
+                </DescriptionList>
+              </StackItem>
+              {resourcePool.spec.provider ? <StackItem>
+                <Title headingLevel="h3">
+                  {`Resource: ${resourcePool.spec.provider.name}`}
+                </Title>
+                <DescriptionList isHorizontal>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>ResourceProvider</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Link to={`/admin/resourceproviders/${resourcePool.spec.provider.name}`}>
+                        {resourcePool.spec.provider.name}
+                      </Link>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Taken</DescriptionListTerm>
-                    <DescriptionListDescription>{taken}</DescriptionListDescription>
+                    <DescriptionListTerm>Parameter values</DescriptionListTerm>
+                    <DescriptionListDescription style={{ whiteSpace: 'pre-wrap' }}>
+                      {yaml.dump(resourcePool.spec.provider.parameterValues)}
+                    </DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
-              </StackItem>
-              {resourcePool.spec.resources.map((resourcePoolSpecResource, idx) => {
-                const resourceName = resourcePoolSpecResource.name || resourcePoolSpecResource.provider.name;
-                return (
-                  <StackItem key={idx}>
-                    <Title headingLevel="h3">
-                      {resourceName === 'babylon'
-                        ? 'Babylon Legacy CloudForms Integration'
-                        : `Resource: ${resourceName}`}
-                    </Title>
-                    <DescriptionList isHorizontal>
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>ResourceProvider</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          <Link to={`/admin/resourceproviders/${resourcePoolSpecResource.provider.name}`}>
-                            {resourcePoolSpecResource.provider.name}
-                          </Link>
-                          <OpenshiftConsoleLink reference={resourcePoolSpecResource.provider} />
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-
-                      {resourcePoolSpecResource.template?.spec?.vars?.job_vars ? (
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Job Vars</DescriptionListTerm>
-                          <DescriptionListDescription style={{ whiteSpace: 'pre-wrap' }}>
-                            {yaml.dump(resourcePoolSpecResource.template.spec.vars.job_vars)}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      ) : null}
-                    </DescriptionList>
-                  </StackItem>
-                );
-              })}
+              </StackItem>: null}
             </Stack>
           </Tab>
           <Tab eventKey="resourcehandles" title={<TabTitleText>ResourceHandles</TabTitleText>}>
