@@ -339,7 +339,7 @@ export interface ResourceHandleSpec {
   lifespan?: ResourceHandleSpecLifespan;
   resourceClaim?: K8sObjectReference;
   resourcePool?: K8sObjectReference;
-  resources: ResourceHandleSpecResource[];
+  resources?: ResourceHandleSpecResource[];
 }
 
 export interface ResourceHandleSpecLifespan {
@@ -358,7 +358,7 @@ export interface ResourceHandleSpecResource {
 
 export interface ResourcePool extends K8sObject {
   spec: ResourcePoolSpec;
-  status: ResourcePoolStatus;
+  status?: ResourcePoolStatus;
 }
 
 export interface ResourcePoolList {

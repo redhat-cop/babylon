@@ -38,7 +38,6 @@ import { useErrorHandler } from 'react-error-boundary';
 import useSWR from 'swr';
 import { BABYLON_DOMAIN, compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
-import usePoolStatus from './usePoolStatus';
 import useSession from '@app/utils/useSession';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
