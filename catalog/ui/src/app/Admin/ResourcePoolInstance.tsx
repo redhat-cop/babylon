@@ -243,10 +243,10 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                       {resourcePool.status.resourceHandleCount.available}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
-                  
+
                 </DescriptionList>
               </StackItem>
-              <StackItem>
+              {resourcePool.spec.provider ? <StackItem>
                 <Title headingLevel="h3">
                   {`Resource: ${resourcePool.spec.provider.name}`}
                 </Title>
@@ -260,16 +260,14 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {Object.entries(resourcePool.spec.provider.parameterValues).map((v) => (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Parameter values</DescriptionListTerm>
-                      <DescriptionListDescription style={{ whiteSpace: 'pre-wrap' }}>
-                        {yaml.dump(v)}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ))}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Parameter values</DescriptionListTerm>
+                    <DescriptionListDescription style={{ whiteSpace: 'pre-wrap' }}>
+                      {yaml.dump(resourcePool.spec.provider.parameterValues)}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
                 </DescriptionList>
-              </StackItem>
+              </StackItem>: null}
             </Stack>
           </Tab>
           <Tab eventKey="resourcehandles" title={<TabTitleText>ResourceHandles</TabTitleText>}>
