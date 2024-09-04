@@ -2,6 +2,10 @@
 
 == Running locally
 
+=== Running the API
+
+From within the `api` subdirectory...
+
 Setup virtual env for API:
 
 ------------------------
@@ -29,8 +33,12 @@ oc login --server=https://api.babydev.dev.open.redhat.com:6443
 Start api locally:
 
 ---------------------------------
-ENVIRONMENT=development ./wsgi.py 
+export BABYLON_NAMESPACE=babylon-config
+export ENVIRONMENT=development
+python3 app.py
 ---------------------------------
+
+=== Running the UI
 
 In a separate terminal, within the `ui` subdirectory, setup Node.js dependencies:
 
