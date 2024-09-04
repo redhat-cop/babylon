@@ -358,6 +358,7 @@ export interface ResourceHandleSpecResource {
 
 export interface ResourcePool extends K8sObject {
   spec: ResourcePoolSpec;
+  status: ResourcePoolStatus;
 }
 
 export interface ResourcePoolList {
@@ -371,6 +372,18 @@ export interface ResourcePoolSpec {
   provider: ResourcePoolProvider;
   deleteUnhealthyResourceHandles?: boolean;
   maxUnready?: number;
+}
+
+export interface ResourcePoolStatus {
+  resourceHandleCount: {
+    available: number;
+    ready: number;
+  };
+  resourceHandles: {
+    healthy: boolean;
+    name: string;
+    ready:boolean;
+  }[];
 }
 
 export interface ResourcePoolSpecLifespan {

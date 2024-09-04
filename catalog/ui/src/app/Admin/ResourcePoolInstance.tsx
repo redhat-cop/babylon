@@ -88,7 +88,6 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
       : null,
     () => fetchResourceHandlesFromResourcePool(resourcePoolName),
   );
-  const { total, taken, available } = usePoolStatus(resourceHandles);
 
   function mutateResourcePoolsList(data: ResourcePoolList) {
     matchMutate([{ name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data }]);
@@ -234,20 +233,15 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Total</DescriptionListTerm>
-                    <DescriptionListDescription>{total}</DescriptionListDescription>
-                  </DescriptionListGroup>
-
-                  <DescriptionListGroup>
                     <DescriptionListTerm>Available</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {available === -1 ? <Spinner key="spinner" size="md" /> : available}
+                      {resourcePool.status.resourceHandleCount.available}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Taken</DescriptionListTerm>
-                    <DescriptionListDescription>{taken}</DescriptionListDescription>
+                    <DescriptionListTerm>Ready</DescriptionListTerm>
+                    <DescriptionListDescription>{resourcePool.status.resourceHandleCount.ready}</DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
               </StackItem>
@@ -265,11 +259,11 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {Object.entries(resourcePool.spec.provider.parameterValues).map((k, v) => (
+                  {Object.entries(resourcePool.spec.provider.parameterValues).map((v) => (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Parameter values</DescriptionListTerm>
                       <DescriptionListDescription style={{ whiteSpace: 'pre-wrap' }}>
-                        {yaml.dump({k,v})}
+                        {yaml.dump(v)}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   ))}
