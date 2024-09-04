@@ -245,7 +245,7 @@ class AgnosticVComponent(KopfObject):
 
     @property
     def catalog_workshop_ui_max_instances(self):
-        return self.catalog_meta.get('workshopUiMaxInstances', 200)
+        return self.catalog_meta.get('workshopUiMaxInstances', 30)
 
     @property
     def definition(self):
