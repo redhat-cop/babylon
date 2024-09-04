@@ -219,7 +219,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
           />
         </div>
       </FormGroup>
-      <FormGroup label="Stop after provision" fieldId="stopAfterProvision">
+      <FormGroup label="Stop after provision" fieldId="stopAfterProvision" disabled={true}>
         <div style={formFieldStyle}>
           <Checkbox
             id="stopAfterProvision"
@@ -227,6 +227,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
             name="stopAfterProvision"
             isChecked={stopAfterProvision}
             onChange={(_event, checked) => setStopAfterProvision(checked)}
+            isDisabled={true}
           />
 
           <Tooltip
