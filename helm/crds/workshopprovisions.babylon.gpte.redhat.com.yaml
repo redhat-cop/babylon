@@ -75,6 +75,11 @@ spec:
                 description: >-
                   Target number of services to provision.
                 type: integer
+              enableResourcePools:
+                description: >-
+                  Flag to enable assigning ResourceClaims from ResourcePools.
+                  If this is not set then pools are explicitly disabled in ResourceClaim annotations.
+                type: boolean
               lifespan:
                 description: >-
                   Lifespan settings for this workshop provision.

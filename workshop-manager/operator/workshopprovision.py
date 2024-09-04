@@ -69,6 +69,10 @@ class WorkshopProvision(CachedKopfObject):
         return self.spec.get('count', 0)
 
     @property
+    def enable_resource_pools(self):
+        return self.spec.get('enableResourcePools', False)
+
+    @property
     def ignore(self):
         return Babylon.babylon_ignore_label in self.labels
 
@@ -129,7 +133,6 @@ class WorkshopProvision(CachedKopfObject):
                     Babylon.catalog_display_name_annotation: catalog_item.catalog_display_name,
                     Babylon.catalog_item_display_name_annotation: catalog_item.display_name,
                     Babylon.notifier_annotation: "disable",
-                    Babylon.resource_pool_annotation: "disable",
                 },
                 "generateName": f"{catalog_item.name}-",
                 "labels": {
@@ -150,6 +153,9 @@ class WorkshopProvision(CachedKopfObject):
 
         if self.auto_detach_condition:
             resource_claim_definition['spec']['autoDetach'] = {"when": self.auto_detach_condition}
+
+        if not self.enable_resource_pools:
+            resource_claim_definition['metadata']['annotations'][Babylon.resource_pool_annotation] = "disable"
 
         if workshop.requester:
             resource_claim_definition['metadata']['annotations'][Babylon.requester_annotation] = workshop.requester
