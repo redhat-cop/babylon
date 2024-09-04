@@ -529,23 +529,25 @@ export interface WorkshopUserAssignmentList {
 }
 
 export interface WorkshopUserAssignment extends K8sObject {
-  spec: {
-    data?: any;
-    messages?: string;
-    resourceClaimName?: string;
-    userName?: string;
-    workshopName: string;
-    labUserInterface?: {
-      data?: object;
-      method?: string;
-      url: string;
-      redirect?: boolean;
-    };
-    assignment?: {
-      email: string;
-    };
-  };
+  spec: WorkshopSpecUserAssignment;
   status?: any;
+}
+
+export interface WorkshopSpecUserAssignment {
+  data?: any;
+  messages?: string;
+  resourceClaimName?: string;
+  userName?: string;
+  workshopName: string;
+  labUserInterface?: {
+    data?: object;
+    method?: string;
+    url: string;
+    redirect?: boolean;
+  };
+  assignment?: {
+    email: string;
+  };
 }
 
 export type Session = {
