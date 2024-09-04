@@ -21,7 +21,6 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
-import ResourcePoolStats from './ResourcePoolStats';
 import SelectableTableWithPagination from '@app/components/SelectableTableWithPagination';
 import useSWR from 'swr';
 import Footer from '@app/components/Footer';
@@ -32,10 +31,8 @@ function keywordMatch(resourcePool: ResourcePool, keyword: string): boolean {
   if (resourcePool.metadata.name.includes(keyword)) {
     return true;
   }
-  for (const resource of resourcePool.spec.resources) {
-    if (resource.provider.name.includes(keyword)) {
-      return true;
-    }
+  if (resourcePool.spec.provider.name) {
+    return true;
   }
   return false;
 }
@@ -208,10 +205,8 @@ const ResourcePools: React.FC = () => {
                     </span>
                   </>,
                   <>
-                    <ResourcePoolStats
-                      resourcePoolName={resourcePool.metadata.name}
-                      minAvailable={resourcePool.spec.minAvailable}
-                    />
+                    <p><b>Ready:</b> {resourcePool.status.resourceHandleCount.ready}</p>
+                    <p><b>Available:</b> {resourcePool.status.resourceHandleCount.available}</p>
                   </>,
                 ],
                 onSelect: (isSelected: boolean) => {

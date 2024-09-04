@@ -233,16 +233,17 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
+                    <DescriptionListTerm>Ready</DescriptionListTerm>
+                    <DescriptionListDescription>{resourcePool.status.resourceHandleCount.ready}</DescriptionListDescription>
+                  </DescriptionListGroup>
+
+                  <DescriptionListGroup>
                     <DescriptionListTerm>Available</DescriptionListTerm>
                     <DescriptionListDescription>
                       {resourcePool.status.resourceHandleCount.available}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
-
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Ready</DescriptionListTerm>
-                    <DescriptionListDescription>{resourcePool.status.resourceHandleCount.ready}</DescriptionListDescription>
-                  </DescriptionListGroup>
+                  
                 </DescriptionList>
               </StackItem>
               <StackItem>
