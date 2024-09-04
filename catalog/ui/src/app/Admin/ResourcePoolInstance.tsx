@@ -251,38 +251,30 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   </DescriptionListGroup>
                 </DescriptionList>
               </StackItem>
-              {resourcePool.spec.resources.map((resourcePoolSpecResource, idx) => {
-                const resourceName = resourcePoolSpecResource.name || resourcePoolSpecResource.provider.name;
-                return (
-                  <StackItem key={idx}>
-                    <Title headingLevel="h3">
-                      {resourceName === 'babylon'
-                        ? 'Babylon Legacy CloudForms Integration'
-                        : `Resource: ${resourceName}`}
-                    </Title>
-                    <DescriptionList isHorizontal>
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>ResourceProvider</DescriptionListTerm>
-                        <DescriptionListDescription>
-                          <Link to={`/admin/resourceproviders/${resourcePoolSpecResource.provider.name}`}>
-                            {resourcePoolSpecResource.provider.name}
-                          </Link>
-                          <OpenshiftConsoleLink reference={resourcePoolSpecResource.provider} />
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
+              <StackItem>
+                <Title headingLevel="h3">
+                  {`Resource: ${resourcePool.spec.provider.name}`}
+                </Title>
+                <DescriptionList isHorizontal>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>ResourceProvider</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Link to={`/admin/resourceproviders/${resourcePool.spec.provider.name}`}>
+                        {resourcePool.spec.provider.name}
+                      </Link>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
-                      {resourcePoolSpecResource.template?.spec?.vars?.job_vars ? (
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Job Vars</DescriptionListTerm>
-                          <DescriptionListDescription style={{ whiteSpace: 'pre-wrap' }}>
-                            {yaml.dump(resourcePoolSpecResource.template.spec.vars.job_vars)}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      ) : null}
-                    </DescriptionList>
-                  </StackItem>
-                );
-              })}
+                  {Object.entries(resourcePool.spec.provider.parameterValues).map((k, v) => (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Parameter values</DescriptionListTerm>
+                      <DescriptionListDescription style={{ whiteSpace: 'pre-wrap' }}>
+                        {yaml.dump({k,v})}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ))}
+                </DescriptionList>
+              </StackItem>
             </Stack>
           </Tab>
           <Tab eventKey="resourcehandles" title={<TabTitleText>ResourceHandles</TabTitleText>}>
