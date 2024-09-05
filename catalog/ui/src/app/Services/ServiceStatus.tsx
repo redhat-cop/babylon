@@ -87,17 +87,23 @@ const ServiceStatus: React.FC<{
   if (summary) {
     let _phase: phaseProps = 'unknown';
     let _state = summary.state.replace('-', ' ');
-    if (summary.state.endsWith('-pending')) {
-      _phase = 'in-progress';
-    } else if (summary.state.endsWith('-failed')) {
-      _phase = 'failed';
-    } else if (summary.state === 'started') {
-      _phase = 'running';
-      _state = 'Running';
-    } else if (summary.state === 'stopped') {
-      _phase = 'stopped';
-    } else if (summary.state === 'provisioning') {
-      _phase = 'in-progress';
+    switch (true) {
+      case summary.state.endsWith('-pending'):
+      case summary.state === 'provisioning':
+      case summary.state === 'requesting':
+      case summary.state === 'initializing':
+        _phase = 'in-progress';
+        break;
+      case summary.state.endsWith('-failed'):
+        _phase = 'failed';
+        break;
+      case summary.state === 'started':
+        _phase = 'running';
+        _state = 'Running';
+        break;
+      case summary.state === 'stopped':
+        _phase = 'stopped';
+        break;
     }
     return (
       <span className={`service-status--${_phase}`} style={{ textTransform: 'capitalize' }}>
