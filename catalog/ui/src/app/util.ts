@@ -207,6 +207,7 @@ export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean
     if (!state || !template) {
       return false;
     }
+<<<<<<< HEAD
     const notReadyStates = [
       'new',
       'requesting',
@@ -216,6 +217,9 @@ export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean
       'provisioning',
       'provision-canceled',
     ];
+=======
+    const notReadyStates = ['new', 'requesting', 'initializing', 'provision-pending', 'provisioning', 'provision-canceled'];
+>>>>>>> main
     const currentState = state?.spec?.vars?.current_state;
     if (currentState && (currentState.endsWith('-failed') || notReadyStates.includes(currentState))) {
       return false;
