@@ -240,6 +240,10 @@ class AgnosticVComponent(KopfObject):
         return self.catalog_meta.get('terms_of_service')
 
     @property
+    def catalog_workshop_lab_ui_redirect(self):
+        return self.catalog_meta.get('workshopLabUiRedirect', False)
+
+    @property
     def catalog_workshop_ui_disabled(self):
         return self.catalog_meta.get('workshopUiDisabled', False)
 
@@ -595,6 +599,9 @@ class AgnosticVComponent(KopfObject):
 
             if len(self.catalog_owners) > 0:
                 definition['spec']['owners'] = self.catalog_owners
+
+            if self.catalog_workshop_lab_ui_redirect:
+                definition['spec']['workshopLabUiRedirect'] = self.catalog_workshop_lab_ui_redirect
 
             if self.catalog_workshop_ui_disabled:
                 definition['spec']['workshopUiDisabled'] = True
