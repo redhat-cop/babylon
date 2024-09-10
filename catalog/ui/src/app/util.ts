@@ -211,9 +211,11 @@ export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean
       'new',
       'requesting',
       'initializing',
+      'starting',
       'stop-error',
       'provision-pending',
       'provisioning',
+      'requesting',
       'provision-canceled',
     ];
     const currentState = state?.spec?.vars?.current_state;

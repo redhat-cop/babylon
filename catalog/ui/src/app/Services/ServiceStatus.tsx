@@ -94,6 +94,7 @@ const ServiceStatus: React.FC<{
       case summary.state === 'requesting':
       case summary.state === 'initializing':
       case summary.state === 'stopping':
+      case summary.state === 'starting':
         _phase = 'in-progress';
         break;
       case summary.state.endsWith('-failed'):
