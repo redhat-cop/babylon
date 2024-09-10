@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Button, NumberInput } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 
@@ -18,11 +18,12 @@ const PatientNumberInput: React.FC<
     value: number;
   }>({ value: value });
   const { isAdmin } = useSession().getSession();
+  const _max = useMemo(() => (adminModifier && isAdmin ? 999 : max), [isAdmin, max, adminModifier]);
 
   const onValueChange = useCallback(
     (newValue: number) => {
       const validatedValue =
-        min !== undefined && newValue < min ? min : max !== undefined && newValue > max ? max : newValue;
+        min !== undefined && newValue < min ? min : _max !== undefined && newValue > _max ? _max : newValue;
       setState((prevState) => {
         if (prevState.timeout) {
           clearTimeout(prevState.timeout);
@@ -33,13 +34,13 @@ const PatientNumberInput: React.FC<
         };
       });
     },
-    [max, min, onChange, onChangeDelay],
+    [_max, min, onChange, onChangeDelay]
   );
 
   return (
     <NumberInput
       min={min}
-      max={adminModifier && isAdmin ? 999 : max}
+      max={_max}
       onChange={(event: React.FormEvent<HTMLInputElement>) => {
         const value = parseInt(event.currentTarget.value);
         if (!isNaN(value)) {
