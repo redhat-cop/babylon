@@ -56,6 +56,7 @@ import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import { SearchIcon } from '@patternfly/react-icons';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './catalog-item-form.css';
 
@@ -70,6 +71,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const [isLoading, setIsLoading] = useState(false);
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
   const { userImpersonated } = useImpersonateUser();
+  const { sfdc_search_enabled } = useInterfaceConfig();
   let userEmail = email;
   if (userImpersonated) {
     userEmail = userImpersonated;
@@ -480,12 +482,17 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         : 'default'
                     }
                   />
-                  <div>
-                    <Button onClick={() => openSearchSalesforceIdModal(true)} variant="secondary" icon={<SearchIcon />}>
-                      {' '}
-                      Search
-                    </Button>
-                  </div>
+                  {sfdc_search_enabled ? (
+                    <div>
+                      <Button
+                        onClick={() => openSearchSalesforceIdModal(true)}
+                        variant="secondary"
+                        icon={<SearchIcon />}
+                      >
+                        Search
+                      </Button>
+                    </div>
+                  ) : null}
                   <Tooltip
                     position="right"
                     content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
