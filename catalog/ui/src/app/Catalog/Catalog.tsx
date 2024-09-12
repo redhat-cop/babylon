@@ -42,6 +42,7 @@ import {
   FETCH_BATCH_LIMIT,
   stripTags,
   CATALOG_MANAGER_DOMAIN,
+  GPTE_DOMAIN,
 } from '@app/util';
 import LoadingIcon from '@app/components/LoadingIcon';
 import Footer from '@app/components/Footer';
@@ -79,8 +80,8 @@ function handleExportCsv(catalogItems: CatalogItem[]) {
     }
     for (const label of Object.keys(ci.metadata.labels || [])) {
       if (
-        label.startsWith(BABYLON_DOMAIN + '/') &&
-        !HIDDEN_LABELS.includes(label.substring(BABYLON_DOMAIN.length + 1))
+        label.startsWith(BABYLON_DOMAIN + '/') ||
+        (label.startsWith(GPTE_DOMAIN + '/') && !HIDDEN_LABELS.includes(label.substring(BABYLON_DOMAIN.length + 1)))
       ) {
         if (!labels.includes(label)) labels.push(label);
       }
@@ -108,7 +109,11 @@ function handleExportCsv(catalogItems: CatalogItem[]) {
   }
   for (const label of labels) {
     fields.push({
-      label: formatString(label.substring(BABYLON_DOMAIN.length + 1)),
+      label: formatString(
+        label.startsWith(BABYLON_DOMAIN + '/')
+          ? label.substring(BABYLON_DOMAIN.length + 1)
+          : label.substring(GPTE_DOMAIN.length + 1)
+      ),
       value: `metadata.labels.["${label}"]`,
       default: '',
     });
@@ -208,7 +213,7 @@ function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
 async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
     return await fetcherItemsInAllPages((continueId) =>
-      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
     );
   }
   const catalogItems: CatalogItem[] = [];
@@ -250,11 +255,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const adminStatusString = searchParams.has('adminStatus') ? searchParams.get('adminStatus') : null;
   const selectedAdminFilter: string[] = useMemo(
     () => (adminStatusString ? JSON.parse(adminStatusString) : []),
-    [adminStatusString],
+    [adminStatusString]
   );
   const selectedLabels: { [label: string]: string[] } = useMemo(
     () => (labelsString ? JSON.parse(labelsString) : {}),
-    [labelsString],
+    [labelsString]
   );
 
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
@@ -300,20 +305,20 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         return aStage === 'prod' && bStage !== 'prod'
           ? -1
           : aStage !== 'prod' && bStage === 'prod'
-            ? 1
-            : aStage === 'event' && bStage !== 'event'
-              ? -1
-              : aStage !== 'event' && bStage === 'event'
-                ? 1
-                : aStage === 'test' && bStage !== 'test'
-                  ? -1
-                  : aStage !== 'test' && bStage === 'test'
-                    ? 1
-                    : aStage === 'dev' && bStage !== 'dev'
-                      ? -1
-                      : aStage !== 'dev' && bStage === 'dev'
-                        ? 1
-                        : 0;
+          ? 1
+          : aStage === 'event' && bStage !== 'event'
+          ? -1
+          : aStage !== 'event' && bStage === 'event'
+          ? 1
+          : aStage === 'test' && bStage !== 'test'
+          ? -1
+          : aStage !== 'test' && bStage === 'test'
+          ? 1
+          : aStage === 'dev' && bStage !== 'dev'
+          ? -1
+          : aStage !== 'dev' && bStage === 'dev'
+          ? 1
+          : 0;
       }
       if (a.metadata.namespace != b.metadata.namespace) {
         return a.metadata.namespace < b.metadata.namespace ? -1 : 1;
@@ -323,17 +328,17 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       }
       return 0;
     },
-    [sortBy.selected],
+    [sortBy.selected]
   );
 
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
-    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames),
+    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
-    [catalogItemsArr, groups],
+    [catalogItemsArr, groups]
   );
 
   // Filter & Sort catalog items
@@ -403,14 +408,14 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       searchString
         ? _catalogItems.search("'" + searchString.split(' ').join(" '")).map((x) => x.item)
         : _catalogItemsCpy,
-    [searchString, _catalogItems, _catalogItemsCpy],
+    [searchString, _catalogItems, _catalogItemsCpy]
   );
 
   const openCatalogItem =
     openCatalogItemName && openCatalogItemNamespaceName
       ? catalogItems.find(
           (item) =>
-            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName,
+            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName
         )
       : null;
 
