@@ -183,6 +183,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         ...(scheduled !== null ? { endDate: scheduled.endDate } : { endDate: formState.endDate }),
         ...(scheduled !== null ? { startDate: scheduled.startDate } : {}),
         userEmail,
+        parameterValues,
       });
       const redirectUrl = `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`;
       await createWorkshopProvision({

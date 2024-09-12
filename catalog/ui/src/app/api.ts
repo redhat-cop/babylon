@@ -151,6 +151,25 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
+function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any) {
+  const d = Object.assign({}, _definition) as ResourceClaim | Workshop;
+  // Purpose & SFDC
+  if (parameterValues.purpose) {
+    d.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
+  }
+  if (parameterValues.purpose_activity) {
+    d.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`] = parameterValues.purpose_activity as string;
+  }
+  if (parameterValues.purpose_explanation) {
+    d.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] = parameterValues.purpose_explanation as string;
+  }
+  if (parameterValues.salesforce_id) {
+    d.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] = parameterValues.salesforce_id as string;
+    d.metadata.annotations[`${DEMO_DOMAIN}/sales-type`] = parameterValues.sales_type as string;
+  }
+  return d;
+}
+
 export async function assignWorkshopUser({
   resourceClaimName,
   userName,
@@ -433,30 +452,17 @@ export async function createServiceRequest({
   }
 
   // Purpose & SFDC
-  if (parameterValues.purpose) {
-    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
-  }
-  if (parameterValues.purpose_activity) {
-    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`] =
-      parameterValues.purpose_activity as string;
-  }
-  if (parameterValues.purpose_explanation) {
-    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] =
-      parameterValues.purpose_explanation as string;
-  }
-  if (parameterValues.salesforce_id) {
-    requestResourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] = parameterValues.salesforce_id as string;
-  }
+  const definition = addPurposeAndSfdc(requestResourceClaim, parameterValues);
 
   while (true) {
     try {
-      const resourceClaim = await createResourceClaim(requestResourceClaim);
+      const resourceClaim = await createResourceClaim(definition);
       return resourceClaim;
     } catch (error: any) {
       if (error.status === 409) {
         const suffix = generateRandom5CharsSuffix();
-        requestResourceClaim.metadata.name = `${catalogItem.metadata.name}-${suffix}`;
-        requestResourceClaim.metadata.annotations[
+        definition.metadata.name = `${catalogItem.metadata.name}-${suffix}`;
+        definition.metadata.annotations[
           `${BABYLON_DOMAIN}/url`
         ] = `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}-${suffix}`;
       } else {
@@ -477,6 +483,7 @@ export async function createWorkshop({
   endDate,
   startDate,
   userEmail,
+  parameterValues,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -488,9 +495,10 @@ export async function createWorkshop({
   stopDate?: Date;
   startDate?: Date;
   userEmail: string;
+  parameterValues: any;
 }): Promise<Workshop> {
   const session = await getApiSession();
-  const definition: Workshop = {
+  const _definition: Workshop = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'Workshop',
     metadata: {
@@ -529,14 +537,16 @@ export async function createWorkshop({
     },
   };
   if (accessPassword) {
-    definition.spec.accessPassword = accessPassword;
+    _definition.spec.accessPassword = accessPassword;
   }
   if (description) {
-    definition.spec.description = description;
+    _definition.spec.description = description;
   }
   if (displayName) {
-    definition.spec.displayName = displayName;
+    _definition.spec.displayName = displayName;
   }
+
+  const definition = addPurposeAndSfdc(_definition, parameterValues);
 
   let n = 0;
   while (true) {
