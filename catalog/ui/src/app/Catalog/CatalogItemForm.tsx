@@ -184,6 +184,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         ...(scheduled !== null ? { startDate: scheduled.startDate } : {}),
         userEmail,
         parameterValues,
+        skippedSfdc: formState.salesforceId.skip,
       });
       const redirectUrl = `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`;
       await createWorkshopProvision({
@@ -237,6 +238,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             }
           : {}),
         userEmail,
+        skippedSfdc: formState.salesforceId.skip,
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);

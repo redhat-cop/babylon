@@ -63,6 +63,7 @@ type CreateServiceRequestOpt = {
   start?: CreateServiceRequestOptScheduleStartLifespan | CreateServiceRequestOptScheduleStartResource;
   useAutoDetach: boolean;
   userEmail: string;
+  skippedSfdc: boolean;
 };
 
 type CreateWorkshopPovisionOpt = {
@@ -151,7 +152,7 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
-function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any) {
+function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any, skippedSfdc: boolean) {
   const d = Object.assign({}, _definition) as ResourceClaim | Workshop;
   // Purpose & SFDC
   if (parameterValues.purpose) {
@@ -167,6 +168,7 @@ function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any) {
     d.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] = parameterValues.salesforce_id as string;
     d.metadata.annotations[`${DEMO_DOMAIN}/sales-type`] = parameterValues.sales_type as string;
   }
+  d.metadata.annotations[`${DEMO_DOMAIN}/provide_salesforce-id_later`] = skippedSfdc.toString();
   return d;
 }
 
@@ -355,6 +357,7 @@ export async function createServiceRequest({
   usePoolIfAvailable,
   useAutoDetach,
   userEmail,
+  skippedSfdc,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
@@ -452,7 +455,7 @@ export async function createServiceRequest({
   }
 
   // Purpose & SFDC
-  const definition = addPurposeAndSfdc(requestResourceClaim, parameterValues);
+  const definition = addPurposeAndSfdc(requestResourceClaim, parameterValues, skippedSfdc);
 
   while (true) {
     try {
@@ -484,6 +487,7 @@ export async function createWorkshop({
   startDate,
   userEmail,
   parameterValues,
+  skippedSfdc,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -496,6 +500,7 @@ export async function createWorkshop({
   startDate?: Date;
   userEmail: string;
   parameterValues: any;
+  skippedSfdc: boolean;
 }): Promise<Workshop> {
   const session = await getApiSession();
   const _definition: Workshop = {
@@ -546,7 +551,7 @@ export async function createWorkshop({
     _definition.spec.displayName = displayName;
   }
 
-  const definition = addPurposeAndSfdc(_definition, parameterValues);
+  const definition = addPurposeAndSfdc(_definition, parameterValues, skippedSfdc);
 
   let n = 0;
   while (true) {
