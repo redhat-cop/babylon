@@ -182,7 +182,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         ...(scheduled !== null ? { stopDate: scheduled.stopDate } : { stopDate: formState.stopDate }),
         ...(scheduled !== null ? { endDate: scheduled.endDate } : { endDate: formState.endDate }),
         ...(scheduled !== null ? { startDate: scheduled.startDate } : {}),
-        userEmail: email,
+        userEmail,
       });
       const redirectUrl = `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`;
       await createWorkshopProvision({
@@ -235,6 +235,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               },
             }
           : {}),
+        userEmail,
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
