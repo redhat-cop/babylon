@@ -48,7 +48,7 @@ function _reducer(
     salesforceId?: string;
     salesforceIdValid?: boolean;
     salesforceType?: SfdcType;
-  },
+  }
 ) {
   switch (action.type) {
     case 'set_salesforceId':
@@ -102,7 +102,7 @@ const WorkshopsItemDetails: React.FC<{
     if (!salesforceObj.completed) {
       checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
         ({ valid, message }: { valid: boolean; message?: string }) =>
-          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid }),
+          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid })
       );
     } else {
       for (let workshopProvision of workshopProvisions) {
@@ -145,7 +145,7 @@ const WorkshopsItemDetails: React.FC<{
       concurrency?: number;
       startDelay?: number;
       parameters?: any;
-    },
+    }
   ) {
     await patchWorkshopProvision({
       name,
@@ -157,7 +157,7 @@ const WorkshopsItemDetails: React.FC<{
         workshopName: workshop.metadata.name,
         namespace,
         limit: 'ALL',
-      }),
+      })
     );
   }
 
@@ -174,7 +174,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        }),
+        })
       );
     } else {
       onWorkshopUpdate(
@@ -182,7 +182,7 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           patch: { spec: patch },
-        }),
+        })
       );
     }
   }
@@ -193,7 +193,7 @@ const WorkshopsItemDetails: React.FC<{
         name: workshop.metadata.name,
         namespace: workshop.metadata.namespace,
         patch: { metadata: { annotations: { [`${BABYLON_DOMAIN}/servicenow`]: JSON.stringify(serviceNowObj) } } },
-      }),
+      })
     );
   }
 
@@ -322,7 +322,7 @@ const WorkshopsItemDetails: React.FC<{
             onSelect={(event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
               patchWorkshopSpec({ openRegistration: selectedValue === 'open' }).then(() =>
-                setUserRegistrationSelectIsOpen(false),
+                setUserRegistrationSelectIsOpen(false)
               );
             }}
           >
@@ -358,7 +358,7 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListGroup>
       ) : null}
 
-      {checkWorkshopCanStop(resourceClaims) ? (
+      {checkWorkshopCanStop(resourceClaims) || (autoStartTime && autoStartTime > Date.now()) ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Auto-Stop</DescriptionListTerm>
           <DescriptionListDescription>
@@ -422,7 +422,7 @@ const WorkshopsItemDetails: React.FC<{
                   saveServiceNowNumber(
                     serviceNowNumber && serviceNowNumber !== ''
                       ? { ...JSON.parse(serviceNowJson), number: serviceNowNumber }
-                      : {},
+                      : {}
                   );
                 }
                 setEditingServiceNow(!editingServiceNow);
@@ -532,8 +532,8 @@ const WorkshopsItemDetails: React.FC<{
                     ? salesforceObj.completed && salesforceObj.valid
                       ? 'success'
                       : salesforceObj.completed
-                        ? 'error'
-                        : 'default'
+                      ? 'error'
+                      : 'default'
                     : 'default'
                 }
               />
