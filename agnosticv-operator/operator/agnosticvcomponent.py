@@ -96,7 +96,7 @@ class AgnosticVComponent(KopfObject):
     def anarchy_collections(self):
         return self.anarchy.get('collections', [{
             "name": "awx.awx",
-            "version": "19.4.0",
+            "version": "24.6.1",
         }])
 
     @property
