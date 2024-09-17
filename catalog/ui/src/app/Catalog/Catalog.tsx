@@ -53,6 +53,8 @@ import {
   HIDDEN_LABELS,
   CUSTOM_LABELS,
   setLastFilter,
+  getIsDisabled,
+  getStatus,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
@@ -403,13 +405,23 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     return [catalogItemsFuse, catalogItemsCpy];
   }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems, selectedAdminFilter]);
 
-  const catalogItemsResult = useMemo(
-    () =>
-      searchString
-        ? _catalogItems.search("'" + searchString.split(' ').join(" '")).map((x) => x.item)
-        : _catalogItemsCpy,
-    [searchString, _catalogItems, _catalogItemsCpy]
-  );
+  const catalogItemsResult = useMemo(() => {
+    const items = searchString
+      ? _catalogItems.search("'" + searchString.split(' ').join(" '")).map((x) => x.item)
+      : _catalogItemsCpy;
+    const operationalItems = [];
+    const disabledItems = [];
+    for (let catalogItem of items) {
+      const isDisabled = getIsDisabled(catalogItem);
+      const { code: status } = getStatus(catalogItem);
+      if (status === 'under-maintenance' || isDisabled) {
+        disabledItems.push(catalogItem);
+      } else {
+        operationalItems.push(catalogItem);
+      }
+    }
+    return operationalItems.concat(disabledItems);
+  }, [searchString, _catalogItems, _catalogItemsCpy]);
 
   const openCatalogItem =
     openCatalogItemName && openCatalogItemNamespaceName
