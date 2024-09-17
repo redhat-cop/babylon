@@ -339,7 +339,7 @@ export interface ResourceHandleSpec {
   lifespan?: ResourceHandleSpecLifespan;
   resourceClaim?: K8sObjectReference;
   resourcePool?: K8sObjectReference;
-  resources?: ResourceHandleSpecResource[];
+  resources: ResourceHandleSpecResource[];
 }
 
 export interface ResourceHandleSpecLifespan {
@@ -358,7 +358,6 @@ export interface ResourceHandleSpecResource {
 
 export interface ResourcePool extends K8sObject {
   spec: ResourcePoolSpec;
-  status?: ResourcePoolStatus;
 }
 
 export interface ResourcePoolList {
@@ -369,21 +368,9 @@ export interface ResourcePoolList {
 export interface ResourcePoolSpec {
   lifespan?: ResourcePoolSpecLifespan;
   minAvailable: number;
-  provider: ResourcePoolProvider;
+  resources: ResourcePoolSpecResource[];
   deleteUnhealthyResourceHandles?: boolean;
   maxUnready?: number;
-}
-
-export interface ResourcePoolStatus {
-  resourceHandleCount: {
-    available: number;
-    ready: number;
-  };
-  resourceHandles: {
-    healthy: boolean;
-    name: string;
-    ready:boolean;
-  }[];
 }
 
 export interface ResourcePoolSpecLifespan {
@@ -391,11 +378,6 @@ export interface ResourcePoolSpecLifespan {
   maximum: string;
   relativeMaximum: string;
   unclaimed: string;
-}
-
-export interface ResourcePoolProvider {
-  name: string;
-  parameterValues: ParameterValues;
 }
 
 export interface ResourcePoolSpecResource {
@@ -542,25 +524,23 @@ export interface WorkshopUserAssignmentList {
 }
 
 export interface WorkshopUserAssignment extends K8sObject {
-  spec: WorkshopSpecUserAssignment;
+  spec: {
+    data?: any;
+    messages?: string;
+    resourceClaimName?: string;
+    userName?: string;
+    workshopName: string;
+    labUserInterface?: {
+      data?: object;
+      method?: string;
+      url: string;
+      redirect?: boolean;
+    };
+    assignment?: {
+      email: string;
+    };
+  };
   status?: any;
-}
-
-export interface WorkshopSpecUserAssignment {
-  data?: any;
-  messages?: string;
-  resourceClaimName?: string;
-  userName?: string;
-  workshopName: string;
-  labUserInterface?: {
-    data?: object;
-    method?: string;
-    url: string;
-    redirect?: boolean;
-  };
-  assignment?: {
-    email: string;
-  };
 }
 
 export type Session = {
@@ -701,7 +681,3 @@ export type SalesforceAccount = {
 };
 
 export type SfdcType = 'campaign' | 'cdh' | 'project' | 'opportunity';
-
-export type ParameterValues = {
-  [name: string]: boolean | number | string;
-};
