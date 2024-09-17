@@ -295,14 +295,14 @@ const ResourceHandles: React.FC = () => {
                     <p>-</p>
                   ),
                   <>
-                    {resourceHandle.spec.resources ? resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => (
+                    {resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => (
                       <div key={idx}>
                         <Link key="admin" to={`/admin/resourceproviders/${resourceHandleSpecResource.provider.name}`}>
                           {resourceHandleSpecResource.provider.name}
                         </Link>
                         <OpenshiftConsoleLink key="console" reference={resourceHandleSpecResource.provider} />
                       </div>
-                    )): null}
+                    ))}
                   </>,
                   <>
                     <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} />
