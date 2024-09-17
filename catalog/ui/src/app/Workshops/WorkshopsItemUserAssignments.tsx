@@ -46,7 +46,7 @@ const WorkshopsItemUserAssignments: React.FC<{
     setBulkUserAssignmentMessage(
       unassignedEmails.length === 0
         ? `Assigned ${userAssignments.length} users.`
-        : `Assigned ${userAssignments.length} users. Unable to assign ${unassignedEmails.join(', ')}`,
+        : `Assigned ${userAssignments.length} users. Unable to assign ${unassignedEmails.join(', ')}`
     );
     setBulkUserAssignmentModalIsOpen(false);
     onUserAssignmentsUpdate(workshopUserAssignments);
@@ -82,20 +82,35 @@ const WorkshopsItemUserAssignments: React.FC<{
       </EmptyState>
     );
   }
-  const sortBy = (a: WorkshopUserAssignment, b: WorkshopUserAssignment) => {
-    if (a.spec.resourceClaimName < b.spec.resourceClaimName) {
-      return -1;
-    }
-    if (a.spec.resourceClaimName > b.spec.resourceClaimName) {
-      return 1;
-    }
-    if (a.spec.userName && b.spec.userName) {
-      return a.spec.userName.localeCompare(b.spec.userName, undefined, {
-        numeric: true,
-        sensitivity: 'base',
+  const groupAndSortBy = (assignments: WorkshopUserAssignment[]): WorkshopUserAssignment[] => {
+    // Group by resourceClaimName
+    const grouped = assignments.reduce(
+      (acc: Record<string, WorkshopUserAssignment[]>, curr: WorkshopUserAssignment) => {
+        const { resourceClaimName } = curr.spec;
+        if (!acc[resourceClaimName]) {
+          acc[resourceClaimName] = [];
+        }
+        acc[resourceClaimName].push(curr);
+        return acc;
+      },
+      {}
+    );
+
+    // Sort each group by userName
+    const sortedGroups = Object.keys(grouped)
+      .sort() // Sort the group keys (resourceClaimName)
+      .map((key) => {
+        const group = grouped[key];
+        return group.sort((a, b) =>
+          a.spec.userName.localeCompare(b.spec.userName, undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          })
+        );
       });
-    }
-    return 0;
+
+    // Flatten the array to return a single sorted array
+    return sortedGroups.flat();
   };
 
   return (
@@ -109,16 +124,17 @@ const WorkshopsItemUserAssignments: React.FC<{
       <Table key="users-table">
         <Thead>
           <Tr>
-            {resourceClaimNames.length > 1 ? <Th>Service</Th> : null}
             {haveUserNames ? <Th>User</Th> : null}
+            {resourceClaimNames.length > 1 ? <Th>Service</Th> : null}
             <Th>Assigned Email</Th>
             <Th>Details</Th>
           </Tr>
         </Thead>
         <Tbody>
-          {userAssignments.sort(sortBy).map((userAssignment, userAssignmentIdx) => {
+          {groupAndSortBy(userAssignments).map((userAssignment, userAssignmentIdx) => {
             return (
               <Tr key={userAssignmentIdx}>
+                {haveUserNames ? <Td>{userAssignment.spec.userName}</Td> : null}
                 {resourceClaimNames.length > 1 ? (
                   <Td>
                     <Link
@@ -129,7 +145,6 @@ const WorkshopsItemUserAssignments: React.FC<{
                     </Link>
                   </Td>
                 ) : null}
-                {haveUserNames ? <Td>{userAssignment.spec.userName}</Td> : null}
                 <Td>
                   <EditableText
                     aria-label={`Edit assignment for ${userAssignment.spec.userName}`}
