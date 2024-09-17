@@ -903,6 +903,7 @@ class AgnosticVComponent(KopfObject):
                     "start_timestamp": "{{ start_timestamp }}",
                     "stop_timestamp": "{{ stop_timestamp }}",
                 },
+                "resourceName": linked_component.name,
                 "templateVars": [
                     {
                         "name": f"current_state_{idx}",
@@ -1296,7 +1297,6 @@ class LinkedComponent:
     def __init__(self, parent, definition):
         self.item = definition.get('item')
         self.display_name = definition.get('display_name')
-        self.name = definition.get('name')
         self.propagate_provision_data = [
             PropagateProvisionDataItem(item) for item in definition.get('propagate_provision_data', [])
         ]
@@ -1309,7 +1309,7 @@ class LinkedComponent:
         if len(component_name_parts) == 2:
             component_name_parts.append(parent.stage)
         self.component_name = '.'.join(component_name_parts)
-
+        self.name = definition.get('name', self.component_name)
         self.short_name = component_name_parts[1]
 
     @property
