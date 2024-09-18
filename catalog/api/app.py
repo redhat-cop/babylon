@@ -621,7 +621,7 @@ async def catalog_item_incidents(request):
     stage = request.match_info.get('stage')
     data = await request.json()
     headers = {
-        'Authorization': f"Bearer {reporting_api_authorization_token}"
+        'Authorization': f"Bearer {reporting_api_authorization_token}",
         'Content-Type': 'application/json'
     }
     return await api_proxy(
