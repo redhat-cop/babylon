@@ -338,7 +338,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   );
   const { data: activeIncidents } = useSWRImmutable<CatalogItemIncidents>(
     apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ namespace: catalogNamespaceName ? catalogNamespaceName : null }),
-    fetcher
+    fetcher,
+    {
+      suspense: false,
+      shouldRetryOnError: false,
+    }
   );
 
   const catalogItems = useMemo(
@@ -353,9 +357,9 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       if (c.spec.description) {
         catalogItemsCpy[i].spec.description.safe = stripTags(c.spec.description.content);
       }
-      const incident = activeIncidents.items.find(
+      const incident =  activeIncidents ? activeIncidents.items.find(
         (i) => i.asset_uuid === c.metadata.labels?.['gpte.redhat.com/asset-uuid']
-      );
+      ) : null;
       if (incident) {
         catalogItemsCpy[i].metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(incident);
       }
