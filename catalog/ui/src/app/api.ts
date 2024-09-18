@@ -1612,11 +1612,11 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
       continueId ? `&continue=${continueId}` : ''
     }${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
   CATALOG_ITEM_INCIDENTS: ({ namespace, asset_uuid }: { namespace: string; asset_uuid: string }) =>
-    `/api/catalog_incident/incidents/${asset_uuid}/${namespace}`,
+    `/api/catalog_incident/incidents/${asset_uuid}/${namespace.split('-').slice(-1)[0]}`,
   CATALOG_ITEM_LAST_INCIDENT: ({ namespace, asset_uuid }: { namespace: string; asset_uuid: string }) =>
-    `/api/catalog_incident/last-incident/${asset_uuid}/${namespace}`,
+    `/api/catalog_incident/last-incident/${asset_uuid}/${namespace.split('-').slice(-1)[0]}`,
   CATALOG_ITEMS_ACTIVE_INCIDENTS: ({ namespace }: { namespace?: string }) =>
-    `/api/catalog_incident/active-incidents${namespace ? `?stage=${namespace}` : ''}`,
+    `/api/catalog_incident/active-incidents${namespace ? `?stage=${namespace.split('-').slice(-1)[0]}` : ''}`,
   RESOURCE_CLAIMS: ({
     namespace,
     limit,
