@@ -6,7 +6,7 @@
     "jira_url": "GPTEINFRA-123",
     "comments": "[]",
     "asset_uuid": "c8a5d5ab-1b17-4c6a-866a-fe60de5482b4",
-    "stage": "fakeNamespace",
+    "stage": "prod",
     "active": false,
     "created_at": "2024-09-18T11:30:54.558Z",
     "downtime_interval": "string",

@@ -43,6 +43,7 @@ import {
   stripTags,
   CATALOG_MANAGER_DOMAIN,
   GPTE_DOMAIN,
+  getStageFromK8sObject,
 } from '@app/util';
 import LoadingIcon from '@app/components/LoadingIcon';
 import Footer from '@app/components/Footer';
@@ -357,9 +358,12 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       if (c.spec.description) {
         catalogItemsCpy[i].spec.description.safe = stripTags(c.spec.description.content);
       }
-      const incident =  activeIncidents ? activeIncidents.items.find(
-        (i) => i.asset_uuid === c.metadata.labels?.['gpte.redhat.com/asset-uuid']
-      ) : null;
+      const incident = activeIncidents
+        ? activeIncidents.items.find(
+            (i) =>
+              i.asset_uuid === c.metadata.labels?.['gpte.redhat.com/asset-uuid'] && i.stage === getStageFromK8sObject(c)
+          )
+        : null;
       if (incident) {
         catalogItemsCpy[i].metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(incident);
       }

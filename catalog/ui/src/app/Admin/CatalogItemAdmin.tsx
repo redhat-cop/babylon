@@ -85,11 +85,13 @@ const CatalogItemAdmin: React.FC = () => {
   }, [setIsReadOnlyValue, status]);
 
   useEffect(() => {
-    setStatus(catalogItemIncident?.status || 'Operational');
-    setIsDisabled(catalogItemIncident?.disabled ?? false);
-    setIncidentUrl(catalogItemIncident?.incident_url || '');
-    setJiraIssueId(catalogItemIncident?.jira_url || '');
-  }, [catalogItemIncident]);
+    if (isLoadingIncidents === false) {
+      setStatus(catalogItemIncident?.status || 'Operational');
+      setIsDisabled(catalogItemIncident?.disabled ?? false);
+      setIncidentUrl(catalogItemIncident?.incident_url || '');
+      setJiraIssueId(catalogItemIncident?.jira_url || '');
+    }
+  }, [isLoadingIncidents]);
 
   async function removeComment(comment: comment) {
     if (!catalogItemIncident?.comments) {
@@ -233,7 +235,7 @@ const CatalogItemAdmin: React.FC = () => {
         </FormGroup>
         <FormGroup fieldId="comment" label="Comments (only visible to admins)">
           <ul className="catalog-item-admin__comments">
-            {(catalogItemIncident ? JSON.parse(catalogItemIncident.comments) : []).map((comment: comment) => (
+            {(catalogItemIncident?.comments ? JSON.parse(catalogItemIncident.comments) : []).map((comment: comment) => (
               <li key={comment.createdAt} className="catalog-item-admin__comment">
                 <p className="catalog-item-admin__author">
                   <b>{comment.author} </b>-{' '}

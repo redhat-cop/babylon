@@ -15,7 +15,7 @@ const asset_uuid = 'c8a5d5ab-1b17-4c6a-866a-fe60de5482b4';
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcher: jest.fn((...args) => {
-    if (args[0] === apiPaths.CATALOG_ITEM_LAST_INCIDENT({ satge: 'prod', asset_uuid })) {
+    if (args[0] === apiPaths.CATALOG_ITEM_LAST_INCIDENT({ stage: 'prod', asset_uuid })) {
       return Promise.resolve(catalogItemIncident as CatalogItemIncident);
     }
     return Promise.resolve(catalogItemObj as CatalogItem);
