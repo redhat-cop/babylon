@@ -50,7 +50,7 @@ const CatalogItemAdmin: React.FC = () => {
   const navigate = useNavigate();
   const { data: catalogItem } = useSWR<CatalogItem>(apiPaths.CATALOG_ITEM({ namespace, name }), fetcher);
   const asset_uuid = catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'];
-  const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
+  const { data: catalogItemIncident, isLoading: isLoadingIncidents } = useSWR<CatalogItemIncident>(
     apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace, asset_uuid }),
     fetcher,
     {
@@ -127,7 +127,7 @@ const CatalogItemAdmin: React.FC = () => {
 
   return (
     <PageSection key="body" variant={PageSectionVariants.light}>
-      {isLoading ? (
+      {isLoading || isLoadingIncidents ? (
         <EmptyState variant="full" className="catalog-item-admin__loading">
           <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
         </EmptyState>
