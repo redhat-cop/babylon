@@ -50,18 +50,22 @@ const CatalogItemAdmin: React.FC = () => {
   const navigate = useNavigate();
   const { data: catalogItem } = useSWR<CatalogItem>(apiPaths.CATALOG_ITEM({ namespace, name }), fetcher);
   const asset_uuid = catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'];
-  const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
+  const { data: catalogItemIncident, isLoading: isLoadingIncidents } = useSWR<CatalogItemIncident>(
     apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace, asset_uuid }),
-    fetcher
+    fetcher,
+    {
+      suspense: false,
+      shouldRetryOnError: false,
+    }
   );
   const { email: userEmail } = useSession().getSession();
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState(catalogItemIncident?.status || 'Operational');
-  const [isDisabled, setIsDisabled] = useState(catalogItemIncident?.disabled ?? false);
-  const [incidentUrl, setIncidentUrl] = useState(catalogItemIncident?.incident_url || '');
-  const [jiraIssueId, setJiraIssueId] = useState(catalogItemIncident?.jira_url || '');
+  const [status, setStatus] = useState('Operational');
+  const [isDisabled, setIsDisabled] = useState(false);
+  const [incidentUrl, setIncidentUrl] = useState('');
+  const [jiraIssueId, setJiraIssueId] = useState('');
   const [comment, setComment] = useState('');
   const provider = getProvider(catalogItem);
 
@@ -79,6 +83,13 @@ const CatalogItemAdmin: React.FC = () => {
     }
   }, [setIsReadOnlyValue, status]);
 
+  useEffect(() => {
+    setStatus(catalogItemIncident?.status || 'Operational');
+    setIsDisabled(catalogItemIncident?.disabled ?? false);
+    setIncidentUrl(catalogItemIncident?.incident_url || '');
+    setJiraIssueId(catalogItemIncident?.jira_url || '');
+  }, [isLoadingIncidents])
+
   async function removeComment(comment: comment) {
     if (!catalogItemIncident?.comments) {
       throw "Can't find comment to delete";
@@ -93,7 +104,7 @@ const CatalogItemAdmin: React.FC = () => {
   async function saveForm(comments?: comment[]) {
     setIsLoading(true);
     if (comments === null || comments === undefined) {
-      comments = JSON.parse(catalogItemIncident?.comments) || [];
+      comments = catalogItemIncident ? JSON.parse(catalogItemIncident.comments) : [];
     }
     if (comment) {
       comments.push({
@@ -111,7 +122,7 @@ const CatalogItemAdmin: React.FC = () => {
         status,
         incident_url: incidentUrl,
         jira_url: jiraIssueId,
-        comments,
+        comments: JSON.stringify(comments),
       }),
       headers: {
         'Content-Type': 'application/json',
@@ -123,7 +134,7 @@ const CatalogItemAdmin: React.FC = () => {
 
   return (
     <PageSection key="body" variant={PageSectionVariants.light}>
-      {isLoading ? (
+      {isLoading || isLoadingIncidents ? (
         <EmptyState variant="full" className="catalog-item-admin__loading">
           <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
         </EmptyState>
