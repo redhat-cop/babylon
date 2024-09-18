@@ -92,7 +92,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   );
   const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
     asset_uuid ? apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace, asset_uuid }) : null,
-    fetcher
+    fetcher,
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    }
   );
   const catalogItemCpy = useMemo(() => {
     const cpy = Object.assign({}, catalogItem);
