@@ -31,8 +31,8 @@ import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
 import useSWRImmutable from 'swr/immutable';
 import { AsyncParser } from 'json2csv';
-import { apiPaths, fetcherItemsInAllPages } from '@app/api';
-import { CatalogItem, CatalogItemIncident, CatalogItemIncidents } from '@app/types';
+import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
+import { CatalogItem, CatalogItemIncidents } from '@app/types';
 import useSession from '@app/utils/useSession';
 import SearchInputString from '@app/components/SearchInputString';
 import {
@@ -337,7 +337,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
   const { data: activeIncidents } = useSWRImmutable<CatalogItemIncidents>(
-    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENT({ namespace: catalogNamespaceName ? catalogNamespaceName : null })
+    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ namespace: catalogNamespaceName ? catalogNamespaceName : null }),
+    fetcher
   );
 
   const catalogItems = useMemo(

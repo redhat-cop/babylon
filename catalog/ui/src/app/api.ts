@@ -1615,7 +1615,7 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     `/api/catalog_incident/incidents/${asset_uuid}/${namespace}`,
   CATALOG_ITEM_LAST_INCIDENT: ({ namespace, asset_uuid }: { namespace: string; asset_uuid: string }) =>
     `/api/catalog_incident/last-incident/${asset_uuid}/${namespace}`,
-  CATALOG_ITEMS_ACTIVE_INCIDENT: ({ namespace }: { namespace?: string }) =>
+  CATALOG_ITEMS_ACTIVE_INCIDENTS: ({ namespace }: { namespace?: string }) =>
     `/api/catalog_incident/active-incidents${namespace ? `?stage=${namespace}` : ''}`,
   RESOURCE_CLAIMS: ({
     namespace,
