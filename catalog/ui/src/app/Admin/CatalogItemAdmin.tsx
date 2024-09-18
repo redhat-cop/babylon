@@ -62,10 +62,10 @@ const CatalogItemAdmin: React.FC = () => {
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState(catalogItemIncident?.status || 'Operational');
-  const [isDisabled, setIsDisabled] = useState(catalogItemIncident?.disabled ?? false);
-  const [incidentUrl, setIncidentUrl] = useState(catalogItemIncident?.incident_url || '');
-  const [jiraIssueId, setJiraIssueId] = useState(catalogItemIncident?.jira_url || '');
+  const [status, setStatus] = useState('Operational');
+  const [isDisabled, setIsDisabled] = useState(false);
+  const [incidentUrl, setIncidentUrl] = useState('');
+  const [jiraIssueId, setJiraIssueId] = useState('');
   const [comment, setComment] = useState('');
   const provider = getProvider(catalogItem);
 
@@ -82,6 +82,13 @@ const CatalogItemAdmin: React.FC = () => {
       setIsReadOnlyValue(false);
     }
   }, [setIsReadOnlyValue, status]);
+
+  useEffect(() => {
+    setStatus(catalogItemIncident?.status || 'Operational');
+    setIsDisabled(catalogItemIncident?.disabled ?? false);
+    setIncidentUrl(catalogItemIncident?.incident_url || '');
+    setJiraIssueId(catalogItemIncident?.jira_url || '');
+  }, [isLoadingIncidents])
 
   async function removeComment(comment: comment) {
     if (!catalogItemIncident?.comments) {
