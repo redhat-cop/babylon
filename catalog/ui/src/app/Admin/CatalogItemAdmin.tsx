@@ -58,10 +58,10 @@ const CatalogItemAdmin: React.FC = () => {
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState(catalogItemIncident.status || 'Operational');
-  const [isDisabled, setIsDisabled] = useState(catalogItemIncident.disabled ?? false);
-  const [incidentUrl, setIncidentUrl] = useState(catalogItemIncident.incident_url || '');
-  const [jiraIssueId, setJiraIssueId] = useState(catalogItemIncident.jira_url || '');
+  const [status, setStatus] = useState(catalogItemIncident?.status || 'Operational');
+  const [isDisabled, setIsDisabled] = useState(catalogItemIncident?.disabled ?? false);
+  const [incidentUrl, setIncidentUrl] = useState(catalogItemIncident?.incident_url || '');
+  const [jiraIssueId, setJiraIssueId] = useState(catalogItemIncident?.jira_url || '');
   const [comment, setComment] = useState('');
   const provider = getProvider(catalogItem);
 
@@ -103,7 +103,7 @@ const CatalogItemAdmin: React.FC = () => {
       });
     }
 
-    await fetch(apiPaths.CATALOG_ITEM_INCIDENTS({ asset_uuid, namespace }), {
+    await fetcher(apiPaths.CATALOG_ITEM_INCIDENTS({ asset_uuid, namespace }), {
       method: 'POST',
       body: JSON.stringify({
         created_by: userEmail,
@@ -221,7 +221,7 @@ const CatalogItemAdmin: React.FC = () => {
         </FormGroup>
         <FormGroup fieldId="comment" label="Comments (only visible to admins)">
           <ul className="catalog-item-admin__comments">
-            {(JSON.parse(catalogItemIncident?.comments) || []).map((comment: comment) => (
+            {(catalogItemIncident ? JSON.parse(catalogItemIncident.comments) : []).map((comment: comment) => (
               <li key={comment.createdAt} className="catalog-item-admin__comment">
                 <p className="catalog-item-admin__author">
                   <b>{comment.author} </b>-{' '}

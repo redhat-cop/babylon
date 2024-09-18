@@ -2,19 +2,24 @@ jest.mock('../api');
 import React from 'react';
 import { generateSession, render, waitFor } from '../utils/test-utils';
 import CatalogItemAdmin from './CatalogItemAdmin';
-import catalogItemObj from '../__mocks__/catalogItem--disabled.json';
-import { CatalogItem } from '@app/types';
+import catalogItemObj from '../__mocks__/catalogItem.json';
+import catalogItemIncident from '../__mocks__/catalogItemIncident.json';
+import { CatalogItem, CatalogItemIncident } from '@app/types';
 import userEvent from '@testing-library/user-event';
-import { apiPaths, patchK8sObjectByPath } from '@app/api';
-import { BABYLON_DOMAIN } from '@app/util';
+import { apiPaths, fetcher } from '@app/api';
 
 const namespaceName = 'fakeNamespace';
 const ciName = 'ci-name';
+const asset_uuid = 'c8a5d5ab-1b17-4c6a-866a-fe60de5482b4'
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
-  fetcher: jest.fn(() => Promise.resolve(catalogItemObj as CatalogItem)),
-  patchK8sObjectByPath: jest.fn(() => Promise.resolve(catalogItemObj as CatalogItem)),
+  fetcher: jest.fn((...args) => {
+    if (args[0] === apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace: namespaceName, asset_uuid })) {
+      return Promise.resolve(catalogItemIncident as CatalogItemIncident);
+    }
+    return Promise.resolve(catalogItemObj as CatalogItem);
+  }),
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -41,9 +46,6 @@ describe('CatalogItemAdmin Component', () => {
     });
   });
   test('When save form API function is called', async () => {
-    const mockDate = new Date();
-    jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
-    Date.parse = jest.fn(() => 1656950267699);
     const { getByLabelText, getByText } = render(<CatalogItemAdmin />);
 
     await waitFor(() => {
@@ -52,24 +54,19 @@ describe('CatalogItemAdmin Component', () => {
     await userEvent.click(getByLabelText('Disabled'));
     await userEvent.click(getByText('Under maintenance').closest('button'));
     await userEvent.click(getByText('Operational'));
-    const path = apiPaths.CATALOG_ITEM({
+    const path = apiPaths.CATALOG_ITEM_INCIDENTS({
       namespace: namespaceName,
-      name: ciName,
+      asset_uuid,
     });
-    const patchObj = {
-      status: { id: 'operational', updated: { author: 'test@redhat.com', updatedAt: mockDate.toISOString() } },
-      jiraIssueId: '',
-      incidentUrl: '',
-      updated: { author: 'test@redhat.com', updatedAt: mockDate.toISOString() },
-      comments: [],
-    };
     const patch = {
-      metadata: {
-        annotations: { [`${BABYLON_DOMAIN}/ops`]: JSON.stringify(patchObj) },
-        labels: { [`${BABYLON_DOMAIN}/disabled`]: 'false' },
-      },
-    };
+      created_by: 'test@redhat.com',
+      disabled: false,
+      status: 'Operational',
+      incident_url: '',
+      jira_url: '',
+      comments: [],
+    }
     await userEvent.click(getByText('Save'));
-    expect(patchK8sObjectByPath).toHaveBeenCalledWith({ path, patch });
+    expect(fetcher).toHaveBeenCalledWith(path, { method: 'POST', body: JSON.stringify(patch), headers: {'Content-Type': 'application/json'}});
   });
 });

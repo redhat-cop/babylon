@@ -1,0 +1,20 @@
+{
+    "created_by": "string",
+    "disabled": true,
+    "status": "Under maintenance",
+    "incident_url": "https://status-page.io",
+    "jira_url": "GPTEINFRA-123",
+    "comments": "[]",
+    "asset_uuid": "c8a5d5ab-1b17-4c6a-866a-fe60de5482b4",
+    "stage": "fakeNamespace",
+    "active": false,
+    "created_at": "2024-09-18T11:30:54.558Z",
+    "downtime_interval": "string",
+    "downtime_hours": 0,
+    "last_incident_at": "2024-09-18T11:30:54.558Z",
+    "resolved_at": "2024-09-18T11:30:54.558Z",
+    "uptime_interval": "string",
+    "uptime_hours": 0,
+    "updated_at": "2024-09-18T11:30:54.558Z",
+    "id": 0
+  }
