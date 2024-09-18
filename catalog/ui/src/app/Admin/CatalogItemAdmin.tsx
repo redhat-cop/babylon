@@ -25,7 +25,7 @@ import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/ou
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { apiPaths, fetcher } from '@app/api';
 import { CatalogItem, CatalogItemIncident, CatalogItemIncidentStatus } from '@app/types';
-import { displayName } from '@app/util';
+import { displayName, getStageFromK8sObject } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import { formatString, getProvider } from '@app/Catalog/catalog-utils';
 import OperationalLogo from '@app/components/StatusPageIcons/Operational';
@@ -49,9 +49,10 @@ const CatalogItemAdmin: React.FC = () => {
   const { namespace, name } = useParams();
   const navigate = useNavigate();
   const { data: catalogItem } = useSWR<CatalogItem>(apiPaths.CATALOG_ITEM({ namespace, name }), fetcher);
+  const stage = getStageFromK8sObject(catalogItem);
   const asset_uuid = catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'];
   const { data: catalogItemIncident, isLoading: isLoadingIncidents } = useSWR<CatalogItemIncident>(
-    apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace, asset_uuid }),
+    apiPaths.CATALOG_ITEM_LAST_INCIDENT({ stage, asset_uuid }),
     fetcher,
     {
       suspense: false,
@@ -88,7 +89,7 @@ const CatalogItemAdmin: React.FC = () => {
     setIsDisabled(catalogItemIncident?.disabled ?? false);
     setIncidentUrl(catalogItemIncident?.incident_url || '');
     setJiraIssueId(catalogItemIncident?.jira_url || '');
-  }, [isLoadingIncidents])
+  }, [catalogItemIncident]);
 
   async function removeComment(comment: comment) {
     if (!catalogItemIncident?.comments) {
@@ -114,7 +115,7 @@ const CatalogItemAdmin: React.FC = () => {
       });
     }
 
-    await fetcher(apiPaths.CATALOG_ITEM_INCIDENTS({ asset_uuid, namespace }), {
+    await fetcher(apiPaths.CATALOG_ITEM_INCIDENTS({ asset_uuid, stage }), {
       method: 'POST',
       body: JSON.stringify({
         created_by: userEmail,
@@ -134,7 +135,7 @@ const CatalogItemAdmin: React.FC = () => {
 
   return (
     <PageSection key="body" variant={PageSectionVariants.light}>
-      {isLoading || isLoadingIncidents ? (
+      {isLoading || isLoadingIncidents ? (
         <EmptyState variant="full" className="catalog-item-admin__loading">
           <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
         </EmptyState>
