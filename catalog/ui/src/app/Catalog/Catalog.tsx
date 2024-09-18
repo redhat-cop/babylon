@@ -32,7 +32,7 @@ import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
 import useSWRImmutable from 'swr/immutable';
 import { AsyncParser } from 'json2csv';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
-import { CatalogItem } from '@app/types';
+import { CatalogItem, CatalogItemIncident, CatalogItemIncidents } from '@app/types';
 import useSession from '@app/utils/useSession';
 import SearchInputString from '@app/components/SearchInputString';
 import {
@@ -53,7 +53,6 @@ import {
   HIDDEN_LABELS,
   CUSTOM_LABELS,
   setLastFilter,
-  getIsDisabled,
   getStatus,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
@@ -337,6 +336,9 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
+  const { data: activeIncidents } = useSWRImmutable<CatalogItemIncidents>(
+    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENT({ namespace: catalogNamespaceName ? catalogNamespaceName : null })
+  );
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
@@ -349,6 +351,12 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     catalogItemsCpy.forEach((c, i) => {
       if (c.spec.description) {
         catalogItemsCpy[i].spec.description.safe = stripTags(c.spec.description.content);
+      }
+      const incident = activeIncidents.items.find(
+        (i) => i.asset_uuid === c.metadata.labels?.['gpte.redhat.com/asset-uuid']
+      );
+      if (incident) {
+        catalogItemsCpy[i].metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(incident);
       }
     });
     const options = {
@@ -412,12 +420,15 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     const operationalItems = [];
     const disabledItems = [];
     for (let catalogItem of items) {
-      const isDisabled = getIsDisabled(catalogItem);
-      const { code: status } = getStatus(catalogItem);
-      if (status === 'under-maintenance' || isDisabled) {
-        disabledItems.push(catalogItem);
-      } else {
-        operationalItems.push(catalogItem);
+      const status = getStatus(catalogItem);
+      if (status) {
+        const isDisabled = status.disabled;
+        const statusName = status.name;
+        if (statusName === 'Under maintenance' || isDisabled) {
+          disabledItems.push(catalogItem);
+        } else {
+          operationalItems.push(catalogItem);
+        }
       }
     }
     return operationalItems.concat(disabledItems);

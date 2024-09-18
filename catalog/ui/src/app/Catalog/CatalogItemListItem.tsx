@@ -6,15 +6,7 @@ import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import CatalogItemIcon from './CatalogItemIcon';
-import {
-  formatString,
-  getDescription,
-  getIsDisabled,
-  getProvider,
-  getRating,
-  getStage,
-  getStatus,
-} from './catalog-utils';
+import { formatString, getDescription, getProvider, getRating, getStage, getStatus } from './catalog-utils';
 
 import './catalog-item-list-item.css';
 
@@ -25,9 +17,8 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
   const { description, descriptionFormat } = getDescription(catalogItem);
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
-  const isDisabled = getIsDisabled(catalogItem);
   const rating = getRating(catalogItem);
-  const { code: status } = getStatus(catalogItem);
+  const status = getStatus(catalogItem);
 
   if (!searchParams.has('item')) {
     if (namespace) {
@@ -39,14 +30,14 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
 
   return (
     <Link
-      className={`catalog-item-list-item${isDisabled ? ' catalog-item-list-item--disabled' : ''}`}
+      className={`catalog-item-list-item${status && status.disabled ? ' catalog-item-list-item--disabled' : ''}`}
       to={`${location.pathname}?${searchParams.toString()}`}
     >
       <Card className="catalog-item-list-item__card" component="div">
         <CardHeader className="catalog-item-list-item__header">
           <CatalogItemIcon catalogItem={catalogItem} />
-          {status && status !== 'operational' ? (
-            <StatusPageIcons status={status} className="catalog-item-list-item__statusPageIcon" />
+          {status && status.name !== 'operational' ? (
+            <StatusPageIcons status={status.name} className="catalog-item-list-item__statusPageIcon" />
           ) : null}
           {stage === 'dev' ? (
             <Badge className="catalog-item-list-item__badge--dev">development</Badge>

@@ -5,16 +5,7 @@ import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import StarRating from '@app/components/StarRating';
-import {
-  formatString,
-  getDescription,
-  getIsDisabled,
-  getProvider,
-  getRating,
-  getStage,
-  getStatus,
-  getSLA,
-} from './catalog-utils';
+import { formatString, getDescription, getProvider, getRating, getStage, getStatus, getSLA } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 
 import './catalog-item-card.css';
@@ -26,9 +17,8 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const { description, descriptionFormat } = getDescription(catalogItem);
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
-  const isDisabled = getIsDisabled(catalogItem);
   const rating = getRating(catalogItem);
-  const { code: status } = getStatus(catalogItem);
+  const status = getStatus(catalogItem);
   const sla = getSLA(catalogItem);
 
   if (namespace) {
@@ -55,15 +45,15 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
         ) : null}
       </div>
       <Link
-        className={`catalog-item-card ${isDisabled ? 'catalog-item-card--disabled' : ''}`}
+        className={`catalog-item-card ${status && status.disabled ? 'catalog-item-card--disabled' : ''}`}
         to={`${location.pathname}?${searchParams.toString()}`}
       >
         <CardHeader className="catalog-item-card__header">
           <Split>
             <SplitItem>
               <CatalogItemIcon catalogItem={catalogItem} />
-              {status && status !== 'operational' ? (
-                <StatusPageIcons status={status} className="catalog-item-card__statusPageIcon" />
+              {status && status.name !== 'Operational' ? (
+                <StatusPageIcons status={status.name} className="catalog-item-card__statusPageIcon" />
               ) : null}
             </SplitItem>
           </Split>

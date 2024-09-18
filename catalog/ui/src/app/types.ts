@@ -112,6 +112,38 @@ export interface CatalogItem extends K8sObject {
   };
 }
 
+export type CatalogItemIncidentStatus =
+  | 'Degraded performance'
+  | 'Operational'
+  | 'Under maintenance'
+  | 'Partial outage'
+  | 'Major outage';
+
+export interface CatalogItemIncident {
+  created_by: string;
+  disabled: boolean;
+  status: CatalogItemIncidentStatus;
+  incident_url: string;
+  jira_url: string;
+  comments: string;
+  asset_uuid: string;
+  stage: string;
+  active: boolean;
+  created_at: string;
+  downtime_interval: string;
+  downtime_hours: number;
+  last_incident_at: string;
+  resolved_at: string;
+  uptime_interval: string;
+  uptime_hours: number;
+  updated_at: string;
+  id: number;
+}
+
+export interface CatalogItemIncidents {
+  items: CatalogItemIncident[];
+}
+
 export interface CatalogItemList {
   items: CatalogItem[];
   metadata: K8sObjectListMeta;
@@ -578,6 +610,9 @@ export type ResourceType =
   | 'CATALOG_ITEM'
   | 'ASSET_METRICS'
   | 'CATALOG_ITEMS'
+  | 'CATALOG_ITEM_INCIDENTS'
+  | 'CATALOG_ITEM_LAST_INCIDENT'
+  | 'CATALOG_ITEMS_ACTIVE_INCIDENT'
   | 'RESOURCE_CLAIMS'
   | 'RESOURCE_CLAIM'
   | 'NAMESPACES'
