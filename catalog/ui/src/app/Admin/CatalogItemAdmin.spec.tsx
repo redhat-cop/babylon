@@ -64,7 +64,7 @@ describe('CatalogItemAdmin Component', () => {
       status: 'Operational',
       incident_url: '',
       jira_url: '',
-      comments: JSON.stringify([]),
+      comments: "",
     }
     await userEvent.click(getByText('Save'));
     expect(fetcher).toHaveBeenCalledWith(path, { method: 'POST', body: JSON.stringify(patch), headers: {'Content-Type': 'application/json'}});
