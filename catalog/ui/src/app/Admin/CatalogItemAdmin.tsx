@@ -104,7 +104,7 @@ const CatalogItemAdmin: React.FC = () => {
   async function saveForm(comments?: comment[]) {
     setIsLoading(true);
     if (comments === null || comments === undefined) {
-      comments = JSON.parse(catalogItemIncident?.comments) || [];
+      comments = catalogItemIncident ? JSON.parse(catalogItemIncident.comments) : [];
     }
     if (comment) {
       comments.push({
