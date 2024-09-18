@@ -52,7 +52,11 @@ const CatalogItemAdmin: React.FC = () => {
   const asset_uuid = catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'];
   const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
     apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace, asset_uuid }),
-    fetcher
+    fetcher,
+    {
+      suspense: false,
+      shouldRetryOnError: false,
+    }
   );
   const { email: userEmail } = useSession().getSession();
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
