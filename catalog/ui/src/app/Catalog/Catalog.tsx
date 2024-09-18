@@ -332,10 +332,6 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     [sortBy.selected]
   );
 
-  const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
-    apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
-    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
-  );
   const { data: activeIncidents } = useSWRImmutable<CatalogItemIncidents>(
     apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ namespace: catalogNamespaceName ? catalogNamespaceName : null }),
     fetcher,
@@ -343,6 +339,10 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       suspense: false,
       shouldRetryOnError: false,
     }
+  );
+  const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
+    apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
+    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
 
   const catalogItems = useMemo(
