@@ -14,7 +14,8 @@
     "labels": {
       "babylon.gpte.redhat.com/category": "Other",
       "babylon.gpte.redhat.com/stage": "prod",
-      "generated_by": "agnosticv"
+      "generated_by": "agnosticv",
+      "gpte.redhat.com/asset-uuid": "c8a5d5ab-1b17-4c6a-866a-fe60de5482b4"
     },
     "managedFields": [
       {

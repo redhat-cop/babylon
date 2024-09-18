@@ -26,7 +26,7 @@ import {
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import useSWR from 'swr';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
-import { AssetMetrics, CatalogItem, ResourceClaim } from '@app/types';
+import { AssetMetrics, CatalogItem, CatalogItemIncident, ResourceClaim } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
@@ -48,10 +48,8 @@ import {
   getProvider,
   getDescription,
   formatTime,
-  getIsDisabled,
   getStatus,
   HIDDEN_LABELS_DETAIL_VIEW,
-  getIncidentUrl,
   formatString,
   getRating,
   CUSTOM_LABELS,
@@ -83,16 +81,28 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { description, descriptionFormat } = getDescription(catalogItem);
   const lastSuccessfulProvisionTime = getLastSuccessfulProvisionTime(catalogItem);
   const helpLink = useHelpLink();
+  const asset_uuid = catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid'];
   const { data: metrics } = useSWRImmutable<AssetMetrics>(
-    catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
-      ? apiPaths.ASSET_METRICS({ asset_uuid: catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] })
-      : null,
+    asset_uuid ? apiPaths.ASSET_METRICS({ asset_uuid }) : null,
     fetcher,
     {
       shouldRetryOnError: false,
       suspense: false,
-    },
+    }
   );
+  const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
+    asset_uuid ? apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace, asset_uuid }) : null,
+    fetcher,
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    }
+  );
+  const catalogItemCpy = useMemo(() => {
+    const cpy = Object.assign({}, catalogItem);
+    cpy.metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(catalogItemIncident);
+    return cpy;
+  }, [catalogItem, catalogItemIncident]);
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
     userNamespace?.name
       ? apiPaths.RESOURCE_CLAIMS({
@@ -106,12 +116,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           namespace: userNamespace.name,
           limit: FETCH_BATCH_LIMIT,
           continueId,
-        }),
+        })
       ),
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
-    },
+    }
   );
 
   const services: ResourceClaim[] = useMemo(
@@ -119,7 +129,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       Array.isArray(userResourceClaims)
         ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r)))
         : [],
-    [userResourceClaims],
+    [userResourceClaims]
   );
 
   const descriptionHtml = useMemo(
@@ -131,12 +141,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         }}
       />
     ),
-    [description, descriptionFormat],
+    [description, descriptionFormat]
   );
 
-  const isDisabled = getIsDisabled(catalogItem);
-  const { code: statusCode, name: statusName } = getStatus(catalogItem);
-  const incidentUrl = getIncidentUrl(catalogItem);
+  const status = getStatus(catalogItemCpy);
   const rating = getRating(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups, isAdmin);
   let autoStopTime = catalogItem.spec.runtime?.default;
@@ -152,12 +160,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     isAdmin || isLabDeveloper(groups)
       ? CatalogItemAccess.Allow
       : accessCheckResult === 'deny'
-        ? CatalogItemAccess.Deny
-        : services.length >= 5
-          ? CatalogItemAccess.Deny
-          : accessCheckResult === 'allow'
-            ? CatalogItemAccess.Allow
-            : CatalogItemAccess.RequestInformation;
+      ? CatalogItemAccess.Deny
+      : services.length >= 5
+      ? CatalogItemAccess.Deny
+      : accessCheckResult === 'allow'
+      ? CatalogItemAccess.Allow
+      : CatalogItemAccess.RequestInformation;
   const catalogItemAccessDenyReason =
     catalogItemAccess !== CatalogItemAccess.Deny ? null : services.length >= 5 ? (
       <p>
@@ -231,7 +239,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 key="order-catalog-item"
                 onClick={orderCatalogItem}
                 variant="primary"
-                isDisabled={isAdmin ? false : isDisabled}
+                isDisabled={isAdmin ? false : status && status.disabled}
                 className="catalog-item-details__main-btn"
               >
                 Order{' '}
@@ -252,28 +260,28 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 url={
                   new URL(
                     `/catalog?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
-                    window.location.origin,
+                    window.location.origin
                   )
                 }
                 name={catalogItemName}
               />
-              {statusCode && statusCode !== 'operational' ? (
+              {status && status.name !== 'Operational' ? (
                 <div className="catalog-item-details__status">
                   <Label
-                    className={`catalog-item-details__status--${statusCode}`}
+                    className={`catalog-item-details__status--${status.name.replace(/\s+/g, '-').toLowerCase()}`}
                     variant="outline"
                     render={({ className, content }) =>
-                      incidentUrl ? (
-                        <a href={incidentUrl} target="_blank" rel="noreferrer" className={className}>
+                      status && status.incidentUrl ? (
+                        <a href={status.incidentUrl} target="_blank" rel="noreferrer" className={className}>
                           {content}
                         </a>
                       ) : (
                         <p className={className}>{content}</p>
                       )
                     }
-                    icon={<StatusPageIcons style={{ width: '20px' }} status={statusCode} />}
+                    icon={<StatusPageIcons style={{ width: '20px' }} status={status.name} />}
                   >
-                    {statusName}
+                    {status.name}
                   </Label>
                 </div>
               ) : null}
@@ -319,8 +327,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                       {attr === CUSTOM_LABELS.ESTIMATED_COST.key
                         ? null
                         : attr === CUSTOM_LABELS.SLA.key
-                          ? 'Service Level'
-                          : formatString(attr)}
+                        ? 'Service Level'
+                        : formatString(attr)}
                     </DescriptionListTerm>
                     <DescriptionListDescription>
                       {attr === CUSTOM_LABELS.RATING.key ? (

@@ -1,6 +1,5 @@
-import { CatalogItem } from '@app/types';
+import { CatalogItem, CatalogItemIncident } from '@app/types';
 import { BABYLON_DOMAIN, CATALOG_MANAGER_DOMAIN, formatDuration } from '@app/util';
-import { Ops } from '@app/Admin/CatalogItemAdmin';
 
 export function getProvider(catalogItem: CatalogItem) {
   const { domain, key } = CUSTOM_LABELS.PROVIDER;
@@ -25,20 +24,12 @@ export function getStage(catalogItem: CatalogItem) {
 }
 
 const supportedSLAs = ['Enterprise_Premium', 'Enterprise_Standard', 'Community', 'External_Support'] as const;
-type SLAs = (typeof supportedSLAs)[number];
+type SLAs = typeof supportedSLAs[number];
 export function getSLA(catalogItem: CatalogItem): SLAs {
   const { domain, key } = CUSTOM_LABELS.SLA;
   const sla = catalogItem.metadata.labels?.[`${domain}/${key}`] as SLAs;
   if (!supportedSLAs.includes(sla)) return null;
   return sla;
-}
-
-export function getIsDisabled(catalogItem: CatalogItem): boolean {
-  const { domain, key } = CUSTOM_LABELS.DISABLED;
-  if (catalogItem.metadata.labels?.[`${domain}/${key}`]) {
-    return catalogItem.metadata.labels[`${domain}/${key}`] === 'true';
-  }
-  return false;
 }
 
 export function getRating(catalogItem: CatalogItem): { ratingScore: number; totalRatings: number } | null {
@@ -79,7 +70,7 @@ export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   if (catalogItem.metadata.annotations?.[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]) {
     const now = new Date();
     const provisionDate = new Date(
-      catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`],
+      catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]
     );
     if (provisionDate < now) {
       return provisionDate.getTime();
@@ -89,26 +80,22 @@ export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   return null;
 }
 export function getStatus(
-  catalogItem: CatalogItem,
-): { code: string; name: string; updated?: { author: string; updatedAt: string } } | null {
-  if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]) {
-    const ops: Ops = JSON.parse(catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/ops`]);
-    if (ops.status.id) {
-      switch (ops.status.id) {
-        case 'degraded-performance':
-          return { code: ops.status.id, name: 'Degraded performance', updated: ops.status.updated };
-        case 'partial-outage':
-          return { code: ops.status.id, name: 'Partial outage', updated: ops.status.updated };
-        case 'major-outage':
-          return { code: ops.status.id, name: 'Major outage', updated: ops.status.updated };
-        case 'under-maintenance':
-          return { code: ops.status.id, name: 'Under maintenance', updated: ops.status.updated };
-        default:
-          return { code: 'operational', name: 'Operational', updated: ops.status.updated };
-      }
+  catalogItem: CatalogItem
+): { name: string; updated?: { author: string; updatedAt: string }; disabled: boolean; incidentUrl?: string } | null {
+  if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/incident`]) {
+    const catalog_incident: CatalogItemIncident = JSON.parse(
+      catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/incident`]
+    );
+    if (catalog_incident) {
+      return {
+        name: catalog_incident.status,
+        updated: { author: catalog_incident.created_by, updatedAt: catalog_incident.updated_at },
+        disabled: catalog_incident.disabled,
+        incidentUrl: catalog_incident.incident_url,
+      };
     }
   }
-  return { code: null, name: '' };
+  return { name: 'Operational', disabled: false, incidentUrl: null };
 }
 
 export function isAutoStopDisabled(catalogItem: CatalogItem) {
@@ -116,14 +103,6 @@ export function isAutoStopDisabled(catalogItem: CatalogItem) {
     return catalogItem.spec.runtime.default.includes('999h');
   }
   return false;
-}
-
-export function getIncidentUrl(catalogItem: CatalogItem): string {
-  if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]) {
-    const ops: Ops = JSON.parse(catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/ops`]);
-    return ops.incidentUrl || null;
-  }
-  return null;
 }
 
 export function formatTime(time: string): string {

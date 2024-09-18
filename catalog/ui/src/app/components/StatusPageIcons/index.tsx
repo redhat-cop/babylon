@@ -10,13 +10,13 @@ const StatusPageIcons: React.FC<{ status: string } & React.HTMLAttributes<HTMLOr
   ...props
 }) => {
   switch (status) {
-    case 'degraded-performance':
+    case 'Degraded performance':
       return <DegradedPerformance {...props} />;
-    case 'partial-outage':
+    case 'Partial outage':
       return <PartialOutage {...props} />;
-    case 'major-outage':
+    case 'Major outage':
       return <MajorOutage {...props} />;
-    case 'under-maintenance':
+    case 'Under maintenance':
       return <UnderMaintenance {...props} />;
     default:
       return <Operational {...props} />;

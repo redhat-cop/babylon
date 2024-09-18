@@ -587,6 +587,49 @@ async def catalog_item_metrics(request):
         url=f"{reporting_api}/catalog_item/metrics/{asset_uuid}?use_cache=true",
     )
 
+@routes.get("/api/catalog_incident/active-incidents")
+async def catalog_item_active_incidents(request):
+    stage = request.query.get("stage")
+    queryString = ""
+    if stage:
+        queryString = "?stage={stage}"
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/catalog_incident/active-incidents{queryString}",
+    )
+
+@routes.get("/api/catalog_incident/last-incident/{asset_uuid}/{stage}")
+async def catalog_item_last_incident(request):
+    asset_uuid = request.match_info.get('asset_uuid')
+    stage = request.match_info.get('stage')
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/catalog_incident/last-incidents/{asset_uuid}/{stage}",
+    )
+
+@routes.post("/api/catalog_incident/incidents/{asset_uuid}/{stage}")
+async def catalog_item_incidents(request):
+    asset_uuid = request.match_info.get('asset_uuid')
+    stage = request.match_info.get('stage')
+    data = await request.json()
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="POST",
+        data=json.dumps(data),
+        url=f"{reporting_api}/catalog_incident/incidents/{asset_uuid}/{stage}",
+    )
+
 @routes.get("/api/workshop/{workshop_id}")
 async def workshop_get(request):
     """

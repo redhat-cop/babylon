@@ -15,7 +15,7 @@ api:
     threads: 1
   image:
     #override:
-    tag: v1.0.5
+    tag: v1.0.6
     repository: quay.io/redhat-gpte/babylon-catalog-api
     pullPolicy: IfNotPresent
   imagePullSecrets: []

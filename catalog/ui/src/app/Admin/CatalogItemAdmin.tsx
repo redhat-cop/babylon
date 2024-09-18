@@ -23,11 +23,11 @@ import {
 import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { apiPaths, fetcher, patchK8sObjectByPath } from '@app/api';
-import { CatalogItem } from '@app/types';
-import { BABYLON_DOMAIN, displayName } from '@app/util';
+import { apiPaths, fetcher } from '@app/api';
+import { CatalogItem, CatalogItemIncident, CatalogItemIncidentStatus } from '@app/types';
+import { displayName } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
-import { CUSTOM_LABELS, formatString, getProvider } from '@app/Catalog/catalog-utils';
+import { formatString, getProvider } from '@app/Catalog/catalog-utils';
 import OperationalLogo from '@app/components/StatusPageIcons/Operational';
 import DegradedPerformanceLogo from '@app/components/StatusPageIcons/DegradedPerformance';
 import PartialOutageLogo from '@app/components/StatusPageIcons/PartialOutage';
@@ -36,7 +36,6 @@ import UnderMaintenanceLogo from '@app/components/StatusPageIcons/UnderMaintenan
 import useSession from '@app/utils/useSession';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import LoadingIcon from '@app/components/LoadingIcon';
-import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './catalog-item-admin.css';
 
@@ -45,53 +44,34 @@ type comment = {
   createdAt: string;
   message: string;
 };
-export type Ops = {
-  disabled: boolean;
-  status: {
-    id: string;
-    updated: {
-      author: string;
-      updatedAt: string;
-    };
-  };
-  incidentUrl?: string;
-  jiraIssueId?: string;
-  comments: comment[];
-  updated: {
-    author: string;
-    updatedAt: string;
-  };
-};
 
 const CatalogItemAdmin: React.FC = () => {
   const { namespace, name } = useParams();
   const navigate = useNavigate();
-  const { data: catalogItem, mutate } = useSWR<CatalogItem>(apiPaths.CATALOG_ITEM({ namespace, name }), fetcher);
-  const matchMutate = useMatchMutate();
+  const { data: catalogItem } = useSWR<CatalogItem>(apiPaths.CATALOG_ITEM({ namespace, name }), fetcher);
+  const asset_uuid = catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'];
+  const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
+    apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace, asset_uuid }),
+    fetcher
+  );
   const { email: userEmail } = useSession().getSession();
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const ops: Ops = catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`]
-    ? JSON.parse(catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/ops`])
-    : null;
-  const disabled = catalogItem.metadata.labels?.[`${CUSTOM_LABELS.DISABLED.domain}/${CUSTOM_LABELS.DISABLED.key}`]
-    ? JSON.parse(catalogItem.metadata.labels?.[`${CUSTOM_LABELS.DISABLED.domain}/${CUSTOM_LABELS.DISABLED.key}`])
-    : false;
-  const [status, setStatus] = useState(ops?.status.id || 'operational');
-  const [isDisabled, setIsDisabled] = useState(disabled);
-  const [incidentUrl, setIncidentUrl] = useState(ops?.incidentUrl || '');
-  const [jiraIssueId, setJiraIssueId] = useState(ops?.jiraIssueId || '');
+  const [status, setStatus] = useState(catalogItemIncident?.status || 'Operational');
+  const [isDisabled, setIsDisabled] = useState(catalogItemIncident?.disabled ?? false);
+  const [incidentUrl, setIncidentUrl] = useState(catalogItemIncident?.incident_url || '');
+  const [jiraIssueId, setJiraIssueId] = useState(catalogItemIncident?.jira_url || '');
   const [comment, setComment] = useState('');
   const provider = getProvider(catalogItem);
 
   useEffect(() => {
-    if (status === 'operational') {
+    if (status === 'Operational') {
       setIsDisabled(false);
       setIsReadOnlyValue(true);
       setJiraIssueId('');
       setIncidentUrl('');
-    } else if (status === 'major-outage') {
+    } else if (status === 'Major outage') {
       setIsDisabled(true);
       setIsReadOnlyValue(true);
     } else {
@@ -100,32 +80,21 @@ const CatalogItemAdmin: React.FC = () => {
   }, [setIsReadOnlyValue, status]);
 
   async function removeComment(comment: comment) {
-    if (!ops?.comments || ops.comments.length < 1) {
+    if (!catalogItemIncident?.comments) {
       throw "Can't find comment to delete";
     }
-    const comments = ops.comments.filter((c) => c.createdAt !== comment.createdAt);
-    const patch = {
-      metadata: {
-        annotations: { [`${BABYLON_DOMAIN}/ops`]: JSON.stringify({ ...ops, comments }) },
-      },
-    };
-    setIsLoading(true);
-    const catalogItemUpdated: CatalogItem = await patchK8sObjectByPath({
-      path: apiPaths.CATALOG_ITEM({
-        namespace,
-        name,
-      }),
-      patch,
-    });
-    mutate(catalogItemUpdated);
-    matchMutate([
-      { name: 'CATALOG_ITEMS', arguments: { namespace: 'all-catalogs' }, data: undefined },
-      { name: 'CATALOG_ITEMS', arguments: { namespace: catalogItemUpdated.metadata.namespace }, data: undefined },
-    ]);
-    setIsLoading(false);
+    const comments = JSON.parse(catalogItemIncident.comments);
+    if (comments.length < 1) {
+      throw "Can't find comment to delete";
+    }
+    const new_comments = comments.filter((c: comment) => c.createdAt !== comment.createdAt);
+    await saveForm(new_comments);
   }
-  async function saveForm() {
-    const comments = ops?.comments || [];
+  async function saveForm(comments?: comment[]) {
+    setIsLoading(true);
+    if (comments === null || comments === undefined) {
+      comments = JSON.parse(catalogItemIncident?.comments) || [];
+    }
     if (comment) {
       comments.push({
         message: comment,
@@ -133,37 +102,21 @@ const CatalogItemAdmin: React.FC = () => {
         createdAt: new Date().toISOString(),
       });
     }
-    const patchObj = {
-      status: {
-        id: status,
-        updated:
-          ops?.status.id !== status ? { author: userEmail, updatedAt: new Date().toISOString() } : ops?.status.updated,
-      },
-      jiraIssueId,
-      incidentUrl,
-      updated: { author: userEmail, updatedAt: new Date().toISOString() },
-      comments,
-    };
 
-    const patch = {
-      metadata: {
-        annotations: { [`${BABYLON_DOMAIN}/ops`]: JSON.stringify(patchObj) },
-        labels: { [`${BABYLON_DOMAIN}/${CUSTOM_LABELS.DISABLED.key}`]: isDisabled.toString() },
-      },
-    };
-    setIsLoading(true);
-    const catalogItemUpdated: CatalogItem = await patchK8sObjectByPath({
-      path: apiPaths.CATALOG_ITEM({
-        namespace,
-        name,
+    await fetcher(apiPaths.CATALOG_ITEM_INCIDENTS({ asset_uuid, namespace }), {
+      method: 'POST',
+      body: JSON.stringify({
+        created_by: userEmail,
+        disabled: isDisabled,
+        status,
+        incident_url: incidentUrl,
+        jira_url: jiraIssueId,
+        comments,
       }),
-      patch,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
-    mutate(catalogItemUpdated);
-    matchMutate([
-      { name: 'CATALOG_ITEMS', arguments: { namespace: 'all-catalogs' }, data: undefined },
-      { name: 'CATALOG_ITEMS', arguments: { namespace: catalogItemUpdated.metadata.namespace }, data: undefined },
-    ]);
     setIsLoading(false);
     navigate('/catalog');
   }
@@ -196,7 +149,7 @@ const CatalogItemAdmin: React.FC = () => {
             <Select
               aria-label="StatusPage.io status"
               onSelect={(_, value) => {
-                setStatus(value.toString());
+                setStatus(value.toString() as CatalogItemIncidentStatus);
                 setIsOpen(false);
               }}
               onToggle={() => setIsOpen(!isOpen)}
@@ -205,19 +158,19 @@ const CatalogItemAdmin: React.FC = () => {
               variant={SelectVariant.single}
               className="select-wrapper"
             >
-              <SelectOption key="operational" value="operational">
+              <SelectOption key="operational" value="Operational">
                 <OperationalLogo /> Operational
               </SelectOption>
-              <SelectOption key="degraded-performance" value="degraded-performance">
+              <SelectOption key="degraded-performance" value="Degraded performance">
                 <DegradedPerformanceLogo /> Degraded performance
               </SelectOption>
-              <SelectOption key="partial-outage" value="partial-outage">
+              <SelectOption key="partial-outage" value="Partial outage">
                 <PartialOutageLogo /> Partial outage
               </SelectOption>
-              <SelectOption key="major-outage" value="major-outage">
+              <SelectOption key="major-outage" value="Major outage">
                 <MajorOutageLogo /> Major outage
               </SelectOption>
-              <SelectOption key="under-maintenance" value="under-maintenance">
+              <SelectOption key="under-maintenance" value="Under maintenance">
                 <UnderMaintenanceLogo /> Under maintenance
               </SelectOption>
             </Select>
@@ -228,10 +181,10 @@ const CatalogItemAdmin: React.FC = () => {
               />
             </Tooltip>
           </div>
-          {ops ? (
+          {catalogItemIncident ? (
             <p className="catalog-item-admin__author">
-              Changed by: <b>{ops.status.updated.author} </b>-{' '}
-              <LocalTimestamp className="catalog-item-admin__timestamp" timestamp={ops.status.updated.updatedAt} />
+              Changed by: <b>{catalogItemIncident.created_by} </b>-{' '}
+              <LocalTimestamp className="catalog-item-admin__timestamp" timestamp={catalogItemIncident.created_at} />
             </p>
           ) : null}
         </FormGroup>
@@ -268,7 +221,7 @@ const CatalogItemAdmin: React.FC = () => {
         </FormGroup>
         <FormGroup fieldId="comment" label="Comments (only visible to admins)">
           <ul className="catalog-item-admin__comments">
-            {(ops?.comments || []).map((comment) => (
+            {(catalogItemIncident ? JSON.parse(catalogItemIncident.comments) : []).map((comment: comment) => (
               <li key={comment.createdAt} className="catalog-item-admin__comment">
                 <p className="catalog-item-admin__author">
                   <b>{comment.author} </b>-{' '}
@@ -292,7 +245,7 @@ const CatalogItemAdmin: React.FC = () => {
         </FormGroup>
         <ActionList>
           <ActionListItem>
-            <Button isAriaDisabled={false} isDisabled={isLoading} onClick={saveForm}>
+            <Button isAriaDisabled={false} isDisabled={isLoading} onClick={() => saveForm()}>
               Save
             </Button>
           </ActionListItem>
