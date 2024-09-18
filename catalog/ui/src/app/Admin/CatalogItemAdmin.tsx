@@ -122,7 +122,7 @@ const CatalogItemAdmin: React.FC = () => {
         status,
         incident_url: incidentUrl,
         jira_url: jiraIssueId,
-        comments: JSON.stringify(comments),
+        comments: "",
       }),
       headers: {
         'Content-Type': 'application/json',
