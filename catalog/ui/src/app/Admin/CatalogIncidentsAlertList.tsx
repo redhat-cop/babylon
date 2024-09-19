@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Panel, PanelMain, Title } from '@patternfly/react-core';
+import { Label, Panel, PanelMain, Title } from '@patternfly/react-core';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';
 import { CatalogItem, CatalogItemIncidents } from '@app/types';
@@ -58,26 +58,40 @@ const CatalogIncidentsAlertList: React.FC = () => {
                     </Thead>
                     <Tbody>
                         {ciIncidents.map((ci) => (
-                        <Tr key={ci.metadata.uid}>
-                            <Td
-                            dataLabel="level"
-                            style={{
-                                textTransform: 'capitalize',
-                                display: 'flex',
-                                gap: 'var(--pf-v5-global--spacer--xs)',
-                                alignItems: 'center',
-                            }}
-                            >
-                            {displayName(ci)}
-                            </Td>
-                            <Td dataLabel="status">
-                                <StatusPageIcons status={getStatus(ci).name} className="catalog-item-card__statusPageIcon" />
-                            </Td>
-                            <Td dataLabel="disabled">{getStatus(ci).disabled.toString()}</Td>
-                            <Td dataLabel="updated">
-                                <TimeInterval toTimestamp={getStatus(ci).updated.updatedAt} />
-                            </Td>
-                        </Tr>
+                            <Tr key={ci.metadata.uid}>
+                                <Td dataLabel="level"
+                                    style={{
+                                        textTransform: 'capitalize',
+                                        display: 'flex',
+                                        gap: 'var(--pf-v5-global--spacer--xs)',
+                                        alignItems: 'center',
+                                    }}>
+                                        <a href={`/admin/catalogitems/${ci.metadata.namespace}/${ci.metadata.name}`}>
+                                            {displayName(ci)}
+                                        </a>
+                                </Td>
+                                <Td dataLabel="status">
+                                    <Label
+                                        className={`catalog-item-details__status--${getStatus(ci).name.replace(/\s+/g, '-').toLowerCase()}`}
+                                        variant="outline"
+                                        render={({ className, content }) =>
+                                            getStatus(ci).incidentUrl ? (
+                                                <a href={getStatus(ci).incidentUrl} target="_blank" rel="noreferrer" className={className}>
+                                                {content}
+                                                </a>
+                                            ) : (
+                                                <p className={className}>{content}</p>
+                                            )}
+                                        icon={<StatusPageIcons style={{ width: '20px' }} status={getStatus(ci).name} />}
+                                    >
+                                        {getStatus(ci).name}
+                                    </Label>
+                                </Td>
+                                <Td dataLabel="disabled">{getStatus(ci).disabled.toString()}</Td>
+                                <Td dataLabel="updated">
+                                    <TimeInterval toTimestamp={getStatus(ci).updated.updatedAt} />
+                                </Td>
+                            </Tr>
                         ))}
                     </Tbody>
                     </Table>
