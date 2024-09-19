@@ -15,15 +15,6 @@ GET_CATALOG_ITEM_LAST_SUCCESSFUL_PROVISION = """SELECT to_char(provisions.provis
         ORDER BY provisions.provisioned_at DESC
         LIMIT 1;"""
 
-GET_CATALOG_ITEM_STATUS_PERIODS = """SELECT status_periods.status, status_periods.created_at
-        FROM status_periods
-            JOIN catalog_items 
-            ON catalog_items.id = status_periods.catalog_item_id
-        WHERE catalog_items.asset_uuid=(%s);"""
-
-CREATE_CATALOG_ITEM_STATUS_PERIODS = """INSERT INTO status_periods (catalog_item_id, status, ops_annotation)
-        SELECT catalog_items.id, (%s), (%s) FROM catalog_items WHERE catalog_items.asset_uuid=(%s);"""
-
 class ProvisionData:
     def __init__(self, last_successful_provision):
         self.last_successful_provision = last_successful_provision
@@ -73,24 +64,3 @@ class CatalogItemService:
             except Exception as e:
                 self.logger.error(f"Invalid connection with {Babylon.ratings_api} - {e}")
                 raise
-
-    async def get_status_timestamps(self):
-        if len(self.catalog_item.labels['gpte.redhat.com/asset-uuid']) != 0:
-            query = await execute_query(
-                    GET_CATALOG_ITEM_STATUS_PERIODS, (self.catalog_item.labels['gpte.redhat.com/asset-uuid'], )
-                )
-            resultArr = query.get("result", [])
-            if len(resultArr) > 0:
-                return resultArr
-        return []
-    
-    async def create_status_timestamps(self):
-        status = 'enabled'
-        if len(self.catalog_item.labels['gpte.redhat.com/asset-uuid']) != 0:
-            if self.catalog_item.is_disabled:
-                status = 'disabled'
-            await execute_query(
-                CREATE_CATALOG_ITEM_STATUS_PERIODS, 
-                (status, self.catalog_item.annotations.get(Babylon.catalog_item_ops_annotation, None), self.catalog_item.labels['gpte.redhat.com/asset-uuid'])
-            )
-        return None
