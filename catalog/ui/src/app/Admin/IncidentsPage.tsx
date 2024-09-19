@@ -28,6 +28,8 @@ const IncidentsPage: React.FC = () => {
         <Suspense fallback={<LoadingSection />}>
           <IncidentsAlertList />
         </Suspense>
+      </PageSection>
+      <PageSection key="body-2" variant={PageSectionVariants.light}>
         <Suspense fallback={<LoadingSection />}>
           <CatalogIncidentsAlertList />
         </Suspense>
