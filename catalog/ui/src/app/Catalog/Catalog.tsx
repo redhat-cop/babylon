@@ -212,7 +212,7 @@ function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
   setLastFilter(urlParams.toString());
 }
 
-async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
+export async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
     return await fetcherItemsInAllPages((continueId) =>
       apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
@@ -334,7 +334,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   );
 
   const { data: activeIncidents } = useSWRImmutable<CatalogItemIncidents>(
-    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ namespace: catalogNamespaceName ? catalogNamespaceName : null }),
+    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ stage: catalogNamespaceName ? catalogNamespaceName : null }),
     fetcher,
     {
       suspense: false,
@@ -420,7 +420,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
     }
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems, selectedAdminFilter]);
+  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems, selectedAdminFilter, activeIncidents]);
 
   const catalogItemsResult = useMemo(() => {
     const items = searchString

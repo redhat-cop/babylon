@@ -4,6 +4,7 @@ import IncidentsAlertList from './IncidentsAlertList';
 import LoadingSection from '@app/components/LoadingSection';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import UnexpectedError from '@app/components/UnexpectedError';
+import CatalogIncidentsAlertList from './CatalogIncidentsAlertList';
 
 import './admin.css';
 
@@ -26,6 +27,11 @@ const IncidentsPage: React.FC = () => {
       <PageSection key="body" variant={PageSectionVariants.light}>
         <Suspense fallback={<LoadingSection />}>
           <IncidentsAlertList />
+        </Suspense>
+      </PageSection>
+      <PageSection key="body-2" variant={PageSectionVariants.light}>
+        <Suspense fallback={<LoadingSection />}>
+          <CatalogIncidentsAlertList />
         </Suspense>
       </PageSection>
     </>
