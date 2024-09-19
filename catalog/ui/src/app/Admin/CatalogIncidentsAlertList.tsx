@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Panel, PanelMain, Title } from '@patternfly/react-core';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';
@@ -26,11 +26,16 @@ const CatalogIncidentsAlertList: React.FC = () => {
     () => fetchCatalog(catalogNamespaceNames)
   );
 
-  const ciIncidents = catalogIncidents.items.map(i => {
-      const ci = catalogItemsArr.find(c => c.metadata.labels?.['gpte.redhat.com/asset-uuid'] === i.asset_uuid && getStageFromK8sObject(c) === i.stage);
-      ci.metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(i);
-      return ci;
-  });
+  const ciIncidents = useMemo(() => {
+      if (catalogItemsArr && catalogIncidents) {
+        return catalogIncidents.items.map(i => {
+            const ci = catalogItemsArr.find(c => c.metadata.labels?.['gpte.redhat.com/asset-uuid'] === i.asset_uuid && getStageFromK8sObject(c) === i.stage);
+            ci.metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(i);
+            return ci;
+        });
+    } 
+    return [];
+  }, [catalogItemsArr, catalogIncidents]);
 
   return (
     <div>
