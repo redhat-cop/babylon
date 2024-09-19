@@ -420,7 +420,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
     }
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems, selectedAdminFilter]);
+  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems, selectedAdminFilter, activeIncidents]);
 
   const catalogItemsResult = useMemo(() => {
     const items = searchString
