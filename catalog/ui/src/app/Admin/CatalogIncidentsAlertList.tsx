@@ -30,9 +30,12 @@ const CatalogIncidentsAlertList: React.FC = () => {
         if (catalogItemsArr && catalogIncidents) {
             return catalogIncidents.items.map(i => {
                 const ci = catalogItemsArr.find(c => c.metadata.labels?.['gpte.redhat.com/asset-uuid'] === i.asset_uuid && getStageFromK8sObject(c) === i.stage);
-                ci.metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(i);
-                return ci;
-            });
+                if (ci) {
+                    ci.metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(i);
+                    return ci;
+                }
+                return null;
+            }).filter(Boolean);
         } 
         return [];
     }, [catalogItemsArr, catalogIncidents]);

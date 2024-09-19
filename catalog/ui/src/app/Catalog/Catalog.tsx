@@ -63,7 +63,6 @@ import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogContent from './CatalogContent';
 import IncidentsBanner from '@app/components/IncidentsBanner';
-import AdminSelector from './AdminSelector';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './catalog.css';
@@ -558,7 +557,6 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                         onSelect={onSelectLabels}
                         selected={selectedLabels}
                       />
-                      {isAdmin ? <AdminSelector onSelect={onSelectAdminFilter} selected={selectedAdminFilter} /> : null}
                     </SidebarPanel>
                     <SidebarContent>
                       <PageSection variant={PageSectionVariants.light} className="catalog__header">
