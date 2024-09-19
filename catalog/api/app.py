@@ -612,7 +612,7 @@ async def catalog_item_last_incident(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/catalog_incident/last-incidents/{asset_uuid}/{stage}",
+        url=f"{reporting_api}/catalog_incident/last-incident/{asset_uuid}/{stage}",
     )
 
 @routes.post("/api/catalog_incident/incidents/{asset_uuid}/{stage}")

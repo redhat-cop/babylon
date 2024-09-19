@@ -40,6 +40,7 @@ import {
   isResourceClaimPartOfWorkshop,
   compareK8sObjectsArr,
   CATALOG_MANAGER_DOMAIN,
+  getStageFromK8sObject,
 } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import TimeInterval from '@app/components/TimeInterval';
@@ -76,6 +77,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { userNamespace, isAdmin, groups } = useSession().getSession();
   const { accessControl, lastUpdate } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
+  const stage = getStageFromK8sObject(catalogItem);
   const provider = getProvider(catalogItem);
   const catalogItemName = displayName(catalogItem);
   const { description, descriptionFormat } = getDescription(catalogItem);
@@ -91,7 +93,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     }
   );
   const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
-    asset_uuid ? apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace, asset_uuid }) : null,
+    asset_uuid ? apiPaths.CATALOG_ITEM_LAST_INCIDENT({ stage, asset_uuid }) : null,
     fetcher,
     {
       shouldRetryOnError: false,

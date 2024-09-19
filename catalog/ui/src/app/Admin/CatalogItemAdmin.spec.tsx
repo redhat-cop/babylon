@@ -10,12 +10,12 @@ import { apiPaths, fetcher } from '@app/api';
 
 const namespaceName = 'fakeNamespace';
 const ciName = 'ci-name';
-const asset_uuid = 'c8a5d5ab-1b17-4c6a-866a-fe60de5482b4'
+const asset_uuid = 'c8a5d5ab-1b17-4c6a-866a-fe60de5482b4';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcher: jest.fn((...args) => {
-    if (args[0] === apiPaths.CATALOG_ITEM_LAST_INCIDENT({ namespace: namespaceName, asset_uuid })) {
+    if (args[0] === apiPaths.CATALOG_ITEM_LAST_INCIDENT({ stage: 'prod', asset_uuid })) {
       return Promise.resolve(catalogItemIncident as CatalogItemIncident);
     }
     return Promise.resolve(catalogItemObj as CatalogItem);
@@ -33,7 +33,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () => generateSession({ isAdmin: true }),
-  })),
+  }))
 );
 
 describe('CatalogItemAdmin Component', () => {
@@ -55,7 +55,7 @@ describe('CatalogItemAdmin Component', () => {
     await userEvent.click(getByText('Under maintenance').closest('button'));
     await userEvent.click(getByText('Operational'));
     const path = apiPaths.CATALOG_ITEM_INCIDENTS({
-      namespace: namespaceName,
+      stage: 'prod',
       asset_uuid,
     });
     const patch = {
@@ -65,8 +65,12 @@ describe('CatalogItemAdmin Component', () => {
       incident_url: '',
       jira_url: '',
       comments: JSON.stringify([]),
-    }
+    };
     await userEvent.click(getByText('Save'));
-    expect(fetcher).toHaveBeenCalledWith(path, { method: 'POST', body: JSON.stringify(patch), headers: {'Content-Type': 'application/json'}});
+    expect(fetcher).toHaveBeenCalledWith(path, {
+      method: 'POST',
+      body: JSON.stringify(patch),
+      headers: { 'Content-Type': 'application/json' },
+    });
   });
 });
