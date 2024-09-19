@@ -36,6 +36,7 @@ import UnderMaintenanceLogo from '@app/components/StatusPageIcons/UnderMaintenan
 import useSession from '@app/utils/useSession';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import LoadingIcon from '@app/components/LoadingIcon';
+import useMatchMutate from '@app/utils/useMatchMutate';
 
 import './catalog-item-admin.css';
 
@@ -50,6 +51,7 @@ const CatalogItemAdmin: React.FC = () => {
   const navigate = useNavigate();
   const { data: catalogItem } = useSWR<CatalogItem>(apiPaths.CATALOG_ITEM({ namespace, name }), fetcher);
   const stage = getStageFromK8sObject(catalogItem);
+  const matchMutate = useMatchMutate();
   const asset_uuid = catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'];
   const { data: catalogItemIncident, isLoading: isLoadingIncidents } = useSWR<CatalogItemIncident>(
     apiPaths.CATALOG_ITEM_LAST_INCIDENT({ stage, asset_uuid }),
@@ -131,6 +133,7 @@ const CatalogItemAdmin: React.FC = () => {
         'Content-Type': 'application/json',
       },
     });
+    matchMutate([{ name: 'CATALOG_ITEMS_ACTIVE_INCIDENTS', arguments: { stage: null }, data: undefined }]);
     setIsLoading(false);
     navigate('/catalog');
   }
