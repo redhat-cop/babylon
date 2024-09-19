@@ -212,7 +212,7 @@ function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
   setLastFilter(urlParams.toString());
 }
 
-async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
+export async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
     return await fetcherItemsInAllPages((continueId) =>
       apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
