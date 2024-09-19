@@ -133,7 +133,14 @@ const CatalogItemAdmin: React.FC = () => {
         'Content-Type': 'application/json',
       },
     });
-    matchMutate([{ name: 'CATALOG_ITEMS_ACTIVE_INCIDENTS', arguments: { stage: null }, data: undefined }]);
+    matchMutate([
+      { name: 'CATALOG_ITEMS_ACTIVE_INCIDENTS', arguments: { stage: null }, data: undefined },
+      {
+        name: 'CATALOG_ITEMS_ACTIVE_INCIDENTS',
+        arguments: { stage: getStageFromK8sObject(catalogItem) },
+        data: undefined,
+      },
+    ]);
     setIsLoading(false);
     navigate('/catalog');
   }
