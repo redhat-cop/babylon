@@ -454,7 +454,7 @@ async def provision_rating_post(request):
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}/history")
 async def provision_rating_get_history(request):
-    asset_uid = request.match_info.get('asset_uuid')
+    asset_uuid = request.match_info.get('asset_uuid')
     user = await get_proxy_user(request)
     session = await get_user_session(request, user)
     if not session.get('admin'):
