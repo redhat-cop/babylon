@@ -334,7 +334,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   );
 
   const { data: activeIncidents } = useSWRImmutable<CatalogItemIncidents>(
-    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ namespace: catalogNamespaceName ? catalogNamespaceName : null }),
+    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ stage: catalogNamespaceName ? catalogNamespaceName : null }),
     fetcher,
     {
       suspense: false,

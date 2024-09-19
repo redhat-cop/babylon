@@ -21,8 +21,8 @@ const CatalogIncidentsAlertList: React.FC = () => {
     apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({}),
     fetcher
   );
-  const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
-    catalogIncidents && catalogIncidents.items.length > 1 ? apiPaths.CATALOG_ITEMS({ namespace: 'all-catalogs' }):null,
+  const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
+    apiPaths.CATALOG_ITEMS({ namespace: 'all-catalogs' }),
     () => fetchCatalog(catalogNamespaceNames)
   );
 
