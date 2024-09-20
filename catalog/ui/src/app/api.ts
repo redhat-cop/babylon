@@ -1313,7 +1313,7 @@ export async function setLifespanEndForResourceClaim(
   let updatedRelativeMaxDate: string = null;
   if (resourceClaim.status?.lifespan?.maximum) {
     const maxDate = new Date(resourceClaim.metadata.creationTimestamp);
-    maxDate.setDate(maxDate.getDate() + parseInt(resourceClaim.status.lifespan.maximum.slice(0, -1), 10));
+    maxDate.setTime(maxDate.getTime() + parseDuration(resourceClaim.status.lifespan.maximum));
     if (date.getTime() > maxDate.getTime()) {
       updatedMaxDate =
         Math.ceil(
@@ -1325,7 +1325,7 @@ export async function setLifespanEndForResourceClaim(
   }
   if (resourceClaim.status?.lifespan?.relativeMaximum) {
     const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + parseInt(resourceClaim.status.lifespan.relativeMaximum.slice(0, -1), 10));
+    maxDate.setTime(maxDate.getTime() + parseDuration(resourceClaim.status.lifespan.relativeMaximum));
     if (date.getTime() > maxDate.getTime()) {
       updatedRelativeMaxDate = Math.ceil((date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) + 1 + 'd';
     }
