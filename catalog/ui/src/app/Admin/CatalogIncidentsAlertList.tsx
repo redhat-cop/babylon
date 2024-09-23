@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Label, Panel, PanelMain, Title } from '@patternfly/react-core';
+import { Badge, Label, Panel, PanelMain, Title } from '@patternfly/react-core';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';
 import { CatalogItem, CatalogItemIncidents } from '@app/types';
@@ -9,7 +9,7 @@ import { fetchCatalog } from '@app/Catalog/Catalog';
 import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
 import { BABYLON_DOMAIN, displayName, getStageFromK8sObject } from '@app/util';
-import { getStatus } from '@app/Catalog/catalog-utils';
+import { getStage, getStatus } from '@app/Catalog/catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 
 import './admin.css';
@@ -72,6 +72,13 @@ const CatalogIncidentsAlertList: React.FC = () => {
                                         <a href={`/admin/catalogitems/${ci.metadata.namespace}/${ci.metadata.name}`}>
                                             {displayName(ci)}
                                         </a>
+                                        { getStage(ci) === 'dev' ? (
+                                            <Badge className="catalog-item-card__badge--dev">development</Badge>
+                                        ) : getStage(ci) === 'test' ? (
+                                            <Badge className="catalog-item-card__badge--test">test</Badge>
+                                        ) : getStage(ci) === 'event' ? (
+                                            <Badge className="catalog-item-card__badge--event">event</Badge>
+                                        ) : null}
                                 </Td>
                                 <Td dataLabel="status">
                                     <Label
