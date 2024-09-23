@@ -6,7 +6,6 @@ import { CatalogItem, CatalogItemIncidents } from '@app/types';
 import { Table /* data-codemods */, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import TimeInterval from '@app/components/TimeInterval';
 import { fetchCatalog } from '@app/Catalog/Catalog';
-import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
 import { BABYLON_DOMAIN, displayName, getStageFromK8sObject } from '@app/util';
 import { getStage, getStatus } from '@app/Catalog/catalog-utils';
