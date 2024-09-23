@@ -956,8 +956,15 @@ class AgnosticVComponent(KopfObject):
                 if not apply_parameter_to_current:
                     continue
 
-                # Skip annotation only parameters in template generation and validation
+                # Expose non-variable parameter values in vars
                 if 'annotation' in parameter and 'variable' not in parameter:
+                    definition['spec']['template']['definition'].setdefault(
+                        'spec', {}
+                    ).setdefault(
+                        'vars', {}
+                    ).setdefault(
+                        'parameter_values', {}
+                    )[parameter_name] = '{{' + parameter_name + '|default(omit)|object}}'
                     continue
 
                 open_api_schema_job_vars.setdefault('properties', {})
