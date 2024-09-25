@@ -956,20 +956,26 @@ class AgnosticVComponent(KopfObject):
                 if not apply_parameter_to_current:
                     continue
 
-                # Expose non-variable parameter values in vars
-                if 'annotation' in parameter and 'variable' not in parameter:
+                # Define variable for Anarchy if configured.
+                if parameter.get('anarchyVar'):
                     definition['spec']['template']['definition'].setdefault(
                         'spec', {}
                     ).setdefault(
                         'vars', {}
-                    ).setdefault(
-                        'parameter_values', {}
-                    )[parameter_name] = '{{' + parameter_name + '|default(omit)|object}}'
+                    )[parameter['anarchyVar']] = '{{' + parameter_name + '|default(omit)|object}}'
+
+                if 'variable' in parameter:
+                    # Custom variable name
+                    variable = parameter['variable']
+                elif 'annotation' not in parameter and 'anarchyVar' not in parameter:
+                    # Default variable to parameter name if not setting annotation or var for anarchy
+                    variable = parameter_name
+                else:
+                    # No variable, nothing else to do
                     continue
 
                 open_api_schema_job_vars.setdefault('properties', {})
                 open_api_schema_job_vars.setdefault('required', [])
-                variable = parameter.get('variable', parameter_name)
                 default = None
                 parameter_open_api_schema = parameter.get('openAPIV3Schema', {})
                 if 'default' in parameter_open_api_schema:
