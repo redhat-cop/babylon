@@ -145,7 +145,7 @@ class ResourceClaim:
             if not state:
                 return False
             if state['kind'] == 'AnarchySubject':
-                if not state.get('status', {}).get('towerJobs', {}).get('provision', {}).get('completeTimestamp'):
+                if state['spec'].get('vars', {}).get('current_state') not in ('started', 'stopped'):
                     return False
         return True
 
@@ -175,7 +175,9 @@ class ResourceClaim:
             if not state:
                 return False
             if state['kind'] == 'AnarchySubject':
-                if state['spec'].get('vars', {}).get('current_state') == 'provision-failed':
+                if state['spec'].get('vars', {}).get('current_state') in (
+                    'provision-canceled', 'provision-error', 'provision-failed'
+                ):
                     return True
         return False
 
