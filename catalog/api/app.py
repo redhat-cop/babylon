@@ -27,6 +27,7 @@ admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.
 ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
+response_cache = {}
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 
@@ -744,6 +745,25 @@ async def workshop_post(request):
                     raise
 
     raise web.HTTPConflict()
+
+@routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems")
+@routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems/{name}")
+async def openshift_api_proxy_with_cache(request, namespace, name=None):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    for catalog_namespace in session.get('catalogNamespaces', []):
+        if catalog_namespace['name'] == namespace:
+            break
+    else:
+        raise web.HTTPForbidden()
+
+    resp, cache_time = response_cache.get(request.path_qs, (None, None))
+    if resp and time() - cache_time < 60:
+        logging.info(f"Returning cached response for {request.path_qs}")
+        return resp
+
+    resp = await openshift_api_proxy(request)
+    response_cache[request.path_qs] = (resp, time())
 
 @routes.delete("/{path:apis?/.*}")
 @routes.get("/{path:apis?/.*}")
