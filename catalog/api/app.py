@@ -27,6 +27,7 @@ admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.
 ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
+response_cache = {}
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 
@@ -327,6 +328,12 @@ async def start_user_session(user, groups):
     elif await check_user_support_access(api_client):
         session['roles'].append('userSupport')
 
+    session['catalogNamespaces'] = await get_catalog_namespaces(api_client)
+
+    user_namespace, service_namespaces = await get_service_namespaces(user, api_client)
+    session['userNamespace'] = user_namespace
+    session['serviceNamespaces'] = service_namespaces
+
     token = random_string(32)
     if redis_connection:
         await redis_connection.setex(token, session_lifetime, json.dumps(session, separators=(',',':')))
@@ -342,20 +349,18 @@ async def get_auth_session(request):
     groups = await get_user_groups(user)
     api_client, session, token = await start_user_session(user, groups)
     try:
-        catalog_namespaces = await get_catalog_namespaces(api_client)
         user_is_admin = session.get('admin', False)
         roles = session.get('roles', [])
-        user_namespace, service_namespaces = await get_service_namespaces(user, api_client)
         ret = {
             "admin": user_is_admin,
             "consoleURL": console_url,
             "groups": groups,
             "user": user['metadata']['name'],
             "token": token,
-            "catalogNamespaces": catalog_namespaces,
+            "catalogNamespaces": session['catalogNamespaces'],
             "lifetime": session_lifetime,
-            "serviceNamespaces": service_namespaces,
-            "userNamespace": user_namespace,
+            "serviceNamespaces": session['serviceNamespaces'],
+            "userNamespace": session['userNamespace'],
             "roles": roles,
         }
         if not user_is_admin:
@@ -744,6 +749,32 @@ async def workshop_post(request):
                     raise
 
     raise web.HTTPConflict()
+
+@routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems")
+@routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems/{name}")
+async def openshift_api_proxy_with_cache(request):
+    namespace = request.match_info.get('namespace')
+
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+
+    for catalog_namespace in session.get('catalogNamespaces', []):
+        if catalog_namespace['name'] == namespace:
+            break
+    else:
+        raise web.HTTPForbidden()
+
+    resp, cache_time = response_cache.get(request.path_qs, (None, None))
+    if resp != None and time() - cache_time < 60:
+        return web.Response(
+            body=resp.body,
+            headers=resp.headers,
+            status=resp.status,
+        )
+
+    resp = await openshift_api_proxy(request)
+    response_cache[request.path_qs] = (resp, time())
+    return resp
 
 @routes.delete("/{path:apis?/.*}")
 @routes.get("/{path:apis?/.*}")
