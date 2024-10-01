@@ -660,8 +660,8 @@ class AgnosticVComponent(KopfObject):
                 "healthCheck": "spec.vars.current_state | default('') not in ('provision-canceled', 'provision-error', 'provision-failed', 'start-error', 'start-failed', 'stop-error', 'stop-failed')",
                 "lifespan": {
                     "default": self.lifespan_default,
-                    "maximum": "{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}" + self.lifespan_maximum + "{% endif %}",
-                    "relativeMaximum": "{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}" + self.lifespan_relative_maximum + "{% endif %}",
+                    "maximum": self.lifespan_maximum,
+                    "relativeMaximum": self.lifespan_relative_maximum,
                 },
                 "parameters": [
                     {
@@ -787,7 +787,7 @@ class AgnosticVComponent(KopfObject):
                     "vars": {
                         "action_schedule": {
                             "default_runtime": self.runtime_default,
-                            "maximum_runtime": "{% if resource_claim.annotations['demo.redhat.com/open-environment'] | default(false) | bool %}365d{% else %}" + self.runtime_maximum + "{% endif %}",
+                            "maximum_runtime": self.runtime_maximum,
                         },
                         "desired_state":
                             # FIXME - clean up syntax for readability.
