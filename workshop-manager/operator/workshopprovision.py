@@ -246,6 +246,10 @@ class WorkshopProvision(CachedKopfObject):
                 raise kopf.TemporaryError("Workshop {self.workshop_name} was not found.", delay=60)
             raise
 
+        if not workshop.workshop_id:
+            logger.info(f"Waiting for workshop id assignment for {workshop}")
+            return
+
         async with self.lock:
             await self.manage_action_schedule_and_lifespan(logger=logger, workshop=workshop)
             await self.manage_resource_claims(logger=logger, workshop=workshop)
