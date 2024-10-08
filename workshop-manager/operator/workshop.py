@@ -204,10 +204,11 @@ class Workshop(CachedKopfObject):
             }
         })
 
-    async def update_provision_count(self, provisioning, failed, completed):
+    async def update_provision_count(self, provisioning, failed, completed, ordered):
 
         await self.merge_patch_status({
             "provisionCount": {
+                "ordered": ordered,
                 "provisioning": provisioning,
                 "failed": failed,
                 "completed": completed,

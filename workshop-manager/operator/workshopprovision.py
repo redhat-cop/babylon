@@ -320,6 +320,7 @@ class WorkshopProvision(CachedKopfObject):
                 failed_count += 1
 
             await workshop.update_provision_count(
+                ordered=self.count,
                 provisioning=provisioning_count,
                 failed=failed_count,
                 completed=resource_claim_count - provisioning_count - failed_count

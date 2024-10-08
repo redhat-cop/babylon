@@ -152,6 +152,9 @@ spec:
               provisionCount:
                 type: object
                 properties:
+                  ordered:
+                    description: Total number of WorkshopProvisions ordered.
+                    type: integer
                   provisioning:
                     description: Number of WorkshopProvisions that are provisioning.
                     type: integer
