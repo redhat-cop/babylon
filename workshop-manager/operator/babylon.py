@@ -8,7 +8,9 @@ class Babylon():
     poolboy_api_version = os.environ.get('POOLBOY_API_VERSION', 'v1')
     poolboy_namespace = os.environ.get('POOLBOY_NAMESPACE', 'poolboy')
     demo_domain = os.environ.get('DEMO_DOMAIN', 'demo.redhat.com')
+    gpte_domain = os.environ.get('GPTE_DOMAIN', 'gpte.redhat.com')
 
+    asset_uuid_label = f"{gpte_domain}/asset-uuid"
     babylon_ignore_label = f"{babylon_domain}/ignore"
     catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
     catalog_item_display_name_annotation = f"{babylon_domain}/catalogItemDisplayName"
@@ -20,9 +22,10 @@ class Babylon():
     lab_ui_url_annotation = f"{babylon_domain}/labUserInterfaceUrl"
     lab_ui_urls_annotation = f"{babylon_domain}/labUserInterfaceUrls"
     notifier_annotation = f"{babylon_domain}/notifier"
+    ordered_by_annotation = f"{demo_domain}/orderedBy"
     purpose_annotation = f"{demo_domain}/purpose"
     purpose_activity_annotation = f"{demo_domain}/purpose-activity"
-    requester_annotation = f"{babylon_domain}/requester"
+    requester_annotation = f"{demo_domain}/requester"
     resource_broker_ignore_label = f"{poolboy_domain}/ignore"
     resource_claim_label = f"{poolboy_domain}/resource-claim"
     resource_pool_annotation = f"{poolboy_domain}/resource-pool-name"
