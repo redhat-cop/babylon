@@ -41,6 +41,10 @@ class Workshop(CachedKopfObject):
         ).replace(tzinfo=timezone.utc)
 
     @property
+    def asset_uuid(self):
+        return self.labels.get(Babylon.asset_uuid_label)
+
+    @property
     def ignore(self):
         return Babylon.babylon_ignore_label in self.labels
 
@@ -69,6 +73,10 @@ class Workshop(CachedKopfObject):
     @property
     def requester(self):
         return self.annotations.get(Babylon.requester_annotation)
+
+    @property
+    def ordered_by(self):
+        return self.annotations.get(Babylon.ordered_by_annotation)
 
     @property
     def service_url(self):
@@ -204,10 +212,11 @@ class Workshop(CachedKopfObject):
             }
         })
 
-    async def update_provision_count(self, provisioning, failed, completed):
+    async def update_provision_count(self, provisioning, failed, completed, ordered):
 
         await self.merge_patch_status({
             "provisionCount": {
+                "ordered": ordered,
                 "provisioning": provisioning,
                 "failed": failed,
                 "completed": completed,

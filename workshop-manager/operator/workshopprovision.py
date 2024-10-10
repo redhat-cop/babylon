@@ -157,8 +157,14 @@ class WorkshopProvision(CachedKopfObject):
         if not self.enable_resource_pools:
             resource_claim_definition['metadata']['annotations'][Babylon.resource_pool_annotation] = "disable"
 
+        if workshop.asset_uuid:
+            resource_claim_definition['metadata']['labels'][Babylon.asset_uuid_label] = workshop.asset_uuid
+
         if workshop.requester:
             resource_claim_definition['metadata']['annotations'][Babylon.requester_annotation] = workshop.requester
+
+        if workshop.ordered_by:
+            resource_claim_definition['metadata']['annotations'][Babylon.ordered_by_annotation] = workshop.ordered_by
 
         if catalog_item.lab_ui_type:
             resource_claim_definition['metadata']['labels'][Babylon.lab_ui_label] = catalog_item.lab_ui_type
@@ -320,6 +326,7 @@ class WorkshopProvision(CachedKopfObject):
                 failed_count += 1
 
             await workshop.update_provision_count(
+                ordered=self.count,
                 provisioning=provisioning_count,
                 failed=failed_count,
                 completed=resource_claim_count - provisioning_count - failed_count
