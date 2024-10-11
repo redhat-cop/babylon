@@ -66,6 +66,7 @@ import IncidentsBanner from '@app/components/IncidentsBanner';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './catalog.css';
+import LoadingSection from '@app/components/LoadingSection';
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -332,7 +333,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     [sortBy.selected]
   );
 
-  const { data: activeIncidents } = useSWRImmutable<CatalogItemIncidents>(
+  const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
     apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ stage: catalogNamespaceName ? catalogNamespaceName : null }),
     fetcher,
     {
@@ -508,6 +509,10 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     saveFilter('', catalogNamespaceName);
     setSearchParams();
     searchInputStringCb && searchInputStringCb('');
+  }
+
+  if (isLoading) {
+    return <LoadingSection />;
   }
 
   return (
