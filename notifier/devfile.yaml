@@ -1,6 +1,7 @@
 commands:
 - exec:
-    commandLine: /usr/libexec/s2i/assemble
+    commandLine: >-
+      rm -rf /tmp/src && cp /tmp/projects -r /tmp/src && /tmp/src/.s2i/bin/assemble
     component: s2i-builder
     group:
       isDefault: true
