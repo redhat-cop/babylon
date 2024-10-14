@@ -1,0 +1,54 @@
+<mjml>
+  <mj-body>
+    <!-- Company Header -->
+    <mj-section full-width="full-width" background-color="#151515" padding-top="8px" padding-bottom="8px" padding-left="12px" padding-right="12px">
+      <mj-group>
+        <mj-column vertical-align="middle">
+          <mj-image href="https://demo.redhat.com/" title="RedHat" alt="RedHat" width="185px" src="https://public-assets-email.s3.us-east-2.amazonaws.com/Logo-Red_Hat-A-Reverse-RGB.png" />
+        </mj-column>
+      </mj-group>
+    </mj-section>
+    <!-- spacer -->
+    <mj-section padding-top="0" padding-bottom="0" padding-left="0" padding-right="0">
+      <mj-column>
+        <mj-spacer height="25px" />
+      </mj-column>
+    </mj-section>
+    <!-- Title -->
+    <mj-section padding-top="21px" padding-bottom="12px" padding-left="12px" padding-right="12px">
+      <mj-column>
+        <mj-text font-family="Red Hat Text" font-weight="regular" align="center" font-size="16px" color="#000" line-height="1.2">
+          Status: {{ service_status }}
+        </mj-text>
+        <mj-text font-family="Red Hat Display" font-weight="regular" align="center" font-size="35px" color="#000" line-height="1.2">
+          {{ service_display_name }}
+        </mj-text>
+        <mj-text font-family="Red Hat Text" font-weight="regular" align="center" font-size="16px" color="#000" line-height="1.2">
+          from {{ catalog_namespace.display_name }}
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- spacer -->
+    <mj-section padding-top="0" padding-bottom="0" padding-left="0" padding-right="0">
+      <mj-column>
+        <mj-spacer height="25px" />
+      </mj-column>
+    </mj-section>
+    <!-- Text -->
+    <mj-section padding-top="12px" padding-bottom="12px" padding-left="12px" padding-right="12px" background-color="#f0f0f0">
+      {% block content %}{% endblock %}
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section padding-top="12px" padding-bottom="12px" padding-left="12px" padding-right="12px">
+      <mj-column>
+        <mj-text align="center" font-size="12px" color="#4a5557" font-family="Red Hat Text" line-height="1.5">
+          <b>RedHat
+          </b> &copy; Copyright 2022 - All rights reserved
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <!-- Footer -->
+  </mj-body>
+</mjml>

@@ -766,6 +766,7 @@ async def send_notification_email(
         )
     )
     template_vars['have_attachments'] = len(attachments) > 0
+    template_vars['service_status'] = ' '.join(elem.capitalize() for elem in template.replace('-', ' ').split())
 
     email_subject = j2env.from_string(subject).render(**template_vars)
 
@@ -775,11 +776,11 @@ async def send_notification_email(
         message_template = catalog_item.get_message_template(kebabToCamelCase(template))
         if message_template:
             try:
-                email_body = j2env.from_string(message_template).render(**template_vars)
+                mjml_template = j2env.from_string(message_template).render(**template_vars)
             except Exception as exception:
                 logger.warning(f"Failed to render template: {exception}")
-                email_body = j2env.get_template(template + '.html.j2').render(**template_vars)
-                email_body += (
+                mjml_template = j2env.get_template(template + '.html.j2').render(**template_vars)
+                mjml_template += (
                     "<p><b>Attention:</b> "
                     "A custom message template was configured for your service, "
                     "but unfortunately, rendering failed with the following error:</p> "
@@ -787,7 +788,14 @@ async def send_notification_email(
                     "<p>The content shown above is the default message template.</p>"
                 )
         else:
-            email_body = j2env.get_template(template + '.html.j2').render(**template_vars)
+            mjml_template = j2env.get_template(template + '.mjml.j2').render(**template_vars)
+
+        # Call for the MJML CLI to generate final HTML
+        email_body = subprocess.run(
+                        ['mjml', '-i'], 
+                        stdout=subprocess.PIPE,
+                        input=mjml_template,
+                        encoding='ascii').stdout
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = email_subject

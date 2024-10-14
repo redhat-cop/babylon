@@ -1,0 +1,21 @@
+{% extends "base.mjml.j2" %}
+{% block content %}
+
+<mj-column>
+  <mj-text font-family="Red Hat Text" color="#4a5557" font-size="16px" line-height="1.5" padding-bottom="12px">
+
+    <p>Your {{ catalog_namespace.display_name }} service {{ service_display_name }} has been deleted.</p>
+
+    <p>To conserve resources data on these systems is not archived and cannot be retrieved.
+    We apologize for any inconvenience this may cause.</p>
+
+    <p>Thank you for using {{ catalog_namespace.display_name }}.</p>
+
+    {% if survey_link %}
+    <p>We would love your feedback on your demo/lab, please fill out our short Survey (<a href="{{ survey_link | escape }}">click here</a>) to help us improve your experience.</p>
+    {% endif %}
+
+  </mj-text>
+</mj-column>
+
+{% endblock content %}

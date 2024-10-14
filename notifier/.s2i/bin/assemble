@@ -1,0 +1,6 @@
+#!/bin/bash
+
+npm install -g npm@8.19.3
+npm install -g mjml@4.13.0
+
+exec /usr/libexec/s2i/assemble
