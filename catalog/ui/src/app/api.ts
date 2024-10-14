@@ -373,8 +373,8 @@ export async function createServiceRequest({
       annotations: {
         [`${BABYLON_DOMAIN}/catalogDisplayName`]: catalogNamespaceName || catalogItem.metadata.namespace,
         [`${BABYLON_DOMAIN}/catalogItemDisplayName`]: displayName(catalogItem),
-        [`${BABYLON_DOMAIN}/requester`]: userEmail,
-        [`${BABYLON_DOMAIN}/orderedBy`]: session.user,
+        [`${DEMO_DOMAIN}/requester`]: userEmail,
+        [`${DEMO_DOMAIN}/orderedBy`]: session.user,
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
         [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}-${suffix}`,
         ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
