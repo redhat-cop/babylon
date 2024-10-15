@@ -10,6 +10,7 @@ import os
 import redis.asyncio
 import ssl
 import yaml
+import subprocess
 
 from base64 import b64decode
 from copy import deepcopy
@@ -756,7 +757,7 @@ async def send_notification_email(
     message_body=[],
     template_vars={},
     attachments=[]
-):
+):  
     template_vars = deepcopy(template_vars)
     template_vars.update(
         get_template_vars(
@@ -769,18 +770,18 @@ async def send_notification_email(
     template_vars['service_status'] = ' '.join(elem.capitalize() for elem in template.replace('-', ' ').split())
 
     email_subject = j2env.from_string(subject).render(**template_vars)
-
     if message_body:
         email_body = "\n".join(message_body)
+        mjml_template = j2env.get_template('wrapper.mjml.j2').render(**template_vars, htmlContent=email_body)
     else:
         message_template = catalog_item.get_message_template(kebabToCamelCase(template))
         if message_template:
             try:
-                mjml_template = j2env.from_string(message_template).render(**template_vars)
+                email_body = j2env.from_string(message_template).render(**template_vars)
+                mjml_template = j2env.get_template('wrapper.mjml.j2').render(**template_vars, htmlContent=email_body)
             except Exception as exception:
                 logger.warning(f"Failed to render template: {exception}")
-                mjml_template = j2env.get_template(template + '.html.j2').render(**template_vars)
-                mjml_template += (
+                email_body = (
                     "<p><b>Attention:</b> "
                     "A custom message template was configured for your service, "
                     "but unfortunately, rendering failed with the following error:</p> "
@@ -790,12 +791,21 @@ async def send_notification_email(
         else:
             mjml_template = j2env.get_template(template + '.mjml.j2').render(**template_vars)
 
-        # Call for the MJML CLI to generate final HTML
+    # Call for the MJML CLI to generate final HTML
+    try:
         email_body = subprocess.run(
                         ['mjml', '-i'], 
                         stdout=subprocess.PIPE,
                         input=mjml_template,
                         encoding='ascii').stdout
+    except Exception as exception:
+        email_body = (
+            "<p><b>Attention:</b> "
+            "A custom message template was configured for your service, "
+            "but unfortunately, rendering failed with the following error:</p> "
+            f"<p>{exception}</p>"
+            "<p>The content shown above is the default message template.</p>"
+        )
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = email_subject
