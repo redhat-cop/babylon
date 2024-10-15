@@ -57,7 +57,7 @@
     "jest-fetch-mock": "^3.0.3",
     "mini-css-extract-plugin": "^2.9.1",
     "postcss": "^8.4.47",
-    "postcss-custom-media": "^8.0.2",
+    "postcss-custom-media": "^11.0.3",
     "postcss-loader": "^7.3.4",
     "prettier": "^3.3.3",
     "prop-types": "^15.6.1",
