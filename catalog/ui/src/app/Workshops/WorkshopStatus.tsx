@@ -1,6 +1,6 @@
 import React from 'react';
 import { ResourceClaim } from '@app/types';
-import ServiceStatus, { getStatus } from '@app/Services/ServiceStatus';
+import ServiceStatus, { getPhaseState, getStatus, InnerStatus } from '@app/Services/ServiceStatus';
 import { getAutoTimes, getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
 
 const codeLevels = [
@@ -58,17 +58,28 @@ const WorkshopStatus: React.FC<{
     }
   }
 
-  const rc = resourceClaimsStatus.sort(cmp)[0];
-  const resourceClaim = resourceClaims.find((r) => r.metadata.uid === rc.uid);
+  const statusCount = {};
+
+  resourceClaimsStatus.sort(cmp).forEach((item) => {
+    if (statusCount[item.state]) {
+      statusCount[item.state]++;
+    } else {
+      statusCount[item.state] = 1;
+    }
+  });
 
   return (
-    <ServiceStatus
-      creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-      resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
-      resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
-      resourceClaim={resourceClaim}
-      summary={resourceClaim.status?.summary}
-    />
+    <>
+      {Object.entries(statusCount).forEach(([status, count]: [string, unknown]) => {
+        const { state, phase } = getPhaseState(status);
+        return (
+          <div>
+            <span style={{ paddingRight: '12px' }}>{count as number} Instances</span>
+            <InnerStatus phase={phase} state={state} />
+          </div>
+        );
+      })}
+    </>
   );
 };
 
