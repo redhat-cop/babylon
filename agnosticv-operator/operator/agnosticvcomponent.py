@@ -896,7 +896,7 @@ class AgnosticVComponent(KopfObject):
             definition['spec']['statusSummaryTemplate']['catalog_item_namespace'] = self.catalog_item_namespace
 
         for idx, linked_component in enumerate(self.linked_components):
-            definition['spec'].setdefault('linkedResourceProviders', []).append({
+            linked_resource_provider = {
                 "name": linked_component.component_name,
                 "waitFor": f"current_state_{idx} == 'started'",
                 "parameterValues": {
@@ -913,14 +913,17 @@ class AgnosticVComponent(KopfObject):
                         "from": "/spec/vars/provision_data",
                     }
                 ]
-            })
+            }
+            if linked_component.when:
+                linked_resource_provider['when'] = linked_component.when
+            definition['spec'].setdefault('linkedResourceProviders', []).append(linked_resource_provider)
 
             if self.deployer_type:
                 for item in linked_component.propagate_provision_data:
                     if item.name:
-                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{provision_data_' + str(idx) + '.' + item.name + '|object}}'
+                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{provision_data_' + str(idx) + '.' + item.name + '|default(omit)|object}}'
                     else:
-                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{provision_data_' + str(idx) + '|object}}'
+                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{provision_data_' + str(idx) + '|default(omit)|object}}'
 
         if self.catalog_parameters:
             if self.deployer_type:
@@ -1324,6 +1327,7 @@ class LinkedComponent:
         self.component_name = '.'.join(component_name_parts)
         self.name = definition.get('name', self.component_name)
         self.short_name = component_name_parts[1]
+        self.when = definition.get('when')
 
     @property
     def resource_provider_ref(self):
