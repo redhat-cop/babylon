@@ -77,6 +77,38 @@ const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
   }
 };
 
+export function getPhaseState(__state: string) {
+  let _phase: phaseProps = 'unknown';
+  const state = __state.toLowerCase();
+  let _state = state.replace('-', ' ');
+  switch (true) {
+    case state.endsWith('-pending'):
+    case state.endsWith('-scheduled'):
+    case state.endsWith('-requested'):
+    case state === 'new':
+    case state === 'available':
+    case state === 'provisioning':
+    case state === 'requesting':
+    case state === 'initializing':
+    case state === 'stopping':
+    case state === 'starting':
+      _phase = 'in-progress';
+      break;
+    case state.endsWith('-failed'):
+    case state.endsWith('-error'):
+      _phase = 'failed';
+      break;
+    case state === 'started':
+    case state === 'running':
+      _phase = 'running';
+      _state = 'Running';
+      break;
+    case state === 'stopped':
+      _phase = 'stopped';
+      break;
+  }
+  return { phase: _phase, state: _state };
+}
 const ServiceStatus: React.FC<{
   creationTime: number;
   resource?: AnarchySubject;
@@ -85,35 +117,8 @@ const ServiceStatus: React.FC<{
   summary?: { state: string };
 }> = ({ creationTime, resource, resourceTemplate, resourceClaim, summary }) => {
   if (summary) {
-    let _phase: phaseProps = 'unknown';
-    let _state = summary.state.replace('-', ' ');
-    switch (true) {
-      case summary.state.endsWith('-pending'):
-      case summary.state.endsWith('-scheduled'):
-      case summary.state === 'provisioning':
-      case summary.state === 'requesting':
-      case summary.state === 'initializing':
-      case summary.state === 'stopping':
-      case summary.state === 'starting':
-        _phase = 'in-progress';
-        break;
-      case summary.state.endsWith('-failed'):
-      case summary.state.endsWith('-error'):
-        _phase = 'failed';
-        break;
-      case summary.state === 'started':
-        _phase = 'running';
-        _state = 'Running';
-        break;
-      case summary.state === 'stopped':
-        _phase = 'stopped';
-        break;
-    }
-    return (
-      <span className={`service-status--${_phase}`} style={{ textTransform: 'capitalize' }}>
-        <Icon phase={_phase} /> {_state}
-      </span>
-    );
+    const { phase: _phase, state: _state } = getPhaseState(summary.state);
+    return <InnerStatus phase={_phase} state={_state} />;
   }
   const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
   const desiredState = resourceTemplate?.spec?.vars?.desired_state;
@@ -136,9 +141,16 @@ const ServiceStatus: React.FC<{
   }
   const { statusName, phase } = getStatus(currentState, desiredState, creationTime, _startTime, _stopTime);
 
+  return <InnerStatus phase={phase} state={statusName} />;
+};
+
+export const InnerStatus: React.FC<{
+  phase: phaseProps;
+  state: string;
+}> = ({ phase, state }) => {
   return (
-    <span className={`service-status--${phase}`}>
-      <Icon phase={phase} /> {statusName}
+    <span className={`service-status--${phase}`} style={{ textTransform: 'capitalize' }}>
+      <Icon phase={phase} /> {state}
     </span>
   );
 };
