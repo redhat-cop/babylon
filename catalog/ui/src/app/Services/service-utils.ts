@@ -76,7 +76,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
         desiredState,
         Date.parse(resourceClaim.metadata.creationTimestamp),
         startTime,
-        stopTime,
+        stopTime
       ).phase,
     });
   }
@@ -138,6 +138,32 @@ export function getMinDefaultRuntime(resourceClaim: ResourceClaim): number {
 export function getStartTime(resourceClaim: ResourceClaim): number {
   if (resourceClaim.spec.provider?.parameterValues?.start_timestamp) {
     return Date.parse(resourceClaim.spec.provider.parameterValues.start_timestamp);
+  }
+  const autoStartTimes = resourceClaim.status?.resources
+    ? resourceClaim.status.resources
+        .map((r) => {
+          if (!r.state) return null;
+          const startTimestamp = r.state.spec.vars.action_schedule.start;
+          const resourceMaximumRuntime = r.state.spec.vars.action_schedule.maximum_runtime;
+          if (resourceMaximumRuntime && startTimestamp && !isNaN(Date.parse(startTimestamp))) {
+            return Date.parse(startTimestamp) + parseDuration(resourceMaximumRuntime);
+          }
+          return null;
+        })
+        .filter((runtime) => runtime !== null)
+    : [];
+  if (autoStartTimes.length > 0) {
+    return Math.min(...autoStartTimes);
+  }
+  return null;
+}
+
+export function getMaxRuntime(resourceClaim: ResourceClaim): number {
+  if (resourceClaim.status.summary) {
+    return (
+      Date.parse(resourceClaim.spec.provider.parameterValues.start_timestamp) +
+      parseDuration(resourceClaim.status.summary.runtime_maximum)
+    );
   }
   const autoStartTimes = resourceClaim.status?.resources
     ? resourceClaim.status.resources
