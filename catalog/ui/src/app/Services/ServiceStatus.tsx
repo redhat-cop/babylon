@@ -16,7 +16,7 @@ export function getStatus(
   desiredState: string,
   creationTime: number,
   startTime: number,
-  stopTime: number,
+  stopTime: number
 ): { statusName: string; phase: phaseProps } {
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
@@ -77,12 +77,16 @@ const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
   }
 };
 
-export function getPhaseState(state: string) {
+export function getPhaseState(__state: string) {
   let _phase: phaseProps = 'unknown';
+  const state = __state.toLowerCase();
   let _state = state.replace('-', ' ');
   switch (true) {
     case state.endsWith('-pending'):
     case state.endsWith('-scheduled'):
+    case state.endsWith('-requested'):
+    case state === 'new':
+    case state === 'available':
     case state === 'provisioning':
     case state === 'requesting':
     case state === 'initializing':
@@ -95,6 +99,7 @@ export function getPhaseState(state: string) {
       _phase = 'failed';
       break;
     case state === 'started':
+    case state === 'running':
       _phase = 'running';
       _state = 'Running';
       break;

@@ -1,7 +1,9 @@
 import React from 'react';
 import { ResourceClaim } from '@app/types';
-import ServiceStatus, { getPhaseState, getStatus, InnerStatus } from '@app/Services/ServiceStatus';
+import { getPhaseState, getStatus, InnerStatus } from '@app/Services/ServiceStatus';
 import { getAutoTimes, getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
+
+import '@app/Services/service-status.css';
 
 const codeLevels = [
   'provision-failed',
@@ -28,13 +30,13 @@ const WorkshopStatus: React.FC<{
 }> = ({ resourceClaims }) => {
   const resourceClaimsStatus: { uid: string; state: string }[] = [];
   for (let resourceClaim of resourceClaims) {
-    const creationTime = Date.parse(resourceClaims[0].metadata.creationTimestamp);
-    const resource = getMostRelevantResourceAndTemplate(resourceClaims[0]).resource;
-    const resourceTemplate = getMostRelevantResourceAndTemplate(resourceClaims[0]).template;
-    const summary = resourceClaims[0].status?.summary;
+    const summary = resourceClaim.status?.summary;
     if (summary) {
-      resourceClaimsStatus.push({ uid: resourceClaim.metadata.uid, state: summary.state.replace('-', ' ') });
+      resourceClaimsStatus.push({ uid: resourceClaim.metadata.uid, state: summary.state });
     } else {
+      const creationTime = Date.parse(resourceClaim.metadata.creationTimestamp);
+      const resource = getMostRelevantResourceAndTemplate(resourceClaim).resource;
+      const resourceTemplate = getMostRelevantResourceAndTemplate(resourceClaim).template;
       const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
       const desiredState = resourceTemplate?.spec?.vars?.desired_state;
       const { startTime, stopTime } = getAutoTimes(resourceClaim);
@@ -59,7 +61,6 @@ const WorkshopStatus: React.FC<{
   }
 
   const statusCount = {};
-
   resourceClaimsStatus.sort(cmp).forEach((item) => {
     if (statusCount[item.state]) {
       statusCount[item.state]++;
@@ -70,10 +71,11 @@ const WorkshopStatus: React.FC<{
 
   return (
     <>
-      {Object.entries(statusCount).forEach(([status, count]: [string, unknown]) => {
+      {Object.entries(statusCount).map(([status, count]: [string, unknown]) => {
+        console.log(status)
         const { state, phase } = getPhaseState(status);
         return (
-          <div>
+          <div key={state}>
             <span style={{ paddingRight: '12px' }}>{count as number} Instances</span>
             <InnerStatus phase={phase} state={state} />
           </div>
