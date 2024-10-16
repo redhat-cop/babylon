@@ -163,7 +163,7 @@ notifier:
   image:
     repository: quay.io/rhpds/babylon-notifier
     pullPolicy: IfNotPresent
-    tag: v0.8.0
+    tag: v0.8.1
   namespace:
     create: true
     name: babylon-notifier
