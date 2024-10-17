@@ -10,9 +10,13 @@
 
     <p>You will receive more information via email when the provisioning completes in about {{ provision_time_estimate }}.</p>
 
-    <p>Please note that the environment is set to auto-stop at {{ stop_timestamp }} and auto-destroy at {{ retirement_timestamp }}.</p>
+    <p>NOTICE:<br>
+    {% if stop_timestamp < retirement_timestamp %}
+    Your environment will auto-stop in {{ stop_timedelta_humanized }} at {{ stop_timestamp }}.<br>
+    {% endif %}
+    Your environment will expire and be deleted in {{ retirement_timedelta_humanized }} at {{ retirement_timestamp }}.</p>
 
-    <p>You can change the auto-stop and auto-destroy time in UI.</p>
+    <p>You can change the {% if stop_timestamp < retirement_timestamp %}auto-stop and {% endif %}auto-destroy time in the UI.</p>
 
     {% if service_url %}
     <p>You may manage your {{ catalog_namespace.display_name }} service at:<br>
