@@ -61,7 +61,7 @@ type CreateServiceRequestOpt = {
   endDate: Date;
   start?: CreateServiceRequestOptScheduleStartLifespan | CreateServiceRequestOptScheduleStartResource;
   useAutoDetach: boolean;
-  userEmail: string;
+  email: string;
   skippedSfdc: boolean;
 };
 
@@ -359,7 +359,7 @@ export async function createServiceRequest({
   endDate,
   usePoolIfAvailable,
   useAutoDetach,
-  userEmail,
+  email,
   skippedSfdc,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
@@ -373,7 +373,7 @@ export async function createServiceRequest({
       annotations: {
         [`${BABYLON_DOMAIN}/catalogDisplayName`]: catalogNamespaceName || catalogItem.metadata.namespace,
         [`${BABYLON_DOMAIN}/catalogItemDisplayName`]: displayName(catalogItem),
-        [`${DEMO_DOMAIN}/requester`]: userEmail,
+        [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
         [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}-${suffix}`,
@@ -488,7 +488,7 @@ export async function createWorkshop({
   stopDate,
   endDate,
   startDate,
-  userEmail,
+  email,
   parameterValues,
   skippedSfdc,
 }: {
@@ -501,7 +501,7 @@ export async function createWorkshop({
   endDate?: Date;
   stopDate?: Date;
   startDate?: Date;
-  userEmail: string;
+  email: string;
   parameterValues: any;
   skippedSfdc: boolean;
 }): Promise<Workshop> {
@@ -527,7 +527,7 @@ export async function createWorkshop({
           ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.info) }
           : {}),
         [`${DEMO_DOMAIN}/scheduled`]: startDate ? 'true' : 'false',
-        [`${DEMO_DOMAIN}/requester`]: userEmail,
+        [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
       },
     },

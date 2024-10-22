@@ -183,7 +183,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         ...(scheduled !== null ? { stopDate: scheduled.stopDate } : { stopDate: formState.stopDate }),
         ...(scheduled !== null ? { endDate: scheduled.endDate } : { endDate: formState.endDate }),
         ...(scheduled !== null ? { startDate: scheduled.startDate } : {}),
-        userEmail: email,
+        email,
         parameterValues,
         skippedSfdc: formState.salesforceId.skip,
       });
@@ -238,7 +238,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               },
             }
           : {}),
-        userEmail: email,
+        email,
         skippedSfdc: formState.salesforceId.skip,
       });
 
