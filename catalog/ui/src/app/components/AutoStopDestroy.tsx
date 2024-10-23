@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
-import { checkResourceClaimCanStop, isResourceClaimPartOfWorkshop } from '@app/util';
+import { canExecuteAction, checkResourceClaimCanStop, isResourceClaimPartOfWorkshop } from '@app/util';
 import { ResourceClaim } from '@app/types';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import LocalTimestamp from './LocalTimestamp';
@@ -33,7 +33,14 @@ const AutoStopDestroy: React.FC<{
   let isDisabled = _isDisabled;
 
   if (type === 'auto-stop') {
-    if (!checkResourceClaimCanStop(resourceClaim)) {
+    const canStop = !!(resourceClaim?.status?.resources || []).find((r) => {
+      const state = r.state;
+      if (!state) {
+        return false;
+      }
+      return canExecuteAction(state, 'stop');
+    });
+    if (!canStop) {
       return (
         <Tooltip position="right" content={<div>This Catalog Item does not support Auto-Stop</div>}>
           <Button
