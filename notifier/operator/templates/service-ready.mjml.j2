@@ -14,7 +14,9 @@
     <p>Always refer to the instructions to understand how to properly access and navigate your environment.</p>
 
     <p>NOTICE:<br>
+    {% if stop_timestamp < retirement_timestamp %}
     Your environment will be stopped in {{ stop_timedelta_humanized }} at {{ stop_timestamp }}.<br>
+    {% endif %}
     Your environment will expire and be deleted in {{ retirement_timedelta_humanized }} at {{ retirement_timestamp }}.</p>
 
     <p>In order to conserve resources, we cannot archive or restore any data in this environment.

@@ -9,7 +9,9 @@
     <p>
       <b>NOTICE:</b><br>
       <ul>
+        {% if stop_timestamp < retirement_timestamp %}
         <li>Your environment will be stopped in {{ stop_timedelta_humanized }} at {{ stop_timestamp }}.</li>
+        {% endif %}
         <li>Your environment will expire and be deleted in {{ retirement_timedelta_humanized }} at {{ retirement_timestamp }}.</li>
       </ul>
     </p>
