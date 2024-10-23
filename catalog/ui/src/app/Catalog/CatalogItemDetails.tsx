@@ -41,6 +41,7 @@ import {
   compareK8sObjectsArr,
   CATALOG_MANAGER_DOMAIN,
   getStageFromK8sObject,
+  calculateUptimePercentage,
 } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import TimeInterval from '@app/components/TimeInterval';
@@ -374,6 +375,17 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
+
+              <DescriptionListGroup className="catalog-item-details__uptime">
+                <DescriptionListTerm>Uptime</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {`${
+                    catalogItemIncident
+                      ? calculateUptimePercentage(catalogItemIncident.created_at, catalogItemIncident.downtime_hours)
+                      : 100
+                  }%`}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
 
               {lastUpdate && lastUpdate.git ? (
                 <DescriptionListGroup className="catalog-item-details__last-update">
