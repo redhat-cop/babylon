@@ -42,18 +42,18 @@ const AutoStopDestroy: React.FC<{
     });
     if (!canStop && resourceClaim?.status?.resources && resourceClaim?.status?.resources.length > 0) {
       return (
-        <Tooltip position="right" content={<div>This Catalog Item does not support Auto-Stop</div>}>
-          <Button
-            variant="control"
-            isDisabled={true}
-            icon={<OutlinedClockIcon />}
-            iconPosition="right"
-            className={className}
-            size="sm"
-          >
+        <Button
+          variant="control"
+          isDisabled={true}
+          icon={<OutlinedClockIcon />}
+          iconPosition="right"
+          className={className}
+          size="sm"
+        >
+          <Tooltip position="right" content={<div>This Catalog Item does not support Auto-Stop</div>}>
             <span style={{ marginRight: 'var(--pf-v5-global--spacer--sm)' }}>Auto-Stop disabled</span>
-          </Button>
-        </Tooltip>
+          </Tooltip>
+        </Button>
       );
     }
   }
