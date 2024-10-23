@@ -40,7 +40,7 @@ const AutoStopDestroy: React.FC<{
       }
       return canExecuteAction(state, 'stop');
     });
-    if (!canStop) {
+    if (!canStop && resourceClaim?.status?.resources.length > 0) {
       return (
         <Tooltip position="right" content={<div>This Catalog Item does not support Auto-Stop</div>}>
           <Button
