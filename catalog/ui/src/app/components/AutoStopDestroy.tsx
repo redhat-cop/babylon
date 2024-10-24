@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button } from '@patternfly/react-core';
-import { checkResourceClaimCanStop, isResourceClaimPartOfWorkshop } from '@app/util';
+import { Button, Tooltip } from '@patternfly/react-core';
+import { canExecuteAction, checkResourceClaimCanStop, isResourceClaimPartOfWorkshop } from '@app/util';
 import { ResourceClaim } from '@app/types';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import LocalTimestamp from './LocalTimestamp';
@@ -31,6 +31,32 @@ const AutoStopDestroy: React.FC<{
 }) => {
   let time = _time;
   let isDisabled = _isDisabled;
+
+  if (type === 'auto-stop') {
+    const canStop = !!(resourceClaim?.status?.resources || []).find((r) => {
+      const state = r.state;
+      if (!state) {
+        return false;
+      }
+      return canExecuteAction(state, 'stop');
+    });
+    if (!canStop && resourceClaim?.status?.resources && resourceClaim?.status?.resources.length > 0) {
+      return (
+        <Button
+          variant="control"
+          isDisabled={true}
+          icon={<OutlinedClockIcon />}
+          iconPosition="right"
+          className={className}
+          size="sm"
+        >
+          <Tooltip position="right" content={<div>This Catalog Item does not support Auto-Stop</div>}>
+            <span style={{ marginRight: 'var(--pf-v5-global--spacer--sm)' }}>Auto-Stop disabled</span>
+          </Tooltip>
+        </Button>
+      );
+    }
+  }
 
   if (!time) {
     return notDefinedMessage ? (
