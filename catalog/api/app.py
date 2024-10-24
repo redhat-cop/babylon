@@ -28,6 +28,7 @@ ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-rati
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
 response_cache = {}
+response_cache_clean_task = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 
@@ -84,7 +85,7 @@ async def api_proxy(method, url, headers, data=None, params=None):
         )
 
 async def on_startup(app):
-    global app_api_client, babylon_namespace, console_url, core_v1_api, custom_objects_api, redis_connection
+    global app_api_client, babylon_namespace, console_url, core_v1_api, custom_objects_api, redis_connection, response_cache_clean_task
     if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
         kubernetes_asyncio.config.load_incluster_config()
         if not babylon_namespace:
@@ -114,7 +115,11 @@ async def on_startup(app):
             username = os.environ.get('REDIS_USER', 'default'),
         )
 
+    response_cache_clean_task = asyncio.create_task(response_cache_clean())
+
 async def on_cleanup(app):
+    response_cache_clean_task.cancel()
+    await response_cache_clean_task
     await app_api_client.close()
 
 async def check_admin_access(api_client):
@@ -846,6 +851,18 @@ async def openshift_api_proxy(request):
             )
     finally:
         await api_client.close()
+
+async def response_cache_clean():
+    """Periodically remove old cache entries to avoid memory leak."""
+    try:
+        while True:
+            for key, value in list(response_cache.items()):
+                cache_time = value[1]
+                if time() - cache_time > 60:
+                    response_cache.pop(key, None)
+            await asyncio.sleep(60)
+    except asyncio.CancelledError:
+        return
 
 
 app = web.Application()
