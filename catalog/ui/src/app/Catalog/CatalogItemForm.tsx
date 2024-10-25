@@ -72,7 +72,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const [isLoading, setIsLoading] = useState(false);
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
   const { userImpersonated } = useImpersonateUser();
-  const { sfdc_search_enabled } = useInterfaceConfig();
+  const { sfdc_enabled } = useInterfaceConfig();
   let userEmail = email;
   if (userImpersonated) {
     userEmail = userImpersonated;
@@ -367,127 +367,127 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               }}
             />
 
-            <FormGroup
-              fieldId="salesforce_id"
-              isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
-              label={
-                <span>
-                  Salesforce ID{' '}
-                  <span
-                    style={{
-                      fontSize: 'var(--pf-v5-global--FontSize--xs)',
-                      color: 'var(--pf-v5-global--palette--black-600)',
-                      fontStyle: 'italic',
-                      fontWeight: 400,
-                    }}
-                  >
-                    (Opportunity ID, Campaign ID, CDH Party or Project ID)
+            {sfdc_enabled ? (
+              <FormGroup
+                fieldId="salesforce_id"
+                isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
+                label={
+                  <span>
+                    Salesforce ID{' '}
+                    <span
+                      style={{
+                        fontSize: 'var(--pf-v5-global--FontSize--xs)',
+                        color: 'var(--pf-v5-global--palette--black-600)',
+                        fontStyle: 'italic',
+                        fontWeight: 400,
+                      }}
+                    >
+                      (Opportunity ID, Campaign ID, CDH Party or Project ID)
+                    </span>
                   </span>
-                </span>
-              }
-            >
-              <div>
-                <div className="catalog-item-form__group-control--single" style={{ paddingBottom: '16px' }}>
-                  <Radio
-                    isChecked={'campaign' === formState.salesforceId.type}
-                    name="sfdc-type"
-                    onChange={() => {
-                      dispatchFormState({
-                        type: 'salesforceId',
-                        salesforceId: {
-                          ...formState.salesforceId,
-                          value: formState.salesforceId.value,
-                          type: 'campaign',
-                          valid: false,
-                        },
-                      });
-                    }}
-                    label="Campaign"
-                    id="sfdc-type-campaign"
-                  ></Radio>
-                  <Radio
-                    isChecked={'cdh' === formState.salesforceId.type}
-                    name="sfdc-type"
-                    onChange={() => {
-                      dispatchFormState({
-                        type: 'salesforceId',
-                        salesforceId: {
-                          ...formState.salesforceId,
-                          value: formState.salesforceId.value,
-                          type: 'cdh',
-                          valid: false,
-                        },
-                      });
-                    }}
-                    label="CDH"
-                    id="sfdc-type-cdh"
-                  ></Radio>
-                  <Radio
-                    isChecked={'opportunity' === formState.salesforceId.type}
-                    name="sfdc-type"
-                    onChange={() => {
-                      dispatchFormState({
-                        type: 'salesforceId',
-                        salesforceId: {
-                          ...formState.salesforceId,
-                          value: formState.salesforceId.value,
-                          type: 'opportunity',
-                          valid: false,
-                        },
-                      });
-                    }}
-                    label="Opportunity"
-                    id="sfdc-type-opportunity"
-                  ></Radio>
-                  <Radio
-                    isChecked={'project' === formState.salesforceId.type}
-                    name="sfdc-type"
-                    onChange={() => {
-                      dispatchFormState({
-                        type: 'salesforceId',
-                        salesforceId: {
-                          ...formState.salesforceId,
-                          value: formState.salesforceId.value,
-                          type: 'project',
-                          valid: false,
-                        },
-                      });
-                    }}
-                    label="Project"
-                    id="sfdc-type-project"
-                  ></Radio>
-                  <Tooltip
-                    position="right"
-                    content={<div>Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
-                  >
-                    <OutlinedQuestionCircleIcon
-                      aria-label="Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID."
-                      className="tooltip-icon-only"
+                }
+              >
+                <div>
+                  <div className="catalog-item-form__group-control--single" style={{ paddingBottom: '16px' }}>
+                    <Radio
+                      isChecked={'campaign' === formState.salesforceId.type}
+                      name="sfdc-type"
+                      onChange={() => {
+                        dispatchFormState({
+                          type: 'salesforceId',
+                          salesforceId: {
+                            ...formState.salesforceId,
+                            value: formState.salesforceId.value,
+                            type: 'campaign',
+                            valid: false,
+                          },
+                        });
+                      }}
+                      label="Campaign"
+                      id="sfdc-type-campaign"
+                    ></Radio>
+                    <Radio
+                      isChecked={'cdh' === formState.salesforceId.type}
+                      name="sfdc-type"
+                      onChange={() => {
+                        dispatchFormState({
+                          type: 'salesforceId',
+                          salesforceId: {
+                            ...formState.salesforceId,
+                            value: formState.salesforceId.value,
+                            type: 'cdh',
+                            valid: false,
+                          },
+                        });
+                      }}
+                      label="CDH"
+                      id="sfdc-type-cdh"
+                    ></Radio>
+                    <Radio
+                      isChecked={'opportunity' === formState.salesforceId.type}
+                      name="sfdc-type"
+                      onChange={() => {
+                        dispatchFormState({
+                          type: 'salesforceId',
+                          salesforceId: {
+                            ...formState.salesforceId,
+                            value: formState.salesforceId.value,
+                            type: 'opportunity',
+                            valid: false,
+                          },
+                        });
+                      }}
+                      label="Opportunity"
+                      id="sfdc-type-opportunity"
+                    ></Radio>
+                    <Radio
+                      isChecked={'project' === formState.salesforceId.type}
+                      name="sfdc-type"
+                      onChange={() => {
+                        dispatchFormState({
+                          type: 'salesforceId',
+                          salesforceId: {
+                            ...formState.salesforceId,
+                            value: formState.salesforceId.value,
+                            type: 'project',
+                            valid: false,
+                          },
+                        });
+                      }}
+                      label="Project"
+                      id="sfdc-type-project"
+                    ></Radio>
+                    <Tooltip
+                      position="right"
+                      content={<div>Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID."
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                  <div className="catalog-item-form__group-control--single">
+                    <TextInput
+                      type="text"
+                      key="salesforce_id"
+                      id="salesforce_id"
+                      onChange={(_event, value) =>
+                        dispatchFormState({
+                          type: 'salesforceId',
+                          salesforceId: { ...formState.salesforceId, value, valid: false },
+                        })
+                      }
+                      placeholder="Salesforce ID"
+                      value={formState.salesforceId.value || ''}
+                      validated={
+                        formState.salesforceId.value && formState.salesforceId.valid
+                          ? 'success'
+                          : formState.salesforceId.value && formState.conditionChecks.completed
+                          ? 'error'
+                          : 'default'
+                      }
                     />
-                  </Tooltip>
-                </div>
-                <div className="catalog-item-form__group-control--single">
-                  <TextInput
-                    type="text"
-                    key="salesforce_id"
-                    id="salesforce_id"
-                    onChange={(_event, value) =>
-                      dispatchFormState({
-                        type: 'salesforceId',
-                        salesforceId: { ...formState.salesforceId, value, valid: false },
-                      })
-                    }
-                    placeholder="Salesforce ID"
-                    value={formState.salesforceId.value || ''}
-                    validated={
-                      formState.salesforceId.value && formState.salesforceId.valid
-                        ? 'success'
-                        : formState.salesforceId.value && formState.conditionChecks.completed
-                        ? 'error'
-                        : 'default'
-                    }
-                  />
-                  {sfdc_search_enabled ? (
                     <div>
                       <Button
                         onClick={() => openSearchSalesforceIdModal(true)}
@@ -497,60 +497,62 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         Search
                       </Button>
                     </div>
-                  ) : null}
-                  <Tooltip
-                    position="right"
-                    content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
-                  >
-                    <OutlinedQuestionCircleIcon
-                      aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
-                      className="tooltip-icon-only"
-                    />
-                  </Tooltip>
-                </div>
-                {!formState.salesforceId.valid && formState.conditionChecks.completed ? (
-                  <FormHelperText>{formState.salesforceId.message}</FormHelperText>
-                ) : purposeObj && purposeObj.sfdcRequired ? (
-                  <FormHelperText>A valid Salesforce ID is required for the selected activity / purpose</FormHelperText>
-                ) : null}
-                <div>
-                  <div className="catalog-item-form__group-control--single" style={{ paddingTop: '16px' }}>
-                    <Checkbox
-                      id="skip-salesforce-id"
-                      name="skip-salesforce-id"
-                      label="I'll provide the Salesforce ID within 48 hours."
-                      isChecked={formState.salesforceId.skip}
-                      onChange={(_event: any, checked: boolean) =>
-                        dispatchFormState({
-                          type: 'salesforceId',
-                          salesforceId: {
-                            ...formState.salesforceId,
-                            value: formState.salesforceId.value,
-                            skip: checked,
-                          },
-                        })
-                      }
-                    />
                     <Tooltip
                       position="right"
-                      content={
-                        <div>
-                          By checking this box, you agree to provide the required number within 48 hours, in alignment
-                          with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely
-                          submission of this information, as it is essential for the integrity and compliance of our
-                          processes.
-                        </div>
-                      }
+                      content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="By checking this box, you agree to provide the required number within 48 hours, in alignment with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely submission of this information, as it is essential for the integrity and compliance of our processes."
+                        aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
                   </div>
+                  {!formState.salesforceId.valid && formState.conditionChecks.completed ? (
+                    <FormHelperText>{formState.salesforceId.message}</FormHelperText>
+                  ) : purposeObj && purposeObj.sfdcRequired ? (
+                    <FormHelperText>
+                      A valid Salesforce ID is required for the selected activity / purpose
+                    </FormHelperText>
+                  ) : null}
+                  <div>
+                    <div className="catalog-item-form__group-control--single" style={{ paddingTop: '16px' }}>
+                      <Checkbox
+                        id="skip-salesforce-id"
+                        name="skip-salesforce-id"
+                        label="I'll provide the Salesforce ID within 48 hours."
+                        isChecked={formState.salesforceId.skip}
+                        onChange={(_event: any, checked: boolean) =>
+                          dispatchFormState({
+                            type: 'salesforceId',
+                            salesforceId: {
+                              ...formState.salesforceId,
+                              value: formState.salesforceId.value,
+                              skip: checked,
+                            },
+                          })
+                        }
+                      />
+                      <Tooltip
+                        position="right"
+                        content={
+                          <div>
+                            By checking this box, you agree to provide the required number within 48 hours, in alignment
+                            with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely
+                            submission of this information, as it is essential for the integrity and compliance of our
+                            processes.
+                          </div>
+                        }
+                      >
+                        <OutlinedQuestionCircleIcon
+                          aria-label="By checking this box, you agree to provide the required number within 48 hours, in alignment with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely submission of this information, as it is essential for the integrity and compliance of our processes."
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </FormGroup>
+              </FormGroup>
+            ) : null}
           </>
         ) : null}
         {formState.formGroups.map((formGroup, formGroupIdx) => {
@@ -563,13 +565,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             (parameter) =>
               !parameter.isDisabled && (parameter.isValid === false || parameter.validationResult === false)
           );
-          // status is error if found an invalid parameter
-          // status is success if all form group parameters are validated.
-          const status: 'default' | 'error' | 'success' | 'warning' = invalidParameter
-            ? 'error'
-            : formGroup.parameters.every((parameter) => parameter.isValid && parameter.validationResult)
-            ? 'success'
-            : 'default';
 
           return (
             <FormGroup

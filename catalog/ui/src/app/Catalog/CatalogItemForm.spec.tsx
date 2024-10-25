@@ -4,8 +4,6 @@ import CatalogItemForm from './CatalogItemForm';
 import catalogItemObj from '../__mocks__/catalogItem.json';
 import userEvent from '@testing-library/user-event';
 import { CatalogItem, ServiceNamespace, UserNamespace } from '@app/types';
-import useSession from '@app/utils/useSession';
-import useHelpLink from '@app/utils/useHelpLink';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
@@ -32,8 +30,20 @@ jest.mock('@app/utils/useSession', () =>
         userNamespace: namespace as UserNamespace,
         groups: ['rhpds-devs', 'rhpds-admins'],
       }),
-  })),
+  }))
 );
+jest.mock('@app/utils/useInterfaceConfig', () => {
+  return jest.fn(() => ({
+    incidents_enabled: false,
+    ratings_enabled: false,
+    status_page_id: '123',
+    status_page_url: 'https://redhat.com',
+    help_text: '',
+    help_link: '',
+    internal_help_link: '',
+    sfdc_enabled: true,
+  }));
+});
 jest.mock('@app/utils/useHelpLink', () => {
   return jest.fn(() => 'https://red.ht/open-support');
 });
@@ -66,12 +76,12 @@ describe('CatalogItemForm Component', () => {
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
-      }),
+      })
     );
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
-      'input[type="checkbox"]',
+      'input[type="checkbox"]'
     );
     expect(termsOfServiceAck).not.toBeChecked();
     fireEvent.click(termsOfServiceAck);
@@ -88,7 +98,7 @@ describe('CatalogItemForm Component', () => {
     const { queryByText, getByLabelText } = render(<CatalogItemForm />);
 
     const sfidLabel = await waitFor(() =>
-      getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)'),
+      getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)')
     );
     const sfidTypeDescriptionText = 'Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.';
     expect(queryByText(sfidTypeDescriptionText)).not.toBeInTheDocument();
@@ -123,13 +133,13 @@ describe('CatalogItemForm Component', () => {
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
-      }),
+      })
     );
 
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
-      'input[type="checkbox"]',
+      'input[type="checkbox"]'
     );
 
     fireEvent.click(termsOfServiceAck);
