@@ -220,7 +220,7 @@ const Header: React.FC<{
           aria-label="Global navigation"
           isSidebarOpen={isNavOpen}
           onSidebarToggle={isMobileView ? onNavToggleMobile : onNavToggle}
-          id="vertical-nav-toggle"
+          id="nav-toggle"
         >
           <BarsIcon color={theme === 'dark' ? '#fff' : '#151515'} id="nav-toggle" />
         </PageToggleButton>
