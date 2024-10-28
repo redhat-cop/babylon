@@ -127,7 +127,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.32.12
+        tag: v0.32.13
       replicaCount: 1
       resources:
         requests:
@@ -163,7 +163,7 @@ notifier:
   image:
     repository: quay.io/rhpds/babylon-notifier
     pullPolicy: IfNotPresent
-    tag: v0.8.2
+    tag: v0.8.3
   namespace:
     create: true
     name: babylon-notifier
