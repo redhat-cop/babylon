@@ -30,7 +30,7 @@ import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
 import useHelpLink from '@app/utils/useHelpLink';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
-import BarsIcon from '@patternfly/react-icons/dist/esm/icons/bars-icon';
+import BarsIcon from '@patternfly/react-icons/dist/js/icons/bars-icon';
 
 import './header.css';
 
