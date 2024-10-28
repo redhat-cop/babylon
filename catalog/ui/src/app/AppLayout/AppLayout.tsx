@@ -36,8 +36,10 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     setIsMobileView(props.mobileView);
   };
 
-  const { data: partnerHeaderHtml } = useSWRImmutable<any>(
-    'https://connect.redhat.com/en/api/chrome/authenticated/3.0/universal_and_primary',
+  const { data: partnerHeaderHtml } = useSWRImmutable<string>(
+    partner_connect_header_enabled
+      ? 'https://connect.redhat.com/en/api/chrome/authenticated/3.0/universal_and_primary'
+      : null,
     publicFetcher
   );
 
