@@ -222,7 +222,7 @@ const Header: React.FC<{
           onSidebarToggle={isMobileView ? onNavToggleMobile : onNavToggle}
           id="vertical-nav-toggle"
         >
-          <BarsIcon color={theme === 'dark' ? '#fff' : '#151515'} />
+          <BarsIcon color={theme === 'dark' ? '#fff' : '#151515'} id="nav-toggle" />
         </PageToggleButton>
       </MastheadToggle>
       <MastheadMain>
