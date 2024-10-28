@@ -42,6 +42,7 @@ jest.mock('@app/utils/useInterfaceConfig', () => {
     help_link: '',
     internal_help_link: '',
     sfdc_enabled: true,
+    partner_connect_header_enabled: false,
   }));
 });
 jest.mock('@app/utils/useHelpLink', () => {

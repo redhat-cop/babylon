@@ -13,6 +13,8 @@ jest.mock('@app/utils/useInterfaceConfig', () => {
     help_link: '',
     help_text: '',
     internal_help_link: '',
+    sfdc_enabled: true,
+    partner_connect_header_enabled: false,
   }));
 });
 
@@ -34,7 +36,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />,
+      />
     );
     const testVar = getByText('Actions');
     await waitFor(() => expect(testVar).toBeInTheDocument());
@@ -57,7 +59,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />,
+      />
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
@@ -81,7 +83,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />,
+      />
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
@@ -105,7 +107,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />,
+      />
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
@@ -129,7 +131,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />,
+      />
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
@@ -153,7 +155,7 @@ describe('ServiceActions', () => {
           start: () => openStartModal('resourceClaim', 'start'),
           stop: () => openStopModal('resourceClaim', 'stop'),
         }}
-      />,
+      />
     );
     const button = screen.getByText('Actions');
     fireEvent.click(button);
