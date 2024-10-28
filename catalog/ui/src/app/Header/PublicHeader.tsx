@@ -21,7 +21,7 @@ const PublicHeader: React.FC = () => {
   const navigate = useNavigate();
 
   function LogoImg() {
-    return <UserInterfaceLogo onClick={() => navigate('/')} style={{ width: '278px' }} />;
+    return <UserInterfaceLogo theme="dark" onClick={() => navigate('/')} style={{ width: '278px' }} />;
   }
   const openSupportCase = (e: { preventDefault: () => void }) => {
     e.preventDefault();
