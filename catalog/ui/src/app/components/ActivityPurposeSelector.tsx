@@ -77,7 +77,7 @@ const ActivityPurposeSelector: React.FC<{
               {purposeOpts
                 .filter(
                   (purposeOpt) =>
-                    [...activityOpts.keys()].find((actName) => actName === purposeOpt.activity) === activity,
+                    [...activityOpts.keys()].find((actName) => actName === purposeOpt.activity) === activity
                 )
                 .map((purposeOpt) => (
                   <SelectOption
@@ -92,7 +92,8 @@ const ActivityPurposeSelector: React.FC<{
                 ))}
             </Select>
           </div>
-          {purpose && purpose === 'Other' ? (
+          {purposeOpts.find((p) => p.name === purpose) &&
+          purposeOpts.find((p) => p.name === purpose).requireUserInput ? (
             <div className="catalog-item-form__group-control--single">
               <div className="select-wrapper">
                 <TextInput
