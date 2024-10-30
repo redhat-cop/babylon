@@ -449,5 +449,5 @@ export function calculateUptimePercentage(downtimeHours: number) {
   const uptimeHours = Math.max(0, totalTimeHours - downtimeHours);
   const uptimePercentage = (uptimeHours / totalTimeHours) * 100;
 
-  return uptimePercentage.toFixed(2);
+  return uptimePercentage;
 }

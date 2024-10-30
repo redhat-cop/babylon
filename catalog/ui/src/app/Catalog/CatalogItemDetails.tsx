@@ -66,6 +66,7 @@ import useHelpLink from '@app/utils/useHelpLink';
 import useSWRImmutable from 'swr/immutable';
 
 import './catalog-item-details.css';
+import UptimeDisplay from '@app/components/UptimeDisplay';
 
 enum CatalogItemAccess {
   Allow,
@@ -379,7 +380,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               <DescriptionListGroup className="catalog-item-details__uptime">
                 <DescriptionListTerm>Uptime</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {`${catalogItemIncident ? calculateUptimePercentage(catalogItemIncident.downtime_hours) : 100}%`}
+                  <UptimeDisplay
+                    uptime={catalogItemIncident ? calculateUptimePercentage(catalogItemIncident.downtime_hours) : 100}
+                  />
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
