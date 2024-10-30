@@ -14,7 +14,6 @@ const UptimeDisplay: React.FC<UptimeDisplayProps> = ({ uptime }) => {
 
   return (
     <div style={styles.container}>
-      <h3>Service Uptime</h3>
       <div
         style={{
           ...styles.progressBar,
@@ -34,7 +33,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     maxWidth: '400px',
     margin: '20px auto',
     textAlign: 'center',
-    fontFamily: 'Arial, sans-serif',
+    display: 'flex',
+    flexDirection: 'row'
   },
   progressBar: {
     height: '20px',
@@ -42,7 +42,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     transition: 'width 0.5s ease',
   },
   uptimeText: {
-    fontSize: '1.2em',
+    fontSize: '12px',
     fontWeight: 'bold',
     marginTop: '10px',
   },
