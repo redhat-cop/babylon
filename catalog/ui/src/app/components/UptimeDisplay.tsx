@@ -21,7 +21,7 @@ const UptimeDisplay: React.FC<UptimeDisplayProps> = ({ uptime }) => {
           width: `${uptime}%`,
         }}
       />
-      <p style={styles.uptimeText}>{Math.round(uptime)}%</p>
+      <p>{Math.round(uptime)}%</p>
     </div>
   );
 };
@@ -42,10 +42,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     height: '20px',
     borderRadius: '5px',
     transition: 'width 0.5s ease',
-  },
-  uptimeText: {
-    fontSize: '12px',
-    fontWeight: 'bold',
   },
 };
 
