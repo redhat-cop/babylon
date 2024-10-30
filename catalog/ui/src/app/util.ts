@@ -439,11 +439,12 @@ export function generateRandom5CharsSuffix() {
   return result;
 }
 
-export function calculateUptimePercentage(creationDate: string, downtimeHours: number) {
-  const creationTime = new Date(creationDate).getTime();
+export function calculateUptimePercentage(downtimeHours: number) {
+  const date = new Date();
+  date.setMonth(date.getMonth() - 3);
   const currentTime = new Date().getTime();
   // Calculate the total uptime period in hours
-  const totalTimeHours = (currentTime - creationTime) / (1000 * 60 * 60);
+  const totalTimeHours = (currentTime - date.getTime()) / (1000 * 60 * 60);
   // Ensure that downtime does not exceed total time
   const uptimeHours = Math.max(0, totalTimeHours - downtimeHours);
   const uptimePercentage = (uptimeHours / totalTimeHours) * 100;
