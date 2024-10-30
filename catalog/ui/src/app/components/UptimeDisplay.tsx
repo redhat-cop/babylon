@@ -21,7 +21,7 @@ const UptimeDisplay: React.FC<UptimeDisplayProps> = ({ uptime }) => {
           width: `${uptime}%`,
         }}
       />
-      <p style={styles.uptimeText}>{uptime.toFixed(2)}%</p>
+      <p style={styles.uptimeText}>{Math.round(uptime)}%</p>
     </div>
   );
 };
@@ -31,10 +31,12 @@ const styles: { [key: string]: React.CSSProperties } = {
   container: {
     width: '100%',
     maxWidth: '400px',
-    margin: '20px auto',
+    margin: '2px auto',
     textAlign: 'center',
     display: 'flex',
-    flexDirection: 'row'
+    flexDirection: 'row',
+    gap: '6px',
+    paddingRight: '8px'
   },
   progressBar: {
     height: '20px',
@@ -44,7 +46,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   uptimeText: {
     fontSize: '12px',
     fontWeight: 'bold',
-    marginTop: '10px',
   },
 };
 
