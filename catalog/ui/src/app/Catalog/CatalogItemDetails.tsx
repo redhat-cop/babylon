@@ -379,11 +379,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               <DescriptionListGroup className="catalog-item-details__uptime">
                 <DescriptionListTerm>Uptime</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {`${
-                    catalogItemIncident
-                      ? calculateUptimePercentage(catalogItemIncident.created_at, catalogItemIncident.downtime_hours)
-                      : 100
-                  }%`}
+                  {`${catalogItemIncident ? calculateUptimePercentage(catalogItemIncident.downtime_hours) : 100}%`}
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
