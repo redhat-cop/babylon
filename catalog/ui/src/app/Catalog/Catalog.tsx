@@ -64,9 +64,9 @@ import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogContent from './CatalogContent';
 import IncidentsBanner from '@app/components/IncidentsBanner';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import LoadingSection from '@app/components/LoadingSection';
 
 import './catalog.css';
-import LoadingSection from '@app/components/LoadingSection';
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -334,7 +334,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   );
 
   const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
-    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ stage: catalogNamespaceName ? catalogNamespaceName : null }),
+    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ stage: catalogNamespaceName ? catalogNamespaceName : 'all' }),
     fetcher,
     {
       suspense: false,
@@ -342,7 +342,9 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     }
   );
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
-    apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs' }),
+    apiPaths.CATALOG_ITEMS({
+      namespace: catalogNamespaceName ? catalogNamespaceName.split('-').slice(-1) : 'all-catalogs',
+    }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
 
