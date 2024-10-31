@@ -26,6 +26,8 @@ spec:
       containers:
       - name: notifier
         env:
+        - name: SMTP_SENDER
+          value: {{ required ".Values.notifier.smtp.sender is required!" $notifier.smtp.sender | quote }}
         - name: SMTP_FROM
           value: {{ required ".Values.notifier.smtp.from is required!" $notifier.smtp.from | quote }}
         - name: SMTP_HOST
