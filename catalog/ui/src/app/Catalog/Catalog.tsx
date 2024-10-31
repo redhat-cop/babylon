@@ -334,7 +334,9 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   );
 
   const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
-    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({ stage: catalogNamespaceName ? catalogNamespaceName : 'all' }),
+    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({
+      stage: catalogNamespaceName ? catalogNamespaceName.split('-').slice(-1) : 'all',
+    }),
     fetcher,
     {
       suspense: false,
@@ -343,7 +345,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   );
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({
-      namespace: catalogNamespaceName ? catalogNamespaceName.split('-').slice(-1) : 'all-catalogs',
+      namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs',
     }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
