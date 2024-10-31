@@ -35,6 +35,7 @@ redis_host = os.environ.get('REDIS_HOST', 'localhost')
 redis_password = os.environ.get('REDIS_PASSWORD', None)
 redis_port = int(os.environ.get('REDIS_PORT', 6379))
 smtp_from = os.environ.get('SMTP_FROM', None)
+smtp_sender = os.environ.get('SMTP_SENDER', None)
 smtp_host = os.environ.get('SMTP_HOST', None)
 smtp_port = int(os.environ.get('SMTP_PORT', 25))
 smtp_user = os.environ.get('SMTP_USER', None)
@@ -51,6 +52,8 @@ smtp_tls_validate_certs = os.environ.get('SMTP_TLS_VALIDATE_CERTS', 'true') != '
 # Only send messages to contact listed in ONLY_SEND_TO
 only_send_to = os.environ.get('ONLY_SEND_TO', None)
 
+if not smtp_sender:
+    raise Exception('Environment variable SMTP_SENDER must be set')
 if not smtp_from:
     raise Exception('Environment variable SMTP_FROM must be set')
 if not smtp_host:
@@ -809,7 +812,7 @@ async def send_notification_email(
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = email_subject
-    msg['From'] = resource_claim.email_from or f"{catalog_namespace.display_name} <{smtp_from}>"
+    msg['From'] = resource_claim.email_from or f"{smtp_sender} <{smtp_from}>"
     msg['To'] = ', '.join(to)
 
     msg.attach(MIMEText(html2text(email_body), 'plain'))

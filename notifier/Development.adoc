@@ -56,6 +56,7 @@ odo config set --env ONLY_SEND_TO="you@example.com"
 Configure SMTP variables:
 +
 ----------------------------------------------------
+odo config set --env SMTP_SENDER="OPENTLC"
 odo config set --env SMTP_FROM="noreply@opentlc.com"
 odo config set --env SMTP_HOST="mx00.opentlc.com"
 odo config set --env SMTP_PORT="19587"

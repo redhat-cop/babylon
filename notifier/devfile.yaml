@@ -27,6 +27,8 @@ components:
       value: babylon-notifier-redis
     - name: REDIS_PASSWORD
       value: p4ssw0rd
+    - name: SMTP_SENDER
+      value: Red Hat Demo Platform
     - name: SMTP_FROM
       value: noreply@opentlc.com
     - name: SMTP_HOST
