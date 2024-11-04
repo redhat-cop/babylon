@@ -21,6 +21,7 @@ type WorkshopProps = {
   provisionCount: number;
   provisionConcurrency: number;
   provisionStartDelay: number;
+  createTicket: boolean;
 };
 type FormState = {
   user: UserProps;

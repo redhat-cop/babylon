@@ -1,6 +1,7 @@
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { canExecuteAction, checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
 import { getAutoStopTime, getMinDefaultRuntime, getStartTime } from '@app/Services/service-utils';
+import parseDuration from 'parse-duration';
 
 export function isWorkshopStarted(workshop: Workshop, workshopProvisions: WorkshopProvision[]): boolean {
   const startTime = getWorkshopStartTime(workshop, workshopProvisions);
@@ -10,14 +11,14 @@ export function isWorkshopStarted(workshop: Workshop, workshopProvisions: Worksh
 export function getWorkshopStartTime(workshop: Workshop, workshopProvisions?: WorkshopProvision[]): number {
   // Lifespan start propagates from Workshop.
   if (workshop.spec.lifespan?.start) {
-    return Date.parse(workshop.spec.lifespan.start);
+    return Date.parse(workshop.spec.lifespan.start) + parseDuration('6h');
   }
 
   // If workshop does not have workshop start then check WorkshopProvisions
   const provisionsStartTime = workshopProvisions
     ? workshopProvisions
         .map((workshopProvision) =>
-          workshopProvision.spec.lifespan?.start ? Date.parse(workshopProvision.spec.lifespan.start) : null,
+          workshopProvision.spec.lifespan?.start ? Date.parse(workshopProvision.spec.lifespan.start) : null
         )
         .filter(Number)
     : [];
@@ -26,7 +27,7 @@ export function getWorkshopStartTime(workshop: Workshop, workshopProvisions?: Wo
 
 export function getWorkshopLifespan(
   workshop: Workshop,
-  workshopProvisions: WorkshopProvision[],
+  workshopProvisions: WorkshopProvision[]
 ): { start: number; end: number } {
   const endTime = workshop.spec.lifespan?.end ? Date.parse(workshop.spec.lifespan.end) : null;
   return { start: getWorkshopStartTime(workshop, workshopProvisions), end: endTime };
@@ -62,7 +63,7 @@ export function checkWorkshopCanStop(resourceClaims: ResourceClaim[] = []) {
 
 export function supportAction(
   resourceClaims: ResourceClaim[] = [],
-  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy',
+  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy'
 ) {
   function canResourceClaimExecuteAction(resourceClaim: ResourceClaim) {
     return !!(resourceClaim?.status?.resources || []).find((r) => {

@@ -972,7 +972,12 @@ export async function stopWorkshop(workshop: Workshop, date: Date = new Date()) 
   });
 }
 
-export async function startWorkshop(workshop: Workshop, dateString: string, resourceClaims: ResourceClaim[] = []) {
+export async function startWorkshop(
+  workshop: Workshop,
+  startDateString: string,
+  endDateString: string,
+  resourceClaims: ResourceClaim[] = []
+) {
   const now = new Date();
   let defaultRuntimes = [];
   for (const resourceClaim of resourceClaims) {
@@ -987,15 +992,11 @@ export async function startWorkshop(workshop: Workshop, dateString: string, reso
   const patch = {
     spec: {
       actionSchedule: {
-        start: dateToApiString(now),
-        stop: dateToApiString(
-          defaultRuntimes.length > 0
-            ? new Date(now.getTime() + Math.min(...defaultRuntimes))
-            : new Date(now.getTime() + 12 * 60 * 60 * 1000)
-        ),
+        start: startDateString || dateToApiString(now),
       },
       lifespan: {
-        start: dateString || dateToApiString(now),
+        start: startDateString || dateToApiString(now),
+        end: endDateString,
       },
     },
   };
