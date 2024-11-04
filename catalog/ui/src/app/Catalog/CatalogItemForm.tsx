@@ -26,8 +26,6 @@ import {
 } from '@patternfly/react-core';
 import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-
-import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import useSWRImmutable from 'swr/immutable';
 import {
   apiFetch,
@@ -58,9 +56,9 @@ import useImpersonateUser from '@app/utils/useImpersonateUser';
 import { SearchIcon } from '@patternfly/react-icons';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import DateTimePicker from '@app/components/DateTimePicker';
 
 import './catalog-item-form.css';
-import DateTimePicker from '@app/components/DateTimePicker';
 
 const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceName: string }> = ({
   catalogItemName,
