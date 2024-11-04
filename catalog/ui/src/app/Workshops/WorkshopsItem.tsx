@@ -61,9 +61,9 @@ import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopStarted } from '
 import Label from '@app/components/Label';
 import ProjectSelector from '@app/components/ProjectSelector';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import parseDuration from 'parse-duration';
 
 import './workshops-item.css';
-import parseDuration from 'parse-duration';
 
 export interface ModalState {
   action?:
