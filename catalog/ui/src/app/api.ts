@@ -993,6 +993,7 @@ export async function startWorkshop(
     spec: {
       actionSchedule: {
         start: startDateString || dateToApiString(now),
+        stop: endDateString,
       },
       lifespan: {
         start: startDateString || dateToApiString(now),
@@ -1023,11 +1024,7 @@ export async function startWorkshopServices(workshop: Workshop, resourceClaims: 
     spec: {
       actionSchedule: {
         start: dateToApiString(now),
-        stop: dateToApiString(
-          defaultRuntimes.length > 0
-            ? new Date(now.getTime() + Math.min(...defaultRuntimes))
-            : new Date(now.getTime() + 12 * 60 * 60 * 1000)
-        ),
+        stop: workshop.spec.lifespan,
       },
     },
   };
