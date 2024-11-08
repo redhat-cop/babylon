@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
-import { Checkbox, NumberInput, TextInput } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import {
+  Checkbox,
+  MenuToggle,
+  MenuToggleElement,
+  NumberInput,
+  Select,
+  SelectList,
+  SelectOption,
+  TextInput,
+} from '@patternfly/react-core';
 
 const DynamicFormInput: React.FC<{
   id?: string;
@@ -15,21 +23,26 @@ const DynamicFormInput: React.FC<{
     return (
       <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
         <Select
-          aria-label={parameter.description}
-          isDisabled={isDisabled}
           isOpen={isOpen}
-          onSelect={(event, value) => {
+          selected={value}
+          onSelect={(_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
             onChange(value);
             setIsOpen(false);
           }}
-          onToggle={() => setIsOpen((v) => !v)}
-          placeholderText={parameter.placeholderText || `- Select ${parameter.formLabel || parameter.name} -`}
-          selections={value}
-          variant={SelectVariant.single}
+          onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
+          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+            <MenuToggle ref={toggleRef} onClick={() => setIsOpen(!isOpen)} isExpanded={isOpen} isDisabled={isDisabled}>
+              {value}
+            </MenuToggle>
+          )}
+          shouldFocusToggleOnSelect
+          aria-label={parameter.description}
         >
-          {parameter.openAPIV3Schema['x-form-options'].map((enumValue) => (
-            <SelectOption key={enumValue} value={enumValue} />
-          ))}
+          <SelectList>
+            {parameter.openAPIV3Schema['x-form-options'].map((enumValue: string) => (
+              <SelectOption key={enumValue} value={enumValue} />
+            ))}
+          </SelectList>
         </Select>
       </div>
     );
@@ -37,21 +50,26 @@ const DynamicFormInput: React.FC<{
     return (
       <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
         <Select
-          aria-label={parameter.description}
-          isDisabled={isDisabled}
           isOpen={isOpen}
-          onSelect={(event, value) => {
+          selected={value}
+          onSelect={(_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
             onChange(value);
             setIsOpen(false);
           }}
-          onToggle={() => setIsOpen((v) => !v)}
-          placeholderText={parameter.placeholderText || `- Select ${parameter.formLabel || parameter.name} -`}
-          selections={value}
-          variant={SelectVariant.single}
+          onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
+          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+            <MenuToggle ref={toggleRef} onClick={() => setIsOpen(!isOpen)} isExpanded={isOpen} isDisabled={isDisabled}>
+              {value}
+            </MenuToggle>
+          )}
+          shouldFocusToggleOnSelect
+          aria-label={parameter.description}
         >
-          {parameter.openAPIV3Schema.enum.map((enumValue) => (
-            <SelectOption key={enumValue} value={enumValue} />
-          ))}
+          <SelectList>
+            {parameter.openAPIV3Schema.enum.map((enumValue: string) => (
+              <SelectOption key={enumValue} value={enumValue} />
+            ))}
+          </SelectList>
         </Select>
       </div>
     );
@@ -82,8 +100,8 @@ const DynamicFormInput: React.FC<{
             n < parameter.openAPIV3Schema.minimum
               ? parameter.openAPIV3Schema.minimum
               : n > parameter.openAPIV3Schema.maximum
-                ? parameter.openAPIV3Schema.maximum
-                : n,
+              ? parameter.openAPIV3Schema.maximum
+              : n
           );
         }}
         onMinus={() => onChange(parseInt(value) - 1)}
@@ -99,10 +117,10 @@ const DynamicFormInput: React.FC<{
       value === undefined || (!parameter.required && value === '')
         ? 'default'
         : textValidationResult
-          ? 'success'
-          : textValidationResult === false
-            ? 'error'
-            : 'default';
+        ? 'success'
+        : textValidationResult === false
+        ? 'error'
+        : 'default';
     return (
       <TextInput
         type="text"
