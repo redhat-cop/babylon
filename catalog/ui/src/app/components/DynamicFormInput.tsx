@@ -25,6 +25,12 @@ const DynamicFormInput: React.FC<{
         <Select
           isOpen={isOpen}
           selected={value}
+          maxMenuHeight={
+            (parameter.openAPIV3Schema?.['x-form-options'] || parameter.openAPIV3Schema?.enum).length > 10
+              ? '360px'
+              : null
+          }
+          style={{ overflowY: 'auto' }}
           onSelect={(_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
             onChange(value);
             setIsOpen(false);
