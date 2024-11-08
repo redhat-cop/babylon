@@ -592,7 +592,7 @@ async def catalog_item_active_incidents(request):
     stage = request.query.get("stage")
     queryString = ""
     if stage:
-        queryString = "?stage={stage}"
+        queryString = f"?stage={stage}"
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
