@@ -19,7 +19,7 @@ const DynamicFormInput: React.FC<{
   value?: any;
 }> = ({ id, isDisabled, onChange, parameter, validationResult, value }) => {
   const [isOpen, setIsOpen] = useState(false);
-  if (parameter.openAPIV3Schema?.['x-form-options']) {
+  if (parameter.openAPIV3Schema?.enum || parameter.openAPIV3Schema?.['x-form-options']) {
     return (
       <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
         <Select
@@ -31,7 +31,17 @@ const DynamicFormInput: React.FC<{
           }}
           onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
           toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-            <MenuToggle ref={toggleRef} onClick={() => setIsOpen(!isOpen)} isExpanded={isOpen} isDisabled={isDisabled}>
+            <MenuToggle
+              ref={toggleRef}
+              onClick={() => setIsOpen(!isOpen)}
+              isExpanded={isOpen}
+              isDisabled={isDisabled}
+              style={
+                {
+                  minWidth: '120px',
+                } as React.CSSProperties
+              }
+            >
               {value}
             </MenuToggle>
           )}
@@ -39,36 +49,13 @@ const DynamicFormInput: React.FC<{
           aria-label={parameter.description}
         >
           <SelectList>
-            {parameter.openAPIV3Schema['x-form-options'].map((enumValue: string) => (
-              <SelectOption key={enumValue} value={enumValue} />
-            ))}
-          </SelectList>
-        </Select>
-      </div>
-    );
-  } else if (parameter.openAPIV3Schema?.enum) {
-    return (
-      <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
-        <Select
-          isOpen={isOpen}
-          selected={value}
-          onSelect={(_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
-            onChange(value);
-            setIsOpen(false);
-          }}
-          onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
-          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-            <MenuToggle ref={toggleRef} onClick={() => setIsOpen(!isOpen)} isExpanded={isOpen} isDisabled={isDisabled}>
-              {value}
-            </MenuToggle>
-          )}
-          shouldFocusToggleOnSelect
-          aria-label={parameter.description}
-        >
-          <SelectList>
-            {parameter.openAPIV3Schema.enum.map((enumValue: string) => (
-              <SelectOption key={enumValue} value={enumValue} />
-            ))}
+            {(parameter.openAPIV3Schema?.['x-form-options'] || parameter.openAPIV3Schema?.enum).map(
+              (optionValue: string) => (
+                <SelectOption key={optionValue} value={optionValue}>
+                  {optionValue}
+                </SelectOption>
+              )
+            )}
           </SelectList>
         </Select>
       </div>
