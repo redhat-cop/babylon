@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
-import { Checkbox, NumberInput, TextInput } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import {
+  Checkbox,
+  MenuToggle,
+  MenuToggleElement,
+  NumberInput,
+  Select,
+  SelectList,
+  SelectOption,
+  TextInput,
+} from '@patternfly/react-core';
 
 const DynamicFormInput: React.FC<{
   id?: string;
@@ -11,47 +19,44 @@ const DynamicFormInput: React.FC<{
   value?: any;
 }> = ({ id, isDisabled, onChange, parameter, validationResult, value }) => {
   const [isOpen, setIsOpen] = useState(false);
-  if (parameter.openAPIV3Schema?.['x-form-options']) {
+  if (parameter.openAPIV3Schema?.enum || parameter.openAPIV3Schema?.['x-form-options']) {
     return (
       <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
         <Select
-          aria-label={parameter.description}
-          isDisabled={isDisabled}
           isOpen={isOpen}
-          onSelect={(event, value) => {
+          selected={value}
+          onSelect={(_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
             onChange(value);
             setIsOpen(false);
           }}
-          onToggle={() => setIsOpen((v) => !v)}
-          placeholderText={parameter.placeholderText || `- Select ${parameter.formLabel || parameter.name} -`}
-          selections={value}
-          variant={SelectVariant.single}
-        >
-          {parameter.openAPIV3Schema['x-form-options'].map((enumValue) => (
-            <SelectOption key={enumValue} value={enumValue} />
-          ))}
-        </Select>
-      </div>
-    );
-  } else if (parameter.openAPIV3Schema?.enum) {
-    return (
-      <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
-        <Select
+          onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
+          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+            <MenuToggle
+              ref={toggleRef}
+              onClick={() => setIsOpen(!isOpen)}
+              isExpanded={isOpen}
+              isDisabled={isDisabled}
+              style={
+                {
+                  minWidth: '120px',
+                } as React.CSSProperties
+              }
+            >
+              {value}
+            </MenuToggle>
+          )}
+          shouldFocusToggleOnSelect
           aria-label={parameter.description}
-          isDisabled={isDisabled}
-          isOpen={isOpen}
-          onSelect={(event, value) => {
-            onChange(value);
-            setIsOpen(false);
-          }}
-          onToggle={() => setIsOpen((v) => !v)}
-          placeholderText={parameter.placeholderText || `- Select ${parameter.formLabel || parameter.name} -`}
-          selections={value}
-          variant={SelectVariant.single}
         >
-          {parameter.openAPIV3Schema.enum.map((enumValue) => (
-            <SelectOption key={enumValue} value={enumValue} />
-          ))}
+          <SelectList>
+            {(parameter.openAPIV3Schema?.['x-form-options'] || parameter.openAPIV3Schema?.enum).map(
+              (optionValue: string) => (
+                <SelectOption key={optionValue} value={optionValue}>
+                  {optionValue}
+                </SelectOption>
+              )
+            )}
+          </SelectList>
         </Select>
       </div>
     );
@@ -82,8 +87,8 @@ const DynamicFormInput: React.FC<{
             n < parameter.openAPIV3Schema.minimum
               ? parameter.openAPIV3Schema.minimum
               : n > parameter.openAPIV3Schema.maximum
-                ? parameter.openAPIV3Schema.maximum
-                : n,
+              ? parameter.openAPIV3Schema.maximum
+              : n
           );
         }}
         onMinus={() => onChange(parseInt(value) - 1)}
@@ -99,10 +104,10 @@ const DynamicFormInput: React.FC<{
       value === undefined || (!parameter.required && value === '')
         ? 'default'
         : textValidationResult
-          ? 'success'
-          : textValidationResult === false
-            ? 'error'
-            : 'default';
+        ? 'success'
+        : textValidationResult === false
+        ? 'error'
+        : 'default';
     return (
       <TextInput
         type="text"
