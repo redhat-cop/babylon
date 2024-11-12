@@ -1,4 +1,3 @@
-import { Tooltip } from '@patternfly/react-core';
 import React from 'react';
 
 interface UptimeDisplayProps {
@@ -14,18 +13,16 @@ const UptimeDisplay: React.FC<UptimeDisplayProps> = ({ uptime }) => {
   };
 
   return (
-    <Tooltip position="right" content={<div>Last 90 days</div>}>
-        <div style={styles.container}>
-            <div
-                style={{
-                    ...styles.progressBar,
-                    backgroundColor: getColor(),
-                    width: `${uptime}%`,
-                }}
-            />
+      <div style={styles.container}>
+        <div
+          style={{
+              ...styles.progressBar,
+              backgroundColor: getColor(),
+              width: `${uptime}%`,
+          }}
+        />
         <p>{Math.round(uptime)}%</p>
-        </div>  
-    </Tooltip>
+      </div>  
   );
 };
 
