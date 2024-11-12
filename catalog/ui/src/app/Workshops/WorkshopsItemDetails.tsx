@@ -397,7 +397,7 @@ const WorkshopsItemDetails: React.FC<{
       ) : null}
       {serviceNowUrl ? (
         <DescriptionListGroup>
-          <DescriptionListTerm>Support Ticket</DescriptionListTerm>
+          <DescriptionListTerm>White-Glove Support</DescriptionListTerm>
           <DescriptionListDescription>
             {!editingServiceNow ? (
               <Button variant="secondary" onClick={() => window.open(serviceNowUrl)}>
@@ -431,9 +431,9 @@ const WorkshopsItemDetails: React.FC<{
               icon={editingServiceNow ? 'Save' : <PencilAltIcon />}
               style={{ marginRight: '16px' }}
             />
-            <Tooltip position="right" content={<p>ServiceNow support Ticket number.</p>}>
+            <Tooltip position="right" content={<p>ServiceNow White-Glove support ticket number.</p>}>
               <OutlinedQuestionCircleIcon
-                aria-label="ServiceNow support ticket number."
+                aria-label="ServiceNow White-Glove support ticket number."
                 className="tooltip-icon-only"
               />
             </Tooltip>

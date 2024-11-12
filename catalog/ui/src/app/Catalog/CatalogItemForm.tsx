@@ -940,8 +940,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   <div className="catalog-item-form__group-control--single">
                     <Switch
                       id="support-ticket-switch"
-                      aria-label="Open Support Ticket"
-                      label="Open Support Ticket"
+                      aria-label="Enable White-Glove Support"
+                      label="Enable White-Glove Support"
                       isChecked={formState.workshop.createTicket}
                       hasCheckIcon
                       onChange={(_event, isChecked) => {
