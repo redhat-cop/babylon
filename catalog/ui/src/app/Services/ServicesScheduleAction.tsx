@@ -75,7 +75,6 @@ const ServicesScheduleAction: React.FC<{
   if (isAdmin) {
     minMaxProps.maxDate = null;
   }
-  console.log(minMaxProps);
   const noAutoStopSwitchIsVisible =
     action === 'stop' && (minMaxProps.maxDate === null || minMaxProps.maxDate >= autoDestroyTime);
   const extendLifetimeMsgIsVisible = action === 'retirement' && minMaxProps.maxDate === null;
@@ -102,7 +101,7 @@ const ServicesScheduleAction: React.FC<{
           hasCheckIcon
           onChange={(_event, isChecked) => {
             if (isChecked) {
-              setSelectedDate(new Date(autoDestroyTime));
+              setSelectedDate(new Date(new Date().setFullYear(new Date().getFullYear() + 1)));
             } else {
               const _date = new Date(
                 Date.now() +

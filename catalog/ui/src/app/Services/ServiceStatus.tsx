@@ -25,7 +25,7 @@ export function getStatus(
       return { statusName: 'Unknown', phase: 'unknown' };
     }
   } else if (currentState === 'available') {
-    return { statusName: 'Available', phase: 'available' };
+    return { statusName: 'Available', phase: 'in-progress' };
   } else if (currentState === 'new') {
     return { statusName: 'New', phase: 'in-progress' };
   } else if (currentState === 'provision-pending') {
@@ -63,9 +63,9 @@ const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
   switch (phase) {
     case 'unknown':
       return <QuestionCircleIcon />;
+    case 'available':
     case 'in-progress':
       return <Spinner size="md" />;
-    case 'available':
     case 'running':
       return <CheckCircleIcon />;
     case 'stopped':

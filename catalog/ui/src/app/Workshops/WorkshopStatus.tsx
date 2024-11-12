@@ -72,7 +72,6 @@ const WorkshopStatus: React.FC<{
   return (
     <>
       {Object.entries(statusCount).map(([status, count]: [string, unknown]) => {
-        console.log(status)
         const { state, phase } = getPhaseState(status);
         return (
           <div key={state}>

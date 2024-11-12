@@ -72,7 +72,7 @@ const WorkshopScheduleAction: React.FC<{
           hasCheckIcon
           onChange={(_event, isChecked) => {
             if (isChecked) {
-              setSelectedDate(new Date(autoDestroyTime));
+              setSelectedDate(new Date(new Date().setFullYear(new Date().getFullYear() + 1)));
             } else {
               const _date = new Date(Date.now() + (getWorkshopDefaultRuntime(resourceClaims) || minDefault));
               const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;

@@ -26,8 +26,6 @@ import {
 } from '@patternfly/react-core';
 import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-
-import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import useSWRImmutable from 'swr/immutable';
 import {
   apiFetch,
@@ -58,6 +56,7 @@ import useImpersonateUser from '@app/utils/useImpersonateUser';
 import { SearchIcon } from '@patternfly/react-icons';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import DateTimePicker from '@app/components/DateTimePicker';
 
 import './catalog-item-form.css';
 
@@ -93,6 +92,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       provisionCount: 1,
       provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
       provisionStartDelay: 30,
+      createTicket: false,
     }),
     [catalogItem]
   );
@@ -129,13 +129,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }
   }, [dispatchFormState, formState, debouncedApiFetch]);
 
-  async function submitRequest(
-    {
-      scheduled,
-    }: {
-      scheduled: { startDate: Date; endDate: Date; stopDate: Date; createTicket?: boolean };
-    } = { scheduled: null }
-  ): Promise<void> {
+  async function submitRequest(): Promise<void> {
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
     }
@@ -180,9 +174,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         catalogItem: catalogItem,
         openRegistration: userRegistration === 'open',
         serviceNamespace: formState.serviceNamespace,
-        ...(scheduled !== null ? { stopDate: scheduled.stopDate } : { stopDate: formState.stopDate }),
-        ...(scheduled !== null ? { endDate: scheduled.endDate } : { endDate: formState.endDate }),
-        ...(scheduled !== null ? { startDate: scheduled.startDate } : {}),
+        stopDate: formState.stopDate,
+        endDate: formState.endDate,
+        startDate:
+          formState.startDate.getTime() > Date.now() + parseDuration('6h')
+            ? new Date(formState.startDate.getTime() - parseDuration('6h'))
+            : new Date(),
         email,
         parameterValues,
         skippedSfdc: formState.salesforceId.skip,
@@ -198,22 +195,20 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         useAutoDetach: formState.useAutoDetach,
         usePoolIfAvailable: formState.usePoolIfAvailable,
       });
-      if (scheduled !== null) {
-        try {
-          if (scheduled.createTicket) {
-            await openWorkshopSupportTicket(workshop, {
-              number_of_attendees: provisionCount,
-              sfdc: formState.salesforceId.value,
-              name: catalogItemName,
-              event_name: displayName,
-              url: `${window.location.origin}${redirectUrl}`,
-              start_date: scheduled.startDate,
-              end_date: scheduled.endDate,
-              email: userEmail,
-            });
-          }
-        } catch {}
-      }
+      try {
+        if (formState.workshop.createTicket) {
+          await openWorkshopSupportTicket(workshop, {
+            number_of_attendees: provisionCount,
+            sfdc: formState.salesforceId.value,
+            name: catalogItemName,
+            event_name: displayName,
+            url: `${window.location.origin}${redirectUrl}`,
+            start_date: formState.startDate,
+            end_date: formState.endDate,
+            email: userEmail,
+          });
+        }
+      } catch {}
       navigate(redirectUrl);
     } else {
       const resourceClaim = await createServiceRequest({
@@ -227,17 +222,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         useAutoDetach: formState.useAutoDetach,
         stopDate: formState.stopDate,
         endDate: formState.endDate,
-        ...(scheduled !== null
-          ? {
-              start: {
-                date: formState.startDate,
-                type: 'resource',
-                autoStop: new Date(
-                  scheduled.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h')
-                ),
-              },
-            }
-          : {}),
         email,
         skippedSfdc: formState.salesforceId.skip,
       });
@@ -257,30 +241,22 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         type={autoStopDestroyModal}
         autoStopDate={formState.stopDate}
         autoDestroyDate={formState.endDate}
-        autoStartDate={formState.startDate}
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
-        maxStartTimestamp={!!formState.workshop || !catalogItem.spec.lifespan ? null : Date.now() + maxAutoDestroyTime}
         maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : maxAutoStopTime}
         defaultRuntimeTimestamp={
           new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default)) > formState.endDate
             ? parseDuration('4h')
             : parseDuration(catalogItem.spec.runtime?.default)
         }
-        maxDestroyTimestamp={maxAutoDestroyTime}
-        isWorkshopEnabled={!!formState.workshop}
+        maxDestroyTimestamp={
+          isAdmin
+            ? null
+            : formState.workshop
+            ? formState.startDate.getTime() - Date.now() + parseDuration('5d')
+            : maxAutoDestroyTime
+        }
         onConfirm={(dates: TDates) =>
-          autoStopDestroyModal === 'schedule'
-            ? submitRequest({
-                scheduled: {
-                  startDate: dates.startDate,
-                  stopDate: new Date(
-                    dates.startDate.getTime() + parseDuration(catalogItem.spec.runtime?.default || '4h')
-                  ),
-                  endDate: dates.endDate,
-                  createTicket: dates.createTicket,
-                },
-              })
-            : autoStopDestroyModal === 'auto-destroy'
+          autoStopDestroyModal === 'auto-destroy'
             ? dispatchFormState({ type: 'dates', endDate: dates.endDate })
             : autoStopDestroyModal === 'auto-stop'
             ? dispatchFormState({ type: 'dates', stopDate: dates.stopDate })
@@ -614,34 +590,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           );
         })}
 
-        {isAutoStopDisabled(catalogItem) ? null : (
-          <FormGroup key="auto-stop" fieldId="auto-stop" label="Auto-stop">
-            <div className="catalog-item-form__group-control--single">
-              <AutoStopDestroy
-                type="auto-stop"
-                onClick={() => openAutoStopDestroyModal('auto-stop')}
-                className="catalog-item-form__auto-stop-btn"
-                time={formState.stopDate ? formState.stopDate.getTime() : null}
-                variant="extended"
-                destroyTimestamp={formState.endDate.getTime()}
-              />
-            </div>
-          </FormGroup>
-        )}
-
-        <FormGroup key="auto-destroy" fieldId="auto-destroy" label="Auto-destroy">
-          <div className="catalog-item-form__group-control--single">
-            <AutoStopDestroy
-              type="auto-destroy"
-              onClick={() => openAutoStopDestroyModal('auto-destroy')}
-              className="catalog-item-form__auto-destroy-btn"
-              time={formState.endDate.getTime()}
-              variant="extended"
-              destroyTimestamp={formState.endDate.getTime()}
-            />
-          </div>
-        </FormGroup>
-
         {!workshopUiDisabled ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
             <div className="catalog-item-form__group-control--single">
@@ -669,12 +617,32 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 }
                 isChecked={!!formState.workshop}
                 hasCheckIcon
-                onChange={(_event, isChecked) =>
+                onChange={(_event, isChecked) => {
                   dispatchFormState({
                     type: 'workshop',
                     workshop: isChecked ? workshopInitialProps : null,
-                  })
-                }
+                  });
+                  if (isChecked) {
+                    dispatchFormState({
+                      type: 'dates',
+                      startDate: new Date(),
+                      stopDate: new Date(
+                        Date.now() +
+                          parseDuration(
+                            formState.activity?.startsWith('Customer Facing')
+                              ? '365d'
+                              : catalogItem.spec.runtime?.default || '30h'
+                          )
+                      ),
+                      endDate: new Date(Date.now() + parseDuration('30h')),
+                    });
+                  } else {
+                    dispatchFormState({
+                      type: 'initDates',
+                      catalogItem,
+                    });
+                  }
+                }}
               />
               <Tooltip
                 position="right"
@@ -699,8 +667,99 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
+        {!isAutoStopDisabled(catalogItem) && !formState.workshop ? (
+          <FormGroup key="auto-stop" fieldId="auto-stop" label="Auto-stop">
+            <div className="catalog-item-form__group-control--single">
+              <AutoStopDestroy
+                type="auto-stop"
+                onClick={() => openAutoStopDestroyModal('auto-stop')}
+                className="catalog-item-form__auto-stop-btn"
+                time={formState.stopDate ? formState.stopDate.getTime() : null}
+                variant="extended"
+                destroyTimestamp={formState.endDate.getTime()}
+              />
+            </div>
+          </FormGroup>
+        ) : null}
+
+        {!formState.workshop ? (
+          <FormGroup key="auto-destroy" fieldId="auto-destroy" label="Auto-destroy">
+            <div className="catalog-item-form__group-control--single">
+              <AutoStopDestroy
+                type="auto-destroy"
+                onClick={() => openAutoStopDestroyModal('auto-destroy')}
+                className="catalog-item-form__auto-destroy-btn"
+                time={formState.endDate.getTime()}
+                variant="extended"
+                destroyTimestamp={formState.endDate.getTime()}
+              />
+            </div>
+          </FormGroup>
+        ) : null}
+
         {formState.workshop ? (
           <div className="catalog-item-form__workshop-form">
+            <FormGroup fieldId="workshopStartDate" isRequired label="Start Date">
+              <div className="catalog-item-form__group-control--single">
+                <DateTimePicker
+                  defaultTimestamp={Date.now()}
+                  onSelect={(d: Date) =>
+                    dispatchFormState({
+                      type: 'dates',
+                      startDate: d,
+                      stopDate: new Date(
+                        d.getTime() +
+                          parseDuration(
+                            formState.activity?.startsWith('Customer Facing')
+                              ? '365d'
+                              : catalogItem.spec.runtime?.default || '30h'
+                          )
+                      ),
+                      endDate: new Date(d.getTime() + parseDuration('30h')),
+                    })
+                  }
+                  minDate={Date.now()}
+                />
+                <Tooltip
+                  position="right"
+                  content={
+                    <p>
+                      Select the date you'd like the workshop to start. Note: Instances will begin provisioning 6 hours
+                      prior to the selected start date to ensure availability.
+                    </p>
+                  }
+                >
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Select the date you'd like the workshop to start. Note: Instances will begin provisioning 6 hours prior to the selected start date to ensure availability."
+                    className="tooltip-icon-only"
+                  />
+                </Tooltip>
+              </div>
+            </FormGroup>
+            <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
+              <div className="catalog-item-form__group-control--single">
+                <AutoStopDestroy
+                  type="auto-stop"
+                  onClick={() => openAutoStopDestroyModal('auto-stop')}
+                  className="catalog-item-form__auto-stop-btn"
+                  time={formState.stopDate.getTime()}
+                  variant="extended"
+                  destroyTimestamp={formState.endDate.getTime()}
+                />
+              </div>
+            </FormGroup>
+            <FormGroup key="auto-destroy" fieldId="auto-destroy" isRequired label="Auto-destroy">
+              <div className="catalog-item-form__group-control--single">
+                <AutoStopDestroy
+                  type="auto-destroy"
+                  onClick={() => openAutoStopDestroyModal('auto-destroy')}
+                  className="catalog-item-form__auto-destroy-btn"
+                  time={formState.endDate.getTime()}
+                  variant="extended"
+                  destroyTimestamp={formState.endDate.getTime()}
+                />
+              </div>
+            </FormGroup>
             <FormGroup fieldId="workshopDisplayName" isRequired label="Display Name">
               <div className="catalog-item-form__group-control--single">
                 <TextInput
@@ -877,6 +936,23 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     </FormGroup>
                   </>
                 ) : null}
+                <FormGroup fieldId="workshopCreateTicket" isRequired>
+                  <div className="catalog-item-form__group-control--single">
+                    <Switch
+                      id="support-ticket-switch"
+                      aria-label="Open Support Ticket"
+                      label="Open Support Ticket"
+                      isChecked={formState.workshop.createTicket}
+                      hasCheckIcon
+                      onChange={(_event, isChecked) => {
+                        dispatchFormState({
+                          type: 'workshop',
+                          workshop: { ...formState.workshop, createTicket: isChecked },
+                        });
+                      }}
+                    />
+                  </div>
+                </FormGroup>
               </>
             )}
           </div>
@@ -947,39 +1023,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               Order
             </Button>
           </ActionListItem>
-
-          {formState.workshop ? (
-            <ActionListItem>
-              <Button
-                isAriaDisabled={!submitRequestEnabled}
-                isDisabled={!submitRequestEnabled}
-                onClick={() => {
-                  dispatchFormState({
-                    type: 'dates',
-                    startDate: new Date(),
-                  });
-                  openAutoStopDestroyModal('schedule');
-                }}
-                icon={<OutlinedCalendarAltIcon />}
-              >
-                Schedule{' '}
-                <span
-                  style={{
-                    backgroundColor: !submitRequestEnabled ? '#f0f0f0' : '#bee1f4',
-                    borderRadius: '10px',
-                    color: !submitRequestEnabled ? '#8a8d90' : '#06c',
-                    fontStyle: 'italic',
-                    fontWeight: 300,
-                    fontSize: '12px',
-                    padding: '0 8px',
-                    marginLeft: '8px',
-                  }}
-                >
-                  Beta
-                </span>
-              </Button>
-            </ActionListItem>
-          ) : null}
 
           <ActionListItem>
             <Button variant="secondary" onClick={() => navigate(-1)}>
