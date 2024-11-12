@@ -269,6 +269,7 @@ export async function checkConditionsInFormState(
 
 function initDates(catalogItem: CatalogItem) {
   return {
+    startDate: null,
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
       : new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default || '4h')),
