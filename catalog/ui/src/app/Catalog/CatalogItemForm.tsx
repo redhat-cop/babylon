@@ -241,7 +241,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         type={autoStopDestroyModal}
         autoStopDate={formState.stopDate}
         autoDestroyDate={formState.endDate}
-        isAutoStopDisabled={isAutoStopDisabled(catalogItem) || !!formState.workshop}
+        isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
         maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : maxAutoStopTime}
         defaultRuntimeTimestamp={
           new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default)) > formState.endDate
@@ -622,13 +622,26 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     type: 'workshop',
                     workshop: isChecked ? workshopInitialProps : null,
                   });
-                  const nowDate = new Date();
-                  dispatchFormState({
-                    type: 'dates',
-                    startDate: new Date(),
-                    stopDate: new Date(nowDate.setFullYear(nowDate.getFullYear() + 1)),
-                    endDate: new Date(Date.now() + parseDuration('30h')),
-                  });
+                  if (isChecked) {
+                    dispatchFormState({
+                      type: 'dates',
+                      startDate: new Date(),
+                      stopDate: new Date(
+                        Date.now() +
+                          parseDuration(
+                            formState.activity?.startsWith('Customer Facing')
+                              ? '365d'
+                              : catalogItem.spec.runtime?.default || '30h'
+                          )
+                      ),
+                      endDate: new Date(Date.now() + parseDuration('30h')),
+                    });
+                  } else {
+                    dispatchFormState({
+                      type: 'initDates',
+                      catalogItem,
+                    });
+                  }
                 }}
               />
               <Tooltip
@@ -694,6 +707,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     dispatchFormState({
                       type: 'dates',
                       startDate: d,
+                      stopDate: new Date(
+                        d.getTime() +
+                          parseDuration(
+                            formState.activity?.startsWith('Customer Facing')
+                              ? '365d'
+                              : catalogItem.spec.runtime?.default || '30h'
+                          )
+                      ),
                       endDate: new Date(d.getTime() + parseDuration('30h')),
                     })
                   }
@@ -713,6 +734,18 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     className="tooltip-icon-only"
                   />
                 </Tooltip>
+              </div>
+            </FormGroup>
+            <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
+              <div className="catalog-item-form__group-control--single">
+                <AutoStopDestroy
+                  type="auto-stop"
+                  onClick={() => openAutoStopDestroyModal('auto-stop')}
+                  className="catalog-item-form__auto-stop-btn"
+                  time={formState.stopDate.getTime()}
+                  variant="extended"
+                  destroyTimestamp={formState.endDate.getTime()}
+                />
               </div>
             </FormGroup>
             <FormGroup key="auto-destroy" fieldId="auto-destroy" isRequired label="Auto-destroy">

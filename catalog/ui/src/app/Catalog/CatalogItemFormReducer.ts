@@ -62,6 +62,7 @@ type ParameterProps = {
 export type FormStateAction = {
   type:
     | 'init'
+    | 'initDates'
     | 'parameterUpdate'
     | 'termsOfServiceAgreed'
     | 'dates'
@@ -266,6 +267,15 @@ export async function checkConditionsInFormState(
   }
 }
 
+function initDates(catalogItem: CatalogItem) {
+  return {
+    stopDate: isAutoStopDisabled(catalogItem)
+      ? null
+      : new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default || '4h')),
+    endDate: new Date(Date.now() + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
+  };
+}
+
 function reduceFormStateInit(
   catalogItem: CatalogItem,
   serviceNamespace: ServiceNamespace,
@@ -274,7 +284,6 @@ function reduceFormStateInit(
 ): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
-  const stage = getStageFromK8sObject(catalogItem);
 
   for (const parameterSpec of catalogItem.spec.parameters || []) {
     if (parameterSpec.name === 'purpose' || parameterSpec.name === 'salesforce_id') continue; // Disable agnosticV purpose / salesforce_id
@@ -344,10 +353,7 @@ function reduceFormStateInit(
       skip: false,
       message: '',
     },
-    stopDate: isAutoStopDisabled(catalogItem)
-      ? null
-      : new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default || '4h')),
-    endDate: new Date(Date.now() + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
+    ...initDates(catalogItem),
   };
 }
 
@@ -517,6 +523,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
   switch (action.type) {
     case 'init':
       return reduceFormStateInit(action.catalogItem, action.serviceNamespace, action.user, action.purposeOpts);
+    case 'initDates':
+      return { ...state, ...initDates(action.catalogItem) };
     case 'parameterUpdate':
       return reduceFormStateParameterUpdate(state, {
         name: action.parameter.name,

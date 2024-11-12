@@ -71,7 +71,10 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                   hasCheckIcon
                   onChange={(_event, isChecked) => {
                     isChecked
-                      ? setDates({ ...dates, stopDate: dates.endDate || autoDestroyDate })
+                      ? setDates({
+                          ...dates,
+                          stopDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+                        })
                       : setDates({ ...dates, stopDate: new Date(Date.now() + defaultRuntimeTimestamp) });
                   }}
                 />

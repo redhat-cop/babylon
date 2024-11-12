@@ -993,7 +993,16 @@ export async function startWorkshop(
     spec: {
       actionSchedule: {
         start: startDateString || dateToApiString(now),
-        stop: endDateString,
+        stop:
+          new Date(workshop.spec.actionSchedule.stop).getTime() > Date.now()
+            ? workshop.spec.actionSchedule.stop
+            : workshop.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`]?.startsWith('Customer Facing')
+            ? dateToApiString(new Date(Date.now() + parseDuration('365d')))
+            : dateToApiString(
+                defaultRuntimes.length > 0
+                  ? new Date(now.getTime() + Math.min(...defaultRuntimes))
+                  : new Date(now.getTime() + 12 * 60 * 60 * 1000)
+              ),
       },
       lifespan: {
         start: startDateString || dateToApiString(now),
@@ -1024,7 +1033,16 @@ export async function startWorkshopServices(workshop: Workshop, resourceClaims: 
     spec: {
       actionSchedule: {
         start: dateToApiString(now),
-        stop: workshop.spec.lifespan,
+        stop:
+          new Date(workshop.spec.actionSchedule.stop).getTime() > Date.now()
+            ? workshop.spec.actionSchedule.stop
+            : workshop.metadata.annotations[`${DEMO_DOMAIN}/purpose-activity`]?.startsWith('Customer Facing')
+            ? dateToApiString(new Date(Date.now() + parseDuration('365d')))
+            : dateToApiString(
+                defaultRuntimes.length > 0
+                  ? new Date(now.getTime() + Math.min(...defaultRuntimes))
+                  : new Date(now.getTime() + 12 * 60 * 60 * 1000)
+              ),
       },
     },
   };
