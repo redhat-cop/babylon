@@ -37,14 +37,14 @@ class ResourceClaim:
     def catalog_item_name(self):
         return self.definition.get('status', {}).get('summary', {}).get(
             'catalog_item_name',
-            self.definition['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemName')
+            self.labels.get('babylon.gpte.redhat.com/catalogItemName')
         )
 
     @property
     def catalog_item_namespace(self):
         return self.definition.get('status', {}).get('summary', {}).get(
             'catalog_item_namespace',
-            self.definition['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemNamespace')
+            self.labels.get('babylon.gpte.redhat.com/catalogItemNamespace')
         )
 
     @property
@@ -84,6 +84,10 @@ class ResourceClaim:
                 else:
                     return False
         return stopped
+
+    @property
+    def labels(self):
+        return self.definition['metadata'].get('labels', {})
 
     @property
     def last_started_timestamp(self):
