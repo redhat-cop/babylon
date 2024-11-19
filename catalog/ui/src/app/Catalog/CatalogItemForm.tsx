@@ -176,10 +176,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         serviceNamespace: formState.serviceNamespace,
         stopDate: formState.stopDate,
         endDate: formState.endDate,
-        startDate:
-          formState.startDate.getTime() > Date.now() + parseDuration('6h')
-            ? new Date(formState.startDate.getTime() - parseDuration('6h'))
-            : new Date(),
+        startDate: new Date(formState.startDate.getTime() - parseDuration('6h')),
         email,
         parameterValues,
         skippedSfdc: formState.salesforceId.skip,

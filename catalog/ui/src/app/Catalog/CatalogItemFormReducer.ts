@@ -448,7 +448,7 @@ function reduceFormStateDates(initialState: FormState, _startDate: Date, _stopDa
       ...initialState,
       stopDate,
       endDate,
-      startDate: _startDate,
+      startDate,
     };
   }
   return {
