@@ -526,7 +526,7 @@ export async function createWorkshop({
           : catalogItem.spec.messageTemplates?.info
           ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.info) }
           : {}),
-        [`${DEMO_DOMAIN}/scheduled`]: startDate ? 'true' : 'false',
+        [`${DEMO_DOMAIN}/scheduled`]: startDate && startDate.getTime() > Date.now() ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
       },
