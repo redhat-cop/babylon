@@ -341,7 +341,7 @@ function reduceFormStateInit(
     termsOfServiceRequired: catalogItem.spec.termsOfService ? true : false,
     workshop: null,
     error: '',
-    usePoolIfAvailable: isAdmin ? false : true,
+    usePoolIfAvailable: true,
     useAutoDetach: true,
     activity: null,
     purpose: null,
