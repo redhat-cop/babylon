@@ -16,7 +16,7 @@ import {
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { Workshop } from '@app/types';
-import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
+import { compareK8sObjectsArr, DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import Footer from '@app/components/Footer';
 import ProjectSelector from '@app/components/ProjectSelector';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
@@ -54,9 +54,8 @@ const eventMapper = (workshop: Workshop): TEvent => {
   };
 };
 
-const filterOutRunningWorkshops = (ev: TEvent) => {
-  if (ev.start > new Date()) return true;
-  return false;
+const filterOutNonScheduled = (w: Workshop) => {
+  return (w.metadata.annotations[`${DEMO_DOMAIN}/scheduled`] === 'true')
 };
 
 const eventStyleGetter = (event: TEvent, start: Date, end: Date) => {
@@ -122,7 +121,7 @@ const WorkshopsScheduled: React.FC<{}> = () => {
         <p style={{ padding: '16px 0' }}>Showing only upcoming scheduled workshops.</p>
         <Calendar
           localizer={localizer}
-          events={workshops.map(eventMapper).filter(Boolean).filter(filterOutRunningWorkshops)}
+          events={workshops.filter(filterOutNonScheduled).map(eventMapper).filter(Boolean)}
           startAccessor="start"
           endAccessor="end"
           style={{ height: 700 }}
