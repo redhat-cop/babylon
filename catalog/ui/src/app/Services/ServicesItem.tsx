@@ -75,6 +75,7 @@ import {
   namespaceToServiceNamespaceMapper,
   isLabDeveloper,
   DEMO_DOMAIN,
+  getWhiteGloved,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
