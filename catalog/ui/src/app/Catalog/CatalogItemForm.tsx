@@ -51,7 +51,6 @@ import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
 import { formatCurrency, getEstimatedCost, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
-import useImpersonateUser from '@app/utils/useImpersonateUser';
 import { SearchIcon } from '@patternfly/react-icons';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
@@ -69,12 +68,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const [searchSalesforceIdModal, openSearchSalesforceIdModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
-  const { userImpersonated } = useImpersonateUser();
   const { sfdc_enabled } = useInterfaceConfig();
-  let userEmail = email;
-  if (userImpersonated) {
-    userEmail = userImpersonated;
-  }
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher
@@ -150,7 +144,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     parameterValues['purpose'] = formState.purpose;
     parameterValues['purpose_activity'] = formState.activity;
     parameterValues['purpose_explanation'] = formState.explanation;
-    parameterValues['white_glove'] = String(formState.whiteGloved);
     if (formState.salesforceId.value) {
       parameterValues['salesforce_id'] = formState.salesforceId.value;
       parameterValues['sales_type'] = formState.salesforceId.type;
