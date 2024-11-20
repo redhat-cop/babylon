@@ -63,6 +63,7 @@ type CreateServiceRequestOpt = {
   useAutoDetach: boolean;
   email: string;
   skippedSfdc: boolean;
+  whiteGloved: boolean;
 };
 
 type CreateWorkshopPovisionOpt = {
@@ -361,6 +362,7 @@ export async function createServiceRequest({
   useAutoDetach,
   email,
   skippedSfdc,
+  whiteGloved,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
@@ -387,6 +389,7 @@ export async function createServiceRequest({
         ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
           ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.user) }
           : {}),
+        [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -491,6 +494,7 @@ export async function createWorkshop({
   email,
   parameterValues,
   skippedSfdc,
+  whiteGloved,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -504,6 +508,7 @@ export async function createWorkshop({
   email: string;
   parameterValues: any;
   skippedSfdc: boolean;
+  whiteGloved: boolean;
 }): Promise<Workshop> {
   const session = await getApiSession();
   const _definition: Workshop = {
@@ -530,6 +535,7 @@ export async function createWorkshop({
           startDate && startDate.getTime() + parseDuration('6h') > Date.now() ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
+        [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
       },
     },
     spec: {
@@ -724,40 +730,6 @@ export async function createWorkshopProvision({
   };
 
   return await createK8sObject(definition);
-}
-
-export async function openWorkshopSupportTicket(
-  workshop: Workshop,
-  { number_of_attendees, sfdc, name, event_name, url, start_date, end_date, email }
-) {
-  function date_to_time(date: Date) {
-    const offset = date.getTimezoneOffset();
-    date = new Date(date.getTime() - offset * 60 * 1000);
-    const d = date.toISOString().split('T')[0];
-    const hh = date.toISOString().split('T')[1].split(':')[0];
-    const mm = date.toISOString().split('T')[1].split(':')[1];
-    return `${d} ${hh}:${mm}`;
-  }
-  const resp = await apiFetch(apiPaths.WORKSHOP_SUPPORT({}), {
-    body: JSON.stringify({
-      number_of_attendees,
-      sfdc,
-      name,
-      event_name,
-      url,
-      start_time: date_to_time(start_date),
-      end_time: date_to_time(end_date),
-      email,
-    }),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    method: 'POST',
-  });
-  const workshopSuport = await resp.json();
-  const w = await getWorkshop(workshop.metadata.namespace, workshop.metadata.name);
-  w.metadata.annotations[`${BABYLON_DOMAIN}/servicenow`] = JSON.stringify(workshopSuport);
-  return await updateWorkshop(w);
 }
 
 export async function getApiSession(forceRefresh = false) {

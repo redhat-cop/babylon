@@ -35,7 +35,6 @@ import {
   createWorkshop,
   createWorkshopProvision,
   fetcher,
-  openWorkshopSupportTicket,
 } from '@app/api';
 import { CatalogItem, TPurposeOpts } from '@app/types';
 import { displayName, isLabDeveloper, randomString } from '@app/util';
@@ -92,7 +91,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       provisionCount: 1,
       provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
       provisionStartDelay: 30,
-      createTicket: false,
     }),
     [catalogItem]
   );
@@ -180,6 +178,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         email,
         parameterValues,
         skippedSfdc: formState.salesforceId.skip,
+        whiteGloved: formState.whiteGloved,
       });
       const redirectUrl = `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`;
       await createWorkshopProvision({
@@ -192,20 +191,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         useAutoDetach: formState.useAutoDetach,
         usePoolIfAvailable: formState.usePoolIfAvailable,
       });
-      try {
-        if (formState.workshop.createTicket) {
-          await openWorkshopSupportTicket(workshop, {
-            number_of_attendees: provisionCount,
-            sfdc: formState.salesforceId.value,
-            name: catalogItemName,
-            event_name: displayName,
-            url: `${window.location.origin}${redirectUrl}`,
-            start_date: formState.startDate,
-            end_date: formState.endDate,
-            email: userEmail,
-          });
-        }
-      } catch {}
       navigate(redirectUrl);
     } else {
       const resourceClaim = await createServiceRequest({
@@ -221,6 +206,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         endDate: formState.endDate,
         email,
         skippedSfdc: formState.salesforceId.skip,
+        whiteGloved: formState.whiteGloved,
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
@@ -933,69 +919,70 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     </FormGroup>
                   </>
                 ) : null}
-                <FormGroup fieldId="workshopCreateTicket" isRequired>
-                  <div className="catalog-item-form__group-control--single">
-                    <Switch
-                      id="support-ticket-switch"
-                      aria-label="Enable White-Glove Support"
-                      label="Enable White-Glove Support"
-                      isChecked={formState.workshop.createTicket}
-                      hasCheckIcon
-                      onChange={(_event, isChecked) => {
-                        dispatchFormState({
-                          type: 'workshop',
-                          workshop: { ...formState.workshop, createTicket: isChecked },
-                        });
-                      }}
-                    />
-                  </div>
-                </FormGroup>
               </>
             )}
           </div>
         ) : null}
+
         {isAdmin ? (
-          <>
-            <FormGroup key="pooling-switch" fieldId="pooling-switch">
-              <div className="catalog-item-form__group-control--single">
-                <Switch
-                  id="pooling-switch"
-                  aria-label="Use pool if available"
-                  label="Use pool if available (only visible to admins)"
-                  isChecked={formState.usePoolIfAvailable}
-                  hasCheckIcon
-                  onChange={(_event, isChecked) =>
-                    dispatchFormState({
-                      type: 'usePoolIfAvailable',
-                      usePoolIfAvailable: isChecked,
-                    })
-                  }
-                />
-              </div>
-            </FormGroup>
-          </>
+          <FormGroup fieldId="white-glove" isRequired>
+            <div className="catalog-item-form__group-control--single">
+              <Switch
+                id="white-glove-switch"
+                aria-label="White-Glove Support"
+                label="White-Glove Support (for admins to tick when giving a white gloved experience)"
+                isChecked={formState.whiteGloved}
+                hasCheckIcon
+                onChange={(_event, isChecked) => {
+                  dispatchFormState({
+                    type: 'whiteGloved',
+                    whiteGloved: isChecked,
+                  });
+                }}
+              />
+            </div>
+          </FormGroup>
         ) : null}
-        <>
-          {isAdmin || isLabDeveloper(groups) ? (
-            <FormGroup key="auto-detach-switch" fieldId="auto-detach-switch">
-              <div className="catalog-item-form__group-control--single">
-                <Switch
-                  id="auto-detach-switch"
-                  aria-label="Keep instance if provision fails"
-                  label="Keep instance if provision fails (only visible to admins)"
-                  isChecked={!formState.useAutoDetach}
-                  hasCheckIcon
-                  onChange={(_event, isChecked) => {
-                    dispatchFormState({
-                      type: 'useAutoDetach',
-                      useAutoDetach: !isChecked,
-                    });
-                  }}
-                />
-              </div>
-            </FormGroup>
-          ) : null}
-        </>
+
+        {isAdmin ? (
+          <FormGroup key="pooling-switch" fieldId="pooling-switch">
+            <div className="catalog-item-form__group-control--single">
+              <Switch
+                id="pooling-switch"
+                aria-label="Use pool if available"
+                label="Use pool if available (only visible to admins)"
+                isChecked={formState.usePoolIfAvailable}
+                hasCheckIcon
+                onChange={(_event, isChecked) =>
+                  dispatchFormState({
+                    type: 'usePoolIfAvailable',
+                    usePoolIfAvailable: isChecked,
+                  })
+                }
+              />
+            </div>
+          </FormGroup>
+        ) : null}
+
+        {isAdmin || isLabDeveloper(groups) ? (
+          <FormGroup key="auto-detach-switch" fieldId="auto-detach-switch">
+            <div className="catalog-item-form__group-control--single">
+              <Switch
+                id="auto-detach-switch"
+                aria-label="Keep instance if provision fails"
+                label="Keep instance if provision fails (only visible to admins)"
+                isChecked={!formState.useAutoDetach}
+                hasCheckIcon
+                onChange={(_event, isChecked) => {
+                  dispatchFormState({
+                    type: 'useAutoDetach',
+                    useAutoDetach: !isChecked,
+                  });
+                }}
+              />
+            </div>
+          </FormGroup>
+        ) : null}
 
         {catalogItem.spec.termsOfService ? (
           <TermsOfService

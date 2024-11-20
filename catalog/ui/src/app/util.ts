@@ -404,28 +404,6 @@ export function namespaceToServiceNamespaceMapper(ns: Namespace): ServiceNamespa
   };
 }
 
-export function getServiceNow({
-  sys_id,
-  request_number,
-  request_id,
-  number,
-}: {
-  sys_id: string;
-  request_number: string;
-  request_id: string;
-  number?: string;
-}) {
-  return {
-    url:
-      number || request_number
-        ? `https://redhat.service-now.com/help?id=rh_ticket&table=sc_req_item&number=${
-            number || request_number
-          }&view=ess`
-        : null,
-    id: number || request_number,
-  };
-}
-
 export function generateRandom5CharsSuffix() {
   const validChars = 'bcdfghjklmnpqrstvwxz2456789';
   let result = '';
