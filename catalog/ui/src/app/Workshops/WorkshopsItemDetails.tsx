@@ -389,33 +389,6 @@ const WorkshopsItemDetails: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
-      {isAdmin ? (
-        <DescriptionListGroup>
-          <DescriptionListTerm>White-Glove Support</DescriptionListTerm>
-          <DescriptionListDescription>
-            <Switch
-              id="support-ticket-switch"
-              aria-label="White-Glove Support"
-              label="White-Glove Support (for admins to tick when giving a white gloved experience)"
-              isChecked={whiteGlobed}
-              hasCheckIcon
-              onChange={(_event, isChecked) => {
-                patchWorkshop({
-                  name: workshop.metadata.name,
-                  namespace: workshop.metadata.namespace,
-                  patch: {
-                    metadata: {
-                      annotations: {
-                        [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
-                      },
-                    },
-                  },
-                });
-              }}
-            />
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      ) : null}
 
       {workshopProvisions.length > 0 ? (
         <DescriptionListGroup>
@@ -524,6 +497,33 @@ const WorkshopsItemDetails: React.FC<{
               </Tooltip>
             </div>
           </div>
+        </DescriptionListGroup>
+      ) : null}
+
+      {isAdmin ? (
+        <DescriptionListGroup>
+          <DescriptionListDescription>
+            <Switch
+              id="support-ticket-switch"
+              aria-label="White-Glove Support"
+              label="White-Glove Support (for admins to tick when giving a white gloved experience)"
+              isChecked={whiteGlobed}
+              hasCheckIcon
+              onChange={(_event, isChecked) => {
+                patchWorkshop({
+                  name: workshop.metadata.name,
+                  namespace: workshop.metadata.namespace,
+                  patch: {
+                    metadata: {
+                      annotations: {
+                        [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
+                      },
+                    },
+                  },
+                });
+              }}
+            />
+          </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
     </DescriptionList>
