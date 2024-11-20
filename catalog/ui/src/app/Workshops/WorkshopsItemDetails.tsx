@@ -25,7 +25,7 @@ import {
   patchWorkshopProvision,
 } from '@app/api';
 import { ResourceClaim, SfdcType, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
-import { BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved } from '@app/util';
 import useDebounce from '@app/utils/useDebounce';
 import useSession from '@app/utils/useSession';
 import EditableText from '@app/components/EditableText';
@@ -77,7 +77,7 @@ const WorkshopsItemDetails: React.FC<{
   const { isAdmin } = useSession().getSession();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { cache } = useSWRConfig();
-  const whiteGloved = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
+  const whiteGloved = getWhiteGloved(workshop);
   const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
