@@ -33,6 +33,7 @@ import {
   Radio,
   Tooltip,
   TextInput,
+  Switch,
 } from '@patternfly/react-core';
 import {
   apiFetch,
@@ -971,7 +972,7 @@ const ServicesItemComponent: React.FC<{
                           id="white-glove-switch"
                           aria-label="White-Glove Support"
                           label="White-Glove Support (for admins to tick when giving a white gloved experience)"
-                          isChecked={whiteGlobed}
+                          isChecked={whiteGloved}
                           hasCheckIcon
                           onChange={async (_event: any, isChecked: boolean) => {
                             mutate(

@@ -77,7 +77,7 @@ const WorkshopsItemDetails: React.FC<{
   const { isAdmin } = useSession().getSession();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { cache } = useSWRConfig();
-  const whiteGlobed = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
+  const whiteGloved = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
   const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
@@ -498,7 +498,7 @@ const WorkshopsItemDetails: React.FC<{
               id="white-glove-switch"
               aria-label="White-Glove Support"
               label="White-Glove Support (for admins to tick when giving a white gloved experience)"
-              isChecked={whiteGlobed}
+              isChecked={whiteGloved}
               hasCheckIcon
               onChange={async (_event, isChecked) => {
                 onWorkshopUpdate(
