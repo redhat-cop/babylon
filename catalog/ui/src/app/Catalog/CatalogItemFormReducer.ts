@@ -21,7 +21,6 @@ type WorkshopProps = {
   provisionCount: number;
   provisionConcurrency: number;
   provisionStartDelay: number;
-  createTicket: boolean;
 };
 type FormState = {
   user: UserProps;
@@ -33,6 +32,7 @@ type FormState = {
   serviceNamespace: ServiceNamespace;
   termsOfServiceAgreed: boolean;
   termsOfServiceRequired: boolean;
+  whiteGloved: boolean;
   workshop?: WorkshopProps;
   error: string;
   usePoolIfAvailable: boolean;
@@ -73,6 +73,7 @@ export type FormStateAction = {
     | 'salesforceId'
     | 'salesforceIdMessage'
     | 'serviceNamespace'
+    | 'whiteGloved'
     | 'complete';
   allowServiceNamespaces?: ServiceNamespace[];
   catalogItem?: CatalogItem;
@@ -102,6 +103,7 @@ export type FormStateAction = {
   startDate?: Date;
   stopDate?: Date;
   endDate?: Date;
+  whiteGloved?: boolean;
 };
 
 export type FormStateParameter = {
@@ -347,6 +349,7 @@ function reduceFormStateInit(
     purpose: null,
     purposeOpts,
     explanation: null,
+    whiteGloved: false,
     salesforceId: {
       required: false,
       value: null,
@@ -402,6 +405,13 @@ function reduceFormStateTermsOfServiceAgreed(initialState: FormState, termsOfSer
   return {
     ...initialState,
     termsOfServiceAgreed,
+  };
+}
+
+function reduceFormWhiteGloved(initialState: FormState, whiteGloved: boolean): FormState {
+  return {
+    ...initialState,
+    whiteGloved,
   };
 }
 
@@ -544,6 +554,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormStateDates(state, action.startDate, action.stopDate, action.endDate);
     case 'termsOfServiceAgreed':
       return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
+    case 'whiteGloved':
+      return reduceFormWhiteGloved(state, action.whiteGloved);
     case 'workshop':
       return reduceFormStateWorkshop(state, action.workshop);
     case 'usePoolIfAvailable':

@@ -333,6 +333,11 @@ export function getCostTracker(resourceClaim?: ResourceClaim): CostTracker {
   return JSON.parse(resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/cost-tracker`]);
 }
 
+export function getWhiteGloved(d?: ResourceClaim | Workshop): boolean {
+  if (!d || !d.metadata?.annotations?.[`${DEMO_DOMAIN}/white-glove`]) return false;
+  return d.metadata?.annotations?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
+}
+
 export function compareStringDates(stringDate1: string, stringDate2: string): number {
   const date1 = new Date(stringDate1).getTime();
   const date2 = new Date(stringDate2).getTime();
@@ -401,28 +406,6 @@ export function namespaceToServiceNamespaceMapper(ns: Namespace): ServiceNamespa
     name: ns.metadata.name,
     displayName: ns.metadata.annotations?.['openshift.io/display-name'] || ns.metadata.name,
     requester: ns.metadata.annotations?.['openshift.io/requester'],
-  };
-}
-
-export function getServiceNow({
-  sys_id,
-  request_number,
-  request_id,
-  number,
-}: {
-  sys_id: string;
-  request_number: string;
-  request_id: string;
-  number?: string;
-}) {
-  return {
-    url:
-      number || request_number
-        ? `https://redhat.service-now.com/help?id=rh_ticket&table=sc_req_item&number=${
-            number || request_number
-          }&view=ess`
-        : null,
-    id: number || request_number,
   };
 }
 

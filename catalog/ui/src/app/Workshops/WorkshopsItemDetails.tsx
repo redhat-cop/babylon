@@ -25,7 +25,7 @@ import {
   patchWorkshopProvision,
 } from '@app/api';
 import { ResourceClaim, SfdcType, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, getServiceNow } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved } from '@app/util';
 import useDebounce from '@app/utils/useDebounce';
 import useSession from '@app/utils/useSession';
 import EditableText from '@app/components/EditableText';
@@ -36,7 +36,6 @@ import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
 import { ModalState } from './WorkshopsItem';
 import WorkshopStatus from './WorkshopStatus';
-import PencilAltIcon from '@patternfly/react-icons/dist/js/icons/pencil-alt-icon';
 import { useSWRConfig } from 'swr';
 
 import './workshops-item-details.css';
@@ -76,14 +75,9 @@ const WorkshopsItemDetails: React.FC<{
   showModal?: ({ action, resourceClaims }: ModalState) => void;
 }> = ({ onWorkshopUpdate, workshopProvisions = [], resourceClaims, workshop, showModal, workshopUserAssignments }) => {
   const { isAdmin } = useSession().getSession();
-  const [editingServiceNow, setEditingServiceNow] = useState(false);
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { cache } = useSWRConfig();
-  const serviceNowJson = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/servicenow`];
-  const { url: serviceNowUrl, id: serviceNowId } = serviceNowJson
-    ? getServiceNow(JSON.parse(serviceNowJson))
-    : { url: null, id: null };
-  const [serviceNowNumber, setServiceNowNumber] = useState(serviceNowId);
+  const whiteGloved = getWhiteGloved(workshop);
   const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
@@ -185,16 +179,6 @@ const WorkshopsItemDetails: React.FC<{
         })
       );
     }
-  }
-
-  async function saveServiceNowNumber(serviceNowObj: any): Promise<void> {
-    onWorkshopUpdate(
-      await patchWorkshop({
-        name: workshop.metadata.name,
-        namespace: workshop.metadata.namespace,
-        patch: { metadata: { annotations: { [`${BABYLON_DOMAIN}/servicenow`]: JSON.stringify(serviceNowObj) } } },
-      })
-    );
   }
 
   return (
@@ -395,51 +379,6 @@ const WorkshopsItemDetails: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
-      {serviceNowUrl ? (
-        <DescriptionListGroup>
-          <DescriptionListTerm>White-Glove Support</DescriptionListTerm>
-          <DescriptionListDescription>
-            {!editingServiceNow ? (
-              <Button variant="secondary" onClick={() => window.open(serviceNowUrl)}>
-                {serviceNowId}
-              </Button>
-            ) : editingServiceNow ? (
-              <TextInput
-                type="text"
-                id="servicenow-id"
-                aria-label="ServiceNow number"
-                value={serviceNowNumber}
-                onChange={(_event, v) => setServiceNowNumber(v)}
-                style={{ width: 'auto', marginRight: '16px' }}
-                placeholder="RITM0000000"
-              />
-            ) : (
-              '-'
-            )}
-            <Button
-              onClick={() => {
-                if (editingServiceNow) {
-                  saveServiceNowNumber(
-                    serviceNowNumber && serviceNowNumber !== ''
-                      ? { ...JSON.parse(serviceNowJson), number: serviceNowNumber }
-                      : {}
-                  );
-                }
-                setEditingServiceNow(!editingServiceNow);
-              }}
-              variant={editingServiceNow ? 'secondary' : 'link'}
-              icon={editingServiceNow ? 'Save' : <PencilAltIcon />}
-              style={{ marginRight: '16px' }}
-            />
-            <Tooltip position="right" content={<p>ServiceNow White-Glove support ticket number.</p>}>
-              <OutlinedQuestionCircleIcon
-                aria-label="ServiceNow White-Glove support ticket number."
-                className="tooltip-icon-only"
-              />
-            </Tooltip>
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      ) : null}
 
       {workshopProvisions.length > 0 ? (
         <DescriptionListGroup>
@@ -548,6 +487,36 @@ const WorkshopsItemDetails: React.FC<{
               </Tooltip>
             </div>
           </div>
+        </DescriptionListGroup>
+      ) : null}
+
+      {isAdmin ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm> </DescriptionListTerm>
+          <DescriptionListDescription>
+            <Switch
+              id="white-glove-switch"
+              aria-label="White-Glove Support"
+              label="White-Glove Support (for admins to tick when giving a white gloved experience)"
+              isChecked={whiteGloved}
+              hasCheckIcon
+              onChange={async (_event, isChecked) => {
+                onWorkshopUpdate(
+                  await patchWorkshop({
+                    name: workshop.metadata.name,
+                    namespace: workshop.metadata.namespace,
+                    patch: {
+                      metadata: {
+                        annotations: {
+                          [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
+                        },
+                      },
+                    },
+                  })
+                );
+              }}
+            />
+          </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
     </DescriptionList>
