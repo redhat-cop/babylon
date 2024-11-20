@@ -333,6 +333,11 @@ export function getCostTracker(resourceClaim?: ResourceClaim): CostTracker {
   return JSON.parse(resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/cost-tracker`]);
 }
 
+export function getWhiteGloved(d?: ResourceClaim | Workshop): boolean {
+  if (!d || !d.metadata?.annotations?.[`${BABYLON_DOMAIN}/white-glove`]) return false;
+  return d.metadata?.annotations?.[`${BABYLON_DOMAIN}/white-glove`] === 'true';
+}
+
 export function compareStringDates(stringDate1: string, stringDate2: string): number {
   const date1 = new Date(stringDate1).getTime();
   const date2 = new Date(stringDate2).getTime();

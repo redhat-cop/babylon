@@ -181,16 +181,6 @@ const WorkshopsItemDetails: React.FC<{
     }
   }
 
-  async function saveServiceNowNumber(serviceNowObj: any): Promise<void> {
-    onWorkshopUpdate(
-      await patchWorkshop({
-        name: workshop.metadata.name,
-        namespace: workshop.metadata.namespace,
-        patch: { metadata: { annotations: { [`${BABYLON_DOMAIN}/servicenow`]: JSON.stringify(serviceNowObj) } } },
-      })
-    );
-  }
-
   return (
     <DescriptionList isHorizontal className="workshops-item-details">
       <DescriptionListGroup>
@@ -502,25 +492,28 @@ const WorkshopsItemDetails: React.FC<{
 
       {isAdmin ? (
         <DescriptionListGroup>
+          <DescriptionListTerm> </DescriptionListTerm>
           <DescriptionListDescription>
             <Switch
-              id="support-ticket-switch"
+              id="white-glove-switch"
               aria-label="White-Glove Support"
               label="White-Glove Support (for admins to tick when giving a white gloved experience)"
               isChecked={whiteGlobed}
               hasCheckIcon
-              onChange={(_event, isChecked) => {
-                patchWorkshop({
-                  name: workshop.metadata.name,
-                  namespace: workshop.metadata.namespace,
-                  patch: {
-                    metadata: {
-                      annotations: {
-                        [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
+              onChange={async (_event, isChecked) => {
+                onWorkshopUpdate(
+                  await patchWorkshop({
+                    name: workshop.metadata.name,
+                    namespace: workshop.metadata.namespace,
+                    patch: {
+                      metadata: {
+                        annotations: {
+                          [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
+                        },
                       },
                     },
-                  },
-                });
+                  })
+                );
               }}
             />
           </DescriptionListDescription>
