@@ -976,7 +976,7 @@ const ServicesItemComponent: React.FC<{
                           hasCheckIcon
                           onChange={async (_event: any, isChecked: boolean) => {
                             mutate(
-                              await patchResourceClaim(resourceClaim.metadata.name, resourceClaim.metadata.namespace, {
+                              await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
                                 metadata: {
                                   annotations: {
                                     [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
