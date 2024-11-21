@@ -165,6 +165,9 @@ class WorkshopProvision(CachedKopfObject):
 
         if workshop.ordered_by:
             resource_claim_definition['metadata']['annotations'][Babylon.ordered_by_annotation] = workshop.ordered_by
+        
+        if workshop.white_gloved:
+            resource_claim_definition['metadata']['annotations'][Babylon.white_glove_annotation] = workshop.white_gloved
 
         if catalog_item.lab_ui_type:
             resource_claim_definition['metadata']['labels'][Babylon.lab_ui_label] = catalog_item.lab_ui_type

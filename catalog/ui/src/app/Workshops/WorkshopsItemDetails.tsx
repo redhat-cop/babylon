@@ -9,7 +9,6 @@ import {
   DescriptionListDescription,
   Tooltip,
   Switch,
-  Button,
   TextInput,
   Radio,
 } from '@patternfly/react-core';
@@ -178,6 +177,26 @@ const WorkshopsItemDetails: React.FC<{
           patch: { spec: patch },
         })
       );
+    }
+  }
+
+  async function handleWhiteGloveChange(_: any, isChecked: boolean) {
+    const patchObj = {
+      metadata: {
+        annotations: {
+          [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
+        },
+      },
+    };
+    onWorkshopUpdate(
+      await patchWorkshop({
+        name: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        patch: patchObj,
+      })
+    );
+    for (let resourceClaim of resourceClaims) {
+      patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, patchObj);
     }
   }
 
@@ -500,21 +519,7 @@ const WorkshopsItemDetails: React.FC<{
               label="White-Glove Support (for admins to tick when giving a white gloved experience)"
               isChecked={whiteGloved}
               hasCheckIcon
-              onChange={async (_event, isChecked) => {
-                onWorkshopUpdate(
-                  await patchWorkshop({
-                    name: workshop.metadata.name,
-                    namespace: workshop.metadata.namespace,
-                    patch: {
-                      metadata: {
-                        annotations: {
-                          [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
-                        },
-                      },
-                    },
-                  })
-                );
-              }}
+              onChange={handleWhiteGloveChange}
             />
           </DescriptionListDescription>
         </DescriptionListGroup>

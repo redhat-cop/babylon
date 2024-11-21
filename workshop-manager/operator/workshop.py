@@ -79,6 +79,10 @@ class Workshop(CachedKopfObject):
         return self.annotations.get(Babylon.ordered_by_annotation)
 
     @property
+    def white_gloved(self):
+        return self.annotations.get(Babylon.white_glove_annotation)
+
+    @property
     def service_url(self):
         return self.annotations.get(Babylon.url_annotation)
 
