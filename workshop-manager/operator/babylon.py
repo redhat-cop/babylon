@@ -23,6 +23,7 @@ class Babylon():
     lab_ui_urls_annotation = f"{babylon_domain}/labUserInterfaceUrls"
     notifier_annotation = f"{babylon_domain}/notifier"
     ordered_by_annotation = f"{demo_domain}/orderedBy"
+    white_glove_annotation = f"{demo_domain}/white-glove"
     purpose_annotation = f"{demo_domain}/purpose"
     purpose_activity_annotation = f"{demo_domain}/purpose-activity"
     requester_annotation = f"{demo_domain}/requester"
