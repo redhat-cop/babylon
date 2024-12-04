@@ -183,7 +183,7 @@ const WorkshopsItemDetails: React.FC<{
   async function handleWhiteGloveChange(_: any, isChecked: boolean) {
     const patchObj = {
       metadata: {
-        annotations: {
+        labels: {
           [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
         },
       },

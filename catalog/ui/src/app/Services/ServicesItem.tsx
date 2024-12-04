@@ -978,7 +978,7 @@ const ServicesItemComponent: React.FC<{
                             mutate(
                               await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
                                 metadata: {
-                                  annotations: {
+                                  labels: {
                                     [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
                                   },
                                 },

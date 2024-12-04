@@ -334,8 +334,8 @@ export function getCostTracker(resourceClaim?: ResourceClaim): CostTracker {
 }
 
 export function getWhiteGloved(d?: ResourceClaim | Workshop): boolean {
-  if (!d || !d.metadata?.annotations?.[`${DEMO_DOMAIN}/white-glove`]) return false;
-  return d.metadata?.annotations?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
+  if (!d || !d.metadata?.labels?.[`${DEMO_DOMAIN}/white-glove`]) return false;
+  return d.metadata?.labels?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
 }
 
 export function compareStringDates(stringDate1: string, stringDate2: string): number {
