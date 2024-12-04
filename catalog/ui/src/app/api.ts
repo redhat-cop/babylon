@@ -389,7 +389,6 @@ export async function createServiceRequest({
         ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
           ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.user) }
           : {}),
-        [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -398,6 +397,7 @@ export async function createServiceRequest({
           ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
           : {}),
         ...(catalogItem.spec.bookbag ? { [`${BABYLON_DOMAIN}/labUserInterface`]: 'bookbag' } : {}),
+        [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
       },
       name: `${catalogItem.metadata.name}-${suffix}`,
       namespace: serviceNamespace.name,
@@ -523,6 +523,7 @@ export async function createWorkshop({
         ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
           ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
           : {}),
+        [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
@@ -535,7 +536,6 @@ export async function createWorkshop({
           startDate && startDate.getTime() + parseDuration('6h') > Date.now() ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
-        [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
       },
     },
     spec: {

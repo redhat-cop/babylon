@@ -80,7 +80,7 @@ class Workshop(CachedKopfObject):
 
     @property
     def white_gloved(self):
-        return self.annotations.get(Babylon.white_glove_annotation)
+        return self.labels.get(Babylon.white_glove_label)
 
     @property
     def service_url(self):
