@@ -10,6 +10,7 @@ import {
   getWorkshopServicesStartTime,
 } from './workshops-utils';
 import parseDuration from 'parse-duration';
+import { getMaxRuntime } from '@app/Services/service-utils';
 
 const minDefault = parseDuration('6h');
 
@@ -33,7 +34,7 @@ const WorkshopScheduleAction: React.FC<{
     }
   } else {
     currentActionDate = autoStopTime ? new Date(autoStopTime) : null;
-    maxDate = getWorkshopServicesStartTime(workshop, resourceClaims);
+    maxDate = resourceClaims.length > 0 ? Math.min(...resourceClaims.map((r) => getMaxRuntime(r))) : null;
   }
 
   const [selectedDate, setSelectedDate] = useState(currentActionDate || new Date());
