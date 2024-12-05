@@ -676,7 +676,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
         {formState.workshop ? (
           <div className="catalog-item-form__workshop-form">
-            <FormGroup fieldId="workshopStartDate" isRequired label="Start Date">
+            {isAdmin ? <FormGroup fieldId="workshopStartDate" isRequired label="Start Date">
               <div className="catalog-item-form__group-control--single">
                 <DateTimePicker
                   defaultTimestamp={Date.now()}
@@ -712,7 +712,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   />
                 </Tooltip>
               </div>
-            </FormGroup>
+            </FormGroup> : null}
             <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
               <div className="catalog-item-form__group-control--single">
                 <AutoStopDestroy
