@@ -42,14 +42,6 @@ export function getWorkshopAutoStopTime(workshop: Workshop, resourceClaims: Reso
   const resourcesTime = resourceClaims && resourceClaims.length > 0 ? resourceClaims.flatMap(getAutoStopTime) : [];
   return resourcesTime.length > 0 ? Math.min(...resourcesTime) : null;
 }
-export function getWorkshopServicesStartTime(workshop: Workshop, resourceClaims: ResourceClaim[]): number {
-  // Workshop start schedule propagates to all ResourceClaims
-  if (workshop.spec.actionSchedule?.start) {
-    return Date.parse(workshop.spec.actionSchedule.start);
-  }
-  // Fallback to getting stop time from ResourceClaims
-  return resourceClaims.length > 0 ? Math.min(...resourceClaims.flatMap(getStartTime)) : null;
-}
 export function getWorkshopDefaultRuntime(resourceClaims: ResourceClaim[]) {
   const resourcesTime = resourceClaims && resourceClaims.length > 0 ? resourceClaims.flatMap(getMinDefaultRuntime) : [];
   return resourcesTime.length > 0 ? Math.min(...resourcesTime) : null;
