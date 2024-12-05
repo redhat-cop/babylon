@@ -7,7 +7,6 @@ import {
   getWorkshopAutoStopTime,
   getWorkshopDefaultRuntime,
   getWorkshopLifespan,
-  getWorkshopServicesStartTime,
 } from './workshops-utils';
 import parseDuration from 'parse-duration';
 import { getMaxRuntime } from '@app/Services/service-utils';
