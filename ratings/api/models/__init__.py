@@ -13,6 +13,7 @@ from .purpose import Purpose
 from .provision_request import ProvisionRequest
 from .provision import Provision
 from .rating import Rating
+from .bookmark import Bookmark
 
 
 async def startup():

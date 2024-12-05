@@ -5,3 +5,4 @@ from .ratings import RatingsListSchema, RatingSchema, RatingCreateSchema, Rating
 from .request import RequestSchema
 from .user import UserSchema
 from .workshop import WorkshopSchema, WorkshopRequestSchema
+from .bookmark import BookmarkSchema
