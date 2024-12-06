@@ -1,7 +1,7 @@
 import asyncio
 import os
 
-from .custom_base import Base, CustomBase, CustomBaseUuid, CustomBaseProvisionUuid, create_tables
+from .custom_base import Base, CustomBase, CustomBaseMinimal, CustomBaseUuid, CustomBaseProvisionUuid, create_tables
 from .database import Database
 from .reporting_config import ReportingConfig
 from .catalog_item import CatalogItem
@@ -13,6 +13,7 @@ from .purpose import Purpose
 from .provision_request import ProvisionRequest
 from .provision import Provision
 from .rating import Rating
+from .bookmark import Bookmark
 
 
 async def startup():
