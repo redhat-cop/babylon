@@ -35,6 +35,7 @@ class Base(DeclarativeBase):
     async def save(self) -> Optional['Base']:
         existing = await self.check_existing()
         async with db.get_session() as session:
+            logger.info(existing)
             if existing:
                 for key, value in vars(self).items():
                     if key and str(key).startswith('_sa_instance_state'):
@@ -50,6 +51,17 @@ class Base(DeclarativeBase):
             await session.commit()
             await session.refresh(resource)
             return resource
+
+    async def delete(self) -> bool:
+        existing = await self.check_existing()
+        async with db.get_session() as session:
+            if existing:
+                await session.delete(existing)
+                await session.commit()
+                return True
+            else:
+                raise Exception("Element not found")
+                return False
 
     @staticmethod
     def format_sql(sql):
@@ -123,6 +135,12 @@ class Base(DeclarativeBase):
 
         return data
 
+class CustomBaseMinimal(Base):
+    __abstract__ = True
+    __date_field__ = None
+
+    created_at = Column(DateTime, server_default=text("(NOW() at time zone 'utc')"), index=True)
+    updated_at = Column(DateTime, index=True)
 
 class CustomBase(Base):
     __abstract__ = True

@@ -24,6 +24,7 @@ from sqlalchemy import (
 from . import CustomBase
 from .provision_request import ProvisionRequest
 from .provision import Provision
+from .bookmark import Bookmark
 from .database import Database as db
 
 user_min_update_days = int(os.getenv('USER_UPDATE_MIN_DAYS', 30))
@@ -51,8 +52,6 @@ class User(CustomBase):
     user_group: Mapped[str] = mapped_column(String, nullable=False, index=True)
     user_source: Mapped[str] = mapped_column(String, index=True)
 
-    # manager_levels:  Mapped[List['UserManagerLevel']] = relationship('UserManagerLevel')
-
     provisions: Mapped[List[Provision]] = relationship(Provision,
                                                        back_populates="user",
                                                        primaryjoin="User.id == Provision.user_id"
@@ -61,6 +60,7 @@ class User(CustomBase):
                                                                       back_populates='user',
                                                                       foreign_keys=[ProvisionRequest.user_id]
                                                                       )
+    bookmarks: Mapped[List[Bookmark]] = relationship(Bookmark, back_populates="user", lazy="joined")
 
     async def check_existing(self) -> Optional[User]:
         async with db.get_session() as session:
@@ -69,7 +69,6 @@ class User(CustomBase):
                                   User.username == self.username
                                   )
                               )
-            stmt = stmt.options(selectinload(User.manager_levels))
             result = await session.execute(stmt)
             return result.scalars().first()
 
@@ -78,7 +77,6 @@ class User(CustomBase):
         async with db.get_session() as session:
             stmt = select(User)
             stmt = stmt.where(User.email == email)
-            stmt = stmt.options(selectinload(User.manager_levels))
             stmt = stmt.order_by(desc(User.updated_at)).limit(1)
 
             result = await session.execute(stmt)
@@ -92,7 +90,6 @@ class User(CustomBase):
                                   User.username == email_or_username
                                   )
                               )
-            stmt = stmt.options(selectinload(User.manager_levels))
             stmt = stmt.order_by(desc(User.updated_at)).limit(1)
 
             result = await session.execute(stmt)
@@ -109,7 +106,6 @@ class User(CustomBase):
                                    User.updated_at > thirty_days_ago
                                    )
                               )
-            stmt = stmt.options(selectinload(User.manager_levels))
             stmt = stmt.order_by(desc(User.updated_at)).limit(1)
 
             result = await session.execute(stmt)
@@ -120,7 +116,6 @@ class User(CustomBase):
         async with db.get_session() as session:
             stmt = select(User)
             stmt = stmt.where(User.employee_number == employee_number)
-            stmt = stmt.options(selectinload(User.manager_levels))
             stmt = stmt.order_by(User.employee_number).limit(1)
 
             result = await session.execute(stmt)
@@ -131,7 +126,7 @@ class User(CustomBase):
         async with db.get_session() as session:
             stmt = select(User)
             stmt = stmt.where(User.id == student_id)
-            stmt = stmt.options(selectinload(User.manager_levels)).limit(1)
+            stmt = stmt.limit(1)
             result = await session.execute(stmt)
             return result.scalars().first()
 
@@ -144,7 +139,6 @@ class User(CustomBase):
                                    User.updated_at > thirty_days_ago
                                    )
                               )
-            stmt = stmt.options(selectinload(User.manager_levels))
             stmt = stmt.order_by(desc(User.updated_at)).limit(1)
 
             result = await session.execute(stmt)
@@ -162,7 +156,6 @@ class User(CustomBase):
                                    User.updated_at > thirty_days_ago
                                    )
                               )
-            stmt = stmt.options(selectinload(User.manager_levels))
             stmt = stmt.order_by(desc(User.updated_at)).limit(1)
 
             result = await session.execute(stmt)
@@ -177,7 +170,6 @@ class User(CustomBase):
                                    User.updated_at > thirty_days_ago
                                    )
                               )
-            stmt = stmt.options(selectinload(User.manager_levels))
             stmt = stmt.order_by(desc(User.updated_at)).limit(1)
             result = await session.execute(stmt)
             return result.scalars().first()
