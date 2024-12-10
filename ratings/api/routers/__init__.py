@@ -1,6 +1,6 @@
 from fastapi import Query
 from . import ratings
-
+from . import bookmarks
 
 def get_pagination_params(
     page: int = Query(1, description="Número da página a ser recuperada"),

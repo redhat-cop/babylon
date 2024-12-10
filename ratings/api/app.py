@@ -4,7 +4,7 @@ from fastapi import FastAPI,Request
 from fastapi.responses import HTMLResponse
 from models import Database as db
 from models.custom_base import create_tables
-from routers import ratings
+from routers import ratings, bookmarks
 from babylon import Babylon
 
 
@@ -69,3 +69,4 @@ async def index(request: Request):
 
 # Including Routers
 app.include_router(ratings.router)
+app.include_router(bookmarks.router)
