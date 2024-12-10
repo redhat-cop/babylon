@@ -108,11 +108,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   );
   const { data: assetsFavList, mutate: mutateFavorites } = useSWRImmutable<BookmarkList>(
     asset_uuid ? apiPaths.FAVORITES({}) : null,
-    fetcher,
+    fetcher
   );
   let isFavorite = false;
   if (asset_uuid && assetsFavList) {
-    isFavorite = assetsFavList.bookmarks.some(b => b.asset_uuid === asset_uuid);
+    isFavorite = assetsFavList.bookmarks.some((b) => b.asset_uuid === asset_uuid);
   }
   const catalogItemCpy = useMemo(() => {
     const cpy = Object.assign({}, catalogItem);
@@ -225,17 +225,19 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   }
 
   async function toggleFavorite() {
-    if (!asset_uuid || isLoadingFavorites) {
+    if (!asset_uuid || isLoadingFavorites) {
       return null;
     }
     setIsLoadingFavorites(true);
-    const fav = await fetcher(apiPaths.FAVORITES({}), {method: isFavorite ? 'DELETE':'POST',
-    body: JSON.stringify({
-      asset_uuid
-    }),
-    headers: {
-      'Content-Type': 'application/json',
-    }});
+    const fav = await fetcher(apiPaths.FAVORITES({}), {
+      method: isFavorite ? 'DELETE' : 'POST',
+      body: JSON.stringify({
+        asset_uuid,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
     mutateFavorites(fav);
     setIsLoadingFavorites(false);
     return null;
@@ -322,7 +324,15 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 <Button
                   onClick={toggleFavorite}
                   variant="link"
-                  icon={isLoadingFavorites ? <Spinner key="spinner" size="md" /> : !isFavorite ? <OutlinedStarIcon />:<StarIcon />} 
+                  icon={
+                    isLoadingFavorites ? (
+                      <Spinner key="spinner" size="md" />
+                    ) : !isFavorite ? (
+                      <OutlinedStarIcon />
+                    ) : (
+                      <StarIcon />
+                    )
+                  }
                 >
                   {!isFavorite ? 'Save as favorite' : 'Remove from favorites'}
                 </Button>

@@ -149,7 +149,7 @@ function filterCatalogItemByCategory(catalogItem: CatalogItem, selectedCategory:
   return selectedCategory === getCategory(catalogItem);
 }
 function filterFavorites(catalogItem: CatalogItem, favList: Bookmark[] = []) {
-  return favList.some(f => f.asset_uuid === catalogItem.metadata?.labels?.['gpte.redhat.com/asset-uuid'])
+  return favList.some((f) => f.asset_uuid === catalogItem.metadata?.labels?.['gpte.redhat.com/asset-uuid']);
 }
 
 function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [attr: string]: string[] }): boolean {
@@ -353,10 +353,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
-  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(
-    apiPaths.FAVORITES({}),
-    fetcher,
-  );
+  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES({}), fetcher);
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
@@ -423,7 +420,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     };
     const catalogItemsFuse = new Fuse(catalogItemsCpy, options);
     if (selectedCategory) {
-      if (selectedCategory === "favorites" && assetsFavList?.bookmarks) {
+      if (selectedCategory === 'favorites' && assetsFavList?.bookmarks) {
         catalogItemsFuse.remove((ci) => !filterFavorites(ci, assetsFavList?.bookmarks));
       } else {
         catalogItemsFuse.remove((ci) => !filterCatalogItemByCategory(ci, selectedCategory));
@@ -436,7 +433,15 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
     }
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems, selectedAdminFilter, activeIncidents, assetsFavList]);
+  }, [
+    catalogItems,
+    selectedCategory,
+    selectedLabels,
+    compareCatalogItems,
+    selectedAdminFilter,
+    activeIncidents,
+    assetsFavList,
+  ]);
 
   const catalogItemsResult = useMemo(() => {
     const items = searchString

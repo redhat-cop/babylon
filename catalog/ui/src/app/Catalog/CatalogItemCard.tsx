@@ -23,11 +23,10 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const rating = getRating(catalogItem);
   const status = getStatus(catalogItem);
   const sla = getSLA(catalogItem);
-  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(
-    apiPaths.FAVORITES({}),
-    fetcher,
+  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES({}), fetcher);
+  const isFavorite = assetsFavList.bookmarks.some(
+    (b) => b.asset_uuid === catalogItem.metadata?.labels?.['gpte.redhat.com/asset-uuid']
   );
-  const isFavorite = assetsFavList.bookmarks.some(b => b.asset_uuid === catalogItem.metadata?.labels?.['gpte.redhat.com/asset-uuid'])
   if (namespace) {
     searchParams.set('item', catalogItem.metadata.name);
   } else {
@@ -61,7 +60,9 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
               <CatalogItemIcon catalogItem={catalogItem} />
               {status && status.name !== 'Operational' ? (
                 <StatusPageIcons status={status.name} className="catalog-item-card__statusPageIcon" />
-              ) : isFavorite ? <StarIcon className="catalog-item-card__statusPageIcon" style={{ fill: '#06c'}} />: null}
+              ) : isFavorite ? (
+                <StarIcon className="catalog-item-card__statusPageIcon" style={{ fill: '#06c' }} />
+              ) : null}
             </SplitItem>
           </Split>
         </CardHeader>
