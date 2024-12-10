@@ -642,7 +642,8 @@ export type ResourceType =
   | 'WORKSHOP_SUPPORT'
   | 'WORKSHOP_USER_ASSIGNMENTS'
   | 'SFDC_ACCOUNTS'
-  | 'SFDC_BY_ACCOUNT';
+  | 'SFDC_BY_ACCOUNT'
+  | 'FAVORITES';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
@@ -717,3 +718,10 @@ export type SalesforceAccount = {
 };
 
 export type SfdcType = 'campaign' | 'cdh' | 'project' | 'opportunity';
+
+export type Bookmark = {
+  asset_uuid: string;
+}
+export type BookmarkList = {
+  bookmarks: Bookmark[]
+}

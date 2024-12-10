@@ -1749,4 +1749,5 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     `/api/salesforce/accounts?sales_type=${sales_type}&value=${account_value}`,
   SFDC_BY_ACCOUNT: ({ sales_type, account_id }: { sales_type: string; account_id: string }) =>
     `/api/salesforce/accounts/${account_id}?sales_type=${sales_type}`,
+  FAVORITES: () => `/api/user-manager/bookmarks`,
 };

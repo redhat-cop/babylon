@@ -53,6 +53,15 @@ const CatalogCategorySelector: React.FC<{
     >
       {/* @ts-ignore */}
       <Tab key="all" eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
+      
+      {/* @ts-ignore */}
+      <Tab key="favorites" eventKey="favorites" title={<TabTitleText>Favorites <Tooltip content="Items marked as favorite"><InfoAltIcon
+                      style={{
+                        paddingTop: 'var(--pf-v5-global--spacer--xs)',
+                        marginLeft: 'var(--pf-v5-global--spacer--sm)',
+                        width: 'var(--pf-v5-global--icon--FontSize--sm)',
+                      }}
+                    /></Tooltip></TabTitleText>} aria-controls=""></Tab>
       {categories.map((category) => {
         return (
           /* @ts-ignore */
