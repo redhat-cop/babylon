@@ -452,6 +452,41 @@ async def provision_rating_post(request):
         url=f"{ratings_api}/api/ratings/v1/request/{request_uid}",
     )
 
+
+@routes.get("/api/user-manager/bookmarks")
+async def provision_rating_get(request):
+    user = await get_proxy_user(request)
+    email = user['metadata']['name']
+    return await api_proxy(
+        headers=request.headers,
+        method="GET",
+        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}",
+    )
+
+@routes.post("/api/user-manager/bookmarks")
+async def bookmark_post(request):
+    user = await get_proxy_user(request)
+    data = await request.json()
+    data["email"] = user['metadata']['name']
+    return await api_proxy(
+        data=json.dumps(data),
+        headers=request.headers,
+        method="POST",
+        url=f"{ratings_api}/api/user-manager/v1/bookmarks",
+    )
+
+@routes.delete("/api/user-manager/bookmarks")
+async def bookmark_delete(request):
+    user = await get_proxy_user(request)
+    data = await request.json()
+    data["email"] = user['metadata']['name']
+    return await api_proxy(
+        data=json.dumps(data),
+        headers=request.headers,
+        method="DELETE",
+        url=f"{ratings_api}/api/user-manager/v1/bookmarks",
+    )
+
 @routes.get("/api/ratings/catalogitem/{asset_uuid}/history")
 async def provision_rating_get_history(request):
     asset_uuid = request.match_info.get('asset_uuid')
