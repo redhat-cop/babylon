@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -22,11 +22,12 @@ import {
   Title,
   Label,
   Tooltip,
+  Spinner,
 } from '@patternfly/react-core';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import useSWR from 'swr';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
-import { AssetMetrics, CatalogItem, CatalogItemIncident, ResourceClaim } from '@app/types';
+import { AssetMetrics, BookmarkList, CatalogItem, CatalogItemIncident, ResourceClaim } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
@@ -61,12 +62,14 @@ import {
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import useHelpLink from '@app/utils/useHelpLink';
 import useSWRImmutable from 'swr/immutable';
+import UptimeDisplay from '@app/components/UptimeDisplay';
+import { StarIcon } from '@patternfly/react-icons/dist/js/icons/star-icon';
+import { OutlinedStarIcon } from '@patternfly/react-icons/dist/js/icons/outlined-star-icon';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 
 import './catalog-item-details.css';
-import UptimeDisplay from '@app/components/UptimeDisplay';
 
 enum CatalogItemAccess {
   Allow,
@@ -79,6 +82,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const { userNamespace, isAdmin, groups } = useSession().getSession();
   const { accessControl, lastUpdate } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
   const stage = getStageFromK8sObject(catalogItem);
   const provider = getProvider(catalogItem);
   const catalogItemName = displayName(catalogItem);
@@ -102,6 +106,14 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       suspense: false,
     }
   );
+  const { data: assetsFavList, mutate: mutateFavorites } = useSWRImmutable<BookmarkList>(
+    asset_uuid ? apiPaths.FAVORITES({}) : null,
+    fetcher
+  );
+  let isFavorite = false;
+  if (asset_uuid && assetsFavList) {
+    isFavorite = assetsFavList.bookmarks.some((b) => b.asset_uuid === asset_uuid);
+  }
   const catalogItemCpy = useMemo(() => {
     const cpy = Object.assign({}, catalogItem);
     cpy.metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(catalogItemIncident);
@@ -212,6 +224,25 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     window.open(helpLink, '_blank');
   }
 
+  async function toggleFavorite() {
+    if (!asset_uuid || isLoadingFavorites) {
+      return null;
+    }
+    setIsLoadingFavorites(true);
+    const fav = await fetcher(apiPaths.FAVORITES({}), {
+      method: isFavorite ? 'DELETE' : 'POST',
+      body: JSON.stringify({
+        asset_uuid,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    mutateFavorites(fav);
+    setIsLoadingFavorites(false);
+    return null;
+  }
+
   return (
     <DrawerPanelContent
       className="catalog-item-details"
@@ -289,6 +320,23 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   </Label>
                 </div>
               ) : null}
+              <div className="catalog-item-details__bookmark">
+                <Button
+                  onClick={toggleFavorite}
+                  variant="link"
+                  icon={
+                    isLoadingFavorites ? (
+                      <Spinner key="spinner" size="md" />
+                    ) : !isFavorite ? (
+                      <OutlinedStarIcon />
+                    ) : (
+                      <StarIcon />
+                    )
+                  }
+                >
+                  {!isFavorite ? 'Save as favorite' : 'Remove from favorites'}
+                </Button>
+              </div>
             </>
           ) : catalogItemAccess === CatalogItemAccess.Deny ? (
             <>

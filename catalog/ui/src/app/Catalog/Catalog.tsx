@@ -32,7 +32,7 @@ import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
 import useSWRImmutable from 'swr/immutable';
 import { AsyncParser } from 'json2csv';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
-import { CatalogItem, CatalogItemIncidents } from '@app/types';
+import { Bookmark, BookmarkList, CatalogItem, CatalogItemIncidents } from '@app/types';
 import useSession from '@app/utils/useSession';
 import SearchInputString from '@app/components/SearchInputString';
 import {
@@ -65,6 +65,7 @@ import CatalogContent from './CatalogContent';
 import IncidentsBanner from '@app/components/IncidentsBanner';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import LoadingSection from '@app/components/LoadingSection';
+import useSWR from 'swr';
 
 import './catalog.css';
 
@@ -146,6 +147,9 @@ function filterCatalogItemByAccessControl(catalogItem: CatalogItem, userGroups: 
 
 function filterCatalogItemByCategory(catalogItem: CatalogItem, selectedCategory: string) {
   return selectedCategory === getCategory(catalogItem);
+}
+function filterFavorites(catalogItem: CatalogItem, favList: Bookmark[] = []) {
+  return favList.some((f) => f.asset_uuid === catalogItem.metadata?.labels?.['gpte.redhat.com/asset-uuid']);
 }
 
 function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [attr: string]: string[] }): boolean {
@@ -349,6 +353,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
+  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES({}), fetcher);
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
@@ -415,7 +420,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     };
     const catalogItemsFuse = new Fuse(catalogItemsCpy, options);
     if (selectedCategory) {
-      catalogItemsFuse.remove((ci) => !filterCatalogItemByCategory(ci, selectedCategory));
+      if (selectedCategory === 'favorites' && assetsFavList?.bookmarks) {
+        catalogItemsFuse.remove((ci) => !filterFavorites(ci, assetsFavList?.bookmarks));
+      } else {
+        catalogItemsFuse.remove((ci) => !filterCatalogItemByCategory(ci, selectedCategory));
+      }
     }
     if (selectedLabels) {
       catalogItemsFuse.remove((ci) => !filterCatalogItemByLabels(ci, selectedLabels));
@@ -424,7 +433,15 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
     }
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [catalogItems, selectedCategory, selectedLabels, compareCatalogItems, selectedAdminFilter, activeIncidents]);
+  }, [
+    catalogItems,
+    selectedCategory,
+    selectedLabels,
+    compareCatalogItems,
+    selectedAdminFilter,
+    activeIncidents,
+    assetsFavList,
+  ]);
 
   const catalogItemsResult = useMemo(() => {
     const items = searchString
