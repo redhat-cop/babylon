@@ -60,8 +60,6 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
               <CatalogItemIcon catalogItem={catalogItem} />
               {status && status.name !== 'Operational' ? (
                 <StatusPageIcons status={status.name} className="catalog-item-card__statusPageIcon" />
-              ) : isFavorite ? (
-                <StarIcon className="catalog-item-card__statusPageIcon" style={{ fill: '#06c' }} />
               ) : null}
             </SplitItem>
           </Split>
