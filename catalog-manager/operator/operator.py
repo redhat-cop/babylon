@@ -13,6 +13,18 @@ from infinite_relative_backoff import InfiniteRelativeBackoff
 from datetime import datetime
 
 
+async def manage_catalog_item_is_disabled(catalog_item, logger):
+    is_disabled = await CatalogItemService(catalog_item, logger=logger).get_is_disabled()
+    if is_disabled != catalog_item.is_disabled:
+        patch = {
+            "metadata": {
+                "labels": {Babylon.catalog_item_is_disabled_label: str(is_disabled)},
+        }
+        await catalog_item.merge_patch(patch)
+        logger.info(
+            f"Updated is_disabled label ({is_disabled}) for CatalogItem: {catalog_item.name}"
+        )
+
 async def manage_catalog_item_rating(catalog_item, logger):
     rating = await CatalogItemService(catalog_item, logger=logger).get_rating_from_api()
     logger.info(
@@ -107,3 +119,4 @@ async def manage_catalog_item(logger, **kwargs):
         catalog_item = CatalogItem(**kwargs)
         await manage_catalog_item_rating(catalog_item, logger)
         await manage_catalog_item_provision_data(catalog_item, logger)
+        await manage_catalog_item_is_disabled(catalog_item, logger)
