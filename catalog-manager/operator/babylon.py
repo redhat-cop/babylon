@@ -10,6 +10,9 @@ class Babylon:
     ratings_api = os.environ.get(
         "RATINGS_API", "http://babylon-ratings.babylon-ratings.svc.cluster.local:8080"
     )
+    reporting_api = os.environ.get(
+        "REPORTING_API", "http://reporting-api.demo-reporting.svc.cluster.local:8080"
+    )
     demo_domain = "demo.redhat.com"
     catalog_manager_domain = f"catalog-manager.{demo_domain}"
     catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
@@ -18,6 +21,8 @@ class Babylon:
     catalog_item_namespace_label = f"{babylon_domain}/catalogItemNamespace"
     display_name_annotation = f"{babylon_domain}/displayName"
     catalog_item_rating_label = f"{catalog_manager_domain}/rating"
+    catalog_item_is_disabled_label = f"{babylon_domain}/disabled"
+    catalog_item_ops_annotation = f"{babylon_domain}/ops"
     catalog_item_total_ratings = f"{catalog_manager_domain}/totalRatings"
     catalog_item_last_successful_provision = f"{catalog_manager_domain}/lastSuccessfulProvision"
 

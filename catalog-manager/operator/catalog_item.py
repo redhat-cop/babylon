@@ -45,6 +45,12 @@ class CatalogItem:
             self.annotations.get(Babylon.catalog_item_total_ratings, 0),
         )
 
+    @property
+    def is_disabled(self):
+        is_disabled_str = self.labels.get(Babylon.catalog_item_is_disabled_label, "False")
+        is_disabled = {"True": True, "False": False}.get(is_disabled_str, False)
+        return is_disabled
+
     def update_from_definition(self, definition):
         metadata = definition["metadata"]
         self.annotations = metadata.get("annotations", {})
