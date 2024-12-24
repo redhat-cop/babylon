@@ -79,11 +79,14 @@ class CatalogItemService:
                             self.logger.info(
                                 f"/catalog_incident/last-incident/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}/{self.catalog_item.labels['babylon.gpte.redhat.com/stage']} - {resp.status}"
                             )
-                            response = await resp.json()
-                            return response.get("disabled", False)
+                            try:
+                                response = await resp.json()
+                                return response.get("disabled", False)
+                            except Exception as e:
+                                return response.get("disabled", False)
                         self.logger.warn(
                             f"/catalog_incident/last-incident/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}/{self.catalog_item.labels['babylon.gpte.redhat.com/stage']} - {resp.status}"
                         )
             except Exception as e:
-                self.logger.error(f"Invalid connection with {Babylon.ratings_api} - {e}")
+                self.logger.error(f"Invalid connection with {Babylon.reporting_api} - {e}")
                 raise
