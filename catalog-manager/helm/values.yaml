@@ -46,3 +46,8 @@ image:
   repository: quay.io/redhat-gpte/babylon-catalog-manager
   pullPolicy: Always
   tagOverride: ""
+
+
+salesforceApi:
+  deploy: true
+  secretName: salesforce-api

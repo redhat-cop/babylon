@@ -13,6 +13,7 @@ class Babylon:
     reporting_api = os.environ.get(
         "REPORTING_API", "http://reporting-api.demo-reporting.svc.cluster.local:8080"
     )
+    reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
     demo_domain = "demo.redhat.com"
     catalog_manager_domain = f"catalog-manager.{demo_domain}"
     catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
