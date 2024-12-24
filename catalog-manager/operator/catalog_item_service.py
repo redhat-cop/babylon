@@ -64,3 +64,24 @@ class CatalogItemService:
             except Exception as e:
                 self.logger.error(f"Invalid connection with {Babylon.ratings_api} - {e}")
                 raise
+
+    async def get_is_disabled(self):
+        if len(self.catalog_item.labels['gpte.redhat.com/asset-uuid']) != 0:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{Babylon.reporting_api}/catalog_incident/last-incident/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}/{self.catalog_item.labels['babylon.gpte.redhat.com/stage']}",
+                        ssl=False,
+                    ) as resp:
+                        if resp.status == 200:
+                            self.logger.info(
+                                f"/catalog_incident/last-incident/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}/{self.catalog_item.labels['babylon.gpte.redhat.com/stage']} - {resp.status}"
+                            )
+                            response = await resp.json()
+                            return response.get("disabled", False)
+                        self.logger.warn(
+                            f"/catalog_incident/last-incident/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}/{self.catalog_item.labels['babylon.gpte.redhat.com/stage']} - {resp.status}"
+                        )
+            except Exception as e:
+                self.logger.error(f"Invalid connection with {Babylon.ratings_api} - {e}")
+                raise
