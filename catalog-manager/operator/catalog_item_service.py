@@ -83,7 +83,7 @@ class CatalogItemService:
                                 response = await resp.json()
                                 return response.get("disabled", False)
                             except Exception as e:
-                                return response.get("disabled", False)
+                                return False
                         self.logger.warn(
                             f"/catalog_incident/last-incident/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}/{self.catalog_item.labels['babylon.gpte.redhat.com/stage']} - {resp.status}"
                         )
