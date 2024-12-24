@@ -18,7 +18,8 @@ async def manage_catalog_item_is_disabled(catalog_item, logger):
     if is_disabled != catalog_item.is_disabled:
         patch = {
             "metadata": {
-                "labels": {Babylon.catalog_item_is_disabled_label: str(is_disabled)},
+                "labels": {Babylon.catalog_item_is_disabled_label: str(is_disabled)}
+            }
         }
         await catalog_item.merge_patch(patch)
         logger.info(
