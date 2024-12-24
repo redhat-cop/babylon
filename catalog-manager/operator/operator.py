@@ -15,7 +15,7 @@ from datetime import datetime
 
 async def manage_catalog_item_is_disabled(catalog_item, logger):
     is_disabled = await CatalogItemService(catalog_item, logger=logger).get_is_disabled()
-    if is_disabled != catalog_item.is_disabled:
+    if is_disabled != catalog_item.is_disabled and is_disabled is not None:
         patch = {
             "metadata": {
                 "labels": {Babylon.catalog_item_is_disabled_label: str(is_disabled)}

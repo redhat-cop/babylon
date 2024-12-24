@@ -88,3 +88,9 @@ Define the image to deploy
     {{- end -}}
   {{- end -}}
 {{- end -}}
+{{/*
+Saleforce API secret name
+*/}}
+{{- define "babylon-catalog-manager.salesforceApiSecretName" -}}
+  {{- .Values.salesforceApi.secretName }}
+{{- end -}}

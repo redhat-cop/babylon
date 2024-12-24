@@ -25,6 +25,11 @@ spec:
           value: "--log-format=json"
         - name: KOPF_PEERING
           value: {{ include "babylon-catalog-manager.name" . }}
+        - name: SALESFORCE_AUTHORIZATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylon-catalog-manager.salesforceApiSecretName" . }}
+              key: salesforce-api-token
         image: {{ include "babylon-catalog-manager.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:
