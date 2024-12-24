@@ -48,7 +48,7 @@ class CatalogItem:
     @property
     def is_disabled(self):
         is_disabled_str = self.labels.get(Babylon.catalog_item_is_disabled_label, "False")
-        is_disabled = {"True": True, "False": False}.get(is_disabled_str, False)
+        is_disabled = {"True": True, "False": False}.get(is_disabled_str)
         return is_disabled
 
     def update_from_definition(self, definition):
