@@ -670,6 +670,8 @@ async def catalog_item_incidents(request):
 async def external_item_request(request):
     asset_uuid = request.match_info.get('asset_uuid')
     data = await request.json()
+    user = await get_proxy_user(request)
+    data["ordered_by"] = user['metadata']['name']
     headers = {
         'Authorization': f"Bearer {reporting_api_authorization_token}",
         'Content-Type': 'application/json'
