@@ -1,0 +1,1453 @@
+---
+type: object
+x-merge:
+  - path: /__meta__/access_control
+    strategy: overwrite
+
+  - path: /__meta__/catalog
+    strategy: strategic-merge
+
+  - path: /__meta__/components
+    strategy: overwrite
+
+  - path: /__meta__/deployer/execution_environment
+    strategy: overwrite
+
+  - path: /__meta__/sandboxes
+    strategy: overwrite
+
+properties:
+  __meta__:
+    type: object
+    required:
+      - asset_uuid
+    additionalProperties: false
+    properties:
+      access_control:
+        description: >-
+          Access control settings.
+          Access control is exposed through catalog item if configured and is also applied to requests which bypass the catalog by using the API.
+        type: object
+        additionalProperties: false
+        properties:
+          allow_groups:
+            description: >-
+              List of user group names to allow.
+              Group names are OpenShift user groups.
+              If set then only these groups are allowed to access the item.
+              If unset then all groups are allowed.
+            type: array
+            items:
+              type: string
+          deny_groups:
+            description: >-
+              List of user group names to deny.
+              Deny overrides allow and view-only.
+            type: array
+            items:
+              type: string
+          view_only_groups:
+            description: >-
+              List of user group names to allow to view catalog items but not order.
+              Allow and deny both override view-only.
+            type: array
+            items:
+              type: string
+
+      anarchy:
+        type: object
+        additionalProperties: false
+        properties:
+          namespace:
+            type: string
+            example: babylon-anarchy-test
+
+      ansible_control_plane:
+        description: >-
+          Select what kind of ansible backend to use
+        type: object
+        additionalProperties: false
+        properties:
+          type:
+            description: >-
+              Type of the ansible backend.
+            type: string
+            default: tower
+            enum:
+              - tower
+              - controller
+          secret:
+            description: >-
+              Secret in OCP that contains the connection credentials.
+              The name of a Secret object must be a valid DNS subdomain name.
+            type: string
+            pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'
+
+      aws_sandboxed:
+        type: boolean
+
+      bookbag:
+        description: >-
+          Configuration for how bookbag should be deployed by the babylon lab-ui-manager.
+          This should only be used for labs that do not deploy their own lab user interface
+          during AgnosticD execution
+        type: object
+        additionalProperties: false
+        properties:
+          auth:
+            description: >-
+              Authentication configuration for bookbag. Default values disable
+              authentication.
+            type: object
+            additionalProperties: false
+            properties:
+              password:
+                description: >-
+                  Value for AUTH_USERNAME environment variable in bookbag deployment.
+                type: string
+                default: ''
+              user:
+                description: >-
+                  Value for AUTH_PASSWORD environment variable in bookbag deployment.
+                type: string
+                default: '*'
+          image:
+            description: >-
+              Container image used for bookbag deployment. Mutually exclusive with imageBuild.
+            type: string
+          imageBuild:
+            description: >-
+              Configuration used to build image for bookbag deployment. Value is used a spec
+              for OpenShift BuildConfig.
+            type: object
+            additionalProperties: false
+            properties:
+              source:
+                type: object
+                additionalProperties: false
+                properties:
+                  contextDir:
+                    type: string
+                    description: >-
+                      contextDir specifies the sub-directory where the source code for the
+                      application exists. This allows to have buildable sources in directory
+                      other than root of repository.
+                  dockerfile:
+                    type: string
+                    description: >-
+                      dockerfile is the raw contents of a Dockerfile which should be built. When
+                      this option is specified, the FROM may be modified based on your strategy
+                      base image and additional ENV stanzas from your strategy environment will
+                      be added after the FROM, but before the rest of your Dockerfile stanzas.
+                      The Dockerfile source type may be used with other options like git - in
+                      those cases the Git repo will have any innate Dockerfile replaced in the
+                      context dir.
+                  git:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      ref:
+                        description: >-
+                          ref is the branch/tag/ref to build.
+                        type: string
+                      uri:
+                        description: >-
+                          uri points to the source that will be built. The structure of the
+                          source will depend on the type of build to run
+                        type: string
+                  type:
+                    description: >-
+                      type of build input to accept
+                    type: string
+                    enum:
+                      - Git
+              strategy:
+                type: object
+                additionalProperties: false
+                properties:
+                  dockerStrategy:
+                    description: >-
+                      dockerStrategy holds the parameters to the container image build strategy.
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      buildArgs:
+                        type: array
+                        items:
+                          description: >-
+                            buildArgs contains build arguments that will be resolved in the Dockerfile.
+                          type: object
+                          additionalProperties: false
+                          required:
+                            - name
+                            - value
+                          properties:
+                            name:
+                              type: string
+                            value:
+                              type: string
+                      dockerfilePath:
+                        type: string
+                        description: >-
+                          dockerfilePath is the path of the Dockerfile that will be used to build the
+                          container image, relative to the root of the context (contextDir). Defaults
+                          to `Dockerfile` if unset.
+                      env:
+                        type: array
+                        items:
+                          description: >-
+                            env contains additional environment variables you want to pass into a
+                            builder container.
+                          type: object
+                          additionalProperties: false
+                          required:
+                            - name
+                            - value
+                          properties:
+                            name:
+                              type: string
+                            value:
+                              type: string
+                      forcePull:
+                        description: >-
+                          forcePull describes if the builder should pull the images from registry
+                          prior to building.
+                        type: boolean
+                      from:
+                        description: >-
+                          from is a reference to an DockerImage which overrides the FROM image in
+                          the FROM image in the Dockerfile for the build. If the Dockerfile uses
+                           multi-stage builds, this will replace the image in the last FROM
+                          directive of the file.
+                        type: object
+                        additionalProperties: false
+                        properties:
+                          kind:
+                            type: string
+                            enum:
+                              - DockerImage
+                          name:
+                            type: string
+                            description: >-
+                              Docker image reference.
+                  sourceStrategy:
+                    type: object
+                    description: >-
+                      sourceStrategy holds the parameters to the Source build strategy.
+                    additionalProperties: false
+                    properties:
+                      env:
+                        type: array
+                        items:
+                          description: >-
+                            env contains additional environment variables you want to pass into a
+                            builder container.
+                          type: object
+                          required:
+                            - name
+                            - value
+                          additionalProperties: false
+                          properties:
+                            name:
+                              type: string
+                            value:
+                              type: string
+                      forcePull:
+                        description: >-
+                          forcePull describes if the builder should pull the images from registry
+                          prior to building.
+                        type: boolean
+                      from:
+                        description: >-
+                          from is reference to a DockerImage which should be used as the
+                          source-to-image builder.
+                        type: object
+                        additionalProperties: false
+                        properties:
+                          kind:
+                            type: string
+                            enum:
+                              - DockerImage
+                          name:
+                            type: string
+                            description: >-
+                              Docker image reference.
+                  type:
+                    type: string
+                    description: >-
+                      strategy defines how to perform a build.
+                    enum:
+                      - Docker
+                      - Source
+
+      catalog:
+        type: object
+        additionalProperties: false
+        properties:
+          category:
+            type: string
+            enum:
+              - Demos
+              - Labs
+              - Open_Environments
+              - Workshops
+              - Red_Hat_One_2024
+              - Red_Hat_One_2025
+              - Red_Hat_Summit_2024
+          disable:
+            description: >-
+              Disable Babylon CatalogItem item and OpenShift Template generation for item.
+            type: boolean
+            default: false
+
+          display_name:
+            description: >-
+              Display name for catalog item.
+            type: string
+
+          description:
+            description: >-
+              Description of catalog item.
+            type: object
+            required:
+              - content
+              - format
+            properties:
+              content:
+                description: >-
+                  Catalog item description content in HTML or AsciiDoc
+                type: string
+              format:
+                description: >-
+                  Description content format. May be "asciidoc" or "html".
+                type: string
+                enum:
+                  - asciidoc
+                  - html
+
+          email:
+            type: object
+            properties:
+              from:
+                type: string
+
+          externalUrl:
+            description: >-
+              External URL for catalog items that do not provision through Babylon.
+            type: string
+
+          icon:
+            description: >-
+              Icon configuration.
+            type: object
+            additionalProperties: false
+            properties:
+              alt:
+                description: >-
+                  Alt text value for icon image.
+                type: string
+              style:
+                description: >-
+                  CSS overrides for icon image tag.
+                type: object
+              url:
+                description: >-
+                  URL for icon image.
+                type: string
+
+          keywords:
+            type: array
+            items:
+              type: string
+
+          labels:
+            description: >-
+              Labels for filtering catalog items.
+              These labels appear in the catalog user interface sidebar.
+              Labels keys and values must be valid kubernetes labels (https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set).
+              For display purposes underscores are translated to spaces.
+              A numeric suffix of the form "-0", "-1", etc. to assign multiple values for the same label property.
+              For example, "Product-0: OpenShift", "Product-1: Ansible".
+              The numeric suffix is hidden from the user catalog filter display.
+            type: object
+            additionalProperties:
+              type: string
+              pattern: "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+
+          messageTemplates:
+            type: object
+            additionalProperties: false
+            properties:
+              info:
+                type: object
+                additionalProperties: false
+                properties:
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - asciidoc
+              provisionFailed:
+                description: >-
+                  Configuration to send notification that provision failed.
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+              provisionStarted:
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+              retirementScheduled:
+                description: >-
+                  Configuration to send notification that retirement date is approaching when
+                  service will be automatically deleted.
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+                  timeIntervalBeforeRetirement:
+                    description: >-
+                      Configure time interval before automatic delete when to send notification.
+                    type: string
+              serviceDeleted:
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+              serviceReady:
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+              startComplete:
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+              startFailed:
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+              stopComplete:
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+              stopFailed:
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+              stopScheduled:
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    type: boolean
+                  emailSubject:
+                    type: string
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - jinja2
+              user:
+                description: >-
+                  Message template to present to users of a multi-user service.
+                type: object
+                additionalProperties: false
+                properties:
+                  outputFormat:
+                    type: string
+                    enum:
+                      - html
+                  template:
+                    type: string
+                  templateFormat:
+                    type: string
+                    enum:
+                      - asciidoc
+          multiuser:
+            description: >-
+              Boolean flag to indicate if the catalog item provisions infrastructure for a multi-user catalog item.
+              If set then a ".user" catalog item will be created in addition to the infra catalog item.
+            default: false
+            type: boolean
+
+          multiuser_infra_namespace:
+            description: >-
+              Namespace in which to create Babylon CatalogItem and OpenShift Template for infrastructure deployment of a multiuser environment.
+            type: string
+
+          reportingLabels:
+            description: >-
+              Reporting-specific labels used to group and filter catalog items for analytics and reporting purposes.
+              These labels are not displayed in the Babylon UI but are essential for categorizing and analyzing catalog items.
+              The keys and values must adhere to Kubernetes label syntax (https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set).
+            type: object
+            additionalProperties:
+              type: string
+              pattern: "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+
+          workshopLabUiRedirect:
+            description: >-
+              Boolean flag to indicate that by default workshops should redirect users to the lab interface URL, if available.
+            default: false
+            type: boolean
+
+          workshopUiDisabled:
+            description: >-
+              Boolean flag to indicate if the catalog item shoud not support the ability to enable the Workshop User Interface.
+            default: false
+            type: boolean
+
+          workshopUiMaxInstances:
+            description: >-
+              Maximum number of instances supported in a single the workshop. 0 means no limit.
+            default: 30
+            type: number
+
+          namespace:
+            description: >-
+              Namespace in which to create Babylon CatalogItem and OpenShift Template for infrastructure deployment.
+            type: string
+
+          parameters:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              properties:
+                annotation:
+                  description: >-
+                    Annotation to set for this form parameter.
+                    If annotation is set then by default no deployer job variable is set unless a variable name is specifically configured.
+                  type: string
+                  pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+
+                components:
+                  description:
+                    Configure to apply parameter to components in a multi-component items.
+                    If omitted then parameter only applies to current component.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - name
+                    properties:
+                      name:
+                        description: >-
+                          Name of target component for parameter.
+                          Must either be 'all', 'current', or name of component listed in '__meta__.components'
+                        type: string
+
+                description:
+                  description: >-
+                    Description of this parameter for the user to understand its function.
+                  type: string
+
+                formLabel:
+                  description: >-
+                    Form label for this parameter.
+                  type: string
+
+                formGroup:
+                  description: >-
+                    Form group label which should be used to group together parameters.
+                    This is useful to group boolean checkboxes under a common heading.
+                  type: string
+
+                formDisableCondition:
+                  description: >-
+                    JavaScript statement used to determine whether a parameter should be disabled on the form.
+                    Parameter values may be accessed as variables by parameter name.
+                    If a true value is return then the form element for this parameter will appear disabled.
+                  type: string
+
+                formHideCondition:
+                  description: >-
+                    JavaScript statement used to determine whether a parameter should be hidden on the form.
+                    Parameter values may be accessed as variables by parameter name.
+                    If a true value is return then the form element for this parameter will not appear on the form.
+                  type: string
+
+                formRequireCondition:
+                  description: >-
+                    JavaScript statement used to detrimen when a parameter is required.
+                    Parameter values may be accessed as variables by parameter name.
+                  type: string
+
+                name:
+                  description: >-
+                    Parameter name and default value for variable name.
+                  type: string
+                  pattern: ^[a-zA-Z_][a-z-A-Z_0-9]+$
+
+                openAPIV3Schema:
+                  description: >-
+                    OpenAPIv3 schema used to validate parameter value.
+                  type: object
+
+                required:
+                  description: >-
+                    Boolean flag to indicate whether the parameter is required.
+                  type: boolean
+
+                validation:
+                  description: >-
+                    JavaScript statement used to validate form parameter value.
+                    Parameter values may be accessed as variables by parameter name.
+                    The function `check_salesforce_id` is available to validate Salesforce (SFDC) ids.
+                    Code may return a javascript Error object with a message to show the user.
+                    Example: `user_count * 10 < worker_instance_count || Error("Maximum of ten users per worker instance.")`
+                  type: string
+
+                value:
+                  description: >-
+                    Default value for parameter.
+                    If not specified then openApiV3Schema will be checked for default.
+                  type: string
+
+                variable:
+                  description: >-
+                    Name of variable to set for this parameter to override parameter name.
+                    A variable may be explictly set to indicate that a variable should be set even if an annotation is also set for this parameter.
+                    If set to null then no variable will be set for this parameter.
+                  nullable: true
+                  type: string
+                  pattern: ^[a-zA-Z_][a-z-A-Z_0-9]+$
+
+          provision_requires_request:
+            description: >-
+              If set to a true value then environment provisioning will not occur for pooled items until
+              a request is created for a pool item. Defaults to true if any requester parameters are
+              configured.
+            type: boolean
+
+          requester_parameters:
+            description: >-
+              Parameters that set variables when a service is requseted.
+              Presence of any requester parameters will cause provision to require a request.
+              Values may be jinja2 template strings that reference requester_user and requester_identity.
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                value:
+                  type: string
+
+          tags:
+            type: array
+            items:
+              type: string
+
+          terms_of_service:
+            description:
+              HTML content for terms of service to appear on the service request form.
+            type: string
+
+      components:
+        description: >-
+          Configuration for multi-component items.
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          properties:
+            display_name:
+              description: >-
+                Display name to show in interfaces and communications for this component.
+              type: string
+            item:
+              description: >-
+                Reference within AgnosticD to other item in the form "<ACCOUNT>/<NAME>".
+                The STAGE used will match dev/test/prod.
+              type: string
+            name:
+              type: string
+            propagate_provision_data:
+              description: >-
+                Configuration to pass values from provision data from component to set variables for subsequent provisions.
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                properties:
+                  name:
+                    description: >-
+                      Name of provision data item to find in component.
+                    type: string
+                  var:
+                    description: >-
+                      Variable to set in provision.
+                    type: string
+            when:
+              description: >-
+                Condition when component should be included.
+                Condition in ansible style "when" condition string which may reference parameters values.
+                For example, if this item has a parameter "base_cloud_provider" then this value could be:
+                "base_cloud_provider == 'ec2'"
+              type: string
+
+      deployer:
+        type: object
+        additionalProperties: false
+        properties:
+          actions:
+            description: >-
+              Action configuration for deployer.
+            type: object
+            additionalProperties: false
+            properties:
+              destroy:
+                description: >-
+                  Configuration for how to destroy a provisioned service.
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    description: >-
+                      Boolean flag to disable destroy.
+                      This should only be set on environments that are automatically cleaned up by some mechanism other than running the deployer.
+                    type: boolean
+                    default: false
+                  entry_point:
+                    description: >-
+                      Ansible playbook to execute for destroy.
+                    default: ansible/destroy.yml
+                    type: string
+                  extra_vars:
+                    description: >-
+                      Extra vars vars to pass with destroy execution to distinguish between different actions when the same entry point is used for different actions.
+                    type: object
+                    default:
+                      ACTION: destroy
+                  time_estimate:
+                    description: >-
+                      Time estimate for how long destroy should take.
+                      Time format in format examples: "1h", "90m".
+                    pattern: ^[0-9]+[hms]$
+                    type: string
+              provision:
+                description: >-
+                  Configuration for how to provision a service.
+                type: object
+                additionalProperties: false
+                properties:
+                  entry_point:
+                    description: >-
+                      Playbook to execute to provision service.
+                    default: anisble/main.yml
+                    type: string
+                  extra_vars:
+                    description: >-
+                      Extra vars vars to pass with provision execution to distinguish between different actions when the same entry point is used for different actions.
+                    type: object
+                    default:
+                      ACTION: provision
+                  time_estimate:
+                    description: >-
+                      Time estimate for how long provision should take.
+                      Time format in format examples: "1h", "90m".
+                    pattern: ^[0-9]+[hms]$
+                    type: string
+              start:
+                description: >-
+                  Configuration for how to start a provisioned service.
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    description: >-
+                      Boolean flag to disable start action.
+                    type: boolean
+                    default: false
+                  entry_point:
+                    description: >-
+                      Ansible playbook to execute for start.
+                    default: ansible/lifecycle_entry_point.yml
+                    type: string
+                  extra_vars:
+                    description: >-
+                      Extra vars vars to pass with start execution to distinguish between different actions when the same entry point is used for different actions.
+                    default:
+                      ACTION: start
+                    type: object
+                  time_estimate:
+                    description: >-
+                      Time estimate for how long start should take.
+                      Time format in format examples: "1h", "90m".
+                    pattern: ^[0-9]+[hms]$
+                    type: string
+              status:
+                description: >-
+                  Configuration for how to get status for a provisioned service.
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    description: >-
+                      Boolean flag to disable status action.
+                    type: boolean
+                    default: false
+                  entry_point:
+                    description: >-
+                      Ansible playbook to execute for status.
+                    default: ansible/lifecycle_entry_point.yml
+                    type: string
+                  extra_vars:
+                    description: >-
+                      Extra vars vars to pass with status execution to distinguish between different actions when the same entry point is used for different actions.
+                    default:
+                      ACTION: status
+                    type: object
+                  time_estimate:
+                    description: >-
+                      Time estimate for how long status should take.
+                      Time format in format examples: "1h", "90m".
+                    pattern: ^[0-9]+[hms]$
+                    type: string
+              stop:
+                description: >-
+                  Configuration for how to stop a provisioned service.
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    description: >-
+                      Boolean flag to disable stop action.
+                    type: boolean
+                    default: false
+                  entry_point:
+                    description: >-
+                      Ansible playbook to execute for stop.
+                    default: ansible/destroy.yml
+                    type: string
+                  extra_vars:
+                    description: >-
+                      Extra vars vars to pass with stop execution to distinguish between different actions when the same entry point is used for different actions.
+                    default:
+                      ACTION: stop
+                    type: object
+                  time_estimate:
+                    description: >-
+                      Time estimate for how long stop should take.
+                      Time format in format examples: "1h", "90m".
+                    pattern: ^[0-9]+[hms]$
+                    type: string
+              update:
+                description: >-
+                  Configuration for how to updtae a provisioned service.
+                type: object
+                additionalProperties: false
+                properties:
+                  disable:
+                    description: >-
+                      Boolean flag to disable update.
+                    type: boolean
+                    default: false
+                  entry_point:
+                    description: >-
+                      Ansible playbook to execute for update.
+                    type: string
+                    default: ansible/update.yml
+                  extra_vars:
+                    description: >-
+                      Extra vars vars to pass with update execution to distinguish between different actions when the same entry point is used for different actions.
+                    type: object
+                    default:
+                      ACTION: destroy
+                  time_estimate:
+                    description: >-
+                      Time estimate for how long update should take.
+                      Time format in format examples: "1h", "90m".
+                    pattern: ^[0-9]+[hms]$
+                    type: string
+
+          credentials:
+            description: >-
+              Credentials which must be pre-defined in the Ansible control plane.
+            type: array
+            items:
+              type: string
+          execution_environment:
+            type: object
+            additionalProperties: false
+            properties:
+              name:
+                type: string
+                description: >-
+                  The name of the Execution Environment to use. The EE must be present in Controller. Mutually exclusive with 'image'.
+
+              image:
+                type: string
+                description: The URL of the image.
+                example: registry.redhat.io/ansible-automation-platform-21/ee-minimal-rhel8:latest
+
+              pull:
+                type: string
+                description: The pull stragegy for the EE. To be used only with 'image', not 'name'.
+                default: missing
+                enum:
+                  - always
+                  - missing
+                  - never
+
+              private:
+                type: boolean
+                description: Whether the registry is private or not. If the registry is private, a credential must exist in AAP2 to access it.
+                default: false
+
+          # See in https://github.com/redhat-gpte-devopsautomation/babylon_anarchy_governor
+          git_tag_prefix:
+            type: string
+
+          scm_ref:
+            type: string
+
+          scm_type:
+            type: string
+            enum:
+              - git
+
+          scm_url:
+            type: string
+
+          type:
+            type: string
+            # Some catalog items only consist of components and do not
+            # describe anything to provision.
+            nullable: true
+            enum:
+              - agnosticd
+              - ansible-workshops
+
+          virtualenv:
+            type: string
+
+      lifespan:
+        description: >-
+          Lifespan policy to apply to catalog item services.
+        type: object
+        additionalProperties: false
+        properties:
+          default:
+            description: >-
+              Default lifespan in format of whole number followed by time unit: "d", "h", "m", or "s".
+              For example, "3d" for 3 days.
+            type: string
+            pattern: ^[0-9]+[dhms]$
+          maximum:
+            description: >-
+              Maximum lifespan which may be requested for a service relative to its creation.
+              Specified in format of whole number followed by time unit: "d", "h", "m", or "s".
+              For example, "3d" for 3 days.
+            type: string
+            pattern: ^[0-9]+[dhms]$
+          relativeMaximum:
+            description: >-
+              Maximum lifespan which may be requested for a service relative to the present date and time.
+              Specified in format of whole number followed by time unit: "d", "h", "m", or "s".
+              For example, "3d" for 3 days.
+            type: string
+            pattern: ^[0-9]+[dhms]$
+
+      owners:
+        description: >-
+          Who owns this catalog item.
+          Who can be called upon to fix breaking catalog items?
+          Who should be notified in case of major catalog item changes?
+        type: object
+        additionalProperties: false
+        required:
+          - maintainer
+          - sme
+        properties:
+
+          maintainer:
+            description: >-
+              Mandatory.
+              Who are the primary maintainers of this catalog item.
+              There can be one or more maintainers. Maintainers must be Red Hat employees.
+            type: array
+            minItems: 1
+            items:
+              type: object
+              required:
+                - email
+                - name
+              properties:
+                email:
+                  description: >-
+                    email of the maintainer.
+                  type: string
+                name:
+                  description: >-
+                    Full name of the maintainer.
+                  type: string
+
+          instructions:
+            description: >-
+              Optional.
+              Who is responsible for instructions (Showroom) for this catalog item needs work.
+              There can be one or more instruction owners. Instruction owners can be Red Hat employees or external contributors.
+            type: array
+            minItems: 1
+            items:
+              type: object
+              required:
+                - email
+                - name
+              properties:
+                email:
+                  description: >-
+                    email of the maintainer.
+                  type: string
+                name:
+                  description: >-
+                    Full name of the maintainer.
+                  type: string
+
+          notes:
+            description: >-
+              Optional.
+              Free form text field to add any other relevant information to this catalog item's
+              ownership structure.
+            type: string
+
+          ops:
+            description: >-
+              Optional.
+              Who from our Ops team is responsible for this catalog item.
+              There can be one or more ops team owners. Ops owners must be Red Hat employees.
+            type: array
+            minItems: 1
+            items:
+              type: object
+              required:
+                - email
+                - name
+              properties:
+                email:
+                  description: >-
+                    email of the maintainer.
+                  type: string
+                name:
+                  description: >-
+                    Full name of the maintainer.
+                  type: string
+
+          sme:
+            description: >-
+              Mandatory.
+              Who are the SMEs that can help if this catalog item needs work.
+              There can be one or more SMEs. SMEs must be Red Hat employees.
+            type: array
+            minItems: 1
+            items:
+              type: object
+              required:
+                - email
+                - name
+              properties:
+                email:
+                  description: >-
+                    email of the maintainer.
+                  type: string
+                name:
+                  description: >-
+                    Full name of the maintainer.
+                  type: string
+
+          stakeholder:
+            description: >-
+              Optional.
+              Who is interested in this catalog item. This can include collaborators from the business unit,
+              marketing, engineering or any other individual who should be consulted before making major changes
+              to this catalog item.
+              There can be one or more stakeholders. Instruction owners can be Red Hat employees or external contributors.
+            type: array
+            minItems: 1
+            items:
+              type: object
+              required:
+                - email
+                - name
+              properties:
+                email:
+                  description: >-
+                    email of the maintainer.
+                  type: string
+                name:
+                  description: >-
+                    Full name of the maintainer.
+                  type: string
+
+      require_end_to_end_test:
+        description: >-
+          Specify if the end-to-end tests must be executed on each PR against the integration cluster.
+
+        type: boolean
+        default: false
+
+      runtime:
+        description: >-
+          Configuration for automatic stop and runtime extension.
+        type: object
+        additionalProperties: false
+        properties:
+          default:
+            description: >-
+              Default runtime in format of whole number followed by time unit: "d", "h", "m", or "s".
+              For example, "3h" for 3 hours.
+            type: string
+            pattern: ^[0-9]+[dhms]$
+          maximum:
+            description: >-
+              Maximum runtime in format of whole number followed by time unit: "d", "h", "m", or "s".
+              Ex: "3h" for 3 hours.
+            type: string
+            pattern: ^[0-9]+[dhms]$
+
+      sandbox_api:
+        description: >-
+          Sandbox API related configuration.
+        type: object
+        additionalProperties: false
+        properties:
+          actions:
+            description: Actions configuration for sandbox API
+            type: object
+            additionalProperties: false
+            properties:
+              destroy:
+                type: object
+                additionalProperties: false
+                properties:
+                  enable:
+                    type: boolean
+                  disable:
+                    type: boolean
+                  catch_all:
+                    type: boolean
+                    default: true
+                    description: |-
+                      Control wether the Sandbox API is enough to cleanup everything. By default, it's true.
+                      It means if the deployer fails in AAP, it'll be ignored and the sandbox API will cleanup everything after and the AnarchySubject will be deleted
+                      If the Controller job must succeed for a service to be considered delete, turn this to false in agnosticv __meta__.sandbox_api.actions.destroy.catch_all
+              start:
+                type: object
+                additionalProperties: false
+                properties:
+                  enable:
+                    type: boolean
+                  disable:
+                    type: boolean
+              stop:
+                type: object
+                additionalProperties: false
+                properties:
+                  enable:
+                    type: boolean
+                  disable:
+                    type: boolean
+              status:
+                type: object
+                additionalProperties: false
+                properties:
+                  enable:
+                    type: boolean
+                  disable:
+                    type: boolean
+
+          reservation:
+            type: string
+            pattern: '^[\w\d_-]+$'
+
+      sandboxes:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - AwsSandbox
+                - OcpSandbox
+                - AzureSandbox
+            count:
+              type: integer
+              default: 1
+            cloud_selector:
+              type: object
+              description: >-
+                A dictionary of strings to select the cloud provider using annotations
+              additionalProperties:
+                type: string
+            annotations:
+              type: object
+              description: >-
+                A dictionary of strings to add to the sandbox accounts as annotations.
+              example:
+                purpose: "testing"
+              additionalProperties:
+                type: string
+            var:
+              type: string
+              description: >-
+                The name of the variable to set in the deployer job for the sandbox account.
+            namespace_suffix:
+              type: string
+              description: >-
+                The suffix to add to the namespace name for the OcpSandbox.
+            quota:
+              type: object
+              description: |-
+                The quota to apply to the OpenShift namespace.
+                Quota to be applied to the namespace of the OcpSandbox
+                The way quota is applied depends on how the target OpenShift shared cluster is configured.
+                By default, if a quota value is missing, the default quota of the shared cluster is applied to the namespace.
+
+                If the shared cluster is configured with StrictDefaultSandboxQuota, the default sandbox quota should be strictly enforced. If set to true, the default sandbox quota will be enforced as a hard limit. Requested quota not be allowed to exceed the default. By default it's false.
+
+                If set to false, the default sandbox-quota will be updated
+                to the requested quota even if some values are greater.
+              additionalProperties:
+                type: string
+              example:
+                pods: "10"
+                limits.cpu: "10"
+                limits.memory: "20Gi"
+                requests.cpu: "10"
+                requests.memory: "20Gi"
+                requests.storage: "50Gi"
+                requests.ephemeral-storage: "50Gi"
+                limits.ephemeral-storage: "50Gi"
+                persistentvolumeclaims: "10"
+                services: "10"
+                services.loadbalancers: "10"
+                services.nodeports: "10"
+                secrets: "10"
+                configmaps: "10"
+                replicationcontrollers: "10"
+                resourcequotas: "10"
+            limit_range:
+              type: object
+              description: |-
+                LimitRange to be applied to the namespace of the OcpSandbox
+                The way limit range is applied depends on how the target OpenShift shared cluster is configured.
+                By default, if a limit range value is missing, the default limit range of the shared cluster is applied to the namespace.
+              example:
+                spec:
+                  default:
+                    cpu: "10"
+                    memory: "4Gi"
+                  defaultRequest:
+                    cpu: "1"
+                    memory: "2Gi"
+      scheduler:
+        type: object
+        additionalProperties: false
+        properties:
+          data:
+            type: object
+            properties:
+              annotations:
+                type: object
+                additionalProperties:
+                  type: string
+              uuid:
+                type: string
+          enable:
+            type: boolean
+          endpoint:
+            type: string
+            example: /api/v1/schedule
+          url:
+            type: string
+            example: https://agnostics.apps.open.redhat.com
+
+      secrets:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - name
+          properties:
+            name:
+              type: string
+            namespace:
+              type: string
+            var:
+              type: string
+
+      tower:
+        type: object
+        additionalProperties: false
+        properties:
+          organization:
+            type: string
+            example: gpte
+
+          inventory:
+            type: string
+            default: default
+
+          run_group:
+            type: string
+            default: default
+
+          action:
+            type: string
+
+          timeout:
+            description: >-
+              The amount of time (in seconds) to run before the task is canceled in Tower.
+
+            default: 14400
+
+            type: integer
+
+      asset_uuid:
+        type: string
+        format: uuid
+        description: >-
+          A universally unique identifier for this component.
+...
