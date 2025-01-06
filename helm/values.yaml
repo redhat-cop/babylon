@@ -45,10 +45,10 @@ agnosticv:
 anarchy:
   ansibleRoles:
     pre: []
-    sources: 
+    sources:
       babylon_anarchy_governor:
         src: https://github.com/rhpds/babylon_anarchy_governor.git
-        version: v0.26.3
+        version: v0.27.0
   api:
     group: anarchy.gpte.redhat.com
     version: v1
