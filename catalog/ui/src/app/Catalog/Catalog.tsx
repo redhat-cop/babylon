@@ -353,7 +353,10 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
   );
-  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES({}), fetcher);
+  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES({}), fetcher, {
+    suspense: false,
+    shouldRetryOnError: false,
+  });
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),

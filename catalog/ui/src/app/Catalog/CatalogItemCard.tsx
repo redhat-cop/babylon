@@ -1,15 +1,12 @@
 import React from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Badge, CardBody, CardHeader, Split, SplitItem, Title, Tooltip } from '@patternfly/react-core';
-import { BookmarkList, CatalogItem } from '@app/types';
+import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import { formatString, getDescription, getProvider, getRating, getStage, getStatus, getSLA } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
-import useSWRImmutable from 'swr/immutable';
-import { apiPaths, fetcher } from '@app/api';
-import { StarIcon } from '@patternfly/react-icons/dist/js/icons/star-icon';
 
 import './catalog-item-card.css';
 
@@ -23,10 +20,6 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const rating = getRating(catalogItem);
   const status = getStatus(catalogItem);
   const sla = getSLA(catalogItem);
-  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES({}), fetcher);
-  const isFavorite = assetsFavList.bookmarks.some(
-    (b) => b.asset_uuid === catalogItem.metadata?.labels?.['gpte.redhat.com/asset-uuid']
-  );
   if (namespace) {
     searchParams.set('item', catalogItem.metadata.name);
   } else {
