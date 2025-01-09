@@ -67,7 +67,6 @@ import useSWRImmutable from 'swr/immutable';
 import UptimeDisplay from '@app/components/UptimeDisplay';
 import { StarIcon } from '@patternfly/react-icons/dist/js/icons/star-icon';
 import { OutlinedStarIcon } from '@patternfly/react-icons/dist/js/icons/outlined-star-icon';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 
 import './catalog-item-details.css';
 
@@ -108,7 +107,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   );
   const { data: assetsFavList, mutate: mutateFavorites } = useSWRImmutable<BookmarkList>(
     asset_uuid ? apiPaths.FAVORITES({}) : null,
-    fetcher
+    fetcher,
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    }
   );
   let isFavorite = false;
   if (asset_uuid && assetsFavList) {
@@ -213,11 +216,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   }
 
   async function orderCatalogItem() {
-    if (catalogItem.spec.externalUrl) {
-      window.open(catalogItem.spec.externalUrl, '_blank');
-    } else {
-      navigate(`/catalog/${namespace}/order/${name}`);
-    }
+    navigate(`/catalog/${namespace}/order/${name}`);
   }
 
   function requestInformation() {
@@ -277,10 +276,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 isDisabled={isAdmin ? false : status && status.disabled}
                 className="catalog-item-details__main-btn"
               >
-                Order{' '}
-                {catalogItem.spec.externalUrl ? (
-                  <ExternalLinkAltIcon style={{ width: '10px', paddingTop: '4px', marginLeft: '4px' }} />
-                ) : null}
+                Order
               </Button>
               {isAdmin ? (
                 <Button
@@ -341,10 +337,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           ) : catalogItemAccess === CatalogItemAccess.Deny ? (
             <>
               <Button key="button" isDisabled variant="primary" className="catalog-item-details__main-btn">
-                Order{' '}
-                {catalogItem.spec.externalUrl ? (
-                  <ExternalLinkAltIcon style={{ width: '10px', paddingTop: '4px', marginLeft: '4px' }} />
-                ) : null}
+                Order
               </Button>
               <div key="reason" className="catalog-item-details__access-deny-reason">
                 {catalogItemAccessDenyReason}

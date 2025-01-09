@@ -348,6 +348,51 @@ export async function createResourcePool(definition: ResourcePool) {
   return await createK8sObject<ResourcePool>(definition);
 }
 
+export async function saveExternalItemRequest({
+  asset_uuid,
+  requester,
+  purpose,
+  purposeActivity,
+  purposeExplanation,
+  salesforceId,
+  salesType,
+  stage,
+}: {
+  asset_uuid: string;
+  requester: string;
+  purpose: string;
+  purposeActivity?: string;
+  purposeExplanation?: string;
+  salesforceId?: string;
+  salesType?: string;
+  stage: 'dev' | 'test' | 'event' | 'prod';
+}) {
+  const session = await getApiSession();
+  const orderedBy = session.user;
+  try {
+    const resp = await apiFetch(apiPaths.EXTERNAL_ITEM_REQUEST({ asset_uuid }), {
+      body: JSON.stringify({
+        asset_uuid,
+        requester,
+        ordered_by: orderedBy,
+        purpose,
+        purpose_acitvity: purposeActivity,
+        purpose_explanation: purposeExplanation,
+        salesforce_id: salesforceId,
+        sales_type: salesType,
+        stage,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+    });
+    return await resp.json();
+  } catch (err) {
+    return null;
+  }
+}
+
 export async function createServiceRequest({
   catalogItem,
   catalogNamespaceName,
@@ -1750,4 +1795,5 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   SFDC_BY_ACCOUNT: ({ sales_type, account_id }: { sales_type: string; account_id: string }) =>
     `/api/salesforce/accounts/${account_id}?sales_type=${sales_type}`,
   FAVORITES: () => `/api/user-manager/bookmarks`,
+  EXTERNAL_ITEM_REQUEST: ({ asset_uuid }: { asset_uuid: string }) => `/api/external_item/${asset_uuid}/request`,
 };

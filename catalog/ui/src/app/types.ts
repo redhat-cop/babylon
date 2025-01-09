@@ -643,7 +643,8 @@ export type ResourceType =
   | 'WORKSHOP_USER_ASSIGNMENTS'
   | 'SFDC_ACCOUNTS'
   | 'SFDC_BY_ACCOUNT'
-  | 'FAVORITES';
+  | 'FAVORITES'
+  | 'EXTERNAL_ITEM_REQUEST';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
@@ -721,7 +722,7 @@ export type SfdcType = 'campaign' | 'cdh' | 'project' | 'opportunity';
 
 export type Bookmark = {
   asset_uuid: string;
-}
+};
 export type BookmarkList = {
-  bookmarks: Bookmark[]
-}
+  bookmarks: Bookmark[];
+};

@@ -35,9 +35,10 @@ import {
   createWorkshop,
   createWorkshopProvision,
   fetcher,
+  saveExternalItemRequest,
 } from '@app/api';
 import { CatalogItem, TPurposeOpts } from '@app/types';
-import { displayName, isLabDeveloper, randomString } from '@app/util';
+import { displayName, getStageFromK8sObject, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
@@ -149,6 +150,22 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       parameterValues['sales_type'] = formState.salesforceId.type;
     }
 
+    if (catalogItem.spec.externalUrl) {
+      await saveExternalItemRequest({
+        asset_uuid: catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'],
+        requester: formState.serviceNamespace.requester || email,
+        purpose: formState.purpose,
+        purposeActivity: formState.activity,
+        purposeExplanation: formState.explanation,
+        salesforceId: formState.salesforceId?.value,
+        salesType: formState.salesforceId?.type,
+        stage: getStageFromK8sObject(catalogItem),
+      });
+      setIsLoading(false);
+      window.open(catalogItem.spec.externalUrl, '_blank');
+      return null;
+    }
+
     if (formState.workshop) {
       const {
         accessPassword,
@@ -208,10 +225,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     setIsLoading(false);
   }
 
-  if (catalogItem.spec.externalUrl) {
-    window.open(catalogItem.spec.externalUrl);
-    return null;
-  }
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
       <CatalogItemFormAutoStopDestroyModal
@@ -283,7 +296,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       <p>Order by completing the form. Default values may be provided.</p>
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
-        {isAdmin || serviceNamespaces.length > 1 ? (
+        {(isAdmin || serviceNamespaces.length > 1) && !catalogItem.spec.externalUrl ? (
           <FormGroup key="service-namespace" fieldId="service-namespace" label="Create Request in Project">
             <ProjectSelector
               currentNamespaceName={formState.serviceNamespace.name}
@@ -567,7 +580,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           );
         })}
 
-        {!workshopUiDisabled ? (
+        {!workshopUiDisabled && !catalogItem.spec.externalUrl ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch
@@ -644,7 +657,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {!isAutoStopDisabled(catalogItem) && !formState.workshop ? (
+        {!isAutoStopDisabled(catalogItem) && !formState.workshop && !catalogItem.spec.externalUrl ? (
           <FormGroup key="auto-stop" fieldId="auto-stop" label="Auto-stop">
             <div className="catalog-item-form__group-control--single">
               <AutoStopDestroy
@@ -659,7 +672,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {!formState.workshop ? (
+        {!formState.workshop && !catalogItem.spec.externalUrl ? (
           <FormGroup key="auto-destroy" fieldId="auto-destroy" label="Auto-destroy">
             <div className="catalog-item-form__group-control--single">
               <AutoStopDestroy
@@ -676,43 +689,45 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
         {formState.workshop ? (
           <div className="catalog-item-form__workshop-form">
-            {isAdmin ? <FormGroup fieldId="workshopStartDate" isRequired label="Start Date">
-              <div className="catalog-item-form__group-control--single">
-                <DateTimePicker
-                  defaultTimestamp={Date.now()}
-                  onSelect={(d: Date) =>
-                    dispatchFormState({
-                      type: 'dates',
-                      startDate: d,
-                      stopDate: new Date(
-                        d.getTime() +
-                          parseDuration(
-                            formState.activity?.startsWith('Customer Facing')
-                              ? '365d'
-                              : catalogItem.spec.runtime?.default || '30h'
-                          )
-                      ),
-                      endDate: new Date(d.getTime() + parseDuration('30h')),
-                    })
-                  }
-                  minDate={Date.now()}
-                />
-                <Tooltip
-                  position="right"
-                  content={
-                    <p>
-                      Select the date you'd like the workshop to start. Note: Instances will begin provisioning 6 hours
-                      prior to the selected start date to ensure availability.
-                    </p>
-                  }
-                >
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Select the date you'd like the workshop to start. Note: Instances will begin provisioning 6 hours prior to the selected start date to ensure availability."
-                    className="tooltip-icon-only"
+            {isAdmin ? (
+              <FormGroup fieldId="workshopStartDate" isRequired label="Start Date">
+                <div className="catalog-item-form__group-control--single">
+                  <DateTimePicker
+                    defaultTimestamp={Date.now()}
+                    onSelect={(d: Date) =>
+                      dispatchFormState({
+                        type: 'dates',
+                        startDate: d,
+                        stopDate: new Date(
+                          d.getTime() +
+                            parseDuration(
+                              formState.activity?.startsWith('Customer Facing')
+                                ? '365d'
+                                : catalogItem.spec.runtime?.default || '30h'
+                            )
+                        ),
+                        endDate: new Date(d.getTime() + parseDuration('30h')),
+                      })
+                    }
+                    minDate={Date.now()}
                   />
-                </Tooltip>
-              </div>
-            </FormGroup> : null}
+                  <Tooltip
+                    position="right"
+                    content={
+                      <p>
+                        Select the date you'd like the workshop to start. Note: Instances will begin provisioning 6
+                        hours prior to the selected start date to ensure availability.
+                      </p>
+                    }
+                  >
+                    <OutlinedQuestionCircleIcon
+                      aria-label="Select the date you'd like the workshop to start. Note: Instances will begin provisioning 6 hours prior to the selected start date to ensure availability."
+                      className="tooltip-icon-only"
+                    />
+                  </Tooltip>
+                </div>
+              </FormGroup>
+            ) : null}
             <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
               <div className="catalog-item-form__group-control--single">
                 <AutoStopDestroy
@@ -918,7 +933,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </div>
         ) : null}
 
-        {isAdmin ? (
+        {isAdmin && !catalogItem.spec.externalUrl ? (
           <FormGroup fieldId="white-glove" isRequired>
             <div className="catalog-item-form__group-control--single">
               <Switch
@@ -938,7 +953,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {isAdmin ? (
+        {isAdmin && !catalogItem.spec.externalUrl ? (
           <FormGroup key="pooling-switch" fieldId="pooling-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch
@@ -958,7 +973,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {isAdmin || isLabDeveloper(groups) ? (
+        {(isAdmin || isLabDeveloper(groups)) && !catalogItem.spec.externalUrl ? (
           <FormGroup key="auto-detach-switch" fieldId="auto-detach-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch
