@@ -550,6 +550,35 @@ class AgnosticVComponent(KopfObject):
 
         if self.stage in ('dev', 'test', 'prod', 'event'):
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/stage"] = self.stage
+        
+        if self.catalog_parameters != None:
+            definition['spec']['parameters'] = []
+            for catalog_parameter in self.catalog_parameters:
+                parameter = {
+                    key: value for key, value in catalog_parameter.items()
+                    if key not in ('components', 'resourceIndexes')
+                }
+                definition['spec']['parameters'].append(parameter)
+                # Compatibility with deprecated resourceIndexes
+                if 'components' in catalog_parameter:
+                    resource_indexes = set()
+                    for component in catalog_parameter['components']:
+                        component_name = component['name']
+                        if component_name == 'all':
+                            for idx in range(len(self.linked_components)):
+                                resource_indexes.add(idx)
+                            if self.deployer_type:
+                                resource_indexes.add(len(self.linked_components))
+                        elif component_name == 'current':
+                            resource_indexes.add(len(catalog_parameter['components']))
+                        else:
+                            for idx, linked_component in enumerate(self.linked_components):
+                                if linked_component.name == component_name:
+                                    resource_indexes.add(idx)
+                    parameter['resourceIndexes'] = list(resource_indexes)
+    
+        if self.catalog_terms_of_service:
+            definition['spec']['termsOfService'] = self.catalog_terms_of_service
 
         if self.catalog_external_url:
             definition['spec']['externalUrl'] = self.catalog_external_url
@@ -608,37 +637,8 @@ class AgnosticVComponent(KopfObject):
             else:
                 definition['spec']['workshopUiMaxInstances'] = self.catalog_workshop_ui_max_instances
 
-            if self.catalog_parameters != None:
-                definition['spec']['parameters'] = []
-                for catalog_parameter in self.catalog_parameters:
-                    parameter = {
-                        key: value for key, value in catalog_parameter.items()
-                        if key not in ('components', 'resourceIndexes')
-                    }
-                    definition['spec']['parameters'].append(parameter)
-                    # Compatibility with deprecated resourceIndexes
-                    if 'components' in catalog_parameter:
-                        resource_indexes = set()
-                        for component in catalog_parameter['components']:
-                            component_name = component['name']
-                            if component_name == 'all':
-                                for idx in range(len(self.linked_components)):
-                                    resource_indexes.add(idx)
-                                if self.deployer_type:
-                                    resource_indexes.add(len(self.linked_components))
-                            elif component_name == 'current':
-                                resource_indexes.add(len(catalog_parameter['components']))
-                            else:
-                                for idx, linked_component in enumerate(self.linked_components):
-                                    if linked_component.name == component_name:
-                                        resource_indexes.add(idx)
-                        parameter['resourceIndexes'] = list(resource_indexes)
-
             if self.deployer_provision_time_estimate:
                 definition['spec']['provisionTimeEstimate'] = self.deployer_provision_time_estimate
-
-            if self.catalog_terms_of_service:
-                definition['spec']['termsOfService'] = self.catalog_terms_of_service
 
         return definition
 
