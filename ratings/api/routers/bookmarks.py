@@ -29,7 +29,8 @@ async def bookmarks_get(email: str) -> BookmarkListResponseSchema:
             ]
             return BookmarkListResponseSchema(bookmarks=bookmarks_response)
         else:
-            raise HTTPException(status_code=404, detail="User email doesn't exists") from e 
+            logger.info(f"User email doesn't exists {email}")
+            return BookmarkListResponseSchema(bookmarks=[])
     except Exception as e:
         logger.error(f"Error getting favorite: {e}", stack_info=True)
         raise HTTPException(status_code=500, detail="Error getting favorites") from e
