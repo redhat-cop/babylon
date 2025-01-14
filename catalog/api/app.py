@@ -478,13 +478,12 @@ async def bookmark_post(request):
 @routes.delete("/api/user-manager/bookmarks")
 async def bookmark_delete(request):
     user = await get_proxy_user(request)
-    data = await request.json()
-    data["email"] = user['metadata']['name']
+    asset_uuid = request.query.get("asset_uuid")
+    email = user['metadata']['name']
     return await api_proxy(
-        data=json.dumps(data),
         headers=request.headers,
         method="DELETE",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks",
+        url=f"{ratings_api}/api/user-manager/v1/bookmarks?asset_uuid={asset_uuid}&email={email}",
     )
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}/history")

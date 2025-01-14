@@ -1795,5 +1795,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   SFDC_BY_ACCOUNT: ({ sales_type, account_id }: { sales_type: string; account_id: string }) =>
     `/api/salesforce/accounts/${account_id}?sales_type=${sales_type}`,
   FAVORITES: () => `/api/user-manager/bookmarks`,
+  FAVORITES_DELETE: ({ asset_uuid }: { asset_uuid: string }) => `/api/user-manager/bookmarks?asset_uuid=${asset_uuid}`,
   EXTERNAL_ITEM_REQUEST: ({ asset_uuid }: { asset_uuid: string }) => `/api/external_item/${asset_uuid}/request`,
 };
