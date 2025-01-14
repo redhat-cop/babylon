@@ -644,6 +644,7 @@ export type ResourceType =
   | 'SFDC_ACCOUNTS'
   | 'SFDC_BY_ACCOUNT'
   | 'FAVORITES'
+  | 'FAVORITES_DELETE'
   | 'EXTERNAL_ITEM_REQUEST';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';

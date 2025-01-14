@@ -228,15 +228,22 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       return null;
     }
     setIsLoadingFavorites(true);
-    const fav = await fetcher(apiPaths.FAVORITES({}), {
-      method: isFavorite ? 'DELETE' : 'POST',
-      body: JSON.stringify({
-        asset_uuid,
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    let fav = null;
+    if (isFavorite) {
+      fav = await fetcher(apiPaths.FAVORITES_DELETE({ asset_uuid }), {
+        method: 'DELETE',
+      });
+    } else {
+      fav = await fetcher(apiPaths.FAVORITES({}), {
+        method: 'POST',
+        body: JSON.stringify({
+          asset_uuid,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
     mutateFavorites(fav);
     setIsLoadingFavorites(false);
     return null;

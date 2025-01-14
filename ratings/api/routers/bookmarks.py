@@ -61,15 +61,23 @@ async def bookmarks_post(bookmark_obj: BookmarkRequestSchema) -> BookmarkListRes
              response_model=BookmarkListResponseSchema,
              summary="Delete bookmark",
              )
-async def bookmarks_delete(bookmark_obj: BookmarkRequestSchema) -> BookmarkListResponseSchema:
+async def bookmarks_delete() -> BookmarkListResponseSchema:
+    asset_uuid = request.query.get("asset_uuid")
+    email = request.query.get("email")
 
-    logger.info(f"Delete favorite item for user {bookmark_obj.email}")
+    # Validate query parameters
+    if not asset_uuid or not email:
+        return aiohttp.web.json_response(
+            {"error": "Missing required query parameters: asset_uuid and/or email"},
+            status=400,
+        )
+    logger.info(f"Delete favorite item for user {email}")
     try:
-        user = await User.get_by_email(bookmark_obj.email)
+        user = await User.get_by_email(email)
         if user:
-            bookmark = Bookmark.from_dict({"user_id": user.id, "asset_uuid": bookmark_obj.asset_uuid})
+            bookmark = Bookmark.from_dict({"user_id": user.id, "asset_uuid": asset_uuid})
             await bookmark.delete()
-            user = await User.get_by_email(bookmark_obj.email)
+            user = await User.get_by_email(email)
             bookmarks_response = [
                 BookmarkSchema.from_orm(bookmark).dict(exclude={"user_id"}) for bookmark in user.bookmarks
             ]
