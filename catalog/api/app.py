@@ -483,7 +483,7 @@ async def bookmark_delete(request):
     return await api_proxy(
         headers=request.headers,
         method="DELETE",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks?asset_uuid={asset_uuid}&email={email}",
+        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}/{asset_uuid}",
     )
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}/history")

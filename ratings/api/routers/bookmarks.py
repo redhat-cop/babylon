@@ -1,6 +1,6 @@
 from typing import List, Optional
 import logging
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends
 from schemas import (
     BookmarkSchema,
     BookmarkRequestSchema,
@@ -57,21 +57,12 @@ async def bookmarks_post(bookmark_obj: BookmarkRequestSchema) -> BookmarkListRes
         logger.error(f"Error saving favorite: {e}", stack_info=True)
         raise HTTPException(status_code=500, detail="Error saving favorites") from e
 
-@router.delete("/api/user-manager/v1/bookmarks",
+@router.delete("/api/user-manager/v1/bookmarks/{email}/{asset_uuid}",
              response_model=BookmarkListResponseSchema,
              summary="Delete bookmark",
              )
-async def bookmarks_delete(request: Request) -> BookmarkListResponseSchema:
-    asset_uuid = request.query.get("asset_uuid")
-    email = request.query.get("email")
-
-    # Validate query parameters
-    if not asset_uuid or not email:
-        return aiohttp.web.json_response(
-            {"error": "Missing required query parameters: asset_uuid and/or email"},
-            status=400,
-        )
-    logger.info(f"Delete favorite item for user {email}")
+async def bookmarks_delete(email: str, asset_uuid: str) -> BookmarkListResponseSchema:
+    logger.info(f"Delete favorite item {asset_uuid} for user {email}")
     try:
         user = await User.get_by_email(email)
         if user:
