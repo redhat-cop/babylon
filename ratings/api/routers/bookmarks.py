@@ -1,6 +1,6 @@
 from typing import List, Optional
 import logging
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from schemas import (
     BookmarkSchema,
     BookmarkRequestSchema,
@@ -61,7 +61,7 @@ async def bookmarks_post(bookmark_obj: BookmarkRequestSchema) -> BookmarkListRes
              response_model=BookmarkListResponseSchema,
              summary="Delete bookmark",
              )
-async def bookmarks_delete() -> BookmarkListResponseSchema:
+async def bookmarks_delete(request: Request) -> BookmarkListResponseSchema:
     asset_uuid = request.query.get("asset_uuid")
     email = request.query.get("email")
 
