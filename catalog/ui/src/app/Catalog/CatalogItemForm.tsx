@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
 import { EditorState } from 'lexical/LexicalEditorState';
 import { LexicalEditor } from 'lexical/LexicalEditor';
@@ -38,7 +38,7 @@ import {
   saveExternalItemRequest,
 } from '@app/api';
 import { CatalogItem, TPurposeOpts } from '@app/types';
-import { displayName, getStageFromK8sObject, isLabDeveloper, randomString } from '@app/util';
+import { checkAccessControl, displayName, getStageFromK8sObject, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
@@ -74,6 +74,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher
   );
+
   const _displayName = displayName(catalogItem);
   const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), []);
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
@@ -223,6 +224,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
     }
     setIsLoading(false);
+  }
+
+  if ('deny' === checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin)) {
+    return <Navigate to="/" replace />;
   }
 
   return (
