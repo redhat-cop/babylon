@@ -1,12 +1,12 @@
 import json
 from copy import deepcopy
-from distutils.util import strtobool
 
 import jinja2
 import kopf
 import kubernetes_asyncio
 from babylon import Babylon
 from kopfobject import KopfObject
+from str2bool import str2bool
 
 
 def merge_dynamic_fields(definition, current_state):
@@ -50,7 +50,7 @@ jinja2env = jinja2.Environment(
     finalize = error_if_undefined,
     undefined = jinja2.ChainableUndefined,
 )
-jinja2env.filters['bool'] = lambda x: bool(strtobool(x)) if isinstance(x, str) else bool(x)
+jinja2env.filters['bool'] = lambda x: bool(str2bool(x)) if isinstance(x, str) else bool(x)
 
 class AgnosticVComponent(KopfObject):
     api_group = Babylon.agnosticv_api_group
