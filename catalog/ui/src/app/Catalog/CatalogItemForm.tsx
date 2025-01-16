@@ -214,6 +214,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         serviceNamespace: formState.serviceNamespace,
         usePoolIfAvailable: formState.usePoolIfAvailable,
         useAutoDetach: formState.useAutoDetach,
+        startDate: formState.startDate,
         stopDate: formState.stopDate,
         endDate: formState.endDate,
         email,
@@ -658,6 +659,24 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   className="tooltip-icon-only"
                 />
               </Tooltip>
+            </div>
+          </FormGroup>
+        ) : null}
+
+        {!formState.workshop && !catalogItem.spec.externalUrl ? (
+          <FormGroup fieldId="serviceStartDate" isRequired label="Start Date">
+            <div className="catalog-item-form__group-control--single">
+              <DateTimePicker
+                defaultTimestamp={Date.now()}
+                onSelect={(d: Date) =>
+                  dispatchFormState({
+                    type: 'initDates',
+                    catalogItem,
+                    startDate: d,
+                  })
+                }
+                minDate={Date.now()}
+              />
             </div>
           </FormGroup>
         ) : null}
