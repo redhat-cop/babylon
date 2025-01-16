@@ -271,7 +271,7 @@ export async function checkConditionsInFormState(
 
 function initDates(catalogItem: CatalogItem, currTime?: number) {
   let _currTime = Date.now();
-  if (!currTime) {
+  if (currTime) {
     _currTime = currTime;
   }
   return {
