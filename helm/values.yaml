@@ -91,6 +91,7 @@ catalog:
         limits:
           cpu: "2"
           memory: "2Gi"
+      responseCacheCleanInterval: 60
     oauthProxy:
       image:
         pullPolicy: Always

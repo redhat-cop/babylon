@@ -28,6 +28,7 @@ ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-rati
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
 response_cache = {}
+response_cache_clean_interval = int(os.environ.get('RESPONSE_CACHE_CLEAN_INTERVAL', 60))
 response_cache_clean_task = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
@@ -821,7 +822,7 @@ async def openshift_api_proxy_with_cache(request):
         raise web.HTTPForbidden()
 
     resp, cache_time = response_cache.get(request.path_qs, (None, None))
-    if resp != None and time() - cache_time < 60:
+    if resp != None and time() - cache_time < response_cache_clean_interval:
         return web.Response(
             body=resp.body,
             headers=resp.headers,
@@ -909,9 +910,9 @@ async def response_cache_clean():
         while True:
             for key, value in list(response_cache.items()):
                 cache_time = value[1]
-                if time() - cache_time > 60:
+                if time() - cache_time > response_cache_clean_interval:
                     response_cache.pop(key, None)
-            await asyncio.sleep(60)
+            await asyncio.sleep(response_cache_clean_interval)
     except asyncio.CancelledError:
         return
 
