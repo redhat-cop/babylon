@@ -1,5 +1,5 @@
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
-import { canExecuteAction, checkResourceClaimCanStart, checkResourceClaimCanStop } from '@app/util';
+import { canExecuteAction, checkResourceClaimCanStart, checkResourceClaimCanStop, DEMO_DOMAIN } from '@app/util';
 import { getAutoStopTime, getMinDefaultRuntime, getStartTime } from '@app/Services/service-utils';
 import parseDuration from 'parse-duration';
 
@@ -74,4 +74,14 @@ export function checkWorkshopCanStart(resourceClaims: ResourceClaim[] = []) {
   const resourceClaimsCanStart = resourceClaims.filter(checkResourceClaimCanStart);
 
   return resourceClaimsCanStart && resourceClaimsCanStart.length > 0;
+}
+
+export function isWorkshopLocked(workshop: Workshop, isAdmin: boolean) {
+  if (isAdmin) {
+    return false;
+  }
+  if (workshop.metadata?.labels?.[`${DEMO_DOMAIN}/lock-enabled`]) {
+    return workshop.metadata?.labels?.[`${DEMO_DOMAIN}/lock-enabled`] === 'true';
+  }
+  return false;
 }
