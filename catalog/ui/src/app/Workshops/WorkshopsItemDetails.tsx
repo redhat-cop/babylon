@@ -206,6 +206,23 @@ const WorkshopsItemDetails: React.FC<{
     }
   }
 
+  async function handleLockedChange(_: any, isChecked: boolean) {
+    const patchObj = {
+      metadata: {
+        labels: {
+          [`${DEMO_DOMAIN}/lock-enabled`]: String(isChecked),
+        },
+      },
+    };
+    onWorkshopUpdate(
+      await patchWorkshop({
+        name: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        patch: patchObj,
+      })
+    );
+  }
+
   return (
     <DescriptionList isHorizontal className="workshops-item-details">
       <DescriptionListGroup>
@@ -526,6 +543,22 @@ const WorkshopsItemDetails: React.FC<{
               isChecked={whiteGloved}
               hasCheckIcon
               onChange={handleWhiteGloveChange}
+            />
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
+
+      {isAdmin ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm> </DescriptionListTerm>
+          <DescriptionListDescription>
+            <Switch
+              id="lock-switch"
+              aria-label="Locked"
+              label="Locked"
+              isChecked={isWorkshopLocked(workshop, false)}
+              hasCheckIcon
+              onChange={handleLockedChange}
             />
           </DescriptionListDescription>
         </DescriptionListGroup>
