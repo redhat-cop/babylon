@@ -128,7 +128,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.33.2
+        tag: v0.33.3
       replicaCount: 1
       resources:
         requests:
