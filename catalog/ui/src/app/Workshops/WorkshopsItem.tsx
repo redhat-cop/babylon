@@ -57,7 +57,7 @@ import WorkshopsItemProvisioning from './WorkshopsItemProvisioning';
 import WorkshopsItemServices from './WorkshopsItemServices';
 import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
-import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopStarted } from './workshops-utils';
+import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopLocked, isWorkshopStarted } from './workshops-utils';
 import Label from '@app/components/Label';
 import ProjectSelector from '@app/components/ProjectSelector';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -415,6 +415,7 @@ const WorkshopsItemComponent: React.FC<{
                     ? () => showModal({ action: 'stopServices', resourceClaims })
                     : null,
                 }}
+                isLocked={isWorkshopLocked(workshop, isAdmin)}
               />
             </Bullseye>
           </SplitItem>

@@ -41,9 +41,16 @@ const ActionDropdownItem: React.FC<{
   label: string;
   onSelect: () => void;
   className?: string;
-}> = ({ label, className, isDisabled = false, onSelect }) => {
+  icon?: React.ReactNode;
+}> = ({ label, className, isDisabled = false, onSelect, icon }) => {
   return (
-    <DropdownItem className={className} key={label} isDisabled={isDisabled} onClick={() => onSelect()}>
+    <DropdownItem
+      className={className}
+      key={label}
+      isDisabled={isDisabled}
+      onClick={() => (isDisabled === true ? null : onSelect())}
+      icon={icon}
+    >
       {label}
     </DropdownItem>
   );
