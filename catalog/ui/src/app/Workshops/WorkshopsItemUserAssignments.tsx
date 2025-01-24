@@ -16,7 +16,7 @@ import {
   EmptyStateHeader,
 } from '@patternfly/react-core';
 import { Table /* data-codemods */, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { apiPaths, assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
+import { assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
 import { WorkshopUserAssignment } from '@app/types';
 import { renderContent } from '@app/util';
 import BulkUserAssignmentModal from '@app/components/BulkUserAssignmentModal';

@@ -1,6 +1,7 @@
 import React from 'react';
 import { DropdownPosition } from '@patternfly/react-core/deprecated';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
+import { LockedIcon } from '@patternfly/react-icons';
 
 const WorkshopActions: React.FC<{
   actionHandlers: {
@@ -13,13 +14,15 @@ const WorkshopActions: React.FC<{
   isDisabled?: boolean;
   position?: DropdownPosition | 'right' | 'left';
   workshopName?: string;
-}> = ({ actionHandlers, className, isDisabled, position, workshopName }) => {
+  isLocked?: boolean;
+}> = ({ actionHandlers, className, isDisabled, position, workshopName, isLocked = false }) => {
   const actionDropdownItems = [
     <ActionDropdownItem
       key="delete"
-      isDisabled={!actionHandlers.delete}
+      isDisabled={isLocked || !actionHandlers.delete}
       label={workshopName ? `Delete ${workshopName}` : 'Delete'}
       onSelect={actionHandlers.delete}
+      icon={isLocked ? <LockedIcon /> : null}
     />,
   ];
   actionHandlers.deleteService &&
@@ -29,7 +32,7 @@ const WorkshopActions: React.FC<{
         isDisabled={!actionHandlers.deleteService}
         label="Delete Selected Services"
         onSelect={actionHandlers.deleteService}
-      />,
+      />
     );
   actionHandlers.start &&
     actionDropdownItems.push(
@@ -38,16 +41,17 @@ const WorkshopActions: React.FC<{
         isDisabled={!actionHandlers.start}
         label="Start Workshop instances"
         onSelect={actionHandlers.start}
-      />,
+      />
     );
   actionHandlers.stop &&
     actionDropdownItems.push(
       <ActionDropdownItem
         key="stopServices"
-        isDisabled={!actionHandlers.stop}
+        isDisabled={isLocked || !actionHandlers.stop}
         label="Stop Workshop instances"
         onSelect={actionHandlers.stop}
-      />,
+        icon={isLocked ? <LockedIcon /> : null}
+      />
     );
 
   return (
