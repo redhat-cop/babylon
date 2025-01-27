@@ -77,9 +77,6 @@ export function checkWorkshopCanStart(resourceClaims: ResourceClaim[] = []) {
 }
 
 export function isWorkshopLocked(workshop: Workshop, isAdmin: boolean) {
-  if (isAdmin) {
-    return false;
-  }
   if (workshop.metadata?.labels?.[`${DEMO_DOMAIN}/lock-enabled`]) {
     return workshop.metadata?.labels?.[`${DEMO_DOMAIN}/lock-enabled`] === 'true';
   }
