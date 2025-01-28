@@ -263,9 +263,12 @@ const WorkshopsItemDetails: React.FC<{
           <DescriptionListTerm>Status</DescriptionListTerm>
           <DescriptionListDescription>
             {autoStartTime && autoStartTime > Date.now() ? (
-              <span className="services-item__status--scheduled" key="scheduled">
-                <CheckCircleIcon key="scheduled-icon" /> Scheduled
-              </span>
+              <>
+                <span className="services-item__status--scheduled" key="scheduled">
+                  <CheckCircleIcon key="scheduled-icon" /> Scheduled
+                </span>
+                {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} /> : null}
+              </>
             ) : resourceClaims.length > 0 ? (
               <WorkshopStatus resourceClaims={resourceClaims} />
             ) : (
