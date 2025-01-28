@@ -84,17 +84,17 @@ const renderWorkshopRow = ({
   const guidCell = <span key="workshop-guid">-</span>;
   const statusCell = (
     <>
-      {autoStartTime && autoStartTime > Date.now() ? (
-        <span className="services-item__status--scheduled" key="scheduled">
-          <CheckCircleIcon key="scheduled-icon" /> Scheduled
-        </span>
-      ) : workshop.resourceClaims && workshop.resourceClaims.length > 0 ? (
+      {workshop.resourceClaims && workshop.resourceClaims.length > 0 ? (
         <ServiceStatus
           creationTime={Date.parse(workshop.resourceClaims[0].metadata.creationTimestamp)}
           resource={getMostRelevantResourceAndTemplate(workshop.resourceClaims[0]).resource}
           resourceTemplate={getMostRelevantResourceAndTemplate(workshop.resourceClaims[0]).template}
           resourceClaim={workshop.resourceClaims[0]}
         />
+      ) : autoStartTime && autoStartTime > Date.now() ? (
+        <span className="services-item__status--scheduled" key="scheduled">
+          <CheckCircleIcon key="scheduled-icon" /> Scheduled
+        </span>
       ) : (
         <p>...</p>
       )}
