@@ -3,7 +3,6 @@ import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, TPurposeOpts } from '@app/types';
 import parseDuration from 'parse-duration';
 import { isAutoStopDisabled } from './catalog-utils';
-import { getStageFromK8sObject } from '@app/util';
 
 type ConditionValues = {
   [name: string]: boolean | number | string | string[] | undefined;
@@ -52,6 +51,7 @@ type FormState = {
     skip?: boolean;
     type?: 'campaign' | 'cdh' | 'project' | 'opportunity';
   };
+  sfdc_enabled: boolean;
 };
 type ParameterProps = {
   name: string;
@@ -104,6 +104,7 @@ export type FormStateAction = {
   stopDate?: Date;
   endDate?: Date;
   whiteGloved?: boolean;
+  sfdc_enabled?: boolean;
 };
 
 export type FormStateParameter = {
@@ -190,17 +191,19 @@ export async function checkConditionsInFormState(
   for (const [name, parameterState] of Object.entries(parameters)) {
     conditionValues[name] = parameterState.value;
   }
-  conditionValues['salesforce_id'] = initialState.salesforceId.value;
-  let salesforceIdValid = initialState.salesforceId.valid;
-
+  let salesforceIdValid = true;
   try {
-    if (initialState.salesforceId.value) {
-      salesforceIdValid = await _checkCondition(
-        'check_salesforce_id(salesforce_id)',
-        { salesforce_id: initialState.salesforceId.value, sales_type: initialState.salesforceId.type },
-        debouncedApiFetch,
-        dispatchFn
-      );
+    if (initialState.sfdc_enabled) {
+      conditionValues['salesforce_id'] = initialState.salesforceId.value;
+      salesforceIdValid = initialState.salesforceId.valid;
+      if (initialState.salesforceId.value) {
+        salesforceIdValid = await _checkCondition(
+          'check_salesforce_id(salesforce_id)',
+          { salesforce_id: initialState.salesforceId.value, sales_type: initialState.salesforceId.type },
+          debouncedApiFetch,
+          dispatchFn
+        );
+      }
     }
     for (const [, parameterState] of Object.entries(parameters)) {
       const parameterSpec: CatalogItemSpecParameter = parameterState.spec;
@@ -283,7 +286,8 @@ function reduceFormStateInit(
   catalogItem: CatalogItem,
   serviceNamespace: ServiceNamespace,
   { isAdmin, groups, roles },
-  purposeOpts: TPurposeOpts
+  purposeOpts: TPurposeOpts,
+  sfdc_enabled: boolean
 ): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
@@ -357,6 +361,7 @@ function reduceFormStateInit(
       skip: false,
       message: '',
     },
+    sfdc_enabled,
     ...initDates(catalogItem),
   };
 }
@@ -533,7 +538,13 @@ function reduceFormStateSalesforceIdMessage(initialState: FormState, message: st
 export function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
     case 'init':
-      return reduceFormStateInit(action.catalogItem, action.serviceNamespace, action.user, action.purposeOpts);
+      return reduceFormStateInit(
+        action.catalogItem,
+        action.serviceNamespace,
+        action.user,
+        action.purposeOpts,
+        action.sfdc_enabled
+      );
     case 'initDates':
       return { ...state, ...initDates(action.catalogItem) };
     case 'parameterUpdate':
