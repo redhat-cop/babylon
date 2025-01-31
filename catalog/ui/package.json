@@ -87,7 +87,7 @@
     "@patternfly/react-table": "^5.3.3",
     "@reduxjs/toolkit": "^1.9.7",
     "asciidoctor": "^3.0.2",
-    "dompurify": "^3.2.3",
+    "dompurify": "^3.2.4",
     "fuse.js": "^6.6.2",
     "js-yaml": "^4.1.0",
     "json2csv": "^5.0.7",
