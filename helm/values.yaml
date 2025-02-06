@@ -23,7 +23,7 @@ agnosticv:
   operator:
     image:
       repository: quay.io/rhpds/babylon-agnosticv-operator
-      tag: v1.10.2
+      tag: v1.10.4
       pullPolicy: IfNotPresent
     resources:
       limits:
@@ -48,7 +48,7 @@ anarchy:
     sources:
       babylon_anarchy_governor:
         src: https://github.com/rhpds/babylon_anarchy_governor.git
-        version: v0.27.0
+        version: v0.28.0
   api:
     group: anarchy.gpte.redhat.com
     version: v1
@@ -81,7 +81,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v1.0.9
+        tag: v1.1.0
       loggingLevel: INFO
       replicaCount: 1
       resources:
@@ -91,6 +91,7 @@ catalog:
         limits:
           cpu: "2"
           memory: "2Gi"
+      responseCacheCleanInterval: 60
     oauthProxy:
       image:
         pullPolicy: Always
@@ -127,7 +128,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.33.2
+        tag: v0.33.5
       replicaCount: 1
       resources:
         requests:

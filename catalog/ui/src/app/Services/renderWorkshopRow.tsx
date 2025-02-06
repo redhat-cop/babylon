@@ -12,6 +12,7 @@ import {
   checkWorkshopCanStop,
   getWorkshopAutoStopTime,
   getWorkshopLifespan,
+  isWorkshopLocked,
 } from '@app/Workshops/workshops-utils';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import Label from '@app/components/Label';
@@ -37,6 +38,7 @@ const renderWorkshopRow = ({
   }) => void;
   isAdmin: boolean;
 }) => {
+  const isLocked = isWorkshopLocked(workshop, isAdmin);
   const actionHandlers = {
     delete: () => showModal({ modal: 'action', action: 'delete', workshop }),
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', workshop }),
@@ -82,17 +84,17 @@ const renderWorkshopRow = ({
   const guidCell = <span key="workshop-guid">-</span>;
   const statusCell = (
     <>
-      {autoStartTime && autoStartTime > Date.now() ? (
-        <span className="services-item__status--scheduled" key="scheduled">
-          <CheckCircleIcon key="scheduled-icon" /> Scheduled
-        </span>
-      ) : workshop.resourceClaims && workshop.resourceClaims.length > 0 ? (
+      {workshop.resourceClaims && workshop.resourceClaims.length > 0 ? (
         <ServiceStatus
           creationTime={Date.parse(workshop.resourceClaims[0].metadata.creationTimestamp)}
           resource={getMostRelevantResourceAndTemplate(workshop.resourceClaims[0]).resource}
           resourceTemplate={getMostRelevantResourceAndTemplate(workshop.resourceClaims[0]).template}
           resourceClaim={workshop.resourceClaims[0]}
         />
+      ) : autoStartTime && autoStartTime > Date.now() ? (
+        <span className="services-item__status--scheduled" key="scheduled">
+          <CheckCircleIcon key="scheduled-icon" /> Scheduled
+        </span>
       ) : (
         <p>...</p>
       )}
@@ -109,7 +111,7 @@ const renderWorkshopRow = ({
       <AutoStopDestroy
         type="auto-stop"
         onClick={actionHandlers.runtime}
-        isDisabled={!showModal || !checkWorkshopCanStop(workshop.resourceClaims)}
+        isDisabled={isLocked || !showModal || !checkWorkshopCanStop(workshop.resourceClaims)}
         time={autoStopTime}
         destroyTimestamp={autoDestroyTime}
         key="workshop-auto-stop"
@@ -122,7 +124,7 @@ const renderWorkshopRow = ({
         type="auto-destroy"
         onClick={actionHandlers.lifespan}
         time={autoDestroyTime}
-        isDisabled={!showModal}
+        isDisabled={isLocked || !showModal}
         notDefinedMessage="- Not defined -"
         key="workshop-auto-destroy"
       />
@@ -145,13 +147,19 @@ const renderWorkshopRow = ({
           key="actions__start"
         />
         <ButtonCircleIcon
-          isDisabled={!checkWorkshopCanStop(workshop.resourceClaims)}
+          isDisabled={isLocked || !checkWorkshopCanStop(workshop.resourceClaims)}
           onClick={actionHandlers.stop}
           description="Stop"
           icon={StopIcon}
           key="actions__stop"
         />
-        <ButtonCircleIcon key="actions__delete" onClick={actionHandlers.delete} description="Delete" icon={TrashIcon} />
+        <ButtonCircleIcon
+          key="actions__delete"
+          isDisabled={isLocked}
+          onClick={actionHandlers.delete}
+          description="Delete"
+          icon={TrashIcon}
+        />
       </div>
     </React.Fragment>
   );

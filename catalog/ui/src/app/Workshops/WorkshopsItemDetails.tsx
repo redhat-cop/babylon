@@ -32,7 +32,12 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import Editor from '@app/components/Editor/Editor';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import { checkWorkshopCanStop, getWorkshopAutoStopTime, getWorkshopLifespan } from './workshops-utils';
+import {
+  checkWorkshopCanStop,
+  getWorkshopAutoStopTime,
+  getWorkshopLifespan,
+  isWorkshopLocked,
+} from './workshops-utils';
 import { ModalState } from './WorkshopsItem';
 import WorkshopStatus from './WorkshopStatus';
 import { useSWRConfig } from 'swr';
@@ -77,6 +82,7 @@ const WorkshopsItemDetails: React.FC<{
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { cache } = useSWRConfig();
   const whiteGloved = getWhiteGloved(workshop);
+  const isLocked = isWorkshopLocked(workshop, isAdmin);
   const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
@@ -200,6 +206,23 @@ const WorkshopsItemDetails: React.FC<{
     }
   }
 
+  async function handleLockedChange(_: any, isChecked: boolean) {
+    const patchObj = {
+      metadata: {
+        labels: {
+          [`${DEMO_DOMAIN}/lock-enabled`]: String(isChecked),
+        },
+      },
+    };
+    onWorkshopUpdate(
+      await patchWorkshop({
+        name: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        patch: patchObj,
+      })
+    );
+  }
+
   return (
     <DescriptionList isHorizontal className="workshops-item-details">
       <DescriptionListGroup>
@@ -240,9 +263,12 @@ const WorkshopsItemDetails: React.FC<{
           <DescriptionListTerm>Status</DescriptionListTerm>
           <DescriptionListDescription>
             {autoStartTime && autoStartTime > Date.now() ? (
-              <span className="services-item__status--scheduled" key="scheduled">
-                <CheckCircleIcon key="scheduled-icon" /> Scheduled
-              </span>
+              <>
+                <span className="services-item__status--scheduled" key="scheduled">
+                  <CheckCircleIcon key="scheduled-icon" /> Scheduled
+                </span>
+                {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} /> : null}
+              </>
             ) : resourceClaims.length > 0 ? (
               <WorkshopStatus resourceClaims={resourceClaims} />
             ) : (
@@ -367,8 +393,8 @@ const WorkshopsItemDetails: React.FC<{
           <DescriptionListDescription>
             <AutoStopDestroy
               type="auto-stop"
-              onClick={() => (showModal ? showModal({ action: 'scheduleStop', resourceClaims }) : null)}
-              isDisabled={!showModal}
+              onClick={() => (showModal && !isLocked ? showModal({ action: 'scheduleStop', resourceClaims }) : null)}
+              isDisabled={isLocked || !showModal}
               time={autoStopTime}
               variant="extended"
               className="workshops-item__schedule-btn"
@@ -385,12 +411,12 @@ const WorkshopsItemDetails: React.FC<{
             <AutoStopDestroy
               type="auto-destroy"
               onClick={() => {
-                if (showModal) {
+                if (showModal && !isLocked) {
                   showModal({ resourceClaims, action: 'scheduleDelete' });
                 }
               }}
               time={autoDestroyTime}
-              isDisabled={!showModal}
+              isDisabled={isLocked || !showModal}
               variant="extended"
               className="workshops-item__schedule-btn"
               notDefinedMessage="- Not defined -"
@@ -520,6 +546,22 @@ const WorkshopsItemDetails: React.FC<{
               isChecked={whiteGloved}
               hasCheckIcon
               onChange={handleWhiteGloveChange}
+            />
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
+
+      {isAdmin ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm> </DescriptionListTerm>
+          <DescriptionListDescription>
+            <Switch
+              id="lock-switch"
+              aria-label="Locked"
+              label="Locked"
+              isChecked={isWorkshopLocked(workshop, false)}
+              hasCheckIcon
+              onChange={handleLockedChange}
             />
           </DescriptionListDescription>
         </DescriptionListGroup>

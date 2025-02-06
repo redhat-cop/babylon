@@ -23,12 +23,12 @@
     "clean": "rimraf dist"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-env": "^7.26.7",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.26.0",
     "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.1.0",
-    "@testing-library/user-event": "^14.5.2",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/dompurify": "^3.2.0",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
@@ -56,7 +56,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "jest-fetch-mock": "^3.0.3",
     "mini-css-extract-plugin": "^2.9.2",
-    "postcss": "^8.5.0",
+    "postcss": "^8.5.1",
     "postcss-custom-media": "^8.0.2",
     "postcss-loader": "^7.3.4",
     "prettier": "^3.4.2",
@@ -87,8 +87,8 @@
     "@patternfly/react-table": "^5.3.3",
     "@reduxjs/toolkit": "^1.9.7",
     "asciidoctor": "^3.0.2",
-    "dompurify": "^3.2.3",
-    "fuse.js": "^6.6.2",
+    "dompurify": "^3.2.4",
+    "fuse.js": "^7.1.0",
     "js-yaml": "^4.1.0",
     "json2csv": "^5.0.7",
     "lexical": "^0.11.1",
@@ -104,6 +104,6 @@
     "react-window": "^1.8.11",
     "redux": "^4.2.1",
     "reselect": "^4.1.8",
-    "swr": "^2.3.0"
+    "swr": "^2.3.1"
   }
 }
