@@ -365,6 +365,7 @@ function reduceFormStateInit(
       skip: false,
       message: '',
     },
+    sfdc_enabled,
     ...initDates(catalogItem, null),
   };
 }
