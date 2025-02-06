@@ -39,16 +39,6 @@ declare const window: Window &
     sessionPromiseInstance?: Promise<Session>;
   };
 
-type CreateServiceRequestOptScheduleStart = {
-  date: Date;
-};
-interface CreateServiceRequestOptScheduleStartLifespan extends CreateServiceRequestOptScheduleStart {
-  type: 'lifespan';
-}
-interface CreateServiceRequestOptScheduleStartResource extends CreateServiceRequestOptScheduleStart {
-  type: 'resource';
-  autoStop: Date;
-}
 type CreateServiceRequestOpt = {
   catalogItem: CatalogItem;
   catalogNamespaceName: string;
@@ -59,7 +49,7 @@ type CreateServiceRequestOpt = {
   usePoolIfAvailable: boolean;
   stopDate?: Date;
   endDate: Date;
-  start?: CreateServiceRequestOptScheduleStartLifespan | CreateServiceRequestOptScheduleStartResource;
+  startDate?: Date;
   useAutoDetach: boolean;
   email: string;
   skippedSfdc: boolean;
@@ -400,7 +390,7 @@ export async function createServiceRequest({
   isAdmin,
   parameterValues,
   serviceNamespace,
-  start,
+  startDate,
   stopDate,
   endDate,
   usePoolIfAvailable,
@@ -452,16 +442,11 @@ export async function createServiceRequest({
         name: catalogItem.metadata.name,
         parameterValues: {
           purpose: parameterValues.purpose as string,
-          ...(start ? { start_timestamp: dateToApiString(start.date) } : {}),
-          ...(start && start.type === 'resource' && start.autoStop
-            ? { stop_timestamp: dateToApiString(start.autoStop) }
-            : stopDate
-            ? { stop_timestamp: dateToApiString(stopDate) }
-            : {}),
+          ...(stopDate ? { stop_timestamp: dateToApiString(stopDate) } : {}),
         },
       },
       lifespan: {
-        ...(start && start.type === 'lifespan' ? { start: dateToApiString(start.date) } : {}),
+        ...(startDate ? { start: dateToApiString(startDate) } : {}),
         end: dateToApiString(endDate),
       },
       ...(useAutoDetach

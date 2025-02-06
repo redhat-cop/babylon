@@ -272,13 +272,17 @@ export async function checkConditionsInFormState(
   }
 }
 
-function initDates(catalogItem: CatalogItem) {
+function initDates(catalogItem: CatalogItem, currTime?: number) {
+  let _currTime = Date.now();
+  if (currTime) {
+    _currTime = currTime;
+  }
   return {
-    startDate: null,
+    startDate: currTime ? new Date(currTime) : null,
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
-      : new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default || '4h')),
-    endDate: new Date(Date.now() + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
+      : new Date(_currTime + parseDuration(catalogItem.spec.runtime?.default || '4h')),
+    endDate: new Date(_currTime + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
   };
 }
 
@@ -362,7 +366,7 @@ function reduceFormStateInit(
       message: '',
     },
     sfdc_enabled,
-    ...initDates(catalogItem),
+    ...initDates(catalogItem, null),
   };
 }
 
@@ -546,7 +550,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         action.sfdc_enabled
       );
     case 'initDates':
-      return { ...state, ...initDates(action.catalogItem) };
+      return { ...state, ...initDates(action.catalogItem, action.startDate ? action.startDate.getTime() : null) };
     case 'parameterUpdate':
       return reduceFormStateParameterUpdate(state, {
         name: action.parameter.name,
