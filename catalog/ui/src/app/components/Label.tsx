@@ -16,6 +16,7 @@ const Label: React.FC<{ tooltipDescription?: JSX.Element; children: React.ReactN
           fontSize: '12px',
           padding: '0 8px',
           margin: '0 8px',
+          whiteSpace: 'nowrap',
         }}
       >
         {children}
