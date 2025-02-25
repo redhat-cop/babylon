@@ -41,6 +41,7 @@ import {
   BABYLON_DOMAIN,
   compareK8sObjects,
   compareK8sObjectsArr,
+  DEMO_DOMAIN,
   displayName,
   FETCH_BATCH_LIMIT,
   getStageFromK8sObject,
@@ -251,7 +252,12 @@ const WorkshopsItemComponent: React.FC<{
   async function onWorkshopStartConfirm() {
     const workshopUpdated = await startWorkshop(
       workshop,
-      dateToApiString(new Date(Date.now() - parseDuration('6h'))),
+      dateToApiString(
+        new Date(
+          Date.now() -
+            parseDuration(workshop.metadata.annotations[`${DEMO_DOMAIN}/expectedProvisioningDuration`] || '6h')
+        )
+      ),
       dateToApiString(new Date(Date.now() + parseDuration('30h'))),
       resourceClaims
     );

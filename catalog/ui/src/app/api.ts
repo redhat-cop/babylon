@@ -424,6 +424,8 @@ export async function createServiceRequest({
         ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
           ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.user) }
           : {}),
+        [`${DEMO_DOMAIN}/scheduled`]:
+          startDate && startDate.getTime() + parseDuration('15min') > Date.now() ? 'true' : 'false',
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -521,6 +523,7 @@ export async function createWorkshop({
   stopDate,
   endDate,
   startDate,
+  expectedProvisioningDuration,
   email,
   parameterValues,
   skippedSfdc,
@@ -535,6 +538,7 @@ export async function createWorkshop({
   endDate?: Date;
   stopDate?: Date;
   startDate?: Date;
+  expectedProvisioningDuration?: string;
   email: string;
   parameterValues: any;
   skippedSfdc: boolean;
@@ -563,7 +567,8 @@ export async function createWorkshop({
           ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.info) }
           : {}),
         [`${DEMO_DOMAIN}/scheduled`]:
-          startDate && startDate.getTime() + parseDuration('6h') > Date.now() ? 'true' : 'false',
+          startDate && startDate.getTime() + parseDuration('15min') > Date.now() ? 'true' : 'false',
+        [`${DEMO_DOMAIN}/expectedProvisioningDuration`]: expectedProvisioningDuration,
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
       },
@@ -572,11 +577,15 @@ export async function createWorkshop({
       multiuserServices: catalogItem.spec.multiuser,
       openRegistration: openRegistration,
       lifespan: {
-        ...(startDate ? { start: dateToApiString(startDate) } : {}),
+        ...(startDate
+          ? { start: dateToApiString(new Date(startDate.getTime() + parseDuration(expectedProvisioningDuration))) }
+          : {}),
         ...(endDate ? { end: dateToApiString(endDate) } : {}),
       },
       actionSchedule: {
-        ...(startDate ? { start: dateToApiString(startDate) } : {}),
+        ...(startDate
+          ? { start: dateToApiString(new Date(startDate.getTime() + parseDuration(expectedProvisioningDuration))) }
+          : {}),
         ...(stopDate ? { stop: dateToApiString(stopDate) } : {}),
       },
     },

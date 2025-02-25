@@ -11,7 +11,10 @@ export function isWorkshopStarted(workshop: Workshop, workshopProvisions: Worksh
 export function getWorkshopStartTime(workshop: Workshop, workshopProvisions?: WorkshopProvision[]): number {
   // Lifespan start propagates from Workshop.
   if (workshop.spec.lifespan?.start) {
-    return Date.parse(workshop.spec.lifespan.start) + parseDuration('6h');
+    return (
+      Date.parse(workshop.spec.lifespan.start) +
+      parseDuration(workshop.metadata.annotations[`${DEMO_DOMAIN}/expectedProvisioningDuration`] || '6h')
+    );
   }
 
   // If workshop does not have workshop start then check WorkshopProvisions

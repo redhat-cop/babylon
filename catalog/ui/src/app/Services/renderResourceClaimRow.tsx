@@ -57,7 +57,7 @@ const renderResourceClaimRow = ({
     resourceClaim?.status?.summary?.provision_data?.labUserInterfaceData ||
     resources
       .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData,
+        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
       )
       .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
       .find((u) => u != null);
@@ -67,7 +67,7 @@ const renderResourceClaimRow = ({
     resourceClaim?.status?.summary?.provision_data?.labUserInterfaceMethod ||
     resources
       .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod,
+        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
       )
       .find((u) => u != null);
   const labUserInterfaceUrl =
@@ -149,7 +149,9 @@ const renderResourceClaimRow = ({
   const statusCell = (
     // Status
     <React.Fragment key="resource-claim-status">
-      {specResources.length >= 1 || resourceClaim.status?.summary ? (
+      {specResources.length >= 1 ||
+      resourceClaim.status?.summary ||
+      new Date(resourceClaim.spec.lifespan?.start).getTime() > new Date().getTime() ? (
         <ServiceStatus
           creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
           resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}

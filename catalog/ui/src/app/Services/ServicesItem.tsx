@@ -834,7 +834,9 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {resourceClaim.spec.resources?.length > 0 || resourceClaim.status?.summary ? (
+                  {resourceClaim.spec.resources?.length > 0 ||
+                  resourceClaim.status?.summary ||
+                  new Date(resourceClaim.spec.lifespan.start).getTime() > new Date().getTime() ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Status</DescriptionListTerm>
                       <DescriptionListDescription>

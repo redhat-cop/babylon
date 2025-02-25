@@ -187,7 +187,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         serviceNamespace: formState.serviceNamespace,
         stopDate: formState.stopDate,
         endDate: formState.endDate,
-        startDate: new Date(formState.startDate.getTime() - parseDuration('6h')),
+        startDate: new Date(formState.startDate.getTime()),
+        expectedProvisioningDuration: formState.expectedProvisioningDuration,
         email,
         parameterValues,
         skippedSfdc: formState.salesforceId.skip,
@@ -623,6 +624,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     dispatchFormState({
                       type: 'dates',
                       startDate: new Date(),
+                      expectedProvisioningDuration: '6h',
                       stopDate: new Date(
                         Date.now() +
                           parseDuration(
@@ -674,6 +676,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     type: 'initDates',
                     catalogItem,
                     startDate: d,
+                    expectedProvisioningDuration: '0h',
                   })
                 }
                 minDate={Date.now()}
@@ -714,7 +717,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
         {formState.workshop ? (
           <div className="catalog-item-form__workshop-form">
-            {isAdmin ? (
+            {!isAdmin ? (
               <FormGroup fieldId="workshopStartDate" isRequired label="Start Date">
                 <div className="catalog-item-form__group-control--single">
                   <DateTimePicker
@@ -723,6 +726,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       dispatchFormState({
                         type: 'dates',
                         startDate: d,
+                        expectedProvisioningDuration: '6h',
                         stopDate: new Date(
                           d.getTime() +
                             parseDuration(
@@ -752,7 +756,41 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   </Tooltip>
                 </div>
               </FormGroup>
-            ) : null}
+            ) : (
+              <FormGroup fieldId="workshopStartProvisioningDate" isRequired label="Start Provisioning Date">
+                <div className="catalog-item-form__group-control--single">
+                  <DateTimePicker
+                    defaultTimestamp={Date.now()}
+                    onSelect={(d: Date) =>
+                      dispatchFormState({
+                        type: 'dates',
+                        startDate: d,
+                        expectedProvisioningDuration: '0h',
+                        stopDate: new Date(
+                          d.getTime() +
+                            parseDuration(
+                              formState.activity?.startsWith('Customer Facing')
+                                ? '365d'
+                                : catalogItem.spec.runtime?.default || '30h'
+                            )
+                        ),
+                        endDate: new Date(d.getTime() + parseDuration('30h')),
+                      })
+                    }
+                    minDate={Date.now()}
+                  />
+                  <Tooltip
+                    position="right"
+                    content={<p>Select the date you'd like the workshop to start provisioning.</p>}
+                  >
+                    <OutlinedQuestionCircleIcon
+                      aria-label="Select the date you'd like the workshop to start provisioning."
+                      className="tooltip-icon-only"
+                    />
+                  </Tooltip>
+                </div>
+              </FormGroup>
+            )}
             <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
               <div className="catalog-item-form__group-control--single">
                 <AutoStopDestroy

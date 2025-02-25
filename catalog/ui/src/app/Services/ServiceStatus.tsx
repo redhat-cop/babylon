@@ -9,7 +9,7 @@ import { getAutoTimes } from './service-utils';
 
 import './service-status.css';
 
-export type phaseProps = 'unknown' | 'available' | 'running' | 'in-progress' | 'failed' | 'stopped';
+export type phaseProps = 'unknown' | 'scheduled' | 'available' | 'running' | 'in-progress' | 'failed' | 'stopped';
 
 export function getStatus(
   currentState: string,
@@ -67,6 +67,7 @@ const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
     case 'in-progress':
       return <Spinner size="md" />;
     case 'running':
+    case 'scheduled':
       return <CheckCircleIcon />;
     case 'stopped':
       return <StopCircleIcon />;
@@ -119,6 +120,9 @@ const ServiceStatus: React.FC<{
   if (summary) {
     const { phase: _phase, state: _state } = getPhaseState(summary.state);
     return <InnerStatus phase={_phase} state={_state} />;
+  }
+  if (new Date(resourceClaim.spec.lifespan?.start).getTime() > new Date().getTime()) {
+    return <InnerStatus phase="scheduled" state="scheduled" />;
   }
   const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
   const desiredState = resourceTemplate?.spec?.vars?.desired_state;

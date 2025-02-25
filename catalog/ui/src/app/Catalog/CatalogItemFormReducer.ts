@@ -37,6 +37,7 @@ type FormState = {
   usePoolIfAvailable: boolean;
   useAutoDetach: boolean;
   startDate?: Date;
+  expectedProvisioningDuration?: string;
   stopDate?: Date;
   endDate: Date;
   activity: string;
@@ -101,6 +102,7 @@ export type FormStateAction = {
   usePoolIfAvailable?: boolean;
   useAutoDetach?: boolean;
   startDate?: Date;
+  expectedProvisioningDuration?: string;
   stopDate?: Date;
   endDate?: Date;
   whiteGloved?: boolean;
@@ -272,13 +274,14 @@ export async function checkConditionsInFormState(
   }
 }
 
-function initDates(catalogItem: CatalogItem, currTime?: number) {
+function initDates(catalogItem: CatalogItem, currTime?: number, expectedProvisioningDuration?: string) {
   let _currTime = Date.now();
   if (currTime) {
     _currTime = currTime;
   }
   return {
     startDate: currTime ? new Date(currTime) : null,
+    expectedProvisioningDuration: expectedProvisioningDuration || '6h',
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
       : new Date(_currTime + parseDuration(catalogItem.spec.runtime?.default || '4h')),
@@ -448,8 +451,13 @@ function reduceFormStateUseAutoDetach(initialState: FormState, useAutoDetach = t
   };
 }
 
-function reduceFormStateDates(initialState: FormState, _startDate: Date, _stopDate: Date, _endDate: Date): FormState {
-  const minThreshold = Date.now() + 900000; // 15 mins
+function reduceFormStateDates(
+  initialState: FormState,
+  _startDate: Date,
+  _stopDate: Date,
+  _endDate: Date,
+  expectedProvisioningDuration: string
+): FormState {
   let stopDate = _stopDate;
   let endDate = _endDate;
   let startDate = _startDate;
@@ -462,19 +470,12 @@ function reduceFormStateDates(initialState: FormState, _startDate: Date, _stopDa
   if (!_startDate) {
     startDate = initialState.startDate;
   }
-  if (_startDate && _startDate.getTime() > minThreshold) {
-    return {
-      ...initialState,
-      stopDate,
-      endDate,
-      startDate,
-    };
-  }
   return {
     ...initialState,
     startDate,
     stopDate,
     endDate,
+    expectedProvisioningDuration,
   };
 }
 
@@ -550,7 +551,14 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         action.sfdc_enabled
       );
     case 'initDates':
-      return { ...state, ...initDates(action.catalogItem, action.startDate ? action.startDate.getTime() : null) };
+      return {
+        ...state,
+        ...initDates(
+          action.catalogItem,
+          action.startDate ? action.startDate.getTime() : null,
+          action.expectedProvisioningDuration
+        ),
+      };
     case 'parameterUpdate':
       return reduceFormStateParameterUpdate(state, {
         name: action.parameter.name,
@@ -566,7 +574,13 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
     case 'serviceNamespace':
       return reduceFormStateServiceNamespace(state, action.serviceNamespace);
     case 'dates':
-      return reduceFormStateDates(state, action.startDate, action.stopDate, action.endDate);
+      return reduceFormStateDates(
+        state,
+        action.startDate,
+        action.stopDate,
+        action.endDate,
+        action.expectedProvisioningDuration
+      );
     case 'termsOfServiceAgreed':
       return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
     case 'whiteGloved':
