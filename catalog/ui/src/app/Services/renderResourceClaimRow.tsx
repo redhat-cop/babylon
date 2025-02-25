@@ -151,7 +151,7 @@ const renderResourceClaimRow = ({
     <React.Fragment key="resource-claim-status">
       {specResources.length >= 1 ||
       resourceClaim.status?.summary ||
-      new Date(resourceClaim.spec.lifespan.start).getTime() > new Date().getTime() ? (
+      new Date(resourceClaim.spec.lifespan?.start).getTime() > new Date().getTime() ? (
         <ServiceStatus
           creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
           resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}

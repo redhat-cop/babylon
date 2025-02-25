@@ -121,7 +121,7 @@ const ServiceStatus: React.FC<{
     const { phase: _phase, state: _state } = getPhaseState(summary.state);
     return <InnerStatus phase={_phase} state={_state} />;
   }
-  if (new Date(resourceClaim.spec.lifespan.start).getTime() > new Date().getTime()) {
+  if (new Date(resourceClaim.spec.lifespan?.start).getTime() > new Date().getTime()) {
     return <InnerStatus phase="scheduled" state="scheduled" />;
   }
   const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
