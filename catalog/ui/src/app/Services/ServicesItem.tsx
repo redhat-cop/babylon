@@ -415,9 +415,7 @@ const ServicesItemComponent: React.FC<{
     .filter((r: K8sObject) => r?.kind === 'AnarchySubject')
     .map((r) => r as AnarchySubject);
   const userData = JSON.parse(resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/userData`] || 'null');
-  const statusEnabled = anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'status'))
-    ? true
-    : false;
+  const statusEnabled = false; //anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'status')) ? true : false;
   const consoleEnabled =
     resourceClaim.status?.summary?.provision_data?.osp_cluster_api ||
     resourceClaim.status?.summary?.provision_data?.openstack_auth_url ||
