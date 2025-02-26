@@ -85,7 +85,7 @@ const ResourceClaims: React.FC<{}> = () => {
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParams.get('search')]
   );
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
@@ -125,7 +125,7 @@ const ResourceClaims: React.FC<{}> = () => {
         }
         return true;
       },
-    },
+    }
   );
 
   const revalidate = useCallback(
@@ -147,7 +147,7 @@ const ResourceClaims: React.FC<{}> = () => {
         }
       }
     },
-    [mutate, resourceClaimsPages],
+    [mutate, resourceClaimsPages]
   );
   const isReachingEnd = resourceClaimsPages && !resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue;
   const isLoadingInitialData = !resourceClaimsPages;
@@ -166,12 +166,12 @@ const ResourceClaims: React.FC<{}> = () => {
       }
       return true;
     },
-    [keywordFilter],
+    [keywordFilter]
   );
 
   const resourceClaims: ResourceClaim[] = useMemo(
     () => [].concat(...resourceClaimsPages.map((page) => page.items)).filter(filterResourceClaim) || [],
-    [filterResourceClaim, resourceClaimsPages],
+    [filterResourceClaim, resourceClaimsPages]
   );
 
   // Trigger continue fetching more resource claims on scroll.
@@ -189,11 +189,11 @@ const ResourceClaims: React.FC<{}> = () => {
         modalState.action === 'retirement'
           ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
           : modalState.resourceClaim.status?.summary
-            ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
-            : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
+          ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
+          : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
       revalidate({ updatedItems: [resourceClaimUpdate], action: 'update' });
     },
-    [modalState.action, modalState.resourceClaim, revalidate],
+    [modalState.action, modalState.resourceClaim, revalidate]
   );
 
   const performModalActionForResourceClaim = useCallback(
@@ -203,7 +203,7 @@ const ResourceClaims: React.FC<{}> = () => {
           apiPaths.RESOURCE_CLAIM({
             namespace: resourceClaim.metadata.namespace,
             resourceClaimName: resourceClaim.metadata.name,
-          }),
+          })
         );
         return await deleteResourceClaim(resourceClaim);
       } else {
@@ -219,7 +219,7 @@ const ResourceClaims: React.FC<{}> = () => {
       console.warn(`Unkown action ${modalState.action}`);
       return resourceClaim;
     },
-    [cache, modalState.action],
+    [cache, modalState.action]
   );
 
   const onModalAction = useCallback(async (): Promise<void> => {
@@ -270,7 +270,7 @@ const ResourceClaims: React.FC<{}> = () => {
         openModalGetCost();
       }
     },
-    [openModalAction, openModalGetCost, openModalScheduleAction],
+    [openModalAction, openModalGetCost, openModalScheduleAction]
   );
 
   // Fetch all if keywordFilter is defined.
