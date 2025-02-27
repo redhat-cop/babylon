@@ -523,7 +523,6 @@ export async function createWorkshop({
   stopDate,
   endDate,
   startDate,
-  expectedProvisioningDuration,
   email,
   parameterValues,
   skippedSfdc,
@@ -538,7 +537,6 @@ export async function createWorkshop({
   endDate?: Date;
   stopDate?: Date;
   startDate?: Date;
-  expectedProvisioningDuration?: string;
   email: string;
   parameterValues: any;
   skippedSfdc: boolean;
@@ -568,7 +566,6 @@ export async function createWorkshop({
           : {}),
         [`${DEMO_DOMAIN}/scheduled`]:
           startDate && startDate.getTime() + parseDuration('15min') > Date.now() ? 'true' : 'false',
-        [`${DEMO_DOMAIN}/expectedProvisioningDuration`]: expectedProvisioningDuration,
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
       },
@@ -578,13 +575,13 @@ export async function createWorkshop({
       openRegistration: openRegistration,
       lifespan: {
         ...(startDate
-          ? { start: dateToApiString(new Date(startDate.getTime() - parseDuration(expectedProvisioningDuration))) }
+          ? { start: dateToApiString(startDate) }
           : {}),
         ...(endDate ? { end: dateToApiString(endDate) } : {}),
       },
       actionSchedule: {
         ...(startDate
-          ? { start: dateToApiString(new Date(startDate.getTime() - parseDuration(expectedProvisioningDuration))) }
+          ? { start: dateToApiString(startDate) }
           : {}),
         ...(stopDate ? { stop: dateToApiString(stopDate) } : {}),
       },
