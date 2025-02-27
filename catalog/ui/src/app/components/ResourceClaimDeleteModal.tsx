@@ -7,14 +7,21 @@ const ResourceClaimDeleteModal: React.FC<{
   resourceClaims: ResourceClaim[];
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
   setOnConfirmCb?: (_: any) => Promise<void>;
-}> = ({ onConfirm, resourceClaims, setTitle, setOnConfirmCb }) => {
+  restart?: boolean
+}> = ({ onConfirm, resourceClaims, setTitle, setOnConfirmCb, restart }) => {
   useEffect(() => {
     setOnConfirmCb(() => onConfirm);
   }, [onConfirm, setOnConfirmCb]);
   useEffect(() => {
-    setTitle(
-      resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?',
-    );
+    if (restart === true) {
+      setTitle(
+        resourceClaims.length === 1 ? `Restart service ${displayName(resourceClaims[0])}?` : 'Restart selected services?',
+      );
+    } else {
+      setTitle(
+        resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?',
+      );
+    }
   }, [resourceClaims, setTitle]);
   return <p>Cloud resources will be deleted. Restore for deleted resources is not available.</p>;
 };
