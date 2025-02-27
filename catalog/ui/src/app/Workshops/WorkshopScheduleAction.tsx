@@ -40,7 +40,7 @@ const WorkshopScheduleAction: React.FC<{
   const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
 
-  const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'start' ? 'Start Date' : 'Auto-stop';
+  const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'start' ? 'Start Provisioning Date' : 'Auto-stop';
 
   const minMaxProps = {
     minDate: Date.now(),

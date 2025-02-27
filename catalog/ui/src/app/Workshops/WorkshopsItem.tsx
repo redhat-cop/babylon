@@ -252,12 +252,7 @@ const WorkshopsItemComponent: React.FC<{
   async function onWorkshopStartConfirm() {
     const workshopUpdated = await startWorkshop(
       workshop,
-      dateToApiString(
-        new Date(
-          Date.now() -
-            parseDuration(workshop.metadata.annotations[`${DEMO_DOMAIN}/expectedProvisioningDuration`] || '6h')
-        )
-      ),
+      dateToApiString(new Date()),
       dateToApiString(new Date(Date.now() + parseDuration('30h'))),
       resourceClaims
     );
@@ -313,7 +308,7 @@ const WorkshopsItemComponent: React.FC<{
       const workshopUpdated = await startWorkshop(
         workshop,
         !isWorkshopStarted(workshop, workshopProvisions)
-          ? dateToApiString(new Date(date.getTime() - parseDuration('6h')))
+          ? dateToApiString(new Date(date.getTime()))
           : null,
         !isWorkshopStarted(workshop, workshopProvisions)
           ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
