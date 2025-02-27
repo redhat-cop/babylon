@@ -187,7 +187,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         serviceNamespace: formState.serviceNamespace,
         stopDate: formState.stopDate,
         endDate: formState.endDate,
-        startDate: new Date(formState.startDate.getTime()),
+        startDate: formState.startDate,
         expectedProvisioningDuration: formState.expectedProvisioningDuration,
         email,
         parameterValues,
@@ -717,7 +717,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
         {formState.workshop ? (
           <div className="catalog-item-form__workshop-form">
-            {!isAdmin ? (
+            {isAdmin ? (
               <FormGroup fieldId="workshopStartDate" isRequired label="Start Date">
                 <div className="catalog-item-form__group-control--single">
                   <DateTimePicker
