@@ -665,7 +665,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         ) : null}
 
         {!formState.workshop && !catalogItem.spec.externalUrl ? (
-          <FormGroup fieldId="serviceStartDate" isRequired label="Start Date">
+          <FormGroup fieldId="serviceStartDate" isRequired label="Start Provisioning Date">
             <div className="catalog-item-form__group-control--single">
               <DateTimePicker
                 defaultTimestamp={Date.now()}

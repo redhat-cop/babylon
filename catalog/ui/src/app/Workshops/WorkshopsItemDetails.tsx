@@ -373,7 +373,7 @@ const WorkshopsItemDetails: React.FC<{
 
       {autoStartTime && autoStartTime > Date.now() ? (
         <DescriptionListGroup>
-          <DescriptionListTerm>Start Date</DescriptionListTerm>
+          <DescriptionListTerm>Start Provisioning Date</DescriptionListTerm>
           <DescriptionListDescription>
             <AutoStopDestroy
               type="auto-start"
