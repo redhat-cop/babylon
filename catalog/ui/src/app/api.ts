@@ -578,13 +578,13 @@ export async function createWorkshop({
       openRegistration: openRegistration,
       lifespan: {
         ...(startDate
-          ? { start: dateToApiString(new Date(startDate.getTime() + parseDuration(expectedProvisioningDuration))) }
+          ? { start: dateToApiString(new Date(startDate.getTime() - parseDuration(expectedProvisioningDuration))) }
           : {}),
         ...(endDate ? { end: dateToApiString(endDate) } : {}),
       },
       actionSchedule: {
         ...(startDate
-          ? { start: dateToApiString(new Date(startDate.getTime() + parseDuration(expectedProvisioningDuration))) }
+          ? { start: dateToApiString(new Date(startDate.getTime() - parseDuration(expectedProvisioningDuration))) }
           : {}),
         ...(stopDate ? { stop: dateToApiString(stopDate) } : {}),
       },
