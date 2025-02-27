@@ -6,6 +6,7 @@ import { LockedIcon } from '@patternfly/react-icons';
 const WorkshopActions: React.FC<{
   actionHandlers: {
     delete: () => void;
+    restartService?: () => void | null;
     deleteService?: () => void | null;
     start?: () => void | null;
     stop?: () => void | null;
@@ -25,6 +26,15 @@ const WorkshopActions: React.FC<{
       icon={isLocked ? <LockedIcon /> : null}
     />,
   ];
+  actionHandlers.restartService &&
+    actionDropdownItems.push(
+      <ActionDropdownItem
+        key="deleteServices"
+        isDisabled={!actionHandlers.restartService}
+        label="Restart Selected Services"
+        onSelect={actionHandlers.restartService}
+      />
+    );
   actionHandlers.deleteService &&
     actionDropdownItems.push(
       <ActionDropdownItem

@@ -23,6 +23,7 @@ import {
   deleteWorkshop,
   fetcher,
   fetcherItemsInAllPages,
+  patchWorkshopProvision,
   SERVICES_KEY,
   setWorkshopLifespanEnd,
   startWorkshop,
@@ -69,6 +70,7 @@ import './workshops-item.css';
 export interface ModalState {
   action?:
     | 'delete'
+    | 'restartService'
     | 'deleteService'
     | 'startServices'
     | 'stopServices'
@@ -87,6 +89,7 @@ const WorkshopsItemComponent: React.FC<{
 }> = ({ activeTab, serviceNamespaceName, workshopName }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { mutate } = useSWRConfig();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
@@ -102,6 +105,7 @@ const WorkshopsItemComponent: React.FC<{
         openModalDelete();
       } else if (
         action === 'deleteService' ||
+        action === 'restartService' ||
         action === 'startServices' ||
         action === 'stopServices' ||
         action === 'startWorkshop'
@@ -169,7 +173,7 @@ const WorkshopsItemComponent: React.FC<{
         : []
   );
 
-  const { data: resourceClaims, mutate } = useSWR<ResourceClaim[]>(
+  const { data: resourceClaims, mutate: mutateRC } = useSWR<ResourceClaim[]>(
     workshop
       ? apiPaths.RESOURCE_CLAIMS({
           namespace: serviceNamespaceName,
@@ -203,11 +207,11 @@ const WorkshopsItemComponent: React.FC<{
           } else if (action === 'delete') {
             resourceClaimsCpy.splice(foundIndex, 1);
           }
-          mutate(resourceClaimsCpy);
+          mutateRC(resourceClaimsCpy);
         }
       }
     },
-    [mutate, resourceClaims]
+    [mutateRC, resourceClaims]
   );
 
   const mutateUserAssigments = useCallback(
@@ -224,8 +228,23 @@ const WorkshopsItemComponent: React.FC<{
    * Replacement services may be created by the workshop-manager depending upon
    * WorkshopProvision configuration.
    */
-  async function onServiceDeleteConfirm(): Promise<void> {
+  async function onServiceDeleteConfirm(reduceWorkshopCount = false): Promise<void> {
     const deleteResourceClaims = modalState.resourceClaims;
+    if (reduceWorkshopCount) {
+      const count = Math.max(workshopProvisions[0].spec.count - deleteResourceClaims.length, 0);
+      await patchWorkshopProvision({
+        name: workshopProvisions[0].metadata.name,
+        namespace: workshopProvisions[0].metadata.namespace,
+        patch: { spec: { count } },
+      });
+      mutate(
+        apiPaths.WORKSHOP_PROVISIONS({
+          workshopName: workshopProvisions[0].metadata.labels['babylon.gpte.redhat.com/workshop'],
+          namespace: workshopProvisions[0].metadata.namespace,
+          limit: 'ALL',
+        }),
+      );
+    }
     for (const resourceClaim of deleteResourceClaims) {
       await deleteResourceClaim(resourceClaim);
       const { namespace, name: resourceClaimName } = resourceClaim.metadata;
@@ -330,8 +349,10 @@ const WorkshopsItemComponent: React.FC<{
       </Modal>
 
       <Modal ref={modalAction} passModifiers={true} onConfirm={() => null}>
-        {modalState?.action === 'deleteService' ? (
-          <ResourceClaimDeleteModal onConfirm={onServiceDeleteConfirm} resourceClaims={modalState.resourceClaims} />
+        {modalState?.action === 'restartService' ? (
+          <ResourceClaimDeleteModal restart={true} onConfirm={onServiceDeleteConfirm} resourceClaims={modalState.resourceClaims} />
+        ) : modalState?.action === 'deleteService' ? (
+          <ResourceClaimDeleteModal onConfirm={() => onServiceDeleteConfirm(true)} resourceClaims={modalState.resourceClaims} />
         ) : modalState?.action === 'startServices' ? (
           <WorkshopActionModal onConfirm={onServiceStartConfirm} action="start" />
         ) : modalState?.action === 'stopServices' ? (
@@ -400,6 +421,10 @@ const WorkshopsItemComponent: React.FC<{
                 workshopName={workshop.spec.displayName}
                 actionHandlers={{
                   delete: () => showModal({ action: 'delete' }),
+                  restartService:
+                    Array.isArray(selectedResourceClaims) && selectedResourceClaims.length === 0
+                      ? null
+                      : () => showModal({ action: 'restartService', resourceClaims: selectedResourceClaims }),
                   deleteService:
                     Array.isArray(selectedResourceClaims) && selectedResourceClaims.length === 0
                       ? null

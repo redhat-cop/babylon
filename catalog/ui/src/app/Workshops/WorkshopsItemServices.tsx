@@ -31,6 +31,7 @@ import useSession from '@app/utils/useSession';
 import { ModalState } from './WorkshopsItem';
 import { apiPaths, deleteResourceClaim, patchWorkshopProvision } from '@app/api';
 import { useSWRConfig } from 'swr';
+import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 
 import './workshops-item-services.css';
 
@@ -147,9 +148,11 @@ const WorkshopsItemServices: React.FC<{
           const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
           const costTracker = getCostTracker(resourceClaim);
           const actionHandlers = {
+            restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }), 
             delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
             getCost: () => showModal({ action: 'getCost', resourceClaims: [resourceClaim] }),
           };
+          const canDelete = resourceClaims.length === workshopProvisions?.[0].spec.count;
           // Find lab user interface information either in the resource claim or inside resources
           // associated with the provisioned service.
           const labUserInterfaceData =
@@ -253,11 +256,17 @@ const WorkshopsItemServices: React.FC<{
                 className="workshops-item-services__actions"
               >
                 <ButtonCircleIcon
+                  key="actions__restart"
+                  onClick={actionHandlers.restart}
+                  description="Restart Instance"
+                  icon={RedoIcon}
+                />
+                { canDelete ? <ButtonCircleIcon
                   key="actions__delete"
                   onClick={actionHandlers.delete}
-                  description="Delete (will start a new service)"
+                  description="Delete Instance"
                   icon={TrashIcon}
-                />
+                /> : null}
                 {costTracker ? (
                   <ButtonCircleIcon
                     key="actions__cost"
