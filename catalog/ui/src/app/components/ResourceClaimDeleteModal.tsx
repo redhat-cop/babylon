@@ -7,7 +7,7 @@ const ResourceClaimDeleteModal: React.FC<{
   resourceClaims: ResourceClaim[];
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
   setOnConfirmCb?: (_: any) => Promise<void>;
-  restart?: boolean
+  restart?: boolean;
 }> = ({ onConfirm, resourceClaims, setTitle, setOnConfirmCb, restart }) => {
   useEffect(() => {
     setOnConfirmCb(() => onConfirm);
@@ -15,11 +15,13 @@ const ResourceClaimDeleteModal: React.FC<{
   useEffect(() => {
     if (restart === true) {
       setTitle(
-        resourceClaims.length === 1 ? `Restart service ${displayName(resourceClaims[0])}?` : 'Restart selected services?',
+        resourceClaims.length === 1
+          ? `Redeploy service ${displayName(resourceClaims[0])}?`
+          : 'Redeploy selected services?'
       );
     } else {
       setTitle(
-        resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?',
+        resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?'
       );
     }
   }, [resourceClaims, setTitle]);

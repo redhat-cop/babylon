@@ -50,13 +50,13 @@ const WorkshopsItemServices: React.FC<{
   const { mutate } = useSWRConfig();
 
   const unusedResourceClaims = resourceClaims.filter(
-    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email),
+    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email)
   );
   const [instancesToDelete, setInstancesToDelete] = useState(0);
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
-      selectedUids.includes(resourceClaim.metadata.uid),
+      selectedUids.includes(resourceClaim.metadata.uid)
     );
     setSelectedResourceClaims(selectedResourceClaims);
   }, [resourceClaims, selectedUids, setSelectedResourceClaims]);
@@ -90,7 +90,7 @@ const WorkshopsItemServices: React.FC<{
             workshopName: workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`],
             namespace: workshopProvision.metadata.namespace,
             limit: 'ALL',
-          }),
+          })
         );
       }
       let i = 0;
@@ -107,13 +107,13 @@ const WorkshopsItemServices: React.FC<{
               workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`]
             }`,
             limit: 'ALL',
-          }),
+          })
         );
       }
       setIsLoading(false);
       setIsOpen(false);
     },
-    [workshopProvisions, unusedResourceClaims, resourceClaims],
+    [workshopProvisions, unusedResourceClaims, resourceClaims]
   );
 
   if (resourceClaims.length == 0) {
@@ -148,7 +148,7 @@ const WorkshopsItemServices: React.FC<{
           const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
           const costTracker = getCostTracker(resourceClaim);
           const actionHandlers = {
-            restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }), 
+            restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }),
             delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
             getCost: () => showModal({ action: 'getCost', resourceClaims: [resourceClaim] }),
           };
@@ -163,7 +163,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_data
-                  : r?.data?.labUserInterfaceData,
+                  : r?.data?.labUserInterfaceData
               )
               .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
               .find((u) => u != null);
@@ -175,7 +175,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_method
-                  : r?.data?.labUserInterfaceMethod,
+                  : r?.data?.labUserInterfaceMethod
               )
               .find((u) => u != null);
           const labUserInterfaceUrl =
@@ -258,15 +258,17 @@ const WorkshopsItemServices: React.FC<{
                 <ButtonCircleIcon
                   key="actions__restart"
                   onClick={actionHandlers.restart}
-                  description="Restart Instance"
+                  description="Redeploy Instance"
                   icon={RedoIcon}
                 />
-                { canDelete ? <ButtonCircleIcon
-                  key="actions__delete"
-                  onClick={actionHandlers.delete}
-                  description="Delete Instance"
-                  icon={TrashIcon}
-                /> : null}
+                {canDelete ? (
+                  <ButtonCircleIcon
+                    key="actions__delete"
+                    onClick={actionHandlers.delete}
+                    description="Delete Instance"
+                    icon={TrashIcon}
+                  />
+                ) : null}
                 {costTracker ? (
                   <ButtonCircleIcon
                     key="actions__cost"
