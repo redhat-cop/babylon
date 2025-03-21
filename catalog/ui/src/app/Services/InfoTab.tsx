@@ -15,6 +15,7 @@ import {
   getAutoStopTime,
   getInfoMessageTemplate,
   getMostRelevantResourceAndTemplate,
+  getStartTime,
 } from './service-utils';
 import AdocWrapper from '@app/components/AdocWrapper';
 
@@ -38,6 +39,7 @@ const InfoTab: React.FC<{
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const autoStopTime = getAutoStopTime(resourceClaim);
+  const startTime = getStartTime(resourceClaim);
 
   const infoHtml = useMemo(() => {
     const provision_vars: object = Object.assign(
@@ -82,6 +84,25 @@ const InfoTab: React.FC<{
               />
             </DescriptionListDescription>
           </DescriptionListGroup>
+
+          {startTime && startTime > Date.now() ? (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Start</DescriptionListTerm>
+              <DescriptionListDescription>
+                <AutoStopDestroy
+                  type="auto-start"
+                  onClick={() => {
+                    showModal({ action: 'start', modal: 'scheduleAction', resourceClaim });
+                  }}
+                  resourceClaim={resourceClaim}
+                  className="services-item__schedule-btn"
+                  time={startTime}
+                  variant="extended"
+                ></AutoStopDestroy>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ) : null}
+
           <DescriptionListGroup>
             <DescriptionListTerm>Auto-stop</DescriptionListTerm>
             <DescriptionListDescription>
