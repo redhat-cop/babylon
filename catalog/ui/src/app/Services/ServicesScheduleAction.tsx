@@ -5,14 +5,14 @@ import { ResourceClaim, WorkshopWithResourceClaims } from '@app/types';
 import { displayName } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
-import { getAutoStopTime, getMaxRuntime, getMinDefaultRuntime } from './service-utils';
+import { getAutoStopTime, getMaxRuntime, getMinDefaultRuntime, getStartTime } from './service-utils';
 import { getWorkshopAutoStopTime, getWorkshopLifespan } from '@app/Workshops/workshops-utils';
 import useHelpLink from '@app/utils/useHelpLink';
 
 const minDefault = parseDuration('4h');
 
 const ServicesScheduleAction: React.FC<{
-  action: 'retirement' | 'stop';
+  action: 'retirement' | 'stop' | 'start';
   resourceClaim?: ResourceClaim;
   workshop?: WorkshopWithResourceClaims;
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
@@ -33,6 +33,8 @@ const ServicesScheduleAction: React.FC<{
     } else if (resourceClaim) {
       if (action === 'retirement') {
         time = autoDestroyTime;
+      } else if (action === 'start') {
+        time = getStartTime(resourceClaim);
       } else {
         time = getAutoStopTime(resourceClaim);
       }
@@ -45,7 +47,7 @@ const ServicesScheduleAction: React.FC<{
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
   useEffect(() => setTitle(`${displayName(resourceClaim || workshop)}`), [setTitle, resourceClaim]);
 
-  const actionLabel = action === 'retirement' ? 'Auto-destroy' : 'Auto-stop';
+  const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'start' ? 'Start' : 'Auto-stop';
   let maxDate = null;
   if (action === 'retirement') {
     maxDate = resourceClaim
@@ -61,6 +63,8 @@ const ServicesScheduleAction: React.FC<{
           ])
         )
       : null;
+  } else if (action === 'start') {
+    maxDate = null;
   } else {
     maxDate = resourceClaim
       ? getMaxRuntime(resourceClaim)

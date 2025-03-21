@@ -574,15 +574,11 @@ export async function createWorkshop({
       multiuserServices: catalogItem.spec.multiuser,
       openRegistration: openRegistration,
       lifespan: {
-        ...(startDate
-          ? { start: dateToApiString(startDate) }
-          : {}),
+        ...(startDate ? { start: dateToApiString(startDate) } : {}),
         ...(endDate ? { end: dateToApiString(endDate) } : {}),
       },
       actionSchedule: {
-        ...(startDate
-          ? { start: dateToApiString(startDate) }
-          : {}),
+        ...(startDate ? { start: dateToApiString(startDate) } : {}),
         ...(stopDate ? { stop: dateToApiString(stopDate) } : {}),
       },
     },
@@ -1386,6 +1382,23 @@ export async function setLifespanEndForResourceClaim(
       }
     )) as ResourceHandle;
   }
+
+  return (await patchNamespacedCustomObject(
+    'poolboy.gpte.redhat.com',
+    'v1',
+    resourceClaim.metadata.namespace,
+    'resourceclaims',
+    resourceClaim.metadata.name,
+    data
+  )) as ResourceClaim;
+}
+
+export async function setLifespanStartForResourceClaim(resourceClaim: ResourceClaim, date: Date) {
+  const startTimestamp = dateToApiString(date);
+  const data = {
+    spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
+  };
+  data.spec.lifespan.start = startTimestamp;
 
   return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',

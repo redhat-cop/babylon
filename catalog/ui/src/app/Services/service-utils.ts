@@ -136,6 +136,9 @@ export function getMinDefaultRuntime(resourceClaim: ResourceClaim): number {
 }
 
 export function getStartTime(resourceClaim: ResourceClaim): number {
+  if (resourceClaim.spec.lifespan?.start) {
+    return Date.parse(resourceClaim.spec.lifespan.start);
+  }
   if (resourceClaim.spec.provider?.parameterValues?.start_timestamp) {
     return Date.parse(resourceClaim.spec.provider.parameterValues.start_timestamp);
   }

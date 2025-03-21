@@ -49,6 +49,7 @@ import {
   scheduleStopResourceClaim,
   SERVICES_KEY,
   setLifespanEndForResourceClaim,
+  setLifespanStartForResourceClaim,
   setProvisionRating,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
@@ -90,7 +91,12 @@ import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import Label from '@app/components/Label';
-import { getAutoStopTime, getInfoMessageTemplate, getMostRelevantResourceAndTemplate } from './service-utils';
+import {
+  getAutoStopTime,
+  getInfoMessageTemplate,
+  getMostRelevantResourceAndTemplate,
+  getStartTime,
+} from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
@@ -513,6 +519,7 @@ const ServicesItemComponent: React.FC<{
 
   const costTracker = getCostTracker(resourceClaim);
   const autoStopTime = getAutoStopTime(resourceClaim);
+  const startTime = getStartTime(resourceClaim);
   const hasInfoMessageTemplate = !!getInfoMessageTemplate(resourceClaim);
   const stage = getStageFromK8sObject(resourceClaim);
 
@@ -554,12 +561,19 @@ const ServicesItemComponent: React.FC<{
   }
 
   async function onModalScheduleAction(date: Date) {
-    const resourceClaimUpdate =
-      modalState.action === 'retirement'
-        ? await setLifespanEndForResourceClaim(resourceClaim, date)
-        : resourceClaim.status?.summary
-        ? await scheduleStopResourceClaim(resourceClaim, date)
-        : await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
+    let resourceClaimUpdate = null;
+    if (modalState.action === 'retirement') {
+      resourceClaimUpdate = await setLifespanEndForResourceClaim(resourceClaim, date);
+    } else if (modalState.action === 'start') {
+      resourceClaimUpdate = await setLifespanStartForResourceClaim(resourceClaim, date);
+    } else {
+      if (resourceClaim.status?.summary) {
+        resourceClaimUpdate = await scheduleStopResourceClaim(resourceClaim, date);
+      } else {
+        resourceClaimUpdate = await scheduleStopForAllResourcesInResourceClaim(resourceClaim, date);
+      }
+    }
+
     mutate(resourceClaimUpdate);
   }
 
@@ -623,10 +637,7 @@ const ServicesItemComponent: React.FC<{
         <ServicesCreateWorkshop resourceClaim={resourceClaim} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
-        <ServicesScheduleAction
-          action={modalState.action === 'retirement' ? 'retirement' : 'stop'}
-          resourceClaim={resourceClaim}
-        />
+        <ServicesScheduleAction action={modalState.action || 'stop'} resourceClaim={resourceClaim} />
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection key="topbar" className="services-item__topbar" variant={PageSectionVariants.light}>
@@ -771,6 +782,24 @@ const ServicesItemComponent: React.FC<{
                       <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+
+                  {startTime && startTime > Date.now() ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Start</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <AutoStopDestroy
+                          type="start"
+                          onClick={() => {
+                            showModal({ action: 'start', modal: 'scheduleAction', resourceClaim });
+                          }}
+                          resourceClaim={resourceClaim}
+                          className="services-item__schedule-btn"
+                          time={startTime}
+                          variant="extended"
+                        ></AutoStopDestroy>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
 
                   <DescriptionListGroup>
                     <DescriptionListTerm>Auto-stop</DescriptionListTerm>

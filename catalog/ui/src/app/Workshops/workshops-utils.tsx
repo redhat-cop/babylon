@@ -1,7 +1,6 @@
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { canExecuteAction, checkResourceClaimCanStart, checkResourceClaimCanStop, DEMO_DOMAIN } from '@app/util';
-import { getAutoStopTime, getMinDefaultRuntime, getStartTime } from '@app/Services/service-utils';
-import parseDuration from 'parse-duration';
+import { getAutoStopTime, getMinDefaultRuntime } from '@app/Services/service-utils';
 
 export function isWorkshopStarted(workshop: Workshop, workshopProvisions: WorkshopProvision[]): boolean {
   const startTime = getWorkshopStartTime(workshop, workshopProvisions);
@@ -11,9 +10,7 @@ export function isWorkshopStarted(workshop: Workshop, workshopProvisions: Worksh
 export function getWorkshopStartTime(workshop: Workshop, workshopProvisions?: WorkshopProvision[]): number {
   // Lifespan start propagates from Workshop.
   if (workshop.spec.lifespan?.start) {
-    return (
-      Date.parse(workshop.spec.lifespan.start)
-    );
+    return Date.parse(workshop.spec.lifespan.start);
   }
 
   // If workshop does not have workshop start then check WorkshopProvisions
