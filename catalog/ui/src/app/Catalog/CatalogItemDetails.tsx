@@ -413,16 +413,16 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                     </Tooltip>
                   </DescriptionListTerm>
                   <DescriptionListDescription>
-                    {formatCurrency(metrics?.medianRuntimeCostByHour * 1.1)}
+                    {formatCurrency(metrics?.medianLifetimeCostByHour * 1.1)}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
 
-              {metrics?.medianProvisionHour ? (
+              {metrics?.medianLifetimeCostByHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {`±${formatTime(`${metrics?.medianProvisionHour * 60 * 1.1}m`)}`}
+                    {`±${formatTime(`${metrics?.medianLifetimeCostByHour * 60 * 1.1}m`)}`}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
