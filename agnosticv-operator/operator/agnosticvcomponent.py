@@ -8,6 +8,7 @@ from babylon import Babylon
 from kopfobject import KopfObject
 from str2bool import str2bool
 
+import agnosticvrepo
 
 def merge_dynamic_fields(definition, current_state):
     merged_definition = deepcopy(definition)
@@ -499,7 +500,7 @@ class AgnosticVComponent(KopfObject):
         return definition
 
 
-    def __catalog_item_definition(self):
+    def __catalog_item_definition(self, agnosticv_repo):
         namespace = self.catalog_item_namespace
 
         definition = {
@@ -521,6 +522,13 @@ class AgnosticVComponent(KopfObject):
                 },
             },
             "spec": {
+                "agnosticvRepo": {
+                    "name": agnosticv_repo.name,
+                    "git": {
+                        "ref": agnosticv_repo.git_ref,
+                        "url": agnosticv_repo.git_url,
+                    }
+                },
                 "category": self.catalog_category,
                 "description": self.catalog_description,
                 "displayName": self.catalog_display_name,
@@ -1087,7 +1095,8 @@ class AgnosticVComponent(KopfObject):
             await self.__delete_catalog_item(logger=logger)
             return
 
-        definition = self.__catalog_item_definition()
+        agnosticv_repo = await agnosticvrepo.AgnosticVRepo.get(self.agnosticv_repo)
+        definition = self.__catalog_item_definition(agnosticv_repo)
         current_state = None
         try:
             current_state = await Babylon.custom_objects_api.get_namespaced_custom_object(
