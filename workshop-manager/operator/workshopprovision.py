@@ -32,7 +32,7 @@ class WorkshopProvision(CachedKopfObject):
 
     @property
     def action_schedule_start(self):
-        start_timestamp = self.spec.get('actionSchedule', {}).get('start')
+        start_timestamp = self.action_schedule_start_timestamp
         if not start_timestamp:
             return None
         return datetime.strptime(
@@ -40,14 +40,22 @@ class WorkshopProvision(CachedKopfObject):
         ).replace(tzinfo=timezone.utc)
 
     @property
+    def action_schedule_start_timestamp(self):
+        return self.spec.get('actionSchedule', {}).get('start')
+
+    @property
     def action_schedule_stop(self):
-        stop_timestamp = self.spec.get('actionSchedule', {}).get('stop')
+        stop_timestamp = self.action_schedule_stop_timestamp
         if not stop_timestamp:
             return None
         return datetime.strptime(
             stop_timestamp, '%Y-%m-%dT%H:%M:%SZ'
         ).replace(tzinfo=timezone.utc)
     
+    @property
+    def action_schedule_stop_timestamp(self):
+        return self.spec.get('actionSchedule', {}).get('stop')
+
     @property
     def auto_detach_condition(self):
         return self.spec.get('autoDetach', {}).get('when')
@@ -147,7 +155,13 @@ class WorkshopProvision(CachedKopfObject):
                 "ownerReferences": [self.as_owner_ref()],
             },
             "spec": {
-                "resources": deepcopy(catalog_item.resources)
+                "provider": {
+                    "name": catalog_item.name,
+                    "parameterValues": {
+                        key: value for key, value in self.parameters.items()
+                        if key not in {'purpose_activity', 'purpose_explanation'}
+                    },
+                }
             }
         }
 
@@ -165,12 +179,18 @@ class WorkshopProvision(CachedKopfObject):
 
         if workshop.ordered_by:
             resource_claim_definition['metadata']['annotations'][Babylon.ordered_by_annotation] = workshop.ordered_by
-        
+
         if workshop.white_gloved:
             resource_claim_definition['metadata']['labels'][Babylon.white_glove_label] = workshop.white_gloved
 
         if catalog_item.lab_ui_type:
             resource_claim_definition['metadata']['labels'][Babylon.lab_ui_label] = catalog_item.lab_ui_type
+
+        if self.action_schedule_start_timestamp:
+            resource_claim_definition['spec']['provider']['parameterValues']['start_timestamp'] = self.action_schedule_start_timestamp
+
+        if self.action_schedule_stop_timestamp:
+            resource_claim_definition['spec']['provider']['parameterValues']['stop_timestamp'] = self.action_schedule_stop_timestamp
 
         for catalog_item_parameter in catalog_item.parameters:
             value = self.parameters[catalog_item_parameter.name] \
@@ -179,21 +199,15 @@ class WorkshopProvision(CachedKopfObject):
                 continue
             if catalog_item_parameter.annotation:
                 resource_claim_definition['metadata']['annotations'][catalog_item_parameter.annotation] = str(value)
-            if catalog_item_parameter.variable:
-                for resource_index in catalog_item_parameter.resource_indexes:
-                    resource_claim_definition['spec']['resources'][resource_index] = deep_update(
-                        resource_claim_definition['spec']['resources'][resource_index],
-                        {'template': {'spec': {'vars': {'job_vars': {catalog_item_parameter.variable: value}}}}}
-                    )
 
         if 'purpose' in self.parameters:
-            resource_claim_definition['metadata']['annotations'][Babylon.purpose_annotation] = self.parameters.get('purpose')
+            resource_claim_definition['metadata']['annotations'][Babylon.purpose_annotation] = self.parameters['purpose']
 
         if 'purpose_activity' in self.parameters:
-            resource_claim_definition['metadata']['annotations'][Babylon.purpose_activity_annotation] = self.parameters.get('purpose_activity')
+            resource_claim_definition['metadata']['annotations'][Babylon.purpose_activity_annotation] = self.parameters['purpose_activity']
 
         if 'salesforce_id' in self.parameters:
-            resource_claim_definition['metadata']['annotations'][Babylon.salesforce_id_annotation] = self.parameters.get('salesforce_id')
+            resource_claim_definition['metadata']['annotations'][Babylon.salesforce_id_annotation] = self.parameters['salesforce_id']
 
         resource_claim = await resourceclaim.ResourceClaim.create(resource_claim_definition)
 

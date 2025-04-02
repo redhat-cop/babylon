@@ -31,7 +31,7 @@ class ResourceClaim(K8sObject):
 
         resource_claim = cls(definition=definition)
         event_type = event.get('type')
-        logger.info(f"Handling {resource_claim} {event.get('type') or 'EVENT'}")
+        logger.debug(f"Handling {resource_claim} {event.get('type') or 'EVENT'}")
 
         if event.get('type') == 'DELETED':
             await resource_claim.delete_workshop_user_assignments(logger=logger)
@@ -71,6 +71,27 @@ class ResourceClaim(K8sObject):
         ).replace(tzinfo=timezone.utc)
 
     @property
+    def is_failed(self):
+        if 'status' not in self.definition or 'resources' not in self.definition['status']:
+            return False
+        for resource in self.definition['status']['resources']:
+            state = resource.get('state')
+            if not state:
+                return False
+            if state['kind'] == 'AnarchySubject':
+                current_state = state.get('spec', {}).get('vars', {}).get('current_state')
+                if current_state is not None and (
+                    current_state.endswith('-failed') or
+                    current_state in ["provision-error", "provision-cancelled"]
+                ):
+                    return True
+        return False
+
+    @property
+    def is_old_format(self):
+        return not 'provider' in self.definition['spec']
+
+    @property
     def provision_complete(self):
         if not 'status' in self.definition \
         or not 'resources' in self.definition['status']:
@@ -90,28 +111,11 @@ class ResourceClaim(K8sObject):
                     current_state in ["provision-error", "provision-cancelled"]
                 ):
                     return True
-            
+
                 if not state.get('status', {}).get('towerJobs', {}).get('provision', {}).get('completeTimestamp'):
                     return False
-                
-        return True
 
-    @property
-    def is_failed(self):
-        if 'status' not in self.definition or 'resources' not in self.definition['status']:
-            return False
-        for resource in self.definition['status']['resources']:
-            state = resource.get('state')
-            if not state:
-                return False
-            if state['kind'] == 'AnarchySubject':
-                current_state = state.get('spec', {}).get('vars', {}).get('current_state')
-                if current_state is not None and (
-                    current_state.endswith('-failed') or
-                    current_state in ["provision-error", "provision-cancelled"]
-                ):
-                    return True
-        return False
+        return True
 
     @property
     def resource_handle_name(self):
@@ -123,25 +127,33 @@ class ResourceClaim(K8sObject):
 
     @property
     def start_datetime(self):
-        for resource in self.definition['spec']['resources']:
-            try:
-                return datetime.strptime(
-                    resource['template']['spec']['vars']['action_schedule']['start'], '%Y-%m-%dT%H:%M:%SZ'
-                ).replace(tzinfo=timezone.utc)
-            except KeyError:
-                pass
+        ts = self.start_timestamp
+        if ts:
+            return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
         return None
 
     @property
+    def start_timestamp(self):
+        if self.is_old_format:
+            for resource in self.definition['spec']['resources']:
+                if 'start' in resource['template']['spec']['vars'].get('action_schedule', {}):
+                    return resource['template']['spec']['vars']['action_schedule']['start']
+        return self.definition['spec'].get('provider', {}).get('parameterValues', {}).get('start_timestamp')
+
+    @property
     def stop_datetime(self):
-        for resource in self.definition['spec']['resources']:
-            try:
-                return datetime.strptime(
-                    resource['template']['spec']['vars']['action_schedule']['stop'], '%Y-%m-%dT%H:%M:%SZ'
-                ).replace(tzinfo=timezone.utc)
-            except KeyError:
-                pass
+        ts = self.stop_timestamp
+        if ts:
+            return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
         return None
+
+    @property
+    def stop_timestamp(self):
+        if self.is_old_format:
+            for resource in self.definition['spec']['resources']:
+                if 'stop' in resource['template']['spec']['vars'].get('action_schedule', {}):
+                    return resource['template']['spec']['vars']['action_schedule']['stop']
+        return self.definition['spec'].get('provider', {}).get('parameterValues', {}).get('stop_timestamp')
 
     @property
     def workshop_name(self):
@@ -266,7 +278,7 @@ class ResourceClaim(K8sObject):
         start_datetime=None,
         stop_datetime=None,
     ):
-        resource_claim_patch = None
+        resource_claim_patch = {}
         if lifespan_end and lifespan_end != self.effective_lifespan_end:
             lifespan_end_ts = lifespan_end.strftime('%FT%TZ')
             lifespan_maximum_days = 1 + int((lifespan_end - self.creation_datetime).total_seconds() / 60 / 60 / 24)
@@ -304,22 +316,20 @@ class ResourceClaim(K8sObject):
         if (start_datetime and self.start_datetime and start_datetime != self.start_datetime) \
         or (stop_datetime and self.stop_datetime and stop_datetime != self.stop_datetime):
             logger.info(f"Adjusting action schedule of {self}")
-            if resource_claim_patch:
-                resource_claim_patch['spec']['resources'] = []
+            if self.is_old_format:
+                resource_claim_patch.setdefault('spec', {}).setdefault('resources', [])
+                for resource in self.definition.get('spec', {}).get('resources', []):
+                    resource_copy = deepcopy(resource)
+                    action_schedule = resource_copy.get('template', {}).get('spec', {}).get('vars', {}).get('action_schedule', {})
+                    if start_datetime and 'start' in action_schedule:
+                        action_schedule['start'] = start_datetime.strftime('%FT%TZ')
+                    if stop_datetime and 'stop' in action_schedule:
+                        action_schedule['stop'] = stop_datetime.strftime('%FT%TZ')
+                    resource_claim_patch['spec']['resources'].append(resource_copy)
             else:
-                resource_claim_patch = {
-                    "spec": {
-                        "resources": []
-                    }
-                }
-            for resource in self.definition.get('spec', {}).get('resources', []):
-                resource_copy = deepcopy(resource)
-                action_schedule = resource_copy.get('template', {}).get('spec', {}).get('vars', {}).get('action_schedule', {})
-                if start_datetime and 'start' in action_schedule:
-                    action_schedule['start'] = start_datetime.strftime('%FT%TZ')
-                if stop_datetime and 'stop' in action_schedule:
-                    action_schedule['stop'] = stop_datetime.strftime('%FT%TZ')
-                resource_claim_patch['spec']['resources'].append(resource_copy)
+                resource_claim_patch.setdefault('spec', {}).setdefault('provider', {}).setdefault('parameterValues', {})
+                resource_claim_patch['spec']['provider']['parameterValues']['start_timestamp'] = start_datetime.strftime('%FT%TZ')
+                resource_claim_patch['spec']['provider']['parameterValues']['stop_timestamp'] = stop_datetime.strftime('%FT%TZ')
 
         if resource_claim_patch:
             await self.merge_patch(resource_claim_patch)
