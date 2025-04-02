@@ -186,3 +186,121 @@
 .catalog-item-details__status--under-maintenance .pf-v5-c-label__content {
   color: #003737;
 }
+
+.catalog-item-details__description .admonitionblock > table {
+  position: relative;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.catalog-item-details__description .admonitionblock td.content {
+  word-wrap: anywhere;
+  background: #fafafa;
+  background: var(--admonition-background);
+  padding: 1rem 1rem 0.75rem;
+  width: 100%;
+}
+
+.catalog-item-details__description .admonitionblock td.icon {
+  font-size: 0.83333rem;
+  font-size: calc(15 / var(--rem-base) * 1rem);
+  left: 0;
+  line-height: 1;
+  padding: 0;
+  position: absolute;
+  top: 0;
+  transform: translate(0, -50%);
+}
+
+/* Admonition Block Base */
+.catalog-item-details__description .admonitionblock {
+  border-left: 5px solid;
+  padding: 10px 15px 0;
+  margin: 1em 0;
+  border-radius: 5px;
+  background: #f8f9fa;
+}
+
+/* Admonition Title */
+.catalog-item-details__description .admonitionblock .title {
+  font-weight: bold;
+  font-size: 1em;
+  margin-bottom: 5px;
+  display: block;
+
+  align-items: center;
+  color: #fff;
+  border-radius: 0.5em;
+  display: inline-flex;
+  filter: none;
+  height: 1.5em;
+  padding: 0 0.5em;
+  width: -moz-fit-content;
+  width: fit-content;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+.catalog-item-details__description .admonitionblock .title::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  margin: 0 6px 0 0;
+}
+
+.catalog-item-details__description .admonitionblock.note .title {
+  background-color: #007bff;
+}
+.catalog-item-details__description .admonitionblock .title:before {
+  filter: invert(100%) brightness(200%);
+}
+
+/* Admonition Content */
+.catalog-item-details__description .admonitionblock .content {
+  font-size: 1em;
+}
+
+/* Admonition Types */
+.catalog-item-details__description .admonitionblock.note {
+  border-color: #007bff;
+  background: #e7f1ff;
+}
+.catalog-item-details__description .admonitionblock.tip {
+  border-color: #28a745;
+  background: #e9f7ec;
+}
+.catalog-item-details__description .admonitionblock.important {
+  border-color: #dc3545;
+  background: #fdecea;
+}
+.catalog-item-details__description .admonitionblock.warning {
+  border-color: #ffc107;
+  background: #fff3cd;
+}
+.catalog-item-details__description .admonitionblock.caution {
+  border-color: #ff9800;
+  background: #fff8e1;
+}
+
+/* Title Colors */
+.catalog-item-details__description .admonitionblock .title {
+  color: #fff;
+}
+
+.catalog-item-details__description .admonitionblock.note .title::before {
+  background-image: url(@app/bgimages/octicons-16.svg#view-info);
+}
+.catalog-item-details__description .admonitionblock.tip .title::before {
+  background-image: url(@app/bgimages/octicons-16.svg#light-bulb);
+}
+.catalog-item-details__description .admonitionblock.important .title::before {
+  background-image: url(@app/bgimages/octicons-16.svg#alert);
+}
+.catalog-item-details__description .admonitionblock.warning .title::before {
+  background-image: url(@app/bgimages/octicons-16.svg#stop);
+}
+.catalog-item-details__description .admonitionblock.caution .title::before {
+  background-image: url(@app/bgimages/octicons-16.svg#flame);
+}
