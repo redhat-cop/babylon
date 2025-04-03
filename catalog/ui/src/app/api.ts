@@ -581,6 +581,7 @@ export async function createWorkshop({
         ...(startDate ? { start: dateToApiString(startDate) } : {}),
         ...(stopDate ? { stop: dateToApiString(stopDate) } : {}),
       },
+      ...(catalogItem.spec.workshopLabUiRedirect === true ? { labUserInterface: { redirect: true } } : {}),
     },
   };
   if (accessPassword) {
