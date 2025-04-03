@@ -191,6 +191,7 @@ export interface CatalogItemSpec {
   lifespan?: CatalogItemSpecLifespan;
   lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
+  workshopLabUiRedirect?: boolean;
   externalUrl?: string;
   category?: string;
   description?: {
