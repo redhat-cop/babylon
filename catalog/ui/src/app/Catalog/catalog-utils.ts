@@ -1,4 +1,4 @@
-import { CatalogItem, CatalogItemIncident } from '@app/types';
+import { AgnosticVRepo, CatalogItem, CatalogItemIncident } from '@app/types';
 import { BABYLON_DOMAIN, CATALOG_MANAGER_DOMAIN, formatDuration } from '@app/util';
 
 export function getProvider(catalogItem: CatalogItem) {
@@ -138,6 +138,21 @@ export function setLastFilter(filter: string): void {
 export function formatString(string: string): string {
   if (!string) return '';
   return (string.charAt(0).toUpperCase() + string.slice(1)).replace(/_/g, ' ');
+}
+export function convertToGitHubUrl(agnosticVRepo: AgnosticVRepo, hash: string) {
+  if (!agnosticVRepo) {
+    return `https://github.com/rhpds/agnosticv/commit/${hash}`;
+  }
+  if (!agnosticVRepo.git.url.startsWith('git@github.com:')) {
+    throw new Error('Invalid GitHub SSH URL');
+  }
+
+  const repoPath = agnosticVRepo.git.url.replace('git@github.com:', '').replace('.git', '');
+
+  // If commit hash is present, link to the commit; otherwise, link to the branch
+  return hash
+    ? `https://github.com/${repoPath}/commit/${hash}`
+    : `https://github.com/${repoPath}/tree/${agnosticVRepo.git.ref}`;
 }
 export function sortLabels([a_attr]: string[], [b_attr]: string[]) {
   const a_obj = Object.values(CUSTOM_LABELS).find((i) => i.key === a_attr);

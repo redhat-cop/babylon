@@ -59,6 +59,7 @@ import {
   sortLabels,
   formatCurrency,
   getLastSuccessfulProvisionTime,
+  convertToGitHubUrl,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -79,7 +80,7 @@ enum CatalogItemAccess {
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
   const navigate = useNavigate();
   const { userNamespace, isAdmin, groups } = useSession().getSession();
-  const { accessControl, lastUpdate } = catalogItem.spec;
+  const { accessControl, lastUpdate, agnosticvRepo } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
   const stage = getStageFromK8sObject(catalogItem);
@@ -453,7 +454,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <DescriptionListDescription>
                     {isAdmin || isLabDeveloper(groups) ? (
                       <a
-                        href={`https://github.com/rhpds/agnosticv/commit/${lastUpdate.git.hash}`}
+                        href={convertToGitHubUrl(agnosticvRepo, lastUpdate.git.hash)}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
