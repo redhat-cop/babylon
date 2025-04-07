@@ -159,7 +159,7 @@ class WorkshopProvision(CachedKopfObject):
                     "name": catalog_item.name,
                     "parameterValues": {
                         key: value for key, value in self.parameters.items()
-                        if key not in {'purpose_activity', 'purpose_explanation'}
+                        if key not in {'purpose_activity', 'purpose_explanation', 'sales_type'}
                     },
                 }
             }
