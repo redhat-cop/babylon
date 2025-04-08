@@ -48,7 +48,7 @@ anarchy:
     sources:
       babylon_anarchy_governor:
         src: https://github.com/rhpds/babylon_anarchy_governor.git
-        version: v0.29.0
+        version: v0.30.0
   api:
     group: anarchy.gpte.redhat.com
     version: v1
