@@ -210,7 +210,7 @@ workshopManager:
   image:
     repository: quay.io/rhpds/babylon-workshop-manager
     pullPolicy: IfNotPresent
-    tag: v0.9.1
+    tag: v0.9.2
   namespace:
     create: true
     name: babylon-workshop-manager
