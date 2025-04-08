@@ -12,6 +12,7 @@ from cachedkopfobject import CachedKopfObject
 
 import catalogitem
 import resourceclaim
+import resourceprovider
 import workshop as workshop_import
 
 class WorkshopProvision(CachedKopfObject):
@@ -120,6 +121,10 @@ class WorkshopProvision(CachedKopfObject):
 
     async def create_resource_claim(self, logger, workshop):
         logger.debug(f"Creating ResourceClaim for {self.name} in namespace {self.namespace}")
+        resource_provider = await resourceprovider.ResourceProvider.fetch(
+            name=self.catalog_item_name,
+            namespace=Babylon.poolboy_namespace,
+        )
         try:
             catalog_item = await catalogitem.CatalogItem.fetch(
                 name = self.catalog_item_name,
@@ -159,7 +164,7 @@ class WorkshopProvision(CachedKopfObject):
                     "name": catalog_item.name,
                     "parameterValues": {
                         key: value for key, value in self.parameters.items()
-                        if key not in {'purpose_activity', 'purpose_explanation', 'sales_type'}
+                        if resource_provider.has_parameter(key)
                     },
                 }
             }
