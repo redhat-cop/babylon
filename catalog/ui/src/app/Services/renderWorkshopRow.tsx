@@ -90,6 +90,7 @@ const renderWorkshopRow = ({
           resource={getMostRelevantResourceAndTemplate(workshop.resourceClaims[0]).resource}
           resourceTemplate={getMostRelevantResourceAndTemplate(workshop.resourceClaims[0]).template}
           resourceClaim={workshop.resourceClaims[0]}
+          summary={workshop.resourceClaims[0].status?.summary}
         />
       ) : autoStartTime && autoStartTime > Date.now() ? (
         <span className="services-item__status--scheduled" key="scheduled">
