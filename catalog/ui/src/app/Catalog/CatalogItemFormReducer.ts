@@ -448,12 +448,7 @@ function reduceFormStateUseAutoDetach(initialState: FormState, useAutoDetach = t
   };
 }
 
-function reduceFormStateDates(
-  initialState: FormState,
-  _startDate: Date,
-  _stopDate: Date,
-  _endDate: Date,
-): FormState {
+function reduceFormStateDates(initialState: FormState, _startDate: Date, _stopDate: Date, _endDate: Date): FormState {
   let stopDate = _stopDate;
   let endDate = _endDate;
   let startDate = _startDate;
@@ -500,7 +495,7 @@ function reduceFormStatePurpose(
 }
 
 function salesforceIdRequired(state: FormState): boolean {
-  if (state.purpose) {
+  if (state.purpose && state.activity) {
     const p = state.purposeOpts.find((p) => state.activity === p.activity && state.purpose.startsWith(p.name));
     if (p.sfdcRequired) return true;
   }
@@ -548,10 +543,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
     case 'initDates':
       return {
         ...state,
-        ...initDates(
-          action.catalogItem,
-          action.startDate ? action.startDate.getTime() : null,
-        ),
+        ...initDates(action.catalogItem, action.startDate ? action.startDate.getTime() : null),
       };
     case 'parameterUpdate':
       return reduceFormStateParameterUpdate(state, {
@@ -568,12 +560,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
     case 'serviceNamespace':
       return reduceFormStateServiceNamespace(state, action.serviceNamespace);
     case 'dates':
-      return reduceFormStateDates(
-        state,
-        action.startDate,
-        action.stopDate,
-        action.endDate,
-      );
+      return reduceFormStateDates(state, action.startDate, action.stopDate, action.endDate);
     case 'termsOfServiceAgreed':
       return reduceFormStateTermsOfServiceAgreed(state, action.termsOfServiceAgreed);
     case 'whiteGloved':

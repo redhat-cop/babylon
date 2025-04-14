@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import { FormGroup, Radio, TextInput, Tooltip } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import React, { useEffect, useState } from 'react';
+import {
+  FormGroup,
+  Radio,
+  TextInput,
+  Tooltip,
+  Select,
+  SelectList,
+  SelectOption,
+  MenuToggle,
+  MenuToggleElement,
+} from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSession from '@app/utils/useSession';
 import { TPurposeOpts } from '@app/types';
@@ -9,18 +18,47 @@ const ActivityPurposeSelector: React.FC<{
   onChange: (activity: string, purpose: string, explanation: string) => void;
   value?: { purpose?: string; activity?: string; explanation?: string };
   purposeOpts: TPurposeOpts;
-}> = ({ onChange, value, purposeOpts }) => {
+  style?: React.CSSProperties;
+}> = ({ onChange, value, purposeOpts, style }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { groups } = useSession().getSession();
-  const [activity, setActivity] = useState(value.activity || '');
-  const [purpose, setPurpose] = useState(value.purpose || '');
-  const [explanation, setExplanation] = useState(value.explanation || '');
+  const [activity, setActivity] = useState(value?.activity || '');
+  const [purpose, setPurpose] = useState(value?.purpose || '');
+  const [explanation, setExplanation] = useState(value?.explanation || '');
+
   const activityOpts = purposeOpts
     .filter((a) => !a.requiredRoles || a.requiredRoles.some((r) => groups.includes(r)))
     .reduce((entryMap, e) => entryMap.set(e.activity, [...(entryMap.get(e.activity) || []), e]), new Map());
 
+  useEffect(() => {
+    let activityName: string = null;
+    let purposeName: string = null;
+
+    if (activityOpts.size === 1) {
+      activityName = [...activityOpts.values()][0][0].activity;
+      setActivity(activityName);
+    }
+
+    if (purposeOpts.length === 1) {
+      purposeName = purposeOpts[0].name;
+      setPurpose(purposeName);
+    }
+
+    if (activityName || purposeName) {
+      onChange(activityName, purposeName, null);
+    }
+  }, []);
+
+  const availablePurposes = purposeOpts.filter((p) => p.activity === activity);
+
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle ref={toggleRef} onClick={() => setIsOpen((prev) => !prev)} isExpanded={isOpen}>
+      {purpose || '- Select purpose -'}
+    </MenuToggle>
+  );
+
   return (
-    <>
+    <div style={style}>
       <FormGroup
         fieldId="activity"
         isRequired
@@ -37,7 +75,11 @@ const ActivityPurposeSelector: React.FC<{
       >
         <div
           className="catalog-item-form__group-control--single"
-          style={{ flexDirection: 'column', alignItems: 'flex-start' }}
+          style={{
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            paddingBottom: 'var(--pf-v5-global--spacer--md)',
+          }}
         >
           {[...activityOpts.keys()].map((activityOptName) => (
             <div key={`activity-${activityOptName}`}>
@@ -52,62 +94,49 @@ const ActivityPurposeSelector: React.FC<{
                 }}
                 label={activityOptName}
                 id={`activity-${activityOptName}`}
-              ></Radio>
+              />
             </div>
           ))}
         </div>
       </FormGroup>
+
       <FormGroup fieldId="purpose" isRequired label="Purpose">
         <div className="catalog-item-form__group-control--single">
-          <div className="select-wrapper purpose-select">
-            <Select
-              aria-label="Purpose"
-              isOpen={isOpen}
-              onSelect={(_, _purpose) => {
-                setPurpose(_purpose as string);
-                setExplanation('');
-                setIsOpen(false);
-                onChange(activity, _purpose as string, null);
-              }}
-              onToggle={() => setIsOpen((v) => !v)}
-              placeholderText="- Select purpose -"
-              selections={purpose.split(':')[0]}
-              variant={SelectVariant.single}
-            >
-              {purposeOpts
-                .filter(
-                  (purposeOpt) =>
-                    [...activityOpts.keys()].find((actName) => actName === purposeOpt.activity) === activity
-                )
-                .map((purposeOpt) => (
-                  <SelectOption
-                    key={`${[...activityOpts.keys()].find((actName) => actName === purposeOpt.activity)} - ${
-                      purposeOpt.name
-                    }`}
-                    value={purposeOpt.name}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                  >
-                    <span>{purposeOpt.name}</span>
-                  </SelectOption>
-                ))}
-            </Select>
-          </div>
-          {purposeOpts.find((p) => p.name === purpose) &&
-          purposeOpts.find((p) => p.name === purpose).requireUserInput ? (
+          <Select
+            isOpen={isOpen}
+            onSelect={(_, selectedValue) => {
+              setPurpose(selectedValue as string);
+              setExplanation('');
+              setIsOpen(false);
+              onChange(activity, selectedValue as string, null);
+            }}
+            onOpenChange={setIsOpen}
+            selected={purpose || ''}
+            toggle={toggle}
+          >
+            <SelectList>
+              {availablePurposes.map((purposeOpt) => (
+                <SelectOption key={purposeOpt.name} value={purposeOpt.name}>
+                  {purposeOpt.name}
+                </SelectOption>
+              ))}
+            </SelectList>
+          </Select>
+
+          {purposeOpts.find((p) => p.name === purpose)?.requireUserInput && (
             <div className="catalog-item-form__group-control--single">
-              <div className="select-wrapper">
-                <TextInput
-                  aria-label="Specify purpose"
-                  placeholder="Specify purpose"
-                  onChange={(_event, _explanation) => {
-                    setExplanation(_explanation);
-                    onChange(activity, purpose, _explanation);
-                  }}
-                  value={explanation}
-                />
-              </div>
+              <TextInput
+                aria-label="Specify purpose"
+                placeholder="Specify purpose"
+                onChange={(_event, _explanation) => {
+                  setExplanation(_explanation);
+                  onChange(activity, purpose, _explanation);
+                }}
+                value={explanation}
+              />
             </div>
-          ) : null}
+          )}
+
           <Tooltip
             position="right"
             content={
@@ -116,6 +145,7 @@ const ActivityPurposeSelector: React.FC<{
                 <a
                   href="https://docs.google.com/document/d/1B5h1YWmQuOSXVQSOPebwdc6Nij09AusvcORtqvUzPqo/edit?usp=sharing"
                   target="_blank"
+                  rel="noreferrer"
                 >
                   here
                 </a>
@@ -127,7 +157,7 @@ const ActivityPurposeSelector: React.FC<{
           </Tooltip>
         </div>
       </FormGroup>
-    </>
+    </div>
   );
 };
 
