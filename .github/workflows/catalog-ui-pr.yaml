@@ -39,7 +39,7 @@ jobs:
         shell: bash
   deploy:
     needs: test
-    name: "Deploy on OpenShift (BabyDev)"
+    name: "Publish image in quay"
     if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     env:
