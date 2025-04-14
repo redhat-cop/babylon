@@ -10,7 +10,6 @@ from k8sobject import K8sObject
 from labuserinterface import LabUserInterface
 from userassignment import UserAssignment
 
-import resourceclaim
 import workshop as workshop_import
 import workshopuserassignment
 
@@ -56,10 +55,6 @@ class ResourceClaim(K8sObject):
                 logger = logger,
                 workshop = workshop,
             )
-
-    @property
-    def api_group_version(self):
-        return f"{self.api_group}/{self.api_version}"
 
     @property
     def effective_lifespan_end(self):
