@@ -338,11 +338,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   explanation,
                 });
               }}
+              style={purposeOpts.length === 1 ? { display: 'none' } : {}}
             />
 
             {sfdc_enabled ? (
               <FormGroup
                 fieldId="salesforce_id"
+                style={purposeOpts.length === 1 && formState.salesforceId.required === false ? { display: 'none' } : {}}
                 isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
                 label={
                   <span>
