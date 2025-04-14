@@ -81,15 +81,3 @@ jobs:
           # images from a PR expire after 14d
           labels: |
             quay.expires-after=14d
-      - name: Log in to OpenShift
-        if: env.IMAGE_TAGS
-        uses: redhat-actions/oc-login@v1
-        with:
-          openshift_server_url: ${{ secrets.OPENSHIFT_BABYDEV_SERVER }}
-          openshift_token: ${{ secrets.OPENSHIFT_BABYDEV_TOKEN }}
-          insecure_skip_tls_verify: true
-          namespace: ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }}
-      - name: Deploy
-        if: env.IMAGE_TAGS
-        run: |
-          "${GITHUB_WORKSPACE}/.github/update-deployment.sh" ${{ env.APP_NAME }} ${{ env.IMAGE_TAGS }} ${{ secrets.OPENSHIFT_BABYDEV_NAMESPACE }} ${{ env.CONTAINER_NAME }}
