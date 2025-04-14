@@ -145,16 +145,11 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   }
   return items;
 }
-function isResourceClaim(obj: ResourceClaim | Workshop): obj is ResourceClaim {
-  return (obj as ResourceClaim).kind === 'ResourceClaim';
-}
+
 function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any, skippedSfdc: boolean) {
   const d = Object.assign({}, _definition) as ResourceClaim | Workshop;
   // Purpose & SFDC
   if (parameterValues.purpose) {
-    if (isResourceClaim(d)) {
-      d.spec.provider.parameterValues.purpose = parameterValues.purpose as string;
-    }
     d.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
   }
   if (parameterValues.purpose_activity) {
@@ -448,6 +443,7 @@ export async function createServiceRequest({
       provider: {
         name: catalogItem.metadata.name,
         parameterValues: {
+          purpose: parameterValues.purpose as string,
           ...(stopDate ? { stop_timestamp: dateToApiString(stopDate) } : {}),
         },
       },

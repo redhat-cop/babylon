@@ -334,7 +334,7 @@ export interface ResourceClaimSpec {
 export interface ResourceClaimProvider {
   name: string;
   parameterValues: {
-    purpose?: string;
+    purpose: string;
     start_timestamp?: string;
     stop_timestamp?: string;
   };
