@@ -745,7 +745,13 @@ const ServicesItemComponent: React.FC<{
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {resourceClaim.metadata.name}
+                      <Link
+                        to={`/catalog?item=${
+                          resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`]
+                        }/${resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]}`}
+                      >
+                        {resourceClaim.metadata.name}
+                      </Link>
                       {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
