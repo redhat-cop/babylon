@@ -56,11 +56,16 @@ const DynamicFormInput: React.FC<{
         >
           <SelectList>
             {(parameter.openAPIV3Schema?.['x-form-options'] || parameter.openAPIV3Schema?.enum).map(
-              (optionValue: string) => (
-                <SelectOption key={optionValue} value={optionValue}>
-                  {optionValue}
-                </SelectOption>
-              )
+              (option: string | { name: string; value: string }) =>
+                typeof option === 'string' ? (
+                  <SelectOption key={option} value={option}>
+                    {option}
+                  </SelectOption>
+                ) : (
+                  <SelectOption key={option.value} value={option.value}>
+                    {option.name}
+                  </SelectOption>
+                )
             )}
           </SelectList>
         </Select>
