@@ -11,7 +11,8 @@ const EditableText: React.FC<{
   componentType?: 'Password' | 'TextArea' | 'TextInput';
   updating?: boolean;
   value: string;
-}> = ({ 'aria-label': ariaLabel, componentType, onChange, placeholder, updating, value }) => {
+  isLocked?: boolean;
+}> = ({ 'aria-label': ariaLabel, componentType, onChange, placeholder, updating, value, isLocked = false }) => {
   const [editing, setEditing] = useState(false);
   const [editedValue, setEditedValue] = useState(value || '');
 
@@ -51,6 +52,7 @@ const EditableText: React.FC<{
           onChange={(_event, v) => setEditedValue(v)}
           onKeyUp={onKeyUp}
           value={editedValue}
+          isDisabled={isLocked}
         />
       );
     }
@@ -63,6 +65,7 @@ const EditableText: React.FC<{
         onChange={(_event, v) => setEditedValue(v)}
         onKeyUp={onKeyUp}
         value={editedValue}
+        isDisabled={isLocked}
       />
     );
   }

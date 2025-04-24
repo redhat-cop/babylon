@@ -337,6 +337,7 @@ const WorkshopsItemDetails: React.FC<{
             onChange={(accessPassword: string) => patchWorkshopSpec({ accessPassword: accessPassword })}
             placeholder="- no description -"
             value={workshop.spec.accessPassword}
+            isLocked={isLocked}
           />
         </DescriptionListDescription>
       </DescriptionListGroup>
