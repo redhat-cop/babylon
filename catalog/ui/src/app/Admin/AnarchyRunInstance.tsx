@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -19,11 +19,13 @@ import {
   TabTitleText,
   Title,
   EmptyStateHeader,
+  Button,
+  Spinner,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-import { apiPaths, deleteAnarchyRun, fetcher } from '@app/api';
+import { apiPaths, deleteAnarchyRun, fetcher, retryAnarchyRun } from '@app/api';
 import { AnarchyRun } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import AnsibleRunLog from '@app/components/AnsibleRunLog';
@@ -44,6 +46,7 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
   activeTab,
 }) => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const { consoleUrl } = useSession().getSession();
   const matchMutate = useMatchMutate();
   const {
@@ -70,6 +73,14 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
       matchMutate([{ name: 'ANARCHY_RUNS', arguments: { limit: FETCH_BATCH_LIMIT, namespace }, data: undefined }]);
       navigate(`/admin/anarchyruns/${namespace}`);
     }
+  }
+
+  async function retry() {
+    setLoading(true);
+    const aRun = await retryAnarchyRun(anarchyRun);
+    mutate(aRun);
+    matchMutate([{ name: 'ANARCHY_RUNS', arguments: { limit: FETCH_BATCH_LIMIT, namespace }, data: undefined }]);
+    setLoading(false);
   }
 
   return (
@@ -152,6 +163,23 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
                 <DescriptionListDescription>
                   {anarchyRun.metadata.namespace}
                   <OpenshiftConsoleLink resource={anarchyRun} linkToNamespace={true} />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>State</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || <p>-</p>}
+                  <span style={{ marginLeft: 'var(--pf-v5-global--spacer--md)' }}>
+                    {anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] === 'failed' ? (
+                      loading ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <Button variant="secondary" size="sm" onClick={retry}>
+                          Retry
+                        </Button>
+                      )
+                    ) : null}
+                  </span>
                 </DescriptionListDescription>
               </DescriptionListGroup>
               <DescriptionListGroup>
