@@ -89,6 +89,16 @@ spec:
                       Start of lifespan for Workshop any WorkshopProvisions that belong to it.
                     type: string
                     format: date-time
+                  maximum:
+                    description: >-
+                      Maximum lifespan which may be requested for a workshop relative to its creation.
+                    type: string
+                    pattern: ^[0-9]+[dhms]$
+                  relativeMaximum:
+                    description: >-
+                      Maximum lifespan which may be requested for a workshop relative to the present date and time.
+                    type: string
+                    pattern: ^[0-9]+[dhms]$
               multiuserServices:
                 description: >-
                   Flag to indicate that services for this workshop are multi-user.

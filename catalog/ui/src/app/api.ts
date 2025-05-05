@@ -575,6 +575,8 @@ export async function createWorkshop({
       lifespan: {
         ...(startDate ? { start: dateToApiString(startDate) } : {}),
         ...(endDate ? { end: dateToApiString(endDate) } : {}),
+        maximum: catalogItem.spec.lifespan.maximum,
+        relativeMaximum: catalogItem.spec.lifespan.relativeMaximum,
       },
       actionSchedule: {
         ...(startDate ? { start: dateToApiString(startDate) } : {}),
