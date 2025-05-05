@@ -6,7 +6,7 @@ import { displayName } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
 import { getAutoStopTime, getMaxRuntime, getMinDefaultRuntime, getStartTime } from './service-utils';
-import { getWorkshopAutoStopTime, getWorkshopLifespan } from '@app/Workshops/workshops-utils';
+import { getMaxAutoDestroy, getWorkshopAutoStopTime, getWorkshopLifespan } from '@app/Workshops/workshops-utils';
 import useHelpLink from '@app/utils/useHelpLink';
 
 const minDefault = parseDuration('4h');
@@ -24,7 +24,7 @@ const ServicesScheduleAction: React.FC<{
     : getWorkshopLifespan(workshop, null).end;
   const initialDate = useMemo(() => {
     let time = null;
-    if (workshop && workshop.resourceClaims) {
+    if (workshop) {
       if (action === 'retirement') {
         time = autoDestroyTime;
       } else {
@@ -53,24 +53,19 @@ const ServicesScheduleAction: React.FC<{
     maxDate = resourceClaim
       ? Math.min(
           Date.parse(resourceClaim.metadata.creationTimestamp) + parseDuration(resourceClaim.status.lifespan.maximum),
-          Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum)
+          Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum),
         )
-      : workshop.resourceClaims
-      ? Math.min(
-          ...workshop.resourceClaims.flatMap((r) => [
-            Date.parse(r.metadata.creationTimestamp) + parseDuration(r.status.lifespan.maximum),
-            Date.now() + parseDuration(r.status.lifespan.relativeMaximum),
-          ])
-        )
-      : null;
+      : workshop
+        ? getMaxAutoDestroy(workshop)
+        : null;
   } else if (action === 'start') {
     maxDate = null;
   } else {
     maxDate = resourceClaim
       ? getMaxRuntime(resourceClaim)
       : workshop.resourceClaims
-      ? Math.min(...workshop.resourceClaims.map((r) => getMaxRuntime(r)))
-      : null;
+        ? Math.min(...workshop.resourceClaims.map((r) => getMaxRuntime(r)))
+        : null;
   }
   const minMaxProps = {
     minDate: Date.now(),
@@ -112,8 +107,8 @@ const ServicesScheduleAction: React.FC<{
                   (resourceClaim
                     ? getMinDefaultRuntime(resourceClaim) || minDefault
                     : workshop.resourceClaims
-                    ? Math.min(...workshop.resourceClaims.map((r) => getMinDefaultRuntime(r) || minDefault))
-                    : null)
+                      ? Math.min(...workshop.resourceClaims.map((r) => getMinDefaultRuntime(r) || minDefault))
+                      : null),
               );
               const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
               setSelectedDate(date);

@@ -4,6 +4,7 @@ import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
 import {
+  getMaxAutoDestroy,
   getWorkshopAutoStopTime,
   getWorkshopDefaultRuntime,
   getWorkshopLifespan,
@@ -28,6 +29,7 @@ const WorkshopScheduleAction: React.FC<{
   if (action === 'retirement' || action === 'start') {
     if (action === 'retirement') {
       currentActionDate = autoDestroyTime ? new Date(autoDestroyTime) : new Date(new Date().getTime() + 14400000); // By default: 14400000 = 4h;
+      maxDate = getMaxAutoDestroy(workshop);
     } else {
       currentActionDate = autoStartTime ? new Date(autoStartTime) : null;
     }
@@ -40,7 +42,8 @@ const WorkshopScheduleAction: React.FC<{
   const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
 
-  const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'start' ? 'Start Provisioning Date' : 'Auto-stop';
+  const actionLabel =
+    action === 'retirement' ? 'Auto-destroy' : action === 'start' ? 'Start Provisioning Date' : 'Auto-stop';
 
   const minMaxProps = {
     minDate: Date.now(),

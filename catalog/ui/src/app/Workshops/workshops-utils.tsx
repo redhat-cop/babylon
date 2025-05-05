@@ -1,6 +1,7 @@
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { canExecuteAction, checkResourceClaimCanStart, checkResourceClaimCanStop, DEMO_DOMAIN } from '@app/util';
 import { getAutoStopTime, getMinDefaultRuntime } from '@app/Services/service-utils';
+import parseDuration from 'parse-duration';
 
 export function isWorkshopStarted(workshop: Workshop, workshopProvisions: WorkshopProvision[]): boolean {
   const startTime = getWorkshopStartTime(workshop, workshopProvisions);
@@ -17,7 +18,7 @@ export function getWorkshopStartTime(workshop: Workshop, workshopProvisions?: Wo
   const provisionsStartTime = workshopProvisions
     ? workshopProvisions
         .map((workshopProvision) =>
-          workshopProvision.spec.lifespan?.start ? Date.parse(workshopProvision.spec.lifespan.start) : null
+          workshopProvision.spec.lifespan?.start ? Date.parse(workshopProvision.spec.lifespan.start) : null,
         )
         .filter(Number)
     : [];
@@ -26,10 +27,25 @@ export function getWorkshopStartTime(workshop: Workshop, workshopProvisions?: Wo
 
 export function getWorkshopLifespan(
   workshop: Workshop,
-  workshopProvisions: WorkshopProvision[]
-): { start: number; end: number } {
+  workshopProvisions?: WorkshopProvision[],
+): { start: number; end: number; maximum: string; relativeMaximum: string } {
   const endTime = workshop.spec.lifespan?.end ? Date.parse(workshop.spec.lifespan.end) : null;
-  return { start: getWorkshopStartTime(workshop, workshopProvisions), end: endTime };
+  const max = workshop.spec.lifespan?.maximum;
+  const relativeMax = workshop.spec.lifespan?.relativeMaximum;
+  return {
+    start: getWorkshopStartTime(workshop, workshopProvisions),
+    end: endTime,
+    maximum: max,
+    relativeMaximum: relativeMax,
+  };
+}
+
+export function getMaxAutoDestroy(workshop: Workshop) {
+  const { start, maximum, relativeMaximum } = getWorkshopLifespan(workshop);
+  if (start > Date.now()) {
+    return start + parseDuration(relativeMaximum);
+  }
+  return Math.min(start + parseDuration(maximum), Date.now() + parseDuration(relativeMaximum));
 }
 
 export function getWorkshopAutoStopTime(workshop: Workshop, resourceClaims: ResourceClaim[]): number {
@@ -54,7 +70,7 @@ export function checkWorkshopCanStop(resourceClaims: ResourceClaim[] = []) {
 
 export function supportAction(
   resourceClaims: ResourceClaim[] = [],
-  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy'
+  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy',
 ) {
   function canResourceClaimExecuteAction(resourceClaim: ResourceClaim) {
     return !!(resourceClaim?.status?.resources || []).find((r) => {
