@@ -541,7 +541,6 @@ export async function createWorkshop({
   skippedSfdc: boolean;
   whiteGloved: boolean;
 }): Promise<Workshop> {
-  console.log(catalogItem.spec.lifespan.maximum);
   const session = await getApiSession();
   const _definition: Workshop = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
