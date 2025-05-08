@@ -621,6 +621,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     type: 'workshop',
                     workshop: isChecked ? workshopInitialProps : null,
                   });
+                  if (!formState.startDate) {
+                    dispatchFormState({
+                      type: 'dates',
+                      startDate: new Date(),
+                    });
+                  }
                 }}
               />
               <Tooltip
@@ -660,6 +666,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 }
                 minDate={Date.now()}
               />
+              <Tooltip position="right" content={<p>Select the date you'd like the service to start provisioning.</p>}>
+                <OutlinedQuestionCircleIcon
+                  aria-label="Select the date you'd like the service to start provisioning."
+                  className="tooltip-icon-only"
+                />
+              </Tooltip>
             </div>
           </FormGroup>
         ) : null}
@@ -728,19 +740,21 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 </Tooltip>
               </div>
             </FormGroup>
-            <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
-              <div className="catalog-item-form__group-control--single">
-                <AutoStopDestroy
-                  type="auto-stop"
-                  onClick={() => openAutoStopDestroyModal('auto-stop')}
-                  className="catalog-item-form__auto-stop-btn"
-                  time={formState.stopDate.getTime()}
-                  variant="extended"
-                  destroyTimestamp={formState.endDate.getTime()}
-                />
-              </div>
-            </FormGroup>
-            <FormGroup key="auto-destroy" fieldId="auto-destroy" isRequired label="Auto-destroy">
+            {!isAutoStopDisabled(catalogItem) ? (
+              <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
+                <div className="catalog-item-form__group-control--single">
+                  <AutoStopDestroy
+                    type="auto-stop"
+                    onClick={() => openAutoStopDestroyModal('auto-stop')}
+                    className="catalog-item-form__auto-stop-btn"
+                    time={formState.stopDate.getTime()}
+                    variant="extended"
+                    destroyTimestamp={formState.endDate.getTime()}
+                  />
+                </div>
+              </FormGroup>
+            ) : null}
+            <FormGroup key="auto-destroy" fieldId="auto-destroy" label="Auto-destroy">
               <div className="catalog-item-form__group-control--single">
                 <AutoStopDestroy
                   type="auto-destroy"
