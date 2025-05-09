@@ -205,6 +205,10 @@ class AgnosticVComponent(KopfObject):
         }
 
     @property
+    def catalog_email_from(self):
+        return self.catalog_meta.get('email', {}).get('from')
+
+    @property
     def catalog_message_templates(self):
         ret = {}
         for key, value in self.catalog_meta.get('messageTemplates', {}).items():
@@ -627,6 +631,9 @@ class AgnosticVComponent(KopfObject):
                     "name": self.short_name,
                     "provider": self.resource_provider_ref,
                 })
+
+            if self.catalog_email_from:
+                definition['spec'].setdefault('email', {})['from'] = self.catalog_email_from
 
             if self.catalog_message_templates:
                 definition['spec']['messageTemplates'] = self.catalog_message_templates
