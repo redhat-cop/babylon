@@ -72,7 +72,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const { sfdc_enabled } = useInterfaceConfig();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
-    fetcher
+    fetcher,
   );
 
   const _displayName = displayName(catalogItem);
@@ -88,7 +88,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
       provisionStartDelay: 30,
     }),
-    [catalogItem]
+    [catalogItem],
   );
   const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
@@ -103,11 +103,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       user: { groups, roles, isAdmin },
       purposeOpts,
       sfdc_enabled,
-    })
+    }),
   );
   let maxAutoDestroyTime = Math.min(
     parseDuration(catalogItem.spec.lifespan?.maximum),
-    parseDuration(catalogItem.spec.lifespan?.relativeMaximum)
+    parseDuration(catalogItem.spec.lifespan?.relativeMaximum),
   );
   let maxAutoStopTime = parseDuration(catalogItem.spec.runtime?.maximum);
   if (formState.parameters['open_environment']?.value === true) {
@@ -249,15 +249,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           isAdmin
             ? null
             : formState.workshop
-            ? formState.startDate.getTime() - Date.now() + parseDuration('5d')
-            : maxAutoDestroyTime
+              ? formState.startDate.getTime() - Date.now() + parseDuration('5d')
+              : maxAutoDestroyTime
         }
         onConfirm={(dates: TDates) =>
           autoStopDestroyModal === 'auto-destroy'
             ? dispatchFormState({ type: 'dates', endDate: dates.endDate })
             : autoStopDestroyModal === 'auto-stop'
-            ? dispatchFormState({ type: 'dates', stopDate: dates.stopDate })
-            : null
+              ? dispatchFormState({ type: 'dates', stopDate: dates.stopDate })
+              : null
         }
         onClose={() => openAutoStopDestroyModal(null)}
         title={_displayName}
@@ -459,8 +459,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         formState.salesforceId.value && formState.salesforceId.valid
                           ? 'success'
                           : formState.salesforceId.value && formState.conditionChecks.completed
-                          ? 'error'
-                          : 'default'
+                            ? 'error'
+                            : 'default'
                       }
                     />
                     <div>
@@ -538,7 +538,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           // check if there is an invalid parameter in the form group
           const invalidParameter = formGroup.parameters.find(
             (parameter) =>
-              !parameter.isDisabled && (parameter.isValid === false || parameter.validationResult === false)
+              !parameter.isDisabled && (parameter.isValid === false || parameter.validationResult === false),
           );
 
           return (
@@ -621,24 +621,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     type: 'workshop',
                     workshop: isChecked ? workshopInitialProps : null,
                   });
-                  if (isChecked) {
+                  if (!formState.startDate) {
                     dispatchFormState({
                       type: 'dates',
                       startDate: new Date(),
-                      stopDate: new Date(
-                        Date.now() +
-                          parseDuration(
-                            formState.activity?.startsWith('Customer Facing')
-                              ? '365d'
-                              : catalogItem.spec.runtime?.default || '30h'
-                          )
-                      ),
-                      endDate: new Date(Date.now() + parseDuration('30h')),
-                    });
-                  } else {
-                    dispatchFormState({
-                      type: 'initDates',
-                      catalogItem,
                     });
                   }
                 }}
@@ -680,6 +666,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 }
                 minDate={Date.now()}
               />
+              <Tooltip position="right" content={<p>Select the date you'd like the service to start provisioning.</p>}>
+                <OutlinedQuestionCircleIcon
+                  aria-label="Select the date you'd like the service to start provisioning."
+                  className="tooltip-icon-only"
+                />
+              </Tooltip>
             </div>
           </FormGroup>
         ) : null}
@@ -729,8 +721,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                           parseDuration(
                             formState.activity?.startsWith('Customer Facing')
                               ? '365d'
-                              : catalogItem.spec.runtime?.default || '30h'
-                          )
+                              : catalogItem.spec.runtime?.default || '30h',
+                          ),
                       ),
                       endDate: new Date(d.getTime() + parseDuration('30h')),
                     })
@@ -748,19 +740,21 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 </Tooltip>
               </div>
             </FormGroup>
-            <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
-              <div className="catalog-item-form__group-control--single">
-                <AutoStopDestroy
-                  type="auto-stop"
-                  onClick={() => openAutoStopDestroyModal('auto-stop')}
-                  className="catalog-item-form__auto-stop-btn"
-                  time={formState.stopDate.getTime()}
-                  variant="extended"
-                  destroyTimestamp={formState.endDate.getTime()}
-                />
-              </div>
-            </FormGroup>
-            <FormGroup key="auto-destroy" fieldId="auto-destroy" isRequired label="Auto-destroy">
+            {!isAutoStopDisabled(catalogItem) ? (
+              <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
+                <div className="catalog-item-form__group-control--single">
+                  <AutoStopDestroy
+                    type="auto-stop"
+                    onClick={() => openAutoStopDestroyModal('auto-stop')}
+                    className="catalog-item-form__auto-stop-btn"
+                    time={formState.stopDate.getTime()}
+                    variant="extended"
+                    destroyTimestamp={formState.endDate.getTime()}
+                  />
+                </div>
+              </FormGroup>
+            ) : null}
+            <FormGroup key="auto-destroy" fieldId="auto-destroy" label="Auto-destroy">
               <div className="catalog-item-form__group-control--single">
                 <AutoStopDestroy
                   type="auto-destroy"
