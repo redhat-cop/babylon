@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import {
   Checkbox,
+  FormGroup,
   MenuToggle,
   MenuToggleElement,
   NumberInput,
+  Radio,
   Select,
   SelectList,
   SelectOption,
@@ -20,6 +22,22 @@ const DynamicFormInput: React.FC<{
 }> = ({ id, isDisabled, onChange, parameter, validationResult, value }) => {
   const [isOpen, setIsOpen] = useState(false);
   if (parameter.openAPIV3Schema?.enum || parameter.openAPIV3Schema?.['x-form-options']) {
+    if (parameter.openAPIV3Schema?.['x-display'] === 'radio') {
+      return (
+        <FormGroup label={parameter.formLabel || parameter.name} isRequired fieldId={parameter.name}>
+          {(parameter.openAPIV3Schema?.enum).map((v: string) => (
+            <Radio
+              isChecked={value === v}
+              id={parameter.name}
+              name={parameter.name}
+              label={v}
+              value={v}
+              onChange={() => onChange(v)}
+            />
+          ))}
+        </FormGroup>
+      );
+    }
     return (
       <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
         <Select
@@ -65,7 +83,7 @@ const DynamicFormInput: React.FC<{
                   <SelectOption key={option.value} value={option.value}>
                     {option.name}
                   </SelectOption>
-                )
+                ),
             )}
           </SelectList>
         </Select>
@@ -98,8 +116,8 @@ const DynamicFormInput: React.FC<{
             n < parameter.openAPIV3Schema.minimum
               ? parameter.openAPIV3Schema.minimum
               : n > parameter.openAPIV3Schema.maximum
-              ? parameter.openAPIV3Schema.maximum
-              : n
+                ? parameter.openAPIV3Schema.maximum
+                : n,
           );
         }}
         onMinus={() => onChange(parseInt(value) - 1)}
@@ -115,10 +133,10 @@ const DynamicFormInput: React.FC<{
       value === undefined || (!parameter.required && value === '')
         ? 'default'
         : textValidationResult
-        ? 'success'
-        : textValidationResult === false
-        ? 'error'
-        : 'default';
+          ? 'success'
+          : textValidationResult === false
+            ? 'error'
+            : 'default';
     return (
       <TextInput
         type="text"
