@@ -23,20 +23,16 @@ const DynamicFormInput: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
   if (parameter.openAPIV3Schema?.enum || parameter.openAPIV3Schema?.['x-form-options']) {
     if (parameter.openAPIV3Schema?.['x-display'] === 'radio') {
-      return (
-        <FormGroup label={parameter.formLabel || parameter.name} isRequired fieldId={parameter.name}>
-          {(parameter.openAPIV3Schema?.enum).map((v: string) => (
-            <Radio
-              isChecked={value === v}
-              id={parameter.name}
-              name={parameter.name}
-              label={v}
-              value={v}
-              onChange={() => onChange(v)}
-            />
-          ))}
-        </FormGroup>
-      );
+      return (parameter.openAPIV3Schema?.enum).map((v: string) => (
+        <Radio
+          isChecked={value === v}
+          id={`${parameter.name}--${v}`}
+          name={parameter.name}
+          label={v}
+          value={v}
+          onChange={() => onChange(v)}
+        />
+      ));
     }
     return (
       <div style={{ cursor: isDisabled ? 'not-allowed' : 'default' }} className="select-wrapper">
