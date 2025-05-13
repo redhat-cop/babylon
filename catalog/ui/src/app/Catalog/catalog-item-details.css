@@ -227,7 +227,6 @@
   font-size: 1em;
   margin-bottom: 5px;
   display: block;
-
   align-items: center;
   color: #fff;
   border-radius: 0.5em;
@@ -250,9 +249,6 @@
   margin: 0 6px 0 0;
 }
 
-.catalog-item-details__description .admonitionblock.note .title {
-  background-color: #007bff;
-}
 .catalog-item-details__description .admonitionblock .title:before {
   filter: invert(100%) brightness(200%);
 }
@@ -288,19 +284,34 @@
 .catalog-item-details__description .admonitionblock .title {
   color: #fff;
 }
+.catalog-item-details__description .admonitionblock.warning .title {
+  background-color: #ffc107;
+}
+.catalog-item-details__description .admonitionblock.note .title {
+  background-color: #007bff;
+}
+.catalog-item-details__description .admonitionblock.tip .title {
+  background-color: #28a745;
+}
+.catalog-item-details__description .admonitionblock.important .title {
+  background-color: #dc3545;
+}
+.catalog-item-details__description .admonitionblock.caution .title {
+  background-color: #ff9800;
+}
 
 .catalog-item-details__description .admonitionblock.note .title::before {
   background-image: url(@app/bgimages/octicons-16.svg#view-info);
 }
 .catalog-item-details__description .admonitionblock.tip .title::before {
-  background-image: url(@app/bgimages/octicons-16.svg#light-bulb);
+  background-image: url(@app/bgimages/octicons-16.svg#view-light-bulb);
 }
 .catalog-item-details__description .admonitionblock.important .title::before {
-  background-image: url(@app/bgimages/octicons-16.svg#alert);
+  background-image: url(@app/bgimages/octicons-16.svg#view-alert);
 }
 .catalog-item-details__description .admonitionblock.warning .title::before {
-  background-image: url(@app/bgimages/octicons-16.svg#stop);
+  background-image: url(@app/bgimages/octicons-16.svg#view-stop);
 }
 .catalog-item-details__description .admonitionblock.caution .title::before {
-  background-image: url(@app/bgimages/octicons-16.svg#flame);
+  background-image: url(@app/bgimages/octicons-16.svg#view-flame);
 }
