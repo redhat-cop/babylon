@@ -96,7 +96,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     {
       shouldRetryOnError: false,
       suspense: false,
-    }
+    },
   );
   const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
     asset_uuid ? apiPaths.CATALOG_ITEM_LAST_INCIDENT({ stage, asset_uuid }) : null,
@@ -104,7 +104,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     {
       shouldRetryOnError: false,
       suspense: false,
-    }
+    },
   );
   const { data: assetsFavList, mutate: mutateFavorites } = useSWRImmutable<BookmarkList>(
     asset_uuid ? apiPaths.FAVORITES({}) : null,
@@ -112,7 +112,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     {
       shouldRetryOnError: false,
       suspense: false,
-    }
+    },
   );
   let isFavorite = false;
   if (asset_uuid && assetsFavList) {
@@ -136,12 +136,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
           namespace: userNamespace.name,
           limit: FETCH_BATCH_LIMIT,
           continueId,
-        })
+        }),
       ),
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
-    }
+    },
   );
 
   const services: ResourceClaim[] = useMemo(
@@ -149,7 +149,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       Array.isArray(userResourceClaims)
         ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r)))
         : [],
-    [userResourceClaims]
+    [userResourceClaims],
   );
 
   const descriptionHtml = useMemo(
@@ -161,7 +161,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         }}
       />
     ),
-    [description, descriptionFormat]
+    [description, descriptionFormat],
   );
 
   const status = getStatus(catalogItemCpy);
@@ -180,12 +180,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     isAdmin || isLabDeveloper(groups)
       ? CatalogItemAccess.Allow
       : accessCheckResult === 'deny'
-      ? CatalogItemAccess.Deny
-      : services.length >= 5
-      ? CatalogItemAccess.Deny
-      : accessCheckResult === 'allow'
-      ? CatalogItemAccess.Allow
-      : CatalogItemAccess.RequestInformation;
+        ? CatalogItemAccess.Deny
+        : services.length >= 5
+          ? CatalogItemAccess.Deny
+          : accessCheckResult === 'allow'
+            ? CatalogItemAccess.Allow
+            : CatalogItemAccess.RequestInformation;
   const catalogItemAccessDenyReason =
     catalogItemAccess !== CatalogItemAccess.Deny ? null : services.length >= 5 ? (
       <p>
@@ -299,7 +299,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 url={
                   new URL(
                     `/catalog?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
-                    window.location.origin
+                    window.location.origin,
                   )
                 }
                 name={catalogItemName}
@@ -380,8 +380,8 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                       {attr === CUSTOM_LABELS.ESTIMATED_COST.key
                         ? null
                         : attr === CUSTOM_LABELS.SLA.key
-                        ? 'Service Level'
-                        : formatString(attr)}
+                          ? 'Service Level'
+                          : formatString(attr)}
                     </DescriptionListTerm>
                     <DescriptionListDescription>
                       {attr === CUSTOM_LABELS.RATING.key ? (
@@ -419,11 +419,11 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 </DescriptionListGroup>
               ) : null}
 
-              {metrics?.medianLifetimeCostByHour ? (
+              {metrics?.medianProvisionHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-time">
                   <DescriptionListTerm>Estimated provision time</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {`±${formatTime(`${metrics?.medianLifetimeCostByHour * 60 * 1.1}m`)}`}
+                    {`±${formatTime(`${metrics?.medianProvisionHour * 60 * 1.1}m`)}`}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
