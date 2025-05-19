@@ -731,7 +731,7 @@ export type SalesforceAccount = {
   is_valid: boolean;
 };
 
-export type SfdcType = 'campaign' | 'cdh' | 'project' | 'opportunity';
+export type SfdcType = 'campaign' | 'project' | 'opportunity';
 
 export type Bookmark = {
   asset_uuid: string;

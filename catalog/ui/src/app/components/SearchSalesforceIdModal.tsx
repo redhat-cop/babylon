@@ -263,13 +263,6 @@ const SearchSalesforceIdModal: React.FC<{
               id="sfdc-type-campaign-comp"
             ></Radio>
             <Radio
-              isChecked={'cdh' === sfdcType}
-              name="sfdc-type"
-              onChange={() => setSfdcType('cdh')}
-              label="CDH"
-              id="sfdc-type-cdh-comp"
-            ></Radio>
-            <Radio
               isChecked={'opportunity' === sfdcType}
               name="sfdc-type"
               onChange={() => setSfdcType('opportunity')}
