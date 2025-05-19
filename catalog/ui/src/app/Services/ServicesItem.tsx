@@ -142,17 +142,17 @@ const ComponentDetailsList: React.FC<{
     typeof provisionMessages === 'string'
       ? provisionMessages
       : provisionMessages
-      ? provisionMessages
-          .map((m) => {
-            if (m.includes('~')) {
-              return `pass:[${m}]`;
-            }
-            return m;
-          })
-          .join('\n')
-          .trim()
-          .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
-      : null;
+        ? provisionMessages
+            .map((m) => {
+              if (m.includes('~')) {
+                return `pass:[${m}]`;
+              }
+              return m;
+            })
+            .join('\n')
+            .trim()
+            .replace(/([^\n])\n(?!\n)/g, '$1 +\n')
+        : null;
   const provisionMessagesHtml = useMemo(
     () =>
       _provisionMessages ? (
@@ -162,7 +162,7 @@ const ComponentDetailsList: React.FC<{
           }}
         />
       ) : null,
-    [_provisionMessages]
+    [_provisionMessages],
   );
   return (
     <DescriptionList isHorizontal>
@@ -289,7 +289,7 @@ const ComponentDetailsList: React.FC<{
                               {stage}
                             </Link>
                           </ListItem>
-                        ) : null
+                        ) : null,
                       )}
                     </List>
                   </DescriptionListDescription>
@@ -310,7 +310,7 @@ function _reducer(
     salesforceId?: string;
     salesforceIdValid?: boolean;
     salesforceType?: SfdcType;
-  }
+  },
 ) {
   switch (action.type) {
     case 'set_salesforceId':
@@ -355,7 +355,7 @@ const ServicesItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
   useErrorHandler(error?.status === 404 ? error : null);
 
@@ -383,7 +383,7 @@ const ServicesItemComponent: React.FC<{
     if (!salesforceObj.completed) {
       checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
         ({ valid, message }: { valid: boolean; message?: string }) =>
-          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid })
+          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid }),
       );
     } else if (
       resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/salesforce-id`] !== salesforceObj.salesforce_id ||
@@ -403,7 +403,7 @@ const ServicesItemComponent: React.FC<{
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     isAdmin ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
-    fetcher
+    fetcher,
   );
   const serviceNamespaces = useMemo(() => {
     return isAdmin ? userNamespaceList.items.map(namespaceToServiceNamespaceMapper) : sessionServiceNamespaces;
@@ -491,7 +491,7 @@ const ServicesItemComponent: React.FC<{
       .find((u) => u != null);
 
   const serviceHasUsers = (resourceClaim.status?.resources || []).find(
-    (r) => r.state?.spec?.vars?.provision_data?.users
+    (r) => r.state?.spec?.vars?.provision_data?.users,
   )
     ? true
     : false;
@@ -502,7 +502,7 @@ const ServicesItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
-    }
+    },
   );
   const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
     workshopName
@@ -514,7 +514,7 @@ const ServicesItemComponent: React.FC<{
     fetcher,
     {
       refreshInterval: 15000,
-    }
+    },
   );
 
   const costTracker = getCostTracker(resourceClaim);
@@ -531,8 +531,8 @@ const ServicesItemComponent: React.FC<{
             ? await scheduleStartResourceClaim(resourceClaim)
             : await startAllResourcesInResourceClaim(resourceClaim)
           : resourceClaim.status?.summary
-          ? await scheduleStopResourceClaim(resourceClaim)
-          : await stopAllResourcesInResourceClaim(resourceClaim);
+            ? await scheduleStopResourceClaim(resourceClaim)
+            : await stopAllResourcesInResourceClaim(resourceClaim);
       mutate(resourceClaimUpdate);
       globalMutate(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
     }
@@ -542,7 +542,7 @@ const ServicesItemComponent: React.FC<{
           resourceClaim.metadata.uid,
           modalState.rating.rate,
           modalState.rating.comment,
-          modalState.rating.useful
+          modalState.rating.useful,
         );
         globalMutate(apiPaths.USER_RATING({ requestUuid: resourceClaim.metadata.uid }));
       }
@@ -553,7 +553,7 @@ const ServicesItemComponent: React.FC<{
         apiPaths.RESOURCE_CLAIM({
           namespace: resourceClaim.metadata.namespace,
           resourceClaimName: resourceClaim.metadata.name,
-        })
+        }),
       );
       cache.delete(SERVICES_KEY({ namespace: resourceClaim.metadata.namespace }));
       navigate(`/services/${serviceNamespaceName}`);
@@ -609,7 +609,7 @@ const ServicesItemComponent: React.FC<{
         openModalCreateWorkshop();
       }
     },
-    [openModalAction, openModalCreateWorkshop, openModalScheduleAction]
+    [openModalAction, openModalCreateWorkshop, openModalScheduleAction],
   );
 
   const toggle = (id: string) => {
@@ -625,7 +625,7 @@ const ServicesItemComponent: React.FC<{
       userAssigmentsListClone.items = Array.from(userAssigments);
       mutateUserAssigmentsList(userAssigmentsListClone);
     },
-    [mutateUserAssigmentsList, userAssigmentsList]
+    [mutateUserAssigmentsList, userAssigmentsList],
   );
 
   return (
@@ -905,20 +905,6 @@ const ServicesItemComponent: React.FC<{
                             id="sfdc-type-campaign"
                           ></Radio>
                           <Radio
-                            isChecked={'cdh' === salesforceObj.salesforce_type}
-                            name="sfdc-type"
-                            onChange={() => {
-                              dispatchSalesforceObj({
-                                ...salesforceObj,
-                                salesforceType: 'cdh',
-                                type: 'set_salesforceId',
-                                salesforceId: salesforceObj.salesforce_id,
-                              });
-                            }}
-                            label="CDH"
-                            id="sfdc-type-cdh"
-                          ></Radio>
-                          <Radio
                             isChecked={'opportunity' === salesforceObj.salesforce_type}
                             name="sfdc-type"
                             onChange={() => {
@@ -948,12 +934,10 @@ const ServicesItemComponent: React.FC<{
                           ></Radio>
                           <Tooltip
                             position="right"
-                            content={
-                              <div>Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.</div>
-                            }
+                            content={<div>Salesforce ID type: Opportunity ID, Campaign ID or Project ID.</div>}
                           >
                             <OutlinedQuestionCircleIcon
-                              aria-label="Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID."
+                              aria-label="Salesforce ID type: Opportunity ID, Campaign ID or Project ID."
                               className="tooltip-icon-only"
                             />
                           </Tooltip>
@@ -980,17 +964,17 @@ const ServicesItemComponent: React.FC<{
                                 ? salesforceObj.completed && salesforceObj.valid
                                   ? 'success'
                                   : salesforceObj.completed
-                                  ? 'error'
-                                  : 'default'
+                                    ? 'error'
+                                    : 'default'
                                 : 'default'
                             }
                           />
                           <Tooltip
                             position="right"
-                            content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+                            content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}
                           >
                             <OutlinedQuestionCircleIcon
-                              aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
+                              aria-label="Salesforce Opportunity ID, Campaign ID or Project ID."
                               className="tooltip-icon-only"
                             />
                           </Tooltip>
@@ -1017,7 +1001,7 @@ const ServicesItemComponent: React.FC<{
                                     [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
                                   },
                                 },
-                              })
+                              }),
                             );
                           }}
                         />

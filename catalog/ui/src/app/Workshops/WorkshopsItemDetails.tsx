@@ -476,10 +476,10 @@ const WorkshopsItemDetails: React.FC<{
               ></Radio>
               <Tooltip
                 position="right"
-                content={<div>Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+                content={<div>Salesforce ID type: Opportunity ID, Campaign ID or Project ID.</div>}
               >
                 <OutlinedQuestionCircleIcon
-                  aria-label="Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID."
+                  aria-label="Salesforce ID type: Opportunity ID, Campaign ID or Project ID."
                   className="tooltip-icon-only"
                 />
               </Tooltip>
@@ -508,12 +508,9 @@ const WorkshopsItemDetails: React.FC<{
                     : 'default'
                 }
               />
-              <Tooltip
-                position="right"
-                content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
-              >
+              <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
                 <OutlinedQuestionCircleIcon
-                  aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
+                  aria-label="Salesforce Opportunity ID, Campaign ID or Project ID."
                   className="tooltip-icon-only"
                 />
               </Tooltip>

@@ -266,7 +266,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         isOpen={searchSalesforceIdModal}
         onClose={() => openSearchSalesforceIdModal(false)}
         defaultSfdcType={formState.salesforceId.type || null}
-        onSubmitCb={(value: string, type: 'campaign' | 'cdh' | 'project' | 'opportunity') =>
+        onSubmitCb={(value: string, type: 'campaign' | 'project' | 'opportunity') =>
           dispatchFormState({
             type: 'salesforceId',
             salesforceId: {
@@ -357,7 +357,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         fontWeight: 400,
                       }}
                     >
-                      (Opportunity ID, Campaign ID, CDH Party or Project ID)
+                      (Opportunity ID, Campaign ID or Project ID)
                     </span>
                   </span>
                 }
@@ -380,23 +380,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       }}
                       label="Campaign"
                       id="sfdc-type-campaign"
-                    ></Radio>
-                    <Radio
-                      isChecked={'cdh' === formState.salesforceId.type}
-                      name="sfdc-type"
-                      onChange={() => {
-                        dispatchFormState({
-                          type: 'salesforceId',
-                          salesforceId: {
-                            ...formState.salesforceId,
-                            value: formState.salesforceId.value,
-                            type: 'cdh',
-                            valid: false,
-                          },
-                        });
-                      }}
-                      label="CDH"
-                      id="sfdc-type-cdh"
                     ></Radio>
                     <Radio
                       isChecked={'opportunity' === formState.salesforceId.type}
@@ -434,10 +417,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     ></Radio>
                     <Tooltip
                       position="right"
-                      content={<div>Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+                      content={<div>Salesforce ID type: Opportunity ID, Campaign ID or Project ID.</div>}
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID."
+                        aria-label="Salesforce ID type: Opportunity ID, Campaign ID or Project ID."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
@@ -474,10 +457,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     </div>
                     <Tooltip
                       position="right"
-                      content={<div>Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID.</div>}
+                      content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="Salesforce Opportunity ID, Campaign ID, CDH Party or Project ID."
+                        aria-label="Salesforce Opportunity ID, Campaign ID or Project ID."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>

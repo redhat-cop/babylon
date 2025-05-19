@@ -241,7 +241,7 @@ const SearchSalesforceIdModal: React.FC<{
                   fontWeight: 400,
                 }}
               >
-                (Opportunity ID, Campaign ID, CDH Party or Project ID)
+                (Opportunity ID, Campaign ID or Project ID)
               </span>
             </b>
           }
