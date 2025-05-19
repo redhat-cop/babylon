@@ -49,7 +49,7 @@ type FormState = {
     valid: boolean;
     message?: string;
     skip?: boolean;
-    type?: 'campaign' | 'cdh' | 'project' | 'opportunity';
+    type?: 'campaign' | 'project' | 'opportunity';
   };
   sfdc_enabled: boolean;
 };
@@ -91,7 +91,7 @@ export type FormStateAction = {
     valid: boolean;
     message?: string;
     skip?: boolean;
-    type?: 'campaign' | 'cdh' | 'project' | 'opportunity';
+    type?: 'campaign' | 'project' | 'opportunity';
   };
   message?: string;
   salesforceIdValid?: boolean;
@@ -136,7 +136,7 @@ export function checkCondition(condition: string, vars: ConditionValues): boolea
       .join('\n') +
       'return (' +
       condition +
-      ');'
+      ');',
   );
   const ret: boolean | Error = checkFunction();
   if (ret instanceof Error) {
@@ -151,7 +151,7 @@ async function _checkCondition(
   condition: string,
   vars: ConditionValues,
   debouncedApiFetch: (path: string) => Promise<unknown>,
-  dispatchFn: React.Dispatch<FormStateAction>
+  dispatchFn: React.Dispatch<FormStateAction>,
 ): Promise<boolean> {
   const checkSalesforceIds: string[] = [];
   condition.replace(checkSalesforceIdRegex, (match, name) => {
@@ -163,7 +163,7 @@ async function _checkCondition(
     const { valid, message } = await checkSalesforceId(
       vars[name] as string,
       debouncedApiFetch,
-      vars['sales_type'] as 'string'
+      vars['sales_type'] as 'string',
     );
     dispatchFn({
       type: 'salesforceIdMessage',
@@ -173,13 +173,13 @@ async function _checkCondition(
   }
   return checkCondition(
     condition.replace(checkSalesforceIdRegex, () => (checkResults.shift() ? 'true' : 'false')),
-    vars
+    vars,
   );
 }
 export async function checkConditionsInFormState(
   initialState: FormState,
   dispatchFn: React.Dispatch<FormStateAction>,
-  debouncedApiFetch: (path: string) => Promise<unknown>
+  debouncedApiFetch: (path: string) => Promise<unknown>,
 ): Promise<void> {
   const parameters = Object.assign({}, initialState.parameters);
   const conditionValues: ConditionValues = {
@@ -201,7 +201,7 @@ export async function checkConditionsInFormState(
           'check_salesforce_id(salesforce_id)',
           { salesforce_id: initialState.salesforceId.value, sales_type: initialState.salesforceId.type },
           debouncedApiFetch,
-          dispatchFn
+          dispatchFn,
         );
       }
     }
@@ -213,7 +213,7 @@ export async function checkConditionsInFormState(
           parameterSpec.formDisableCondition,
           conditionValues,
           debouncedApiFetch,
-          dispatchFn
+          dispatchFn,
         );
       }
 
@@ -222,7 +222,7 @@ export async function checkConditionsInFormState(
           parameterSpec.formHideCondition,
           conditionValues,
           debouncedApiFetch,
-          dispatchFn
+          dispatchFn,
         );
       }
 
@@ -231,7 +231,7 @@ export async function checkConditionsInFormState(
           parameterSpec.formRequireCondition,
           conditionValues,
           debouncedApiFetch,
-          dispatchFn
+          dispatchFn,
         );
       }
 
@@ -242,7 +242,7 @@ export async function checkConditionsInFormState(
               parameterSpec.validation,
               conditionValues,
               debouncedApiFetch,
-              dispatchFn
+              dispatchFn,
             );
             parameterState.validationMessage = undefined;
           } catch (error) {
@@ -291,7 +291,7 @@ function reduceFormStateInit(
   serviceNamespace: ServiceNamespace,
   { isAdmin, groups, roles },
   purposeOpts: TPurposeOpts,
-  sfdc_enabled: boolean
+  sfdc_enabled: boolean,
 ): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
@@ -376,7 +376,7 @@ function reduceFormStateComplete(
     error = '',
     salesforceIdValid,
     parameters,
-  }: { error: string; salesforceIdValid: boolean; parameters: { [name: string]: FormStateParameter } }
+  }: { error: string; salesforceIdValid: boolean; parameters: { [name: string]: FormStateParameter } },
 ): FormState {
   return {
     ...state,
@@ -394,7 +394,7 @@ function reduceFormStateComplete(
 
 function reduceFormStateParameterUpdate(
   initialState: FormState,
-  parameter: { name: string; value: boolean | number | string; isValid: boolean }
+  parameter: { name: string; value: boolean | number | string; isValid: boolean },
 ): FormState {
   const parameters = Object.assign({}, initialState.parameters);
   Object.assign(parameters[parameter.name], {
@@ -480,7 +480,7 @@ function reduceFormStatePurpose(
   initialState: FormState,
   activity: string,
   purpose: string,
-  explanation: string
+  explanation: string,
 ): FormState {
   return {
     ...initialState,
@@ -506,7 +506,7 @@ function salesforceIdRequired(state: FormState): boolean {
 
 function reduceFormStateSalesforceId(
   initialState: FormState,
-  salesforceId: { required: boolean; value: string; valid: boolean }
+  salesforceId: { required: boolean; value: string; valid: boolean },
 ): FormState {
   return {
     ...initialState,
@@ -538,7 +538,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         action.serviceNamespace,
         action.user,
         action.purposeOpts,
-        action.sfdc_enabled
+        action.sfdc_enabled,
       );
     case 'initDates':
       return {

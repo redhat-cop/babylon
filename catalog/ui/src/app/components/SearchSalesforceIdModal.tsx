@@ -241,7 +241,7 @@ const SearchSalesforceIdModal: React.FC<{
                   fontWeight: 400,
                 }}
               >
-                (Opportunity ID, Campaign ID, CDH Party or Project ID)
+                (Opportunity ID, Campaign ID or Project ID)
               </span>
             </b>
           }
@@ -261,13 +261,6 @@ const SearchSalesforceIdModal: React.FC<{
               onChange={() => setSfdcType('campaign')}
               label="Campaign"
               id="sfdc-type-campaign-comp"
-            ></Radio>
-            <Radio
-              isChecked={'cdh' === sfdcType}
-              name="sfdc-type"
-              onChange={() => setSfdcType('cdh')}
-              label="CDH"
-              id="sfdc-type-cdh-comp"
             ></Radio>
             <Radio
               isChecked={'opportunity' === sfdcType}

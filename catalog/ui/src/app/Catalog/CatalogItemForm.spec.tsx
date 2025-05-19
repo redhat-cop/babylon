@@ -30,7 +30,7 @@ jest.mock('@app/utils/useSession', () =>
         userNamespace: namespace as UserNamespace,
         groups: ['rhpds-devs', 'rhpds-admins'],
       }),
-  }))
+  })),
 );
 jest.mock('@app/utils/useInterfaceConfig', () => {
   return jest.fn(() => ({
@@ -53,7 +53,7 @@ describe('CatalogItemForm Component', () => {
   test("When renders should display 'CatalogItem' properties and parameters", async () => {
     const { getByText, getByLabelText } = render(<CatalogItemForm />);
     const catalogItemDisplayName = await waitFor(() => getByText('Order Test Config'));
-    const sfidLabel = getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)');
+    const sfidLabel = getByLabelText('Salesforce ID (Opportunity ID, Campaign ID or Project ID)');
     const purposeLabel = getByText('Purpose');
     const purposePlaceholder = '- Select purpose -';
     const termsOfServiceLabel = getByText('IMPORTANT PLEASE READ');
@@ -77,12 +77,12 @@ describe('CatalogItemForm Component', () => {
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
-      })
+      }),
     );
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
-      'input[type="checkbox"]'
+      'input[type="checkbox"]',
     );
     expect(termsOfServiceAck).not.toBeChecked();
     fireEvent.click(termsOfServiceAck);
@@ -98,10 +98,8 @@ describe('CatalogItemForm Component', () => {
   test('Description should be visible when hovering', async () => {
     const { queryByText, getByLabelText } = render(<CatalogItemForm />);
 
-    const sfidLabel = await waitFor(() =>
-      getByLabelText('Salesforce ID (Opportunity ID, Campaign ID, CDH Party or Project ID)')
-    );
-    const sfidTypeDescriptionText = 'Salesforce ID type: Opportunity ID, Campaign ID, CDH Party or Project ID.';
+    const sfidLabel = await waitFor(() => getByLabelText('Salesforce ID (Opportunity ID, Campaign ID or Project ID)'));
+    const sfidTypeDescriptionText = 'Salesforce ID type: Opportunity ID, Campaign ID or Project ID.';
     expect(queryByText(sfidTypeDescriptionText)).not.toBeInTheDocument();
     await userEvent.hover(sfidLabel.closest('.pf-v5-c-form__group').querySelector('.tooltip-icon-only'));
     await waitFor(() => expect(queryByText(sfidTypeDescriptionText)).toBeInTheDocument());
@@ -134,13 +132,13 @@ describe('CatalogItemForm Component', () => {
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
-      })
+      }),
     );
 
     expect(button).toBeDisabled();
 
     const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
-      'input[type="checkbox"]'
+      'input[type="checkbox"]',
     );
 
     fireEvent.click(termsOfServiceAck);
