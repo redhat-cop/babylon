@@ -16,6 +16,7 @@ import {
   Form,
   FormGroup,
   FormHelperText,
+  Label,
   PageSection,
   PageSectionVariants,
   Radio,
@@ -35,10 +36,19 @@ import {
   createWorkshop,
   createWorkshopProvision,
   fetcher,
+  fetcherItemsInAllPages,
   saveExternalItemRequest,
 } from '@app/api';
 import { CatalogItem, TPurposeOpts } from '@app/types';
-import { checkAccessControl, displayName, getStageFromK8sObject, isLabDeveloper, randomString } from '@app/util';
+import {
+  checkAccessControl,
+  displayName,
+  FETCH_BATCH_LIMIT,
+  generateRandom5CharsSuffix,
+  getStageFromK8sObject,
+  isLabDeveloper,
+  randomString,
+} from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
@@ -50,7 +60,13 @@ import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
-import { formatCurrency, getEstimatedCost, isAutoStopDisabled } from './catalog-utils';
+import {
+  CUSTOM_LABELS,
+  formatCurrency,
+  getEstimatedCost,
+  getMultiAssetGroup,
+  isAutoStopDisabled,
+} from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import { SearchIcon } from '@patternfly/react-icons';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
@@ -67,6 +83,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
   const [searchSalesforceIdModal, openSearchSalesforceIdModal] = useState(false);
+  const [selectedMultiAssets, setSelectedMultiAssets] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
@@ -74,6 +91,29 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher,
   );
+  const multiAssetGroup = getMultiAssetGroup(catalogItem);
+  const { data: allMultiAssetGroupCIs } = useSWRImmutable<CatalogItem[]>(
+    multiAssetGroup
+      ? apiPaths.CATALOG_ITEMS({
+          namespace: catalogNamespaceName,
+          labelSelector: `${CUSTOM_LABELS.MULTI_ASSET_GROUP.domain}/${CUSTOM_LABELS.MULTI_ASSET_GROUP.key}=${multiAssetGroup}`,
+          limit: 'ALL',
+        })
+      : null,
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.CATALOG_ITEMS({
+          namespace: catalogNamespaceName,
+          labelSelector: `${CUSTOM_LABELS.MULTI_ASSET_GROUP.domain}/${CUSTOM_LABELS.MULTI_ASSET_GROUP.key}=${multiAssetGroup}`,
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        }),
+      ),
+  );
+  const multiAssetGroupCIs = allMultiAssetGroupCIs
+    ? allMultiAssetGroupCIs.filter((x) => x.metadata.name !== catalogItem.metadata.name)
+    : [];
+  console.log(multiAssetGroupCIs);
 
   const _displayName = displayName(catalogItem);
   const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), []);
@@ -206,6 +246,26 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       });
       navigate(redirectUrl);
     } else {
+      const multiAssetGroupId = selectedMultiAssets.length > 0 ? generateRandom5CharsSuffix() : null;
+      for (let multiAsset of selectedMultiAssets) {
+        await createServiceRequest({
+          catalogItem: multiAssetGroupCIs.find((ci) => ci.metadata.name === multiAsset),
+          catalogNamespaceName: catalogNamespaceName,
+          groups,
+          isAdmin,
+          parameterValues,
+          serviceNamespace: formState.serviceNamespace,
+          usePoolIfAvailable: formState.usePoolIfAvailable,
+          useAutoDetach: formState.useAutoDetach,
+          startDate: formState.startDate,
+          stopDate: formState.stopDate,
+          endDate: formState.endDate,
+          email,
+          skippedSfdc: formState.salesforceId.skip,
+          whiteGloved: formState.whiteGloved,
+          multiAssetGroup: multiAssetGroupId,
+        });
+      }
       const resourceClaim = await createServiceRequest({
         catalogItem,
         catalogNamespaceName: catalogNamespaceName,
@@ -221,6 +281,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         email,
         skippedSfdc: formState.salesforceId.skip,
         whiteGloved: formState.whiteGloved,
+        multiAssetGroup: multiAssetGroupId,
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
@@ -571,7 +632,27 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             </FormGroup>
           );
         })}
-
+        {multiAssetGroupCIs.length > 0 ? (
+          <FormGroup fieldId="multi-asset-group-ci" label="Add Catalog Items to your order">
+            <div>
+              {multiAssetGroupCIs.map((ci) => (
+                <Checkbox
+                  isChecked={!formState.workshop && selectedMultiAssets.includes(ci.metadata.name)}
+                  name="multi-asset-group-ci"
+                  onChange={() =>
+                    selectedMultiAssets.includes(ci.metadata.name)
+                      ? setSelectedMultiAssets(selectedMultiAssets.filter((x) => ci.metadata.name !== x))
+                      : setSelectedMultiAssets([...selectedMultiAssets, ci.metadata.name])
+                  }
+                  label={displayName(ci)}
+                  id={`select-multi-asset-group-${ci.metadata.name}`}
+                  key={ci.metadata.name}
+                  isDisabled={!!formState.workshop}
+                />
+              ))}
+            </div>
+          </FormGroup>
+        ) : null}
         {!workshopUiDisabled && !catalogItem.spec.externalUrl ? (
           <FormGroup key="workshop-switch" fieldId="workshop-switch">
             <div className="catalog-item-form__group-control--single">
@@ -598,6 +679,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   </span>
                 }
                 isChecked={!!formState.workshop}
+                isDisabled={selectedMultiAssets.length > 0}
                 hasCheckIcon
                 onChange={(_event, isChecked) => {
                   dispatchFormState({

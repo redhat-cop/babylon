@@ -54,6 +54,7 @@ type CreateServiceRequestOpt = {
   email: string;
   skippedSfdc: boolean;
   whiteGloved: boolean;
+  multiAssetGroup?: string;
 };
 
 type CreateWorkshopPovisionOpt = {
@@ -398,6 +399,7 @@ export async function createServiceRequest({
   email,
   skippedSfdc,
   whiteGloved,
+  multiAssetGroup,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
@@ -435,6 +437,7 @@ export async function createServiceRequest({
           : {}),
         ...(catalogItem.spec.bookbag ? { [`${BABYLON_DOMAIN}/labUserInterface`]: 'bookbag' } : {}),
         [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
+        ...(multiAssetGroup ? { [`${DEMO_DOMAIN}/multiAssetGroup`]: multiAssetGroup } : {}),
       },
       name: `${catalogItem.metadata.name}-${suffix}`,
       namespace: serviceNamespace.name,

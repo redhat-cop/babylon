@@ -65,7 +65,6 @@ import CatalogContent from './CatalogContent';
 import IncidentsBanner from '@app/components/IncidentsBanner';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import LoadingSection from '@app/components/LoadingSection';
-import useSWR from 'swr';
 
 import './catalog.css';
 
@@ -115,7 +114,7 @@ function handleExportCsv(catalogItems: CatalogItem[]) {
       label: formatString(
         label.startsWith(BABYLON_DOMAIN + '/')
           ? label.substring(BABYLON_DOMAIN.length + 1)
-          : label.substring(GPTE_DOMAIN.length + 1)
+          : label.substring(GPTE_DOMAIN.length + 1),
       ),
       value: `metadata.labels.["${label}"]`,
       default: '',
@@ -219,7 +218,7 @@ function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
 export async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
     return await fetcherItemsInAllPages((continueId) =>
-      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     );
   }
   const catalogItems: CatalogItem[] = [];
@@ -261,11 +260,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const adminStatusString = searchParams.has('adminStatus') ? searchParams.get('adminStatus') : null;
   const selectedAdminFilter: string[] = useMemo(
     () => (adminStatusString ? JSON.parse(adminStatusString) : []),
-    [adminStatusString]
+    [adminStatusString],
   );
   const selectedLabels: { [label: string]: string[] } = useMemo(
     () => (labelsString ? JSON.parse(labelsString) : {}),
-    [labelsString]
+    [labelsString],
   );
 
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
@@ -311,20 +310,20 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         return aStage === 'prod' && bStage !== 'prod'
           ? -1
           : aStage !== 'prod' && bStage === 'prod'
-          ? 1
-          : aStage === 'event' && bStage !== 'event'
-          ? -1
-          : aStage !== 'event' && bStage === 'event'
-          ? 1
-          : aStage === 'test' && bStage !== 'test'
-          ? -1
-          : aStage !== 'test' && bStage === 'test'
-          ? 1
-          : aStage === 'dev' && bStage !== 'dev'
-          ? -1
-          : aStage !== 'dev' && bStage === 'dev'
-          ? 1
-          : 0;
+            ? 1
+            : aStage === 'event' && bStage !== 'event'
+              ? -1
+              : aStage !== 'event' && bStage === 'event'
+                ? 1
+                : aStage === 'test' && bStage !== 'test'
+                  ? -1
+                  : aStage !== 'test' && bStage === 'test'
+                    ? 1
+                    : aStage === 'dev' && bStage !== 'dev'
+                      ? -1
+                      : aStage !== 'dev' && bStage === 'dev'
+                        ? 1
+                        : 0;
       }
       if (a.metadata.namespace != b.metadata.namespace) {
         return a.metadata.namespace < b.metadata.namespace ? -1 : 1;
@@ -334,7 +333,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       }
       return 0;
     },
-    [sortBy.selected]
+    [sortBy.selected],
   );
 
   const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
@@ -345,13 +344,13 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     {
       suspense: false,
       shouldRetryOnError: false,
-    }
+    },
   );
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({
       namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs',
     }),
-    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
+    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames),
   );
   const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES({}), fetcher, {
     suspense: false,
@@ -360,7 +359,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
-    [catalogItemsArr, groups]
+    [catalogItemsArr, groups],
   );
 
   // Filter & Sort catalog items
@@ -373,7 +372,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       const incident = activeIncidents
         ? activeIncidents.items.find(
             (i) =>
-              i.asset_uuid === c.metadata.labels?.['gpte.redhat.com/asset-uuid'] && i.stage === getStageFromK8sObject(c)
+              i.asset_uuid === c.metadata.labels?.['gpte.redhat.com/asset-uuid'] &&
+              i.stage === getStageFromK8sObject(c),
           )
         : null;
       if (incident) {
@@ -471,7 +471,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     openCatalogItemName && openCatalogItemNamespaceName
       ? catalogItems.find(
           (item) =>
-            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName
+            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName,
         )
       : null;
 

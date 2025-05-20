@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWRImmutable from 'swr/immutable';
 import { apiPaths, fetcher } from '@app/api';

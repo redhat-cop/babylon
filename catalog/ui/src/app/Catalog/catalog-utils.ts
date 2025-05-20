@@ -97,7 +97,11 @@ export function getStatus(
   }
   return { name: 'Operational', disabled: false, incidentUrl: null };
 }
-
+export function getMultiAssetGroup(catalogItem: CatalogItem) {
+  return catalogItem.metadata.labels?.[
+    `${CUSTOM_LABELS.MULTI_ASSET_GROUP.domain}/${CUSTOM_LABELS.MULTI_ASSET_GROUP.key}`
+  ];
+}
 export function isAutoStopDisabled(catalogItem: CatalogItem) {
   if (catalogItem.spec.runtime?.default) {
     return catalogItem.spec.runtime.default.includes('999h');
