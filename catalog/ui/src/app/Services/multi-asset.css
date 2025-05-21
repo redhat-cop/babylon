@@ -1,0 +1,21 @@
+.multi-asset {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding-bottom: 42px;
+    gap: 16px;
+}
+.multi-asset__title {
+    padding-bottom: 42px;
+}
+.multi-asset__card {
+    display: flex;
+    flex-direction: row;
+    background-color: rgb(255, 255, 255);
+    box-shadow: rgba(3, 3, 3, 0.12) 0px 0.0625rem 0.125rem 0px, rgba(3, 3, 3, 0.06) 0px 0px 0.125rem 0px;
+    overflow: hidden;
+    padding: 24px;
+    text-decoration: none;
+    justify-content: space-between;
+    color: unset;
+}

@@ -263,7 +263,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           email,
           skippedSfdc: formState.salesforceId.skip,
           whiteGloved: formState.whiteGloved,
-          multiAssetGroup: multiAssetGroupId,
+          multiAssetGroupId: multiAssetGroupId,
         });
       }
       const resourceClaim = await createServiceRequest({
@@ -281,7 +281,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         email,
         skippedSfdc: formState.salesforceId.skip,
         whiteGloved: formState.whiteGloved,
-        multiAssetGroup: multiAssetGroupId,
+        multiAssetGroupId: multiAssetGroupId,
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);

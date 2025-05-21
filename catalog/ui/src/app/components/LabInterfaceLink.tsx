@@ -12,7 +12,7 @@ function submitFormFromLink(e: any) {
 
 const LabInterfaceLink: React.FC<{
   data?: object;
-  method: string;
+  method?: string;
   url: string;
   variant?: 'primary' | 'secondary' | 'circle';
 }> = ({ data, method, url, variant }) => {

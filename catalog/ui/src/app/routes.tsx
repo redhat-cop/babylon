@@ -9,6 +9,7 @@ const Dashboard = React.lazy(() => import('@app/Dashboard'));
 const CatalogRedirections = React.lazy(() => import('@app/Catalog/CatalogRedirections'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
 const Services = React.lazy(() => import('@app/Services/Services'));
+const MultiAsset = React.lazy(() => import('@app/Services/MultiAssetPage'));
 const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
 const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
 const WorkshopsScheduled = React.lazy(() => import('@app/Admin/WorkshopsScheduled'));
@@ -54,6 +55,11 @@ const appRoutes: IAppRoute[] = [
     component: CatalogRedirections,
     path: '/catalog',
     title: 'Babylon | Catalog',
+  },
+  {
+    component: MultiAsset,
+    path: '/services/:namespace/multi-asset/:multiasset',
+    title: 'Babylon | Labs',
   },
   {
     component: Services,

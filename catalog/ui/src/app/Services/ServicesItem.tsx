@@ -477,6 +477,7 @@ const ServicesItemComponent: React.FC<{
         return r?.data?.labUserInterfaceMethod;
       })
       .find((u) => u != null);
+  const multiAssetGroupId = resourceClaim.metadata?.labels?.[`${DEMO_DOMAIN}/multiAssetGroupId`] || null;
   const labUserInterfaceUrl =
     resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
     resourcesK8sObj
@@ -755,6 +756,17 @@ const ServicesItemComponent: React.FC<{
                       {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+                  {multiAssetGroupId ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Multi-Asset</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Link to={`/services/${resourceClaim.metadata.namespace}/multi-asset/${multiAssetGroupId}`}>
+                          {window.location.protocol}//{window.location.host}/services/{resourceClaim.metadata.namespace}
+                          /multi-asset/{multiAssetGroupId}
+                        </Link>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
                   {labUserInterfaceUrl ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Lab Instructions</DescriptionListTerm>
