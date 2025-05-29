@@ -41,6 +41,8 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
           <Badge className="catalog-item-card__badge--test">test</Badge>
         ) : stage === 'event' ? (
           <Badge className="catalog-item-card__badge--event">event</Badge>
+        ) : stage === 'prod' ? (
+          <Badge className="catalog-item-card__badge--event">prod</Badge>
         ) : null}
       </div>
       <Link
