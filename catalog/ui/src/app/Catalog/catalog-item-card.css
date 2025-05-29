@@ -86,7 +86,8 @@
 
 .catalog-item-card__badge--dev,
 .catalog-item-card__badge--test,
-.catalog-item-card__badge--event {
+.catalog-item-card__badge--event
+.catalog-item-card__badge--prod {
   background-color: var(--pf-v5-global--danger-color--100);
 }
 
