@@ -67,7 +67,6 @@ import {
 import {
   BABYLON_DOMAIN,
   canExecuteAction,
-  getCostTracker,
   displayName,
   renderContent,
   isResourceClaimPartOfWorkshop,

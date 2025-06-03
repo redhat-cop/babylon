@@ -395,9 +395,8 @@ const ResourceClaims: React.FC<{}> = () => {
                 runtime: null,
                 start: null,
                 stop: null,
-                getCost: null,
                 manageWorkshop: null,
-                getCost: () => showModal({ modal: 'getCost', resourceClaim });
+                getCost: () => showModal({ modal: 'getCost', resourceClaim })
               };
               if (resources.find((r) => r?.kind === 'AnarchySubject')) {
                 actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
