@@ -48,7 +48,7 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
         return `${catalogItemDisplayName} Service Request`;
       } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
         return `${catalogItemDisplayName} Service Request - ${_item.metadata.name.substring(
-          1 + catalogItemName.length
+          1 + catalogItemName.length,
         )}`;
       } else {
         return `${_item.metadata.name} Service Request`;
@@ -137,7 +137,7 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
         .convert(content, { attributes: options.vars })
         .toString()
         .replace(/&#8203;/gi, '-'),
-      sanitize_opt
+      sanitize_opt,
     );
   }
 }
@@ -145,7 +145,7 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
 export function checkAccessControl(
   accessConfig: AccessControl,
   groups: string[],
-  isAdmin: boolean = false
+  isAdmin: boolean = false,
 ): 'allow' | 'viewOnly' | 'deny' {
   if (!accessConfig || isAdmin) {
     return 'allow';
@@ -328,11 +328,6 @@ export function stripHtml(html: string): string {
   return tmp.textContent || tmp.innerText || '';
 }
 
-export function getCostTracker(resourceClaim?: ResourceClaim): CostTracker {
-  if (!resourceClaim || !resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/cost-tracker`]) return null;
-  return JSON.parse(resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/cost-tracker`]);
-}
-
 export function getWhiteGloved(d?: ResourceClaim | Workshop): boolean {
   if (!d || !d.metadata?.labels?.[`${DEMO_DOMAIN}/white-glove`]) return false;
   return d.metadata?.labels?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
@@ -356,7 +351,7 @@ export function isLabDeveloper(groups: string[]): boolean {
 export function CSVToArray(strData: string, strDelimiter = ','): string[][] {
   const objPattern = new RegExp(
     '(\\' + strDelimiter + '|\\r?\\n|\\r|^)' + '(?:"([^"]*(?:""[^"]*)*)"|' + '([^"\\' + strDelimiter + '\\r\\n]*))',
-    'gi'
+    'gi',
   );
   const arrData: string[][] = [[]];
   let arrMatches = null;
@@ -378,7 +373,7 @@ export function CSVToArray(strData: string, strDelimiter = ','): string[][] {
 
 export function canExecuteAction(
   anarchySubject: AnarchySubject,
-  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy'
+  action: 'start' | 'stop' | 'status' | 'provision' | 'destroy',
 ): boolean {
   if (action === 'status') {
     if (!anarchySubject?.status?.towerJobs?.provision?.completeTimestamp) {
@@ -396,7 +391,7 @@ export function stripTags(unStrippedHtml: string) {
   if (!unStrippedHtml) return '';
   const parseHTML = new DOMParser().parseFromString(
     dompurify.sanitize(unStrippedHtml.replace(/<\!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
-    'text/html'
+    'text/html',
   );
   return parseHTML.body.textContent || '';
 }

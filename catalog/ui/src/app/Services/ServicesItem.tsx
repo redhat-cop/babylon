@@ -41,7 +41,6 @@ import {
   checkSalesforceId,
   deleteResourceClaim,
   fetcher,
-  fetchWithUpdatedCostTracker,
   patchResourceClaim,
   requestStatusForAllResourcesInResourceClaim,
   scheduleStartResourceClaim,
@@ -344,19 +343,10 @@ const ServicesItemComponent: React.FC<{
     data: resourceClaim,
     mutate,
     error,
-  } = useSWR<ResourceClaim>(
-    apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }),
-    (path) =>
-      fetchWithUpdatedCostTracker({
-        path,
-        initialResourceClaim: cache.get(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }))
-          ?.data,
-      }),
-    {
-      refreshInterval: 8000,
-      compare: compareK8sObjects,
-    },
-  );
+  } = useSWR<ResourceClaim>(apiPaths.RESOURCE_CLAIM({ namespace: serviceNamespaceName, resourceClaimName }), fetcher, {
+    refreshInterval: 8000,
+    compare: compareK8sObjects,
+  });
   useErrorHandler(error?.status === 404 ? error : null);
 
   const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
@@ -517,7 +507,11 @@ const ServicesItemComponent: React.FC<{
     },
   );
 
-  const costTracker = getCostTracker(resourceClaim);
+  const { data: usageCost } = useSWR<RequestUsageCost>(
+    apiPaths.USAGE_COST_REQUEST({ requestId: resourceClaim.metadata.uid }),
+    fetcher,
+  );
+
   const autoStopTime = getAutoStopTime(resourceClaim);
   const startTime = getStartTime(resourceClaim);
   const hasInfoMessageTemplate = !!getInfoMessageTemplate(resourceClaim);
@@ -849,23 +843,19 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {costTracker ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Amount spent</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        {costTracker.estimatedCost ? (
-                          <p>
-                            <CurrencyAmount amount={costTracker.estimatedCost} />{' '}
-                            <span className="services-item__estimated-cost-label">
-                              (Estimated by the cloud provider)
-                            </span>
-                          </p>
-                        ) : (
-                          'No data available'
-                        )}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Amount spent</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {usageCost.total_cost ? (
+                        <p>
+                          <CurrencyAmount amount={usageCost.total_cost} />{' '}
+                          <span className="services-item__estimated-cost-label">(Estimated by the cloud provider)</span>
+                        </p>
+                      ) : (
+                        'No data available'
+                      )}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
                   {resourceClaim.spec.resources?.length > 0 ||
                   resourceClaim.status?.summary ||

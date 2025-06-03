@@ -10,7 +10,6 @@ import {
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
   displayName,
-  getCostTracker,
   getStageFromK8sObject,
   isResourceClaimPartOfWorkshop,
 } from '@app/util';
@@ -57,7 +56,7 @@ const renderResourceClaimRow = ({
     resourceClaim?.status?.summary?.provision_data?.labUserInterfaceData ||
     resources
       .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData
+        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_data : r?.data?.labUserInterfaceData,
       )
       .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
       .find((u) => u != null);
@@ -67,7 +66,7 @@ const renderResourceClaimRow = ({
     resourceClaim?.status?.summary?.provision_data?.labUserInterfaceMethod ||
     resources
       .map((r) =>
-        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod
+        r?.kind === 'AnarchySubject' ? r?.spec?.vars?.provision_data?.lab_ui_method : r?.data?.labUserInterfaceMethod,
       )
       .find((u) => u != null);
   const labUserInterfaceUrl =
@@ -82,7 +81,6 @@ const renderResourceClaimRow = ({
       })
       .find((u) => u != null);
 
-  const costTracker = getCostTracker(resourceClaim);
   // Available actions depends on kind of service
   const actionHandlers = {
     delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
@@ -90,16 +88,13 @@ const renderResourceClaimRow = ({
     runtime: null,
     start: null,
     stop: null,
-    getCost: null,
     manageWorkshop: null,
+    getCost: () => showModal({ modal: 'getCost', resourceClaim }),
   };
   if (resources.find((r) => r?.kind === 'AnarchySubject')) {
     actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
     actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', resourceClaim });
     actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
-  }
-  if (costTracker) {
-    actionHandlers['getCost'] = () => showModal({ modal: 'getCost', resourceClaim });
   }
   if (isPartOfWorkshop) {
     actionHandlers['manageWorkshop'] = () => navigate(`/workshops/${resourceClaim.metadata.namespace}/${workshopName}`);

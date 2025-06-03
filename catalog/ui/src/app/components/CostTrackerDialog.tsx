@@ -1,34 +1,25 @@
 import React, { Suspense } from 'react';
-import { ResourceClaim } from '@app/types';
-import { EmptyState, EmptyStateIcon, EmptyStateHeader, Tooltip } from '@patternfly/react-core';
+import { RequestUsageCost, ResourceClaim } from '@app/types';
+import { EmptyState, EmptyStateIcon, EmptyStateHeader } from '@patternfly/react-core';
 import ErrorCircleOIcon from '@patternfly/react-icons/dist/js/icons/error-circle-o-icon';
-import { getCostTracker } from '@app/util';
 import useSWR from 'swr';
-import { apiPaths, fetchWithUpdatedCostTracker } from '@app/api';
 import LoadingIcon from '@app/components/LoadingIcon';
 import CurrencyAmount from './CurrencyAmount';
-import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
+import { apiPaths, fetcher } from '@app/api';
+import TimeInterval from './TimeInterval';
 
 const CostTrackerDialogData: React.FC<{
   resourceClaim: ResourceClaim;
-}> = ({ resourceClaim: initialResourceClaim }) => {
-  const initialCostTracker = getCostTracker(initialResourceClaim);
-  const path = initialCostTracker
-    ? apiPaths.RESOURCE_CLAIM({
-        namespace: initialResourceClaim.metadata.namespace,
-        resourceClaimName: initialResourceClaim.metadata.name,
-      })
-    : null;
-
-  const { data: resourceClaim } = useSWR<ResourceClaim>(path, (path) =>
-    fetchWithUpdatedCostTracker({ path, initialResourceClaim }),
+}> = ({ resourceClaim }) => {
+  const { data } = useSWR<RequestUsageCost>(
+    apiPaths.USAGE_COST_REQUEST({ requestId: resourceClaim.metadata.uid }),
+    fetcher,
   );
-  const costTracker = getCostTracker(resourceClaim);
 
-  return costTracker?.estimatedCost ? (
+  return data?.total_cost ? (
     <div>
       <p>
-        <CurrencyAmount amount={costTracker.estimatedCost} />
+        <CurrencyAmount amount={data.total_cost} />
       </p>
       <p
         style={{
@@ -38,16 +29,7 @@ const CostTrackerDialogData: React.FC<{
           fontStyle: 'italic',
         }}
       >
-        Estimated by the cloud provider (not live, discounts may apply)
-        <Tooltip content="This is an estimated cost based on data from the cloud provider. It may not reflect real-time usage or discounts. ">
-          <InfoAltIcon
-            style={{
-              paddingTop: 'var(--pf-v5-global--spacer--xs)',
-              marginLeft: 'var(--pf-v5-global--spacer--sm)',
-              width: 'var(--pf-v5-global--icon--FontSize--sm)',
-            }}
-          />
-        </Tooltip>
+        Last update <TimeInterval toTimestamp={data.last_update} />
       </p>
     </div>
   ) : (

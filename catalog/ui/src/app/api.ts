@@ -25,10 +25,8 @@ import { store, selectImpersonationUser } from '@app/store';
 import {
   checkAccessControl,
   displayName,
-  recursiveAssign,
   BABYLON_DOMAIN,
   DEMO_DOMAIN,
-  getCostTracker,
   compareStringDates,
   canExecuteAction,
   generateRandom5CharsSuffix,
@@ -1591,44 +1589,6 @@ export async function updateWorkshop(workshop: Workshop) {
   return updateK8sObject(workshop);
 }
 
-export async function fetchWithUpdatedCostTracker({
-  path,
-  initialResourceClaim,
-}: {
-  path: string;
-  initialResourceClaim: ResourceClaim;
-}): Promise<ResourceClaim> {
-  const FIVE_MINUTES_MS = 300000;
-  const initialCostTracker = getCostTracker(initialResourceClaim);
-  if (initialCostTracker) {
-    const lastUpdate = initialCostTracker.lastUpdate;
-    if (!lastUpdate || compareStringDates(lastUpdate, new Date().toISOString()) > FIVE_MINUTES_MS) {
-      const patch = {
-        metadata: {
-          annotations: {
-            [`${BABYLON_DOMAIN}/cost-tracker`]: JSON.stringify({
-              ...initialCostTracker,
-              lastRequest: new Date().toISOString().replace(/\.[0-9]{3}/, ''), // remove milliseconds
-            }),
-          },
-        },
-      };
-      await patchK8sObjectByPath({
-        path,
-        patch,
-      });
-      let resourceClaim = initialResourceClaim;
-      let costTracker = initialCostTracker;
-      while (costTracker.lastUpdate === initialCostTracker.lastUpdate) {
-        resourceClaim = await fetcher(path);
-        costTracker = getCostTracker(resourceClaim);
-      }
-      return resourceClaim;
-    }
-  }
-  return await fetcher(path);
-}
-
 export function setProvisionRating(
   requestUid: string,
   rating: number,
@@ -1814,4 +1774,6 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   FAVORITES: () => `/api/user-manager/bookmarks`,
   FAVORITES_DELETE: ({ asset_uuid }: { asset_uuid: string }) => `/api/user-manager/bookmarks?asset_uuid=${asset_uuid}`,
   EXTERNAL_ITEM_REQUEST: ({ asset_uuid }: { asset_uuid: string }) => `/api/external_item/${asset_uuid}/request`,
+  USAGE_COST_REQUEST: ({ requestId }: { requestId: string }) => `/api/usage-cost/request/${requestId}`,
+  USAGE_COST_WORKSHOP: ({ workshopId }: { workshopId: string }) => `/api/usage-cost/workshop/${workshopId}`,
 };
