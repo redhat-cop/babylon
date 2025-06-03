@@ -1,11 +1,32 @@
 import React, { useState } from 'react';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { MenuToggle, MenuToggleElement, Select, SelectOption, SelectList } from '@patternfly/react-core/';
 
 const AnarchyRunnerStateSelect: React.FC<{
   runnerState?: string;
   onSelect: (s: string) => void;
 }> = ({ runnerState, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  const onToggleClick = () => {
+    setIsOpen(!isOpen);
+  };
+
+    const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle
+      ref={toggleRef}
+      onClick={onToggleClick}
+      isExpanded={isOpen}
+
+      style={
+        {
+          width: '200px'
+        } as React.CSSProperties
+      }
+    >
+      {runnerState}
+    </MenuToggle>
+  );
+
 
   return (
     <Select
@@ -16,10 +37,13 @@ const AnarchyRunnerStateSelect: React.FC<{
         onSelect(valueKey === '-' ? null : valueKey);
         setIsOpen(false);
       }}
-      onToggle={() => setIsOpen((v) => !v)}
-      selections={runnerState || '-'}
-      variant={SelectVariant.single}
+
+      selected={runnerState}
+      onOpenChange={(isOpen) => setIsOpen(isOpen)}
+      toggle={runnerState}
     >
+    
+    <SelectList>
       <SelectOption key="-" value="-">
         All Runner States
       </SelectOption>
@@ -41,6 +65,7 @@ const AnarchyRunnerStateSelect: React.FC<{
       <SelectOption key="successful" value="successful">
         Successful
       </SelectOption>
+      </SelectList>
     </Select>
   );
 };
