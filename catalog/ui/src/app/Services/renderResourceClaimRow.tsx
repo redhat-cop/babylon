@@ -89,7 +89,6 @@ const renderResourceClaimRow = ({
     start: null,
     stop: null,
     manageWorkshop: null,
-    getCost: () => showModal({ modal: 'getCost', resourceClaim }),
   };
   if (resources.find((r) => r?.kind === 'AnarchySubject')) {
     actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
@@ -229,14 +228,6 @@ const renderResourceClaimRow = ({
         />
       ) : null}
       <ButtonCircleIcon key="actions__delete" onClick={actionHandlers.delete} description="Delete" icon={TrashIcon} />
-      {actionHandlers.getCost ? (
-        <ButtonCircleIcon
-          key="actions__cost"
-          onClick={actionHandlers.getCost}
-          description="Get amount spent"
-          icon={DollarSignIcon}
-        />
-      ) : null}
       {
         // Lab Interface
         labUserInterfaceUrl ? (

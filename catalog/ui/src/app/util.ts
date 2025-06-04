@@ -5,7 +5,6 @@ import {
   AnarchySubject,
   CatalogItem,
   CatalogNamespace,
-  CostTracker,
   K8sObject,
   Namespace,
   Nullable,

@@ -41,7 +41,6 @@ import {
 } from '@app/util';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
-import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import Footer from '@app/components/Footer';
 import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
 import ServicesAction from '@app/Services/ServicesAction';
@@ -94,7 +93,6 @@ const ResourceClaims: React.FC<{}> = () => {
   }>({ action: null, submitDisabled: false });
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
-  const [modalGetCost, openModalGetCost] = useModal();
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
   const {
     data: resourceClaimsPages,
@@ -264,12 +262,8 @@ const ResourceClaims: React.FC<{}> = () => {
         setModalState({ action, resourceClaim, submitDisabled: false });
         openModalScheduleAction();
       }
-      if (modal === 'getCost') {
-        setModalState({ action, resourceClaim, submitDisabled: false });
-        openModalGetCost();
-      }
     },
-    [openModalAction, openModalGetCost, openModalScheduleAction],
+    [openModalAction, openModalScheduleAction],
   );
 
   // Fetch all if keywordFilter is defined.
@@ -299,14 +293,6 @@ const ResourceClaims: React.FC<{}> = () => {
           action={modalState.action === 'retirement' ? 'retirement' : 'stop'}
           resourceClaim={modalState.resourceClaim}
         />
-      </Modal>
-      <Modal
-        ref={modalGetCost}
-        onConfirm={() => null}
-        type="ack"
-        title={`Amount spent on ${displayName(modalState.resourceClaim)}`}
-      >
-        <CostTrackerDialog resourceClaim={modalState.resourceClaim} />
       </Modal>
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
@@ -396,7 +382,6 @@ const ResourceClaims: React.FC<{}> = () => {
                 start: null,
                 stop: null,
                 manageWorkshop: null,
-                getCost: () => showModal({ modal: 'getCost', resourceClaim })
               };
               if (resources.find((r) => r?.kind === 'AnarchySubject')) {
                 actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });

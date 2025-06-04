@@ -149,7 +149,6 @@ const WorkshopsItemServices: React.FC<{
           const actionHandlers = {
             restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }),
             delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
-            getCost: () => showModal({ action: 'getCost', resourceClaims: [resourceClaim] }),
           };
           const canDelete = resourceClaims.length === workshopProvisions?.[0].spec.count;
           // Find lab user interface information either in the resource claim or inside resources
@@ -268,12 +267,6 @@ const WorkshopsItemServices: React.FC<{
                     icon={TrashIcon}
                   />
                 ) : null}
-                <ButtonCircleIcon
-                  key="actions__cost"
-                  onClick={actionHandlers.getCost}
-                  description="Get amount spent"
-                  icon={DollarSignIcon}
-                />
                 {
                   // Lab Interface
                   labUserInterfaceUrl ? (

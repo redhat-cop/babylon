@@ -845,10 +845,12 @@ const ServicesItemComponent: React.FC<{
                   <DescriptionListGroup>
                     <DescriptionListTerm>Amount spent</DescriptionListTerm>
                     <DescriptionListDescription>
-                      {usageCost.total_cost ? (
+                      {usageCost?.total_cost ? (
                         <p>
                           <CurrencyAmount amount={usageCost.total_cost} />{' '}
-                          <span className="services-item__estimated-cost-label">(Estimated by the cloud provider)</span>
+                          <span className="services-item__estimated-cost-label">
+                            (Last update <TimeInterval toTimestamp={usageCost.last_update} />)
+                          </span>
                         </p>
                       ) : (
                         'No data available'
