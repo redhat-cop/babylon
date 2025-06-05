@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { Select, SelectOption, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import { createWorkshopForMultiuserService } from '@app/api';
 import { ResourceClaim } from '@app/types';
 import { displayName, randomString } from '@app/util';
@@ -14,6 +14,20 @@ const ServicesCreateWorkshop: React.FC<{
   const [workshopAccessPassword, setWorkshopAccessPassword] = useState(randomString(8));
   const [workshopDescription, setWorkshopDescription] = useState('');
   const [workshopDisplayName, setWorkshopDisplayName] = useState(displayName(resourceClaim));
+
+    const onToggleClick = () => {
+    setUserRegistrationSelectIsOpen(!userRegistrationSelectIsOpen);
+  };
+
+    const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle
+      ref={toggleRef}
+      onClick={onToggleClick}
+      isExpanded={userRegistrationSelectIsOpen}
+    >
+      {userRegistrationValue}
+    </MenuToggle>
+  );
 
   useEffect(() => {
     function _createWorkshopForMultiuserService() {
@@ -54,14 +68,16 @@ const ServicesCreateWorkshop: React.FC<{
       </FormGroup>
       <FormGroup fieldId="workshopRegistration" label="User Registration">
         <Select
-          onToggle={(_event, isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
-          selections={userRegistrationValue}
-          variant={SelectVariant.single}
           isOpen={userRegistrationSelectIsOpen}
           onSelect={(_, selected) => {
             setUserRegistrationValue(typeof selected === 'string' ? selected : selected.toString());
             setUserRegistrationSelectIsOpen(false);
           }}
+
+        selected={userRegistrationValue}
+        onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+        toggle={toggle}
+
         >
           <SelectOption value="open">open registration</SelectOption>
           <SelectOption value="pre">pre-registration</SelectOption>
