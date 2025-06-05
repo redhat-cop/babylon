@@ -19,7 +19,6 @@ const ServiceActions: React.FC<{
     start?: () => void;
     stop?: () => void;
     manageWorkshop?: () => void;
-    getCost?: () => void;
     rate?: () => void;
   };
   className?: string;
@@ -85,12 +84,6 @@ const ServiceActions: React.FC<{
         isDisabled={!canStop}
         onSelect={actionHandlers.stop}
       />,
-    );
-  }
-
-  if (actionHandlers.getCost) {
-    actionDropdownItems.push(
-      <ActionDropdownItem key="getCost" label="Get amount spent" onSelect={actionHandlers.getCost} />,
     );
   }
 

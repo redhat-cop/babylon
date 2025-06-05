@@ -693,6 +693,30 @@ async def external_item_request(request):
         url=f"{reporting_api}/external_item/{asset_uuid}/request",
     )
 
+@routes.get("/api/usage-cost/request/{request_id}")
+async def usage_cost_request(request):
+    request_id = request.match_info.get('request_id')
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/usage-cost/request/{request_id}",
+    )
+
+@routes.get("/api/usage-cost/workshop/{workshop_id}")
+async def usage_cost_workshop(request):
+    workshop_id = request.match_info.get('workshop_id')
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/usage-cost/workshop/{workshop_id}",
+    )
+
 @routes.get("/api/workshop/{workshop_id}")
 async def workshop_get(request):
     """

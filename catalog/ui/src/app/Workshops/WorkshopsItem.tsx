@@ -32,6 +32,7 @@ import {
 } from '@app/api';
 import {
   NamespaceList,
+  RequestUsageCost,
   ResourceClaim,
   Workshop,
   WorkshopProvision,
@@ -49,7 +50,6 @@ import {
   namespaceToServiceNamespaceMapper,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
-import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
 import WorkshopActionModal from '@app/components/WorkshopActionModal';
@@ -74,7 +74,6 @@ export interface ModalState {
     | 'deleteService'
     | 'startServices'
     | 'stopServices'
-    | 'getCost'
     | 'scheduleDelete'
     | 'scheduleStop'
     | 'scheduleStart'
@@ -94,7 +93,6 @@ const WorkshopsItemComponent: React.FC<{
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
-  const [modalGetCost, openModalGetCost] = useModal();
   const [modalSchedule, openModalSchedule] = useModal();
   const { cache } = useSWRConfig();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
@@ -111,13 +109,11 @@ const WorkshopsItemComponent: React.FC<{
         action === 'startWorkshop'
       ) {
         openModalAction();
-      } else if (action === 'getCost') {
-        openModalGetCost();
       } else if (action === 'scheduleDelete' || action === 'scheduleStop' || action === 'scheduleStart') {
         openModalSchedule();
       }
     },
-    [openModalAction, openModalDelete, openModalGetCost, openModalSchedule]
+    [openModalAction, openModalDelete, openModalSchedule]
   );
   const enableFetchUserNamespaces = isAdmin;
   const enableManageWorkshopProvisions =
@@ -149,6 +145,10 @@ const WorkshopsItemComponent: React.FC<{
     {
       refreshInterval: 15000,
     }
+  );
+    const { data: usageCost } = useSWR<RequestUsageCost>(
+    apiPaths.USAGE_COST_WORKSHOP({ requestId: workshop.metadata.uid }),
+    fetcher,
   );
   const stage = getStageFromK8sObject(workshop);
 
@@ -361,9 +361,6 @@ const WorkshopsItemComponent: React.FC<{
           <WorkshopActionModal onConfirm={onWorkshopStartConfirm} action="start" />
         ) : null}
       </Modal>
-      <Modal ref={modalGetCost} onConfirm={() => null} type="ack">
-        <CostTrackerDialog resourceClaim={modalState.resourceClaims?.[0]} />
-      </Modal>
       <Modal ref={modalSchedule} onConfirm={onModalScheduleAction} passModifiers={true} title={workshopName}>
         <WorkshopScheduleAction
           action={
@@ -462,6 +459,7 @@ const WorkshopsItemComponent: React.FC<{
                 resourceClaims={resourceClaims}
                 workshopProvisions={workshopProvisions}
                 workshopUserAssignments={userAssigmentsList.items}
+                usageCost={usageCost}
               />
             ) : null}
           </Tab>
