@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { Select, SelectOption, MenuToggle, SelectList, MenuToggleElement } from '@patternfly/react-core';
 
 const AnarchySubjectStateSelect: React.FC<{
   state: string;
   onSelect: (string) => void;
 }> = ({ state, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
+
+    const onToggleClick = () => {
+    setIsOpen(!isOpen);
+    };
+    const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+      <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
+        {state}
+      </MenuToggle>
+    );
+
+
 
   return (
     <Select
@@ -16,10 +27,12 @@ const AnarchySubjectStateSelect: React.FC<{
         onSelect(valueKey === '-' ? null : valueKey);
         setIsOpen(false);
       }}
-      onToggle={() => setIsOpen((v) => !v)}
-      selections={state || '-'}
-      variant={SelectVariant.single}
+      selected={state}
+      onOpenChange={(isOpen) => setIsOpen(isOpen)}
+      toggle={toggle}
+
     >
+      <SelectList>
       <SelectOption key="-" value="-">
         All States
       </SelectOption>
@@ -53,7 +66,9 @@ const AnarchySubjectStateSelect: React.FC<{
       <SelectOption key="stop-failed" value="start-failed">
         Stop Failed
       </SelectOption>
+    </SelectList>
     </Select>
+    
   );
 };
 
