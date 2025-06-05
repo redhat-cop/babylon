@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
-import { Select, SelectOption, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
+import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import { createWorkshopForMultiuserService } from '@app/api';
 import { ResourceClaim } from '@app/types';
 import { displayName, randomString } from '@app/util';
@@ -15,16 +15,12 @@ const ServicesCreateWorkshop: React.FC<{
   const [workshopDescription, setWorkshopDescription] = useState('');
   const [workshopDisplayName, setWorkshopDisplayName] = useState(displayName(resourceClaim));
 
-    const onToggleClick = () => {
+  const onToggleClick = () => {
     setUserRegistrationSelectIsOpen(!userRegistrationSelectIsOpen);
   };
 
-    const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
-    <MenuToggle
-      ref={toggleRef}
-      onClick={onToggleClick}
-      isExpanded={userRegistrationSelectIsOpen}
-    >
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={userRegistrationSelectIsOpen}>
       {userRegistrationValue}
     </MenuToggle>
   );
@@ -73,14 +69,14 @@ const ServicesCreateWorkshop: React.FC<{
             setUserRegistrationValue(typeof selected === 'string' ? selected : selected.toString());
             setUserRegistrationSelectIsOpen(false);
           }}
-
-        selected={userRegistrationValue}
-        onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
-        toggle={toggle}
-
+          selected={userRegistrationValue}
+          onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+          toggle={toggle}
         >
-          <SelectOption value="open">open registration</SelectOption>
-          <SelectOption value="pre">pre-registration</SelectOption>
+          <SelectList>
+            <SelectOption value="open">open registration</SelectOption>
+            <SelectOption value="pre">pre-registration</SelectOption>
+          </SelectList>
         </Select>
       </FormGroup>
       <FormGroup fieldId="workshopDescription" label="Workshop Description">

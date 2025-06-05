@@ -24,7 +24,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { Select, SelectOption, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
+import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSWRImmutable from 'swr/immutable';
 import {
@@ -75,8 +75,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     fetcher,
   );
 
-
-
   const _displayName = displayName(catalogItem);
   const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), []);
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
@@ -97,12 +95,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     setUserRegistrationSelectIsOpen(!userRegistrationSelectIsOpen);
   };
 
-    const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
-    <MenuToggle
-      ref={toggleRef}
-      onClick={onToggleClick}
-      isExpanded={userRegistrationSelectIsOpen}
-    >
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={userRegistrationSelectIsOpen}>
       {formState.workshop.userRegistration}
     </MenuToggle>
   );
@@ -817,14 +811,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     });
                     setUserRegistrationSelectIsOpen(false);
                   }}
-
-        selected={formState.workshop.userRegistration}
-        onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
-        toggle={toggle}
-
+                  selected={formState.workshop.userRegistration}
+                  onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+                  toggle={toggle}
                 >
-                  <SelectOption value="open">open registration</SelectOption>
-                  <SelectOption value="pre">pre-registration</SelectOption>
+                  <SelectList>
+                    <SelectOption value="open">open registration</SelectOption>
+                    <SelectOption value="pre">pre-registration</SelectOption>
+                  </SelectList>
                 </Select>
                 <Tooltip
                   position="right"
