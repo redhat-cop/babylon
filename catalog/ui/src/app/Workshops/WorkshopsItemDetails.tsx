@@ -90,21 +90,15 @@ const WorkshopsItemDetails: React.FC<{
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
 
-    const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, workshopProvisions);
+  const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, workshopProvisions);
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
 
   const onToggleClick = () => {
     setUserRegistrationSelectIsOpen(!userRegistrationSelectIsOpen);
   };
 
-
-    const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
-    <MenuToggle
-      ref={toggleRef}
-      onClick={onToggleClick}
-      isExpanded={userRegistrationSelectIsOpen}
-      
-    >
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={userRegistrationSelectIsOpen}>
       {userRegistrationValue}
     </MenuToggle>
   );
@@ -368,18 +362,16 @@ const WorkshopsItemDetails: React.FC<{
             onSelect={(event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
               patchWorkshopSpec({ openRegistration: selectedValue === 'open' }).then(() =>
-                setUserRegistrationSelectIsOpen(false)
+                setUserRegistrationSelectIsOpen(false),
               );
             }}
-
-        selected={userRegistrationValue}
-        onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
-        toggle={toggle}
-        
+            selected={userRegistrationValue}
+            onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+            toggle={toggle}
           >
             <SelectList>
-            <SelectOption value="open">open registration</SelectOption>
-            <SelectOption value="pre">pre-registration</SelectOption>
+              <SelectOption value="open">open registration</SelectOption>
+              <SelectOption value="pre">pre-registration</SelectOption>
             </SelectList>
           </Select>
         </DescriptionListDescription>
