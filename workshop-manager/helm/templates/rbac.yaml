@@ -87,6 +87,13 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - {{ .Values.poolboy.domain }}
+  resources:
+  - resourceproviders
+  verbs:
+  - get
+  - list
 {{ if .Values.deploy }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1

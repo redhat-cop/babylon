@@ -8,6 +8,7 @@ from labuserinterface import LabUserInterface
 import resourceclaim
 import workshop as workshop_import
 
+
 class WorkshopUserAssignment(CachedKopfObject):
     api_group = Babylon.babylon_domain
     api_version = Babylon.babylon_api_version
@@ -18,18 +19,25 @@ class WorkshopUserAssignment(CachedKopfObject):
 
     @classmethod
     def cache_key_from_kwargs(cls, namespace, spec, **kwargs):
-        return (namespace, spec['workshopName'], spec.get('resourceClaimName'), spec.get('userName'))
+        return (
+            namespace,
+            spec['workshopName'],
+            spec.get('resourceClaimName'),
+            spec.get('userName'),
+        )
 
     @classmethod
     async def delete_for_resource_claim(cls, namespace, resource_claim_name, logger):
         async for workshop_user_assignment in cls.list(
-            label_selector = f"{Babylon.resource_claim_label}={resource_claim_name}",
-            namespace = namespace,
+            label_selector=f"{Babylon.resource_claim_label}={resource_claim_name}",
+            namespace=namespace,
         ):
             await workshop_user_assignment.delete()
 
     @classmethod
-    async def find(cls, namespace, workshop_name, resource_claim_name=None, user_name=None):
+    async def find(
+        cls, namespace, workshop_name, resource_claim_name=None, user_name=None
+    ):
         cache_key = (namespace, workshop_name, resource_claim_name, user_name)
         obj = cls.cache.get(cache_key)
         if obj:
@@ -45,11 +53,11 @@ class WorkshopUserAssignment(CachedKopfObject):
         else:
             label_selector += f",!{Babylon.user_name_label}"
         obj_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
-            group = cls.api_group,
-            namespace = namespace,
-            plural = cls.plural,
-            version = cls.api_version,
-            label_selector = label_selector,
+            group=cls.api_group,
+            namespace=namespace,
+            plural=cls.plural,
+            version=cls.api_version,
+            label_selector=label_selector,
         )
         items = obj_list.get('items', [])
         if not items:
@@ -60,7 +68,12 @@ class WorkshopUserAssignment(CachedKopfObject):
         return obj
 
     @classmethod
-    async def create(cls, namespace, resource_claim, workshop_name,
+    async def create(
+        cls,
+        namespace,
+        resource_claim,
+        workshop_name,
+        workshop_id,
         assignment=None,
         data={},
         lab_user_interface=None,
@@ -73,6 +86,7 @@ class WorkshopUserAssignment(CachedKopfObject):
             "metadata": {
                 "generateName": f"{workshop_name}-",
                 "labels": {
+                    Babylon.workshop_id_label: workshop_id,
                     Babylon.workshop_label: workshop_name,
                     Babylon.resource_claim_label: resource_claim.name,
                 },
@@ -82,7 +96,7 @@ class WorkshopUserAssignment(CachedKopfObject):
                 "data": data,
                 "resourceClaimName": resource_claim.name,
                 "workshopName": workshop_name,
-            }
+            },
         }
         if assignment:
             definition['spec']['assignment'] = assignment
@@ -95,11 +109,11 @@ class WorkshopUserAssignment(CachedKopfObject):
             definition['spec']['userName'] = user_name
 
         definition = await Babylon.custom_objects_api.create_namespaced_custom_object(
-            group = cls.api_group,
-            namespace = namespace,
-            plural = cls.plural,
-            version = cls.api_version,
-            body = definition,
+            group=cls.api_group,
+            namespace=namespace,
+            plural=cls.plural,
+            version=cls.api_version,
+            body=definition,
         )
         obj = cls.from_definition(definition)
         cls.cache[obj.cache_key] = obj
@@ -111,7 +125,12 @@ class WorkshopUserAssignment(CachedKopfObject):
 
     @property
     def cache_key(self):
-        return (self.namespace, self.workshop_name, self.resource_claim_name, self.user_name)
+        return (
+            self.namespace,
+            self.workshop_name,
+            self.resource_claim_name,
+            self.user_name,
+        )
 
     @property
     def data(self):
@@ -147,23 +166,29 @@ class WorkshopUserAssignment(CachedKopfObject):
             workshop = await self.get_workshop()
         except kubernetes_asyncio.client.rest.ApiException as exception:
             if exception.status == 404:
-                raise kopf.TemporaryError(f"Workshop {self.workshop_name} was not found.", delay=60)
+                raise kopf.TemporaryError(
+                    f"Workshop {self.workshop_name} was not found.", delay=60
+                )
             raise
 
         async with workshop.lock:
-            await workshop.merge_patch_status({
-                "userAssignments": {
-                    self.name: {
-                        "assignment": self.assignment,
-                        "resourceClaimName": self.resource_claim_name,
-                        "userName": self.user_name,
+            await workshop.merge_patch_status(
+                {
+                    "userAssignments": {
+                        self.name: {
+                            "assignment": self.assignment,
+                            "resourceClaimName": self.resource_claim_name,
+                            "userName": self.user_name,
+                        }
                     }
                 }
-            })
+            )
             await workshop.update_status()
 
     async def get_workshop(self):
-        return await workshop_import.Workshop.get(name=self.workshop_name, namespace=self.namespace)
+        return await workshop_import.Workshop.get(
+            name=self.workshop_name, namespace=self.namespace
+        )
 
     async def handle_create(self, logger):
         async with self.lock:
@@ -184,7 +209,9 @@ class WorkshopUserAssignment(CachedKopfObject):
         try:
             workshop = await self.get_workshop()
             async with workshop.lock:
-                await workshop.merge_patch_status({"userAssignments": {self.name: None}})
+                await workshop.merge_patch_status(
+                    {"userAssignments": {self.name: None}}
+                )
                 await workshop.update_status()
         except kubernetes_asyncio.client.rest.ApiException as exception:
             if exception.status != 404:

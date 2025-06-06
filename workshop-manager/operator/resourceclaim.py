@@ -377,5 +377,6 @@ class ResourceClaim(K8sObject):
                     resource_claim = self,
                     user_name = user_assignment.user_name,
                     workshop_name = workshop.name,
+                    workshop_id=workshop.workshop_id,
                 )
                 logger.info(f"Created {workshop_user_assignment} for {workshop} {self}")

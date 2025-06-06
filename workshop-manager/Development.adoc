@@ -10,13 +10,41 @@ An Ansible test suite is available for functional testing.
 Use of `odo` is recommended for fast iterative development.
 `odo` simplifies the build/deploy process and avoids creating unnecessary build artifacts during the development process.
 
-. Install the `odo` developer CLI as described in the OpenShift documentation:
+Install the `odo` developer CLI as described in the OpenShift documentation:
 https://docs.openshift.com/container-platform/latest/cli_reference/developer_cli_odo/installing-odo.html[Installing odo]
+
+### Replace current deployment
+
+The most simple way is to downscale the current deployment and replace it with a development version using `odo`. This
+is useful since not requiring any additional resources (ClusterRole, ServiceAccount, etc.) and allows you to
+quickly iterate on the code.
+
+. Downscale the current deployment to 0 replicas:
++
+---------------------------------------------------
+oc scale deploy babylon-workshop-manager --replicas=0
+---------------------------------------------------
+
+. Run `odo` in the current project (the path where the `devfile.yaml` is located):
++
+---------------------------------------------------
+odo dev
+---------------------------------------------------
+
+. Cleanup. Upscale the current deployment back to 1 replica:
++---------------------------------------------------
+oc scale deploy babylon-workshop-manager --replicas=1
++---------------------------------------------------
+
+### Create a new development project
+This is useful if you want to keep the current deployment running while you develop a new version of the babylon-workshop-manager.
+
+#### Setup
 
 . Create a project for development using `odo`:
 +
 ---------------------------------------------------
-odo project create babylon-workshop-manager-dev
+oc new-project babylon-workshop-manager-dev
 ---------------------------------------------------
 
 . Create Babylon workshop-manager resources from the provided helm chart:
@@ -38,30 +66,28 @@ oc adm policy add-cluster-role-to-user babylon-workshop-manager-dev -z default
 . Setup `odo` from the provided `devfile.yaml`:
 +
 ---------------------------------
-odo create --devfile devfile.yaml
+odo dev
 ---------------------------------
 
-. Use `odo push` to push code into the odo container:
-+
---------
-odo push
---------
+[TIP]
+====
+Most likely required ClusterRole (e.g. `babylon-workshop-manager`) is already created
+by the existing deployment. In this case, you can skip the `helm template` step and just
+add the ClusterRole to the `default` service account.
+---------------------------------------------------
+oc adm policy add-cluster-role-to-user babylon-workshop-manager -z default
+---------------------------------------------------
+====
 
-. Cleanup
-+
-Remove `odo` component
-+
----------------------------------------------------
-odo delete --force babylon-workshop-manager-dev
----------------------------------------------------
-+
-Remove the `babylon-workshop-manager-dev` cluster role binding
+#### Cleanup
+
+. Remove the `babylon-workshop-manager-dev` cluster role binding
 +
 --------------------------------------------------------------------------------
 oc adm policy remove-cluster-role-from-user babylon-workshop-manager-dev -z default
 --------------------------------------------------------------------------------
 +
-Remove resources created from the helm template
+. Remove resources created from the helm template
 +
 -----------------------------------------------------
 helm template helm \
