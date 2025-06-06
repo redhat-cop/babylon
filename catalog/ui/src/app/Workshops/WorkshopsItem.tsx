@@ -148,7 +148,7 @@ const WorkshopsItemComponent: React.FC<{
   );
   const { data: usageCost } = useSWR<RequestUsageCost>(
     workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`]
-      ? apiPaths.USAGE_COST_WORKSHOP({ requestId: workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] })
+      ? apiPaths.USAGE_COST_WORKSHOP({ workshopId: workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] })
       : null,
     fetcher,
   );
