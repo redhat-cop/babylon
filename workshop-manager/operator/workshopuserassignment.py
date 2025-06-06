@@ -1,11 +1,10 @@
 import kopf
-import kubernetes_asyncio
+from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
 from babylon import Babylon
 from cachedkopfobject import CachedKopfObject
 from labuserinterface import LabUserInterface
 
-import resourceclaim
 import workshop as workshop_import
 
 
@@ -164,7 +163,7 @@ class WorkshopUserAssignment(CachedKopfObject):
     async def copy_to_workshop(self):
         try:
             workshop = await self.get_workshop()
-        except kubernetes_asyncio.client.rest.ApiException as exception:
+        except k8sApiException as exception:
             if exception.status == 404:
                 raise kopf.TemporaryError(
                     f"Workshop {self.workshop_name} was not found.", delay=60
@@ -213,6 +212,6 @@ class WorkshopUserAssignment(CachedKopfObject):
                     {"userAssignments": {self.name: None}}
                 )
                 await workshop.update_status()
-        except kubernetes_asyncio.client.rest.ApiException as exception:
+        except k8sApiException as exception:
             if exception.status != 404:
                 raise
