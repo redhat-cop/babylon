@@ -3,7 +3,7 @@ import json
 from copy import deepcopy
 from datetime import datetime, timezone
 
-import kubernetes_asyncio
+from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
 from babylon import Babylon
 from k8sobject import K8sObject
@@ -41,7 +41,7 @@ class ResourceClaim(K8sObject):
 
         try:
             workshop = await resource_claim.get_workshop()
-        except kubernetes_asyncio.client.rest.ApiException as exception:
+        except k8sApiException as exception:
             if exception.status == 404:
                 logger.warning(
                     f"{resource_claim} references mising Workshop {resource_claim.workshop_name}"
