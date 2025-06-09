@@ -1,16 +1,14 @@
-import os
-import logging
 import asyncio
-import time
-from typing import ClassVar
+import logging
+import os
 from contextlib import asynccontextmanager
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import text
 
-os.environ['TZ'] = 'UTC'
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+os.environ["TZ"] = "UTC"
 logger = logging.getLogger()
 
 
@@ -45,32 +43,52 @@ class Database:
 
     @classmethod
     async def initialize(cls):
-        cls.pool_recycle = int(os.getenv('DB_POOL_RECYCLE', 600))
-        cls.db_pool_size = int(os.getenv('DB_POOL_SIZE', 5))
-        cls.db_max_overflow = int(os.getenv('DB_MAX_OVERFLOW', 30))
-        cls.pool_timeout = int(os.getenv('DB_POOL_TIMEOUT', 45))
-        cls.db_hostname = os.getenv('DB_HOSTNAME')
-        cls.db_port = int(os.getenv('DB_PORT', 54327))
-        cls.db_username = os.getenv('DB_USERNAME')
-        cls.db_password = os.getenv('DB_PASSWORD')
-        cls.db_name = os.getenv('DB_NAME')
+        cls.pool_recycle = int(os.getenv("DB_POOL_RECYCLE", 300))
+        cls.db_pool_size = int(os.getenv("DB_POOL_SIZE", 2))
+        cls.db_idle_timeout_ms = os.getenv("DB_IDLE_TIMEOUT_MS", "30000")
+        cls.db_max_overflow = int(os.getenv("DB_MAX_OVERFLOW", 30))
+        cls.pool_timeout = int(os.getenv("DB_POOL_TIMEOUT", 45))
+        cls.db_hostname = os.getenv("DB_HOSTNAME")
+        cls.db_port = int(os.getenv("DB_PORT", 54327))
+        cls.db_username = os.getenv("DB_USERNAME")
+        cls.db_password = os.getenv("DB_PASSWORD")
+        cls.db_name = os.getenv("DB_NAME")
         cls.db_url = f"postgresql+asyncpg://{cls.db_username}:{cls.db_password}@{cls.db_hostname}:{cls.db_port}/{cls.db_name}"
         cls.sync_db_url = f"postgresql://{cls.db_username}:{cls.db_password}@{cls.db_hostname}:{cls.db_port}/{cls.db_name}"
 
         try:
-            cls.sync_engine = create_engine(cls.sync_db_url, echo=True)
+            cls.sync_engine = create_engine(
+                cls.sync_db_url,
+                echo=False,
+                future=True,
+                pool_use_lifo=True,
+                connect_args={
+                    "application_name": cls.app_name,
+                    "options": f"-c idle_session_timeout={cls.db_idle_timeout_ms}",
+                },
+            )
+
             # Create a new engine with QueuePool to use the reconnect method
-            cls.async_engine = create_async_engine(cls.db_url, pool_pre_ping=True,
-                                                   pool_size=cls.db_pool_size,
-                                                   max_overflow=cls.db_max_overflow,
-                                                   pool_recycle=cls.pool_recycle,
-                                                   pool_timeout=cls.pool_timeout,
-                                                   echo=False,
-                                                   future=True,
-                                                   isolation_level='READ COMMITTED')
+            cls.async_engine = create_async_engine(
+                cls.sync_db_url,
+                max_overflow=cls.db_max_overflow,
+                pool_pre_ping=True,
+                pool_recycle=cls.pool_recycle,
+                pool_size=cls.db_pool_size,
+                pool_timeout=cls.pool_timeout,
+                pool_use_lifo=True,
+                echo=False,
+                connect_args={
+                    "server_settings": {
+                        "application_name": cls.app_name,
+                        "idle_session_timeout": cls.db_idle_timeout_ms,
+                    }
+                },
+            )
             # Configure the session to use the new engine and pool
-            cls.async_session = sessionmaker(cls.async_engine, expire_on_commit=False,
-                                             class_=AsyncSession)
+            cls.async_session = sessionmaker(
+                cls.async_engine, expire_on_commit=False, class_=AsyncSession
+            )
 
             try:
                 async with cls.get_session() as session:
@@ -79,7 +97,9 @@ class Database:
                 raise ValueError(f"Database connection failed: {ex}")
 
         except SQLAlchemyError as ex:
-            logger.error(f"Error occurred while initializing the database: {ex}", exc_info=True)
+            logger.error(
+                f"Error occurred while initializing the database: {ex}", exc_info=True
+            )
             pass
 
     @classmethod
@@ -103,3 +123,22 @@ class Database:
     async def wait_for_pool(cls):
         while await cls.is_pool_full():
             await asyncio.sleep(2)
+
+    @property
+    def app_name(self) -> str:
+        """
+        Application name for Postgres connections (max 60 chars).
+        Format: {app_type}-{cluster}-{pod_name}
+        Example: us-east-1-ratings-api-7fc94dd95d-knw7k
+        """
+        cluster_domain = os.getenv("CLUSTER_DOMAIN", "babydev.dev.open.redhat.com")
+        cluster_name = cluster_domain.split(".")[0]
+
+        # Get pod name if running in Kubernetes
+        pod_name = os.environ.get("HOSTNAME", "unknown")
+
+        # Build the identifier
+        identifier = f"{cluster_name}-{pod_name}"
+
+        # Ensure it fits within Postgres' 60 char limit
+        return f"{identifier}"[:60]
