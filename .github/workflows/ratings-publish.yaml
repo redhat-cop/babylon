@@ -74,7 +74,7 @@ jobs:
         with:
           registry: ${{ secrets.REGISTRY_URI }}
           username: ${{ secrets.GPTE_REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          password: ${{ secrets.GPTE_REGISTRY_PASSWORD }}
 
       - name: Build and push
         if: steps.image_tags.outputs.IMAGE_TAGS
