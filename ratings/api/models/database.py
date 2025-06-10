@@ -63,7 +63,7 @@ class Database:
                 future=True,
                 pool_use_lifo=True,
                 connect_args={
-                    "application_name": cls.app_name,
+                    "application_name": cls.app_name(),
                     "options": f"-c idle_session_timeout={cls.db_idle_timeout_ms}",
                 },
             )
@@ -81,7 +81,7 @@ class Database:
                 connect_args={
                     "command_timeout": 60,
                     "server_settings": {
-                        "application_name": cls().app_name,
+                        "application_name": cls.app_name(),
                         "idle_session_timeout": str(cls.db_idle_timeout_ms),
                     },
                 },
@@ -127,8 +127,8 @@ class Database:
         while await cls.is_pool_full():
             await asyncio.sleep(2)
 
-    @property
-    def app_name(self) -> str:
+    @classmethod
+    def app_name(cls) -> str:
         """
         Application name for Postgres connections (max 60 chars).
         Format: {app_type}-{cluster}-{pod_name}

@@ -21,7 +21,7 @@ spec:
         {{- include "babylon.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: ratings
       annotations:
-        checksum/database-secret: {{ include (print $.Template.BasePath "/ratings/database-secrets.yaml") . | sha256sum }}
+        secret.reloader.stakater.com/auto: "true"
     spec:
       containers:
       - name: ratings-api
