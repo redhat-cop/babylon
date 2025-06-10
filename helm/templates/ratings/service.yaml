@@ -1,0 +1,20 @@
+{{ if .Values.ratings.deploy }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "babylon.name" . }}-ratings
+  namespace: {{ .Values.ratings.namespace.name | default (printf "%s-ratings" .Release.Namespace) }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ratings
+spec:
+  type: ClusterIP
+  ports:
+  - name: ratings-api
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    {{- include "babylon.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ratings
+{{ end }} 

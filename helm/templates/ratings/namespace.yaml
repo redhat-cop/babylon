@@ -1,0 +1,9 @@
+{{ if .Values.ratings.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.ratings.namespace.name | default (printf "%s-ratings" .Release.Namespace) }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ratings
+{{ end }} 
