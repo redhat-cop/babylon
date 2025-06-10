@@ -12,7 +12,7 @@ const AnarchyActionSelect: React.FC<{
   };
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
-      {action}
+      {action || '-'}
     </MenuToggle>
   );
 
@@ -25,7 +25,7 @@ const AnarchyActionSelect: React.FC<{
         onSelect(valueKey === '-' ? null : valueKey);
         setIsOpen(false);
       }}
-      selected={action}
+      selected={action || '-'}
       onOpenChange={(isOpen) => setIsOpen(isOpen)}
       toggle={toggle}
     >

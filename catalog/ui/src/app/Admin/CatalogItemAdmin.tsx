@@ -78,7 +78,7 @@ const CatalogItemAdmin: React.FC = () => {
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
-      {isReadOnlyValue}
+      {status}
     </MenuToggle>
   );
 
