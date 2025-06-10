@@ -59,4 +59,5 @@ const CatalogNamespaceSelect: React.FC<{
   );
 };
 
+
 export default CatalogNamespaceSelect;
