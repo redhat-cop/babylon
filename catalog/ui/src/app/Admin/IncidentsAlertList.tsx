@@ -75,7 +75,6 @@ const IncidentsAlertList: React.FC = () => {
   const { userInterface } = useSession().getSession();
   const [state, dispatch] = useReducer(reducer, { ...initialState, interface: userInterface });
   const [isOpen, setIsOpen] = useState(false);
-  const [isDisabled, setIsDisabled] = React.useState<boolean>(false);
 
   const [incidentModal, openIncidentModal] = useModal();
   const { data: activeIncidents, mutate } = useSWR<Incident[]>(
@@ -91,18 +90,8 @@ const IncidentsAlertList: React.FC = () => {
   };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
-    <MenuToggle
-      ref={toggleRef}
-      onClick={onToggleClick}
-      isExpanded={isOpen}
-      isDisabled={isDisabled}
-      style={
-        {
-          width: '200px',
-        } as React.CSSProperties
-      }
-    >
-      {state.level}
+    <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
+      {state.level === 'info' ? 'Info' : state.level === 'warning' ? 'Warning' : 'Critical'}
     </MenuToggle>
   );
 
@@ -176,7 +165,7 @@ const IncidentsAlertList: React.FC = () => {
                   });
                   setIsOpen(false);
                 }}
-                selected={state.level}
+                selected={state.level === 'info' ? 'Info' : state.level === 'warning' ? 'Warning' : 'Critical'}
                 onOpenChange={(isOpen) => setIsOpen(isOpen)}
                 toggle={toggle}
               >

@@ -12,7 +12,7 @@ const AnarchyRunnerStateSelect: React.FC<{
   };
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
-      {runnerState}
+      {runnerState || '-'}
     </MenuToggle>
   );
 
@@ -25,7 +25,7 @@ const AnarchyRunnerStateSelect: React.FC<{
         onSelect(valueKey === '-' ? null : valueKey);
         setIsOpen(false);
       }}
-      selected={runnerState}
+      selected={runnerState || '-'}
       onOpenChange={(isOpen) => setIsOpen(isOpen)}
       toggle={toggle}
     >
