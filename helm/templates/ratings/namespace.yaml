@@ -1,4 +1,4 @@
-{{ if .Values.ratings.namespace.create }}
+{{ if and (.Values.ratings).namespace.create (.Values.ratings).deploy }}
 apiVersion: v1
 kind: Namespace
 metadata:
