@@ -134,8 +134,10 @@ class Database:
         Format: {app_type}-{cluster}-{pod_name}
         Example: us-east-1-ratings-api-7fc94dd95d-knw7k
         """
-        cluster_domain = os.getenv("CLUSTER_DOMAIN", "babydev.dev.open.redhat.com")
-        cluster_name = cluster_domain.split(".")[0]
+        cluster_domain = os.getenv("CLUSTER_DOMAIN")
+        cluster_name = ""
+        if cluster_domain:
+            cluster_name = cluster_domain.split(".")[0]
 
         # Get pod name if running in Kubernetes
         pod_name = os.environ.get("HOSTNAME", "unknown")

@@ -30,8 +30,10 @@ spec:
           value: api
         - name: TZ
           value: 'UTC'
+        {{- if .Values.clusterDomain }}
         - name: CLUSTER_DOMAIN
-          value: {{ .Values.clusterDomain | default "babydev.dev.open.redhat.com" }}
+          value: {{ .Values.clusterDomain}}
+        {{- end }}
         - name: DB_HOSTNAME_RO
           valueFrom:
             secretKeyRef:
