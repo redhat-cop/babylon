@@ -1,9 +1,9 @@
-{{ if (.Values.ratings).deploy }}
+{{ if .Values.ratings.deploy }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "babylon.name" . }}-ratings
-  namespace: {{ .Values.ratings.namespace.name | default (printf "%s-ratings" .Release.Namespace) }}
+  namespace: {{ .Values.ratings.namespace.name }}
   labels:
     {{- include "babylon.labels" . | nindent 4 }}
     app.kubernetes.io/component: ratings
@@ -17,4 +17,4 @@ spec:
   selector:
     {{- include "babylon.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: ratings
-{{ end }} 
+{{ end }}

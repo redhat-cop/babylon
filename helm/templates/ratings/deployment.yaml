@@ -1,9 +1,9 @@
-{{ if (.Values.ratings).deploy }}
+{{ if .Values.ratings.deploy }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: babylon-ratings
-  namespace: {{ .Values.ratings.namespace.name | default (printf "%s-ratings" .Release.Namespace) }}
+  namespace: {{ .Values.ratings.namespace.name }}
   labels:
     {{- include "babylon.labels" . | nindent 4 }}
     app.kubernetes.io/component: ratings
@@ -36,33 +36,33 @@ spec:
           valueFrom:
             secretKeyRef:
               key: hostname_ro
-              name: {{ .Values.ratings.db.secretName | default "database" }}
+              name: {{ .Values.ratings.db.secretName }}
         - name: DB_HOSTNAME
           valueFrom:
             secretKeyRef:
               key: hostname
-              name: {{ .Values.ratings.db.secretName | default "database" }}
+              name: {{ .Values.ratings.db.secretName }}
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               key: password
-              name: {{ .Values.ratings.db.secretName | default "database" }}
+              name: {{ .Values.ratings.db.secretName }}
         - name: DB_NAME
           valueFrom:
             secretKeyRef:
               key: name
-              name: {{ .Values.ratings.db.secretName | default "database" }}
+              name: {{ .Values.ratings.db.secretName }}
         - name: DB_USERNAME
           valueFrom:
             secretKeyRef:
               key: username
-              name: {{ .Values.ratings.db.secretName | default "database" }}
+              name: {{ .Values.ratings.db.secretName }}
         - name: DB_PORT
           valueFrom:
             secretKeyRef:
               key: port
-              name: {{ .Values.ratings.db.secretName | default "database" }}
-        image: {{ .Values.ratings.image.repository }}:{{ .Values.ratings.image.tag | default "latest" }}
+              name: {{ .Values.ratings.db.secretName }}
+        image: {{ .Values.ratings.image.repository }}:{{ .Values.ratings.image.tag }}
         imagePullPolicy: {{ .Values.ratings.image.pullPolicy }}
         resources:
           {{- toYaml .Values.ratings.resources | nindent 12 }}
@@ -90,4 +90,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-{{ end }} 
+{{ end }}

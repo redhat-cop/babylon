@@ -1,4 +1,4 @@
-{{ if and (.Values.ratings).deploy }}
+{{ if and .Values.ratings.deploy }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -75,5 +75,5 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: {{ include "babylon.name" . }}-ratings
-  namespace: {{ .Values.ratings.namespace.name | default (printf "%s-ratings" .Release.Namespace) }}
+  namespace: {{ .Values.ratings.namespace.name }}
 {{ end }}
