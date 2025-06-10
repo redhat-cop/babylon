@@ -1,0 +1,95 @@
+{{ if .Values.ratings.deploy }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-ratings
+  namespace: {{ .Values.ratings.namespace.name }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ratings
+spec:
+  replicas: {{ .Values.ratings.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: ratings
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: ratings
+      annotations:
+        secret.reloader.stakater.com/auto: "true"
+    spec:
+      containers:
+      - name: ratings-api
+        env:
+        - name: RATINGS_COMPONENT
+          value: api
+        - name: TZ
+          value: 'UTC'
+        {{- if .Values.clusterDomain }}
+        - name: CLUSTER_DOMAIN
+          value: {{ .Values.clusterDomain}}
+        {{- end }}
+        - name: DB_HOSTNAME_RO
+          valueFrom:
+            secretKeyRef:
+              key: hostname_ro
+              name: {{ .Values.ratings.db.secretName }}
+        - name: DB_HOSTNAME
+          valueFrom:
+            secretKeyRef:
+              key: hostname
+              name: {{ .Values.ratings.db.secretName }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: {{ .Values.ratings.db.secretName }}
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              key: name
+              name: {{ .Values.ratings.db.secretName }}
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: {{ .Values.ratings.db.secretName }}
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              key: port
+              name: {{ .Values.ratings.db.secretName }}
+        image: {{ .Values.ratings.image.repository }}:{{ .Values.ratings.image.tag }}
+        imagePullPolicy: {{ .Values.ratings.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.ratings.resources | nindent 12 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      {{- with .Values.ratings.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ratings.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: {{ include "babylon.name" . }}-ratings
+      terminationGracePeriodSeconds: 30
+      {{- with .Values.ratings.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ratings.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{ end }}

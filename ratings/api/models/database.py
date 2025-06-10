@@ -63,14 +63,14 @@ class Database:
                 future=True,
                 pool_use_lifo=True,
                 connect_args={
-                    "application_name": cls.app_name,
+                    "application_name": cls.app_name(),
                     "options": f"-c idle_session_timeout={cls.db_idle_timeout_ms}",
                 },
             )
 
             # Create a new engine with QueuePool to use the reconnect method
             cls.async_engine = create_async_engine(
-                cls.sync_db_url,
+                cls.db_url,
                 max_overflow=cls.db_max_overflow,
                 pool_pre_ping=True,
                 pool_recycle=cls.pool_recycle,
@@ -79,10 +79,11 @@ class Database:
                 pool_use_lifo=True,
                 echo=False,
                 connect_args={
+                    "command_timeout": 60,
                     "server_settings": {
-                        "application_name": cls.app_name,
-                        "idle_session_timeout": cls.db_idle_timeout_ms,
-                    }
+                        "application_name": cls.app_name(),
+                        "idle_session_timeout": str(cls.db_idle_timeout_ms),
+                    },
                 },
             )
             # Configure the session to use the new engine and pool
@@ -98,9 +99,11 @@ class Database:
 
         except SQLAlchemyError as ex:
             logger.error(
-                f"Error occurred while initializing the database: {ex}", exc_info=True
+                f"Error occurred while initializing the database: {ex}",
+                exc_info=True,
+                stack_info=True,
             )
-            pass
+            raise ValueError(f"Failed to initialize database: {ex}")
 
     @classmethod
     async def shutdown(cls):
@@ -124,15 +127,17 @@ class Database:
         while await cls.is_pool_full():
             await asyncio.sleep(2)
 
-    @property
-    def app_name(self) -> str:
+    @classmethod
+    def app_name(cls) -> str:
         """
         Application name for Postgres connections (max 60 chars).
         Format: {app_type}-{cluster}-{pod_name}
         Example: us-east-1-ratings-api-7fc94dd95d-knw7k
         """
-        cluster_domain = os.getenv("CLUSTER_DOMAIN", "babydev.dev.open.redhat.com")
-        cluster_name = cluster_domain.split(".")[0]
+        cluster_domain = os.getenv("CLUSTER_DOMAIN")
+        cluster_name = ""
+        if cluster_domain:
+            cluster_name = cluster_domain.split(".")[0]
 
         # Get pod name if running in Kubernetes
         pod_name = os.environ.get("HOSTNAME", "unknown")
