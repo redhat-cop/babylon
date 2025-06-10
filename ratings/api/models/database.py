@@ -141,7 +141,7 @@ class Database:
         pod_name = os.environ.get("HOSTNAME", "unknown")
 
         # Build the identifier
-        identifier = f"{cluster_name}-ratings-api-{pod_name}"
+        identifier = f"{cluster_name}-{pod_name}"
 
         # Ensure it fits within Postgres' 60 char limit
         return f"{identifier}"[:60]
