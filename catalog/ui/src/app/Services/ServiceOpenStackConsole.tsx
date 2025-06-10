@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Spinner } from '@patternfly/react-core';
-import { Dropdown, DropdownToggle, DropdownItem } from '@patternfly/react-core/deprecated';
+import { Dropdown, MenuToggle, MenuToggleElement, DropdownItem } from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import {
   getOpenStackServersForResourceClaim,
@@ -135,13 +135,14 @@ const ServiceOpenStackConsole: React.FC<{
       {serverDropdownItems.length > 1 ? (
         <Dropdown
           onSelect={onServerSelect}
-          toggle={
-            <DropdownToggle onToggle={() => setServerSelectIsOpen((v) => !v)} toggleIndicator={CaretDownIcon}>
+          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+            <MenuToggle onClick={() => setServerSelectIsOpen((v) => !v)} icon={<CaretDownIcon />}>
               Select Server
-            </DropdownToggle>
-          }
+            </MenuToggle>
+          )}
           isOpen={serverSelectIsOpen}
-          dropdownItems={serverDropdownItems}
+          onOpenChange={(isOpen: boolean) => setServerSelectIsOpen(isOpen)}
+          ouiaId="ServiceOpenStackConsole"
         />
       ) : null}
       {serverState?.status === 'ACTIVE' ? (
