@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PageSection, PageSectionVariants } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
+import { Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import { displayName } from '@app/util';
 
@@ -15,18 +15,24 @@ const CatalogNamespaceSelect: React.FC<{
 
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
+  const onToggleClick = () => {
+    setIsOpen(!isOpen);
+  };
+
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-namespace-select">
       <Dropdown
         isPlain
         isOpen={isOpen}
-        toggle={
-          <DropdownToggle onToggle={() => setIsOpen((v) => !v)}>
+        toggle={(ns: React.Ref<MenuToggleElement>) => (
+          <MenuToggle ref={ns} isFullWidth onClick={onToggleClick} isExpanded={isOpen}>
             Catalog: {selected ? displayName(selectedCatalogNamespace) : 'all catalogs'}
-          </DropdownToggle>
-        }
-        dropdownItems={[
+          </MenuToggle>
+        )}
+      >
+        <DropdownList>
           <DropdownItem
+            value={0}
             key="*"
             onClick={() => {
               setIsOpen(false);
@@ -34,9 +40,10 @@ const CatalogNamespaceSelect: React.FC<{
             }}
           >
             - all catalogs -
-          </DropdownItem>,
-          ...catalogNamespaces.map((ns) => (
+          </DropdownItem>
+          {...catalogNamespaces.map((ns) => (
             <DropdownItem
+              value={1}
               key={ns.name}
               onClick={() => {
                 setIsOpen(false);
@@ -45,9 +52,9 @@ const CatalogNamespaceSelect: React.FC<{
             >
               {displayName(ns)}
             </DropdownItem>
-          )),
-        ]}
-      />
+          ))}
+        </DropdownList>
+      </Dropdown>
     </PageSection>
   );
 };
