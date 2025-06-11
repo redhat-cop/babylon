@@ -25,10 +25,10 @@ spec:
           value: api
         - name: TZ
           value: 'UTC'
-        - name: DB_MAX_OVERFLOW
-          value: {{ default "40" .Values.db.maxOverflow |quote }}
-        - name: DB_POOL_SIZE
-          value: {{ default "10" .Values.db.poolSize |quote }}
+        {{- if .Values.clusterDomain }}
+        - name: CLUSTER_DOMAIN
+          value: {{ .Values.clusterDomain }}
+        {{- end }}
         - name: DB_HOSTNAME
           valueFrom:
             secretKeyRef:
