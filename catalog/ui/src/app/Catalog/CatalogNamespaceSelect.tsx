@@ -12,7 +12,6 @@ const CatalogNamespaceSelect: React.FC<{
 }> = ({ onSelect, selected }) => {
   const { catalogNamespaces } = useSession().getSession();
   const selectedCatalogNamespace = catalogNamespaces.find((ns) => ns.name === selected);
-
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   const onToggleClick = () => {
