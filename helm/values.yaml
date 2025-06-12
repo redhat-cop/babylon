@@ -263,7 +263,7 @@ ratings:
   image:
     repository: quay.io/redhat-gpte/babylon-ratings
     pullPolicy: Always
-    tag: v1.0.10
+    tag: v1.0.11
   resources:
     limits:
       cpu: "1"
