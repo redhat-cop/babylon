@@ -1,5 +1,4 @@
 import React from 'react';
-import { DropdownPosition } from '@patternfly/react-core/deprecated';
 import EllipsisVIcon from '@patternfly/react-icons/dist/js/icons/ellipsis-v-icon';
 import { ResourceClaim } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
@@ -24,7 +23,7 @@ const ServiceActions: React.FC<{
   };
   className?: string;
   isDisabled?: boolean;
-  position?: DropdownPosition | 'right' | 'left';
+  position?: 'right' | 'left';
   resourceClaim?: ResourceClaim;
   serviceName?: string;
   iconOnly?: boolean;
@@ -115,7 +114,6 @@ const ServiceActions: React.FC<{
       actionDropdownItems={actionDropdownItems}
       className={className}
       isDisabled={isDisabled}
-      position={position}
       icon={iconOnly ? EllipsisVIcon : null}
       isPlain={iconOnly ? true : false}
     />
