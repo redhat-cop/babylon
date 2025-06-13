@@ -40,7 +40,7 @@ const CatalogNamespaceSelect: React.FC<{
           >
             - all catalogs -
           </DropdownItem>
-          {...catalogNamespaces.map((ns) => (
+          {catalogNamespaces.map((ns) => (
             <DropdownItem
               value={ns.name}
               key={ns.name}
