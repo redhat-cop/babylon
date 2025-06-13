@@ -143,7 +143,7 @@ const ServiceOpenStackConsole: React.FC<{
           isOpen={serverSelectIsOpen}
           onOpenChange={(isOpen: boolean) => setServerSelectIsOpen(isOpen)}
         >
-          <DropdownList>{...serverDropdownItems}</DropdownList>
+          <DropdownList>{serverDropdownItems.map((item) => item)}</DropdownList>
         </Dropdown>
       ) : null}
       {serverState?.status === 'ACTIVE' ? (

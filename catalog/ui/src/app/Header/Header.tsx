@@ -198,7 +198,7 @@ const Header: React.FC<{
           </MenuToggle>
         )}
       >
-        <DropdownList>{...UserControlDropdownItems}</DropdownList>
+        <DropdownList>{UserControlDropdownItems.map((item) => item)}</DropdownList>
       </Dropdown>
 
       {impersonateUserModalIsOpen ? (
