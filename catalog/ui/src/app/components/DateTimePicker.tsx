@@ -179,7 +179,7 @@ const DateTimePicker: React.FC<{
         </MenuToggle>
       )}
     >
-      <DropdownList>{...timeOptions}</DropdownList>
+      <DropdownList>{timeOptions.map((item) => item)}</DropdownList>
     </Dropdown>
   );
 

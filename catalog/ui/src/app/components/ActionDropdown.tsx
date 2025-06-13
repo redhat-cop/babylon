@@ -32,7 +32,7 @@ const ActionDropdown: React.FC<{
         </MenuToggle>
       )}
     >
-      <DropdownList>{...actionDropdownItems}</DropdownList>
+      <DropdownList>{actionDropdownItems.map((item) => item)}</DropdownList>
     </Dropdown>
   );
 };
