@@ -14,12 +14,6 @@ import {
   PageToggleButton,
   MenuToggleElement,
 } from '@patternfly/react-core';
-import {
-  Dropdown as DropdownLegacy,
-  DropdownItem as DropdownItemLegacy,
-  DropdownPosition,
-  DropdownToggle,
-} from '@patternfly/react-core/deprecated';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
@@ -51,6 +45,10 @@ const Header: React.FC<{
   const menuRef = React.useRef<HTMLDivElement>(null);
   const { help_text, status_page_url, feedback_link, learn_more_link, workshop_support_text, workshop_support_link } =
     useInterfaceConfig();
+
+  const onToggleClick = () => {
+    setUserHelpDropdownOpen(!isUserHelpDropdownOpen);
+  };
 
   function clearUserImpersonation() {
     clearImpersonation();
@@ -88,27 +86,27 @@ const Header: React.FC<{
     userHelpDropdownItems.push(
       <DropdownItem key="workshop-support" value={workshop_support_link}>
         {workshop_support_text}
-      </DropdownItem>
+      </DropdownItem>,
     );
   }
 
   userHelpDropdownItems.push(
     <DropdownItem key="status-page-link" value={status_page_url}>
       Status Page
-    </DropdownItem>
+    </DropdownItem>,
   );
 
   if (userInterface === 'rhpds') {
     userHelpDropdownItems.push(
       <DropdownItem key="support-sla" value="/support">
         Solution Support: Service Level
-      </DropdownItem>
+      </DropdownItem>,
     );
   }
   userHelpDropdownItems.push(
     <DropdownItem key="learn-more" value={learn_more_link}>
       Learn more
-    </DropdownItem>
+    </DropdownItem>,
   );
   if (userInterface === 'rhpds') {
     userHelpDropdownItems.push(
@@ -117,11 +115,11 @@ const Header: React.FC<{
         value="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
       >
         How to videos
-      </DropdownItem>
+      </DropdownItem>,
     );
   }
   const UserControlDropdownItems = [
-    <DropdownItemLegacy
+    <DropdownItem
       key="logout"
       href="/oauth/sign_out"
       onClick={() => {
@@ -129,19 +127,19 @@ const Header: React.FC<{
       }}
     >
       Log out
-    </DropdownItemLegacy>,
+    </DropdownItem>,
   ];
   if (isAdmin || userImpersonated) {
     UserControlDropdownItems.push(
-      <DropdownItemLegacy key="impersonate" onClick={() => setImpersonateUserModalIsOpen(true)}>
+      <DropdownItem key="impersonate" onClick={() => setImpersonateUserModalIsOpen(true)}>
         Impersonate user
-      </DropdownItemLegacy>
+      </DropdownItem>,
     );
     if (userImpersonated) {
       UserControlDropdownItems.push(
-        <DropdownItemLegacy key="clear-impersonation" onClick={clearUserImpersonation}>
+        <DropdownItem key="clear-impersonation" onClick={clearUserImpersonation}>
           Clear user impersonation
-        </DropdownItemLegacy>
+        </DropdownItem>,
       );
     }
   }
@@ -189,23 +187,20 @@ const Header: React.FC<{
         <DropdownList>{userHelpDropdownItems}</DropdownList>
       </Dropdown>
 
-      <DropdownLegacy
+      <Dropdown
         className={`header-component__user-controls${
           userImpersonated ? ' header-component__user-controls--warning' : ''
         }`}
-        position={DropdownPosition.right}
         isOpen={isUserControlDropdownOpen}
-        dropdownItems={UserControlDropdownItems}
-        toggle={
-          <DropdownToggle
-            aria-label="Loging menu"
-            onToggle={() => setUserControlDropdownOpen((isOpen) => !isOpen)}
-            toggleIndicator={CaretDownIcon}
-          >
+        toggle={(el: React.Ref<MenuToggleElement>) => (
+          <MenuToggle ref={el} aria-label="Log in menu" onClick={() => setUserControlDropdownOpen((isOpen) => !isOpen)}>
             {userImpersonated ? userImpersonated : email}
-          </DropdownToggle>
-        }
-      />
+          </MenuToggle>
+        )}
+      >
+        <DropdownList>{...UserControlDropdownItems}</DropdownList>
+      </Dropdown>
+
       {impersonateUserModalIsOpen ? (
         <ImpersonateUserModal isOpen={true} onClose={() => setImpersonateUserModalIsOpen(false)} />
       ) : null}

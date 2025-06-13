@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dropdown, DropdownItem, DropdownPosition, DropdownToggle } from '@patternfly/react-core/deprecated';
+import { Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 
@@ -9,10 +9,9 @@ const ActionDropdown: React.FC<{
   actionDropdownItems: any;
   className?: string;
   isDisabled?: boolean;
-  position: DropdownPosition | 'right' | 'left';
   icon?: React.ComponentClass<SVGIconProps>;
   isPlain?: boolean;
-}> = ({ actionDropdownItems, className, isDisabled = false, position, icon, isPlain = false }) => {
+}> = ({ actionDropdownItems, className, isDisabled = false, icon, isPlain = false }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const Icon = icon;
   return (
@@ -20,19 +19,21 @@ const ActionDropdown: React.FC<{
       className={`action-dropdown${className ? ` ${className}` : ''}`}
       isOpen={isOpen}
       onSelect={() => setIsOpen(false)}
-      position={position}
       isPlain={isPlain}
-      toggle={
-        <DropdownToggle
-          toggleIndicator={isPlain ? null : CaretDownIcon}
+      onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
+      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+        <MenuToggle
+          ref={toggleRef}
+          icon={isPlain ? null : <CaretDownIcon />}
           isDisabled={isDisabled}
-          onToggle={() => setIsOpen((v) => !v)}
+          onClick={() => setIsOpen((v) => !v)}
         >
           {icon ? <Icon /> : 'Actions'}
-        </DropdownToggle>
-      }
-      dropdownItems={actionDropdownItems}
-    />
+        </MenuToggle>
+      )}
+    >
+      <DropdownList>{...actionDropdownItems}</DropdownList>
+    </Dropdown>
   );
 };
 
