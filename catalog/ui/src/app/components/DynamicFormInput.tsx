@@ -23,7 +23,7 @@ const DynamicFormInput: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
   if (parameter.openAPIV3Schema?.enum || parameter.openAPIV3Schema?.['x-form-options']) {
     if (parameter.openAPIV3Schema?.['x-display'] === 'radio') {
-      return (parameter.openAPIV3Schema?.enum).map((v: string) => (
+      return (parameter.openAPIV3Schema?.enum).map((v: string | number) => (
         <Radio
           isChecked={value === v}
           id={`${parameter.name}--${v}`}
@@ -70,10 +70,10 @@ const DynamicFormInput: React.FC<{
         >
           <SelectList>
             {(parameter.openAPIV3Schema?.['x-form-options'] || parameter.openAPIV3Schema?.enum).map(
-              (option: string | { name: string; value: string }) =>
-                typeof option === 'string' ? (
-                  <SelectOption key={option} value={option}>
-                    {option}
+              (option: string | number | { name: string; value: string }) =>
+                typeof option === 'string' || typeof option === 'number' ? (
+                  <SelectOption key={String(option)} value={option}>
+                    {String(option)}
                   </SelectOption>
                 ) : (
                   <SelectOption key={option.value} value={option.value}>

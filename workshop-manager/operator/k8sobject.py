@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-import kubernetes_asyncio
+from kubernetes_asyncio.client.rest import ApiException as k8sApiException
 
 from babylon import Babylon
 
@@ -121,7 +121,7 @@ class K8sObject:
                 version = self.api_version,
             )
             self.definition = definition
-        except kubernetes_asyncio.client.rest.ApiException as exception:
+        except k8sApiException as exception:
             if exception.status != 404:
                 raise
 

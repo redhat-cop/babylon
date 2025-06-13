@@ -1,3 +1,2 @@
-
-.odo/env
-.odo/odo-file-index.json
+.odo
+typings

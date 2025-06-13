@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Button, NumberInput } from '@patternfly/react-core';
+import { NumberInput } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 
 /* PatientNumberInput which aggregates consecutive changes into single events (throttle) */

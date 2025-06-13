@@ -1,14 +1,13 @@
 import logging
 from datetime import datetime
-from fastapi import FastAPI,Request
+
+from babylon import Babylon
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from models import Database as db
-from models.custom_base import create_tables
-from routers import ratings, bookmarks
-from babylon import Babylon
+from routers import bookmarks, ratings
 
-
-logger = logging.getLogger('babylon-ratings')
+logger = logging.getLogger("babylon-ratings")
 
 app = FastAPI()
 
@@ -17,7 +16,6 @@ app = FastAPI()
 async def on_startup():
     await Babylon.on_startup()
     await db.initialize()
-    await create_tables()
 
 
 @app.on_event("shutdown")
@@ -44,7 +42,7 @@ async def log_access(request: Request, call_next):
         "query": request.url.query,
         "fragment": request.url.fragment,
         "status_code": response.status_code,
-        "response_time": f"{duration}ms"
+        "response_time": f"{duration}ms",
     }
 
     log.info(log_data)
@@ -56,9 +54,9 @@ async def log_access(request: Request, call_next):
 async def index(request: Request):
     client_ip = request.client.host
     msg = f"Index page requested by IP: {client_ip}"
-    user_agent = request.headers.get('user-agent')
+    user_agent = request.headers.get("user-agent")
     msg += f", User-Agent: {user_agent}"
-    referer = request.headers.get('referer')
+    referer = request.headers.get("referer")
     msg += f", Referer: {referer}"
     request_method = request.method
     msg += f", Method: {request_method}"
