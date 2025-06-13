@@ -139,7 +139,6 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
           </SplitItem>
           <SplitItem>
             <ActionDropdown
-              position="right"
               actionDropdownItems={[
                 <ActionDropdownItem key="delete" label="Delete ResourcePool" onSelect={confirmThenDelete} />,
                 <ActionDropdownItem

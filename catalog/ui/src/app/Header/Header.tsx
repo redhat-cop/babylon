@@ -35,7 +35,7 @@ const Header: React.FC<{
   isMobileView: boolean;
   theme: 'dark' | 'light200';
 }> = ({ isNavOpen, isMobileView, onNavToggle, onNavToggleMobile, theme = 'dark' }) => {
-  const [isUserControlDropdownOpen, setUserControlDropdownOpen] = useState(false);
+  const [isUserControlDropdownOpen, setIsUserControlDropdownOpen] = useState(false);
   const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
   const { clearImpersonation, userImpersonated } = useImpersonateUser();
   const [impersonateUserModalIsOpen, setImpersonateUserModalIsOpen] = useState(false);
@@ -52,7 +52,7 @@ const Header: React.FC<{
 
   function clearUserImpersonation() {
     clearImpersonation();
-    setUserControlDropdownOpen(false);
+    setIsUserControlDropdownOpen(false);
   }
 
   function LogoImg() {
@@ -192,8 +192,15 @@ const Header: React.FC<{
           userImpersonated ? ' header-component__user-controls--warning' : ''
         }`}
         isOpen={isUserControlDropdownOpen}
+        onOpenChange={(isOpen: boolean) => setIsUserControlDropdownOpen(isOpen)}
         toggle={(el: React.Ref<MenuToggleElement>) => (
-          <MenuToggle ref={el} aria-label="Log in menu" onClick={() => setUserControlDropdownOpen((isOpen) => !isOpen)}>
+          <MenuToggle
+            ref={el}
+            variant="plainText"
+            aria-label="Log in menu"
+            onClick={() => setIsUserControlDropdownOpen((isOpen) => !isOpen)}
+            style={{ width: 'auto' }}
+          >
             {userImpersonated ? userImpersonated : email}
           </MenuToggle>
         )}

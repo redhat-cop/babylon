@@ -326,11 +326,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               }}
               isPlain={false}
               hideLabel={true}
-            />{' '}
+            />
             <Tooltip position="right" content={<div>Create service request in specified project namespace.</div>}>
               <OutlinedQuestionCircleIcon
                 aria-label="Create service request in specified project namespace."
                 className="tooltip-icon-only"
+                style={{ marginLeft: 'var(--pf-v5-global--spacer--md)' }}
               />
             </Tooltip>
           </FormGroup>

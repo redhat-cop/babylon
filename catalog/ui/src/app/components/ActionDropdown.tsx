@@ -1,5 +1,12 @@
 import React from 'react';
-import { Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  MenuToggle,
+  MenuToggleElement,
+  PopoverPosition,
+} from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 
@@ -9,9 +16,10 @@ const ActionDropdown: React.FC<{
   actionDropdownItems: any;
   className?: string;
   isDisabled?: boolean;
+  position?: 'right' | 'left' | 'center' | 'end' | 'start';
   icon?: React.ComponentClass<SVGIconProps>;
   isPlain?: boolean;
-}> = ({ actionDropdownItems, className, isDisabled = false, icon, isPlain = false }) => {
+}> = ({ actionDropdownItems, className, isDisabled = false, icon, position, isPlain = false }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const Icon = icon;
   return (
@@ -21,18 +29,14 @@ const ActionDropdown: React.FC<{
       onSelect={() => setIsOpen(false)}
       isPlain={isPlain}
       onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
+      popperProps={{ position }}
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-        <MenuToggle
-          ref={toggleRef}
-          icon={isPlain ? null : <CaretDownIcon />}
-          isDisabled={isDisabled}
-          onClick={() => setIsOpen((v) => !v)}
-        >
+        <MenuToggle ref={toggleRef} isDisabled={isDisabled} onClick={() => setIsOpen((v) => !v)}>
           {icon ? <Icon /> : 'Actions'}
         </MenuToggle>
       )}
     >
-      <DropdownList>{actionDropdownItems.map((item) => item)}</DropdownList>
+      <DropdownList>{actionDropdownItems.map((item: any) => item)}</DropdownList>
     </Dropdown>
   );
 };
@@ -48,6 +52,7 @@ const ActionDropdownItem: React.FC<{
     <DropdownItem
       className={className}
       key={label}
+      value={label}
       isDisabled={isDisabled}
       onClick={() => (isDisabled === true ? null : onSelect())}
       icon={icon}

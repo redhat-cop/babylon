@@ -3,7 +3,7 @@ import { Select, SelectOption, MenuToggle, SelectList, MenuToggleElement } from 
 
 const AnarchySubjectStateSelect: React.FC<{
   state: string;
-  onSelect: (string) => void;
+  onSelect: (v: string) => void;
 }> = ({ state, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -12,7 +12,12 @@ const AnarchySubjectStateSelect: React.FC<{
   };
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
-      {state || '-'}
+      {state
+        ? state
+            .split('-')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ')
+        : 'All States'}
     </MenuToggle>
   );
 

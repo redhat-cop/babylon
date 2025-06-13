@@ -12,7 +12,7 @@ const AnarchyRunnerStateSelect: React.FC<{
   };
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
-      {runnerState || '-'}
+      {runnerState ? runnerState.charAt(0).toUpperCase() + runnerState.slice(1) : 'All Runner States'}
     </MenuToggle>
   );
 

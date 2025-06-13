@@ -98,7 +98,11 @@ const ServiceOpenStackConsole: React.FC<{
   for (const subject of openStackServers?.subjects || []) {
     for (const server of subject.openStackServers || []) {
       serverDropdownItems.push(
-        <DropdownItem id={`${server.project_id}.${server.id}`} key={`${server.project_id}.${server.id}`}>
+        <DropdownItem
+          id={`${server.project_id}.${server.id}`}
+          key={`${server.project_id}.${server.id}`}
+          value={server.name}
+        >
           {server.name}
         </DropdownItem>,
       );

@@ -25,6 +25,9 @@ body,
 .pf-v5-c-page {
   --pf-v5-c-page__header--MinHeight: 4.5rem;
 }
+.pf-v5-c-menu-toggle.pf-m-plain .pf-v5-c-menu-toggle__controls {
+  margin-left: 0;
+}
 #root > .pf-v5-c-page__main-section {
   min-height: 100%;
 }

@@ -78,10 +78,6 @@ const DateTimePicker: React.FC<{
   const hours = Array.from(new Array(24), (_, i) => ('00' + i).slice(-2));
   const minutes = ['00', '15', '30', '45'];
 
-  const onToggleClick = () => {
-    setIsTimeOpen(!isTimeOpen);
-  };
-
   // sync updated timestamp from parent
   useEffect(() => {
     if (!!forceUpdateTimestamp) {
@@ -97,8 +93,8 @@ const DateTimePicker: React.FC<{
     setIsTimeOpen(false);
   };
 
-  const onToggleTime = (value: boolean, e: unknown) => {
-    setIsTimeOpen(e instanceof PointerEvent ? !value : !isTimeOpen);
+  const onToggleTime = () => {
+    setIsTimeOpen(!isTimeOpen);
     setIsCalendarOpen(false);
   };
 
@@ -144,7 +140,7 @@ const DateTimePicker: React.FC<{
     minutes
       .filter((minute) => rangeValidatorTime(getDateTime(valueDate, `${hour}:${minute}`)))
       .map((minute) => (
-        <DropdownItem key={`${hour}-${minute}`} component="button">
+        <DropdownItem key={`${hour}-${minute}`} value={formatAmPm(`${hour}:${minute}`)} component="button">
           {formatAmPm(`${hour}:${minute}`)}
         </DropdownItem>
       )),
@@ -167,13 +163,14 @@ const DateTimePicker: React.FC<{
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
         <MenuToggle
           ref={toggleRef}
-          onClick={onToggleClick}
+          onClick={onToggleTime}
           isExpanded={isTimeOpen}
           style={{
             padding: '6px 16px',
             ...(isDisabled ? { color: 'var(--pf-v5-global--disabled-color--100)' } : {}),
           }}
           isDisabled={isDisabled}
+          className="hide-controls"
         >
           <OutlinedClockIcon />
         </MenuToggle>

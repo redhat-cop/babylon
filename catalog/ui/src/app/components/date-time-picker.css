@@ -5,3 +5,9 @@
 .date-time-picker__text.pf-v5-c-form-control {
   font-size: var(--pf-v5-global--FontSize--sm);
 }
+.hide-controls {
+  width: auto;
+}
+.hide-controls .pf-v5-c-menu-toggle__controls {
+  display: none;
+}

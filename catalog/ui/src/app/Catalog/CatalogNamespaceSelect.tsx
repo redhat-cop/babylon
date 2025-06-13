@@ -21,10 +21,10 @@ const CatalogNamespaceSelect: React.FC<{
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-namespace-select">
       <Dropdown
-        isPlain
         isOpen={isOpen}
+        onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
         toggle={(ns: React.Ref<MenuToggleElement>) => (
-          <MenuToggle ref={ns} isFullWidth onClick={onToggleClick} isExpanded={isOpen}>
+          <MenuToggle ref={ns} onClick={onToggleClick} isExpanded={isOpen} variant="plainText">
             Catalog: {selected ? displayName(selectedCatalogNamespace) : 'all catalogs'}
           </MenuToggle>
         )}

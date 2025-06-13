@@ -133,7 +133,7 @@ const ImpersonateUserModal: React.FC<{
             .filter((u) => u.metadata.name != authUser)
             .map((u, index) => {
               return (
-                <DropdownItem itemId={u.metadata.name} key={index}>
+                <DropdownItem itemId={u.metadata.name} key={index} value={u.metadata.name}>
                   {u.metadata.name}
                 </DropdownItem>
               );
