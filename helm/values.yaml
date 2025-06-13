@@ -241,9 +241,6 @@ admin:
       memory: "256Mi"
   db:
     deploy: false
-    maxOverflow: 20
-    poolRecycle: 600
-    poolSize: 5
     port: 54327
     secretName: database
   servicenow:
