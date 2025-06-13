@@ -192,13 +192,13 @@ const Header: React.FC<{
           userImpersonated ? ' header-component__user-controls--warning' : ''
         }`}
         isOpen={isUserControlDropdownOpen}
-        toggle={() => (
-          <MenuToggle aria-label="Log in menu" onClick={() => setUserControlDropdownOpen((isOpen) => !isOpen)}>
+        toggle={(el: React.Ref<MenuToggleElement>) => (
+          <MenuToggle ref={el} aria-label="Log in menu" onClick={() => setUserControlDropdownOpen((isOpen) => !isOpen)}>
             {userImpersonated ? userImpersonated : email}
           </MenuToggle>
         )}
       >
-        {...UserControlDropdownItems}
+        <DropdownList>{...UserControlDropdownItems}</DropdownList>
       </Dropdown>
 
       {impersonateUserModalIsOpen ? (

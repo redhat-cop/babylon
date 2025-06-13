@@ -12,10 +12,9 @@ const WorkshopActions: React.FC<{
   };
   className?: string;
   isDisabled?: boolean;
-  position?: 'right' | 'left';
   workshopName?: string;
   isLocked?: boolean;
-}> = ({ actionHandlers, className, isDisabled, position, workshopName, isLocked = false }) => {
+}> = ({ actionHandlers, className, isDisabled, workshopName, isLocked = false }) => {
   const actionDropdownItems = [
     <ActionDropdownItem
       key="delete"

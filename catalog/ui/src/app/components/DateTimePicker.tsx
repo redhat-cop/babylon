@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarMonth, InputGroup, TextInput, Button, Popover, InputGroupItem } from '@patternfly/react-core';
+import {
+  CalendarMonth,
+  InputGroup,
+  TextInput,
+  Button,
+  Popover,
+  InputGroupItem,
+  DropdownList,
+} from '@patternfly/react-core';
 import { Dropdown, DropdownItem, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
@@ -157,12 +165,21 @@ const DateTimePicker: React.FC<{
       className="date-time-picker__time-picker"
       onOpenChange={(isOpen: boolean) => setIsTimeOpen(isOpen)}
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-        <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isTimeOpen}>
+        <MenuToggle
+          ref={toggleRef}
+          onClick={onToggleClick}
+          isExpanded={isTimeOpen}
+          style={{
+            padding: '6px 16px',
+            ...(isDisabled ? { color: 'var(--pf-v5-global--disabled-color--100)' } : {}),
+          }}
+          isDisabled={isDisabled}
+        >
           <OutlinedClockIcon />
         </MenuToggle>
       )}
     >
-      {...timeOptions}
+      <DropdownList>{...timeOptions}</DropdownList>
     </Dropdown>
   );
 

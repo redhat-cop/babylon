@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dropdown, DropdownItem, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 
@@ -23,6 +23,7 @@ const ActionDropdown: React.FC<{
       onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
         <MenuToggle
+          ref={toggleRef}
           icon={isPlain ? null : <CaretDownIcon />}
           isDisabled={isDisabled}
           onClick={() => setIsOpen((v) => !v)}
@@ -31,7 +32,7 @@ const ActionDropdown: React.FC<{
         </MenuToggle>
       )}
     >
-      {...actionDropdownItems}
+      <DropdownList>{...actionDropdownItems}</DropdownList>
     </Dropdown>
   );
 };

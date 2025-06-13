@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Spinner } from '@patternfly/react-core';
+import { Button, DropdownList, Spinner } from '@patternfly/react-core';
 import { Dropdown, MenuToggle, MenuToggleElement, DropdownItem } from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import {
@@ -136,14 +136,15 @@ const ServiceOpenStackConsole: React.FC<{
         <Dropdown
           onSelect={onServerSelect}
           toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-            <MenuToggle onClick={() => setServerSelectIsOpen((v) => !v)} icon={<CaretDownIcon />}>
+            <MenuToggle ref={toggleRef} onClick={() => setServerSelectIsOpen((v) => !v)} icon={<CaretDownIcon />}>
               Select Server
             </MenuToggle>
           )}
           isOpen={serverSelectIsOpen}
           onOpenChange={(isOpen: boolean) => setServerSelectIsOpen(isOpen)}
-          ouiaId="ServiceOpenStackConsole"
-        />
+        >
+          <DropdownList>{...serverDropdownItems}</DropdownList>
+        </Dropdown>
       ) : null}
       {serverState?.status === 'ACTIVE' ? (
         <Button variant="primary" onClick={stopServer}>

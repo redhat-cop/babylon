@@ -31,7 +31,7 @@ const CatalogNamespaceSelect: React.FC<{
       >
         <DropdownList>
           <DropdownItem
-            value={0}
+            value="*"
             key="*"
             onClick={() => {
               setIsOpen(false);
@@ -42,7 +42,7 @@ const CatalogNamespaceSelect: React.FC<{
           </DropdownItem>
           {...catalogNamespaces.map((ns) => (
             <DropdownItem
-              value={1}
+              value={ns.name}
               key={ns.name}
               onClick={() => {
                 setIsOpen(false);
