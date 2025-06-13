@@ -18,7 +18,7 @@ import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-ic
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { K8sObjectReference, ResourceClaim, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
-import { displayName, BABYLON_DOMAIN, getCostTracker } from '@app/util';
+import { displayName, BABYLON_DOMAIN } from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
@@ -50,13 +50,13 @@ const WorkshopsItemServices: React.FC<{
   const { mutate } = useSWRConfig();
 
   const unusedResourceClaims = resourceClaims.filter(
-    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email)
+    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email),
   );
   const [instancesToDelete, setInstancesToDelete] = useState(0);
 
   useEffect(() => {
     const selectedResourceClaims: ResourceClaim[] = resourceClaims.filter((resourceClaim) =>
-      selectedUids.includes(resourceClaim.metadata.uid)
+      selectedUids.includes(resourceClaim.metadata.uid),
     );
     setSelectedResourceClaims(selectedResourceClaims);
   }, [resourceClaims, selectedUids, setSelectedResourceClaims]);
@@ -90,7 +90,7 @@ const WorkshopsItemServices: React.FC<{
             workshopName: workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`],
             namespace: workshopProvision.metadata.namespace,
             limit: 'ALL',
-          })
+          }),
         );
       }
       let i = 0;
@@ -107,13 +107,13 @@ const WorkshopsItemServices: React.FC<{
               workshopProvision.metadata.labels[`${BABYLON_DOMAIN}/workshop`]
             }`,
             limit: 'ALL',
-          })
+          }),
         );
       }
       setIsLoading(false);
       setIsOpen(false);
     },
-    [workshopProvisions, unusedResourceClaims, resourceClaims]
+    [workshopProvisions, unusedResourceClaims, resourceClaims],
   );
 
   if (resourceClaims.length == 0) {
@@ -146,11 +146,9 @@ const WorkshopsItemServices: React.FC<{
           const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
           const specResources = resourceClaim.spec.resources || [];
           const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
-          const costTracker = getCostTracker(resourceClaim);
           const actionHandlers = {
             restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }),
             delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
-            getCost: () => showModal({ action: 'getCost', resourceClaims: [resourceClaim] }),
           };
           const canDelete = resourceClaims.length === workshopProvisions?.[0].spec.count;
           // Find lab user interface information either in the resource claim or inside resources
@@ -163,7 +161,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_data
-                  : r?.data?.labUserInterfaceData
+                  : r?.data?.labUserInterfaceData,
               )
               .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
               .find((u) => u != null);
@@ -175,7 +173,7 @@ const WorkshopsItemServices: React.FC<{
               .map((r) =>
                 r?.kind === 'AnarchySubject'
                   ? r?.spec?.vars?.provision_data?.lab_ui_method
-                  : r?.data?.labUserInterfaceMethod
+                  : r?.data?.labUserInterfaceMethod,
               )
               .find((u) => u != null);
           const labUserInterfaceUrl =
@@ -267,14 +265,6 @@ const WorkshopsItemServices: React.FC<{
                     onClick={actionHandlers.delete}
                     description="Delete Instance"
                     icon={TrashIcon}
-                  />
-                ) : null}
-                {costTracker ? (
-                  <ButtonCircleIcon
-                    key="actions__cost"
-                    onClick={actionHandlers.getCost}
-                    description="Get amount spent"
-                    icon={DollarSignIcon}
                   />
                 ) : null}
                 {

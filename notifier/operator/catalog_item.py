@@ -31,6 +31,10 @@ class CatalogItem:
         return self.definition['metadata'].get('annotations', {}).get('babylon.gpte.redhat.com/displayName', self.name)
 
     @property
+    def email_from(self):
+        return self.definition['spec'].get('email', {}).get('from')
+
+    @property
     def lab_ui_type(self):
         if 'bookbag' in self.definition['spec']:
             return 'bookbag'

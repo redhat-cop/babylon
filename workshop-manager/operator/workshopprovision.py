@@ -1,11 +1,11 @@
 import re
 
-from copy import deepcopy
 from datetime import datetime, timezone
 from pydantic.utils import deep_update
 
 import kopf
-import kubernetes_asyncio
+
+from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
 from babylon import Babylon
 from cachedkopfobject import CachedKopfObject
@@ -14,6 +14,7 @@ import catalogitem
 import resourceclaim
 import resourceprovider
 import workshop as workshop_import
+
 
 class WorkshopProvision(CachedKopfObject):
     api_group = Babylon.babylon_domain
@@ -26,7 +27,8 @@ class WorkshopProvision(CachedKopfObject):
     @classmethod
     def get_for_workshop(cls, workshop):
         return [
-            workshop_provision for workshop_provision in cls.cache.values()
+            workshop_provision
+            for workshop_provision in cls.cache.values()
             if workshop_provision.workshop_namespace == workshop.namespace
             and workshop_provision.workshop_name == workshop.name
         ]
@@ -36,9 +38,9 @@ class WorkshopProvision(CachedKopfObject):
         start_timestamp = self.action_schedule_start_timestamp
         if not start_timestamp:
             return None
-        return datetime.strptime(
-            start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
-        ).replace(tzinfo=timezone.utc)
+        return datetime.strptime(start_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
+            tzinfo=timezone.utc
+        )
 
     @property
     def action_schedule_start_timestamp(self):
@@ -49,10 +51,10 @@ class WorkshopProvision(CachedKopfObject):
         stop_timestamp = self.action_schedule_stop_timestamp
         if not stop_timestamp:
             return None
-        return datetime.strptime(
-            stop_timestamp, '%Y-%m-%dT%H:%M:%SZ'
-        ).replace(tzinfo=timezone.utc)
-    
+        return datetime.strptime(stop_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
+            tzinfo=timezone.utc
+        )
+
     @property
     def action_schedule_stop_timestamp(self):
         return self.spec.get('actionSchedule', {}).get('stop')
@@ -90,18 +92,18 @@ class WorkshopProvision(CachedKopfObject):
         end_timestamp = self.spec.get('lifespan', {}).get('end')
         if not end_timestamp:
             return None
-        return datetime.strptime(
-            end_timestamp, '%Y-%m-%dT%H:%M:%SZ'
-        ).replace(tzinfo=timezone.utc)
+        return datetime.strptime(end_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
+            tzinfo=timezone.utc
+        )
 
     @property
     def lifespan_start(self):
         start_timestamp = self.spec.get('lifespan', {}).get('start')
         if not start_timestamp:
             return None
-        return datetime.strptime(
-            start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
-        ).replace(tzinfo=timezone.utc)
+        return datetime.strptime(start_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
+            tzinfo=timezone.utc
+        )
 
     @property
     def parameters(self):
@@ -120,21 +122,23 @@ class WorkshopProvision(CachedKopfObject):
         return self.namespace
 
     async def create_resource_claim(self, logger, workshop):
-        logger.debug(f"Creating ResourceClaim for {self.name} in namespace {self.namespace}")
+        logger.debug(
+            f"Creating ResourceClaim for {self.name} in namespace {self.namespace}"
+        )
         resource_provider = await resourceprovider.ResourceProvider.fetch(
             name=self.catalog_item_name,
             namespace=Babylon.poolboy_namespace,
         )
         try:
             catalog_item = await catalogitem.CatalogItem.fetch(
-                name = self.catalog_item_name,
-                namespace = self.catalog_item_namespace,
+                name=self.catalog_item_name,
+                namespace=self.catalog_item_namespace,
             )
-        except kubernetes_asyncio.client.rest.ApiException as exception:
+        except k8sApiException as exception:
             if exception.status == 404:
                 raise kopf.TemporaryError(
                     f"CatalogItem {self.catalog_item_name} was not found in namespace {self.catalog_item_namespace}.",
-                    delay=60
+                    delay=60,
                 )
             raise
 
@@ -163,68 +167,102 @@ class WorkshopProvision(CachedKopfObject):
                 "provider": {
                     "name": catalog_item.name,
                     "parameterValues": {
-                        key: value for key, value in self.parameters.items()
+                        key: value
+                        for key, value in self.parameters.items()
                         if resource_provider.has_parameter(key)
                     },
                 }
-            }
+            },
         }
 
         if self.auto_detach_condition:
-            resource_claim_definition['spec']['autoDetach'] = {"when": self.auto_detach_condition}
+            resource_claim_definition['spec']['autoDetach'] = {
+                "when": self.auto_detach_condition
+            }
 
         if not self.enable_resource_pools:
-            resource_claim_definition['metadata']['annotations'][Babylon.resource_pool_annotation] = "disable"
+            resource_claim_definition['metadata']['annotations'][
+                Babylon.resource_pool_annotation
+            ] = "disable"
 
         if workshop.asset_uuid:
-            resource_claim_definition['metadata']['labels'][Babylon.asset_uuid_label] = workshop.asset_uuid
+            resource_claim_definition['metadata']['labels'][
+                Babylon.asset_uuid_label
+            ] = workshop.asset_uuid
 
         if workshop.requester:
-            resource_claim_definition['metadata']['annotations'][Babylon.requester_annotation] = workshop.requester
+            resource_claim_definition['metadata']['annotations'][
+                Babylon.requester_annotation
+            ] = workshop.requester
 
         if workshop.ordered_by:
-            resource_claim_definition['metadata']['annotations'][Babylon.ordered_by_annotation] = workshop.ordered_by
+            resource_claim_definition['metadata']['annotations'][
+                Babylon.ordered_by_annotation
+            ] = workshop.ordered_by
 
         if workshop.white_gloved:
-            resource_claim_definition['metadata']['labels'][Babylon.white_glove_label] = workshop.white_gloved
+            resource_claim_definition['metadata']['labels'][
+                Babylon.white_glove_label
+            ] = workshop.white_gloved
 
         if catalog_item.lab_ui_type:
-            resource_claim_definition['metadata']['labels'][Babylon.lab_ui_label] = catalog_item.lab_ui_type
+            resource_claim_definition['metadata']['labels'][Babylon.lab_ui_label] = (
+                catalog_item.lab_ui_type
+            )
 
         if self.action_schedule_start_timestamp:
-            resource_claim_definition['spec']['provider']['parameterValues']['start_timestamp'] = self.action_schedule_start_timestamp
+            resource_claim_definition['spec']['provider']['parameterValues'][
+                'start_timestamp'
+            ] = self.action_schedule_start_timestamp
 
         if self.action_schedule_stop_timestamp:
-            resource_claim_definition['spec']['provider']['parameterValues']['stop_timestamp'] = self.action_schedule_stop_timestamp
+            resource_claim_definition['spec']['provider']['parameterValues'][
+                'stop_timestamp'
+            ] = self.action_schedule_stop_timestamp
 
         for catalog_item_parameter in catalog_item.parameters:
-            value = self.parameters[catalog_item_parameter.name] \
-                if catalog_item_parameter.name in self.parameters else catalog_item_parameter.default
+            value = (
+                self.parameters[catalog_item_parameter.name]
+                if catalog_item_parameter.name in self.parameters
+                else catalog_item_parameter.default
+            )
             if value is None and not catalog_item_parameter.required:
                 continue
             if catalog_item_parameter.annotation:
-                resource_claim_definition['metadata']['annotations'][catalog_item_parameter.annotation] = str(value)
+                resource_claim_definition['metadata']['annotations'][
+                    catalog_item_parameter.annotation
+                ] = str(value)
 
         if 'purpose' in self.parameters:
-            resource_claim_definition['metadata']['annotations'][Babylon.purpose_annotation] = self.parameters['purpose']
+            resource_claim_definition['metadata']['annotations'][
+                Babylon.purpose_annotation
+            ] = self.parameters['purpose']
 
         if 'purpose_activity' in self.parameters:
-            resource_claim_definition['metadata']['annotations'][Babylon.purpose_activity_annotation] = self.parameters['purpose_activity']
+            resource_claim_definition['metadata']['annotations'][
+                Babylon.purpose_activity_annotation
+            ] = self.parameters['purpose_activity']
 
         if 'salesforce_id' in self.parameters:
-            resource_claim_definition['metadata']['annotations'][Babylon.salesforce_id_annotation] = self.parameters['salesforce_id']
+            resource_claim_definition['metadata']['annotations'][
+                Babylon.salesforce_id_annotation
+            ] = self.parameters['salesforce_id']
 
-        resource_claim = await resourceclaim.ResourceClaim.create(resource_claim_definition)
+        resource_claim = await resourceclaim.ResourceClaim.create(
+            resource_claim_definition
+        )
 
         if workshop.service_url:
             url_prefix = re.sub(r'^(https?://[^/]+).*', r'\1', workshop.service_url)
-            await resource_claim.merge_patch({
-                "metadata": {
-                    "annotations": {
-                        Babylon.url_annotation: f"{url_prefix}/services/{resource_claim.namespace}/{resource_claim.name}"
+            await resource_claim.merge_patch(
+                {
+                    "metadata": {
+                        "annotations": {
+                            Babylon.url_annotation: f"{url_prefix}/services/{resource_claim.namespace}/{resource_claim.name}"
+                        }
                     }
                 }
-            })
+            )
 
         logger.info(f"Created {resource_claim} for {self}")
         return resource_claim
@@ -236,7 +274,9 @@ class WorkshopProvision(CachedKopfObject):
             await resource_claim.delete()
 
     async def get_workshop(self):
-        return await workshop_import.Workshop.get(name=self.workshop_name, namespace=self.namespace)
+        return await workshop_import.Workshop.get(
+            name=self.workshop_name, namespace=self.namespace
+        )
 
     async def handle_create(self, logger):
         async with self.lock:
@@ -259,19 +299,20 @@ class WorkshopProvision(CachedKopfObject):
 
     async def list_resource_claims(self):
         async for resource_claim in resourceclaim.ResourceClaim.list(
-            label_selector =
-                f"{Babylon.workshop_label}={self.workshop_name},"
-                f"{Babylon.workshop_provision_label}={self.name}",
-            namespace = self.namespace,
+            label_selector=f"{Babylon.workshop_label}={self.workshop_name},"
+            f"{Babylon.workshop_provision_label}={self.name}",
+            namespace=self.namespace,
         ):
             yield resource_claim
 
     async def manage(self, logger):
         try:
             workshop = await self.get_workshop()
-        except kubernetes_asyncio.client.rest.ApiException as exception:
+        except k8sApiException as exception:
             if exception.status == 404:
-                raise kopf.TemporaryError("Workshop {self.workshop_name} was not found.", delay=60)
+                raise kopf.TemporaryError(
+                    "Workshop {self.workshop_name} was not found.", delay=60
+                )
             raise
 
         if not workshop.workshop_id:
@@ -279,49 +320,65 @@ class WorkshopProvision(CachedKopfObject):
             return
 
         async with self.lock:
-            await self.manage_action_schedule_and_lifespan(logger=logger, workshop=workshop)
+            await self.manage_action_schedule_and_lifespan(
+                logger=logger, workshop=workshop
+            )
             await self.manage_resource_claims(logger=logger, workshop=workshop)
 
     async def manage_action_schedule_and_lifespan(self, logger, workshop):
         patch = {}
 
-        if workshop.action_schedule_start \
-        and workshop.action_schedule_start != self.action_schedule_start:
-            patch = deep_update(patch, {
-                "spec": {
-                    "actionSchedule": {
-                        "start": workshop.action_schedule_start.strftime('%FT%TZ')
+        if (
+            workshop.action_schedule_start
+            and workshop.action_schedule_start != self.action_schedule_start
+        ):
+            patch = deep_update(
+                patch,
+                {
+                    "spec": {
+                        "actionSchedule": {
+                            "start": workshop.action_schedule_start.strftime('%FT%TZ')
+                        }
                     }
-                }
-            })
+                },
+            )
 
-        if workshop.action_schedule_stop \
-        and workshop.action_schedule_stop != self.action_schedule_stop:
-            patch = deep_update(patch, {
-                "spec": {
-                    "actionSchedule": {
-                        "stop": workshop.action_schedule_stop.strftime('%FT%TZ')
+        if (
+            workshop.action_schedule_stop
+            and workshop.action_schedule_stop != self.action_schedule_stop
+        ):
+            patch = deep_update(
+                patch,
+                {
+                    "spec": {
+                        "actionSchedule": {
+                            "stop": workshop.action_schedule_stop.strftime('%FT%TZ')
+                        }
                     }
-                }
-            })
+                },
+            )
 
         if workshop.lifespan_end and workshop.lifespan_end != self.lifespan_end:
-            patch = deep_update(patch, {
-                "spec": {
-                    "lifespan": {
-                        "end": workshop.lifespan_end.strftime('%FT%TZ')
+            patch = deep_update(
+                patch,
+                {
+                    "spec": {
+                        "lifespan": {"end": workshop.lifespan_end.strftime('%FT%TZ')}
                     }
-                }
-            })
+                },
+            )
 
         if workshop.lifespan_start and workshop.lifespan_start != self.lifespan_start:
-            patch = deep_update(patch, {
-                "spec": {
-                    "lifespan": {
-                        "start": workshop.lifespan_start.strftime('%FT%TZ')
+            patch = deep_update(
+                patch,
+                {
+                    "spec": {
+                        "lifespan": {
+                            "start": workshop.lifespan_start.strftime('%FT%TZ')
+                        }
                     }
-                }
-            })
+                },
+            )
 
         if patch:
             await self.merge_patch(patch)
@@ -336,10 +393,10 @@ class WorkshopProvision(CachedKopfObject):
         async for resource_claim in self.list_resource_claims():
             resource_claim_count += 1
             await resource_claim.adjust_action_schedule_and_lifetime(
-                lifespan_end = self.lifespan_end,
-                logger = logger,
-                start_datetime = self.action_schedule_start,
-                stop_datetime = self.action_schedule_stop,
+                lifespan_end=self.lifespan_end,
+                logger=logger,
+                start_datetime=self.action_schedule_start,
+                stop_datetime=self.action_schedule_stop,
             )
             if not resource_claim.provision_complete:
                 provisioning_count += 1
@@ -347,40 +404,53 @@ class WorkshopProvision(CachedKopfObject):
             if resource_claim.is_failed:
                 failed_count += 1
 
-            await workshop.update_provision_count(
-                ordered=self.count,
-                provisioning=provisioning_count,
-                failed=failed_count,
-                completed=resource_claim_count - provisioning_count - failed_count
-            )
-
         # Do not start any provisions if lifespan start is in the future
         if self.lifespan_start and self.lifespan_start > datetime.now(timezone.utc):
             return
 
         # Do not start any provisions if failure threshold is exceeded
         if self.count != 0:
-            if Babylon.workshop_fail_percentage_threshold <= failed_count / self.count * 100:
+            if (
+                Babylon.workshop_fail_percentage_threshold
+                <= failed_count / self.count * 100
+            ):
                 return
 
         # Start provisions up to count and within concurrency limit
-        if resource_claim_count < (self.count + failed_count) and provisioning_count < self.concurrency:
+        if (
+            resource_claim_count < (self.count + failed_count)
+            and provisioning_count < self.concurrency
+        ):
             await self.create_resource_claim(logger=logger, workshop=workshop)
+
+        # Update workshop provision status
+        await workshop.update_provision_count(
+            ordered=self.count,
+            provisioning=provisioning_count,
+            failed=failed_count,
+            completed=resource_claim_count - provisioning_count - failed_count,
+        )
 
     async def set_owner_references(self, logger):
         try:
             workshop = await self.get_workshop()
-        except kubernetes_asyncio.client.rest.ApiException as exception:
+        except k8sApiException as exception:
             if exception.status == 404:
-                raise kopf.TemporaryError("Workshop {self.workshop_name} was not found.", delay=60)
+                raise kopf.TemporaryError(
+                    "Workshop {self.workshop_name} was not found.", delay=60
+                )
             raise
 
-        if self.owner_references != [workshop.as_owner_ref()] \
-        or self.labels.get(Babylon.workshop_label) != self.workshop_name:
+        if (
+            self.owner_references != [workshop.as_owner_ref()]
+            or self.labels.get(Babylon.workshop_label) != self.workshop_name
+        ):
             logger.info(f"Setting ownerReferences for {self} to {workshop}")
-            await self.merge_patch({
-                "metadata": {
-                    "labels": { Babylon.workshop_label: self.workshop_name },
-                    "ownerReferences": [workshop.as_owner_ref()],
+            await self.merge_patch(
+                {
+                    "metadata": {
+                        "labels": {Babylon.workshop_label: self.workshop_name},
+                        "ownerReferences": [workshop.as_owner_ref()],
+                    }
                 }
-            })
+            )

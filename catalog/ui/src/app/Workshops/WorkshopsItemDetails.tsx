@@ -25,7 +25,14 @@ import {
   patchWorkshop,
   patchWorkshopProvision,
 } from '@app/api';
-import { ResourceClaim, SfdcType, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
+import {
+  RequestUsageCost,
+  ResourceClaim,
+  SfdcType,
+  Workshop,
+  WorkshopProvision,
+  WorkshopUserAssignment,
+} from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved } from '@app/util';
 import useDebounce from '@app/utils/useDebounce';
 import useSession from '@app/utils/useSession';
@@ -43,6 +50,8 @@ import {
 import { ModalState } from './WorkshopsItem';
 import WorkshopStatus from './WorkshopStatus';
 import { useSWRConfig } from 'swr';
+import CurrencyAmount from '@app/components/CurrencyAmount';
+import TimeInterval from '@app/components/TimeInterval';
 
 import './workshops-item-details.css';
 
@@ -79,7 +88,16 @@ const WorkshopsItemDetails: React.FC<{
   workshopProvisions?: WorkshopProvision[];
   workshopUserAssignments?: WorkshopUserAssignment[];
   showModal?: ({ action, resourceClaims }: ModalState) => void;
-}> = ({ onWorkshopUpdate, workshopProvisions = [], resourceClaims, workshop, showModal, workshopUserAssignments }) => {
+  usageCost?: RequestUsageCost;
+}> = ({
+  onWorkshopUpdate,
+  workshopProvisions = [],
+  resourceClaims,
+  workshop,
+  showModal,
+  workshopUserAssignments,
+  usageCost,
+}) => {
   const { isAdmin } = useSession().getSession();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { cache } = useSWRConfig();
@@ -290,6 +308,22 @@ const WorkshopsItemDetails: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
+
+      <DescriptionListGroup>
+        <DescriptionListTerm>Amount spent</DescriptionListTerm>
+        <DescriptionListDescription>
+          {usageCost?.total_cost ? (
+            <p>
+              <CurrencyAmount amount={usageCost.total_cost} />{' '}
+              <span className="services-item__estimated-cost-label">
+                (Last update <TimeInterval toTimestamp={usageCost.last_update} />)
+              </span>
+            </p>
+          ) : (
+            'No data available'
+          )}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
 
       <DescriptionListGroup>
         <DescriptionListTerm>

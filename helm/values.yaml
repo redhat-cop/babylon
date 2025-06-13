@@ -23,7 +23,7 @@ agnosticv:
   operator:
     image:
       repository: quay.io/rhpds/babylon-agnosticv-operator
-      tag: v1.11.1
+      tag: v1.12.0
       pullPolicy: IfNotPresent
     resources:
       limits:
@@ -81,7 +81,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v1.1.0
+        tag: v1.1.1
       loggingLevel: INFO
       replicaCount: 1
       resources:
@@ -128,7 +128,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.33.14
+        tag: v0.33.15
       replicaCount: 1
       resources:
         requests:
@@ -164,7 +164,7 @@ notifier:
   image:
     repository: quay.io/rhpds/babylon-notifier
     pullPolicy: IfNotPresent
-    tag: v0.8.5
+    tag: v0.9.0
   namespace:
     create: true
     name: babylon-notifier
@@ -210,7 +210,7 @@ workshopManager:
   image:
     repository: quay.io/rhpds/babylon-workshop-manager
     pullPolicy: IfNotPresent
-    tag: v0.9.2
+    tag: v0.9.3
   namespace:
     create: true
     name: babylon-workshop-manager
@@ -250,3 +250,26 @@ admin:
     deploy: true
     workshopFormId: b48fe3cc870b2d508a51bbbf8bbb3576
     secretName: servicenow
+
+ratings:
+  deploy: true
+  replicaCount: 2
+  namespace:
+    create: true
+    name: babylon-ratings
+  db:
+    secretName: ratings-db
+    bitwardenSecret: reporting_database
+  image:
+    repository: quay.io/redhat-gpte/babylon-ratings
+    pullPolicy: Always
+    tag: v1.0.10
+  resources:
+    limits:
+      cpu: "1"
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  babylon:
+    domain: babylon.gpte.redhat.com

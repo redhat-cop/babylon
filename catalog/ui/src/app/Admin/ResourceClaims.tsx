@@ -35,14 +35,12 @@ import {
   checkResourceClaimCanStop,
   displayName,
   BABYLON_DOMAIN,
-  getCostTracker,
   FETCH_BATCH_LIMIT,
   compareK8sObjectsArr,
   isResourceClaimPartOfWorkshop,
 } from '@app/util';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
-import CostTrackerDialog from '@app/components/CostTrackerDialog';
 import Footer from '@app/components/Footer';
 import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
 import ServicesAction from '@app/Services/ServicesAction';
@@ -85,7 +83,7 @@ const ResourceClaims: React.FC<{}> = () => {
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')]
+    [searchParams.get('search')],
   );
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
@@ -95,7 +93,6 @@ const ResourceClaims: React.FC<{}> = () => {
   }>({ action: null, submitDisabled: false });
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
-  const [modalGetCost, openModalGetCost] = useModal();
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
   const {
     data: resourceClaimsPages,
@@ -125,7 +122,7 @@ const ResourceClaims: React.FC<{}> = () => {
         }
         return true;
       },
-    }
+    },
   );
 
   const revalidate = useCallback(
@@ -147,7 +144,7 @@ const ResourceClaims: React.FC<{}> = () => {
         }
       }
     },
-    [mutate, resourceClaimsPages]
+    [mutate, resourceClaimsPages],
   );
   const isReachingEnd = resourceClaimsPages && !resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue;
   const isLoadingInitialData = !resourceClaimsPages;
@@ -166,12 +163,12 @@ const ResourceClaims: React.FC<{}> = () => {
       }
       return true;
     },
-    [keywordFilter]
+    [keywordFilter],
   );
 
   const resourceClaims: ResourceClaim[] = useMemo(
     () => [].concat(...resourceClaimsPages.map((page) => page.items)).filter(filterResourceClaim) || [],
-    [filterResourceClaim, resourceClaimsPages]
+    [filterResourceClaim, resourceClaimsPages],
   );
 
   // Trigger continue fetching more resource claims on scroll.
@@ -189,11 +186,11 @@ const ResourceClaims: React.FC<{}> = () => {
         modalState.action === 'retirement'
           ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
           : modalState.resourceClaim.status?.summary
-          ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
-          : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
+            ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
+            : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date);
       revalidate({ updatedItems: [resourceClaimUpdate], action: 'update' });
     },
-    [modalState.action, modalState.resourceClaim, revalidate]
+    [modalState.action, modalState.resourceClaim, revalidate],
   );
 
   const performModalActionForResourceClaim = useCallback(
@@ -203,7 +200,7 @@ const ResourceClaims: React.FC<{}> = () => {
           apiPaths.RESOURCE_CLAIM({
             namespace: resourceClaim.metadata.namespace,
             resourceClaimName: resourceClaim.metadata.name,
-          })
+          }),
         );
         return await deleteResourceClaim(resourceClaim);
       } else {
@@ -219,7 +216,7 @@ const ResourceClaims: React.FC<{}> = () => {
       console.warn(`Unkown action ${modalState.action}`);
       return resourceClaim;
     },
-    [cache, modalState.action]
+    [cache, modalState.action],
   );
 
   const onModalAction = useCallback(async (): Promise<void> => {
@@ -265,12 +262,8 @@ const ResourceClaims: React.FC<{}> = () => {
         setModalState({ action, resourceClaim, submitDisabled: false });
         openModalScheduleAction();
       }
-      if (modal === 'getCost') {
-        setModalState({ action, resourceClaim, submitDisabled: false });
-        openModalGetCost();
-      }
     },
-    [openModalAction, openModalGetCost, openModalScheduleAction]
+    [openModalAction, openModalScheduleAction],
   );
 
   // Fetch all if keywordFilter is defined.
@@ -300,14 +293,6 @@ const ResourceClaims: React.FC<{}> = () => {
           action={modalState.action === 'retirement' ? 'retirement' : 'stop'}
           resourceClaim={modalState.resourceClaim}
         />
-      </Modal>
-      <Modal
-        ref={modalGetCost}
-        onConfirm={() => null}
-        type="ack"
-        title={`Amount spent on ${displayName(modalState.resourceClaim)}`}
-      >
-        <CostTrackerDialog resourceClaim={modalState.resourceClaim} />
       </Modal>
       <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
         <Split hasGutter>
@@ -389,7 +374,6 @@ const ResourceClaims: React.FC<{}> = () => {
               const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
               const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
               const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
-              const costTracker = getCostTracker(resourceClaim);
               // Available actions depends on kind of service
               const actionHandlers = {
                 delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
@@ -397,16 +381,12 @@ const ResourceClaims: React.FC<{}> = () => {
                 runtime: null,
                 start: null,
                 stop: null,
-                getCost: null,
                 manageWorkshop: null,
               };
               if (resources.find((r) => r?.kind === 'AnarchySubject')) {
                 actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
                 actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', resourceClaim });
                 actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
-              }
-              if (costTracker) {
-                actionHandlers['getCost'] = () => showModal({ modal: 'getCost', resourceClaim });
               }
               if (isPartOfWorkshop) {
                 actionHandlers['manageWorkshop'] = () =>

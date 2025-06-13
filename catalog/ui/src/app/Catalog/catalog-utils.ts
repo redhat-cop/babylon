@@ -24,7 +24,7 @@ export function getStage(catalogItem: CatalogItem) {
 }
 
 const supportedSLAs = ['Enterprise_Premium', 'Enterprise_Standard', 'Community', 'External_Support'] as const;
-type SLAs = typeof supportedSLAs[number];
+type SLAs = (typeof supportedSLAs)[number];
 export function getSLA(catalogItem: CatalogItem): SLAs {
   const { domain, key } = CUSTOM_LABELS.SLA;
   const sla = catalogItem.metadata.labels?.[`${domain}/${key}`] as SLAs;
@@ -70,7 +70,7 @@ export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   if (catalogItem.metadata.annotations?.[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]) {
     const now = new Date();
     const provisionDate = new Date(
-      catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]
+      catalogItem.metadata.annotations[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`],
     );
     if (provisionDate < now) {
       return provisionDate.getTime();
@@ -80,11 +80,11 @@ export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   return null;
 }
 export function getStatus(
-  catalogItem: CatalogItem
+  catalogItem: CatalogItem,
 ): { name: string; updated?: { author: string; updatedAt: string }; disabled: boolean; incidentUrl?: string } | null {
   if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/incident`]) {
     const catalog_incident: CatalogItemIncident = JSON.parse(
-      catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/incident`]
+      catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/incident`],
     );
     if (catalog_incident) {
       return {

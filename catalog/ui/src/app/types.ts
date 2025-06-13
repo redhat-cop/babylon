@@ -657,7 +657,9 @@ export type ResourceType =
   | 'SFDC_BY_ACCOUNT'
   | 'FAVORITES'
   | 'FAVORITES_DELETE'
-  | 'EXTERNAL_ITEM_REQUEST';
+  | 'EXTERNAL_ITEM_REQUEST'
+  | 'USAGE_COST_REQUEST'
+  | 'USAGE_COST_WORKSHOP';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
@@ -738,4 +740,25 @@ export type Bookmark = {
 };
 export type BookmarkList = {
   bookmarks: Bookmark[];
+};
+export type ProvisionUsageCost = {
+  anarchy_subject_name: string;
+  anarchy_subject_namespace: string;
+  cloud_provider: string;
+  current_month_cost: string;
+  last_request: string;
+  last_update: string;
+  provision_uuid: string;
+  provisioned_at: string;
+  retired_at: string;
+  total_cost: number;
+};
+export type RequestUsageCost = {
+  current_month_cost: number;
+  last_request: string;
+  last_update: string;
+  provision_costs: ProvisionUsageCost[];
+  request_id: string;
+  total_cost: number;
+  workshop_id: string;
 };
