@@ -24,7 +24,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSWRImmutable from 'swr/immutable';
 import {
@@ -90,6 +90,17 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }),
     [catalogItem],
   );
+
+  const onToggleClick = () => {
+    setUserRegistrationSelectIsOpen(!userRegistrationSelectIsOpen);
+  };
+
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={userRegistrationSelectIsOpen}>
+      {formState.workshop.userRegistration}
+    </MenuToggle>
+  );
+
   const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
     : [];
@@ -315,11 +326,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               }}
               isPlain={false}
               hideLabel={true}
-            />{' '}
+            />
             <Tooltip position="right" content={<div>Create service request in specified project namespace.</div>}>
               <OutlinedQuestionCircleIcon
                 aria-label="Create service request in specified project namespace."
                 className="tooltip-icon-only"
+                style={{ marginLeft: 'var(--pf-v5-global--spacer--md)' }}
               />
             </Tooltip>
           </FormGroup>
@@ -789,9 +801,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             <FormGroup fieldId="workshopRegistration" label="User Registration" className="select-wrapper">
               <div className="catalog-item-form__group-control--single">
                 <Select
-                  onToggle={(_event, isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
-                  selections={formState.workshop.userRegistration}
-                  variant={SelectVariant.single}
                   isOpen={userRegistrationSelectIsOpen}
                   onSelect={(_, selected) => {
                     dispatchFormState({
@@ -803,9 +812,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     });
                     setUserRegistrationSelectIsOpen(false);
                   }}
+                  selected={formState.workshop.userRegistration}
+                  onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+                  toggle={toggle}
                 >
-                  <SelectOption value="open">open registration</SelectOption>
-                  <SelectOption value="pre">pre-registration</SelectOption>
+                  <SelectList>
+                    <SelectOption value="open">open registration</SelectOption>
+                    <SelectOption value="pre">pre-registration</SelectOption>
+                  </SelectList>
                 </Select>
                 <Tooltip
                   position="right"

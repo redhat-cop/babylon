@@ -159,7 +159,6 @@ const SearchSalesforceId: React.FC<{
                   value={accountValue}
                   placeholder={selectedAccount?.name || 'Search'}
                   onChange={(_event, value) => setAccountValue(value)}
-                  onKeyPress={onEnterPressed}
                   aria-labelledby="pf-v5-context-selector-search-button-id-1"
                 />
               </InputGroupItem>
@@ -175,7 +174,7 @@ const SearchSalesforceId: React.FC<{
           ) : null}
           {filteredItems.map((u, index: number) => {
             return (
-              <DropdownItem itemId={u.id} key={index} isDisabled={!u.is_valid}>
+              <DropdownItem itemId={u.id} key={index} value={u.name} isDisabled={!u.is_valid}>
                 {u.name}
                 <span style={{ opacity: 0.7, fontSize: '10px', paddingLeft: '12px' }}>id: {u.id}</span>
               </DropdownItem>

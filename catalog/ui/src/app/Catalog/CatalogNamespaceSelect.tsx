@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PageSection, PageSectionVariants } from '@patternfly/react-core';
-import { Dropdown, DropdownItem, DropdownToggle } from '@patternfly/react-core/deprecated';
+import { Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import { displayName } from '@app/util';
 
@@ -12,21 +12,26 @@ const CatalogNamespaceSelect: React.FC<{
 }> = ({ onSelect, selected }) => {
   const { catalogNamespaces } = useSession().getSession();
   const selectedCatalogNamespace = catalogNamespaces.find((ns) => ns.name === selected);
-
   const [isOpen, setIsOpen] = useState<boolean>(false);
+
+  const onToggleClick = () => {
+    setIsOpen(!isOpen);
+  };
 
   return (
     <PageSection variant={PageSectionVariants.light} className="catalog-namespace-select">
       <Dropdown
-        isPlain
         isOpen={isOpen}
-        toggle={
-          <DropdownToggle onToggle={() => setIsOpen((v) => !v)}>
+        onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
+        toggle={(ns: React.Ref<MenuToggleElement>) => (
+          <MenuToggle ref={ns} onClick={onToggleClick} isExpanded={isOpen} variant="plainText">
             Catalog: {selected ? displayName(selectedCatalogNamespace) : 'all catalogs'}
-          </DropdownToggle>
-        }
-        dropdownItems={[
+          </MenuToggle>
+        )}
+      >
+        <DropdownList>
           <DropdownItem
+            value="*"
             key="*"
             onClick={() => {
               setIsOpen(false);
@@ -34,9 +39,10 @@ const CatalogNamespaceSelect: React.FC<{
             }}
           >
             - all catalogs -
-          </DropdownItem>,
-          ...catalogNamespaces.map((ns) => (
+          </DropdownItem>
+          {catalogNamespaces.map((ns) => (
             <DropdownItem
+              value={ns.name}
               key={ns.name}
               onClick={() => {
                 setIsOpen(false);
@@ -45,9 +51,9 @@ const CatalogNamespaceSelect: React.FC<{
             >
               {displayName(ns)}
             </DropdownItem>
-          )),
-        ]}
-      />
+          ))}
+        </DropdownList>
+      </Dropdown>
     </PageSection>
   );
 };

@@ -85,7 +85,6 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
           </SplitItem>
           <SplitItem>
             <ActionDropdown
-              position="right"
               actionDropdownItems={[
                 <ActionDropdownItem key="delete" label="Delete" onSelect={() => confirmThenDelete()} />,
                 <ActionDropdownItem

@@ -20,7 +20,7 @@ import {
   Tooltip,
   EmptyStateHeader,
 } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { apiPaths, fetcher } from '@app/api';
@@ -59,7 +59,7 @@ const CatalogItemAdmin: React.FC = () => {
     {
       suspense: false,
       shouldRetryOnError: false,
-    }
+    },
   );
   const { email: userEmail } = useSession().getSession();
   const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
@@ -71,6 +71,16 @@ const CatalogItemAdmin: React.FC = () => {
   const [jiraIssueId, setJiraIssueId] = useState('');
   const [comment, setComment] = useState('');
   const provider = getProvider(catalogItem);
+
+  const onToggleClick = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
+      {status}
+    </MenuToggle>
+  );
 
   useEffect(() => {
     if (status === 'Operational') {
@@ -176,27 +186,29 @@ const CatalogItemAdmin: React.FC = () => {
                 setStatus(value.toString() as CatalogItemIncidentStatus);
                 setIsOpen(false);
               }}
-              onToggle={() => setIsOpen(!isOpen)}
               isOpen={isOpen}
-              selections={status}
-              variant={SelectVariant.single}
               className="select-wrapper"
+              selected={status}
+              onOpenChange={(isOpen) => setIsOpen(isOpen)}
+              toggle={toggle}
             >
-              <SelectOption key="operational" value="Operational">
-                <OperationalLogo /> Operational
-              </SelectOption>
-              <SelectOption key="degraded-performance" value="Degraded performance">
-                <DegradedPerformanceLogo /> Degraded performance
-              </SelectOption>
-              <SelectOption key="partial-outage" value="Partial outage">
-                <PartialOutageLogo /> Partial outage
-              </SelectOption>
-              <SelectOption key="major-outage" value="Major outage">
-                <MajorOutageLogo /> Major outage
-              </SelectOption>
-              <SelectOption key="under-maintenance" value="Under maintenance">
-                <UnderMaintenanceLogo /> Under maintenance
-              </SelectOption>
+              <SelectList>
+                <SelectOption key="operational" value="Operational">
+                  <OperationalLogo /> Operational
+                </SelectOption>
+                <SelectOption key="degraded-performance" value="Degraded performance">
+                  <DegradedPerformanceLogo /> Degraded performance
+                </SelectOption>
+                <SelectOption key="partial-outage" value="Partial outage">
+                  <PartialOutageLogo /> Partial outage
+                </SelectOption>
+                <SelectOption key="major-outage" value="Major outage">
+                  <MajorOutageLogo /> Major outage
+                </SelectOption>
+                <SelectOption key="under-maintenance" value="Under maintenance">
+                  <UnderMaintenanceLogo /> Under maintenance
+                </SelectOption>
+              </SelectList>
             </Select>
             <Tooltip position="right" content={<div>Catalog Item status, should be the same as in StatusPage.io</div>}>
               <OutlinedQuestionCircleIcon

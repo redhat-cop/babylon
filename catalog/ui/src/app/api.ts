@@ -132,6 +132,13 @@ export async function fetcher(path: string, opt?: Record<string, unknown>) {
   if (contentType?.includes('text/') || contentType?.includes('application/octet-stream')) return response.text();
   return response.json();
 }
+export async function silentFetcher(path: string, opt?: Record<string, unknown>) {
+  try {
+    return await fetcher(path, opt);
+  } catch (_) {
+    return null;
+  }
+}
 
 export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
   const items = [];

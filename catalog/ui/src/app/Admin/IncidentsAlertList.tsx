@@ -1,6 +1,6 @@
 import React, { useReducer, useState } from 'react';
 import { Button, Form, FormGroup, Panel, PanelMain, Switch, Title } from '@patternfly/react-core';
-import { Select, SelectOption } from '@patternfly/react-core/deprecated';
+import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';
@@ -75,6 +75,7 @@ const IncidentsAlertList: React.FC = () => {
   const { userInterface } = useSession().getSession();
   const [state, dispatch] = useReducer(reducer, { ...initialState, interface: userInterface });
   const [isOpen, setIsOpen] = useState(false);
+
   const [incidentModal, openIncidentModal] = useModal();
   const { data: activeIncidents, mutate } = useSWR<Incident[]>(
     apiPaths.INCIDENTS({ status: 'active', userInterface: userInterface }),
@@ -82,6 +83,16 @@ const IncidentsAlertList: React.FC = () => {
     {
       refreshInterval: 8000,
     },
+  );
+
+  const onToggleClick = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
+      {state.level === 'info' ? 'Info' : state.level === 'warning' ? 'Warning' : 'Critical'}
+    </MenuToggle>
   );
 
   async function upsertIncident(incident: IncidentData) {
@@ -146,8 +157,6 @@ const IncidentsAlertList: React.FC = () => {
               <Select
                 aria-labelledby="level"
                 aria-label="Level"
-                selections={state.level === 'info' ? 'Info' : state.level === 'warning' ? 'Warning' : 'Critical'}
-                onToggle={(_event, isOpen) => setIsOpen(isOpen)}
                 isOpen={isOpen}
                 onSelect={(ev, selection) => {
                   dispatch({
@@ -156,10 +165,15 @@ const IncidentsAlertList: React.FC = () => {
                   });
                   setIsOpen(false);
                 }}
+                selected={state.level === 'info' ? 'Info' : state.level === 'warning' ? 'Warning' : 'Critical'}
+                onOpenChange={(isOpen) => setIsOpen(isOpen)}
+                toggle={toggle}
               >
-                <SelectOption key="info" value="Info" />
-                <SelectOption key="warning" value="Warning" />
-                <SelectOption key="critical" value="Critical" />
+                <SelectList>
+                  <SelectOption key="info" value="Info" />
+                  <SelectOption key="warning" value="Warning" />
+                  <SelectOption key="critical" value="Critical" />
+                </SelectList>
               </Select>
             </div>
           </FormGroup>

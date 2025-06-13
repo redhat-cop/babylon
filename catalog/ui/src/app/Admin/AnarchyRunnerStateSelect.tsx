@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { MenuToggle, MenuToggleElement, Select, SelectList, SelectOption } from '@patternfly/react-core';
 
 const AnarchyRunnerStateSelect: React.FC<{
   runnerState?: string;
   onSelect: (s: string) => void;
 }> = ({ runnerState, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  const onToggleClick = () => {
+    setIsOpen(!isOpen);
+  };
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
+      {runnerState ? runnerState.charAt(0).toUpperCase() + runnerState.slice(1) : 'All Runner States'}
+    </MenuToggle>
+  );
 
   return (
     <Select
@@ -16,31 +25,33 @@ const AnarchyRunnerStateSelect: React.FC<{
         onSelect(valueKey === '-' ? null : valueKey);
         setIsOpen(false);
       }}
-      onToggle={() => setIsOpen((v) => !v)}
-      selections={runnerState || '-'}
-      variant={SelectVariant.single}
+      selected={runnerState || '-'}
+      onOpenChange={(isOpen) => setIsOpen(isOpen)}
+      toggle={toggle}
     >
-      <SelectOption key="-" value="-">
-        All Runner States
-      </SelectOption>
-      <SelectOption key="failed" value="failed">
-        Failed
-      </SelectOption>
-      <SelectOption key="incomplete" value="incomplete">
-        Incomplete
-      </SelectOption>
-      <SelectOption key="pending" value="pending">
-        Pending
-      </SelectOption>
-      <SelectOption key="queued" value="queued">
-        Queued
-      </SelectOption>
-      <SelectOption key="running" value="running">
-        Running
-      </SelectOption>
-      <SelectOption key="successful" value="successful">
-        Successful
-      </SelectOption>
+      <SelectList>
+        <SelectOption key="-" value="-">
+          All Runner States
+        </SelectOption>
+        <SelectOption key="failed" value="failed">
+          Failed
+        </SelectOption>
+        <SelectOption key="incomplete" value="incomplete">
+          Incomplete
+        </SelectOption>
+        <SelectOption key="pending" value="pending">
+          Pending
+        </SelectOption>
+        <SelectOption key="queued" value="queued">
+          Queued
+        </SelectOption>
+        <SelectOption key="running" value="running">
+          Running
+        </SelectOption>
+        <SelectOption key="successful" value="successful">
+          Successful
+        </SelectOption>
+      </SelectList>
     </Select>
   );
 };

@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarMonth, InputGroup, TextInput, Button, Popover, InputGroupItem } from '@patternfly/react-core';
-import { Dropdown, DropdownToggle, DropdownItem } from '@patternfly/react-core/deprecated';
+import {
+  CalendarMonth,
+  InputGroup,
+  TextInput,
+  Button,
+  Popover,
+  InputGroupItem,
+  DropdownList,
+} from '@patternfly/react-core';
+import { Dropdown, DropdownItem, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import { getLang } from '@app/util';
@@ -85,8 +93,8 @@ const DateTimePicker: React.FC<{
     setIsTimeOpen(false);
   };
 
-  const onToggleTime = (value: boolean, e: unknown) => {
-    setIsTimeOpen(e instanceof PointerEvent ? !value : !isTimeOpen);
+  const onToggleTime = () => {
+    setIsTimeOpen(!isTimeOpen);
     setIsCalendarOpen(false);
   };
 
@@ -102,8 +110,8 @@ const DateTimePicker: React.FC<{
     _onSelect(newValueDate.toISOString(), valueTime);
   };
 
-  const onSelectTime = (ev: React.SyntheticEvent<HTMLDivElement>) => {
-    const newValueTime = formatHHMM(ev.currentTarget.textContent);
+  const onSelectTime = (ev: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+    const newValueTime = formatHHMM(String(value));
     setValueTime(newValueTime);
     setIsTimeOpen(!isTimeOpen);
     _onSelect(valueDate, newValueTime);
@@ -132,7 +140,7 @@ const DateTimePicker: React.FC<{
     minutes
       .filter((minute) => rangeValidatorTime(getDateTime(valueDate, `${hour}:${minute}`)))
       .map((minute) => (
-        <DropdownItem key={`${hour}-${minute}`} component="button">
+        <DropdownItem key={`${hour}-${minute}`} value={formatAmPm(`${hour}:${minute}`)} component="button">
           {formatAmPm(`${hour}:${minute}`)}
         </DropdownItem>
       )),
@@ -148,25 +156,28 @@ const DateTimePicker: React.FC<{
 
   const time = (
     <Dropdown
+      isOpen={isTimeOpen}
       onSelect={onSelectTime}
-      toggle={
-        <DropdownToggle
-          aria-label="Toggle the time picker menu"
-          toggleIndicator={null}
-          onToggle={(_event, value: boolean) => onToggleTime(value, _event)}
+      className="date-time-picker__time-picker"
+      onOpenChange={(isOpen: boolean) => setIsTimeOpen(isOpen)}
+      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+        <MenuToggle
+          ref={toggleRef}
+          onClick={onToggleTime}
+          isExpanded={isTimeOpen}
           style={{
             padding: '6px 16px',
             ...(isDisabled ? { color: 'var(--pf-v5-global--disabled-color--100)' } : {}),
           }}
           isDisabled={isDisabled}
+          className="hide-controls"
         >
           <OutlinedClockIcon />
-        </DropdownToggle>
-      }
-      isOpen={isTimeOpen}
-      dropdownItems={timeOptions}
-      className="date-time-picker__time-picker"
-    />
+        </MenuToggle>
+      )}
+    >
+      <DropdownList>{timeOptions.map((item) => item)}</DropdownList>
+    </Dropdown>
   );
 
   const calendarButton = (

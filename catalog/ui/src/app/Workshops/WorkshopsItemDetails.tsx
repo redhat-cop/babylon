@@ -11,8 +11,10 @@ import {
   Switch,
   TextInput,
   Radio,
+  MenuToggle,
+  MenuToggleElement,
 } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
+import { Select, SelectOption, SelectList } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import {
@@ -105,8 +107,19 @@ const WorkshopsItemDetails: React.FC<{
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
+
   const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, workshopProvisions);
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
+
+  const onToggleClick = () => {
+    setUserRegistrationSelectIsOpen(!userRegistrationSelectIsOpen);
+  };
+
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={userRegistrationSelectIsOpen}>
+      {userRegistrationValue}
+    </MenuToggle>
+  );
 
   const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
     salesforce_id: workshopProvisions[0]?.spec.parameters?.salesforce_id || '',
@@ -379,9 +392,6 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListTerm>User Registration</DescriptionListTerm>
         <DescriptionListDescription>
           <Select
-            onToggle={(_event, isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
-            selections={userRegistrationValue}
-            variant={SelectVariant.single}
             isOpen={userRegistrationSelectIsOpen}
             onSelect={(event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
@@ -389,9 +399,14 @@ const WorkshopsItemDetails: React.FC<{
                 setUserRegistrationSelectIsOpen(false),
               );
             }}
+            selected={userRegistrationValue}
+            onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+            toggle={toggle}
           >
-            <SelectOption value="open">open registration</SelectOption>
-            <SelectOption value="pre">pre-registration</SelectOption>
+            <SelectList>
+              <SelectOption value="open">open registration</SelectOption>
+              <SelectOption value="pre">pre-registration</SelectOption>
+            </SelectList>
           </Select>
         </DescriptionListDescription>
       </DescriptionListGroup>

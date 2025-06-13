@@ -41,6 +41,7 @@ import {
   checkSalesforceId,
   deleteResourceClaim,
   fetcher,
+  silentFetcher,
   patchResourceClaim,
   requestStatusForAllResourcesInResourceClaim,
   scheduleStartResourceClaim,
@@ -508,7 +509,7 @@ const ServicesItemComponent: React.FC<{
 
   const { data: usageCost } = useSWR<RequestUsageCost>(
     apiPaths.USAGE_COST_REQUEST({ requestId: resourceClaim.metadata.uid }),
-    fetcher,
+    silentFetcher,
   );
 
   const autoStopTime = getAutoStopTime(resourceClaim);

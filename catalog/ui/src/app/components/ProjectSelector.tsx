@@ -76,6 +76,7 @@ const ProjectSelector: React.FC<{
       <DropdownItem
         itemId={filteredServiceNamespaces[index].name}
         key={filteredServiceNamespaces[index].name}
+        value={filteredServiceNamespaces[index].name}
         onClick={() => {
           onSelect(filteredServiceNamespaces[index]);
           setIsOpen(false);
@@ -93,6 +94,7 @@ const ProjectSelector: React.FC<{
       className="project-selector"
       isOpen={isOpen}
       onOpenChangeKeys={['Escape']}
+      onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
       toggle={(toggleRef) => (
         <MenuToggle
           ref={toggleRef}

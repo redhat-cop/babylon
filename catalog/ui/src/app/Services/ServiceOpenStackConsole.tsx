@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Spinner } from '@patternfly/react-core';
-import { Dropdown, DropdownToggle, DropdownItem } from '@patternfly/react-core/deprecated';
+import { Button, DropdownList, Spinner } from '@patternfly/react-core';
+import { Dropdown, MenuToggle, MenuToggleElement, DropdownItem } from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import {
   getOpenStackServersForResourceClaim,
@@ -98,7 +98,11 @@ const ServiceOpenStackConsole: React.FC<{
   for (const subject of openStackServers?.subjects || []) {
     for (const server of subject.openStackServers || []) {
       serverDropdownItems.push(
-        <DropdownItem id={`${server.project_id}.${server.id}`} key={`${server.project_id}.${server.id}`}>
+        <DropdownItem
+          id={`${server.project_id}.${server.id}`}
+          key={`${server.project_id}.${server.id}`}
+          value={server.name}
+        >
           {server.name}
         </DropdownItem>,
       );
@@ -135,14 +139,16 @@ const ServiceOpenStackConsole: React.FC<{
       {serverDropdownItems.length > 1 ? (
         <Dropdown
           onSelect={onServerSelect}
-          toggle={
-            <DropdownToggle onToggle={() => setServerSelectIsOpen((v) => !v)} toggleIndicator={CaretDownIcon}>
+          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+            <MenuToggle ref={toggleRef} onClick={() => setServerSelectIsOpen((v) => !v)} icon={<CaretDownIcon />}>
               Select Server
-            </DropdownToggle>
-          }
+            </MenuToggle>
+          )}
           isOpen={serverSelectIsOpen}
-          dropdownItems={serverDropdownItems}
-        />
+          onOpenChange={(isOpen: boolean) => setServerSelectIsOpen(isOpen)}
+        >
+          <DropdownList>{serverDropdownItems.map((item) => item)}</DropdownList>
+        </Dropdown>
       ) : null}
       {serverState?.status === 'ACTIVE' ? (
         <Button variant="primary" onClick={stopServer}>

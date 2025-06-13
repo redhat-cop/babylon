@@ -26,6 +26,7 @@ import {
   patchWorkshopProvision,
   SERVICES_KEY,
   setWorkshopLifespanEnd,
+  silentFetcher,
   startWorkshop,
   startWorkshopServices,
   stopWorkshop,
@@ -150,7 +151,7 @@ const WorkshopsItemComponent: React.FC<{
     workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`]
       ? apiPaths.USAGE_COST_WORKSHOP({ workshopId: workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] })
       : null,
-    fetcher,
+    silentFetcher,
   );
   const stage = getStageFromK8sObject(workshop);
 
@@ -421,7 +422,6 @@ const WorkshopsItemComponent: React.FC<{
           <SplitItem>
             <Bullseye>
               <WorkshopActions
-                position="right"
                 workshopName={workshop.spec.displayName}
                 actionHandlers={{
                   delete: () => showModal({ action: 'delete' }),

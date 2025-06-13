@@ -1,5 +1,12 @@
 import React from 'react';
-import { Dropdown, DropdownItem, DropdownPosition, DropdownToggle } from '@patternfly/react-core/deprecated';
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  MenuToggle,
+  MenuToggleElement,
+  PopoverPosition,
+} from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 
@@ -9,10 +16,10 @@ const ActionDropdown: React.FC<{
   actionDropdownItems: any;
   className?: string;
   isDisabled?: boolean;
-  position: DropdownPosition | 'right' | 'left';
+  position?: 'right' | 'left' | 'center' | 'end' | 'start';
   icon?: React.ComponentClass<SVGIconProps>;
   isPlain?: boolean;
-}> = ({ actionDropdownItems, className, isDisabled = false, position, icon, isPlain = false }) => {
+}> = ({ actionDropdownItems, className, isDisabled = false, icon, position, isPlain = false }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const Icon = icon;
   return (
@@ -20,19 +27,17 @@ const ActionDropdown: React.FC<{
       className={`action-dropdown${className ? ` ${className}` : ''}`}
       isOpen={isOpen}
       onSelect={() => setIsOpen(false)}
-      position={position}
       isPlain={isPlain}
-      toggle={
-        <DropdownToggle
-          toggleIndicator={isPlain ? null : CaretDownIcon}
-          isDisabled={isDisabled}
-          onToggle={() => setIsOpen((v) => !v)}
-        >
+      onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
+      popperProps={{ position }}
+      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+        <MenuToggle ref={toggleRef} isDisabled={isDisabled} onClick={() => setIsOpen((v) => !v)}>
           {icon ? <Icon /> : 'Actions'}
-        </DropdownToggle>
-      }
-      dropdownItems={actionDropdownItems}
-    />
+        </MenuToggle>
+      )}
+    >
+      <DropdownList>{actionDropdownItems.map((item: any) => item)}</DropdownList>
+    </Dropdown>
   );
 };
 
@@ -47,6 +52,7 @@ const ActionDropdownItem: React.FC<{
     <DropdownItem
       className={className}
       key={label}
+      value={label}
       isDisabled={isDisabled}
       onClick={() => (isDisabled === true ? null : onSelect())}
       icon={icon}
