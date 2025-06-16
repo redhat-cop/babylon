@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownList,
-  MenuToggle,
-  MenuToggleElement,
-  PopoverPosition,
-} from '@patternfly/react-core';
-import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
+import { Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 
 import './action-dropdown.css';
@@ -27,11 +19,15 @@ const ActionDropdown: React.FC<{
       className={`action-dropdown${className ? ` ${className}` : ''}`}
       isOpen={isOpen}
       onSelect={() => setIsOpen(false)}
-      isPlain={isPlain}
       onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
       popperProps={{ position }}
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-        <MenuToggle ref={toggleRef} isDisabled={isDisabled} onClick={() => setIsOpen((v) => !v)}>
+        <MenuToggle
+          ref={toggleRef}
+          isDisabled={isDisabled}
+          onClick={() => setIsOpen((v) => !v)}
+          variant={isPlain ? 'plain' : 'default'}
+        >
           {icon ? <Icon /> : 'Actions'}
         </MenuToggle>
       )}

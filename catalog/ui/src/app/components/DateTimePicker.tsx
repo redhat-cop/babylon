@@ -160,6 +160,7 @@ const DateTimePicker: React.FC<{
       onSelect={onSelectTime}
       className="date-time-picker__time-picker"
       onOpenChange={(isOpen: boolean) => setIsTimeOpen(isOpen)}
+      isScrollable
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
         <MenuToggle
           ref={toggleRef}

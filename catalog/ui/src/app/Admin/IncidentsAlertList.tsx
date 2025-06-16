@@ -170,9 +170,15 @@ const IncidentsAlertList: React.FC = () => {
                 toggle={toggle}
               >
                 <SelectList>
-                  <SelectOption key="info" value="Info" />
-                  <SelectOption key="warning" value="Warning" />
-                  <SelectOption key="critical" value="Critical" />
+                  <SelectOption key="info" value="Info">
+                    Info
+                  </SelectOption>
+                  <SelectOption key="warning" value="Warning">
+                    Warning
+                  </SelectOption>
+                  <SelectOption key="critical" value="Critical">
+                    Critical
+                  </SelectOption>
                 </SelectList>
               </Select>
             </div>

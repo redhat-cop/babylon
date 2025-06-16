@@ -77,3 +77,9 @@
   background: rgba(255, 255, 255, 0.65);
   z-index: 999;
 }
+.catalog-item-admin__form .pf-v5-c-menu__item-text {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-v5-global--spacer--sm);
+  align-items: center;
+}

@@ -163,6 +163,7 @@ const Header: React.FC<{
         onOpenChangeKeys={['Escape']}
         onSelect={onSelect}
         ref={menuRef}
+        isScrollable
         toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
           <MenuToggle
             aria-label="Help menu"
@@ -193,6 +194,7 @@ const Header: React.FC<{
         }`}
         isOpen={isUserControlDropdownOpen}
         onOpenChange={(isOpen: boolean) => setIsUserControlDropdownOpen(isOpen)}
+        isScrollable
         toggle={(el: React.Ref<MenuToggleElement>) => (
           <MenuToggle
             ref={el}
