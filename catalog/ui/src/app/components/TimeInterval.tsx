@@ -1,6 +1,21 @@
 import React from 'react';
 import parseDuration from 'parse-duration';
 
+function parseAsUTC(dateString: string): Date {
+  // Check if string contains a timezone (Z or ±hh:mm at the end)
+  const hasTimezone = /[zZ]|[+-]\d{2}:\d{2}$/.test(dateString);
+
+  if (hasTimezone) {
+    return new Date(dateString);
+  }
+
+  // Trim microseconds (if more than 3 digits) to milliseconds
+  const normalized = dateString.replace(/\.(\d{3})\d*/, (_, ms: string) => `.${ms}`);
+
+  // Append 'Z' to treat the string as UTC
+  return new Date(normalized + 'Z');
+}
+
 const TimeInterval: React.FC<{
   interval?: number | string;
   toDate?: Date;
@@ -10,7 +25,7 @@ const TimeInterval: React.FC<{
   const to: number | null = toDate
     ? toDate.getTime()
     : toTimestamp
-      ? Date.parse(toTimestamp)
+      ? parseAsUTC(toTimestamp).getTime()
       : toEpochMilliseconds
         ? toEpochMilliseconds
         : null;
