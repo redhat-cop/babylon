@@ -74,15 +74,12 @@
   flex-direction: row;
   justify-content: flex-end;
 }
-.catalog__right-tools button {
+.catalog__right-tools .pf-v5-c-button, .catalog__right-tools .pf-v5-c-menu-toggle {
   margin-left: 1rem;
   padding: 0;
 }
-.catalog__sort-by button {
-  padding-left: var(--pf-v5-c-select__toggle--PaddingLeft);
-  padding-bottom: 0;
-  padding-top: 0;
+.catalog__sort-by .pf-v5-c-menu-toggle__text {
+  margin: 0 var(--pf-v5-global--spacer--sm);
   width: auto;
-  padding-right: 0;
   font-size: var(--pf-v5-global--FontSize--sm);
 }

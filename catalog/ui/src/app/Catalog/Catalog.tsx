@@ -24,8 +24,12 @@ import {
   Title,
   Tooltip,
   EmptyStateHeader,
+  Select,
+  SelectOption,
+  SelectList,
+  MenuToggleElement,
+  MenuToggle,
 } from '@patternfly/react-core';
-import { Select, SelectOption, SelectVariant } from '@patternfly/react-core/deprecated';
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
@@ -115,7 +119,7 @@ function handleExportCsv(catalogItems: CatalogItem[]) {
       label: formatString(
         label.startsWith(BABYLON_DOMAIN + '/')
           ? label.substring(BABYLON_DOMAIN.length + 1)
-          : label.substring(GPTE_DOMAIN.length + 1)
+          : label.substring(GPTE_DOMAIN.length + 1),
       ),
       value: `metadata.labels.["${label}"]`,
       default: '',
@@ -219,7 +223,7 @@ function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
 export async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
     return await fetcherItemsInAllPages((continueId) =>
-      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+      apiPaths.CATALOG_ITEMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     );
   }
   const catalogItems: CatalogItem[] = [];
@@ -261,11 +265,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const adminStatusString = searchParams.has('adminStatus') ? searchParams.get('adminStatus') : null;
   const selectedAdminFilter: string[] = useMemo(
     () => (adminStatusString ? JSON.parse(adminStatusString) : []),
-    [adminStatusString]
+    [adminStatusString],
   );
   const selectedLabels: { [label: string]: string[] } = useMemo(
     () => (labelsString ? JSON.parse(labelsString) : {}),
-    [labelsString]
+    [labelsString],
   );
 
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
@@ -311,20 +315,20 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         return aStage === 'prod' && bStage !== 'prod'
           ? -1
           : aStage !== 'prod' && bStage === 'prod'
-          ? 1
-          : aStage === 'event' && bStage !== 'event'
-          ? -1
-          : aStage !== 'event' && bStage === 'event'
-          ? 1
-          : aStage === 'test' && bStage !== 'test'
-          ? -1
-          : aStage !== 'test' && bStage === 'test'
-          ? 1
-          : aStage === 'dev' && bStage !== 'dev'
-          ? -1
-          : aStage !== 'dev' && bStage === 'dev'
-          ? 1
-          : 0;
+            ? 1
+            : aStage === 'event' && bStage !== 'event'
+              ? -1
+              : aStage !== 'event' && bStage === 'event'
+                ? 1
+                : aStage === 'test' && bStage !== 'test'
+                  ? -1
+                  : aStage !== 'test' && bStage === 'test'
+                    ? 1
+                    : aStage === 'dev' && bStage !== 'dev'
+                      ? -1
+                      : aStage !== 'dev' && bStage === 'dev'
+                        ? 1
+                        : 0;
       }
       if (a.metadata.namespace != b.metadata.namespace) {
         return a.metadata.namespace < b.metadata.namespace ? -1 : 1;
@@ -334,7 +338,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       }
       return 0;
     },
-    [sortBy.selected]
+    [sortBy.selected],
   );
 
   const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
@@ -345,13 +349,13 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     {
       suspense: false,
       shouldRetryOnError: false,
-    }
+    },
   );
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
     apiPaths.CATALOG_ITEMS({
       namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs',
     }),
-    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames)
+    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames),
   );
   const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES({}), fetcher, {
     suspense: false,
@@ -360,7 +364,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
-    [catalogItemsArr, groups]
+    [catalogItemsArr, groups],
   );
 
   // Filter & Sort catalog items
@@ -373,7 +377,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       const incident = activeIncidents
         ? activeIncidents.items.find(
             (i) =>
-              i.asset_uuid === c.metadata.labels?.['gpte.redhat.com/asset-uuid'] && i.stage === getStageFromK8sObject(c)
+              i.asset_uuid === c.metadata.labels?.['gpte.redhat.com/asset-uuid'] &&
+              i.stage === getStageFromK8sObject(c),
           )
         : null;
       if (incident) {
@@ -471,7 +476,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     openCatalogItemName && openCatalogItemNamespaceName
       ? catalogItems.find(
           (item) =>
-            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName
+            item.metadata.name === openCatalogItemName && item.metadata.namespace === openCatalogItemNamespaceName,
         )
       : null;
 
@@ -643,10 +648,24 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                   </li>
                                   <li>
                                     <Select
-                                      className="catalog__sort-by"
-                                      variant={SelectVariant.single}
                                       aria-label="Sort by"
-                                      onToggle={(_event, isOpen) =>
+                                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                        <MenuToggle
+                                          ref={toggleRef}
+                                          onClick={() =>
+                                            setSortBy({
+                                              ...sortBy,
+                                              isOpen: !sortBy.isOpen,
+                                            })
+                                          }
+                                          className="catalog__sort-by"
+                                          isDisabled={!!searchString}
+                                          isExpanded={sortBy.isOpen}
+                                        >
+                                          {`Sort by: ${!!searchString ? 'Search' : sortBy.selected === 'AZ' || sortBy.selected === 'ZA' ? `${sortBy.selected[0]}->${sortBy.selected[1]}` : sortBy.selected}`}
+                                        </MenuToggle>
+                                      )}
+                                      onOpenChange={(isOpen) =>
                                         setSortBy({
                                           ...sortBy,
                                           isOpen,
@@ -659,14 +678,23 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                           isOpen: false,
                                         })
                                       }
-                                      selections={`Sort by: ${!!searchString ? 'Search' : sortBy.selected}`}
+                                      selected={sortBy.selected}
                                       isOpen={sortBy.isOpen}
-                                      isDisabled={!!searchString}
                                     >
-                                      <SelectOption key={0} value="Featured" />
-                                      <SelectOption key={1} value="Rating" />
-                                      <SelectOption key={2} value="AZ" />
-                                      <SelectOption key={3} value="ZA" />
+                                      <SelectList>
+                                        <SelectOption key={0} value="Featured">
+                                          Featured
+                                        </SelectOption>
+                                        <SelectOption key={1} value="Rating">
+                                          Rating
+                                        </SelectOption>
+                                        <SelectOption key={2} value="AZ">
+                                          A-&gt;Z
+                                        </SelectOption>
+                                        <SelectOption key={3} value="ZA">
+                                          Z-&gt;A
+                                        </SelectOption>
+                                      </SelectList>
                                     </Select>
                                   </li>
                                 </ul>
