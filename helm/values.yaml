@@ -228,7 +228,7 @@ admin:
     create: true
     name: babylon-admin
   image:
-    tag: v1.0.7
+    tag: v1.0.8
     repository: quay.io/redhat-gpte/babylon-admin
     pullPolicy: IfNotPresent
   replicaCount: 1
@@ -241,10 +241,6 @@ admin:
       memory: "256Mi"
   db:
     deploy: false
-    maxOverflow: 20
-    poolRecycle: 600
-    poolSize: 5
-    port: 54327
     secretName: database
   servicenow:
     deploy: true
