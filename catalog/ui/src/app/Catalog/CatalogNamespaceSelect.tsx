@@ -23,6 +23,7 @@ const CatalogNamespaceSelect: React.FC<{
       <Dropdown
         isOpen={isOpen}
         onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
+        isScrollable
         toggle={(ns: React.Ref<MenuToggleElement>) => (
           <MenuToggle ref={ns} onClick={onToggleClick} isExpanded={isOpen} variant="plainText">
             Catalog: {selected ? displayName(selectedCatalogNamespace) : 'all catalogs'}

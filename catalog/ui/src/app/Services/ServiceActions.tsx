@@ -109,6 +109,7 @@ const ServiceActions: React.FC<{
       isDisabled={isDisabled}
       icon={iconOnly ? EllipsisVIcon : null}
       isPlain={iconOnly ? true : false}
+      position={position}
     />
   );
 };

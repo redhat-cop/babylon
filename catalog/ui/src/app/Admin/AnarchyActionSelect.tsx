@@ -12,7 +12,7 @@ const AnarchyActionSelect: React.FC<{
   };
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={isOpen}>
-      {action || '-'}
+      {action ? action.charAt(0).toUpperCase() + action.slice(1) : 'All Actions'}
     </MenuToggle>
   );
 

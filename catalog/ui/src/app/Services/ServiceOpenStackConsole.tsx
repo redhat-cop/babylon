@@ -162,10 +162,10 @@ const ServiceOpenStackConsole: React.FC<{
         <Button variant="primary" isDisabled={true}>
           Start
         </Button>
-      )}{' '}
+      )}
       <Button variant="primary" isDisabled={serverState?.status !== 'ACTIVE'} onClick={rebootServer}>
         Reboot
-      </Button>{' '}
+      </Button>
       <Button variant="primary" isDisabled={serverState?.status !== 'ACTIVE'} onClick={reconnectConsole}>
         Reconnect
       </Button>
