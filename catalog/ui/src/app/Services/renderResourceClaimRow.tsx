@@ -9,6 +9,7 @@ import {
   BABYLON_DOMAIN,
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
+  DEMO_DOMAIN,
   displayName,
   getStageFromK8sObject,
   isResourceClaimPartOfWorkshop,
@@ -48,6 +49,7 @@ const renderResourceClaimRow = ({
   const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+  const serviceAlias = resourceClaim.metadata?.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '';
   // Find lab user interface information either in the resource claim or inside resources
   // associated with the provisioned service.
   const labUserInterfaceData =
@@ -135,6 +137,11 @@ const renderResourceClaimRow = ({
       {workshopName ? (
         <Label key="workshop-name__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
           Workshop UI
+        </Label>
+      ) : null}
+      {serviceAlias ? (
+        <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
+          {serviceAlias}
         </Label>
       ) : null}
       {isAdmin ? <OpenshiftConsoleLink key="resource-claim-name__console" resource={resourceClaim} /> : null}

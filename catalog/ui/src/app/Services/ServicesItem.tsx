@@ -109,6 +109,7 @@ import InfoTab from './InfoTab';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounce from '@app/utils/useDebounce';
+import useDebounceState from '@app/utils/useDebounceState';
 
 import './services-item.css';
 
@@ -355,6 +356,10 @@ const ServicesItemComponent: React.FC<{
     completed: resourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] ? false : true,
     salesforce_type: (resourceClaim.metadata.annotations[`${DEMO_DOMAIN}/sales-type`] as SfdcType) || null,
   });
+  const [serviceAlias, setServiceAlias] = useState(
+    resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
+  );
+  const debouncedServiceAlias = useDebounceState(serviceAlias, 300);
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
@@ -389,6 +394,20 @@ const ServicesItemComponent: React.FC<{
       });
     }
   }, [dispatchSalesforceObj, salesforceObj, debouncedApiFetch]);
+
+  useEffect(() => {
+    if (debouncedServiceAlias !== resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`]) {
+      patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
+        metadata: {
+          annotations: {
+            [`${DEMO_DOMAIN}/service-alias`]: debouncedServiceAlias,
+          },
+        },
+      }).then((updatedResourceClaim) => {
+        mutate(updatedResourceClaim);
+      });
+    }
+  }, [debouncedServiceAlias]);
 
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const { data: userNamespaceList } = useSWR<NamespaceList>(
@@ -692,6 +711,11 @@ const ServicesItemComponent: React.FC<{
                   Workshop UI
                 </Label>
               ) : null}
+              {serviceAlias ? (
+                <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
+                  {serviceAlias}
+                </Label>
+              ) : null}
             </Title>
           </SplitItem>
           <SplitItem>
@@ -747,6 +771,31 @@ const ServicesItemComponent: React.FC<{
                         {resourceClaim.metadata.name}
                       </Link>
                       {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Alias</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <div
+                        className="service-item__group-control--single"
+                        style={{ maxWidth: 300, paddingBottom: '16px' }}
+                      >
+                        <TextInput
+                          type="text"
+                          key="service-alias"
+                          id="service-alias"
+                          onChange={async (_event: any, value: string) => {
+                            setServiceAlias(value);
+                          }}
+                          value={serviceAlias}
+                        />
+                        <Tooltip position="right" content={<div>Alias name for the service.</div>}>
+                          <OutlinedQuestionCircleIcon
+                            aria-label="Alias name for the service."
+                            className="tooltip-icon-only"
+                          />
+                        </Tooltip>
+                      </div>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   {labUserInterfaceUrl ? (
