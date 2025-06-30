@@ -154,6 +154,9 @@ const ServicesList: React.FC<{
   const filterFn = useCallback(
     (service: Service) => {
       if (service.kind === 'ResourceClaim') {
+        if (service.metadata.deletionTimestamp) {
+          return false;
+        }
         const resourceClaim = service as ResourceClaim;
         const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
         if (isPartOfWorkshop) {
