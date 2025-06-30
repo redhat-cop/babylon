@@ -1210,7 +1210,8 @@ const ServicesItemComponent: React.FC<{
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
                 {activeTab === 'users' ? (
                   <>
-                    {!workshopName ? (
+                    {!workshopName &&
+                    resourceClaim.metadata?.annotations?.[`${DEMO_DOMAIN}/workshopUiDisabled`] !== 'true' ? (
                       <Button
                         className="services-item__create-workshop-button"
                         onClick={() => {

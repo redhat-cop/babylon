@@ -431,6 +431,7 @@ export async function createServiceRequest({
           : {}),
         [`${DEMO_DOMAIN}/scheduled`]:
           startDate && startDate.getTime() + parseDuration('15min') > Date.now() ? 'true' : 'false',
+        ...(catalogItem.spec.workshopUiDisabled ? { [`${DEMO_DOMAIN}/workshopUiDisabled`]: 'true' } : {}),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
