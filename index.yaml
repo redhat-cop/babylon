@@ -2,8 +2,18 @@ apiVersion: v1
 entries:
   babylon:
   - apiVersion: v2
+    appVersion: 0.40.28
+    created: "2025-07-08T08:17:37.482792752Z"
+    description: A Helm chart for babylon
+    digest: f8cd1cab04586212fc3398f9b8413d726693c8d5887a7bf8d73759335ee16a96
+    name: babylon
+    type: application
+    urls:
+    - https://redhat-cop.github.io/babylon/babylon-0.40.28.tgz
+    version: 0.40.28
+  - apiVersion: v2
     appVersion: 0.40.27
-    created: "2025-06-25T14:58:24.632558561Z"
+    created: "2025-07-08T08:17:37.481140017Z"
     description: A Helm chart for babylon
     digest: 24d83a435273f0dcddd883bae0aa1056eb8df814e44397f8fab2f81fa982689d
     name: babylon
@@ -13,7 +23,7 @@ entries:
     version: 0.40.27
   - apiVersion: v2
     appVersion: 0.40.26
-    created: "2025-06-25T14:58:24.631216388Z"
+    created: "2025-07-08T08:17:37.479073655Z"
     description: A Helm chart for babylon
     digest: 0313a2cb728c56b140790f54e24159be63f3b73a62f7012f8734d8faf452a110
     name: babylon
@@ -23,7 +33,7 @@ entries:
     version: 0.40.26
   - apiVersion: v2
     appVersion: 0.40.25
-    created: "2025-06-25T14:58:24.628705019Z"
+    created: "2025-07-08T08:17:37.477746512Z"
     description: A Helm chart for babylon
     digest: 20daf1d50b251efab0c4a15e99e4fdb8a15045527828a6ddbb391a09225d79c0
     name: babylon
@@ -33,7 +43,7 @@ entries:
     version: 0.40.25
   - apiVersion: v2
     appVersion: 0.40.25-rc1
-    created: "2025-06-25T14:58:24.627490656Z"
+    created: "2025-07-08T08:17:37.476505841Z"
     description: A Helm chart for babylon
     digest: a0619de551f792f809525048aa34e916bc5c6859c7c7aaa56186161af1890a7b
     name: babylon
@@ -43,7 +53,7 @@ entries:
     version: 0.40.25-rc1
   - apiVersion: v2
     appVersion: 0.40.24
-    created: "2025-06-25T14:58:24.62626405Z"
+    created: "2025-07-08T08:17:37.475149849Z"
     description: A Helm chart for babylon
     digest: ebac194e12add6e7240fc76fb4d889a23b3a48a22a3d87c128e7934106789dba
     name: babylon
@@ -53,7 +63,7 @@ entries:
     version: 0.40.24
   - apiVersion: v2
     appVersion: 0.40.23
-    created: "2025-06-25T14:58:24.625013769Z"
+    created: "2025-07-08T08:17:37.47389938Z"
     description: A Helm chart for babylon
     digest: bc605f97e648e56de23ee700e07ae1f75450cee6851d8d1e9ac64fb2c1d16523
     name: babylon
@@ -63,7 +73,7 @@ entries:
     version: 0.40.23
   - apiVersion: v2
     appVersion: 0.40.22
-    created: "2025-06-25T14:58:24.623758539Z"
+    created: "2025-07-08T08:17:37.472633352Z"
     description: A Helm chart for babylon
     digest: 4bd5e989b704e234b0dfd8c6e650126adc8ae47e07c615f764f73073b7c05d8f
     name: babylon
@@ -73,7 +83,7 @@ entries:
     version: 0.40.22
   - apiVersion: v2
     appVersion: 0.40.21
-    created: "2025-06-25T14:58:24.621645213Z"
+    created: "2025-07-08T08:17:37.470296836Z"
     description: A Helm chart for babylon
     digest: 3d4f8a3e956a88bab68636cbf78ee518c78c7102220837771952cf81940e11c8
     name: babylon
@@ -83,7 +93,7 @@ entries:
     version: 0.40.21
   - apiVersion: v2
     appVersion: 0.40.20
-    created: "2025-06-25T14:58:24.620429838Z"
+    created: "2025-07-08T08:17:37.469061084Z"
     description: A Helm chart for babylon
     digest: a923938bbb619a024b2cc84f2ce8e86a1467456fcc61a5dd92569be852b719ef
     name: babylon
@@ -93,7 +103,7 @@ entries:
     version: 0.40.20
   - apiVersion: v2
     appVersion: 0.40.19
-    created: "2025-06-25T14:58:24.617941019Z"
+    created: "2025-07-08T08:17:37.466575775Z"
     description: A Helm chart for babylon
     digest: 8cd72437251aac147b4774c9286c32173fc5066457b135a19f092f1fd1e89cec
     name: babylon
@@ -103,7 +113,7 @@ entries:
     version: 0.40.19
   - apiVersion: v2
     appVersion: 0.40.18
-    created: "2025-06-25T14:58:24.616682132Z"
+    created: "2025-07-08T08:17:37.465270533Z"
     description: A Helm chart for babylon
     digest: 60ed00528fdf5519b48d0cd91973d0caeadf299f98b68b1d54516600b504c575
     name: babylon
@@ -113,7 +123,7 @@ entries:
     version: 0.40.18
   - apiVersion: v2
     appVersion: 0.40.17
-    created: "2025-06-25T14:58:24.615435729Z"
+    created: "2025-07-08T08:17:37.463513041Z"
     description: A Helm chart for babylon
     digest: 06a6b18c5fc1f3513619a6f400e2319845904e7ec6c1d8cf0a4129be9695f2e7
     name: babylon
@@ -123,7 +133,7 @@ entries:
     version: 0.40.17
   - apiVersion: v2
     appVersion: 0.40.16
-    created: "2025-06-25T14:58:24.613288625Z"
+    created: "2025-07-08T08:17:37.461903136Z"
     description: A Helm chart for babylon
     digest: 51516c040a591159e26979a5877736589f20d3463d80837de4052e9f09e72d9d
     name: babylon
@@ -133,7 +143,7 @@ entries:
     version: 0.40.16
   - apiVersion: v2
     appVersion: 0.40.15
-    created: "2025-06-25T14:58:24.61206232Z"
+    created: "2025-07-08T08:17:37.460664228Z"
     description: A Helm chart for babylon
     digest: 4fee4d341459e8dcaea80e0106844806dbb31ccf01bb9616abdf73ae759ecef3
     name: babylon
@@ -143,7 +153,7 @@ entries:
     version: 0.40.15
   - apiVersion: v2
     appVersion: 0.40.14
-    created: "2025-06-25T14:58:24.610845552Z"
+    created: "2025-07-08T08:17:37.459435631Z"
     description: A Helm chart for babylon
     digest: f4b8d55d8940ba70fb9863396dc638ccd81688a93bb2dcdd97bf50dbe3b33ff1
     name: babylon
@@ -153,7 +163,7 @@ entries:
     version: 0.40.14
   - apiVersion: v2
     appVersion: 0.40.13
-    created: "2025-06-25T14:58:24.609617433Z"
+    created: "2025-07-08T08:17:37.458181885Z"
     description: A Helm chart for babylon
     digest: a81c0affb1d01ac9dd097720c9927cfd16ee49cf9fa696d3b8162be629ac9fa1
     name: babylon
@@ -163,7 +173,7 @@ entries:
     version: 0.40.13
   - apiVersion: v2
     appVersion: 0.40.12
-    created: "2025-06-25T14:58:24.608372593Z"
+    created: "2025-07-08T08:17:37.45691805Z"
     description: A Helm chart for babylon
     digest: 967b1424e529cf07d524c11aa410a19434257d227d0c2265fe132d56e9a9edcc
     name: babylon
@@ -173,7 +183,7 @@ entries:
     version: 0.40.12
   - apiVersion: v2
     appVersion: 0.40.11
-    created: "2025-06-25T14:58:24.605757837Z"
+    created: "2025-07-08T08:17:37.455177337Z"
     description: A Helm chart for babylon
     digest: 7289ad847415f85fd08fd0db41883ff857e65727e99dbacb18de6c6334c97a72
     name: babylon
@@ -183,7 +193,7 @@ entries:
     version: 0.40.11
   - apiVersion: v2
     appVersion: 0.40.10
-    created: "2025-06-25T14:58:24.604516303Z"
+    created: "2025-07-08T08:17:37.453284321Z"
     description: A Helm chart for babylon
     digest: 8a7f15319c50f710d3aa53ed8d8f972674882f9440b1cfb00999a1564be3d322
     name: babylon
@@ -193,7 +203,7 @@ entries:
     version: 0.40.10
   - apiVersion: v2
     appVersion: 0.40.9
-    created: "2025-06-25T14:58:24.647250208Z"
+    created: "2025-07-08T08:17:37.492547695Z"
     description: A Helm chart for babylon
     digest: efe2602483765fb9bac3d98c9662896776db079edbfea87223605892da804349
     name: babylon
@@ -203,7 +213,7 @@ entries:
     version: 0.40.9
   - apiVersion: v2
     appVersion: 0.40.8
-    created: "2025-06-25T14:58:24.645968618Z"
+    created: "2025-07-08T08:17:37.491289151Z"
     description: A Helm chart for babylon
     digest: 2ab71850d627f2521a03b87ac33630f2538688802aa5079d3e212b84f24680c6
     name: babylon
@@ -213,7 +223,7 @@ entries:
     version: 0.40.8
   - apiVersion: v2
     appVersion: 0.40.7
-    created: "2025-06-25T14:58:24.644663044Z"
+    created: "2025-07-08T08:17:37.489967608Z"
     description: A Helm chart for babylon
     digest: da02eb55617a0e5672cd890846d21b42ddcc6fbf0369bd5f7845ff47f8f891ba
     name: babylon
@@ -223,7 +233,7 @@ entries:
     version: 0.40.7
   - apiVersion: v2
     appVersion: 0.40.6
-    created: "2025-06-25T14:58:24.641558852Z"
+    created: "2025-07-08T08:17:37.487968565Z"
     description: A Helm chart for babylon
     digest: d098a670f3b54160671dd56cfe144f716b14e3406943011f0a8604f46074fd30
     name: babylon
@@ -233,7 +243,7 @@ entries:
     version: 0.40.6
   - apiVersion: v2
     appVersion: 0.40.5
-    created: "2025-06-25T14:58:24.639053813Z"
+    created: "2025-07-08T08:17:37.486565539Z"
     description: A Helm chart for babylon
     digest: a40548f2eef71487035d21f508f41a17ba62bfcd14d96d16d41b5b47c462980a
     name: babylon
@@ -243,7 +253,7 @@ entries:
     version: 0.40.5
   - apiVersion: v2
     appVersion: 0.40.4
-    created: "2025-06-25T14:58:24.636604718Z"
+    created: "2025-07-08T08:17:37.485291867Z"
     description: A Helm chart for babylon
     digest: 5a96bc45639d5e3e0b7ea150bb5c18ce40b3d148c2fafcb51b9d36da8f961006
     name: babylon
@@ -253,7 +263,7 @@ entries:
     version: 0.40.4
   - apiVersion: v2
     appVersion: 0.40.3
-    created: "2025-06-25T14:58:24.634293062Z"
+    created: "2025-07-08T08:17:37.484040385Z"
     description: A Helm chart for babylon
     digest: e1da13aee9c6696008ea6b51b9637902d0a0d9d7cbf0a35c6d63942ff46a5a66
     name: babylon
@@ -263,7 +273,7 @@ entries:
     version: 0.40.3
   - apiVersion: v2
     appVersion: 0.40.2
-    created: "2025-06-25T14:58:24.619175951Z"
+    created: "2025-07-08T08:17:37.467826274Z"
     description: A Helm chart for babylon
     digest: 28af5842097c41e95c2a62c86ac7800be6eecf08377ac5de0a03c387426d1958
     name: babylon
@@ -273,7 +283,7 @@ entries:
     version: 0.40.2
   - apiVersion: v2
     appVersion: 0.40.1
-    created: "2025-06-25T14:58:24.603289487Z"
+    created: "2025-07-08T08:17:37.452041275Z"
     description: A Helm chart for babylon
     digest: ab37546d8d4ae75f30bc6a3dc3dc18bbe35a29498bdc7bea39b05110cbc4a49c
     name: babylon
@@ -283,7 +293,7 @@ entries:
     version: 0.40.1
   - apiVersion: v2
     appVersion: 0.40.0
-    created: "2025-06-25T14:58:24.602060616Z"
+    created: "2025-07-08T08:17:37.450806686Z"
     description: A Helm chart for babylon
     digest: b35faae798962d307902bcf1d66bfec05ddef8e81f59f48ec03292259c514ac4
     name: babylon
@@ -293,7 +303,7 @@ entries:
     version: 0.40.0
   - apiVersion: v2
     appVersion: 0.39.12
-    created: "2025-06-25T14:58:24.600832177Z"
+    created: "2025-07-08T08:17:37.449565754Z"
     description: A Helm chart for babylon
     digest: 6cdec49ae3c5082afe4532ed6dcfe61189bae691c16cbf5fa230915438c493fc
     name: babylon
@@ -303,7 +313,7 @@ entries:
     version: 0.39.12
   - apiVersion: v2
     appVersion: 0.39.11
-    created: "2025-06-25T14:58:24.599611301Z"
+    created: "2025-07-08T08:17:37.448309043Z"
     description: A Helm chart for babylon
     digest: 809bb783353f53eb2e34915982973f02726f89cc499906f0c24dbe7422cfc22b
     name: babylon
@@ -313,7 +323,7 @@ entries:
     version: 0.39.11
   - apiVersion: v2
     appVersion: 0.38.1
-    created: "2025-06-25T14:58:24.59833381Z"
+    created: "2025-07-08T08:17:37.446252965Z"
     description: A Helm chart for babylon
     digest: 901b10d93431c114826c0ec66066c3d5032594ff921ad67d4b042ebcd5c976a3
     name: babylon
@@ -323,7 +333,7 @@ entries:
     version: 0.38.1
   - apiVersion: v2
     appVersion: 0.38.0
-    created: "2025-06-25T14:58:24.596012606Z"
+    created: "2025-07-08T08:17:37.444911434Z"
     description: A Helm chart for babylon
     digest: 55153841a8b7866223686ea5b507aae96a6175857db2399a3d598ceba3c170ce
     name: babylon
@@ -333,7 +343,7 @@ entries:
     version: 0.38.0
   - apiVersion: v2
     appVersion: 0.37.1
-    created: "2025-06-25T14:58:24.594817429Z"
+    created: "2025-07-08T08:17:37.443693677Z"
     description: A Helm chart for babylon
     digest: 84fdbb54339cfe904fe7cb7d57fa750566705a08ce0b0737e820ade1f1f69ced
     name: babylon
@@ -343,7 +353,7 @@ entries:
     version: 0.37.1
   - apiVersion: v2
     appVersion: 0.37.0
-    created: "2025-06-25T14:58:24.593614126Z"
+    created: "2025-07-08T08:17:37.442480267Z"
     description: A Helm chart for babylon
     digest: 85131fb5e5962a6aa6a4e5392aa1f1bd40efdad63f161d26b866313b000ff60b
     name: babylon
@@ -353,7 +363,7 @@ entries:
     version: 0.37.0
   - apiVersion: v2
     appVersion: 0.36.6
-    created: "2025-06-25T14:58:24.59240316Z"
+    created: "2025-07-08T08:17:37.441256838Z"
     description: A Helm chart for babylon
     digest: 637c7fcecc66ed5fcb7b91614abcbf1a3fda564230fff4e43108483d2d8de256
     name: babylon
@@ -363,7 +373,7 @@ entries:
     version: 0.36.6
   - apiVersion: v2
     appVersion: 0.36.5
-    created: "2025-06-25T14:58:24.591124776Z"
+    created: "2025-07-08T08:17:37.440031606Z"
     description: A Helm chart for babylon
     digest: 6db2fffe4b0b14e4d1205b0130fe86132b299dc0bbe3af4193d517ced1a19a76
     name: babylon
@@ -373,7 +383,7 @@ entries:
     version: 0.36.5
   - apiVersion: v2
     appVersion: 0.36.4
-    created: "2025-06-25T14:58:24.589068176Z"
+    created: "2025-07-08T08:17:37.438114455Z"
     description: A Helm chart for babylon
     digest: f0279fee683b8889c83f56e4ecd34fb336182ddb0a7e18a5354982bee2b77ac5
     name: babylon
@@ -383,7 +393,7 @@ entries:
     version: 0.36.4
   - apiVersion: v2
     appVersion: 0.36.3
-    created: "2025-06-25T14:58:24.587560712Z"
+    created: "2025-07-08T08:17:37.436644012Z"
     description: A Helm chart for babylon
     digest: 1ce79fca3da343aa1987a561bb0fb1cc9cf3cf6a53f773e8712906ebef7eb5ae
     name: babylon
@@ -393,7 +403,7 @@ entries:
     version: 0.36.3
   - apiVersion: v2
     appVersion: 0.36.2
-    created: "2025-06-25T14:58:24.586335549Z"
+    created: "2025-07-08T08:17:37.435422437Z"
     description: A Helm chart for babylon
     digest: f837774ad9784b477a85bb91ad1379c7f69e066584f5c085755f490ed86689e5
     name: babylon
@@ -403,7 +413,7 @@ entries:
     version: 0.36.2
   - apiVersion: v2
     appVersion: 0.36.1
-    created: "2025-06-25T14:58:24.585127067Z"
+    created: "2025-07-08T08:17:37.434199289Z"
     description: A Helm chart for babylon
     digest: 41209a06edbfa414a95d8765074b5a84f83bb4d05f5652723e55cbb52fcd1911
     name: babylon
@@ -413,7 +423,7 @@ entries:
     version: 0.36.1
   - apiVersion: v2
     appVersion: 0.36.0
-    created: "2025-06-25T14:58:24.583920789Z"
+    created: "2025-07-08T08:17:37.432981331Z"
     description: A Helm chart for babylon
     digest: 2c05042ba3adb37a977e8bb5218fe42be4f3ad2d4d4069820b7ba44bea8e0bb2
     name: babylon
@@ -423,7 +433,7 @@ entries:
     version: 0.36.0
   - apiVersion: v2
     appVersion: 0.35.2
-    created: "2025-06-25T14:58:24.582690306Z"
+    created: "2025-07-08T08:17:37.431750489Z"
     description: A Helm chart for babylon
     digest: c0d19f1ba7d68e22c917c40a0f35ada98c83c4449da2d29bfd151a4fb9ad677c
     name: babylon
@@ -433,7 +443,7 @@ entries:
     version: 0.35.2
   - apiVersion: v2
     appVersion: 0.35.1
-    created: "2025-06-25T14:58:24.581012257Z"
+    created: "2025-07-08T08:17:37.429442068Z"
     description: A Helm chart for babylon
     digest: be17ab1d149c7e5edff98e5b959b4890500378f334e7ff1bbe7ea3c1326e13f4
     name: babylon
@@ -443,7 +453,7 @@ entries:
     version: 0.35.1
   - apiVersion: v2
     appVersion: 0.35.0
-    created: "2025-06-25T14:58:24.579439961Z"
+    created: "2025-07-08T08:17:37.428341961Z"
     description: A Helm chart for babylon
     digest: 8c10f111e091fd613f653c8b917c0e25e87aa54662a42a3a10587aad06d03c19
     name: babylon
@@ -453,7 +463,7 @@ entries:
     version: 0.35.0
   - apiVersion: v2
     appVersion: 0.34.2
-    created: "2025-06-25T14:58:24.578380198Z"
+    created: "2025-07-08T08:17:37.427262543Z"
     description: A Helm chart for babylon
     digest: 92ab36e7305f4f52cde45b9fd812ed1b2ea562cbd6197ce8c3fc8c6ee502f347
     name: babylon
@@ -463,7 +473,7 @@ entries:
     version: 0.34.2
   - apiVersion: v2
     appVersion: 0.34.1
-    created: "2025-06-25T14:58:24.577316599Z"
+    created: "2025-07-08T08:17:37.426179048Z"
     description: A Helm chart for babylon
     digest: fc37e1e9b50a3915d8c766cb8868339cb69168b4ade4c5577169090d3fc74c77
     name: babylon
@@ -473,7 +483,7 @@ entries:
     version: 0.34.1
   - apiVersion: v2
     appVersion: 0.34.0
-    created: "2025-06-25T14:58:24.57621619Z"
+    created: "2025-07-08T08:17:37.425070976Z"
     description: A Helm chart for babylon
     digest: 6b498afe403a07f018b740b10786f404b75106326f50a522508cfc001dd328fa
     name: babylon
@@ -483,7 +493,7 @@ entries:
     version: 0.34.0
   - apiVersion: v2
     appVersion: 0.33.0
-    created: "2025-06-25T14:58:24.574994794Z"
+    created: "2025-07-08T08:17:37.423994664Z"
     description: A Helm chart for babylon
     digest: 8461a59f5a3725e755c5d12865a3a2e1af260641ad9512d1877fb93f608149f3
     name: babylon
@@ -493,7 +503,7 @@ entries:
     version: 0.33.0
   - apiVersion: v2
     appVersion: 0.32.3
-    created: "2025-06-25T14:58:24.573776403Z"
+    created: "2025-07-08T08:17:37.422887614Z"
     description: A Helm chart for babylon
     digest: a2d63f4e8e5afe0de590bacfa3078376eb2c04a12de3695440945fc12ab9204d
     name: babylon
@@ -503,7 +513,7 @@ entries:
     version: 0.32.3
   - apiVersion: v2
     appVersion: 0.32.2
-    created: "2025-06-25T14:58:24.57130182Z"
+    created: "2025-07-08T08:17:37.420705188Z"
     description: A Helm chart for babylon
     digest: 99b18d953083f534b5946385c88283b35a08242cf7930d80c01af8c3e67f178d
     name: babylon
@@ -513,7 +523,7 @@ entries:
     version: 0.32.2
   - apiVersion: v2
     appVersion: 0.32.1
-    created: "2025-06-25T14:58:24.570310917Z"
+    created: "2025-07-08T08:17:37.419720698Z"
     description: A Helm chart for babylon
     digest: ce9e5dc0b5f7dd1443419834b02b85cb5bc21f73e259cbe257ffe06f6833108d
     name: babylon
@@ -523,7 +533,7 @@ entries:
     version: 0.32.1
   - apiVersion: v2
     appVersion: 0.32.0
-    created: "2025-06-25T14:58:24.569339481Z"
+    created: "2025-07-08T08:17:37.418758681Z"
     description: A Helm chart for babylon
     digest: 68aedd7eb2e0709e3aa6e0253b48f5c7786a52da3b838835daed2ab24a392791
     name: babylon
@@ -533,7 +543,7 @@ entries:
     version: 0.32.0
   - apiVersion: v2
     appVersion: 0.31.10
-    created: "2025-06-25T14:58:24.559398158Z"
+    created: "2025-07-08T08:17:37.408689831Z"
     description: A Helm chart for babylon
     digest: d091673c32dbde1a26de70c04eea173001d1cc7f9927c76c28619930848c7145
     name: babylon
@@ -543,7 +553,7 @@ entries:
     version: 0.31.10
   - apiVersion: v2
     appVersion: 0.31.9
-    created: "2025-06-25T14:58:24.568392911Z"
+    created: "2025-07-08T08:17:37.417751509Z"
     description: A Helm chart for babylon
     digest: 044850684b9be6e84448fdf3962ae8d1dad60ef46a1778628572a367d7cf7bff
     name: babylon
@@ -553,7 +563,7 @@ entries:
     version: 0.31.9
   - apiVersion: v2
     appVersion: 0.31.8
-    created: "2025-06-25T14:58:24.567397119Z"
+    created: "2025-07-08T08:17:37.416771818Z"
     description: A Helm chart for babylon
     digest: 34b28d0adaf43b8aa8069dddbcc882cd6efa903f30234c9d93b6e2667a50e7c0
     name: babylon
@@ -563,7 +573,7 @@ entries:
     version: 0.31.8
   - apiVersion: v2
     appVersion: 0.31.7
-    created: "2025-06-25T14:58:24.5663548Z"
+    created: "2025-07-08T08:17:37.415556204Z"
     description: A Helm chart for babylon
     digest: 639794b6538d08f5cc6ff710b8ae8f8b2e41aecf55d077e13230952cfb7a5798
     name: babylon
@@ -573,7 +583,7 @@ entries:
     version: 0.31.7
   - apiVersion: v2
     appVersion: 0.31.6
-    created: "2025-06-25T14:58:24.56533378Z"
+    created: "2025-07-08T08:17:37.414222164Z"
     description: A Helm chart for babylon
     digest: 83db7c1ff02afeea8639de4f44756e58dbd9890d20a224f66db8cc8e23fe0a3d
     name: babylon
@@ -583,7 +593,7 @@ entries:
     version: 0.31.6
   - apiVersion: v2
     appVersion: 0.31.5
-    created: "2025-06-25T14:58:24.564343318Z"
+    created: "2025-07-08T08:17:37.412505569Z"
     description: A Helm chart for babylon
     digest: 416bacf622baf5a3bfca51e0fd0a9117bd4bb69cea60f986c5dca52b4d1872ae
     name: babylon
@@ -593,7 +603,7 @@ entries:
     version: 0.31.5
   - apiVersion: v2
     appVersion: 0.31.4
-    created: "2025-06-25T14:58:24.562282491Z"
+    created: "2025-07-08T08:17:37.4115584Z"
     description: A Helm chart for babylon
     digest: e06aef0e57d799eaf276346eef3a99fa1ad9bc663aa10fe2539844af9b309187
     name: babylon
@@ -603,7 +613,7 @@ entries:
     version: 0.31.4
   - apiVersion: v2
     appVersion: 0.31.3
-    created: "2025-06-25T14:58:24.561343335Z"
+    created: "2025-07-08T08:17:37.410591353Z"
     description: A Helm chart for babylon
     digest: 75d892ee37b819bbc622793a9caae4e7e0bed9d66eae7170ebde59f70a2a0bcc
     name: babylon
@@ -613,7 +623,7 @@ entries:
     version: 0.31.3
   - apiVersion: v2
     appVersion: 0.31.2
-    created: "2025-06-25T14:58:24.560403328Z"
+    created: "2025-07-08T08:17:37.409635397Z"
     description: A Helm chart for babylon
     digest: 6b3ee581a8a392a0ec8debf33fe567d72fd33b57e9cba5604f83d94b11dc30f9
     name: babylon
@@ -623,7 +633,7 @@ entries:
     version: 0.31.2
   - apiVersion: v2
     appVersion: 0.31.1
-    created: "2025-06-25T14:58:24.558435789Z"
+    created: "2025-07-08T08:17:37.407699741Z"
     description: A Helm chart for babylon
     digest: b543456e706d3a0d6d5666aa5c988be086ab2787ab1a8d60c59d79ba7d2a86c8
     name: babylon
@@ -633,7 +643,7 @@ entries:
     version: 0.31.1
   - apiVersion: v2
     appVersion: 0.31.0
-    created: "2025-06-25T14:58:24.557455987Z"
+    created: "2025-07-08T08:17:37.406728205Z"
     description: A Helm chart for babylon
     digest: 6a9fc6d3e3636ac0a063c534b18b92b8e266f385f675c88324f64585ada9217f
     name: babylon
@@ -643,7 +653,7 @@ entries:
     version: 0.31.0
   - apiVersion: v2
     appVersion: 0.30.15
-    created: "2025-06-25T14:58:24.546813291Z"
+    created: "2025-07-08T08:17:37.395863698Z"
     description: A Helm chart for babylon
     digest: 1116a089fcecc771a3bcf8d09490777012c906c6cb6a63fe555f3457fdd3a144
     name: babylon
@@ -653,7 +663,7 @@ entries:
     version: 0.30.15
   - apiVersion: v2
     appVersion: 0.30.9
-    created: "2025-06-25T14:58:24.556281709Z"
+    created: "2025-07-08T08:17:37.405681649Z"
     description: A Helm chart for babylon
     digest: ba42ea55c9643d00689d1723d6633bb82454dc6e0578e495eeb206bfd3ae8b19
     name: babylon
@@ -663,7 +673,7 @@ entries:
     version: 0.30.9
   - apiVersion: v2
     appVersion: 0.30.8
-    created: "2025-06-25T14:58:24.554480262Z"
+    created: "2025-07-08T08:17:37.403479463Z"
     description: A Helm chart for babylon
     digest: fee822f3d748e45c95bc42c5cb8193f6a83f85cd8834b746d9974a38e8c71ee9
     name: babylon
@@ -673,7 +683,7 @@ entries:
     version: 0.30.8
   - apiVersion: v2
     appVersion: 0.30.7
-    created: "2025-06-25T14:58:24.553527171Z"
+    created: "2025-07-08T08:17:37.402505603Z"
     description: A Helm chart for babylon
     digest: 89e0120542a60800a2f0e5551d67860da767d62faf3b9dcde9022029937959a6
     name: babylon
@@ -683,7 +693,7 @@ entries:
     version: 0.30.7
   - apiVersion: v2
     appVersion: 0.30.6
-    created: "2025-06-25T14:58:24.552539454Z"
+    created: "2025-07-08T08:17:37.401542063Z"
     description: A Helm chart for babylon
     digest: 24de08ca1e96a2f7421d3e669d184ddbfb8bba76fe402221cd7e26399f6da3e3
     name: babylon
@@ -693,7 +703,7 @@ entries:
     version: 0.30.6
   - apiVersion: v2
     appVersion: 0.30.5
-    created: "2025-06-25T14:58:24.551571614Z"
+    created: "2025-07-08T08:17:37.400569225Z"
     description: A Helm chart for babylon
     digest: f64f3cbf02735e622e65a09a09d92b69044d9e05775803c94849794b86f05e0e
     name: babylon
@@ -703,7 +713,7 @@ entries:
     version: 0.30.5
   - apiVersion: v2
     appVersion: 0.30.4
-    created: "2025-06-25T14:58:24.550584588Z"
+    created: "2025-07-08T08:17:37.399571812Z"
     description: A Helm chart for babylon
     digest: e919591da91eea3043cbac5bc40c0beb9c17e9b62c1ca7004869af0af2d077bd
     name: babylon
@@ -713,7 +723,7 @@ entries:
     version: 0.30.4
   - apiVersion: v2
     appVersion: 0.30.3
-    created: "2025-06-25T14:58:24.54959069Z"
+    created: "2025-07-08T08:17:37.398559179Z"
     description: A Helm chart for babylon
     digest: 9b3e78f3b58f0fe0a28bdd572ba99816294cdc2ebdd94d2104fa1c6d53fc7150
     name: babylon
@@ -723,7 +733,7 @@ entries:
     version: 0.30.3
   - apiVersion: v2
     appVersion: 0.30.2
-    created: "2025-06-25T14:58:24.548602201Z"
+    created: "2025-07-08T08:17:37.397538722Z"
     description: A Helm chart for babylon
     digest: c9147d094ab7632cafefdf9c3c0a51c23728807d4ffe26a1124f431e693572af
     name: babylon
@@ -733,7 +743,7 @@ entries:
     version: 0.30.2
   - apiVersion: v2
     appVersion: 0.30.1
-    created: "2025-06-25T14:58:24.545809112Z"
+    created: "2025-07-08T08:17:37.394549078Z"
     description: A Helm chart for babylon
     digest: 6d1ac673567a575caf062f42939ca2fcc98dba2e91b3e14660723bdcb9c0a4da
     name: babylon
@@ -743,7 +753,7 @@ entries:
     version: 0.30.1
   - apiVersion: v2
     appVersion: 0.30.0
-    created: "2025-06-25T14:58:24.544819803Z"
+    created: "2025-07-08T08:17:37.393557826Z"
     description: A Helm chart for babylon
     digest: 9ac3bf6c1c83ec19e4bea2aa50777a4b5cab9e98b3c72ce07028472f1d0047dc
     name: babylon
@@ -753,7 +763,7 @@ entries:
     version: 0.30.0
   - apiVersion: v2
     appVersion: 0.29.12
-    created: "2025-06-25T14:58:24.542619827Z"
+    created: "2025-07-08T08:17:37.39149964Z"
     description: A Helm chart for the babylon
     digest: d1f5cd1057f10ff44a787f4bb63fd2860897c4114ab500ff5739c30342ec7874
     name: babylon
@@ -763,7 +773,7 @@ entries:
     version: 0.29.12
   - apiVersion: v2
     appVersion: 0.29.11
-    created: "2025-06-25T14:58:24.542424019Z"
+    created: "2025-07-08T08:17:37.391326244Z"
     description: A Helm chart for the babylon
     digest: f0759aa0d8c97645ed3f9c91299834243539765d2238ab6cf96c66065418436a
     name: babylon
@@ -773,7 +783,7 @@ entries:
     version: 0.29.11
   - apiVersion: v2
     appVersion: 0.29.10
-    created: "2025-06-25T14:58:24.54220693Z"
+    created: "2025-07-08T08:17:37.391092495Z"
     description: A Helm chart for the babylon
     digest: d17dd74b42f92814611dfa21f2f5caadb90872129e6348938070a009f594f8c4
     name: babylon
@@ -783,7 +793,7 @@ entries:
     version: 0.29.10
   - apiVersion: v2
     appVersion: 0.29.9
-    created: "2025-06-25T14:58:24.543751484Z"
+    created: "2025-07-08T08:17:37.392539783Z"
     description: A Helm chart for the babylon
     digest: b41a462eca107dd3526dc58aad411d67d2e7639508bee4268def1590d73ea96e
     name: babylon
@@ -793,7 +803,7 @@ entries:
     version: 0.29.9
   - apiVersion: v2
     appVersion: 0.29.8
-    created: "2025-06-25T14:58:24.543571476Z"
+    created: "2025-07-08T08:17:37.392378621Z"
     description: A Helm chart for the babylon
     digest: 82d3ae52d42135f4a6a7fff6e0277f3120ebfe9afb06545f55a16d790a3c37f6
     name: babylon
@@ -803,7 +813,7 @@ entries:
     version: 0.29.8
   - apiVersion: v2
     appVersion: 0.29.7
-    created: "2025-06-25T14:58:24.543391607Z"
+    created: "2025-07-08T08:17:37.392196429Z"
     description: A Helm chart for the babylon
     digest: eefed55b13c185d66328546acd053c9598a71c9921d5be5e6d81c8361e3d1bd4
     name: babylon
@@ -813,7 +823,7 @@ entries:
     version: 0.29.7
   - apiVersion: v2
     appVersion: 0.29.6
-    created: "2025-06-25T14:58:24.543208744Z"
+    created: "2025-07-08T08:17:37.391999038Z"
     description: A Helm chart for the babylon
     digest: 58e668bef606b717aab6cc4485511e151662c7126d43f21b1efe5aac79c824ce
     name: babylon
@@ -823,7 +833,7 @@ entries:
     version: 0.29.6
   - apiVersion: v2
     appVersion: 0.29.5
-    created: "2025-06-25T14:58:24.543002756Z"
+    created: "2025-07-08T08:17:37.391815924Z"
     description: A Helm chart for the babylon
     digest: 18a317f07ba1bb6020c7cc55c7561d1e9c8945a2a1cb0dfd060123dee158ef9f
     name: babylon
@@ -833,7 +843,7 @@ entries:
     version: 0.29.5
   - apiVersion: v2
     appVersion: 0.29.4
-    created: "2025-06-25T14:58:24.542779627Z"
+    created: "2025-07-08T08:17:37.391654741Z"
     description: A Helm chart for the babylon
     digest: 388fcf5076d6c9ae860773e70d502a034c690bfa2fd657341d238ccd452e93f9
     name: babylon
@@ -841,4 +851,4 @@ entries:
     urls:
     - https://redhat-cop.github.io/babylon/babylon-0.29.4.tgz
     version: 0.29.4
-generated: "2025-06-25T14:58:24.541850811Z"
+generated: "2025-07-08T08:17:37.390764819Z"
