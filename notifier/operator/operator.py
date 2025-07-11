@@ -760,7 +760,7 @@ async def send_notification_email(
     message_body=[],
     template_vars={},
     attachments=[]
-):  
+):
     template_vars = deepcopy(template_vars)
     template_vars.update(
         get_template_vars(
@@ -773,42 +773,58 @@ async def send_notification_email(
     template_vars['service_status'] = ' '.join(elem.capitalize() for elem in template.replace('-', ' ').split())
 
     email_subject = j2env.from_string(subject).render(**template_vars)
+    email_body = email_content = mjml_template = None
     if message_body:
-        email_body = "\n".join(message_body)
-        mjml_template = j2env.get_template('wrapper.mjml.j2').render(**template_vars, htmlContent=email_body)
+        # Service data provides a custom email message content.
+        email_content = "\n".join(message_body)
     else:
+        # Check if catalog item provides a custom message template...
         message_template = catalog_item.get_message_template(kebabToCamelCase(template))
         if message_template:
+            # Get email content from custom message template
             try:
-                email_body = j2env.from_string(message_template).render(**template_vars)
-                mjml_template = j2env.get_template('wrapper.mjml.j2').render(**template_vars, htmlContent=email_body)
+                email_content = j2env.from_string(message_template).render(**template_vars)
             except Exception as exception:
                 logger.warning(f"Failed to render template: {exception}")
-                email_body = (
+                template_vars["template_error_message"] = (
                     "<p><b>Attention:</b> "
                     "A custom message template was configured for your service, "
                     "but unfortunately, rendering failed with the following error:</p> "
                     f"<p>{exception}</p>"
                     "<p>The content shown above is the default message template.</p>"
                 )
-        else:
-            mjml_template = j2env.get_template(template + '.mjml.j2').render(**template_vars)
 
-    # Call for the MJML CLI to generate final HTML
-    try:
-        email_body = subprocess.run(
-                        ['mjml', '-i'], 
-                        stdout=subprocess.PIPE,
-                        input=mjml_template,
-                        encoding='ascii').stdout
-    except Exception as exception:
-        email_body = (
-            "<p><b>Attention:</b> "
-            "A custom message template was configured for your service, "
-            "but unfortunately, rendering failed with the following error:</p> "
-            f"<p>{exception}</p>"
-            "<p>The content shown above is the default message template.</p>"
-        )
+    if email_content:
+        # We have an email body
+        if email_content.startswith('<html>') or email_content.startswith('<!DOCTYPE html>'):
+            # email body is a complete html doc, do not use mjml
+            email_body = email_content
+        elif email_content.startswith('<mjml>'):
+            # email body is a complete mjml template
+            mjml_template = email_content
+        else:
+            # Add mjml wrapper to content.
+            # HTML markup is valid mjml markup.
+            mjml_template = j2env.get_template('wrapper.mjml.j2').render(**template_vars, htmlContent=email_content)
+    else:
+        # Render standard template to get mjml template
+        mjml_template = j2env.get_template(template + '.mjml.j2').render(**template_vars)
+
+    if mjml_template:
+        # Call for the MJML CLI to generate final HTML
+        try:
+            email_body = subprocess.run(
+                            ['mjml', '-i'],
+                            stdout=subprocess.PIPE,
+                            input=mjml_template,
+                            encoding='ascii').stdout
+        except Exception as exception:
+            email_body = (
+                "<p><b>Attention:</b> "
+                "A custom message template was configured for your service, "
+                "but unfortunately, rendering failed with the following error:</p> "
+                f"<p>{exception}</p>"
+            )
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = email_subject

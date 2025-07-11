@@ -40,6 +40,12 @@
       {% block content %}{% endblock %}
     </mj-section>
 
+    {% if template_error_message is defined %}
+    <mj-section padding-top="12px" padding-bottom="12px" padding-left="12px" padding-right="12px" background-color="#f0f0f0">
+      {{ template_error_message }}
+    </mj-section>
+    {% endif %}
+
     <!-- Footer -->
     <mj-section padding-top="12px" padding-bottom="6px" padding-left="12px" padding-right="12px">
       <mj-column>
