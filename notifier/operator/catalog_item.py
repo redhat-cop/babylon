@@ -28,7 +28,7 @@ class CatalogItem:
 
     @property
     def display_name(self):
-        return self.definition['metadata'].get('annotations', {}).get('babylon.gpte.redhat.com/displayName', self.name)
+        return self.definition['spec'].get('displayName', self.name)
 
     @property
     def email_from(self):
