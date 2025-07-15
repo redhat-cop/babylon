@@ -62,7 +62,14 @@ const WorkshopActions: React.FC<{
       />,
     );
 
-  return <ActionDropdown actionDropdownItems={actionDropdownItems} className={className} isDisabled={isDisabled} />;
+  return (
+    <ActionDropdown
+      position="right"
+      actionDropdownItems={actionDropdownItems}
+      className={className}
+      isDisabled={isDisabled}
+    />
+  );
 };
 
 export default WorkshopActions;
