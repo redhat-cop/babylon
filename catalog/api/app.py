@@ -26,6 +26,8 @@ groups_last_update = 0
 admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
 ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
+sandbox_api = os.environ.get('SANDBOX_API', 'http://sandbox-api.babylon-sandbox-api.svc.cluster.local:8080')
+sandbox_api_authorization_token = os.environ.get('SANDBOX_AUTHORIZATION_TOKEN')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
 response_cache = {}
 response_cache_clean_interval = int(os.environ.get('RESPONSE_CACHE_CLEAN_INTERVAL', 60))
@@ -618,6 +620,18 @@ async def salesforce_id_validation(request):
         headers=headers,
         method="GET",
         url=f"{reporting_api}/sales_validation?{queryString}",
+    )
+
+@routes.post("/api/sandbox/placements/dry-run")
+async def sandbox_placements_dry_run(request):
+    headers = {
+        "Authorization": f"Bearer {sandbox_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        data=json.dumps(request.json()),
+        method="GET",
+        url=f"{sandbox_api}/api/v1/placements/dry-run",
     )
 
 @routes.get("/api/catalog_item/metrics/{asset_uuid}")

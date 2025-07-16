@@ -123,3 +123,7 @@ route:
 salesforceApi:
   deploy: true
   secretName: salesforce-api
+
+sandboxApi:
+  deploy: true
+  secretName: sandbox-api
