@@ -220,3 +220,10 @@ Saleforce API secret name
 {{- define "babylonCatalog.salesforceApiSecretName" -}}
   {{- .Values.salesforceApi.secretName }}
 {{- end -}}
+
+{{/*
+Sandbox API secret name
+*/}}
+{{- define "babylonCatalog.sandboxApiSecretName" -}}
+  {{- .Values.sandboxApi.secretName }}
+{{- end -}}

@@ -95,7 +95,7 @@ oc process --local -f build-template.yaml | oc apply -f -
 oc start-build babylon-agnosticv-operator --from-dir=.. --follow
 ------------------------------------------------------------
 
-. Deploy user-namespace-operator from build image:
+. Deploy babylon-agnosticv-operator from build image:
 +
 --------------------------------------------------------------------------------
 helm template helm \
