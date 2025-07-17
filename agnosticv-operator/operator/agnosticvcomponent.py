@@ -273,10 +273,6 @@ class AgnosticVComponent(KopfObject):
         return ret
 
     @property
-    def sandboxes(self):
-        return self.__meta__.get('sandboxes', [])
-
-    @property
     def deployer_provision_time_estimate(self):
         return self.deployer_actions['provision'].get('time_estimate')
 
@@ -557,9 +553,6 @@ class AgnosticVComponent(KopfObject):
 
         if self.bookbag:
             definition['spec']['bookbag'] = self.bookbag
-
-        if self.sandboxes:
-            definition['spec']['sandboxes'] = self.sandboxes
 
         for key, value in self.catalog_labels.items():
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/{key}"] = value
