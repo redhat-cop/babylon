@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio
+import copy
 import gzip
 import json
 import logging
@@ -350,6 +351,46 @@ async def start_user_session(user, groups):
 
     return api_client, session, token
 
+def replace_template_variables(obj, annotations):
+    """
+    Recursively replace template variables in a sandbox object with values from annotations.
+    
+    Template format: {{ job_vars.param_name | default('default_value') }}
+    
+    Args:
+        obj: The object to process (can be dict, list, string, or other types)
+        annotations: Dictionary containing parameter values
+        
+    Returns:
+        The object with template variables replaced
+    """
+    if isinstance(obj, dict):
+        return {key: replace_template_variables(value, annotations) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_template_variables(item, annotations) for item in obj]
+    elif isinstance(obj, str):
+        # Pattern to match: {{ job_vars.param_name | default('default_value') }}
+        # Also handles: {{ job_vars.param_name | default("default_value") }}
+        # Also handles: {{ job_vars.param_name | default(default_value) }} (no quotes)
+        pattern = r'{{\s*job_vars\.(\w+)\s*\|\s*default\([\'"]?([^\'")]*)[\'"]?\)\s*}}'
+        
+        def replace_match(match):
+            param_name = match.group(1)
+            default_value = match.group(2)
+            
+            # Look up the parameter in annotations
+            if param_name in annotations:
+                return str(annotations[param_name])
+            else:
+                return default_value
+        
+        # Replace all template variables in the string
+        result = re.sub(pattern, replace_match, obj)
+        return result
+    else:
+        # For other types (int, bool, etc.), return as-is
+        return obj
+
 routes = web.RouteTableDef()
 @routes.get('/auth/session')
 async def get_auth_session(request):
@@ -622,14 +663,56 @@ async def salesforce_id_validation(request):
         url=f"{reporting_api}/sales_validation?{queryString}",
     )
 
-@routes.post("/api/sandbox/placements/dry-run")
+
+@routes.post("/api/{agnosticv_name}/placements")
 async def sandbox_placements_dry_run(request):
+    agnosticv_name = request.match_info.get('agnosticv_name')
+    agnosticv_component = await custom_objects_api.get_namespaced_custom_object(
+        group = 'gpte.redhat.com',
+        name = agnosticv_name,
+        namespace = 'babylon-config',
+        plural = 'AgnosticVComponents',
+        version = 'v1',
+    )
+    print(agnosticv_component)
+    spec = agnosticv_component.get('spec')
+    if not spec:
+        raise web.HTTPNotFound(reason="AgnosticV component has no spec")
+    definition = spec.get('definition')
+    if not definition:
+        raise web.HTTPNotFound(reason="AgnosticV component has no definition")
+    meta = definition.get('__meta__')
+    if not meta:
+        raise web.HTTPNotFound(reason="AgnosticV component has no __meta__ section")
+    sandboxes = meta.get('sandboxes')
+    if not sandboxes:
+        raise web.HTTPNotFound(reason="AgnosticV component has no sandboxes defined")
+    
+    # Get request data (array of objects)
+    request_data = await request.json()
+    
+    # Process each request object in the array
+    resources = []
+    for request_obj in request_data:
+        annotations = request_obj.get('annotations', {})
+        request_kind = request_obj.get('kind')
+        
+        # Find matching sandbox for this request's kind
+        for sandbox in sandboxes:
+            if sandbox.get('kind') == request_kind:
+                # Deep copy the sandbox to avoid modifying the original
+                sandbox_copy = copy.deepcopy(sandbox)
+                # Replace all template variables in the sandbox with this request's annotations
+                sandbox_copy = replace_template_variables(sandbox_copy, annotations)
+                # Create processed request object with the modified sandbox
+                resources.append(sandbox_copy)
+    print(resources)
     headers = {
         "Authorization": f"Bearer {sandbox_api_authorization_token}"
     }
     return await api_proxy(
         headers=headers,
-        data=json.dumps(request.json()),
+        data=json.dumps({"resources": resources}),
         method="GET",
         url=f"{sandbox_api}/api/v1/placements/dry-run",
     )
