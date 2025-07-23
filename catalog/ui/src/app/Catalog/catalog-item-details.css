@@ -96,16 +96,22 @@
 .catalog-item-details__description h1 {
   font-size: 1.3em;
   font-weight: bold;
+  margin: 0.5em 0;
+  padding-top: 0.5em;
 }
 
 .catalog-item-details__description h2 {
   font-size: 1.2em;
   font-weight: bold;
+  margin: 0.5em 0;
+  padding-top: 0.5em;
 }
 
 .catalog-item-details__description h3 {
   font-size: 1.1em;
   font-weight: bold;
+  margin: 0.5em 0;
+  padding-top: 0.5em;
 }
 
 .catalog-item-details__description h4 {
@@ -314,4 +320,129 @@
 }
 .catalog-item-details__description .admonitionblock.caution .title::before {
   background-image: url(@app/bgimages/octicons-16.svg#view-flame);
+}
+
+/* Table Block Styles */
+.catalog-item-details__description .tableblock {
+  width: 100%;
+  margin: 0.5em 0;
+  border-collapse: collapse;
+  border: none;
+  background: #fff;
+  table-layout: fixed;
+}
+
+.catalog-item-details__description .tableblock caption {
+  font-weight: bold;
+  margin-bottom: 0.5em;
+  text-align: left;
+  color: var(--pf-v5-global--palette--black-900);
+}
+
+.catalog-item-details__description .tableblock thead {
+  background: var(--pf-v5-global--palette--black-100);
+}
+
+.catalog-item-details__description .tableblock thead th {
+  font-weight: bold;
+  color: var(--pf-v5-global--palette--black-900);
+  border-bottom: 2px solid var(--pf-v5-global--palette--black-300);
+}
+
+.catalog-item-details__description .tableblock th,
+.catalog-item-details__description .tableblock td {
+  padding: 0.5em;
+  border: 1px solid var(--pf-v5-global--palette--black-300);
+  text-align: left;
+  vertical-align: top;
+  word-wrap: break-word;
+}
+
+/* Equal column distribution for 2-column tables */
+.catalog-item-details__description .tableblock th:first-child,
+.catalog-item-details__description .tableblock td:first-child {
+  width: 50%;
+}
+
+.catalog-item-details__description .tableblock th:nth-child(2),
+.catalog-item-details__description .tableblock td:nth-child(2) {
+  width: 50%;
+}
+
+/* For tables with more than 2 columns, distribute equally */
+.catalog-item-details__description .tableblock th,
+.catalog-item-details__description .tableblock td {
+  width: auto;
+}
+
+.catalog-item-details__description .tableblock tbody tr:nth-child(even) {
+  background: var(--pf-v5-global--palette--black-50);
+}
+
+.catalog-item-details__description .tableblock tbody tr:hover {
+  background: var(--pf-v5-global--palette--blue-50);
+}
+
+.catalog-item-details__description .tableblock th[align="center"],
+.catalog-item-details__description .tableblock td[align="center"] {
+  text-align: center;
+}
+
+.catalog-item-details__description .tableblock th[align="right"],
+.catalog-item-details__description .tableblock td[align="right"] {
+  text-align: right;
+}
+
+/* Responsive table behavior */
+@media (max-width: 768px) {
+  .catalog-item-details__description .tableblock {
+    font-size: var(--pf-v5-global--FontSize--sm);
+  }
+  
+  .catalog-item-details__description .tableblock th,
+  .catalog-item-details__description .tableblock td {
+    padding: 0.5em;
+  }
+}
+
+/* Table with frame styles */
+.catalog-item-details__description .tableblock.frame-all {
+  border: 1px solid var(--pf-v5-global--palette--black-300);
+}
+
+.catalog-item-details__description .tableblock.frame-topbot {
+  border-left: none;
+  border-right: none;
+}
+
+.catalog-item-details__description .tableblock.frame-sides {
+  border-top: none;
+  border-bottom: none;
+}
+
+.catalog-item-details__description .tableblock.frame-none {
+  border: none;
+}
+
+/* Grid styles */
+.catalog-item-details__description .tableblock.grid-all th,
+.catalog-item-details__description .tableblock.grid-all td {
+  border: 1px solid var(--pf-v5-global--palette--black-300);
+}
+
+.catalog-item-details__description .tableblock.grid-rows th,
+.catalog-item-details__description .tableblock.grid-rows td {
+  border-left: none;
+  border-right: none;
+}
+
+.catalog-item-details__description .tableblock.grid-cols th,
+.catalog-item-details__description .tableblock.grid-cols td {
+  border-top: none;
+  border-bottom: none;
+}
+
+.catalog-item-details__description .tableblock.grid-none th,
+.catalog-item-details__description .tableblock.grid-none td {
+  border: none;
 }
