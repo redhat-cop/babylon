@@ -351,10 +351,10 @@ const ServicesItemComponent: React.FC<{
   });
   useErrorHandler(error?.status === 404 ? error : null);
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
-    resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogDisplayName`]
+    resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
       ? apiPaths.CATALOG_ITEM({
-          namespace: resourceClaim.metadata.annotations[`${BABYLON_DOMAIN}/catalogDisplayName`],
-          name: resourceClaim.spec.provider.name,
+          namespace: resourceClaim.metadata.labels[`${BABYLON_DOMAIN}/catalogItemNamespace`],
+          name: resourceClaim.metadata.labels[`${BABYLON_DOMAIN}/catalogItemName`],
         })
       : null,
     fetcher,
