@@ -110,6 +110,7 @@ import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounce from '@app/utils/useDebounce';
 import useDebounceState from '@app/utils/useDebounceState';
+import useSWRImmutable from 'swr/immutable';
 
 import './services-item.css';
 
@@ -349,6 +350,15 @@ const ServicesItemComponent: React.FC<{
     compare: compareK8sObjects,
   });
   useErrorHandler(error?.status === 404 ? error : null);
+  const { data: catalogItem } = useSWRImmutable<CatalogItem>(
+    resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/catalogDisplayName`]
+      ? apiPaths.CATALOG_ITEM({
+          namespace: resourceClaim.metadata.annotations[`${BABYLON_DOMAIN}/catalogDisplayName`],
+          name: resourceClaim.spec.provider.name,
+        })
+      : null,
+    fetcher,
+  );
 
   const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
     salesforce_id: resourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] || '',
@@ -438,10 +448,6 @@ const ServicesItemComponent: React.FC<{
       const provision_data = r.state?.spec?.vars?.provision_data;
       return provision_data?.osp_cluster_api || provision_data?.openstack_auth_url;
     });
-
-  const catalogItemDisplayName =
-    resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`] ||
-    resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
 
   const actionHandlers = {
     delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
@@ -740,7 +746,7 @@ const ServicesItemComponent: React.FC<{
           className="services-item__body"
           style={{ paddingTop: '1em' }}
         >
-          <p>Thank you for your interest in {catalogItemDisplayName || 'this service'}.</p>
+          <p>Thank you for your interest in {catalogItem?.spec.displayName || 'this service'}.</p>
         </PageSection>
       ) : (
         <PageSection key="body" variant={PageSectionVariants.light} className="services-item__body">
@@ -763,11 +769,7 @@ const ServicesItemComponent: React.FC<{
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <Link
-                        to={`/catalog?item=${
-                          resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`]
-                        }/${resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]}`}
-                      >
+                      <Link to={`/catalog?item=${catalogItem?.metadata.namespace}/${catalogItem?.metadata.name}`}>
                         {resourceClaim.metadata.name}
                       </Link>
                       {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
@@ -1075,7 +1077,7 @@ const ServicesItemComponent: React.FC<{
                       {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
                         const resourceState = resourceStatus?.state;
                         const componentDisplayName =
-                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||
+                          catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
                           resourceStatus?.name;
                         const currentState =
                           resourceState?.kind === 'AnarchySubject'
