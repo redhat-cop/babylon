@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, TableBody, TableHeader } from '@patternfly/react-table/deprecated';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { Pagination } from '@patternfly/react-core';
 
 const SelectableTableWithPagination: React.FC<{
@@ -25,6 +25,11 @@ const SelectableTableWithPagination: React.FC<{
     }
   };
 
+  const paginatedRows = rows.slice(pageConfig.rows.start, pageConfig.rows.end);
+
+  // Calculate if all visible rows are selected for the header checkbox
+  const allVisibleRowsSelected = paginatedRows.length > 0 && paginatedRows.every((row) => row.selected);
+
   return (
     <>
       <Pagination
@@ -47,15 +52,41 @@ const SelectableTableWithPagination: React.FC<{
           { title: '100', value: 100 },
         ]}
       />
-      <Table
-        aria-label="Selectable Table"
-        cells={columns}
-        onSelect={onSelect}
-        rows={rows.slice(pageConfig.rows.start, pageConfig.rows.end)}
-        variant="compact"
-      >
-        <TableHeader />
-        <TableBody />
+      <Table aria-label="Selectable Table" variant="compact">
+        <Thead>
+          <Tr>
+            <Th
+              select={{
+                onSelect: (_event, isSelected) => onSelect(null, isSelected, -1),
+                isSelected: allVisibleRowsSelected,
+              }}
+            />
+            {columns.map((column, index) => (
+              <Th key={index}>{column}</Th>
+            ))}
+          </Tr>
+        </Thead>
+        <Tbody>
+          {paginatedRows.map((row, rowIndex) => {
+            const actualRowIndex = pageConfig.rows.start + rowIndex;
+            return (
+              <Tr key={actualRowIndex}>
+                <Td
+                  select={{
+                    onSelect: (_event, isSelected) => onSelect(null, isSelected, actualRowIndex),
+                    isSelected: row.selected || false,
+                    rowIndex: actualRowIndex,
+                  }}
+                />
+                {row.cells.map((cell: React.ReactNode, cellIndex: number) => (
+                  <Td key={cellIndex} dataLabel={columns[cellIndex]}>
+                    {cell}
+                  </Td>
+                ))}
+              </Tr>
+            );
+          })}
+        </Tbody>
       </Table>
     </>
   );
