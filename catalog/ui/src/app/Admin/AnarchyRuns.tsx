@@ -2,14 +2,11 @@ import React, { useCallback, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import {
   EmptyState,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Title,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+  } from '@patternfly/react-core';
 import useSWRInfinite from 'swr/infinite';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { deleteAnarchyRun, fetcher, apiPaths } from '@app/api';
@@ -194,7 +191,7 @@ const AnarchyRuns: React.FC = () => {
 
   return (
     <div onScroll={scrollHandler} className="admin-container">
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -251,17 +248,12 @@ const AnarchyRuns: React.FC = () => {
         </Split>
       </PageSection>
       {anarchyRuns.length === 0 && isReachingEnd ? (
-        <PageSection className="admin-body">
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText="No AnarchyRuns found"
-              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-              headingLevel="h1"
-            />
-          </EmptyState>
+        <PageSection hasBodyWrapper={false} className="admin-body">
+          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No AnarchyRuns found" variant="full">
+            </EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
           <SelectableTable
             columns={['Namespace', 'Name', 'Runner State', 'AnarchySubject', 'AnarchyAction', 'Created At']}
             onSelectAll={(isSelected: boolean) => {
@@ -333,9 +325,8 @@ const AnarchyRuns: React.FC = () => {
             })}
           />
           {!isReachingEnd ? (
-            <EmptyState variant="full">
-              <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
-            </EmptyState>
+            <EmptyState   icon={LoadingIcon}   variant="full">
+              </EmptyState>
           ) : null}
         </PageSection>
       )}

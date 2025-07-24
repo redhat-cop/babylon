@@ -54,14 +54,14 @@ const IncidentsBanner: React.FC = () => {
             key={i.id}
             isSticky
             screenReaderText={i.message}
-            variant={i.level === 'info' ? 'blue' : i.level === 'critical' ? 'red' : 'gold'}
+            color={i.level === 'info' ? 'blue' : i.level === 'critical' ? 'red' : 'gold'}
           >
             <div
               style={{
                 display: 'flex',
-                gap: 'var(--pf-v5-global--spacer--sm)',
+                gap: "var(--pf-t--global--spacer--sm)",
                 flexDirection: 'row',
-                padding: 'var(--pf-v5-global--spacer--sm) var(--pf-v5-global--spacer--xs)',
+                padding: "var(--pf-t--global--spacer--sm)",
                 position: 'relative',
               }}
             >
@@ -76,21 +76,19 @@ const IncidentsBanner: React.FC = () => {
                   style={{
                     fontStyle: 'italic',
                     fontSize: 'xs',
-                    marginTop: 'var(--pf-v5-global--spacer--sm)',
+                    marginTop: "var(--pf-t--global--spacer--sm)",
                     opacity: 0.75,
                   }}
                 >
                   Last update <TimeInterval toTimestamp={i.updated_at} />
                 </p>
               </div>
-              <Button
+              <Button icon={<CloseIcon />}
                 onClick={() => handleClose(i.id)}
                 variant="plain"
                 style={{ color: '#000', position: 'absolute', top: 0, right: 0 }}
                 className="incidents-banner__close-btn"
-              >
-                <CloseIcon />
-              </Button>
+               />
             </div>
           </Banner>
         ))}

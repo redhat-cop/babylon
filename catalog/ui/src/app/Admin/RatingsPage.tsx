@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { PageSection, PageSectionVariants, Split, SplitItem, Title } from '@patternfly/react-core';
+import { PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import RatingsList from './RatingsList';
 import LoadingSection from '@app/components/LoadingSection';
 
@@ -8,7 +8,7 @@ import './admin.css';
 const RatingsPage: React.FC = () => {
   return (
     <>
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -17,7 +17,7 @@ const RatingsPage: React.FC = () => {
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection key="body" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="body" >
         <Suspense fallback={<LoadingSection />}>
           <RatingsList />
         </Suspense>

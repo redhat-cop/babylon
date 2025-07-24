@@ -51,7 +51,7 @@ const AutoStopDestroy: React.FC<{
           size="sm"
         >
           <Tooltip position="right" content={<div>This Catalog Item does not support Auto-Stop</div>}>
-            <span style={{ marginRight: 'var(--pf-v5-global--spacer--sm)' }}>Auto-Stop disabled</span>
+            <span style={{ marginRight: "var(--pf-t--global--spacer--sm)" }}>Auto-Stop disabled</span>
           </Tooltip>
         </Button>
       );
@@ -70,7 +70,7 @@ const AutoStopDestroy: React.FC<{
           className={className}
           size="sm"
         >
-          <span style={{ marginRight: 'var(--pf-v5-global--spacer--sm)' }}>{notDefinedMessage}</span>
+          <span style={{ marginRight: "var(--pf-t--global--spacer--sm)" }}>{notDefinedMessage}</span>
         </Button>
         {children}
       </span>
@@ -126,7 +126,7 @@ const AutoStopDestroy: React.FC<{
         size="sm"
       >
         {showNoAutoStop ? (
-          <span style={{ marginRight: 'var(--pf-v5-global--spacer--sm)' }}>No auto-stop</span>
+          <span style={{ marginRight: "var(--pf-t--global--spacer--sm)" }}>No auto-stop</span>
         ) : (
           <>
             <LocalTimestamp variant="short" time={time} />

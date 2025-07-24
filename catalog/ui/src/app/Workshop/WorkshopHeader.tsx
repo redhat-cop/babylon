@@ -1,5 +1,5 @@
 import React from 'react';
-import { Masthead, MastheadMain, MastheadBrand, MastheadContent } from '@patternfly/react-core';
+import { Masthead, MastheadMain, MastheadLogo, MastheadBrand, MastheadContent } from '@patternfly/react-core';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import RedHatLogo from '@app/components/RedHatLogo';
 
@@ -71,11 +71,13 @@ const WorkshopHeader: React.FC<{ userInterface: string }> = ({ userInterface }) 
     );
   }
   return (
-    <div style={{ backgroundColor: 'var(--pf-v5-c-page__header--BackgroundColor)', gridArea: 'header' }}>
+    <div style={{ backgroundColor: 'var(--pf-v6-c-page__header--BackgroundColor)', gridArea: 'header' }}>
       <Masthead className="workshop" style={{ maxWidth: '1170px', margin: '0 auto', width: '100%' }}>
         <MastheadMain>
-          <MastheadBrand>
-            <LogoImg />
+          <MastheadBrand data-codemods>
+            <MastheadLogo data-codemods>
+              <LogoImg />
+            </MastheadLogo>
           </MastheadBrand>
         </MastheadMain>
         <MastheadContent>

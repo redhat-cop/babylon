@@ -141,7 +141,7 @@ const Navigation: React.FC = () => {
   ) : null;
 
   return (
-    <Nav id="nav-primary-simple" theme="dark">
+    <Nav id="nav-primary-simple" >
       <NavList id="nav-list-simple">
         {catalogNavigation}
         {serviceNavigation}

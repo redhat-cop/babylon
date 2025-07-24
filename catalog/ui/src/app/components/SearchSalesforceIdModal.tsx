@@ -14,10 +14,10 @@ import {
   MenuSearch,
   MenuSearchInput,
   MenuToggle,
-  ModalVariant,
   Radio,
   SearchInput,
 } from '@patternfly/react-core';
+import { ModalVariant } from '@patternfly/react-core/deprecated';
 import LoadingIcon from './LoadingIcon';
 import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Opportunity, SalesforceAccount, SfdcType } from '@app/types';
@@ -159,7 +159,7 @@ const SearchSalesforceId: React.FC<{
                   value={accountValue}
                   placeholder={selectedAccount?.name || 'Search'}
                   onChange={(_event, value) => setAccountValue(value)}
-                  aria-labelledby="pf-v5-context-selector-search-button-id-1"
+                  aria-labelledby="pf-v6-context-selector-search-button-id-1"
                 />
               </InputGroupItem>
             </InputGroup>
@@ -234,8 +234,9 @@ const SearchSalesforceIdModal: React.FC<{
               Salesforce ID{' '}
               <span
                 style={{
-                  fontSize: 'var(--pf-v5-global--FontSize--xs)',
-                  color: 'var(--pf-v5-global--palette--black-600)',
+                  fontSize: 'var(--pf-t--global--font--size--xs)',
+                  color:
+                    'var(--pf-v6-global--palette--black-600)' /* CODEMODS: original v5 color was --pf-v6-global--palette--black-600 */,
                   fontStyle: 'italic',
                   fontWeight: 400,
                 }}
@@ -249,7 +250,7 @@ const SearchSalesforceIdModal: React.FC<{
             style={{
               display: 'flex',
               flexDirection: 'row',
-              gap: 'var(--pf-v5-global--spacer--md)',
+              gap: 'var(--pf-t--global--spacer--md)',
               alignItems: 'center',
               paddingBottom: '16px',
             }}

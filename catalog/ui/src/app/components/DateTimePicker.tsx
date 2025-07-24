@@ -168,7 +168,12 @@ const DateTimePicker: React.FC<{
           isExpanded={isTimeOpen}
           style={{
             padding: '6px 16px',
-            ...(isDisabled ? { color: 'var(--pf-v5-global--disabled-color--100)' } : {}),
+            ...(isDisabled
+              ? {
+                  color:
+                    'var(--pf-v6-global--disabled-color--100)' /* CODEMODS: original v5 color was --pf-v6-global--disabled-color--100 */,
+                }
+              : {}),
           }}
           isDisabled={isDisabled}
           className="hide-controls"
@@ -182,9 +187,13 @@ const DateTimePicker: React.FC<{
   );
 
   const calendarButton = (
-    <Button variant="control" aria-label="Toggle the calendar" onClick={onToggleCalendar} isDisabled={isDisabled}>
-      <OutlinedCalendarAltIcon />
-    </Button>
+    <Button
+      icon={<OutlinedCalendarAltIcon />}
+      variant="control"
+      aria-label="Toggle the calendar"
+      onClick={onToggleCalendar}
+      isDisabled={isDisabled}
+    ></Button>
   );
 
   return (

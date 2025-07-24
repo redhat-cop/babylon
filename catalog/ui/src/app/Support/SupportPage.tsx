@@ -2,13 +2,9 @@ import React from 'react';
 import {
   Page,
   PageSection,
-  PageSectionVariants,
-  TextVariants,
+  ContentVariants,
   Title,
-  Text,
-  TextListVariants,
-  TextList,
-  TextListItem,
+  Content,
   Divider,
   Sidebar,
   SidebarContent,
@@ -58,7 +54,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
             <OutlinedQuestionCircleIcon
               aria-label={tooltipDescription[0].slice(1, -1)}
               className="tooltip-icon-only"
-              style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)', width: '10px' }}
+              style={{ marginLeft: 'var(--pf-t--global--spacer--xs)', width: '10px' }}
             />
           </Tooltip>
         </div>,
@@ -101,15 +97,15 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
   const combinedRows = [5, 6];
 
   return (
-    <Page mainContainerId="primary-app-container" header={<PublicHeader />}>
-      <PageSection variant={PageSectionVariants.light} className="support-page">
+    <Page mainContainerId="primary-app-container" masthead={<PublicHeader />}>
+      <PageSection hasBodyWrapper={false} className="support-page">
         <Hero image={heroImg}>
           <Title headingLevel="h1" size="xl" style={{ fontSize: '40px' }}>
             <b>Solution Support:</b> Service Level
           </Title>
         </Hero>
         <div className="page-container">
-          <Breadcrumb style={{ paddingBottom: 'var(--pf-v5-global--spacer--xl)' }}>
+          <Breadcrumb style={{ paddingBottom: 'var(--pf-t--global--spacer--xl)' }}>
             <BreadcrumbItem to="/">Home</BreadcrumbItem>
             <BreadcrumbItem to="#" isActive>
               Solution Support: Service Level
@@ -119,9 +115,10 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
             <SidebarPanel style={{ marginTop: 'auto', marginBottom: 'auto' }}>
               <div
                 style={{
-                  paddingLeft: 'var(--pf-v5-global--spacer--lg)',
+                  paddingLeft: 'var(--pf-t--global--spacer--lg)',
                   textAlign: 'right',
-                  color: 'var(--pf-v5-global--palette--black-600)',
+                  color:
+                    'var(--pf-v6-global--palette--black-600)' /* CODEMODS: original v5 color was --pf-v6-global--palette--black-600 */,
                 }}
               >
                 <em>
@@ -131,57 +128,57 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                   and not on the infrastructure. Highly appreciated!”
                 </em>
                 <br />
-                <p style={{ marginTop: 'var(--pf-v5-global--spacer--xs)' }}>
+                <p style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
                   Goetz Rieger,
                   <br /> Principal Solution Architect
                 </p>
               </div>
             </SidebarPanel>
             <SidebarContent>
-              <PageSection>
+              <PageSection hasBodyWrapper={false}>
                 <Title headingLevel="h2" size="lg" style={{ color: '#ee0000' }}>
                   Overview
                 </Title>
-                <Text>
+                <Content component="p">
                   Red Hat Demo Platform helps you confidently plan and host customer-facing events with assistance from
                   experienced support engineers and architects.
-                </Text>
+                </Content>
               </PageSection>
-              <PageSection>
+              <PageSection hasBodyWrapper={false}>
                 <Title headingLevel="h2" size="lg" style={{ color: '#ee0000' }}>
                   Benefits
                 </Title>
-                <TextList
-                  component={TextListVariants.ul}
-                  style={{ listStyle: 'disc', marginLeft: 'var(--pf-v5-global--spacer--lg)' }}
+                <Content
+                  component={ContentVariants.ul}
+                  style={{ listStyle: 'disc', marginLeft: 'var(--pf-t--global--spacer--lg)' }}
                 >
-                  <TextListItem>Reliable and speedy deployment (minutes instead of hours)</TextListItem>
-                  <TextListItem>Customer-facing workshop support from our team</TextListItem>
-                  <TextListItem>24/5 global monitoring of all tickets</TextListItem>
-                  <TextListItem>More coming soon</TextListItem>
-                </TextList>
+                  <Content component="li">Reliable and speedy deployment (minutes instead of hours)</Content>
+                  <Content component="li">Customer-facing workshop support from our team</Content>
+                  <Content component="li">24/5 global monitoring of all tickets</Content>
+                  <Content component="li">More coming soon</Content>
+                </Content>
               </PageSection>
             </SidebarContent>
           </Sidebar>
 
-          <PageSection style={{ paddingBottom: 'var(--pf-v5-global--spacer--4xl)' }}>
+          <PageSection hasBodyWrapper={false} style={{ paddingBottom: 'var(--pf-t--global--spacer--4xl)' }}>
             <Table variant="compact" isStriped>
               <Thead>
                 <Tr>
                   {columns.map((column, columnIndex) => (
                     <Th modifier="wrap" key={columnIndex}>
-                      <Text
-                        component={TextVariants.h3}
+                      <Content
+                        component={ContentVariants.h3}
                         style={{
                           display: 'flex',
                           flexDirection: 'row',
                           alignItems: 'flex-start',
                           fontWeight: 700,
-                          gap: 'var(--pf-v5-global--spacer--sm)',
+                          gap: 'var(--pf-t--global--spacer--sm)',
                         }}
                       >
                         {column}
-                      </Text>
+                      </Content>
                     </Th>
                   ))}
                 </Tr>
@@ -206,34 +203,34 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                 ))}
               </Tbody>
             </Table>
-            <Text component={TextVariants.p} style={{ padding: 'var(--pf-v5-global--spacer--md)' }}>
+            <Content component={ContentVariants.p} style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
               <a href={getHelpLink()} target="_blank" rel="noopener noreferrer">
                 Contact us
               </a>{' '}
               for more information about RHDP Solution Support.
-            </Text>
+            </Content>
             <Divider />
-            <TextList
-              component={TextListVariants.ul}
-              style={{ lineHeight: 1.1, padding: 'var(--pf-v5-global--spacer--xs)' }}
+            <Content
+              component={ContentVariants.ul}
+              style={{ lineHeight: 1.1, padding: 'var(--pf-t--global--spacer--xs)' }}
             >
-              <TextListItem>
-                <Text component={TextVariants.small}>Does not include external dependencies</Text>
-              </TextListItem>
-              <TextListItem>
-                <Text component={TextVariants.small}>Does not include Australia</Text>
-              </TextListItem>
-              <TextListItem>
-                <Text component={TextVariants.small}>Excluding regional holidays</Text>
-              </TextListItem>
-              <TextListItem>
-                <Text component={TextVariants.small}>
+              <Content component="li">
+                <Content component={ContentVariants.small}>Does not include external dependencies</Content>
+              </Content>
+              <Content component="li">
+                <Content component={ContentVariants.small}>Does not include Australia</Content>
+              </Content>
+              <Content component="li">
+                <Content component={ContentVariants.small}>Excluding regional holidays</Content>
+              </Content>
+              <Content component="li">
+                <Content component={ContentVariants.small}>
                   Excluded from Support are external dependencies and functionalities that enable the user to perform
                   modifications to the base environments, such as: LE, Quay, OpenShift Container Registry, Run as an
                   OPEN Environment, etc
-                </Text>
-              </TextListItem>
-            </TextList>
+                </Content>
+              </Content>
+            </Content>
           </PageSection>
         </div>
       </PageSection>

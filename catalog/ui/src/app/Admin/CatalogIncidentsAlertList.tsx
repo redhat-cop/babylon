@@ -42,7 +42,7 @@ const CatalogIncidentsAlertList: React.FC = () => {
     return (
         <div>
             <Panel variant="raised">
-                <div style={{ padding: 'var(--pf-v5-global--spacer--md)' }}>
+                <div style={{ padding: "var(--pf-t--global--spacer--md)" }}>
                 <Title headingLevel="h3" size="md">
                     Catalog Active Incidents
                 </Title>
@@ -65,7 +65,7 @@ const CatalogIncidentsAlertList: React.FC = () => {
                                     style={{
                                         textTransform: 'capitalize',
                                         display: 'flex',
-                                        gap: 'var(--pf-v5-global--spacer--xs)',
+                                        gap: "var(--pf-t--global--spacer--xs)",
                                         alignItems: 'center',
                                     }}>
                                         <a href={`/admin/catalogitems/${ci.metadata.namespace}/${ci.metadata.name}`}>
@@ -105,7 +105,7 @@ const CatalogIncidentsAlertList: React.FC = () => {
                     </Tbody>
                     </Table>
                 ) : (
-                    <p style={{ padding: 'var(--pf-v5-global--spacer--md)' }}>No active catalog incidents.</p>
+                    <p style={{ padding: "var(--pf-t--global--spacer--md)" }}>No active catalog incidents.</p>
                 )}
                 </PanelMain>
             </Panel>

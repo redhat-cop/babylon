@@ -6,9 +6,8 @@ import {
   FormGroup,
   HelperText,
   PageSection,
-  PageSectionVariants,
   Popover,
-  Text,
+  Content,
   TextInput,
   Title,
 } from '@patternfly/react-core';
@@ -54,7 +53,7 @@ const WorkshopLogin: React.FC<{
   };
 
   return (
-    <PageSection variant={PageSectionVariants.light} padding={{ default: 'noPadding' }} className="workshop-login">
+    <PageSection hasBodyWrapper={false}  padding={{ default: 'noPadding' }} className="workshop-login">
       <Hero image={heroImg}>
         <Title headingLevel="h1" size="xl" style={{ fontSize: '40px' }}>
           <b>{displayName}</b>
@@ -81,14 +80,12 @@ const WorkshopLogin: React.FC<{
               fieldId="email"
               isRequired
               label="Email"
-              labelIcon={
+              labelHelp={
                 <Popover
                   bodyContent="Only used for identification purposes during this workshop. No email messages will be sent to this address."
                   headerContent="Email Address"
                 >
-                  <Button variant="plain">
-                    <HelpIcon />
-                  </Button>
+                  <Button icon={<HelpIcon />} variant="plain" />
                 </Popover>
               }
             >
@@ -111,11 +108,9 @@ const WorkshopLogin: React.FC<{
                 fieldId="accessPassword"
                 isRequired
                 label="Workshop Password"
-                labelIcon={
+                labelHelp={
                   <Popover bodyContent="Password will be provided by your workshop facilitator.">
-                    <Button variant="plain">
-                      <HelpIcon />
-                    </Button>
+                    <Button icon={<HelpIcon />} variant="plain" />
                   </Popover>
                 }
               >
@@ -129,7 +124,7 @@ const WorkshopLogin: React.FC<{
               </FormGroup>
             ) : null}
             <ActionGroup>
-              <Button
+              <Button icon={<ArrowRightIcon />}
                 type="submit"
                 isDisabled={submitDisabled}
                 onClick={(ev: React.FormEvent<HTMLButtonElement>) => {
@@ -137,11 +132,11 @@ const WorkshopLogin: React.FC<{
                   onLogin(email, accessPassword);
                 }}
               >
-                Access this workshop <ArrowRightIcon />
+                Access this workshop 
               </Button>
             </ActionGroup>
             <FormGroup>
-              {loginFailureMessage ? <Text className="workshop-login__failure">{loginFailureMessage}</Text> : null}
+              {loginFailureMessage ? <Content component="p" className="workshop-login__failure">{loginFailureMessage}</Content> : null}
             </FormGroup>
           </div>
           {description ? (

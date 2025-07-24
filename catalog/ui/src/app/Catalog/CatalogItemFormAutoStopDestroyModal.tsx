@@ -96,7 +96,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
             <FormGroup fieldId="auto-stop-modal" label="Auto-stop">
               <Button variant="control" isDisabled={true} icon={<OutlinedClockIcon />} iconPosition="right" size="sm">
                 <Tooltip position="right" content={<div>This Catalog Item does not support Auto-Stop</div>}>
-                  <span style={{ marginRight: 'var(--pf-v5-global--spacer--sm)' }}>Auto-Stop disabled</span>
+                  <span style={{ marginRight: "var(--pf-t--global--spacer--sm)" }}>Auto-Stop disabled</span>
                 </Tooltip>
               </Button>
             </FormGroup>

@@ -62,9 +62,9 @@ const CatalogCategorySelector: React.FC<{
             <Tooltip content="Items marked as favorite">
               <InfoAltIcon
                 style={{
-                  paddingTop: 'var(--pf-v5-global--spacer--xs)',
-                  marginLeft: 'var(--pf-v5-global--spacer--sm)',
-                  width: 'var(--pf-v5-global--icon--FontSize--sm)',
+                  paddingTop: "var(--pf-t--global--spacer--xs)",
+                  marginLeft: "var(--pf-t--global--spacer--sm)",
+                  width: "var(--pf-t--global--icon--size--font--xs)",
                 }}
               />
             </Tooltip>
@@ -84,9 +84,9 @@ const CatalogCategorySelector: React.FC<{
                   <Tooltip content={CATEGORIES_DEFINITIONS[category.toLowerCase()]}>
                     <InfoAltIcon
                       style={{
-                        paddingTop: 'var(--pf-v5-global--spacer--xs)',
-                        marginLeft: 'var(--pf-v5-global--spacer--sm)',
-                        width: 'var(--pf-v5-global--icon--FontSize--sm)',
+                        paddingTop: "var(--pf-t--global--spacer--xs)",
+                        marginLeft: "var(--pf-t--global--spacer--sm)",
+                        width: "var(--pf-t--global--icon--size--font--xs)",
                       }}
                     />
                   </Tooltip>

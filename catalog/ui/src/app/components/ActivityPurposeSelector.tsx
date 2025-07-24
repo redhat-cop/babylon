@@ -63,12 +63,12 @@ const ActivityPurposeSelector: React.FC<{
         fieldId="activity"
         isRequired
         label="Activity"
-        labelIcon={
+        labelHelp={
           <Tooltip position="right" content={<div>Activity for this service.</div>}>
             <OutlinedQuestionCircleIcon
               aria-label="Activity for this service."
               className="tooltip-icon-only"
-              style={{ marginLeft: 'var(--pf-v5-global--spacer--sm)' }}
+              style={{ marginLeft: "var(--pf-t--global--spacer--sm)" }}
             />
           </Tooltip>
         }
@@ -78,7 +78,7 @@ const ActivityPurposeSelector: React.FC<{
           style={{
             flexDirection: 'column',
             alignItems: 'flex-start',
-            paddingBottom: 'var(--pf-v5-global--spacer--md)',
+            paddingBottom: "var(--pf-t--global--spacer--md)",
           }}
         >
           {[...activityOpts.keys()].map((activityOptName) => (

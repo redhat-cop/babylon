@@ -1,20 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ActionGroup,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
-  Modal,
-  ModalVariant,
-  Spinner,
-  EmptyStateHeader,
-  NumberInput,
-  FormGroup,
-  Form,
+	ActionGroup,
+	Button,
+	EmptyState,
+	EmptyStateBody,
+	Spinner,
+	NumberInput,
+	FormGroup,
+	Form
 } from '@patternfly/react-core';
-import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-icon';
+import {
+	Modal,
+	ModalVariant
+} from '@patternfly/react-core/deprecated';
+
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { K8sObjectReference, ResourceClaim, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
@@ -118,12 +118,7 @@ const WorkshopsItemServices: React.FC<{
 
   if (resourceClaims.length == 0) {
     return (
-      <EmptyState variant="full">
-        <EmptyStateHeader
-          titleText="No Services Found"
-          icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-          headingLevel="h1"
-        />
+      <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No Services Found" variant="full">
         <EmptyStateBody>No services have been provisioned for this workshop.</EmptyStateBody>
       </EmptyState>
     );
@@ -249,7 +244,7 @@ const WorkshopsItemServices: React.FC<{
                 style={{
                   display: 'flex',
                   flexDirection: 'row',
-                  gap: 'var(--pf-v5-global--spacer--sm)',
+                  gap: "var(--pf-t--global--spacer--sm)",
                 }}
                 className="workshops-item-services__actions"
               >
@@ -347,7 +342,7 @@ const WorkshopsItemServices: React.FC<{
         </Form>
       </Modal>
       {unusedResourceClaims.length > 0 ? (
-        <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-v5-global--spacer--md)' }}>
+        <ActionGroup key="users-actions" style={{ marginTop: "var(--pf-t--global--spacer--md)" }}>
           <Button onClick={() => setIsOpen(true)}>Delete unused instances</Button>
         </ActionGroup>
       ) : null}

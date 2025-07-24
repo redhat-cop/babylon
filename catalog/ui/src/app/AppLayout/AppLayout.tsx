@@ -40,13 +40,17 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     partner_connect_header_enabled
       ? 'https://connect.redhat.com/en/api/chrome/authenticated/3.0/universal_and_primary'
       : null,
-    publicFetcher
+    publicFetcher,
   );
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 
   const Sidebar = (
-    <PageSidebar theme="dark" isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen}>
+    <PageSidebar
+      className="pf-v6-theme-dark"
+      isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen}
+      style={{ margin: 0 }}
+    >
       <PageSidebarBody>
         <Navigation />
       </PageSidebarBody>
@@ -65,7 +69,10 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   return (
     <Suspense fallback={<LoadingSection />}>
       {partner_connect_header_enabled ? (
-        <PageSection style={{ minHeight: 'auto', padding: 0, zIndex: 999, position: 'relative' }}>
+        <PageSection
+          hasBodyWrapper={false}
+          style={{ minHeight: 'auto', padding: 0, zIndex: 999, position: 'relative' }}
+        >
           <div>
             <div dangerouslySetInnerHTML={{ __html: partnerHeaderHtml }}></div>
           </div>
@@ -74,7 +81,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       <Page
         className={`app-layout ${optionalFlags.map((flag) => `optional-flags__${flag}`).join(' ')}`}
         mainContainerId="primary-app-container"
-        header={_Header}
+        masthead={_Header}
         sidebar={Sidebar}
         onPageResize={(_event, props: { mobileView: boolean; windowSize: number }) => onPageResize(props)}
       >

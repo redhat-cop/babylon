@@ -11,9 +11,7 @@ import {
   DrawerContentBody,
   DrawerPanelContent,
   EmptyState,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Sidebar,
   SidebarContent,
   SidebarPanel,
@@ -23,7 +21,6 @@ import {
   StackItem,
   Title,
   Tooltip,
-  EmptyStateHeader,
   Select,
   SelectOption,
   SelectList,
@@ -556,10 +553,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                   <DrawerPanelContent
                     widths={{ default: 'width_75', lg: 'width_75', xl: 'width_66', '2xl': 'width_50' }}
                   >
-                    <PageSection variant={PageSectionVariants.light}>
-                      <EmptyState variant="full">
-                        <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
-                      </EmptyState>
+                    <PageSection hasBodyWrapper={false}>
+                      <EmptyState icon={LoadingIcon} variant="full"></EmptyState>
                     </PageSection>
                   </DrawerPanelContent>
                 }
@@ -575,11 +570,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
               <CatalogNamespaceSelect onSelect={onSelectCatalogNamespace} selected={catalogNamespaceName} />
             ) : null}
             <CatalogInterfaceDescription />
-            <PageSection className="catalog__body" variant={PageSectionVariants.light}>
+            <PageSection hasBodyWrapper={false} className="catalog__body">
               <Card>
-                <CardBody>
+                <CardBody style={{ padding: 0 }}>
                   <Sidebar tabIndex={0}>
-                    <SidebarPanel className="catalog__sidebar-panel">
+                    <SidebarPanel style={{ marginTop: 'var(--pf-t--global--spacer--xl)' }}>
                       <CatalogCategorySelector
                         catalogItems={catalogItems}
                         onSelect={onSelectCategory}
@@ -593,7 +588,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                       />
                     </SidebarPanel>
                     <SidebarContent>
-                      <PageSection variant={PageSectionVariants.light} className="catalog__header">
+                      <PageSection hasBodyWrapper={false} className="catalog__header">
                         <Split>
                           <SplitItem isFilled>
                             <Title headingLevel="h2">
@@ -614,36 +609,33 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                   <li>
                                     <Tooltip content="Gallery view">
                                       <Button
+                                        icon={<ThIcon />}
                                         variant="plain"
                                         aria-label="View as gallery"
                                         onClick={() => setView('gallery')}
-                                        isActive={view === 'gallery'}
-                                      >
-                                        <ThIcon />
-                                      </Button>
+                                        isClicked={view === 'gallery'}
+                                      />
                                     </Tooltip>
                                   </li>
                                   <li>
                                     <Tooltip content="List view">
                                       <Button
+                                        icon={<ListIcon />}
                                         variant="plain"
                                         aria-label="View as list"
                                         onClick={() => setView('list')}
-                                        isActive={view === 'list'}
-                                      >
-                                        <ListIcon />
-                                      </Button>
+                                        isClicked={view === 'list'}
+                                      />
                                     </Tooltip>
                                   </li>
                                   <li>
                                     <Tooltip content="Export to CSV">
                                       <Button
+                                        icon={<DownloadIcon />}
                                         variant="plain"
                                         aria-label="Export to CSV"
                                         onClick={() => handleExportCsv(catalogItems)}
-                                      >
-                                        <DownloadIcon />
-                                      </Button>
+                                      />
                                     </Tooltip>
                                   </li>
                                   <li>
@@ -700,9 +692,9 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                 </ul>
                               </StackItem>
                               <StackItem>
-                                <p className="catalog__item-count">
+                                <Title headingLevel="h4" className="catalog__item-count">
                                   {catalogItemsResult.length} item{catalogItemsResult.length > 1 && 's'}
-                                </p>
+                                </Title>
                               </StackItem>
                             </Stack>
                           </SplitItem>

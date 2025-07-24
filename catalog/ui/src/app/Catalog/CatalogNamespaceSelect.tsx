@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PageSection, PageSectionVariants } from '@patternfly/react-core';
+import { PageSection,  } from '@patternfly/react-core';
 import { Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import { displayName } from '@app/util';
@@ -19,7 +19,7 @@ const CatalogNamespaceSelect: React.FC<{
   };
 
   return (
-    <PageSection variant={PageSectionVariants.light} className="catalog-namespace-select">
+    <PageSection hasBodyWrapper={false}  className="catalog-namespace-select">
       <Dropdown
         isOpen={isOpen}
         onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}

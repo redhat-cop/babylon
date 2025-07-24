@@ -1,18 +1,21 @@
-.header-component .pf-v5-c-app-launcher__menu-item-external-icon {
+.header-component .pf-v6-c-app-launcher__menu-item-external-icon {
   opacity: 1;
-  color: var(--pf-v5-c-app-launcher__menu-item--Color);
+  color: var(--pf-v6-c-app-launcher__menu-item--Color);
 }
 .header-component__user-controls button::before {
   border: none;
 }
-
-.header-component__user-controls--warning .pf-v5-c-dropdown__toggle-text {
+.header-component__user-controls--warning .pf-v6-c-dropdown__toggle-text {
   color: #ee0000;
   font-weight: bold;
 }
+.header-component .pf-v6-c-menu-toggle__toggle-icon {
+  color: #fff;
+}
 
 @media (--small-viewport) {
-  .header-component.pf-v5-c-page__header {
+  .header-component.pf-v6-c-page__header {
     grid-template-columns: 1fr 0;
   }
 }
+

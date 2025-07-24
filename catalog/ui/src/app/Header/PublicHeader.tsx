@@ -6,9 +6,10 @@ import {
   DropdownList,
   DropdownItem,
   Masthead,
-  MastheadBrand,
+  MastheadLogo,
   MastheadContent,
   MastheadMain,
+  MastheadBrand,
   MenuToggle,
   MenuToggleElement,
 } from '@patternfly/react-core';
@@ -63,7 +64,7 @@ const PublicHeader: React.FC = () => {
       {feedback_link ? (
         <Button
           variant="link"
-          icon={<CommentIcon />}
+          icon={<CommentIcon style={{ fill: '#fff' }} />}
           style={{ color: '#fff' }}
           onClick={() => window.open(feedback_link, '_blank')}
         >
@@ -84,19 +85,9 @@ const PublicHeader: React.FC = () => {
             onClick={() => setUserHelpDropdownOpen(!isUserHelpDropdownOpen)}
             isExpanded={isUserHelpDropdownOpen}
             style={{ width: 'auto' }}
+            icon={<QuestionCircleIcon style={{ fill: '#fff' }} />}
           >
-            <div
-              style={{
-                display: 'flex',
-                gap: 'var(--pf-v5-global--spacer--xs)',
-                flexDirection: 'row',
-                alignItems: 'center',
-                color: '#fff',
-              }}
-            >
-              <QuestionCircleIcon />
-              Help
-            </div>
+            Help
           </MenuToggle>
         )}
       >
@@ -106,13 +97,23 @@ const PublicHeader: React.FC = () => {
   );
 
   return (
-    <Masthead backgroundColor="dark" className="public-header-component">
+    <Masthead
+      className="public-header-component"
+      style={{
+        backgroundColor: 'rgb(21,21,21)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
       <MastheadMain>
-        <MastheadBrand>
-          <LogoImg />
+        <MastheadBrand data-codemods>
+          <MastheadLogo data-codemods>
+            <LogoImg />
+          </MastheadLogo>
         </MastheadBrand>
       </MastheadMain>
-      <MastheadContent>{HeaderTools}</MastheadContent>
+      <MastheadContent style={{ marginLeft: 'auto' }}>{HeaderTools}</MastheadContent>
     </Masthead>
   );
 };

@@ -146,7 +146,7 @@ const IncidentsAlertList: React.FC = () => {
                 id="incidents__form-active"
                 aria-label="Active"
                 label="Active"
-                labelOff="Resolved"
+                
                 isChecked={state.status === 'active'}
                 onChange={(_event, v) => dispatch({ type: 'set_status', status: v ? 'active' : 'resolved' })}
               />
@@ -186,7 +186,7 @@ const IncidentsAlertList: React.FC = () => {
         </Form>
       </Modal>
       <Panel variant="raised">
-        <div style={{ padding: 'var(--pf-v5-global--spacer--md)' }}>
+        <div style={{ padding: "var(--pf-t--global--spacer--md)" }}>
           <Title headingLevel="h3" size="md">
             Active Incidents
           </Title>
@@ -224,7 +224,7 @@ const IncidentsAlertList: React.FC = () => {
                       style={{
                         textTransform: 'capitalize',
                         display: 'flex',
-                        gap: 'var(--pf-v5-global--spacer--xs)',
+                        gap: "var(--pf-t--global--spacer--xs)",
                         alignItems: 'center',
                       }}
                     >
@@ -241,23 +241,21 @@ const IncidentsAlertList: React.FC = () => {
                       <TimeInterval toTimestamp={incident.updated_at} />
                     </Td>
                     <Td dataLabel="edit">
-                      <Button
+                      <Button icon={<EditIcon />}
                         variant="plain"
                         aria-label="edit"
                         onClick={() => {
                           dispatch({ type: 'edit_incident', incident });
                           openIncidentModal();
                         }}
-                      >
-                        <EditIcon />
-                      </Button>
+                       />
                     </Td>
                   </Tr>
                 ))}
               </Tbody>
             </Table>
           ) : (
-            <p style={{ padding: 'var(--pf-v5-global--spacer--md)' }}>No active incidents.</p>
+            <p style={{ padding: "var(--pf-t--global--spacer--md)" }}>No active incidents.</p>
           )}
         </PanelMain>
       </Panel>

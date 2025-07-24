@@ -8,9 +8,7 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   EmptyState,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Stack,
@@ -20,8 +18,7 @@ import {
   TabTitleText,
   Title,
   Spinner,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+  } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
@@ -120,7 +117,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
 
   return (
     <>
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Breadcrumb>
           <BreadcrumbItem
             render={({ className }) => (
@@ -176,7 +173,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+      <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/resourcepools/${resourcePoolName}/${tabIndex}`)}
@@ -286,13 +283,8 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
           </Tab>
           <Tab eventKey="resourcehandles" title={<TabTitleText>ResourceHandles</TabTitleText>}>
             {resourceHandles.length === 0 ? (
-              <EmptyState variant="full">
-                <EmptyStateHeader
-                  titleText="No ResourceHandles found."
-                  icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-                  headingLevel="h1"
-                />
-              </EmptyState>
+              <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No ResourceHandles found." variant="full">
+                </EmptyState>
             ) : (
               <SelectableTable
                 columns={['Name', 'Service Namespace', 'ResourceClaim', 'Created At']}

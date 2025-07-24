@@ -13,7 +13,6 @@ import {
   DrawerHead,
   DrawerPanelContent,
   PageSection,
-  PageSectionVariants,
   Sidebar,
   SidebarContent,
   SidebarPanel,
@@ -274,7 +273,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
             ) : null}
           </SplitItem>
         </Split>
-        <PageSection variant={PageSectionVariants.light} className="catalog-item-details__actions">
+        <PageSection hasBodyWrapper={false}  className="catalog-item-details__actions">
           {catalogItemAccess === CatalogItemAccess.Allow ? (
             <>
               <Button
@@ -406,9 +405,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                     <Tooltip content="Estimated hourly cost if not stopped.">
                       <InfoAltIcon
                         style={{
-                          paddingTop: 'var(--pf-v5-global--spacer--xs)',
-                          marginLeft: 'var(--pf-v5-global--spacer--xs)',
-                          width: 'var(--pf-v5-global--icon--FontSize--sm)',
+                          paddingTop: "var(--pf-t--global--spacer--xs)",
+                          marginLeft: "var(--pf-t--global--spacer--xs)",
+                          width: "var(--pf-t--global--icon--size--font--xs)",
                         }}
                       />
                     </Tooltip>
@@ -434,9 +433,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <Tooltip content="Uptime during the last 90 days.">
                     <InfoAltIcon
                       style={{
-                        paddingTop: 'var(--pf-v5-global--spacer--xs)',
-                        marginLeft: 'var(--pf-v5-global--spacer--xs)',
-                        width: 'var(--pf-v5-global--icon--FontSize--sm)',
+                        paddingTop: "var(--pf-t--global--spacer--xs)",
+                        marginLeft: "var(--pf-t--global--spacer--xs)",
+                        width: "var(--pf-t--global--icon--size--font--xs)",
                       }}
                     />
                   </Tooltip>

@@ -71,9 +71,10 @@ const StarRating: React.FC<{
         <p
           style={{
             fontWeight: 300,
-            color: 'var(--pf-v5-global--palette--black-500)',
-            fontSize: 'var(--pf-v5-global--FontSize--xs)',
-            marginLeft: 'var(--pf-v5-global--spacer--sm)',
+            color:
+              'var(--pf-v6-global--palette--black-500)' /* CODEMODS: original v5 color was --pf-v6-global--palette--black-500 */,
+            fontSize: 'var(--pf-t--global--font--size--xs)',
+            marginLeft: 'var(--pf-t--global--spacer--sm)',
             paddingTop: '1px',
           }}
         >

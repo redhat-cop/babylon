@@ -5,13 +5,10 @@ import useSWRInfinite from 'swr/infinite';
 import {
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Title,
-  EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
@@ -193,7 +190,7 @@ const Workshops: React.FC<{}> = () => {
       >
         <p>Provisioned services will be deleted.</p>
       </Modal>
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -234,13 +231,8 @@ const Workshops: React.FC<{}> = () => {
         </Split>
       </PageSection>
       {workshops.length === 0 ? (
-        <PageSection key="workshops-list-empty">
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText="No workshops found."
-              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-              headingLevel="h1"
-            />
+        <PageSection hasBodyWrapper={false} key="workshops-list-empty">
+          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No workshops found." variant="full">
             <EmptyStateFooter>
               {keywordFilter ? (
                 <EmptyStateBody>No workshops matched search.</EmptyStateBody>
@@ -253,7 +245,7 @@ const Workshops: React.FC<{}> = () => {
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
           <SelectableTable
             columns={['Name', 'Service Namespace', 'Registration', 'Created At', 'Actions']}
             onSelectAll={(isSelected: boolean) => {
@@ -308,7 +300,7 @@ const Workshops: React.FC<{}> = () => {
                     style={{
                       display: 'flex',
                       flexDirection: 'row',
-                      gap: 'var(--pf-v5-global--spacer--sm)',
+                      gap: "var(--pf-t--global--spacer--sm)",
                     }}
                   >
                     <ButtonCircleIcon

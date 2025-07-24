@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { EmptyState, EmptyStateIcon, EmptyStateHeader } from '@patternfly/react-core';
+import { EmptyState,  } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { AnarchySubject } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -13,13 +13,8 @@ const AnarchySubjectsTable: React.FC<{
 }> = ({ anarchySubjects }) => {
   if (anarchySubjects.length === 0) {
     return (
-      <EmptyState variant="full">
-        <EmptyStateHeader
-          titleText="No AnarchySubjects found."
-          icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-          headingLevel="h1"
-        />
-      </EmptyState>
+      <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No AnarchySubjects found." variant="full">
+        </EmptyState>
     );
   }
   return (

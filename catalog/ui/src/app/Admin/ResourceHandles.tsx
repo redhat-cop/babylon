@@ -3,14 +3,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import useSWRInfinite from 'swr/infinite';
 import {
   EmptyState,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Title,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+  } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteResourceHandle, fetcher } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
@@ -190,7 +187,7 @@ const ResourceHandles: React.FC = () => {
 
   return (
     <>
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -221,17 +218,12 @@ const ResourceHandles: React.FC = () => {
         </Split>
       </PageSection>
       {resourceHandles.length === 0 ? (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText="No ResourceHandles found"
-              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-              headingLevel="h1"
-            />
-          </EmptyState>
+        <PageSection hasBodyWrapper={false}>
+          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No ResourceHandles found" variant="full">
+            </EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
           <SelectableTable
             columns={[
               'Name',
@@ -321,9 +313,8 @@ const ResourceHandles: React.FC = () => {
             })}
           />
           {!isReachingEnd ? (
-            <EmptyState variant="full">
-              <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
-            </EmptyState>
+            <EmptyState   icon={LoadingIcon}   variant="full">
+              </EmptyState>
           ) : null}
         </PageSection>
       )}

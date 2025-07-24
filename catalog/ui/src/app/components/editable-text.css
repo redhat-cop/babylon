@@ -1,11 +1,11 @@
-.editable-text-area.pf-v5-c-form-control {
+.editable-text-area.pf-v6-c-form-control {
   width: auto;
 }
 
-.editable-text-input.pf-v5-c-form-control {
+.editable-text-input.pf-v6-c-form-control {
   width: auto;
 }
 
 .editable-text-placeholder {
-  color: var(--pf-v5-global--Color--400);
+  color: var(--pf-v6-global--Color--400);
 }

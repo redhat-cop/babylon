@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from 'react';
-import { PageSection, PageSectionVariants, Split, SplitItem, Title, Button } from '@patternfly/react-core';
+import { PageSection, Split, SplitItem, Title, Button } from '@patternfly/react-core';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
 import useSWRImmutable from 'swr/immutable';
@@ -215,7 +215,7 @@ const RatingsList: React.FC = () => {
 
   return (
     <div className="admin-container">
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -235,7 +235,7 @@ const RatingsList: React.FC = () => {
       </PageSection>
 
       {catalogItemsResult.length > 0 ? (
-        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
           <Table aria-label="Catalog items ratings table" variant="compact">
             <Thead>
               <Tr>

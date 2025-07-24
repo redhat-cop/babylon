@@ -1,7 +1,7 @@
-.workshop.pf-v5-c-page__header .pf-v5-c-page__header-brand {
+.workshop.pf-v6-c-page__header .pf-v6-c-page__header-brand {
   height: 60px;
 }
-.workshop .pf-v5-c-page__main,
-.workshop .pf-v5-c-page__main-section.pf-m-light {
+.workshop .pf-v6-c-page__main,
+.workshop .pf-v6-c-page__main-section.pf-m-light {
   background-color: transparent !important;
 }

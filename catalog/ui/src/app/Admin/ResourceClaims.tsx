@@ -5,13 +5,10 @@ import useSWRInfinite from 'swr/infinite';
 import {
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Title,
-  EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
@@ -294,7 +291,7 @@ const ResourceClaims: React.FC<{}> = () => {
           resourceClaim={modalState.resourceClaim}
         />
       </Modal>
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -338,13 +335,8 @@ const ResourceClaims: React.FC<{}> = () => {
         </Split>
       </PageSection>
       {resourceClaims.length === 0 && isReachingEnd ? (
-        <PageSection key="body-empty">
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText="No Services found"
-              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-              headingLevel="h1"
-            />
+        <PageSection hasBodyWrapper={false} key="body-empty">
+          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No Services found" variant="full">
             <EmptyStateFooter>
               {keywordFilter ? (
                 <EmptyStateBody>No services matched search.</EmptyStateBody>
@@ -357,7 +349,7 @@ const ResourceClaims: React.FC<{}> = () => {
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
           <SelectableTable
             columns={['Name', 'Service Namespace', 'GUID', 'Status', 'Created At', 'Actions']}
             onSelectAll={(isSelected: boolean) => {
@@ -490,9 +482,8 @@ const ResourceClaims: React.FC<{}> = () => {
             })}
           />
           {!isReachingEnd ? (
-            <EmptyState variant="full">
-              <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
-            </EmptyState>
+            <EmptyState   icon={LoadingIcon}   variant="full">
+              </EmptyState>
           ) : null}
         </PageSection>
       )}

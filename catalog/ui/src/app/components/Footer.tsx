@@ -43,7 +43,7 @@ const Footer: React.FC<{ rightElement?: ReactNode }> = ({ rightElement }) => (
               >
                 <GithubIcon
                   style={{
-                    marginRight: 'var(--pf-v5-global--spacer--xs)',
+                    marginRight: "var(--pf-t--global--spacer--xs)",
                     textDecoration: 'none',
                     alignSelf: 'center',
                   }}

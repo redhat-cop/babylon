@@ -7,7 +7,6 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   PageSection,
-  PageSectionVariants,
   Panel,
   PanelMain,
   PanelMainBody,
@@ -44,7 +43,7 @@ const WorkshopContent: React.FC<{
       vars: createAsciiDocAttributes(userAssignment.data, '--'),
     });
     return (
-      <div style={{ padding: '0 var(--pf-v5-global--spacer--md) v--pf-v5-pf-v5-global--spacer--md)' }}>
+      <div style={{ padding: "var(--pf-t--global--spacer--md)" }}>
         <AdocWrapper html={htmlRenderedTemplate} />
       </div>
     );
@@ -73,7 +72,7 @@ const WorkshopContent: React.FC<{
   }
 
   return (
-    <PageSection variant={PageSectionVariants.light} className="workshop-content" padding={{ default: 'noPadding' }}>
+    <PageSection hasBodyWrapper={false}  className="workshop-content" padding={{ default: 'noPadding' }}>
       <Hero image={heroImg}>
         <Title headingLevel="h1" size="xl" style={{ fontSize: '40px' }}>
           <b>{displayName}</b>
