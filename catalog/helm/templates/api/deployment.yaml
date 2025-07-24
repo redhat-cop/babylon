@@ -46,6 +46,11 @@ spec:
             secretKeyRef:
               name: {{ include "babylonCatalog.salesforceApiSecretName" . }}
               key: salesforce-api-token
+        - name: SANDBOX_AUTHORIZATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylonCatalog.sandboxApiSecretName" . }}
+              key: sandbox-api-token
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
