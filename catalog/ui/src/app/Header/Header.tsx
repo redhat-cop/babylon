@@ -121,9 +121,9 @@ const Header: React.FC<{
   const UserControlDropdownItems = [
     <DropdownItem
       key="logout"
-      href="/oauth/sign_out"
       onClick={() => {
         sessionStorage.removeItem('impersonateUser');
+        window.location.href = '/oauth/sign_out';
       }}
     >
       Log out
