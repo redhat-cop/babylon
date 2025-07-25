@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Banner, Button } from '@patternfly/react-core';
+import { Banner, BannerColor, Button } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
 import { Incident } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
@@ -54,14 +54,20 @@ const IncidentsBanner: React.FC = () => {
             key={i.id}
             isSticky
             screenReaderText={i.message}
-            color={i.level === 'info' ? 'blue' : i.level === 'critical' ? 'red' : 'gold'}
+            color={
+              i.level === 'info'
+                ? ('blue' as BannerColor)
+                : i.level === 'critical'
+                  ? ('red' as BannerColor)
+                  : ('yellow' as BannerColor)
+            }
           >
             <div
               style={{
                 display: 'flex',
-                gap: "var(--pf-t--global--spacer--sm)",
+                gap: 'var(--pf-t--global--spacer--sm)',
                 flexDirection: 'row',
-                padding: "var(--pf-t--global--spacer--sm)",
+                padding: 'var(--pf-t--global--spacer--sm)',
                 position: 'relative',
               }}
             >
@@ -76,19 +82,20 @@ const IncidentsBanner: React.FC = () => {
                   style={{
                     fontStyle: 'italic',
                     fontSize: 'xs',
-                    marginTop: "var(--pf-t--global--spacer--sm)",
+                    marginTop: 'var(--pf-t--global--spacer--sm)',
                     opacity: 0.75,
                   }}
                 >
                   Last update <TimeInterval toTimestamp={i.updated_at} />
                 </p>
               </div>
-              <Button icon={<CloseIcon />}
+              <Button
+                icon={<CloseIcon />}
                 onClick={() => handleClose(i.id)}
                 variant="plain"
                 style={{ color: '#000', position: 'absolute', top: 0, right: 0 }}
                 className="incidents-banner__close-btn"
-               />
+              />
             </div>
           </Banner>
         ))}
