@@ -1,13 +1,7 @@
 import React, { useCallback, useMemo, useReducer } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import useSWRInfinite from 'swr/infinite';
-import {
-  EmptyState,
-  PageSection,
-  Split,
-  SplitItem,
-  Title,
-  } from '@patternfly/react-core';
+import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteResourceHandle, fetcher } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
@@ -187,7 +181,7 @@ const ResourceHandles: React.FC = () => {
 
   return (
     <>
-      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header">
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -219,11 +213,15 @@ const ResourceHandles: React.FC = () => {
       </PageSection>
       {resourceHandles.length === 0 ? (
         <PageSection hasBodyWrapper={false}>
-          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No ResourceHandles found" variant="full">
-            </EmptyState>
+          <EmptyState
+            headingLevel="h1"
+            icon={ExclamationTriangleIcon}
+            titleText="No ResourceHandles found"
+            variant="full"
+          ></EmptyState>
         </PageSection>
       ) : (
-        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body" className="admin-body">
           <SelectableTable
             columns={[
               'Name',
@@ -312,10 +310,7 @@ const ResourceHandles: React.FC = () => {
               };
             })}
           />
-          {!isReachingEnd ? (
-            <EmptyState   icon={LoadingIcon}   variant="full">
-              </EmptyState>
-          ) : null}
+          {!isReachingEnd ? <EmptyState icon={LoadingIcon} variant="full"></EmptyState> : null}
         </PageSection>
       )}
       <Footer />

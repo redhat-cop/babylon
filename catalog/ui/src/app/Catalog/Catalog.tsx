@@ -591,16 +591,22 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                       <PageSection hasBodyWrapper={false} className="catalog__header">
                         <Split>
                           <SplitItem isFilled>
-                            <Title headingLevel="h2">
-                              {selectedCategory ? formatString(selectedCategory) : 'All Items'}
-                            </Title>
-                            <SearchInputString
-                              initialValue={searchString}
-                              placeholder="Search"
-                              onSearch={onSearchChange}
-                              className="catalog__searchbox"
-                              setValueCb={assignSearchInputStringCb}
-                            />
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Title headingLevel="h2">
+                                  {selectedCategory ? formatString(selectedCategory) : 'All Items'}
+                                </Title>
+                              </StackItem>
+                              <StackItem>
+                                <SearchInputString
+                                  initialValue={searchString}
+                                  placeholder="Search"
+                                  onSearch={onSearchChange}
+                                  className="catalog__searchbox"
+                                  setValueCb={assignSearchInputStringCb}
+                                />
+                              </StackItem>
+                            </Stack>
                           </SplitItem>
                           <SplitItem>
                             <Stack hasGutter>

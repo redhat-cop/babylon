@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { Badge, Card, CardBody, CardHeader, Title } from '@patternfly/react-core';
+import { Badge, Card, CardBody, CardHeader, Stack, StackItem, Title, Tooltip } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import CatalogItemIcon from './CatalogItemIcon';
-import { formatString, getDescription, getProvider, getRating, getStage, getStatus } from './catalog-utils';
+import { formatString, getDescription, getProvider, getRating, getSLA, getStage, getStatus } from './catalog-utils';
 
 import './catalog-item-list-item.css';
 
@@ -19,6 +19,7 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
   const stage = getStage(catalogItem);
   const rating = getRating(catalogItem);
   const status = getStatus(catalogItem);
+  const sla = getSLA(catalogItem);
 
   if (!searchParams.has('item')) {
     if (namespace) {
@@ -35,17 +36,29 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
     >
       <Card className="catalog-item-list-item__card" component="div">
         <CardHeader className="catalog-item-list-item__header">
-          <CatalogItemIcon catalogItem={catalogItem} />
-          {status && status.name !== 'operational' ? (
-            <StatusPageIcons status={status.name} className="catalog-item-list-item__statusPageIcon" />
-          ) : null}
-          {stage === 'dev' ? (
-            <Badge className="catalog-item-list-item__badge--dev">development</Badge>
-          ) : stage === 'test' ? (
-            <Badge className="catalog-item-list-item__badge--test">test</Badge>
-          ) : stage === 'event' ? (
-            <Badge className="catalog-item-list-item__badge--event">event</Badge>
-          ) : null}
+          <Stack style={{ alignItems: 'center' }}>
+            <StackItem>
+              <CatalogItemIcon catalogItem={catalogItem} />
+            </StackItem>
+            <StackItem>
+              {status && status.name !== 'Operational' ? (
+                <StatusPageIcons status={status.name} className="catalog-item-list-item__statusPageIcon" />
+              ) : null}
+              {sla && stage === 'prod' ? (
+                <Tooltip content={<p>Service Level</p>}>
+                  <a href="/support" target="_blank" rel="nofollow noreferrer">
+                    <Badge className="catalog-item-list-item__badge--sla">{sla.replace(/_+/g, ' | ')}</Badge>
+                  </a>
+                </Tooltip>
+              ) : stage === 'dev' ? (
+                <Badge className="catalog-item-list-item__badge--dev">development</Badge>
+              ) : stage === 'test' ? (
+                <Badge className="catalog-item-list-item__badge--test">test</Badge>
+              ) : stage === 'event' ? (
+                <Badge className="catalog-item-list-item__badge--event">event</Badge>
+              ) : null}
+            </StackItem>
+          </Stack>
         </CardHeader>
         <CardBody className="catalog-item-list-item__body">
           <Title className="catalog-item-list-item__title" headingLevel="h3">

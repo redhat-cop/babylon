@@ -7,22 +7,11 @@ import './admin.css';
 
 const RatingsPage: React.FC = () => {
   return (
-    <>
-      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
-        <Split hasGutter>
-          <SplitItem isFilled>
-            <Title headingLevel="h4" size="xl">
-              Ratings
-            </Title>
-          </SplitItem>
-        </Split>
-      </PageSection>
-      <PageSection hasBodyWrapper={false} key="body" >
-        <Suspense fallback={<LoadingSection />}>
-          <RatingsList />
-        </Suspense>
-      </PageSection>
-    </>
+    <PageSection hasBodyWrapper={false} key="body">
+      <Suspense fallback={<LoadingSection />}>
+        <RatingsList />
+      </Suspense>
+    </PageSection>
   );
 };
 

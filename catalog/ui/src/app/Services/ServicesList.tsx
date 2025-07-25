@@ -34,7 +34,6 @@ import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import {
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
-  displayName,
   BABYLON_DOMAIN,
   keywordMatch,
   compareK8sObjectsArr,
@@ -395,7 +394,7 @@ const ServicesList: React.FC<{
     return (
       <>
         <PageSection hasBodyWrapper={false}>
-          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No Service Access" variant="full">
+          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Service Access" variant="full">
             <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
           </EmptyState>
         </PageSection>
@@ -423,7 +422,7 @@ const ServicesList: React.FC<{
         />
       </Modal>
       {isAdmin || sessionServiceNamespaces.length > 1 ? (
-        <PageSection hasBodyWrapper={false} key="topbar" className="services-list__topbar" >
+        <PageSection hasBodyWrapper={false} key="topbar" className="services-list__topbar">
           <ProjectSelector
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
@@ -431,11 +430,10 @@ const ServicesList: React.FC<{
                 navigate(`/services/${namespace.name}${location.search}`);
               }
             }}
-            isPlain={true}
           />
         </PageSection>
       ) : null}
-      <PageSection hasBodyWrapper={false} key="head" className="services-list__head" >
+      <PageSection hasBodyWrapper={false} key="head" className="services-list__head">
         <Split hasGutter>
           <SplitItem isFilled>
             <Breadcrumb>
@@ -472,7 +470,7 @@ const ServicesList: React.FC<{
       </PageSection>
       {services.length === 0 ? (
         <PageSection hasBodyWrapper={false} key="body-empty">
-          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No Services found" variant="full">
+          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Services found" variant="full">
             <EmptyStateFooter>
               {keywordFilter ? (
                 <EmptyStateBody>No services matched search.</EmptyStateBody>
@@ -485,7 +483,7 @@ const ServicesList: React.FC<{
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection hasBodyWrapper={false} key="body" className="services-list" >
+        <PageSection hasBodyWrapper={false} key="body" className="services-list">
           <SelectableTable
             columns={
               isAdmin

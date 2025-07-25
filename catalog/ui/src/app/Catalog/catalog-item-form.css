@@ -2,16 +2,8 @@
   flex-grow: 1;
 }
 
-.catalog-item-form__form {
-  margin: var(--pf-v6-global--spacer--lg) 0;
-}
-
 .catalog-item-form__form .purpose-select {
   min-width: var(--babylon-form-width);
-}
-
-.catalog-item-form.pf-v6-c-page__main-section .pf-v6-c-title {
-  margin-top: var(--pf-v6-global--spacer--md);
 }
 
 .catalog-item-form__form .pf-v6-c-check {
@@ -21,11 +13,8 @@
 }
 
 .catalog-item-form__form .terms-of-service {
-  background-color: var(--pf-v6-global--BackgroundColor--light-300);
-  padding: var(--pf-v6-global--spacer--md);
-}
-.catalog-item-form__form .terms-of-service .pf-v6-c-form__label {
-  cursor: default;
+  background-color: var(--pf-t--global--background--color--300);
+  padding: var(--pf-t--global--spacer--md);
 }
 
 .catalog-item-form__group-control--single,
@@ -33,11 +22,11 @@
 .catalog-item-form__form .terms-of-service .pf-v6-c-form__group-control {
   display: flex;
   flex-direction: row;
-  gap: var(--pf-v6-global--spacer--md);
+  gap: var(--pf-t--global--spacer--md);
   align-items: center;
 }
 .catalog-item-form__group-control--multi {
-  padding-bottom: var(--pf-v6-global--spacer--sm);
+  padding-bottom: var(--pf-t--global--spacer--sm);
 }
 .catalog-item-form__form .terms-of-service .pf-v6-c-form__group-control {
   flex-direction: column;
@@ -54,7 +43,7 @@
 }
 
 .catalog-item-form__workshop-form {
-  gap: var(--pf-v6-global--gutter--md);
+  gap: var(--pf-t--global--spacer--gutter--default);
   display: grid;
 }
 

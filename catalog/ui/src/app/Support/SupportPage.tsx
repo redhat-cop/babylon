@@ -117,8 +117,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
                 style={{
                   paddingLeft: 'var(--pf-t--global--spacer--lg)',
                   textAlign: 'right',
-                  color:
-                    'var(--pf-v6-global--palette--black-600)' /* CODEMODS: original v5 color was --pf-v6-global--palette--black-600 */,
+                  color: 'var(--pf-t--color--gray--60)' /* CODEMODS: original v5 color was --pf-t--color--gray--60 */,
                 }}
               >
                 <em>

@@ -383,7 +383,7 @@ const WorkshopsItemComponent: React.FC<{
         />
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
-        <PageSection hasBodyWrapper={false} key="topbar" className="workshops-item__topbar" >
+        <PageSection hasBodyWrapper={false} key="topbar" className="workshops-item__topbar">
           <ProjectSelector
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
@@ -393,11 +393,10 @@ const WorkshopsItemComponent: React.FC<{
                 navigate(`/services${location.search}`);
               }
             }}
-            isPlain={true}
           />
         </PageSection>
       ) : null}
-      <PageSection hasBodyWrapper={false} key="head" className="workshops-item__head" >
+      <PageSection hasBodyWrapper={false} key="head" className="workshops-item__head">
         <Split hasGutter>
           <SplitItem isFilled>
             <Breadcrumb>
@@ -450,7 +449,7 @@ const WorkshopsItemComponent: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection hasBodyWrapper={false} key="body"  className="workshops-item__body">
+      <PageSection hasBodyWrapper={false} key="body" className="workshops-item__body">
         <Tabs
           activeKey={activeTab || 'details'}
           onSelect={(e, tabIndex) => navigate(`/workshops/${serviceNamespaceName}/${workshopName}/${tabIndex}`)}

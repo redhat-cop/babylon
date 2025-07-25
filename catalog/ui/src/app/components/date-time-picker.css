@@ -3,7 +3,7 @@
   max-height: 380px;
 }
 .date-time-picker__text.pf-v6-c-form-control {
-  font-size: var(--pf-v6-global--FontSize--sm);
+  font-size: var(--pf-t--global--icon--size--font--body--sm);
 }
 .hide-controls {
   width: auto;

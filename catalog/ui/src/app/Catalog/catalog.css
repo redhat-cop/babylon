@@ -8,12 +8,12 @@
 }
 
 .catalog__content-box.pf-v6-c-page__main-section {
-  background-color: var(--pf-v6-global--palette--black-200);
+  background-color: var(--pf-t--global--background--color--200);
   min-height: 460px;
 }
 
 .catalog__content-box--empty.pf-v6-c-page__main-section {
-  background-color: var(--pf-v6-global--palette--black-200);
+  background-color: var(--pf-t--global--background--color--200);
   min-height: 450px;
 }
 .catalog__right-tools {

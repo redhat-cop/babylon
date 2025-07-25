@@ -364,7 +364,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       style={{
                         fontSize: 'var(--pf-t--global--font--size--xs)',
                         color:
-                          'var(--pf-v6-global--palette--black-600)' /* CODEMODS: original v5 color was --pf-v6-global--palette--black-600 */,
+                          'var(--pf-t--color--gray--60)' /* CODEMODS: original v5 color was --pf-t--color--gray--60 */,
                         fontStyle: 'italic',
                         fontWeight: 400,
                       }}

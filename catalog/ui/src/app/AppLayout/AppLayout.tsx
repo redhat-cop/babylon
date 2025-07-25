@@ -46,11 +46,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 
   const Sidebar = (
-    <PageSidebar
-      className="pf-v6-theme-dark"
-      isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen}
-      style={{ margin: 0 }}
-    >
+    <PageSidebar isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen} style={{ margin: 0, zIndex: 9 }}>
       <PageSidebarBody>
         <Navigation />
       </PageSidebarBody>

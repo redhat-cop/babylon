@@ -277,7 +277,7 @@ const ComponentDetailsList: React.FC<{
                 <DescriptionListGroup key="tower-jobs">
                   <DescriptionListTerm>Ansible Jobs</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <List style={{ margin: "var(--pf-t--global--spacer--sm)" }}>
+                    <List style={{ margin: 'var(--pf-t--global--spacer--sm)' }}>
                       {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
                         towerJob.towerJobURL ? (
                           <ListItem key={stage}>
@@ -356,7 +356,7 @@ const ServicesItemComponent: React.FC<{
           name: resourceClaim.metadata.labels[`${BABYLON_DOMAIN}/catalogItemName`],
         })
       : null,
-    fetcher,
+    silentFetcher,
   );
 
   const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
@@ -658,7 +658,7 @@ const ServicesItemComponent: React.FC<{
         <ServicesScheduleAction action={modalState.action || 'stop'} resourceClaim={resourceClaim} />
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
-        <PageSection hasBodyWrapper={false} key="topbar" className="services-item__topbar" >
+        <PageSection hasBodyWrapper={false} key="topbar" className="services-item__topbar">
           <ProjectSelector
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
@@ -668,11 +668,10 @@ const ServicesItemComponent: React.FC<{
                 navigate(`/services${location.search}`);
               }
             }}
-            isPlain={true}
           />
         </PageSection>
       ) : null}
-      <PageSection hasBodyWrapper={false} key="head" className="services-item__head" >
+      <PageSection hasBodyWrapper={false} key="head" className="services-item__head">
         <Split hasGutter>
           <SplitItem isFilled>
             {isAdmin || serviceNamespaces.length > 1 ? (
@@ -739,16 +738,11 @@ const ServicesItemComponent: React.FC<{
       {resourceClaim.spec.resources &&
       resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' &&
       !isAdmin ? (
-        <PageSection hasBodyWrapper={false}
-          key="body"
-          
-          className="services-item__body"
-          style={{ paddingTop: '1em' }}
-        >
+        <PageSection hasBodyWrapper={false} key="body" className="services-item__body" style={{ paddingTop: '1em' }}>
           <p>Thank you for your interest in {catalogItem?.spec.displayName || 'this service'}.</p>
         </PageSection>
       ) : (
-        <PageSection hasBodyWrapper={false} key="body"  className="services-item__body">
+        <PageSection hasBodyWrapper={false} key="body" className="services-item__body">
           <Tabs
             activeKey={activeTab ? activeTab : hasInfoMessageTemplate ? 'info' : 'details'}
             onSelect={(e, tabIndex) => navigate(`/services/${serviceNamespaceName}/${resourceClaimName}/${tabIndex}`)}
@@ -1057,10 +1051,10 @@ const ServicesItemComponent: React.FC<{
                         <header>
                           <h3
                             style={{
-                              fontSize: "var(--pf-t--global--font--size--sm)",
-                              fontWeight: "var(--pf-t--global--font--weight--heading--bold)",
-                              lineHeight: "var(--pf-t--global--font--line-height--heading)",
-                              marginBottom: "var(--pf-t--global--spacer--sm)",
+                              fontSize: 'var(--pf-t--global--font--size--sm)',
+                              fontWeight: 'var(--pf-t--global--font--weight--heading--bold)',
+                              lineHeight: 'var(--pf-t--global--font--line-height--heading)',
+                              marginBottom: 'var(--pf-t--global--spacer--sm)',
                             }}
                           >
                             Components
@@ -1133,16 +1127,10 @@ const ServicesItemComponent: React.FC<{
                             wrapper={(children) => (
                               <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
                                 <AccordionItem isExpanded={expanded.includes(`item-${idx}`)}>
-                                  <AccordionToggle
-                                    
-                                    id={`item-${idx}`}
-                                    onClick={() => toggle(`item-${idx}`)}
-                                  >
+                                  <AccordionToggle id={`item-${idx}`} onClick={() => toggle(`item-${idx}`)}>
                                     {componentDisplayName}
                                   </AccordionToggle>
-                                  <AccordionContent  id={`item-${idx}`}>
-                                    {children}
-                                  </AccordionContent>
+                                  <AccordionContent id={`item-${idx}`}>{children}</AccordionContent>
                                 </AccordionItem>
                               </Accordion>
                             )}

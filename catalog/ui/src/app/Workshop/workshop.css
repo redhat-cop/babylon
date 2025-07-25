@@ -1,7 +1,16 @@
-.workshop.pf-v6-c-page__header .pf-v6-c-page__header-brand {
-  height: 60px;
+header.workshop {
+  background-color: rgb(21, 21, 21);
 }
-.workshop .pf-v6-c-page__main,
-.workshop .pf-v6-c-page__main-section.pf-m-light {
-  background-color: transparent !important;
+.pf-v6-c-page.workshop {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.pf-v6-c-page.workshop .pf-v6-c-page__main-container, .workshop-login {
+  flex: 1;
+  width: 100%;
+  background-color: #f0f0f0;
+}
+.workshop-login__form-content {
+  background-color: #fff;
 }

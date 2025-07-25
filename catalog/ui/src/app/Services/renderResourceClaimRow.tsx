@@ -205,7 +205,7 @@ const renderResourceClaimRow = ({
       style={{
         display: 'flex',
         flexDirection: 'row',
-        gap: "var(--pf-t--global--spacer--sm)",
+        gap: 'var(--pf-t--global--spacer--sm)',
       }}
     >
       {!isPartOfWorkshop ? (

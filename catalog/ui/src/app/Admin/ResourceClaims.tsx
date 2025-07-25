@@ -291,7 +291,7 @@ const ResourceClaims: React.FC<{}> = () => {
           resourceClaim={modalState.resourceClaim}
         />
       </Modal>
-      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header">
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -336,7 +336,7 @@ const ResourceClaims: React.FC<{}> = () => {
       </PageSection>
       {resourceClaims.length === 0 && isReachingEnd ? (
         <PageSection hasBodyWrapper={false} key="body-empty">
-          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No Services found" variant="full">
+          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Services found" variant="full">
             <EmptyStateFooter>
               {keywordFilter ? (
                 <EmptyStateBody>No services matched search.</EmptyStateBody>
@@ -349,7 +349,7 @@ const ResourceClaims: React.FC<{}> = () => {
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body" className="admin-body">
           <SelectableTable
             columns={['Name', 'Service Namespace', 'GUID', 'Status', 'Created At', 'Actions']}
             onSelectAll={(isSelected: boolean) => {
@@ -481,10 +481,7 @@ const ResourceClaims: React.FC<{}> = () => {
               };
             })}
           />
-          {!isReachingEnd ? (
-            <EmptyState   icon={LoadingIcon}   variant="full">
-              </EmptyState>
-          ) : null}
+          {!isReachingEnd ? <EmptyState icon={LoadingIcon} variant="full"></EmptyState> : null}
         </PageSection>
       )}
       <Footer />

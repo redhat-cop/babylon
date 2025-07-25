@@ -1,12 +1,6 @@
 import React, { useCallback, useMemo, useReducer } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import {
-  EmptyState,
-  PageSection,
-  Split,
-  SplitItem,
-  Title,
-  } from '@patternfly/react-core';
+import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteResourceProvider, fetcher } from '@app/api';
 import useSWRInfinite from 'swr/infinite';
@@ -184,7 +178,7 @@ const ResourceProviders: React.FC = () => {
 
   return (
     <div onScroll={scrollHandler} className="admin-container">
-      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header">
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -215,11 +209,15 @@ const ResourceProviders: React.FC = () => {
       </PageSection>
       {resourceProviders.length === 0 ? (
         <PageSection hasBodyWrapper={false}>
-          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No ResourceProviders found" variant="full">
-            </EmptyState>
+          <EmptyState
+            headingLevel="h1"
+            icon={ExclamationTriangleIcon}
+            titleText="No ResourceProviders found"
+            variant="full"
+          ></EmptyState>
         </PageSection>
       ) : (
-        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body" className="admin-body">
           <SelectableTable
             columns={['Name', 'Created At']}
             onSelectAll={(isSelected: boolean) => {
@@ -254,10 +252,7 @@ const ResourceProviders: React.FC = () => {
               };
             })}
           />
-          {!isReachingEnd ? (
-            <EmptyState   icon={LoadingIcon}   variant="full">
-              </EmptyState>
-          ) : null}
+          {!isReachingEnd ? <EmptyState icon={LoadingIcon} variant="full"></EmptyState> : null}
         </PageSection>
       )}
       <Footer />

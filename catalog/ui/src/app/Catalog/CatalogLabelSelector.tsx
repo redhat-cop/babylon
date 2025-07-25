@@ -139,7 +139,10 @@ const CatalogLabelSelector: React.FC<{
   });
 
   return (
-    <Form className="catalog-label-selector" style={{ borderLeft: '1px solid var(--pf-v6-c-card--BorderColor)' }}>
+    <Form
+      className="catalog-label-selector"
+      style={{ borderLeft: '1px solid var(--pf-v6-c-card--BorderColor)', gap: 0 }}
+    >
       {labelsSorted.map(([attrKey, attr]: [string, CatalogLabelValues]) => (
         <ExpandableSection
           key={attrKey}

@@ -31,6 +31,8 @@ body,
   border: 0;
   border-radius: 0;
   height: 100%;
+  max-height: none;
+  z-index: 10;
 }
 .pf-v6-c-menu-toggle.pf-m-plain .pf-v6-c-menu-toggle__controls {
   margin-left: 0;
@@ -66,4 +68,16 @@ body,
 .pf-v6-c-menu-toggle {
   max-width: 250px;
   width: 100%;
+}
+.pf-v6-c-form-control, .pf-v6-c-form-control > input {
+  height: 100%;
+}
+.pf-v6-c-form-control:not(.pf-m-disabled) {
+  background-color: #fff;
+}
+.pf-v6-c-table__td > a {
+  text-decoration: none;
+}
+.pf-v6-c-table__td > a:hover {
+  text-decoration: underline;
 }

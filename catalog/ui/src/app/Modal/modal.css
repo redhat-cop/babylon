@@ -1,6 +1,6 @@
 .modal-component.pf-v6-c-modal-box .pf-v6-c-modal-box__title-text {
   white-space: normal;
-  font-size: var(--pf-v6-global--icon--FontSize--md);
+  font-size: var(--pf-t--global--icon--size--font--lg);
 }
 
 .modal-component.pf-v6-c-modal-box .pf-v6-c-modal-box__body {

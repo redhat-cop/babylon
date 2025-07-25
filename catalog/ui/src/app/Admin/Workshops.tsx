@@ -190,7 +190,7 @@ const Workshops: React.FC<{}> = () => {
       >
         <p>Provisioned services will be deleted.</p>
       </Modal>
-      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header">
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -232,7 +232,7 @@ const Workshops: React.FC<{}> = () => {
       </PageSection>
       {workshops.length === 0 ? (
         <PageSection hasBodyWrapper={false} key="workshops-list-empty">
-          <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No workshops found." variant="full">
+          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No workshops found." variant="full">
             <EmptyStateFooter>
               {keywordFilter ? (
                 <EmptyStateBody>No workshops matched search.</EmptyStateBody>
@@ -245,7 +245,7 @@ const Workshops: React.FC<{}> = () => {
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body" className="admin-body">
           <SelectableTable
             columns={['Name', 'Service Namespace', 'Registration', 'Created At', 'Actions']}
             onSelectAll={(isSelected: boolean) => {
@@ -300,7 +300,7 @@ const Workshops: React.FC<{}> = () => {
                     style={{
                       display: 'flex',
                       flexDirection: 'row',
-                      gap: "var(--pf-t--global--spacer--sm)",
+                      gap: 'var(--pf-t--global--spacer--sm)',
                     }}
                   >
                     <ButtonCircleIcon

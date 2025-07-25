@@ -27,7 +27,7 @@
 .admin-header.pf-v6-c-page__main-section {
   padding-top: 8pt;
   padding-bottom: 8pt;
-  border-bottom: 1px solid var(--pf-v6-global--palette--black-300);
+  border-bottom: 1px solid var(--pf-t--chart--color--black--300);
 }
 
 .admin-header.pf-v6-c-page__main-section .pf-v6-c-select.pf-m-expanded > .pf-v6-c-select__menu {

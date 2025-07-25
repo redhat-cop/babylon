@@ -71,7 +71,7 @@ const WorkshopHeader: React.FC<{ userInterface: string }> = ({ userInterface }) 
     );
   }
   return (
-    <div style={{ backgroundColor: 'var(--pf-v6-c-page__header--BackgroundColor)', gridArea: 'header' }}>
+    <div style={{ backgroundColor: 'rgb(21, 21, 21)', gridArea: 'header' }}>
       <Masthead className="workshop" style={{ maxWidth: '1170px', margin: '0 auto', width: '100%' }}>
         <MastheadMain>
           <MastheadBrand data-codemods>
