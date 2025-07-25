@@ -20,9 +20,9 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const rating = getRating(catalogItem);
   const status = getStatus(catalogItem);
   const sla = getSLA(catalogItem);
-  if (namespace) {
+  if (namespace && searchParams.get('item') !== catalogItem.metadata.name) {
     searchParams.set('item', catalogItem.metadata.name);
-  } else {
+  } else if (searchParams.get('item') !== `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`) {
     searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
   }
 

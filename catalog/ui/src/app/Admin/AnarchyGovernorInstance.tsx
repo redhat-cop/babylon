@@ -10,17 +10,14 @@ import {
   DescriptionListDescription,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Tabs,
   Tab,
   TabTitleText,
   Title,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+  } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
@@ -83,13 +80,8 @@ const AnarchyGovernorInstanceComponent: React.FC<{
 
   if (!anarchyGovernor) {
     return (
-      <PageSection>
-        <EmptyState variant="full">
-          <EmptyStateHeader
-            titleText="AnarchyGovernor not found"
-            icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-            headingLevel="h1"
-          />
+      <PageSection hasBodyWrapper={false}>
+        <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="AnarchyGovernor not found" variant="full">
           <EmptyStateBody>
             AnarchyGovernor {anarchyGovernorName} was not found in namespace {namespace}.
           </EmptyStateBody>
@@ -100,7 +92,7 @@ const AnarchyGovernorInstanceComponent: React.FC<{
 
   return (
     <>
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Breadcrumb>
           <BreadcrumbItem
             render={({ className }) => (
@@ -158,7 +150,7 @@ const AnarchyGovernorInstanceComponent: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+      <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) =>

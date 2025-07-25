@@ -139,7 +139,10 @@ const CatalogLabelSelector: React.FC<{
   });
 
   return (
-    <Form className="catalog-label-selector">
+    <Form
+      className="catalog-label-selector"
+      style={{ borderLeft: '1px solid var(--pf-v6-c-card--BorderColor)', gap: 0 }}
+    >
       {labelsSorted.map(([attrKey, attr]: [string, CatalogLabelValues]) => (
         <ExpandableSection
           key={attrKey}
@@ -154,6 +157,7 @@ const CatalogLabelSelector: React.FC<{
               ) ? (
                 <Tooltip content={<div>Clear filter</div>}>
                   <Button
+                    icon={<FilterAltIcon />}
                     variant="plain"
                     component="span"
                     style={{ marginRight: 0, marginLeft: 'auto', padding: 0 }}
@@ -161,9 +165,7 @@ const CatalogLabelSelector: React.FC<{
                       ev.stopPropagation();
                       onClearFilter(attrKey);
                     }}
-                  >
-                    <FilterAltIcon />
-                  </Button>
+                  />
                 </Tooltip>
               ) : null}
             </div>
@@ -191,7 +193,7 @@ const CatalogLabelSelector: React.FC<{
                     variant="link"
                     onClick={() => onChange(true, CUSTOM_LABELS.RATING.key, rating.toString(), false)}
                     className="catalog-label-selector__rating-btn"
-                    isActive={(selected?.[attrKey] || []).includes(rating.toString())}
+                    isClicked={(selected?.[attrKey] || []).includes(rating.toString())}
                   >
                     <StarRating count={5} rating={rating} readOnly hideCounter /> & Up
                   </Button>

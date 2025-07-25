@@ -17,7 +17,6 @@ import {
   FormGroup,
   FormHelperText,
   PageSection,
-  PageSectionVariants,
   Radio,
   Switch,
   TextInput,
@@ -244,7 +243,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   }
 
   return (
-    <PageSection variant={PageSectionVariants.light} className="catalog-item-form">
+    <PageSection hasBodyWrapper={false} className="catalog-item-form">
       <CatalogItemFormAutoStopDestroyModal
         type={autoStopDestroyModal}
         autoStopDate={formState.stopDate}
@@ -331,7 +330,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               <OutlinedQuestionCircleIcon
                 aria-label="Create service request in specified project namespace."
                 className="tooltip-icon-only"
-                style={{ marginLeft: 'var(--pf-v5-global--spacer--md)' }}
+                style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}
               />
             </Tooltip>
           </FormGroup>
@@ -363,8 +362,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     Salesforce ID{' '}
                     <span
                       style={{
-                        fontSize: 'var(--pf-v5-global--FontSize--xs)',
-                        color: 'var(--pf-v5-global--palette--black-600)',
+                        fontSize: 'var(--pf-t--global--font--size--xs)',
+                        color:
+                          'var(--pf-t--color--gray--60)' /* CODEMODS: original v5 color was --pf-t--color--gray--60 */,
                         fontStyle: 'italic',
                         fontWeight: 400,
                       }}
@@ -883,7 +883,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     </Tooltip>
                   </div>
                   {estimatedCost && formState.workshop.provisionCount > 1 ? (
-                    <AlertGroup style={{ marginTop: 'var(--pf-v5-global--spacer--sm)' }}>
+                    <AlertGroup style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
                       <Alert
                         title={
                           <p>

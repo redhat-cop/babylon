@@ -6,12 +6,9 @@ import {
   BreadcrumbItem,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
-  EmptyStateHeader,
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
@@ -37,7 +34,6 @@ import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import {
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
-  displayName,
   BABYLON_DOMAIN,
   keywordMatch,
   compareK8sObjectsArr,
@@ -397,13 +393,8 @@ const ServicesList: React.FC<{
   if (sessionServiceNamespaces.length === 0) {
     return (
       <>
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText="No Service Access"
-              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-              headingLevel="h1"
-            />
+        <PageSection hasBodyWrapper={false}>
+          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Service Access" variant="full">
             <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
           </EmptyState>
         </PageSection>
@@ -431,7 +422,7 @@ const ServicesList: React.FC<{
         />
       </Modal>
       {isAdmin || sessionServiceNamespaces.length > 1 ? (
-        <PageSection key="topbar" className="services-list__topbar" variant={PageSectionVariants.light}>
+        <PageSection hasBodyWrapper={false} key="topbar" className="services-list__topbar">
           <ProjectSelector
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
@@ -439,11 +430,10 @@ const ServicesList: React.FC<{
                 navigate(`/services/${namespace.name}${location.search}`);
               }
             }}
-            isPlain={true}
           />
         </PageSection>
       ) : null}
-      <PageSection key="head" className="services-list__head" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="head" className="services-list__head">
         <Split hasGutter>
           <SplitItem isFilled>
             <Breadcrumb>
@@ -479,13 +469,8 @@ const ServicesList: React.FC<{
         </Split>
       </PageSection>
       {services.length === 0 ? (
-        <PageSection key="body-empty">
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText="No Services found"
-              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-              headingLevel="h1"
-            />
+        <PageSection hasBodyWrapper={false} key="body-empty">
+          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Services found" variant="full">
             <EmptyStateFooter>
               {keywordFilter ? (
                 <EmptyStateBody>No services matched search.</EmptyStateBody>
@@ -498,7 +483,7 @@ const ServicesList: React.FC<{
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" className="services-list" variant={PageSectionVariants.light}>
+        <PageSection hasBodyWrapper={false} key="body" className="services-list">
           <SelectableTable
             columns={
               isAdmin

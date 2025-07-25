@@ -9,16 +9,13 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   EmptyState,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Tabs,
   Tab,
   TabTitleText,
   Title,
-  EmptyStateHeader,
   Button,
   Spinner,
 } from '@patternfly/react-core';
@@ -85,7 +82,7 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
 
   return (
     <>
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Breadcrumb>
           <BreadcrumbItem
             render={({ className }) => (
@@ -143,7 +140,7 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+      <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/anarchyruns/${namespace}/${anarchyRunName}/${tabIndex}`)}
@@ -169,7 +166,7 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
                 <DescriptionListTerm>State</DescriptionListTerm>
                 <DescriptionListDescription>
                   {anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || <p>-</p>}
-                  <span style={{ marginLeft: 'var(--pf-v5-global--spacer--md)' }}>
+                  <span style={{ marginLeft: "var(--pf-t--global--spacer--md)" }}>
                     {anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] === 'failed' ? (
                       loading ? (
                         <Spinner size="sm" />
@@ -254,13 +251,8 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
                 ansibleRun={anarchyRun.spec?.result?.ansibleRun || anarchyRun.status?.result?.ansibleRun}
               />
             ) : (
-              <EmptyState variant="full">
-                <EmptyStateHeader
-                  titleText="AnarchyRun log not available."
-                  icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-                  headingLevel="h1"
-                />
-              </EmptyState>
+              <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="AnarchyRun log not available." variant="full">
+                </EmptyState>
             )}
           </Tab>
           {/* @ts-ignore */}

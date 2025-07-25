@@ -8,7 +8,6 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Tabs,
@@ -66,7 +65,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
 
   return (
     <>
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Breadcrumb>
           <BreadcrumbItem
             render={({ className }) => (
@@ -118,7 +117,7 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+      <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/resourceproviders/${resourceProviderName}/${tabIndex}`)}

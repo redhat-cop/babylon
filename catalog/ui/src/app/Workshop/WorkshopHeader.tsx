@@ -1,5 +1,5 @@
 import React from 'react';
-import { PageHeader } from '@patternfly/react-core/deprecated';
+import { Masthead, MastheadMain, MastheadLogo, MastheadBrand, MastheadContent } from '@patternfly/react-core';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
 import RedHatLogo from '@app/components/RedHatLogo';
 
@@ -71,19 +71,23 @@ const WorkshopHeader: React.FC<{ userInterface: string }> = ({ userInterface }) 
     );
   }
   return (
-    <div style={{ backgroundColor: 'var(--pf-v5-c-page__header--BackgroundColor)', gridArea: 'header' }}>
-      <PageHeader
-        className="workshop"
-        logo={<LogoImg />}
-        style={{ maxWidth: '1170px', margin: '0 auto', width: '100%' }}
-        headerTools={
-          userInterface === 'summit' ? (
+    <div style={{ backgroundColor: 'rgb(21, 21, 21)', gridArea: 'header' }}>
+      <Masthead className="workshop" style={{ maxWidth: '1170px', margin: '0 auto', width: '100%' }}>
+        <MastheadMain>
+          <MastheadBrand data-codemods>
+            <MastheadLogo data-codemods>
+              <LogoImg />
+            </MastheadLogo>
+          </MastheadBrand>
+        </MastheadMain>
+        <MastheadContent>
+          {userInterface === 'summit' ? (
             <a href="https://redhat.com/" style={{ width: '138px', marginLeft: 'auto', display: 'flex' }}>
               <RedHatLogo title="Red Hat" />
             </a>
-          ) : null
-        }
-      ></PageHeader>
+          ) : null}
+        </MastheadContent>
+      </Masthead>
     </div>
   );
 };

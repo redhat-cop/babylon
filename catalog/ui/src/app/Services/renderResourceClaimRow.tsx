@@ -2,7 +2,7 @@ import React from 'react';
 import { ResourceClaim, ServiceActionActions } from '@app/types';
 import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
 import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
-import DollarSignIcon from '@patternfly/react-icons/dist/js/icons/dollar-sign-icon';
+
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import {
@@ -205,7 +205,7 @@ const renderResourceClaimRow = ({
       style={{
         display: 'flex',
         flexDirection: 'row',
-        gap: 'var(--pf-v5-global--spacer--sm)',
+        gap: 'var(--pf-t--global--spacer--sm)',
       }}
     >
       {!isPartOfWorkshop ? (

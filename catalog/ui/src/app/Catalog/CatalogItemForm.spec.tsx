@@ -61,7 +61,7 @@ describe('CatalogItemForm Component', () => {
 
     expect(catalogItemDisplayName).toBeInTheDocument();
     expect(sfidLabel).toBeInTheDocument();
-    expect(purposeLabel.closest('.pf-v5-c-form__group').textContent).toContain(purposePlaceholder);
+    expect(purposeLabel.closest('.pf-v6-c-form__group').textContent).toContain(purposePlaceholder);
     expect(termsOfServiceLabel.closest('.terms-of-service').textContent).toContain(termsOfServiceAck);
   });
 
@@ -101,7 +101,7 @@ describe('CatalogItemForm Component', () => {
     const sfidLabel = await waitFor(() => getByLabelText('Salesforce ID (Opportunity ID, Campaign ID or Project ID)'));
     const sfidTypeDescriptionText = 'Salesforce ID type: Opportunity ID, Campaign ID or Project ID.';
     expect(queryByText(sfidTypeDescriptionText)).not.toBeInTheDocument();
-    await userEvent.hover(sfidLabel.closest('.pf-v5-c-form__group').querySelector('.tooltip-icon-only'));
+    await userEvent.hover(sfidLabel.closest('.pf-v6-c-form__group').querySelector('.tooltip-icon-only'));
     await waitFor(() => expect(queryByText(sfidTypeDescriptionText)).toBeInTheDocument());
   });
 
@@ -118,7 +118,7 @@ describe('CatalogItemForm Component', () => {
     await userEvent.click(switchBtn);
 
     const input: HTMLInputElement = getByText('Display Name')
-      .closest('.pf-v5-c-form__group')
+      .closest('.pf-v6-c-form__group')
       .querySelector('input[type="text"]');
     expect(getByText('Display Name')).toBeInTheDocument();
     expect(input.value).toContain(workshopItemDisplayName);
@@ -152,7 +152,7 @@ describe('CatalogItemForm Component', () => {
     expect(button).toBeEnabled();
 
     const input: HTMLInputElement = getByText('Display Name')
-      .closest('.pf-v5-c-form__group')
+      .closest('.pf-v6-c-form__group')
       .querySelector('input[type="text"]');
     await userEvent.clear(input);
 

@@ -26,7 +26,7 @@ const CopyToClipboard: React.FC<{
     <div style={{ display: 'flex', flexDirection: 'row' }}>
       <TextArea type="text" readOnlyVariant="default" value={text} aria-label={text} autoResize={true} />
       <Tooltip position="bottom" content={<div>{copied ? `Copied` : `Copy to clipboard`}</div>}>
-        <Button
+        <Button icon={<CopyIcon />}
           variant="control"
           aria-label="Copy"
           onClick={handleCopy}
@@ -35,7 +35,7 @@ const CopyToClipboard: React.FC<{
             marginTop: 'auto',
           }}
         >
-          <CopyIcon />
+          
         </Button>
       </Tooltip>
     </div>

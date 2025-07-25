@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
 
-import { Button, Form, FormGroup, HelperText, Modal, ModalVariant, TextArea } from '@patternfly/react-core';
+import {
+	Button,
+	Form,
+	FormGroup,
+	HelperText,
+	TextArea
+} from '@patternfly/react-core';
+import {
+	Modal,
+	ModalVariant
+} from '@patternfly/react-core/deprecated';
 
 import './bulk-user-assignment-modal.css';
 

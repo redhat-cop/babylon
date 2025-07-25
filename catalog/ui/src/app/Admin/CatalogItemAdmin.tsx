@@ -7,19 +7,16 @@ import {
   Button,
   Checkbox,
   EmptyState,
-  EmptyStateIcon,
   Form,
   FormGroup,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   TextArea,
   TextInput,
   Title,
   Tooltip,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+  } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
@@ -156,11 +153,10 @@ const CatalogItemAdmin: React.FC = () => {
   }
 
   return (
-    <PageSection key="body" variant={PageSectionVariants.light}>
+    <PageSection hasBodyWrapper={false} key="body" >
       {isLoading || isLoadingIncidents ? (
-        <EmptyState variant="full" className="catalog-item-admin__loading">
-          <EmptyStateHeader icon={<EmptyStateIcon icon={LoadingIcon} />} />
-        </EmptyState>
+        <EmptyState   icon={LoadingIcon}   variant="full" className="catalog-item-admin__loading">
+          </EmptyState>
       ) : null}
       <Split>
         <SplitItem className="catalog-item-admin__header-icon">
@@ -262,9 +258,7 @@ const CatalogItemAdmin: React.FC = () => {
                 <p className="catalog-item-admin__author">
                   <b>{comment.author} </b>-{' '}
                   <LocalTimestamp className="catalog-item-admin__timestamp" timestamp={comment.createdAt} />
-                  <Button aria-label="Remove comment" onClick={() => removeComment(comment)} variant="plain">
-                    <TrashIcon width={12} color="#6a6e73" />
-                  </Button>
+                  <Button icon={<TrashIcon width={12} color="#6a6e73" />} aria-label="Remove comment" onClick={() => removeComment(comment)} variant="plain" />
                 </p>
                 <p className="catalog-item-admin__message">{comment.message}</p>
               </li>

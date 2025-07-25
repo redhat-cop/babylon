@@ -1,15 +1,6 @@
 import React, { useCallback, useMemo, useReducer } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import {
-  EmptyState,
-  EmptyStateIcon,
-  PageSection,
-  PageSectionVariants,
-  Split,
-  SplitItem,
-  Title,
-  EmptyStateHeader,
-} from '@patternfly/react-core';
+import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteResourcePool, fetcherItemsInAllPages } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
@@ -141,7 +132,7 @@ const ResourcePools: React.FC = () => {
 
   return (
     <div className="admin-container">
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header">
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -171,17 +162,16 @@ const ResourcePools: React.FC = () => {
         </Split>
       </PageSection>
       {_resourcePools.length === 0 ? (
-        <PageSection>
-          <EmptyState variant="full">
-            <EmptyStateHeader
-              titleText="No ResourcePools found"
-              icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />}
-              headingLevel="h1"
-            />
-          </EmptyState>
+        <PageSection hasBodyWrapper={false}>
+          <EmptyState
+            headingLevel="h1"
+            icon={ExclamationTriangleIcon}
+            titleText="No ResourcePools found"
+            variant="full"
+          ></EmptyState>
         </PageSection>
       ) : (
-        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body" className="admin-body">
           <SelectableTableWithPagination
             columns={['Name', 'Created At', 'Status']}
             onSelectAll={(isSelected) => {

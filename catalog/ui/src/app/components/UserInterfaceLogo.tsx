@@ -11,7 +11,7 @@ const UserInterfaceLogo: React.FC<
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 1508.5 178.739"
+      viewBox="0 0 1300 178.739"
       onClick={onClick}
       style={{ ...style, ...(userInterface === 'rhdp-partners' ? { marginLeft: '-42px' } : {}) }}
       {...rest}

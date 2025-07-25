@@ -117,7 +117,7 @@ const ProjectSelector: React.FC<{
                 value={searchValue}
                 placeholder={'Search'}
                 onChange={(_event, value: string) => setSearchValue(value)}
-                aria-labelledby="pf-v5-context-selector-search-button-id-1"
+                aria-labelledby="pf-v6-context-selector-search-button-id-1"
               />
             </InputGroupItem>
           </InputGroup>

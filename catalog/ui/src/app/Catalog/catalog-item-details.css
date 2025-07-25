@@ -1,10 +1,10 @@
 .catalog-item-details__actions {
   padding: 0;
-  margin-top: var(--pf-v5-global--spacer--sm);
+  margin-top: var(--pf-t--global--spacer--sm);
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: var(--pf-v5-global--gutter);
+  gap: var(--pf-t--global--spacer--gutter--default);
 }
 
 .catalog-item-details__actions-loading {
@@ -12,28 +12,28 @@
   text-align: center;
 }
 
-.catalog-item-details .pf-v5-c-drawer__body {
+.catalog-item-details .pf-v6-c-drawer__body {
   min-height: auto !important;
 }
 
 .catalog-item-details__body {
-  border-top: 1px solid var(--pf-v5-global--palette--black-300);
-  padding-top: var(--pf-v5-global--spacer--md) !important;
+  border-top: 1px solid var(--pf-t--chart--color--black--300);
+  padding-top: var(--pf-t--global--spacer--md) !important;
 }
 
 .catalog-item-details__description-label {
-  font-size: var(--pf-v5-global--FontSize--2xl);
+  font-size: var(--pf-t--global--icon--size--font--2xl);
   font-weight: normal;
-  color: var(--pf-v5-global--palette--black-600);
-  line-height: var(--pf-v5-c-title--m-md--LineHeight);
-  font-family: var(--pf-v5-global--FontFamily--heading--sans-serif);
-  padding-bottom: var(--pf-v5-global--spacer--sm);
+  color: var(--pf-t--color--gray--60);
+  line-height: var(--pf-v6-c-title--m-md--LineHeight);
+  font-family: var(--pf-v6-global--FontFamily--heading--sans-serif);
+  padding-bottom: var(--pf-t--global--spacer--sm);
 }
 
 .catalog-item-details__sidebar {
   max-width: 160px;
-  padding-top: var(--pf-v5-global--spacer--sm);
-  padding-right: var(--pf-v5-global--spacer--md);
+  padding-top: var(--pf-t--global--spacer--sm);
+  padding-right: var(--pf-t--global--spacer--md);
 }
 @media (--small-viewport) {
   .catalog-item-details__sidebar {
@@ -42,24 +42,24 @@
 }
 .catalog-item-details__sidebar dd,
 .catalog-item-details__sidebar dt {
-  font-size: var(--pf-v5-global--FontSize--sm);
+  font-size: var(--pf-t--global--icon--size--font--body--sm);
 }
 
-.catalog-item-details__sidebar .pf-v5-c-description-list {
-  row-gap: var(--pf-v5-global--spacer--sm);
+.catalog-item-details__sidebar .pf-v6-c-description-list {
+  row-gap: var(--pf-t--global--spacer--sm);
 }
 
-.catalog-item-details__sidebar .pf-v5-c-description-list__group {
+.catalog-item-details__sidebar .pf-v6-c-description-list__group {
   row-gap: 0;
 }
 
-.catalog-item-details__sidebar .pf-v5-c-description-list__text {
+.catalog-item-details__sidebar .pf-v6-c-description-list__text {
   text-transform: capitalize;
 }
 
-.catalog-item-details__estimated-time .pf-v5-c-description-list__text,
-.catalog-item-details__last-update .pf-v5-c-description-list__text,
-.catalog-item-details__last-provision .pf-v5-c-description-list__text {
+.catalog-item-details__estimated-time .pf-v6-c-description-list__text,
+.catalog-item-details__last-update .pf-v6-c-description-list__text,
+.catalog-item-details__last-provision .pf-v6-c-description-list__text {
   text-transform: initial;
 }
 
@@ -82,15 +82,15 @@
   justify-content: center;
 }
 .catalog-item-details__title {
-  font-weight: var(--pf-v5-global--FontWeight--bold) !important;
-  padding-bottom: var(--pf-v5-global--spacer--xs);
+  font-weight: var(--pf-t--global--font--weight--400) !important;
+  padding-bottom: var(--pf-t--global--spacer--xs);
 }
 
 .catalog-item-details__subtitle {
-  color: var(--pf-v5-global--palette--black-600);
-  font-size: var(--pf-v5-global--FontSize--sm) !important;
-  font-weight: var(--pf-v5-global--FontWeight--bold) !important;
-  padding-bottom: var(--pf-v5-global--spacer--xs);
+  color: var(--pf-t--color--gray--60);
+  font-size: var(--pf-t--global--icon--size--font--body--sm) !important;
+  font-weight: var(--pf-t--global--font--weight--400) !important;
+  padding-bottom: var(--pf-t--global--spacer--xs);
 }
 
 .catalog-item-details__description h1 {
@@ -135,12 +135,12 @@
 
 .catalog-item-details__description ul {
   list-style: unset;
-  margin-left: var(--pf-v5-global--spacer--md);
+  margin-left: var(--pf-t--global--spacer--md);
 }
 
 .catalog-item-details__description a::after {
   content: url('@app/bgimages/external-link.svg');
-  color: var(--pf-v5-global--link--Color);
+  color: var(--pf-v6-global--link--Color);
   display: inline-block;
   width: 16px;
   padding: 0 3px;
@@ -158,38 +158,38 @@
 .catalog-item-details__status {
   display: inline-flex;
 }
-.catalog-item-details__status .pf-v5-c-label {
+.catalog-item-details__status .pf-v6-c-label {
   margin: auto 0;
 }
-.catalog-item-details__status .pf-v5-c-label__icon {
+.catalog-item-details__status .pf-v6-c-label__icon {
   display: flex;
 }
-.catalog-item-details__status .pf-v5-c-label__content {
+.catalog-item-details__status .pf-v6-c-label__content {
   display: flex;
   flex-direction: row;
-  gap: var(--pf-v5-global--spacer--xs);
+  gap: var(--pf-t--global--spacer--xs);
   align-items: center;
 }
-.catalog-item-details__status--degraded-performance .pf-v5-c-label__content:before {
+.catalog-item-details__status--degraded-performance .pf-v6-c-label__content:before {
   border-color: #f1c40f;
 }
-.catalog-item-details__status--partial-outage .pf-v5-c-label__content:before {
+.catalog-item-details__status--partial-outage .pf-v6-c-label__content:before {
   border-color: #f9e0a2;
 }
-.catalog-item-details__status--major-outage .pf-v5-c-label__content:before {
+.catalog-item-details__status--major-outage .pf-v6-c-label__content:before {
   border-color: #c9190b;
 }
-.catalog-item-details__status--under-maintenance .pf-v5-c-label__content:before {
+.catalog-item-details__status--under-maintenance .pf-v6-c-label__content:before {
   border-color: #a2d9d9;
 }
-.catalog-item-details__status--degraded-performance .pf-v5-c-label__content,
-.catalog-item-details__status--partial-outage .pf-v5-c-label__content {
+.catalog-item-details__status--degraded-performance .pf-v6-c-label__content,
+.catalog-item-details__status--partial-outage .pf-v6-c-label__content {
   color: #3d2c00;
 }
-.catalog-item-details__status--major-outage .pf-v5-c-label__content {
+.catalog-item-details__status--major-outage .pf-v6-c-label__content {
   color: #7d1007;
 }
-.catalog-item-details__status--under-maintenance .pf-v5-c-label__content {
+.catalog-item-details__status--under-maintenance .pf-v6-c-label__content {
   color: #003737;
 }
 
@@ -336,23 +336,23 @@
   font-weight: bold;
   margin-bottom: 0.5em;
   text-align: left;
-  color: var(--pf-v5-global--palette--black-900);
+  color: var(--pf-v6-global--palette--black-900);
 }
 
 .catalog-item-details__description .tableblock thead {
-  background: var(--pf-v5-global--palette--black-100);
+  background: var(--pf-t--chart--color--black--100);
 }
 
 .catalog-item-details__description .tableblock thead th {
   font-weight: bold;
-  color: var(--pf-v5-global--palette--black-900);
-  border-bottom: 2px solid var(--pf-v5-global--palette--black-300);
+  color: var(--pf-v6-global--palette--black-900);
+  border-bottom: 2px solid var(--pf-t--chart--color--black--300);
 }
 
 .catalog-item-details__description .tableblock th,
 .catalog-item-details__description .tableblock td {
   padding: 0.5em;
-  border: 1px solid var(--pf-v5-global--palette--black-300);
+  border: 1px solid var(--pf-t--chart--color--black--300);
   text-align: left;
   vertical-align: top;
   word-wrap: break-word;
@@ -376,11 +376,11 @@
 }
 
 .catalog-item-details__description .tableblock tbody tr:nth-child(even) {
-  background: var(--pf-v5-global--palette--black-50);
+  background: var(--pf-v6-global--palette--black-50);
 }
 
 .catalog-item-details__description .tableblock tbody tr:hover {
-  background: var(--pf-v5-global--palette--blue-50);
+  background: var(--pf-v6-global--palette--blue-50);
 }
 
 .catalog-item-details__description .tableblock th[align="center"],
@@ -396,7 +396,7 @@
 /* Responsive table behavior */
 @media (max-width: 768px) {
   .catalog-item-details__description .tableblock {
-    font-size: var(--pf-v5-global--FontSize--sm);
+    font-size: var(--pf-t--global--icon--size--font--body--sm);
   }
   
   .catalog-item-details__description .tableblock th,
@@ -407,7 +407,7 @@
 
 /* Table with frame styles */
 .catalog-item-details__description .tableblock.frame-all {
-  border: 1px solid var(--pf-v5-global--palette--black-300);
+  border: 1px solid var(--pf-t--chart--color--black--300);
 }
 
 .catalog-item-details__description .tableblock.frame-topbot {
@@ -427,7 +427,7 @@
 /* Grid styles */
 .catalog-item-details__description .tableblock.grid-all th,
 .catalog-item-details__description .tableblock.grid-all td {
-  border: 1px solid var(--pf-v5-global--palette--black-300);
+  border: 1px solid var(--pf-t--chart--color--black--300);
 }
 
 .catalog-item-details__description .tableblock.grid-rows th,

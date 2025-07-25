@@ -2,18 +2,12 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateIcon,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Title,
-  EmptyStateHeader,
-  EmptyStateFooter,
-} from '@patternfly/react-core';
-import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+  } from '@patternfly/react-core';
+
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { Workshop } from '@app/types';
 import { compareK8sObjectsArr, DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
@@ -100,7 +94,7 @@ const WorkshopsScheduled: React.FC<{}> = () => {
 
   return (
     <div className="admin-container">
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -117,7 +111,7 @@ const WorkshopsScheduled: React.FC<{}> = () => {
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body" style={{ minHeight: 750 }}>
+      <PageSection hasBodyWrapper={false} key="body"  className="admin-body" style={{ minHeight: 750 }}>
         <p style={{ padding: '16px 0' }}>Showing only upcoming scheduled workshops.</p>
         <Calendar
           localizer={localizer}
