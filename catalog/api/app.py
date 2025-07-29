@@ -351,45 +351,44 @@ async def start_user_session(user, groups):
 
     return api_client, session, token
 
-def replace_template_variables(obj, annotations):
+def replace_template_variables(data, job_vars):
     """
-    Recursively replace template variables in a sandbox object with values from annotations.
+    Replace Jinja2-like template variables in a data structure with values from job_vars.
     
-    Template format: {{ job_vars.param_name | default('default_value') }}
+    Template format: {{ job_vars.variable_name | default('default_value') }}
+    Only replaces variables that exist in the job_vars dictionary.
     
     Args:
-        obj: The object to process (can be dict, list, string, or other types)
-        annotations: Dictionary containing parameter values
+        data: The data structure (dict, list, str, etc.) to process
+        job_vars: Dictionary containing variable values
         
     Returns:
-        The object with template variables replaced
+        The data structure with template variables replaced where applicable
     """
-    if isinstance(obj, dict):
-        return {key: replace_template_variables(value, annotations) for key, value in obj.items()}
-    elif isinstance(obj, list):
-        return [replace_template_variables(item, annotations) for item in obj]
-    elif isinstance(obj, str):
-        # Pattern to match: {{ job_vars.param_name | default('default_value') }}
-        # Also handles: {{ job_vars.param_name | default("default_value") }}
-        # Also handles: {{ job_vars.param_name | default(default_value) }} (no quotes)
-        pattern = r'{{\s*job_vars\.(\w+)\s*\|\s*default\([\'"]?([^\'")]*)[\'"]?\)\s*}}'
+    if isinstance(data, dict):
+        return {key: replace_template_variables(value, job_vars) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [replace_template_variables(item, job_vars) for item in data]
+    elif isinstance(data, str):
+        # Pattern to match both:
+        # {{ job_vars.variable_name }} and
+        # {{ job_vars.variable_name | default('default_value') }}
+        pattern = r'\{\{\s*(job_vars\.[^|\s}]+)(?:\s*\|\s*default\([\'"]([^\'"]*)[\'"]?\))?\s*\}\}'
         
         def replace_match(match):
-            param_name = match.group(1)
-            default_value = match.group(2)
+            var_name = match.group(1)
+            # match.group(2) would be the default value if present, but we ignore it
             
-            # Look up the parameter in annotations
-            if param_name in annotations:
-                return str(annotations[param_name])
+            # Only replace if the variable exists in job_vars
+            if var_name in job_vars:
+                return str(job_vars[var_name])
             else:
-                return default_value
+                # Return the original template unchanged
+                return match.group(0)
         
-        # Replace all template variables in the string
-        result = re.sub(pattern, replace_match, obj)
-        return result
+        return re.sub(pattern, replace_match, data)
     else:
-        # For other types (int, bool, etc.), return as-is
-        return obj
+        return data
 
 routes = web.RouteTableDef()
 @routes.get('/auth/session')
@@ -674,8 +673,8 @@ async def salesforce_id_validation(request):
 #     }
 #   ]
 # }
-@routes.post("/api/{agnosticv_name}/availability")
-async def catalog_item_availability(request):
+@routes.post("/api/{agnosticv_name}/check-availability")
+async def catalog_item_check_availability(request):
     agnosticv_name = request.match_info.get('agnosticv_name')
     # TODO: Look if there is a resourcePool that is available for this catalog item
     agnosticv_component = await custom_objects_api.get_namespaced_custom_object(
@@ -705,20 +704,19 @@ async def catalog_item_availability(request):
     # Process each request object in the array
     resources = []
     for request_obj in request_data:
+        request_kind = request_obj.get('kind')
         annotations = request_obj.get('annotations', {})
         
-        # Prepend 'param_selector_' to each annotation key
-        annotations = {f"param_selector_{key}": value for key, value in annotations.items()}
-        
-        request_kind = request_obj.get('kind')
+        # Prepend 'job_vars.param_selector_' to each annotation key
+        job_vars = {f"job_vars.param_selector_{key}": value for key, value in annotations.items()}
         
         # Find matching sandbox for this request's kind
         for sandbox in sandboxes:
             if sandbox.get('kind') == request_kind:
                 # Deep copy the sandbox to avoid modifying the original
                 sandbox_copy = copy.deepcopy(sandbox)
-                # Replace all template variables in the sandbox with this request's annotations
-                sandbox_copy = replace_template_variables(sandbox_copy, annotations)
+                # Replace all template variables in the sandbox with this request's variables
+                sandbox_copy = replace_template_variables(sandbox_copy, job_vars)
                 # Create processed request object with the modified sandbox
                 resources.append(sandbox_copy)
     print(resources)
