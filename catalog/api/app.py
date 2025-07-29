@@ -663,10 +663,21 @@ async def salesforce_id_validation(request):
         url=f"{reporting_api}/sales_validation?{queryString}",
     )
 
-
-@routes.post("/api/{agnosticv_name}/placements")
-async def sandbox_placements_dry_run(request):
+# Expects a request body with the following structure:
+# {
+#   [
+#     {
+#       "kind": "OcpSandbox", # The kind of the resource to check availability for
+#       "annotations": {
+#         "virt": "true" # Example of an annotation that is used to determine the resource pool
+#       }
+#     }
+#   ]
+# }
+@routes.post("/api/{agnosticv_name}/availability")
+async def catalog_item_availability(request):
     agnosticv_name = request.match_info.get('agnosticv_name')
+    # TODO: Look if there is a resourcePool that is available for this catalog item
     agnosticv_component = await custom_objects_api.get_namespaced_custom_object(
         group = 'gpte.redhat.com',
         name = agnosticv_name,
@@ -695,6 +706,10 @@ async def sandbox_placements_dry_run(request):
     resources = []
     for request_obj in request_data:
         annotations = request_obj.get('annotations', {})
+        
+        # Prepend 'param_selector_' to each annotation key
+        annotations = {f"param_selector_{key}": value for key, value in annotations.items()}
+        
         request_kind = request_obj.get('kind')
         
         # Find matching sandbox for this request's kind
