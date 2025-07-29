@@ -377,7 +377,6 @@ def replace_template_variables(data, job_vars):
         
         def replace_match(match):
             var_name = match.group(1)
-            # match.group(2) would be the default value if present, but we ignore it
             
             # Only replace if the variable exists in job_vars
             if var_name in job_vars:
