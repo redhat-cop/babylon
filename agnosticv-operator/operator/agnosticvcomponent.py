@@ -721,59 +721,82 @@ class AgnosticVComponent(KopfObject):
                     "runtime_default": "{{ runtime_default }}",
                     "runtime_maximum": "{{ runtime_maximum }}",
                     "state":
-                        "{%- if 0 < resource_claim.status.provider.validationErrors | default([]) | length -%}\n"
-                        "validation-failed\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-failed']\") | length -%}\n"
-                        "provision-failed\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-error']\") | length -%}\n"
-                        "provision-error\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-canceled']\") | length -%}\n"
-                        "provision-canceled\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-failed']\") | length -%}\n"
-                        "start-failed\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-error']\") | length -%}\n"
-                        "start-error\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-canceled']\") | length -%}\n"
-                        "start-canceled\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-failed']\") | length -%}\n"
-                        "stop-failed\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-error']\") | length -%}\n"
-                        "stop-error\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-canceled']\") | length -%}\n"
-                        "stop-canceled\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provisioning']\") | length -%}\n"
-                        "provisioning\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='provision-pending']\") | length -%}\n"
-                        "provision-pending\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stopping']\") | length -%}\n"
-                        "stopping\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='starting']\") | length -%}\n"
-                        "starting\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='stop-pending']\") | length -%}\n"
-                        "stop-pending\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars.current_state=='start-pending']\") | length -%}\n"
-                        "start-pending\n"
-                        "{%- elif 0 < resources | json_query(\"[?state.spec.vars && !contains(keys(state.spec.vars), 'current_state')]\") | length -%}\n"
-                        "initializing\n"
-                        "{%- elif resources | length != resources | json_query(\"[?state]\") | length -%}\n"
-                        "requested\n"
-                        "{%- elif start_timestamp | default('1970-01-01T00:00:00Z') <= now(true, '%FT%TZ') and stop_timestamp | default('1970-01-01T00:00:00Z') > now(true, '%FT%TZ') -%}\n"
-                        "{%-   if resources | length == resources | json_query(\"[?state.spec.vars.current_state=='started']\") | length -%}\n"
-                        "started\n"
-                        "{%-   else -%}\n"
-                        "start-scheduled\n"
-                        "{%-   endif -%}\n"
-                        "{%- else -%}\n"
-                        "{%-   if resources | length == resources | json_query(\"[?state.spec.vars.current_state=='stopped']\") | length -%}\n"
-                        "stopped\n"
-                        "{%-   else -%}\n"
-                        "stop-scheduled\n"
-                        "{%-   endif -%}\n"
-                        "{%- endif -%}"
+                        "{{"
+                        "'validation-failed' if has_validation_errors | bool else "
+                        "'provision-canceled' if has_resource_provision_canceled | bool else "
+                        "'provision-error' if has_resource_provision_error | bool else "
+                        "'provision-failed' if has_resource_provision_failed | bool else "
+                        "'start-canceled' if has_resource_start_canceled | bool else "
+                        "'start-error' if has_resource_start_error | bool else "
+                        "'start-failed' if has_resource_start_failed | bool else "
+                        "'stop-canceled' if has_resource_stop_canceled | bool else "
+                        "'stop-error' if has_resource_stop_error | bool else "
+                        "'stop-failed' if has_resource_stop_failed | bool else "
+                        "'provisioning' if has_resource_provisioning | bool else "
+                        "'provision-pending' if has_resource_provision_pending | bool else "
+                        "'stopping' if has_resource_stopping | bool else "
+                        "'starting' if has_resource_starting | bool else "
+                        "'stop-pending' if has_resource_stop_pending | bool else "
+                        "'start-pending' if has_resource_start_pending | bool else "
+                        "'initializing' if has_resource_initializing | bool else "
+                        "'requested' if has_resource_without_state | bool else "
+                        "'start-scheduled' if start_is_scheduled and has_resource_that_can_start | bool else "
+                        "'stop-scheduled' if stop_is_scheduled and has_resource_that_can_stop | bool else "
+                        "'stopped' if has_resource_stopped | bool else "
+                        "'started'"
+                        "}}",
+                    "supportedActions": "{{ resources | json_query(\"[].state.status.supportedActions\") | merge_list_of_dicts | object }}",
                 },
+                # Variables for Jinja templates
                 "vars": {
+                    "has_resource_initializing":
+                        "{{ (resources | json_query(\"[?state.spec.vars && !contains(keys(state.spec.vars), 'current_state')]\") | length > 0) | bool }}",
+                    "has_resource_provision_error":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='provision-error']\") | length > 0) | bool }}",
+                    "has_resource_provision_canceled":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='provision-canceled']\") | length > 0) | bool }}",
+                    "has_resource_provision_failed":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='provision-failed']\") | length > 0) | bool }}",
+                    "has_resource_provision_pending":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='provision-pending']\") | length > 0) | bool }}",
+                    "has_resource_provisioning":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='provisioning']\") | length > 0) | bool }}",
+                    "has_resource_start_error":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='start-error']\") | length > 0) | bool }}",
+                    "has_resource_start_canceled":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='start-canceled']\") | length > 0) | bool }}",
+                    "has_resource_start_failed":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='start-failed']\") | length > 0) | bool }}",
+                    "has_resource_start_pending":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='start-pending']\") | length > 0) | bool }}",
+                    "has_resource_starting":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='starting']\") | length > 0) | bool }}",
+                    "has_resource_stop_error":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='stop-error']\") | length > 0) | bool }}",
+                    "has_resource_stop_canceled":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='stop-canceled']\") | length > 0) | bool }}",
+                    "has_resource_stop_failed":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='stop-failed']\") | length > 0) | bool }}",
+                    "has_resource_stop_pending":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='stop-pending']\") | length > 0) | bool }}",
+                    "has_resource_stopped":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='stopped']\") | length > 0) | bool }}",
+                    "has_resource_stopping":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='stopping']\") | length > 0) | bool }}",
+                    "has_resource_that_can_start":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='stopped' && contains(keys(state.status.supportedActions), 'start')]\") | length > 0) | bool }}",
+                    "has_resource_that_can_stop":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='started' && contains(keys(state.status.supportedActions), 'stop')]\") | length > 0) | bool }}",
+                    "has_resource_without_state":
+                        "{{ (resources | length > resources | json_query(\"[?state]\") | length) | bool }}",
+                    "has_validation_errors":
+                        "{{ (resource_claim.status.provider.validationErrors | default([]) | length > 0) | bool }}",
                     "runtime_default": self.runtime_default,
                     "runtime_maximum": self.runtime_maximum,
+                    "start_is_scheduled":
+                        "{{ (start_timestamp | default('1970-01-01T00:00:00Z') <= now(true, '%FT%TZ') and stop_timestamp | default('1970-01-01T00:00:00Z') > now(true, '%FT%TZ')) | bool }}",
+                    "stop_is_scheduled":
+                        "{{ (not start_is_scheduled) | bool }}",
                 }
             }
         }
