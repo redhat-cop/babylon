@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: catalog-read-agnosticvcomponent-role
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" . }}
+  labels:
+    {{- include "babylonAgnosticVOperator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - {{ .Values.agnosticv.apiGroup }}
+  resources:
+  - agnosticvcomponents
+  verbs:
+  - get
+  - list
+  - watch

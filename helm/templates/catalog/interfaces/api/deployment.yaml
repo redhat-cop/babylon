@@ -40,6 +40,11 @@ spec:
             secretKeyRef:
               name: salesforce-api
               key: salesforce-api-token
+        - name: SANDBOX_AUTHORIZATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: sandbox-api
+              key: sandbox-api-token
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio
+import copy
 import gzip
 import json
 import logging
@@ -26,6 +27,8 @@ groups_last_update = 0
 admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
 ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
+sandbox_api = os.environ.get('SANDBOX_API', 'http://sandbox-api.babylon-sandbox-api.svc.cluster.local:8080')
+sandbox_api_authorization_token = os.environ.get('SANDBOX_AUTHORIZATION_TOKEN')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
 response_cache = {}
 response_cache_clean_interval = int(os.environ.get('RESPONSE_CACHE_CLEAN_INTERVAL', 60))
@@ -348,6 +351,44 @@ async def start_user_session(user, groups):
 
     return api_client, session, token
 
+def replace_template_variables(data, job_vars):
+    """
+    Replace Jinja2-like template variables in a data structure with values from job_vars.
+    
+    Template format: {{ job_vars.variable_name | default('default_value') }}
+    Only replaces variables that exist in the job_vars dictionary.
+    
+    Args:
+        data: The data structure (dict, list, str, etc.) to process
+        job_vars: Dictionary containing variable values
+        
+    Returns:
+        The data structure with template variables replaced where applicable
+    """
+    if isinstance(data, dict):
+        return {key: replace_template_variables(value, job_vars) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [replace_template_variables(item, job_vars) for item in data]
+    elif isinstance(data, str):
+        # Pattern to match both:
+        # {{ job_vars.variable_name }} and
+        # {{ job_vars.variable_name | default('default_value') }}
+        pattern = r'\{\{\s*(job_vars\.[^|\s}]+)(?:\s*\|\s*default\([\'"]([^\'"]*)[\'"]?\))?\s*\}\}'
+        
+        def replace_match(match):
+            var_name = match.group(1)
+            
+            # Only replace if the variable exists in job_vars
+            if var_name in job_vars:
+                return str(job_vars[var_name])
+            else:
+                # Return the original template unchanged
+                return match.group(0)
+        
+        return re.sub(pattern, replace_match, data)
+    else:
+        return data
+
 routes = web.RouteTableDef()
 @routes.get('/auth/session')
 async def get_auth_session(request):
@@ -618,6 +659,74 @@ async def salesforce_id_validation(request):
         headers=headers,
         method="GET",
         url=f"{reporting_api}/sales_validation?{queryString}",
+    )
+
+# Expects a request body with the following structure:
+# {
+#   [
+#     {
+#       "kind": "OcpSandbox", # The kind of the resource to check availability for
+#       "annotations": {
+#         "virt": "true" # Example of an annotation that is used to determine the resource pool
+#       }
+#     }
+#   ]
+# }
+@routes.post("/api/{agnosticv_name}/check-availability")
+async def catalog_item_check_availability(request):
+    agnosticv_name = request.match_info.get('agnosticv_name')
+    # TODO: Look if there is a resourcePool that is available for this catalog item
+    agnosticv_component = await custom_objects_api.get_namespaced_custom_object(
+        group = 'gpte.redhat.com',
+        name = agnosticv_name,
+        namespace = 'babylon-config',
+        plural = 'AgnosticVComponents',
+        version = 'v1',
+    )
+    print(agnosticv_component)
+    spec = agnosticv_component.get('spec')
+    if not spec:
+        raise web.HTTPNotFound(reason="AgnosticV component has no spec")
+    definition = spec.get('definition')
+    if not definition:
+        raise web.HTTPNotFound(reason="AgnosticV component has no definition")
+    meta = definition.get('__meta__')
+    if not meta:
+        raise web.HTTPNotFound(reason="AgnosticV component has no __meta__ section")
+    sandboxes = meta.get('sandboxes')
+    if not sandboxes:
+        raise web.HTTPNotFound(reason="AgnosticV component has no sandboxes defined")
+    
+    # Get request data (array of objects)
+    request_data = await request.json()
+    
+    # Process each request object in the array
+    resources = []
+    for request_obj in request_data:
+        request_kind = request_obj.get('kind')
+        annotations = request_obj.get('annotations', {})
+        
+        # Prepend 'job_vars.param_selector_' to each annotation key
+        job_vars = {f"job_vars.param_selector_{key}": value for key, value in annotations.items()}
+        
+        # Find matching sandbox for this request's kind
+        for sandbox in sandboxes:
+            if sandbox.get('kind') == request_kind:
+                # Deep copy the sandbox to avoid modifying the original
+                sandbox_copy = copy.deepcopy(sandbox)
+                # Replace all template variables in the sandbox with this request's variables
+                sandbox_copy = replace_template_variables(sandbox_copy, job_vars)
+                # Create processed request object with the modified sandbox
+                resources.append(sandbox_copy)
+    print(resources)
+    headers = {
+        "Authorization": f"Bearer {sandbox_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        data=json.dumps({"resources": resources}),
+        method="GET",
+        url=f"{sandbox_api}/api/v1/placements/dry-run",
     )
 
 @routes.get("/api/catalog_item/metrics/{asset_uuid}")

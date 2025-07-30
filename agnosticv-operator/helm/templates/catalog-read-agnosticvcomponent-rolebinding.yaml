@@ -1,0 +1,19 @@
+{{- if .Values.deploy -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: catalog-read-agnosticvcomponent-rolebinding
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" . }}
+  labels:
+    {{- include "babylonAgnosticVOperator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: catalog-read-agnosticvcomponent-role
+subjects:
+{{- range $namespace, $interface := .Values.catalog.interfaces }}
+- kind: ServiceAccount
+  name: babylon-catalog-api
+  namespace: {{ $namespace }}
+{{- end }}
+{{- end -}}
