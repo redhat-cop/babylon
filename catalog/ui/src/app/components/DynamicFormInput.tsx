@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Checkbox,
-  FormGroup,
   MenuToggle,
   MenuToggleElement,
   NumberInput,

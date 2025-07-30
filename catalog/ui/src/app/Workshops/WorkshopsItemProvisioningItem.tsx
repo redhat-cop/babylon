@@ -103,7 +103,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
               adminModifier={true}
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
-              style={{ paddingRight: 'var(--pf-v5-global--spacer--md)' }}
+              style={{ paddingRight: "var(--pf-t--global--spacer--md)" }}
             />
             <Tooltip
               position="right"
@@ -135,7 +135,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
                   max={30}
                   onChange={(value: number) => patchWorkshopProvisionSpec({ concurrency: value })}
                   value={workshopProvision.spec.concurrency}
-                  style={{ paddingRight: 'var(--pf-v5-global--spacer--md)' }}
+                  style={{ paddingRight: "var(--pf-t--global--spacer--md)" }}
                 />
                 (only visible to admins)
               </DescriptionListDescription>
@@ -148,7 +148,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
                   max={999}
                   onChange={(value: number) => patchWorkshopProvisionSpec({ startDelay: value })}
                   value={workshopProvision.spec.startDelay}
-                  style={{ paddingRight: 'var(--pf-v5-global--spacer--md)' }}
+                  style={{ paddingRight: "var(--pf-t--global--spacer--md)" }}
                 />
                 (only visible to admins)
               </DescriptionListDescription>

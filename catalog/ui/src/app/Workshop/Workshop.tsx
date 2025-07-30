@@ -45,11 +45,7 @@ const Workshop: React.FC<{ title: string }> = ({ title }) => {
   }
 
   return (
-    <Page
-      header={<WorkshopHeader userInterface={userInterface} />}
-      style={{ backgroundColor: 'var(--pf-v5-global--palette--black-200)' }}
-      className="workshop"
-    >
+    <Page masthead={<WorkshopHeader userInterface={userInterface} />} className="workshop">
       {workshopPrivateInfo.assignment ? (
         <WorkshopContent workshop={workshopPrivateInfo} />
       ) : (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Spinner, Text, TextArea, TextInput, TextVariants } from '@patternfly/react-core';
+import { Button, Spinner, Content, TextArea, TextInput, ContentVariants } from '@patternfly/react-core';
 import PencilAltIcon from '@patternfly/react-icons/dist/js/icons/pencil-alt-icon';
 
 import './editable-text.css';
@@ -71,25 +71,25 @@ const EditableText: React.FC<{
   }
   if (componentType === 'Password') {
     return (
-      <Text
-        component={TextVariants.p}
+      <Content
+        component={ContentVariants.p}
         className={value ? 'editable-text-value' : 'editable-text-placeholder'}
         onClick={beginEditing}
       >
         {value ? '********' : '- none -'}
         <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm" /> : <PencilAltIcon />} />
-      </Text>
+      </Content>
     );
   }
   return (
-    <Text
-      component={TextVariants.p}
+    <Content
+      component={ContentVariants.p}
       className={value ? 'editable-text-value' : 'editable-text-placeholder'}
       onClick={beginEditing}
     >
       {value || placeholder || ''}
       <Button onClick={beginEditing} variant="link" icon={updating ? <Spinner size="sm" /> : <PencilAltIcon />} />
-    </Text>
+    </Content>
   );
 };
 

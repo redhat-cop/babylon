@@ -23,7 +23,7 @@ const CatalogCategorySelector: React.FC<{
   selected: string;
 }> = ({ catalogItems, onSelect, selected }) => {
   const categories = Array.from(
-    new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null))
+    new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null)),
   );
   categories.sort((a, b) => {
     const av = (a as string).toUpperCase();
@@ -39,22 +39,13 @@ const CatalogCategorySelector: React.FC<{
 
   return (
     <Tabs
-      isVertical
       className="catalog-category-selector"
+      isVertical
       activeKey={selected || 'all'}
       onSelect={(event, category) => (category === 'all' ? onSelect(null) : onSelect(`${category}`))}
-      inset={{
-        default: 'insetNone',
-        sm: 'insetNone',
-        md: 'insetNone',
-        lg: 'insetNone',
-        xl: 'insetNone',
-        '2xl': 'insetNone',
-      }}
     >
-      <Tab key="all" eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-controls=""></Tab>
+      <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-label="All Items"></Tab>
       <Tab
-        key="favorites"
         eventKey="favorites"
         title={
           <TabTitleText>
@@ -62,20 +53,19 @@ const CatalogCategorySelector: React.FC<{
             <Tooltip content="Items marked as favorite">
               <InfoAltIcon
                 style={{
-                  paddingTop: 'var(--pf-v5-global--spacer--xs)',
-                  marginLeft: 'var(--pf-v5-global--spacer--sm)',
-                  width: 'var(--pf-v5-global--icon--FontSize--sm)',
+                  paddingTop: 'var(--pf-t--global--spacer--xs)',
+                  marginLeft: 'var(--pf-t--global--spacer--sm)',
+                  width: 'var(--pf-t--global--icon--size--font--xs)',
                 }}
               />
             </Tooltip>
           </TabTitleText>
         }
-        aria-controls=""
+        aria-label="Favorites"
       ></Tab>
       {categories.map((category) => {
         return (
           <Tab
-            key={category}
             eventKey={category}
             title={
               <TabTitleText>
@@ -84,15 +74,16 @@ const CatalogCategorySelector: React.FC<{
                   <Tooltip content={CATEGORIES_DEFINITIONS[category.toLowerCase()]}>
                     <InfoAltIcon
                       style={{
-                        paddingTop: 'var(--pf-v5-global--spacer--xs)',
-                        marginLeft: 'var(--pf-v5-global--spacer--sm)',
-                        width: 'var(--pf-v5-global--icon--FontSize--sm)',
+                        paddingTop: 'var(--pf-t--global--spacer--xs)',
+                        marginLeft: 'var(--pf-t--global--spacer--sm)',
+                        width: 'var(--pf-t--global--icon--size--font--xs)',
                       }}
                     />
                   </Tooltip>
                 ) : null}
               </TabTitleText>
             }
+            aria-label={formatString(category)}
           ></Tab>
         );
       })}

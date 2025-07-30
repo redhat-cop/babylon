@@ -1,90 +1,63 @@
-.workshops-item__body.pf-v5-c-page__main-section {
+.workshops-item__body.pf-v6-c-page__main-section {
   padding-top: 0px;
   flex-grow: 1;
 }
 
-.workshops-item__body.pf-v5-c-page__main-section .pf-v5-c-tabs {
+.workshops-item__body.pf-v6-c-page__main-section .pf-v6-c-tabs {
   margin-left: -100px;
   padding-left: 100px;
   margin-right: -100px;
   padding-right: 100px;
-  margin-bottom: var(--pf-v5-global--spacer--sm);
+  margin-bottom: var(--pf-t--global--spacer--sm);
 }
 
-.workshops-item__body .pf-v5-c-tab-content {
-  padding: var(--pf-v5-global--spacer--sm) 0;
+.workshops-item__body .pf-v6-c-tab-content {
+  padding: var(--pf-t--global--spacer--sm) 0;
 }
 
-.workshops-item__body.pf-v5-c-page__main-section .pf-v5-c-description-list {
-  row-gap: var(--pf-v5-global--spacer--sm);
-  margin-bottom: var(--pf-v5-global--spacer--sm);
+.workshops-item__body.pf-v6-c-page__main-section .pf-v6-c-description-list {
+  row-gap: var(--pf-t--global--spacer--sm);
+  margin-bottom: var(--pf-t--global--spacer--sm);
 }
 
-.workshops-item__body.pf-v5-c-page__main-section .pf-v5-c-button.pf-m-plain {
-  margin-top: calc(-1 * var(--pf-v5-c-button--PaddingTop));
-  margin-bottom: calc(-1 * var(--pf-v5-c-button--PaddingBottom));
-  margin-left: calc(-1 * var(--pf-v5-c-button--PaddingLeft));
-  margin-right: calc(-1 * var(--pf-v5-c-button--PaddingRight));
-  color: var(--pf-v5-c-button--m-plain--focus--Color);
-}
-
-.workshops-item__body.pf-v5-c-page__main-section .pf-v5-c-form__group.pf-m-action {
-  margin-bottom: var(--pf-v5-global--spacer--md);
+.workshops-item__body.pf-v6-c-page__main-section .pf-v6-c-form__group.pf-m-action {
+  margin-bottom: var(--pf-t--global--spacer--md);
   margin-top: 0;
 }
 
-.workshops-item__body.pf-v5-c-page__main-section .pf-v5-c-button.pf-m-plain:hover {
+.workshops-item__body.pf-v6-c-page__main-section .pf-v6-c-button.pf-m-plain:hover {
   text-decoration: underline;
 }
 
-.workshops-item__body .pf-v5-c-description-list__group {
+.workshops-item__body .pf-v6-c-description-list__group {
   align-items: center;
 }
 
-.workshops-item__body .pf-v5-c-description-list__group .pf-v5-c-select {
+.workshops-item__body .pf-v6-c-description-list__group .pf-v6-c-select {
   width: auto;
 }
 
-.workshops-item__head.pf-v5-c-page__main-section {
-  padding-top: var(--pf-v5-global--spacer--md);
-  padding-bottom: var(--pf-v5-global--spacer--md);
-  border-bottom: 1px solid var(--pf-v5-global--palette--black-300);
+.workshops-item__head.pf-v6-c-page__main-section {
+  padding-top: var(--pf-t--global--spacer--md);
+  padding-bottom: var(--pf-t--global--spacer--md);
+  border-bottom: 1px solid var(--pf-t--chart--color--black--300);
 }
 
-.workshops-item__head.pf-v5-c-page__main-section .pf-v5-c-breadcrumb__item {
-  font-size: var(--pf-v5-c-breadcrumb__item--FontSize);
-  margin-top: var(--pf-v5-global--spacer--xs);
+.workshops-item__head.pf-v6-c-page__main-section .pf-v6-c-title {
+  margin-top: var(--pf-t--global--spacer--lg);
 }
 
-.workshops-item__head.pf-v5-c-page__main-section .pf-v5-c-title {
-  margin-top: var(--pf-v5-global--spacer--md);
-}
-
-.workshops-item__topbar.pf-v5-c-page__main-section {
-  padding: var(--pf-v5-global--spacer--xs) var(--pf-v5-global--spacer--sm);
-  border-bottom: 1px solid var(--pf-v5-global--palette--black-300);
-}
-
-.workshops-item__topbar.pf-v5-c-page__main-section .pf-c-dropdown__toggle {
-  color: var(--pf-v5-global--palette--black-900);
-}
-
-.workshops-item__topbar.pf-v5-c-page__main-section .pf-c-dropdown__menu {
+.workshops-item__topbar.pf-v6-c-page__main-section .pf-c-dropdown__menu {
   max-height: 25em;
   overflow-y: scroll;
 }
 
-.workshops-item__topbar.pf-v5-c-page__main-section .pf-c-dropdown__menu .pf-c-dropdown__menu-item {
-  padding-bottom: var(--pf-v5-global--spacer--sm);
-  padding-top: var(--pf-v5-global--spacer--sm);
-}
-
-.workshops-item__body .pf-v5-c-table tbody > tr > * {
+.workshops-item__body .pf-v6-c-table tbody > tr > * {
   vertical-align: middle !important;
 }
 .workshops-item__group-control--single {
   display: flex;
   flex-direction: row;
-  gap: var(--pf-v5-global--spacer--md);
+  gap: var(--pf-t--global--spacer--md);
   align-items: center;
 }

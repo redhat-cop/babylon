@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@patternfly/react-core';
 import {
-  ApplicationLauncher,
-  ApplicationLauncherItem,
-  DropdownPosition,
-  PageHeader,
-  PageHeaderTools,
-} from '@patternfly/react-core/deprecated';
+  Button,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  Masthead,
+  MastheadLogo,
+  MastheadContent,
+  MastheadMain,
+  MastheadBrand,
+  MenuToggle,
+  MenuToggleElement,
+} from '@patternfly/react-core';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
@@ -23,84 +28,94 @@ const PublicHeader: React.FC = () => {
   function LogoImg() {
     return <UserInterfaceLogo theme="dark" onClick={() => navigate('/')} style={{ width: '278px' }} />;
   }
-  const openSupportCase = (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    window.open(help_link, '_blank');
+
+  const onSelect = (event?: React.MouseEvent<Element, MouseEvent>, value?: string | number) => {
+    event?.preventDefault();
+    setUserHelpDropdownOpen(false);
+    if (value) {
+      window.open(value as string, '_blank');
+    }
+    return null;
   };
 
   const UserHelpDropdownItems = [
-    <ApplicationLauncherItem key="open-support" component="button" onClick={openSupportCase} isExternal>
+    <DropdownItem key="open-support" value={help_link}>
       {help_text}
-    </ApplicationLauncherItem>,
-    <ApplicationLauncherItem
-      key="status-page-link"
-      href={status_page_url}
-      target="_blank"
-      rel="noreferrer nofollow"
-      isExternal
-    >
+    </DropdownItem>,
+    <DropdownItem key="status-page-link" value={status_page_url}>
       Status Page
-    </ApplicationLauncherItem>,
-    <ApplicationLauncherItem key="support-sla" href="/support">
+    </DropdownItem>,
+    <DropdownItem key="support-sla" onClick={() => navigate('/support')}>
       Solution Support: Service Level
-    </ApplicationLauncherItem>,
-    <ApplicationLauncherItem
-      key="how-to-videos-link"
-      href={learn_more_link}
-      target="_blank"
-      rel="noreferrer nofollow"
-      isExternal
-    >
+    </DropdownItem>,
+    <DropdownItem key="learn-more" value={learn_more_link}>
       Learn more
-    </ApplicationLauncherItem>,
-    <ApplicationLauncherItem
+    </DropdownItem>,
+    <DropdownItem
       key="how-to-videos-link"
-      href="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
-      target="_blank"
-      rel="noreferrer nofollow"
-      isExternal
+      value="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
     >
       How to videos
-    </ApplicationLauncherItem>,
+    </DropdownItem>,
   ];
 
   const HeaderTools = (
-    <PageHeaderTools>
+    <div style={{ marginLeft: 'auto' }}>
       {feedback_link ? (
         <Button
           variant="link"
-          icon={<CommentIcon />}
+          icon={<CommentIcon style={{ fill: '#fff' }} />}
           style={{ color: '#fff' }}
           onClick={() => window.open(feedback_link, '_blank')}
         >
           Feedback
         </Button>
       ) : null}
-      <ApplicationLauncher
+      <Dropdown
         aria-label="Help menu"
-        onSelect={() => setUserHelpDropdownOpen((prevIsOpen) => !prevIsOpen)}
-        onToggle={(_event, isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
         isOpen={isUserHelpDropdownOpen}
-        items={UserHelpDropdownItems}
-        position={DropdownPosition.right}
-        toggleIcon={
-          <div
-            style={{
-              display: 'flex',
-              gap: 'var(--pf-v5-global--spacer--xs)',
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
+        onOpenChange={(isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
+        onSelect={onSelect}
+        isScrollable
+        popperProps={{ position: 'right' }}
+        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+          <MenuToggle
+            ref={toggleRef}
+            variant="plain"
+            onClick={() => setUserHelpDropdownOpen(!isUserHelpDropdownOpen)}
+            isExpanded={isUserHelpDropdownOpen}
+            style={{ width: 'auto' }}
+            icon={<QuestionCircleIcon style={{ fill: '#fff' }} />}
           >
-            <QuestionCircleIcon />
             Help
-          </div>
-        }
-      />
-    </PageHeaderTools>
+          </MenuToggle>
+        )}
+      >
+        <DropdownList>{UserHelpDropdownItems}</DropdownList>
+      </Dropdown>
+    </div>
   );
 
-  return <PageHeader logo={<LogoImg />} className="public-header-component" headerTools={HeaderTools} />;
+  return (
+    <Masthead
+      className="public-header-component"
+      style={{
+        backgroundColor: 'rgb(21,21,21)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <MastheadMain>
+        <MastheadBrand data-codemods>
+          <MastheadLogo data-codemods>
+            <LogoImg />
+          </MastheadLogo>
+        </MastheadBrand>
+      </MastheadMain>
+      <MastheadContent style={{ marginLeft: 'auto' }}>{HeaderTools}</MastheadContent>
+    </Masthead>
+  );
 };
 
 export default PublicHeader;

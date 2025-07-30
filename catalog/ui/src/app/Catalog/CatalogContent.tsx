@@ -17,14 +17,14 @@ const CatalogContent: React.FC<{
   return (
     <div ref={catalogWrapperRef}>
       {catalogItemsResult.length > 0 ? (
-        <PageSection
+        <PageSection hasBodyWrapper={false}
           variant={PageSectionVariants.default}
           className={`catalog__content-box catalog__content-box--${view}`}
         >
           <CatalogGridList view={view} catalogItems={catalogItemsResult} wrapperRect={wrapperRect} />
         </PageSection>
       ) : (
-        <PageSection variant={PageSectionVariants.default} className="catalog__content-box--empty">
+        <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} className="catalog__content-box--empty">
           <EmptyState variant="full">
             {!userHasRequiredPropertiesToAccess && userInterface === 'rhdp-partners' ? (
               <>
@@ -54,7 +54,7 @@ const CatalogContent: React.FC<{
                   variant="primary"
                   aria-label="Clear all filters"
                   icon={<TimesIcon />}
-                  style={{ marginLeft: 'var(--pf-v5-global--spacer--sm)' }}
+                  style={{ marginLeft: "var(--pf-t--global--spacer--sm)" }}
                   onClick={onClearFilters}
                 >
                   Clear all filters

@@ -11,9 +11,9 @@ import {
   MenuSearch,
   MenuSearchInput,
   MenuToggle,
-  Modal,
   SearchInput,
 } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { User, UserList } from '@app/types';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
@@ -121,7 +121,7 @@ const ImpersonateUserModal: React.FC<{
                   placeholder={user?.metadata?.name || 'Search'}
                   onChange={(_event, value) => setUserSearchValue(value)}
                   onKeyPress={onEnterPressed}
-                  aria-labelledby="pf-v5-context-selector-search-button-id-1"
+                  aria-labelledby="pf-v6-context-selector-search-button-id-1"
                 />
               </InputGroupItem>
             </InputGroup>

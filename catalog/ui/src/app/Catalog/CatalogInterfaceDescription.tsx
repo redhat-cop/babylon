@@ -1,5 +1,5 @@
 import React from 'react';
-import { PageSection, PageSectionVariants, Title } from '@patternfly/react-core';
+import { PageSection, Title } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 
 const CatalogInterfaceDescription: React.FC = () => {
@@ -7,7 +7,7 @@ const CatalogInterfaceDescription: React.FC = () => {
 
   if (userInterface === 'rhpds') {
     return (
-      <PageSection variant={PageSectionVariants.light} style={{ paddingBottom: 0 }}>
+      <PageSection hasBodyWrapper={false}  style={{ paddingBottom: 0 }}>
         <Title headingLevel="h1" size="2xl">
           Red Hat Demo Platform
         </Title>
@@ -16,7 +16,7 @@ const CatalogInterfaceDescription: React.FC = () => {
     );
   } else if (userInterface === 'summit') {
     return (
-      <PageSection variant={PageSectionVariants.light} style={{ paddingBottom: 0 }}>
+      <PageSection hasBodyWrapper={false}  style={{ paddingBottom: 0 }}>
         <Title headingLevel="h1" size="2xl">
           Red Hat Summit Labs
         </Title>
@@ -25,7 +25,7 @@ const CatalogInterfaceDescription: React.FC = () => {
     );
   } else {
     return (
-      <PageSection variant={PageSectionVariants.light} style={{ paddingBottom: 0 }}>
+      <PageSection hasBodyWrapper={false}  style={{ paddingBottom: 0 }}>
         <Title headingLevel="h1" size="2xl">
           Catalog
         </Title>

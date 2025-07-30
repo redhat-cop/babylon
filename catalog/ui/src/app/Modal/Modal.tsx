@@ -11,7 +11,8 @@ import React, {
   useRef,
 } from 'react';
 import ReactDOM, { createPortal } from 'react-dom';
-import { Button, Modal, ModalVariant, Spinner } from '@patternfly/react-core';
+import { Button, Spinner } from '@patternfly/react-core';
+import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import LoadingSection from '@app/components/LoadingSection';
 import useModal from './useModal';
 
@@ -105,7 +106,7 @@ const _Modal: ForwardRefRenderFunction<
       const targetEl = e.target as HTMLElement;
       const container = ReactDOM.findDOMNode(modalEl.current) as Element;
       const backdrop = container;
-      const modal = container?.querySelector('.pf-v5-c-modal-box');
+      const modal = container?.querySelector('.pf-v6-c-modal-box');
       if (!modal || !backdrop) return e;
       if (e.target === backdrop || backdrop.contains(targetEl)) {
         if (e.target !== modal && !modal.contains(targetEl)) {

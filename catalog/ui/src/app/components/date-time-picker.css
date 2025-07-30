@@ -1,13 +1,13 @@
-.date-time-picker__time-picker .pf-v5-c-dropdown__menu {
+.date-time-picker__time-picker .pf-v6-c-dropdown__menu {
   overflow-y: auto;
   max-height: 380px;
 }
-.date-time-picker__text.pf-v5-c-form-control {
-  font-size: var(--pf-v5-global--FontSize--sm);
+.date-time-picker__text.pf-v6-c-form-control {
+  font-size: var(--pf-t--global--icon--size--font--body--sm);
 }
 .hide-controls {
   width: auto;
 }
-.hide-controls .pf-v5-c-menu-toggle__controls {
+.hide-controls .pf-v6-c-menu-toggle__controls {
   display: none;
 }

@@ -8,7 +8,6 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   PageSection,
-  PageSectionVariants,
   Split,
   SplitItem,
   Stack,
@@ -88,7 +87,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
       >
         <CreateResourcePoolFromResourceHandleModal resourceClaim={resourceClaim} resourceHandle={resourceHandle} />
       </Modal>
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Breadcrumb>
           <BreadcrumbItem
             render={({ className }) => (
@@ -152,7 +151,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
+      <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/resourcehandles/${resourceHandleName}/${tabIndex}`)}

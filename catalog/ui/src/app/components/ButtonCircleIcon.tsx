@@ -13,16 +13,14 @@ const ButtonCircleIcon: React.FC<
   const Icon = icon;
   return (
     <Tooltip position="bottom" content={description}>
-      <Button
+      <Button icon={<Icon color="#6A6E73" />}
         {...rest}
         isDisabled={isDisabled}
         aria-label={description}
         onClick={onClick}
         variant="plain"
         className="button-circle-icon"
-      >
-        <Icon color="#6A6E73" />
-      </Button>
+       />
     </Tooltip>
   );
 };

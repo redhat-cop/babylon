@@ -1,4 +1,4 @@
 a.openshift-console-link > img {
-  height: 1.2em;
-  padding-left: 0.5em;
+  height: 12px;
+  padding-left: var(--pf-t--global--spacer--xs);
 }

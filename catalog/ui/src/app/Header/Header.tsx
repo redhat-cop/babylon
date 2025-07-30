@@ -6,17 +6,18 @@ import {
   DropdownList,
   DropdownItem,
   Masthead,
-  MastheadBrand,
+  MastheadLogo,
   MastheadContent,
   MastheadMain,
   MastheadToggle,
+  MastheadBrand,
   MenuToggle,
   PageToggleButton,
   MenuToggleElement,
 } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
-import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
+
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import ImpersonateUserModal from '@app/components/ImpersonateUserModal';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
@@ -46,10 +47,6 @@ const Header: React.FC<{
   const { help_text, status_page_url, feedback_link, learn_more_link, workshop_support_text, workshop_support_link } =
     useInterfaceConfig();
 
-  const onToggleClick = () => {
-    setUserHelpDropdownOpen(!isUserHelpDropdownOpen);
-  };
-
   function clearUserImpersonation() {
     clearImpersonation();
     setIsUserControlDropdownOpen(false);
@@ -67,7 +64,7 @@ const Header: React.FC<{
         />
       );
     }
-    return <UserInterfaceLogo onClick={() => navigate('/')} style={{ width: '278px' }} theme={theme} />;
+    return <UserInterfaceLogo onClick={() => navigate('/')} theme={theme} />;
   }
   const onSelect = (event?: React.MouseEvent<Element, MouseEvent>, value?: string | number) => {
     event.preventDefault();
@@ -121,9 +118,9 @@ const Header: React.FC<{
   const UserControlDropdownItems = [
     <DropdownItem
       key="logout"
-      href="/oauth/sign_out"
       onClick={() => {
         sessionStorage.removeItem('impersonateUser');
+        window.location.href = '/oauth/sign_out';
       }}
     >
       Log out
@@ -150,7 +147,7 @@ const Header: React.FC<{
         <Button
           variant="link"
           style={{ color: theme === 'dark' ? '#fff' : '#151515' }}
-          icon={<CommentIcon />}
+          icon={<CommentIcon style={{ fill: theme === 'dark' ? '#fff' : '#151515' }} />}
           onClick={() => window.open(feedback_link, '_blank')}
         >
           Feedback
@@ -171,17 +168,10 @@ const Header: React.FC<{
             variant="plain"
             onClick={() => setUserHelpDropdownOpen(true)}
             isExpanded={isUserHelpDropdownOpen}
-            style={{ width: 'auto' }}
+            style={{ width: 'auto', color: theme === 'dark' ? '#fff' : '#151515' }}
+            icon={<QuestionCircleIcon style={{ fill: theme === 'dark' ? '#fff' : '#151515' }} />}
           >
-            <div
-              style={{
-                display: 'inline-block',
-                color: theme === 'dark' ? '#fff' : '#151515',
-              }}
-            >
-              <QuestionCircleIcon />
-              <span style={{ marginLeft: 'var(--pf-v5-global--spacer--xs)' }}>Help</span>
-            </div>
+            Help
           </MenuToggle>
         )}
       >
@@ -189,9 +179,6 @@ const Header: React.FC<{
       </Dropdown>
 
       <Dropdown
-        className={`header-component__user-controls${
-          userImpersonated ? ' header-component__user-controls--warning' : ''
-        }`}
         isOpen={isUserControlDropdownOpen}
         onOpenChange={(isOpen: boolean) => setIsUserControlDropdownOpen(isOpen)}
         isScrollable
@@ -201,7 +188,7 @@ const Header: React.FC<{
             variant="plainText"
             aria-label="Log in menu"
             onClick={() => setIsUserControlDropdownOpen((isOpen) => !isOpen)}
-            style={{ width: 'auto' }}
+            style={{ width: 'auto', color: userImpersonated ? '#FF0000' : '#fff', fill: '#fff' }}
           >
             {userImpersonated ? userImpersonated : email}
           </MenuToggle>
@@ -217,21 +204,23 @@ const Header: React.FC<{
   );
 
   return (
-    <Masthead backgroundColor={theme}>
-      <MastheadToggle>
-        <PageToggleButton
-          variant="plain"
-          aria-label="Global navigation"
-          isSidebarOpen={isNavOpen}
-          onSidebarToggle={isMobileView ? onNavToggleMobile : onNavToggle}
-          id="nav-toggle"
-        >
-          <BarsIcon color={theme === 'dark' ? '#fff' : '#151515'} id="nav-toggle" />
-        </PageToggleButton>
-      </MastheadToggle>
+    <Masthead style={{ backgroundColor: 'rgb(21,21,21)' }} className="header-component">
       <MastheadMain>
-        <MastheadBrand href="/">
-          <LogoImg />
+        <MastheadToggle>
+          <PageToggleButton
+            variant="plain"
+            aria-label="Global navigation"
+            isSidebarOpen={isNavOpen}
+            onSidebarToggle={isMobileView ? onNavToggleMobile : onNavToggle}
+            id="nav-toggle"
+          >
+            <BarsIcon color={theme === 'dark' ? '#fff' : '#151515'} id="nav-toggle" />
+          </PageToggleButton>
+        </MastheadToggle>
+        <MastheadBrand data-codemods>
+          <MastheadLogo data-codemods href="/" style={{ display: 'flex', alignItems: 'center' }}>
+            <LogoImg />
+          </MastheadLogo>
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent>{headerTools}</MastheadContent>

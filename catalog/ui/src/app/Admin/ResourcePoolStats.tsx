@@ -30,7 +30,7 @@ const ResourcePoolStats: React.FC<{ resourcePoolName: string; minAvailable: numb
   const { total, taken, available } = usePoolStatus(resourceHandles);
 
   return (
-    <ul style={{ display: 'flex', flexDirection: 'row', gap: 'var(--pf-v5-global--spacer--xs)' }}>
+    <ul style={{ display: 'flex', flexDirection: 'row', gap: "var(--pf-t--global--spacer--xs)" }}>
       <li>
         <b>Total:</b> {String(total)} /
       </li>

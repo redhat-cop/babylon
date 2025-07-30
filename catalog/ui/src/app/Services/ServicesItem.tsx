@@ -15,7 +15,6 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   PageSection,
-  PageSectionVariants,
   Spinner,
   Split,
   SplitItem,
@@ -110,6 +109,7 @@ import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounce from '@app/utils/useDebounce';
 import useDebounceState from '@app/utils/useDebounceState';
+import useSWRImmutable from 'swr/immutable';
 
 import './services-item.css';
 
@@ -277,7 +277,7 @@ const ComponentDetailsList: React.FC<{
                 <DescriptionListGroup key="tower-jobs">
                   <DescriptionListTerm>Ansible Jobs</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <List style={{ margin: 'var(--pf-v5-global--spacer--sm) 0' }}>
+                    <List style={{ margin: 'var(--pf-t--global--spacer--sm)' }}>
                       {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
                         towerJob.towerJobURL ? (
                           <ListItem key={stage}>
@@ -349,6 +349,15 @@ const ServicesItemComponent: React.FC<{
     compare: compareK8sObjects,
   });
   useErrorHandler(error?.status === 404 ? error : null);
+  const { data: catalogItem } = useSWRImmutable<CatalogItem>(
+    resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
+      ? apiPaths.CATALOG_ITEM({
+          namespace: resourceClaim.metadata.labels[`${BABYLON_DOMAIN}/catalogItemNamespace`],
+          name: resourceClaim.metadata.labels[`${BABYLON_DOMAIN}/catalogItemName`],
+        })
+      : null,
+    silentFetcher,
+  );
 
   const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
     salesforce_id: resourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] || '',
@@ -438,10 +447,6 @@ const ServicesItemComponent: React.FC<{
       const provision_data = r.state?.spec?.vars?.provision_data;
       return provision_data?.osp_cluster_api || provision_data?.openstack_auth_url;
     });
-
-  const catalogItemDisplayName =
-    resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/catalogItemDisplayName`] ||
-    resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
 
   const actionHandlers = {
     delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
@@ -653,7 +658,7 @@ const ServicesItemComponent: React.FC<{
         <ServicesScheduleAction action={modalState.action || 'stop'} resourceClaim={resourceClaim} />
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
-        <PageSection key="topbar" className="services-item__topbar" variant={PageSectionVariants.light}>
+        <PageSection hasBodyWrapper={false} key="topbar" className="services-item__topbar">
           <ProjectSelector
             currentNamespaceName={serviceNamespaceName}
             onSelect={(namespace) => {
@@ -663,11 +668,10 @@ const ServicesItemComponent: React.FC<{
                 navigate(`/services${location.search}`);
               }
             }}
-            isPlain={true}
           />
         </PageSection>
       ) : null}
-      <PageSection key="head" className="services-item__head" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="head" className="services-item__head">
         <Split hasGutter>
           <SplitItem isFilled>
             {isAdmin || serviceNamespaces.length > 1 ? (
@@ -734,16 +738,11 @@ const ServicesItemComponent: React.FC<{
       {resourceClaim.spec.resources &&
       resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' &&
       !isAdmin ? (
-        <PageSection
-          key="body"
-          variant={PageSectionVariants.light}
-          className="services-item__body"
-          style={{ paddingTop: '1em' }}
-        >
-          <p>Thank you for your interest in {catalogItemDisplayName || 'this service'}.</p>
+        <PageSection hasBodyWrapper={false} key="body" className="services-item__body" style={{ paddingTop: '1em' }}>
+          <p>Thank you for your interest in {catalogItem?.spec.displayName || 'this service'}.</p>
         </PageSection>
       ) : (
-        <PageSection key="body" variant={PageSectionVariants.light} className="services-item__body">
+        <PageSection hasBodyWrapper={false} key="body" className="services-item__body">
           <Tabs
             activeKey={activeTab ? activeTab : hasInfoMessageTemplate ? 'info' : 'details'}
             onSelect={(e, tabIndex) => navigate(`/services/${serviceNamespaceName}/${resourceClaimName}/${tabIndex}`)}
@@ -763,11 +762,7 @@ const ServicesItemComponent: React.FC<{
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <Link
-                        to={`/catalog?item=${
-                          resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`]
-                        }/${resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]}`}
-                      >
+                      <Link to={`/catalog?item=${catalogItem?.metadata.namespace}/${catalogItem?.metadata.name}`}>
                         {resourceClaim.metadata.name}
                       </Link>
                       {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
@@ -1056,10 +1051,10 @@ const ServicesItemComponent: React.FC<{
                         <header>
                           <h3
                             style={{
-                              fontSize: 'var(--pf-v5-global--FontSize--sm)',
-                              fontWeight: 'var(--pf-v5-global--FontWeight--bold)',
-                              lineHeight: 'var(--pf-v5-global--LineHeight--sm)',
-                              marginBottom: 'var(--pf-v5-global--spacer--sm)',
+                              fontSize: 'var(--pf-t--global--font--size--sm)',
+                              fontWeight: 'var(--pf-t--global--font--weight--heading--bold)',
+                              lineHeight: 'var(--pf-t--global--font--line-height--heading)',
+                              marginBottom: 'var(--pf-t--global--spacer--sm)',
                             }}
                           >
                             Components
@@ -1075,7 +1070,7 @@ const ServicesItemComponent: React.FC<{
                       {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
                         const resourceState = resourceStatus?.state;
                         const componentDisplayName =
-                          resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/displayNameComponent${idx}`] ||
+                          catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
                           resourceStatus?.name;
                         const currentState =
                           resourceState?.kind === 'AnarchySubject'
@@ -1131,17 +1126,11 @@ const ServicesItemComponent: React.FC<{
                             condition={resourceClaim.status?.resources && resourceClaim.status.resources.length > 1}
                             wrapper={(children) => (
                               <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
-                                <AccordionItem>
-                                  <AccordionToggle
-                                    isExpanded={expanded.includes(`item-${idx}`)}
-                                    id={`item-${idx}`}
-                                    onClick={() => toggle(`item-${idx}`)}
-                                  >
+                                <AccordionItem isExpanded={expanded.includes(`item-${idx}`)}>
+                                  <AccordionToggle id={`item-${idx}`} onClick={() => toggle(`item-${idx}`)}>
                                     {componentDisplayName}
                                   </AccordionToggle>
-                                  <AccordionContent isHidden={!expanded.includes(`item-${idx}`)} id={`item-${idx}`}>
-                                    {children}
-                                  </AccordionContent>
+                                  <AccordionContent id={`item-${idx}`}>{children}</AccordionContent>
                                 </AccordionItem>
                               </Accordion>
                             )}

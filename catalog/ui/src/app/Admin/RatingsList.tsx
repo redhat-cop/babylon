@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from 'react';
-import { PageSection, PageSectionVariants, Split, SplitItem, Title, Button } from '@patternfly/react-core';
+import { PageSection, Split, SplitItem, Title, Button } from '@patternfly/react-core';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem } from '@app/types';
 import useSWRImmutable from 'swr/immutable';
@@ -9,7 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 import { displayName, FETCH_BATCH_LIMIT, stripTags } from '@app/util';
 import SearchInputString from '@app/components/SearchInputString';
 import { CUSTOM_LABELS } from '@app/Catalog/catalog-utils';
-import { Table, TableBody, TableHeader } from '@patternfly/react-table/deprecated';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
 import LoadingSection from '@app/components/LoadingSection';
@@ -42,31 +42,31 @@ const RatingsModal: React.FC<{ assetUuid: string }> = ({ assetUuid }) => {
   >(assetUuid !== '' ? apiPaths.RATINGS_HISTORY({ assetUuid }) : null, fetcher);
 
   return (
-    <Table
-      aria-label="Table"
-      variant="compact"
-      cells={['Email', 'Comment', 'Rating', 'Useful']}
-      rows={
-        ratingsHistory
-          ? ratingsHistory.map((r) => {
-              const cells: any[] = [];
-              cells.push(
-                // Name
-                <>{r.email}</>,
-                // Project
-                <>{r.comment ?? ''}</>,
-                <>{r.rating ?? '-'}</>,
-                <>{r.useful ?? '-'}</>,
-              );
-              return {
-                cells: cells,
-              };
-            })
-          : []
-      }
-    >
-      <TableHeader />
-      <TableBody />
+    <Table aria-label="Ratings history table" variant="compact">
+      <Thead>
+        <Tr>
+          <Th>Email</Th>
+          <Th>Comment</Th>
+          <Th>Rating</Th>
+          <Th>Useful</Th>
+        </Tr>
+      </Thead>
+      <Tbody>
+        {ratingsHistory ? (
+          ratingsHistory.map((r, index) => (
+            <Tr key={index}>
+              <Td dataLabel="Email">{r.email}</Td>
+              <Td dataLabel="Comment">{r.comment ?? ''}</Td>
+              <Td dataLabel="Rating">{r.rating ?? '-'}</Td>
+              <Td dataLabel="Useful">{r.useful ?? '-'}</Td>
+            </Tr>
+          ))
+        ) : (
+          <Tr>
+            <Td colSpan={4}>Loading...</Td>
+          </Tr>
+        )}
+      </Tbody>
     </Table>
   );
 };
@@ -215,7 +215,7 @@ const RatingsList: React.FC = () => {
 
   return (
     <div className="admin-container">
-      <PageSection key="header" className="admin-header" variant={PageSectionVariants.light}>
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -235,39 +235,38 @@ const RatingsList: React.FC = () => {
       </PageSection>
 
       {catalogItemsResult.length > 0 ? (
-        <PageSection key="body" variant={PageSectionVariants.light} className="admin-body">
-          <Table
-            aria-label="Table"
-            variant="compact"
-            cells={['Name', 'Catalog', 'Rating']}
-            rows={catalogItemsResult.map((ci) => {
-              const cells: any[] = [];
-              cells.push(
-                // Name
-                <>
-                  {ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] &&
-                  ci.metadata.labels?.['gpte.redhat.com/asset-uuid'] ? (
-                    <Button
-                      variant="link"
-                      onClick={() => showRatingsHistory(ci.metadata.labels['gpte.redhat.com/asset-uuid'])}
-                    >
-                      {ci.metadata.name}
-                    </Button>
-                  ) : (
-                    <p>{ci.metadata.name}</p>
-                  )}
-                </>,
-                // Project
-                <>{ci.metadata.namespace}</>,
-                <>{ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] || '-'}</>,
-              );
-              return {
-                cells: cells,
-              };
-            })}
-          >
-            <TableHeader />
-            <TableBody />
+        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
+          <Table aria-label="Catalog items ratings table" variant="compact">
+            <Thead>
+              <Tr>
+                <Th>Name</Th>
+                <Th>Catalog</Th>
+                <Th>Rating</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {catalogItemsResult.map((ci) => (
+                <Tr key={`${ci.metadata.namespace}-${ci.metadata.name}`}>
+                  <Td dataLabel="Name">
+                    {ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] &&
+                    ci.metadata.labels?.['gpte.redhat.com/asset-uuid'] ? (
+                      <Button
+                        variant="link"
+                        onClick={() => showRatingsHistory(ci.metadata.labels['gpte.redhat.com/asset-uuid'])}
+                      >
+                        {ci.metadata.name}
+                      </Button>
+                    ) : (
+                      <p>{ci.metadata.name}</p>
+                    )}
+                  </Td>
+                  <Td dataLabel="Catalog">{ci.metadata.namespace}</Td>
+                  <Td dataLabel="Rating">
+                    {ci.metadata.labels?.[`${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`] || '-'}
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
           </Table>
         </PageSection>
       ) : null}

@@ -1,85 +1,23 @@
-.catalog__body > .pf-v5-c-card {
-  border: 1px solid #f0f0f0;
-  box-shadow: none;
-}
-
-.catalog__body > .pf-v5-c-card > .pf-v5-c-card__body {
-  padding: var(--pf-v5-global--spacer--md) 0 0 0;
-}
-.catalog__body > .pf-v5-c-card > .pf-v5-c-card__body > .pf-v5-c-sidebar > .pf-v5-c-sidebar__main {
-  align-items: stretch;
-}
-.catalog__body
-  > .pf-v5-c-card
-  > .pf-v5-c-card__body
-  > .pf-v5-c-sidebar
-  > .pf-v5-c-sidebar__main
-  > .pf-v5-c-sidebar__content {
-  align-items: stretch;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.catalog__header {
-  padding: 0 var(--pf-v5-global--spacer--xl) var(--pf-v5-global--spacer--md) 0 !important;
-}
-.catalog__content-box {
-  height: 100%;
-}
-.catalog__sidebar-panel .pf-v5-c-tabs.pf-m-vertical {
-  height: auto;
-}
-
-@media (--small-viewport) {
-  .catalog__header {
-    padding: var(--pf-v5-global--spacer--xl) var(--pf-v5-global--spacer--sm) !important;
-  }
-}
-
-.catalog__header .pf-v5-c-title {
-  margin-bottom: var(--pf-v5-global--spacer--xs) !important;
-}
-
 .catalog__searchbox {
   max-width: 320px;
-}
-
-.catalog__sidebar-panel {
-  padding-right: var(--pf-v5-global--spacer--md);
-}
-@media (--small-viewport) {
-  .catalog__sidebar-panel {
-    position: relative;
-  }
 }
 
 .catalog__item-count {
   justify-content: flex-end;
   display: flex;
-  font-weight: var(--pf-v5-global--FontWeight--bold);
 }
 
-.catalog__content-box.pf-v5-c-page__main-section {
-  background-color: var(--pf-v5-global--palette--black-200);
+.catalog__content-box.pf-v6-c-page__main-section {
+  background-color: var(--pf-t--global--background--color--200);
   min-height: 460px;
 }
 
-.catalog__content-box--empty.pf-v5-c-page__main-section {
-  background-color: var(--pf-v5-global--palette--black-200);
+.catalog__content-box--empty.pf-v6-c-page__main-section {
+  background-color: var(--pf-t--global--background--color--200);
   min-height: 450px;
 }
 .catalog__right-tools {
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
-}
-.catalog__right-tools .pf-v5-c-button, .catalog__right-tools .pf-v5-c-menu-toggle {
-  margin-left: 1rem;
-  padding: 0;
-}
-.catalog__sort-by .pf-v5-c-menu-toggle__text {
-  margin: 0 var(--pf-v5-global--spacer--sm);
-  width: auto;
-  font-size: var(--pf-v5-global--FontSize--sm);
 }

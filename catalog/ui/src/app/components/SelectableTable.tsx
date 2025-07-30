@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, TableHeader, TableBody } from '@patternfly/react-table/deprecated';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 
 const SelectableTable: React.FC<{
   columns: any[];
@@ -17,10 +17,42 @@ const SelectableTable: React.FC<{
     }
   }
 
+  // Calculate if all rows are selected for the header checkbox
+  const allRowsSelected = rows.length > 0 && rows.every((row) => row.selected);
+
   return (
-    <Table aria-label="Selectable Table" cells={columns} onSelect={onSelect} rows={rows} variant="compact">
-      <TableHeader />
-      <TableBody />
+    <Table aria-label="Selectable Table" variant="compact">
+      <Thead>
+        <Tr>
+          <Th
+            select={{
+              onSelect: (_event, isSelected) => onSelect(null, isSelected, -1),
+              isSelected: allRowsSelected,
+            }}
+          />
+          {columns.map((column, index) => (
+            <Th key={index}>{column}</Th>
+          ))}
+        </Tr>
+      </Thead>
+      <Tbody>
+        {rows.map((row, rowIndex) => (
+          <Tr key={rowIndex}>
+            <Td
+              select={{
+                onSelect: (_event, isSelected) => onSelect(null, isSelected, rowIndex),
+                isSelected: row.selected || false,
+                rowIndex,
+              }}
+            />
+            {row.cells.map((cell: any, cellIndex: number) => (
+              <Td key={cellIndex} dataLabel={columns[cellIndex]}>
+                {cell}
+              </Td>
+            ))}
+          </Tr>
+        ))}
+      </Tbody>
     </Table>
   );
 };

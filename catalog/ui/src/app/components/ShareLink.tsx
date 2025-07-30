@@ -20,8 +20,8 @@ const ShareLink: React.FC<{
         <CopyToClipboard text={urlString} />
       </Modal>
       <Tooltip position="bottom" content={<div>Share {name}</div>}>
-        <Button onClick={openModal} variant="control" aria-label="Share">
-          <ShareSquareIcon />
+        <Button icon={<ShareSquareIcon />} onClick={openModal} variant="control" aria-label="Share">
+          
         </Button>
       </Tooltip>
     </>

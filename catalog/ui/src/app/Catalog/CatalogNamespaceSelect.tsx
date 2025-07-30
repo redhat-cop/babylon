@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { PageSection, PageSectionVariants } from '@patternfly/react-core';
+import { PageSection } from '@patternfly/react-core';
 import { Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import { displayName } from '@app/util';
-
-import './catalog-namespace-select.css';
 
 const CatalogNamespaceSelect: React.FC<{
   onSelect: (ns: string) => void;
@@ -19,13 +17,13 @@ const CatalogNamespaceSelect: React.FC<{
   };
 
   return (
-    <PageSection variant={PageSectionVariants.light} className="catalog-namespace-select">
+    <PageSection hasBodyWrapper={false}>
       <Dropdown
         isOpen={isOpen}
         onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
         isScrollable
         toggle={(ns: React.Ref<MenuToggleElement>) => (
-          <MenuToggle ref={ns} onClick={onToggleClick} isExpanded={isOpen} variant="plainText">
+          <MenuToggle ref={ns} onClick={onToggleClick} isExpanded={isOpen}>
             Catalog: {selected ? displayName(selectedCatalogNamespace) : 'all catalogs'}
           </MenuToggle>
         )}
