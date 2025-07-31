@@ -377,12 +377,16 @@ def replace_template_variables(data, job_vars):
         
         def replace_match(match):
             var_name = match.group(1)
+            default_value = match.group(2)  # The default value if present
             
-            # Only replace if the variable exists in job_vars
+            # If variable exists in job_vars, use it
             if var_name in job_vars:
                 return str(job_vars[var_name])
+            # If variable doesn't exist but there's a default value, use the default
+            elif default_value is not None:
+                return default_value
             else:
-                # Return the original template unchanged
+                # Return the original template unchanged (no variable and no default)
                 return match.group(0)
         
         return re.sub(pattern, replace_match, data)
@@ -720,7 +724,8 @@ async def catalog_item_check_availability(request):
                 resources.append(sandbox_copy)
     print(resources)
     headers = {
-        "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        "Authorization": f"Bearer {sandbox_api_authorization_token}",
+        "Content-Type": "application/json"
     }
     return await api_proxy(
         headers=headers,
