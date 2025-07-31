@@ -727,7 +727,7 @@ async def catalog_item_check_availability(request):
         login_headers = {
             "Authorization": f"Bearer {sandbox_api_authorization_token}"
         }
-        async with session.post(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
