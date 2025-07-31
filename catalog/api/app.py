@@ -680,7 +680,7 @@ async def catalog_item_check_availability(request):
         group = 'gpte.redhat.com',
         name = agnosticv_name,
         namespace = 'babylon-config',
-        plural = 'AgnosticVComponents',
+        plural = 'agnosticvcomponents',
         version = 'v1',
     )
     print(agnosticv_component)
