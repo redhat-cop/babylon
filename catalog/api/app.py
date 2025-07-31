@@ -687,7 +687,6 @@ async def catalog_item_check_availability(request):
         plural = 'agnosticvcomponents',
         version = 'v1',
     )
-    print(agnosticv_component)
     spec = agnosticv_component.get('spec')
     if not spec:
         raise web.HTTPNotFound(reason="AgnosticV component has no spec")
@@ -722,9 +721,24 @@ async def catalog_item_check_availability(request):
                 sandbox_copy = replace_template_variables(sandbox_copy, job_vars)
                 # Create processed request object with the modified sandbox
                 resources.append(sandbox_copy)
-    print(resources)
+    
+    # First, get access token from login endpoint
+    async with aiohttp.ClientSession() as session:
+        login_headers = {
+            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        }
+        async with session.post(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+    
+    # Use access token for placements/dry-run endpoint
     headers = {
-        "Authorization": f"Bearer {sandbox_api_authorization_token}",
+        "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
     return await api_proxy(
