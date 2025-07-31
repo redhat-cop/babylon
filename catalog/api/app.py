@@ -725,7 +725,7 @@ async def catalog_item_check_availability(request):
     return await api_proxy(
         headers=headers,
         data=json.dumps({"resources": resources}),
-        method="GET",
+        method="POST",
         url=f"{sandbox_api}/api/v1/placements/dry-run",
     )
 
