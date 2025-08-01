@@ -158,20 +158,6 @@ const AnarchySubjects: React.FC = () => {
     }
   }
 
-  async function confirmThenForceDelete(): Promise<void> {
-    if (confirm('Force delete selected AnarchySubjects? Forcing delete may orphan provisioned cloud resources!')) {
-      const removedAnarchySubjects: AnarchySubject[] = [];
-      for (const anarchySubject of anarchySubjects) {
-        if (selectedUids.includes(anarchySubject.metadata.uid)) {
-          await forceDeleteAnarchySubject(anarchySubject);
-          removedAnarchySubjects.push(anarchySubject);
-        }
-      }
-      reduceSelectedUids({ type: 'clear' });
-      revalidate({ action: 'delete', updatedItems: removedAnarchySubjects });
-    }
-  }
-
   // Fetch all if keywordFilter is defined.
   if (
     keywordFilter &&
@@ -242,11 +228,6 @@ const AnarchySubjects: React.FC = () => {
               position="right"
               actionDropdownItems={[
                 <ActionDropdownItem key="delete" label="Delete Selected" onSelect={() => confirmThenDelete()} />,
-                <ActionDropdownItem
-                  key="force-delete"
-                  label="Force Delete Selected"
-                  onSelect={() => confirmThenForceDelete()}
-                />,
               ]}
             />
           </SplitItem>
