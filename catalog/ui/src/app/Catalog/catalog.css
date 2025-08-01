@@ -21,3 +21,6 @@
   flex-direction: row;
   justify-content: flex-end;
 }
+.catalog__header {
+  padding-left: 0;
+}
