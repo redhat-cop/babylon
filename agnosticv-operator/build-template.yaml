@@ -7,10 +7,8 @@ metadata:
   name: babylon-agnosticv-operator-build
 
 parameters:
-- name: KOPF_S2I_IMAGE
-  value: quay.io/redhat-cop/python-kopf-s2i:v1.37
 - name: GIT_REPO
-  value: https://github.com/redhat-pfe/babylon-agnosticv-operator.git
+  value: https://github.com/redhat-cop/babylon.git
 - name: GIT_REF
   value: main
 - name: NAME
@@ -46,7 +44,4 @@ objects:
       type: Docker
       dockerStrategy:
         dockerfilePath: Containerfile
-        from:
-          kind: DockerImage
-          name: ${KOPF_S2I_IMAGE}
     triggers: []
