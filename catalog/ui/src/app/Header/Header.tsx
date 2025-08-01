@@ -188,7 +188,8 @@ const Header: React.FC<{
             variant="plainText"
             aria-label="Log in menu"
             onClick={() => setIsUserControlDropdownOpen((isOpen) => !isOpen)}
-            style={{ width: 'auto', color: userImpersonated ? '#FF0000' : '#fff', fill: '#fff' }}
+            className={theme === 'dark' ? 'header-component__user-controls--dark' : 'header-component__user-controls--light'}
+            style={{ width: 'auto', color: userImpersonated ? '#FF0000' : theme === 'dark' ? '#fff' : '#151515', fill: theme === 'dark' ? '#fff' : '#151515' }}
           >
             {userImpersonated ? userImpersonated : email}
           </MenuToggle>
@@ -204,7 +205,7 @@ const Header: React.FC<{
   );
 
   return (
-    <Masthead style={{ backgroundColor: 'rgb(21,21,21)' }} className="header-component">
+    <Masthead style={theme === 'dark' ? {backgroundColor: 'rgb(21,21,21)'} : {}} className="header-component">
       <MastheadMain>
         <MastheadToggle>
           <PageToggleButton

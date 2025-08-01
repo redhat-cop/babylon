@@ -9,7 +9,10 @@
   color: #ee0000;
   font-weight: bold;
 }
-.header-component .pf-v6-c-menu-toggle__toggle-icon {
+.header-component .header-component__user-controls--light .pf-v6-c-menu-toggle__toggle-icon {
+  color: #151515;
+}
+.header-component .header-component__user-controls--dark .pf-v6-c-menu-toggle__toggle-icon {
   color: #fff;
 }
 
