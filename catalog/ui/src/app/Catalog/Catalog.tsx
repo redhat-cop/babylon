@@ -587,7 +587,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                         selected={selectedLabels}
                       />
                     </SidebarPanel>
-                    <SidebarContent>
+                    <SidebarContent style={{ overflow: 'hidden' }}>
                       <PageSection hasBodyWrapper={false} className="catalog__header">
                         <Split>
                           <SplitItem isFilled>
