@@ -113,17 +113,6 @@ const AnarchySubjectInstanceComponent: React.FC<{
     }
   }
 
-  async function confirmThenForceDelete(): Promise<void> {
-    if (
-      confirm(
-        `Force delete AnarchySubject ${anarchySubjectName}? Forcing delete may orphan provisioned cloud resources!`,
-      )
-    ) {
-      await forceDeleteAnarchySubject(anarchySubject);
-      navigate(`/admin/anarchysubjects/${namespace}`);
-    }
-  }
-
   async function confirmThenDeleteAnarchyActions(): Promise<void> {
     if (confirm(`Delete selected AnarchyActions?`)) {
       const removedAnarchyActions: AnarchyAction[] = [];
@@ -203,12 +192,6 @@ const AnarchySubjectInstanceComponent: React.FC<{
               position="right"
               actionDropdownItems={[
                 <ActionDropdownItem key="delete" label="Delete" onSelect={() => confirmThenDelete()} />,
-                <ActionDropdownItem
-                  key="force-delete"
-                  label="Force Delete"
-                  onSelect={() => confirmThenForceDelete()}
-                  isDisabled={!anarchySubject.metadata.deletionTimestamp}
-                />,
                 <ActionDropdownItem
                   key="deleteAnarchyActions"
                   label="Delete selected AnarchyActions"
