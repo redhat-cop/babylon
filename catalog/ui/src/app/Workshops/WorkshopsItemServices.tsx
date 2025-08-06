@@ -46,9 +46,11 @@ const WorkshopsItemServices: React.FC<{
   const [isLoading, setIsLoading] = useState(false);
   const { mutate } = useSWRConfig();
 
-  const unusedResourceClaims = resourceClaims.filter(
-    (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email),
-  );
+  const unusedResourceClaims = resourceClaims
+    .filter((r) => !r.metadata.deletionTimestamp)
+    .filter(
+      (r) => !userAssignments.some((uA) => uA.spec.resourceClaimName === r.metadata.name && uA.spec.assignment?.email),
+    );
   const [instancesToDelete, setInstancesToDelete] = useState(0);
 
   useEffect(() => {
@@ -69,7 +71,9 @@ const WorkshopsItemServices: React.FC<{
   };
 
   const confirmModal = () => {
-    deleteUnusedInstances({ count: resourceClaims.length - instancesToDelete });
+    deleteUnusedInstances({
+      count: resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length - instancesToDelete,
+    });
     closeModal();
   };
 
@@ -91,7 +95,7 @@ const WorkshopsItemServices: React.FC<{
         );
       }
       let i = 0;
-      const instancesToDelete = resourceClaims.length - count;
+      const instancesToDelete = resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length - count;
       for (let resourceClaim of unusedResourceClaims) {
         if (i < instancesToDelete) await deleteResourceClaim(resourceClaim);
         i++;
@@ -113,7 +117,7 @@ const WorkshopsItemServices: React.FC<{
     [workshopProvisions, unusedResourceClaims, resourceClaims],
   );
 
-  if (resourceClaims.length == 0) {
+  if (resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length == 0) {
     return (
       <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Services Found" variant="full">
         <EmptyStateBody>No services have been provisioned for this workshop.</EmptyStateBody>
@@ -133,165 +137,171 @@ const WorkshopsItemServices: React.FC<{
             setSelectedUids([]);
           }
         }}
-        rows={resourceClaims.map((resourceClaim: ResourceClaim) => {
-          const resourceHandle: K8sObjectReference = resourceClaim.status?.resourceHandle;
-          const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
-          const specResources = resourceClaim.spec.resources || [];
-          const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
-          const actionHandlers = {
-            restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }),
-            delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
-          };
-          const canDelete = resourceClaims.length === workshopProvisions?.[0].spec.count;
-          // Find lab user interface information either in the resource claim or inside resources
-          // associated with the provisioned service.
-          const labUserInterfaceData =
-            resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
-            resourceClaim?.status?.summary?.provision_data?.lab_ui_data ||
-            resourceClaim?.status?.summary?.provision_data?.labUserInterfaceData ||
-            resources
-              .map((r) =>
-                r?.kind === 'AnarchySubject'
-                  ? r?.spec?.vars?.provision_data?.lab_ui_data
-                  : r?.data?.labUserInterfaceData,
-              )
-              .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
-              .find((u) => u != null);
-          const labUserInterfaceMethod =
-            resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
-            resourceClaim?.status?.summary?.provision_data?.lab_ui_method ||
-            resourceClaim?.status?.summary?.provision_data?.labUserInterfaceMethod ||
-            resources
-              .map((r) =>
-                r?.kind === 'AnarchySubject'
-                  ? r?.spec?.vars?.provision_data?.lab_ui_method
-                  : r?.data?.labUserInterfaceMethod,
-              )
-              .find((u) => u != null);
-          const labUserInterfaceUrl =
-            resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
-            resourceClaim?.status?.summary?.provision_data?.labUserInterfaceUrl ||
-            resourceClaim?.status?.summary?.provision_data?.lab_ui_url ||
-            resourceClaim?.status?.summary?.provision_data?.bookbag_url ||
-            resources
-              .map((r) => {
-                const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
-                return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
-              })
-              .find((u) => u != null);
-          const cells: any[] = [
-            // Name
-            <>
-              <Link key="services" to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}>
-                {displayName(resourceClaim)}
-              </Link>
-              {isAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
-            </>,
-            // GUID
-            <>
-              {guid ? (
-                isAdmin && resourceHandle ? (
-                  [
-                    <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
-                      {guid}
-                    </Link>,
-                    <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
-                  ]
-                ) : (
-                  guid
+        rows={resourceClaims
+          .filter((r) => !r.metadata.deletionTimestamp)
+          .map((resourceClaim: ResourceClaim) => {
+            const resourceHandle: K8sObjectReference = resourceClaim.status?.resourceHandle;
+            const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
+            const specResources = resourceClaim.spec.resources || [];
+            const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
+            const actionHandlers = {
+              restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }),
+              delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
+            };
+            const canDelete =
+              resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length === workshopProvisions?.[0].spec.count;
+            // Find lab user interface information either in the resource claim or inside resources
+            // associated with the provisioned service.
+            const labUserInterfaceData =
+              resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceData`] ||
+              resourceClaim?.status?.summary?.provision_data?.lab_ui_data ||
+              resourceClaim?.status?.summary?.provision_data?.labUserInterfaceData ||
+              resources
+                .map((r) =>
+                  r?.kind === 'AnarchySubject'
+                    ? r?.spec?.vars?.provision_data?.lab_ui_data
+                    : r?.data?.labUserInterfaceData,
                 )
-              ) : (
-                <p>-</p>
-              )}
-            </>,
+                .map((j) => (typeof j === 'string' ? JSON.parse(j) : j))
+                .find((u) => u != null);
+            const labUserInterfaceMethod =
+              resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceMethod`] ||
+              resourceClaim?.status?.summary?.provision_data?.lab_ui_method ||
+              resourceClaim?.status?.summary?.provision_data?.labUserInterfaceMethod ||
+              resources
+                .map((r) =>
+                  r?.kind === 'AnarchySubject'
+                    ? r?.spec?.vars?.provision_data?.lab_ui_method
+                    : r?.data?.labUserInterfaceMethod,
+                )
+                .find((u) => u != null);
+            const labUserInterfaceUrl =
+              resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrl`] ||
+              resourceClaim?.status?.summary?.provision_data?.labUserInterfaceUrl ||
+              resourceClaim?.status?.summary?.provision_data?.lab_ui_url ||
+              resourceClaim?.status?.summary?.provision_data?.bookbag_url ||
+              resources
+                .map((r) => {
+                  const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
+                  return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
+                })
+                .find((u) => u != null);
+            const cells: any[] = [
+              // Name
+              <>
+                <Link
+                  key="services"
+                  to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
+                >
+                  {displayName(resourceClaim)}
+                </Link>
+                {isAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
+              </>,
+              // GUID
+              <>
+                {guid ? (
+                  isAdmin && resourceHandle ? (
+                    [
+                      <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
+                        {guid}
+                      </Link>,
+                      <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
+                    ]
+                  ) : (
+                    guid
+                  )
+                ) : (
+                  <p>-</p>
+                )}
+              </>,
 
-            // Status
-            <>
-              {specResources.length >= 1 || resourceClaim.status?.summary ? (
-                <ServiceStatus
-                  creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                  resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
-                  resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
-                  resourceClaim={resourceClaim}
-                  summary={resourceClaim.status?.summary}
-                />
-              ) : (
-                <p>...</p>
-              )}
-            </>,
-
-            // User
-            <>
-              {userAssignments.some((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
-                ? userAssignments
-                    .filter((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
-                    .map((uA) => <p>{uA.spec.assignment?.email}</p>)
-                : '-'}
-            </>,
-
-            // Created
-            <>
-              <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
-              <br key="break" />
-              (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
-            </>,
-            // Actions
-            <React.Fragment key="actions">
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  gap: 'var(--pf-t--global--spacer--sm)',
-                }}
-                className="workshops-item-services__actions"
-              >
-                <ButtonCircleIcon
-                  key="actions__restart"
-                  onClick={actionHandlers.restart}
-                  description="Redeploy Instance"
-                  icon={RedoIcon}
-                />
-                {canDelete ? (
-                  <ButtonCircleIcon
-                    key="actions__delete"
-                    onClick={actionHandlers.delete}
-                    description="Delete Instance"
-                    icon={TrashIcon}
+              // Status
+              <>
+                {specResources.length >= 1 || resourceClaim.status?.summary ? (
+                  <ServiceStatus
+                    creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
+                    resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
+                    resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
+                    resourceClaim={resourceClaim}
+                    summary={resourceClaim.status?.summary}
                   />
-                ) : null}
-                {
-                  // Lab Interface
-                  labUserInterfaceUrl ? (
-                    <LabInterfaceLink
-                      key="actions__lab-interface"
-                      url={labUserInterfaceUrl}
-                      data={labUserInterfaceData}
-                      method={labUserInterfaceMethod}
-                      variant="circle"
-                    />
-                  ) : null
-                }
-              </div>
-            </React.Fragment>,
-          ];
+                ) : (
+                  <p>...</p>
+                )}
+              </>,
 
-          return {
-            cells: cells,
-            onSelect: (isSelected: boolean) =>
-              setSelectedUids((uids) => {
-                if (isSelected) {
-                  if (uids.includes(resourceClaim.metadata.uid)) {
-                    return uids;
-                  } else {
-                    return [...uids, resourceClaim.metadata.uid];
+              // User
+              <>
+                {userAssignments.some((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
+                  ? userAssignments
+                      .filter((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
+                      .map((uA) => <p>{uA.spec.assignment?.email}</p>)
+                  : '-'}
+              </>,
+
+              // Created
+              <>
+                <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
+                <br key="break" />
+                (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
+              </>,
+              // Actions
+              <React.Fragment key="actions">
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    gap: 'var(--pf-t--global--spacer--sm)',
+                  }}
+                  className="workshops-item-services__actions"
+                >
+                  <ButtonCircleIcon
+                    key="actions__restart"
+                    onClick={actionHandlers.restart}
+                    description="Redeploy Instance"
+                    icon={RedoIcon}
+                  />
+                  {canDelete ? (
+                    <ButtonCircleIcon
+                      key="actions__delete"
+                      onClick={actionHandlers.delete}
+                      description="Delete Instance"
+                      icon={TrashIcon}
+                    />
+                  ) : null}
+                  {
+                    // Lab Interface
+                    labUserInterfaceUrl ? (
+                      <LabInterfaceLink
+                        key="actions__lab-interface"
+                        url={labUserInterfaceUrl}
+                        data={labUserInterfaceData}
+                        method={labUserInterfaceMethod}
+                        variant="circle"
+                      />
+                    ) : null
                   }
-                } else {
-                  return uids.filter((uid) => uid !== resourceClaim.metadata.uid);
-                }
-              }),
-            selected: selectedUids.includes(resourceClaim.metadata.uid),
-          };
-        })}
+                </div>
+              </React.Fragment>,
+            ];
+
+            return {
+              cells: cells,
+              onSelect: (isSelected: boolean) =>
+                setSelectedUids((uids) => {
+                  if (isSelected) {
+                    if (uids.includes(resourceClaim.metadata.uid)) {
+                      return uids;
+                    } else {
+                      return [...uids, resourceClaim.metadata.uid];
+                    }
+                  } else {
+                    return uids.filter((uid) => uid !== resourceClaim.metadata.uid);
+                  }
+                }),
+              selected: selectedUids.includes(resourceClaim.metadata.uid),
+            };
+          })}
       />
       <Modal
         className="delete-unused-modal"
@@ -334,7 +344,10 @@ const WorkshopsItemServices: React.FC<{
             />
           </FormGroup>
           {instancesToDelete > 0 ? (
-            <p>This action will size down the workshop to {resourceClaims.length - instancesToDelete} instances</p>
+            <p>
+              This action will size down the workshop to{' '}
+              {resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length - instancesToDelete} instances
+            </p>
           ) : null}
         </Form>
       </Modal>

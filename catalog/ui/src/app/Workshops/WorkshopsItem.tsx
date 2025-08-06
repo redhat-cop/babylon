@@ -43,7 +43,6 @@ import {
   BABYLON_DOMAIN,
   compareK8sObjects,
   compareK8sObjectsArr,
-  DEMO_DOMAIN,
   displayName,
   FETCH_BATCH_LIMIT,
   getStageFromK8sObject,
