@@ -208,21 +208,28 @@ class Workshop(CachedKopfObject):
                 assigned_user_count += 1
             else:
                 available_user_count += 1
+        
+        # Collect WorkshopProvision counts
+        total_failed_count = 0
+        total_resource_claim_count = 0
+        total_retry_count = 0
+        
+        for workshop_provision in self.get_workshop_provisions():
+            provision_status = workshop_provision.status or {}
+            total_failed_count += provision_status.get('failedCount', 0)
+            total_resource_claim_count += provision_status.get('resourceClaimCount', 0)
+            total_retry_count += provision_status.get('retryCount', 0)
+
         await self.merge_patch_status({
             "userCount": {
                 "assigned": assigned_user_count,
                 "available": available_user_count,
                 "total": total_user_count,
-            }
-        })
-
-    async def update_provision_count(self, provisioning, failed, completed, ordered):
-
-        await self.merge_patch_status({
+            },
             "provisionCount": {
-                "ordered": ordered,
-                "provisioning": provisioning,
-                "failed": failed,
-                "completed": completed,
+                "failed": total_failed_count,
+                "completed": total_resource_claim_count,
+                "retries": total_retry_count,
             }
         })
+
