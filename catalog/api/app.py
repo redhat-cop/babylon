@@ -959,6 +959,385 @@ async def workshop_post(request):
 
     raise web.HTTPConflict()
 
+@routes.post("/api/multiworkshop")
+async def multiworkshop_post(request):
+    """
+    Create a new MultiWorkshop CRD in the user's namespace.
+    """
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    
+    if not request.can_read_body:
+        raise web.HTTPBadRequest(reason="Request body is required")
+    
+    data = await request.json()
+    if not data:
+        raise web.HTTPBadRequest(reason="Request body cannot be empty")
+    
+    # Validate required fields
+    required_fields = ['name', 'startDate', 'endDate']
+    for field in required_fields:
+        if field not in data:
+            raise web.HTTPBadRequest(reason=f"Required field '{field}' is missing")
+    
+    # Get user namespace
+    user_namespace = session.get('userNamespace')
+    if not user_namespace:
+        raise web.HTTPInternalServerError(reason="User namespace not found")
+    
+    namespace_name = user_namespace['name']
+    
+    # Create MultiWorkshop CRD object
+    # Generate Kubernetes-compliant resource name from the display name
+    multiworkshop_name = data['name'].lower().replace(' ', '-').replace('_', '-')
+    # Ensure name follows Kubernetes naming conventions
+    multiworkshop_name = re.sub(r'[^a-z0-9\-]', '-', multiworkshop_name)
+    multiworkshop_name = re.sub(r'-+', '-', multiworkshop_name).strip('-')
+    
+    # If the name is empty after sanitization, generate a default name
+    if not multiworkshop_name:
+        multiworkshop_name = f"multiworkshop-{random_string(8).lower()}"
+    
+    multiworkshop_object = {
+        "apiVersion": "babylon.gpte.redhat.com/v1",
+        "kind": "MultiWorkshop",
+        "metadata": {
+            "name": multiworkshop_name,
+            "namespace": namespace_name,
+            "annotations": {
+                "babylon.gpte.redhat.com/created-by": user['metadata']['name']
+            }
+        },
+        "spec": {
+            "displayName": data['name'],  # Store original name as displayName
+            "startDate": data['startDate'],
+            "endDate": data['endDate']
+        }
+    }
+    
+    # Add optional fields if provided
+    optional_fields = ['description', 'backgroundImage', 'logoImage', 'numberSeats', 'assets', 'salesforceId', 'purpose', 'purpose-activity']
+    for field in optional_fields:
+        if field in data:
+            multiworkshop_object['spec'][field] = data[field]
+    
+    try:
+        # Create the MultiWorkshop CRD object
+        result = await custom_objects_api.create_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=namespace_name,
+            plural='multiworkshops',
+            body=multiworkshop_object
+        )
+        
+        # Remove managedFields from response
+        if 'managedFields' in result.get('metadata', {}):
+            del result['metadata']['managedFields']
+        
+        return web.json_response(result, status=201)
+        
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.status == 409:
+            raise web.HTTPConflict(reason=f"MultiWorkshop with name '{multiworkshop_name}' already exists")
+        elif exception.status == 403:
+            raise web.HTTPForbidden(reason="Insufficient permissions to create MultiWorkshop")
+        else:
+            raise web.HTTPInternalServerError(reason=f"Failed to create MultiWorkshop: {exception.reason}")
+
+@routes.post("/api/multiworkshop/{multiworkshop_namespace}/{multiworkshop_name}/approve")
+async def multiworkshop_approve(request):
+    """
+    Approve a MultiWorkshop and create Workshop resources for each asset.
+    Only accessible by admin users.
+    """
+    multiworkshop_namespace = request.match_info.get('multiworkshop_namespace')
+    multiworkshop_name = request.match_info.get('multiworkshop_name')
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    
+    # Check admin access
+    if not session.get('admin'):
+        raise web.HTTPForbidden(reason="Admin access required")
+    
+    try:
+        # Get the MultiWorkshop from the specified namespace
+        multiworkshop = await custom_objects_api.get_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=multiworkshop_namespace,
+            plural='multiworkshops',
+            name=multiworkshop_name
+        )
+        target_namespace = multiworkshop_namespace
+        
+        spec = multiworkshop.get('spec', {})
+        assets = spec.get('assets', [])
+        
+        if not assets:
+            raise web.HTTPBadRequest(reason="MultiWorkshop has no assets to create workshops for")
+        
+        # Create workshops and provisions for each asset
+        created_workshops = []
+        created_provisions = []
+        updated_assets = []
+        
+        for asset in assets:
+            asset_key = asset.get('key')
+            if not asset_key:
+                continue
+                
+            # Generate workshop name
+            workshop_name = f"{multiworkshop_name}-{asset_key}".lower()
+            workshop_name = re.sub(r'[^a-z0-9\-]', '-', workshop_name)
+            workshop_name = re.sub(r'-+', '-', workshop_name).strip('-')
+            
+            # Build workshop annotations
+            workshop_annotations = {
+                "babylon.gpte.redhat.com/created-by": user['metadata']['name'],
+                "babylon.gpte.redhat.com/multiworkshop-source": multiworkshop_name
+            }
+            
+            # Add demo.redhat.com annotations if values are provided
+            if spec.get('salesforceId'):
+                workshop_annotations['demo.redhat.com/salesforce-id'] = spec['salesforceId']
+            
+            if spec.get('purpose'):
+                workshop_annotations['demo.redhat.com/purpose'] = spec['purpose']
+            else:
+                workshop_annotations['demo.redhat.com/purpose'] = 'Practice / Enablement'
+            
+            if spec.get('purpose-activity'):
+                workshop_annotations['demo.redhat.com/purpose-activity'] = spec['purpose-activity']
+            else:
+                workshop_annotations['demo.redhat.com/purpose-activity'] = 'Multi Workshop'
+            
+            # Create Workshop object
+            workshop_object = {
+                "apiVersion": "babylon.gpte.redhat.com/v1",
+                "kind": "Workshop",
+                "metadata": {
+                    "name": workshop_name,
+                    "namespace": target_namespace,
+                    "labels": {
+                        "babylon.gpte.redhat.com/multiworkshop": multiworkshop_name,
+                        "babylon.gpte.redhat.com/asset-key": asset_key
+                    },
+                    "annotations": workshop_annotations
+                },
+                "spec": {
+                    "displayName": f"{spec.get('displayName', multiworkshop_name)} - {asset_key}",
+                    "description": spec.get('description', f"Workshop for asset {asset_key}"),
+                    "openRegistration": True,
+                    "multiuserServices": False
+                }
+            }
+            
+            # Add lifespan if start/end dates are provided
+            if spec.get('startDate') and spec.get('endDate'):
+                workshop_object['spec']['lifespan'] = {
+                    "start": spec['startDate'],
+                    "end": spec['endDate']
+                }
+            
+            try:
+                # Create the Workshop
+                created_workshop = await custom_objects_api.create_namespaced_custom_object(
+                    group='babylon.gpte.redhat.com',
+                    version='v1',
+                    namespace=target_namespace,
+                    plural='workshops',
+                    body=workshop_object
+                )
+                
+                created_workshops.append(created_workshop)
+                workshop_created = True
+                
+            except kubernetes_asyncio.client.exceptions.ApiException as e:
+                if e.status == 409:
+                    # Workshop already exists, get the existing one
+                    existing_workshop = await custom_objects_api.get_namespaced_custom_object(
+                        group='babylon.gpte.redhat.com',
+                        version='v1',
+                        namespace=target_namespace,
+                        plural='workshops',
+                        name=workshop_name
+                    )
+                    created_workshops.append(existing_workshop)
+                    workshop_created = False
+                else:
+                    raise web.HTTPInternalServerError(reason=f"Failed to create workshop for asset {asset_key}: {e.reason}")
+            
+            # Create WorkshopProvision for the workshop
+            provision_name = f"{workshop_name}"
+            
+            # Get default count from numberSeats or use 1 as default
+            provision_count = spec.get('numberSeats', 1)
+            
+            # Try to get the catalogItem from the namespace to extract metadata
+            catalog_item = None
+            catalog_item_namespace = target_namespace  # Default to target namespace
+            
+            try:
+                # Try to find catalogItem in the target namespace first
+                catalog_item = await custom_objects_api.get_namespaced_custom_object(
+                    group='babylon.gpte.redhat.com',
+                    version='v1',
+                    namespace=target_namespace,
+                    plural='catalogitems',
+                    name=asset_key
+                )
+            except kubernetes_asyncio.client.exceptions.ApiException as e:
+                if e.status == 404:
+                    # If not found in target namespace, try to find in catalog namespaces
+                    for catalog_namespace in session.get('catalogNamespaces', []):
+                        try:
+                            catalog_item = await custom_objects_api.get_namespaced_custom_object(
+                                group='babylon.gpte.redhat.com',
+                                version='v1',
+                                namespace=catalog_namespace['name'],
+                                plural='catalogitems',
+                                name=asset_key
+                            )
+                            catalog_item_namespace = catalog_namespace['name']
+                            break
+                        except kubernetes_asyncio.client.exceptions.ApiException:
+                            continue
+            
+            # Build labels for WorkshopProvision
+            provision_labels = {
+                "babylon.gpte.redhat.com/multiworkshop": multiworkshop_name,
+                "babylon.gpte.redhat.com/asset-key": asset_key,
+                "babylon.gpte.redhat.com/workshop": workshop_name,
+                "babylon.gpte.redhat.com/catalogItemName": asset_key,
+                "babylon.gpte.redhat.com/catalogItemNamespace": catalog_item_namespace
+            }
+            
+            # Add asset-uuid label if catalogItem exists and has it
+            if catalog_item and catalog_item.get('metadata', {}).get('labels', {}).get('gpte.redhat.com/asset-uuid'):
+                provision_labels['gpte.redhat.com/asset-uuid'] = catalog_item['metadata']['labels']['gpte.redhat.com/asset-uuid']
+            
+            # Build annotations for WorkshopProvision
+            provision_annotations = {
+                "babylon.gpte.redhat.com/created-by": user['metadata']['name'],
+                "babylon.gpte.redhat.com/multiworkshop-source": multiworkshop_name
+            }
+            
+            # Add category annotation if catalogItem exists and has it
+            if catalog_item and catalog_item.get('spec', {}).get('category'):
+                provision_annotations['babylon.gpte.redhat.com/category'] = catalog_item['spec']['category']
+            
+            provision_object = {
+                "apiVersion": "babylon.gpte.redhat.com/v1",
+                "kind": "WorkshopProvision",
+                "metadata": {
+                    "name": provision_name,
+                    "namespace": target_namespace,
+                    "labels": provision_labels,
+                    "annotations": provision_annotations,
+                    "ownerReferences": [
+                        {
+                            "apiVersion": "babylon.gpte.redhat.com/v1",
+                            "controller": True,
+                            "kind": "Workshop",
+                            "name": created_workshops[-1]['metadata']['name'],
+                            "uid": created_workshops[-1]['metadata']['uid']
+                        }
+                    ]
+                },
+                "spec": {
+                    "catalogItem": {
+                        "name": asset_key,  # Using asset key as catalog item name
+                        "namespace": catalog_item_namespace
+                    },
+                    "concurrency": 10,  # Default concurrency for provisions
+                    "count": provision_count,
+                    "parameters": {},  # Empty parameters object - can be customized later
+                    "startDelay": 10,  # Default start delay in seconds
+                    "workshopName": workshop_name
+                }
+            }
+            
+            # Add lifespan if start/end dates are provided
+            if spec.get('startDate') and spec.get('endDate'):
+                provision_object['spec']['lifespan'] = {
+                    "start": spec['startDate'],
+                    "end": spec['endDate']
+                }
+            
+            try:
+                # Create the WorkshopProvision
+                created_provision = await custom_objects_api.create_namespaced_custom_object(
+                    group='babylon.gpte.redhat.com',
+                    version='v1',
+                    namespace=target_namespace,
+                    plural='workshopprovisions',
+                    body=provision_object
+                )
+                
+                created_provisions.append(created_provision)
+                
+            except kubernetes_asyncio.client.exceptions.ApiException as e:
+                if e.status == 409:
+                    # WorkshopProvision already exists, get the existing one
+                    existing_provision = await custom_objects_api.get_namespaced_custom_object(
+                        group='babylon.gpte.redhat.com',
+                        version='v1',
+                        namespace=target_namespace,
+                        plural='workshopprovisions',
+                        name=provision_name
+                    )
+                    created_provisions.append(existing_provision)
+                else:
+                    raise web.HTTPInternalServerError(reason=f"Failed to create workshop provision for asset {asset_key}: {e.reason}")
+            
+            # Generate workshop URL
+            workshop_url = f"/workshop/{workshop_name}"
+            
+            # Update the asset with workshop info
+            updated_asset = asset.copy()
+            updated_asset['workshopName'] = workshop_name
+            updated_asset['workshopUrl'] = workshop_url
+            updated_assets.append(updated_asset)
+        
+        # Update the MultiWorkshop with the workshop information
+        multiworkshop['spec']['assets'] = updated_assets
+        
+        # Add approval metadata
+        if 'annotations' not in multiworkshop['metadata']:
+            multiworkshop['metadata']['annotations'] = {}
+        multiworkshop['metadata']['annotations']['babylon.gpte.redhat.com/approved-by'] = user['metadata']['name']
+        multiworkshop['metadata']['annotations']['babylon.gpte.redhat.com/approved-at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        
+        # Update the MultiWorkshop
+        updated_multiworkshop = await custom_objects_api.replace_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=multiworkshop_namespace,
+            plural='multiworkshops',
+            name=multiworkshop_name,
+            body=multiworkshop
+        )
+        
+        # Remove managedFields from response
+        if 'managedFields' in updated_multiworkshop.get('metadata', {}):
+            del updated_multiworkshop['metadata']['managedFields']
+        
+        return web.json_response({
+            "multiworkshop": updated_multiworkshop,
+            "createdWorkshops": [w['metadata']['name'] for w in created_workshops],
+            "createdProvisions": [p['metadata']['name'] for p in created_provisions],
+            "message": f"Successfully approved MultiWorkshop and created {len(created_workshops)} workshops with {len(created_provisions)} provisions"
+        })
+        
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.status == 404:
+            raise web.HTTPNotFound(reason=f"MultiWorkshop '{multiworkshop_name}' not found")
+        elif exception.status == 403:
+            raise web.HTTPForbidden(reason="Insufficient permissions to approve MultiWorkshop")
+        else:
+            raise web.HTTPInternalServerError(reason=f"Failed to approve MultiWorkshop: {exception.reason}")
+
 @routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems")
 @routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems/{name}")
 async def openshift_api_proxy_with_cache(request):

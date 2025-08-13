@@ -1,0 +1,118 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: multiworkshops.babylon.gpte.redhat.com
+spec:
+  conversion:
+    strategy: None
+  group: babylon.gpte.redhat.com
+  names:
+    kind: MultiWorkshop
+    listKind: MultiWorkshopList
+    plural: multiworkshops
+    singular: multiworkshop
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: >-
+          MultiWorkshop definition which provides a collection of workshops with shared resources and configuration.
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            properties:
+              name:
+                maxLength: 63
+                pattern: ^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$
+                type: string
+            type: object
+          spec:
+            description: Specification of MultiWorkshop.
+            type: object
+            properties:
+              name:
+                description: >-
+                  Display name for the multi-workshop.
+                type: string
+              displayName:
+                description: >-
+                  Display name for the multi-workshop (alias for name field).
+                type: string
+              description:
+                description: >-
+                  Description text for the multi-workshop.
+                type: string
+              backgroundImage:
+                description: >-
+                  URL or reference to the background image for the multi-workshop interface.
+                type: string
+              logoImage:
+                description: >-
+                  URL or reference to the logo image for the multi-workshop.
+                type: string
+              startDate:
+                description: >-
+                  Start date and time for the multi-workshop.
+                type: string
+                format: date-time
+              endDate:
+                description: >-
+                  End date and time for the multi-workshop.
+                type: string
+                format: date-time
+              assets:
+                description: >-
+                  List of assets associated with this multi-workshop, each with a key and workshop URL.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key:
+                      description: >-
+                        Unique identifier or name for the asset.
+                      type: string
+                    workshopUrl:
+                      description: >-
+                        URL to the workshop for this asset.
+                      type: string
+                    workshopName:
+                      description: >-
+                        Name of the Workshop resource created for this asset.
+                      type: string
+                  required:
+                  - key
+              numberSeats:
+                description: >-
+                  Number of available seats/participants for this multi-workshop.
+                type: integer
+                minimum: 0
+              salesforceId:
+                description: >-
+                  Salesforce ID associated with this multi-workshop.
+                type: string
+              purpose:
+                description: >-
+                  Purpose of the multi-workshop.
+                type: string
+              purpose-activity:
+                description: >-
+                  Purpose activity of the multi-workshop.
+                type: string
+            required:
+            - name
+            - startDate
+            - endDate
+        required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
