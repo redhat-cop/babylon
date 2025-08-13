@@ -963,10 +963,8 @@ async def workshop_post(request):
 async def multiworkshop_post(request):
     """
     Create a new MultiWorkshop CRD in the user's namespace.
+    Supports both proxy user authentication and service token with user email.
     """
-    user = await get_proxy_user(request)
-    session = await get_user_session(request, user)
-    
     if not request.can_read_body:
         raise web.HTTPBadRequest(reason="Request body is required")
     
@@ -979,6 +977,35 @@ async def multiworkshop_post(request):
     for field in required_fields:
         if field not in data:
             raise web.HTTPBadRequest(reason=f"Required field '{field}' is missing")
+    
+    # Determine user and session based on authentication method
+    user = None
+    session = None
+    user_email = data.get('userEmail')
+    
+    if user_email:
+        # Service token scenario - get user from email
+        try:
+            user = await custom_objects_api.get_cluster_custom_object(
+                group='user.openshift.io',
+                name=user_email,
+                plural='users',
+                version='v1',
+            )
+        except kubernetes_asyncio.client.exceptions.ApiException as exception:
+            if exception.status == 404:
+                raise web.HTTPBadRequest(reason=f"User with email '{user_email}' not found")
+            else:
+                raise web.HTTPInternalServerError(reason=f"Failed to get user: {exception.reason}")
+        
+        # Create a basic session for the service token user
+        groups = await get_user_groups(user)
+        api_client, session, _ = await start_user_session(user, groups)
+        await api_client.close()
+    else:
+        # Standard proxy user scenario
+        user = await get_proxy_user(request)
+        session = await get_user_session(request, user)
     
     # Get user namespace
     user_namespace = session.get('userNamespace')
