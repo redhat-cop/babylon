@@ -89,6 +89,19 @@ const MultiWorkshopItemDetails: React.FC<{
         </DescriptionListGroup>
 
         <DescriptionListGroup>
+          <DescriptionListTerm>Portal URL</DescriptionListTerm>
+          <DescriptionListDescription>
+            <Link 
+              to={`/multiworkshops/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {`${window.location.origin}/multiworkshops/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
+            </Link>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+
+        <DescriptionListGroup>
           <DescriptionListTerm>Description</DescriptionListTerm>
           <DescriptionListDescription>
             <EditableText

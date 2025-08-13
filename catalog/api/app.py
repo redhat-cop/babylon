@@ -1133,13 +1133,24 @@ async def multiworkshop_approve(request):
                 continue
                 
             # Generate workshop name
-            workshop_name = f"{multiworkshop_name}-{asset_key}".lower()
+            # Sanitize asset key to make it Kubernetes-compliant
+            sanitized_asset_key = asset_key.lower().replace('.', '-').replace('_', '-')
+            sanitized_asset_key = re.sub(r'[^a-z0-9\-]', '-', sanitized_asset_key)
+            sanitized_asset_key = re.sub(r'-+', '-', sanitized_asset_key).strip('-')
+            
+            workshop_name = f"{multiworkshop_name}-{sanitized_asset_key}".lower()
             workshop_name = re.sub(r'[^a-z0-9\-]', '-', workshop_name)
             
             # Add random suffix to prevent name conflicts with same asset keys
             random_suffix = random_string(4).lower()
             workshop_name = f"{workshop_name}-{random_suffix}"
             workshop_name = re.sub(r'-+', '-', workshop_name).strip('-')
+            
+            # Ensure the workshop name doesn't exceed 63 characters (Kubernetes limit)
+            if len(workshop_name) > 63:
+                # Truncate to make room for suffix, keeping the random suffix
+                max_prefix_length = 63 - len(random_suffix) - 1  # -1 for the dash
+                workshop_name = f"{workshop_name[:max_prefix_length]}-{random_suffix}"
             
             # Build workshop annotations
             workshop_annotations = {
@@ -1190,6 +1201,9 @@ async def multiworkshop_approve(request):
                 }
             
             try:
+                # Log workshop object for debugging
+                logging.info(f"Creating workshop object: {workshop_object}")
+                
                 # Create the Workshop
                 created_workshop = await custom_objects_api.create_namespaced_custom_object(
                     group='babylon.gpte.redhat.com',
@@ -1203,6 +1217,7 @@ async def multiworkshop_approve(request):
                 workshop_created = True
                 
             except kubernetes_asyncio.client.exceptions.ApiException as e:
+                logging.error(f"Failed to create workshop for asset {asset_key}: status={e.status}, reason={e.reason}, body={e.body}")
                 if e.status == 409:
                     # Workshop already exists, get the existing one
                     existing_workshop = await custom_objects_api.get_namespaced_custom_object(
@@ -1215,7 +1230,7 @@ async def multiworkshop_approve(request):
                     created_workshops.append(existing_workshop)
                     workshop_created = False
                 else:
-                    raise web.HTTPInternalServerError(reason=f"Failed to create workshop for asset {asset_key}: {e.reason}")
+                    raise web.HTTPInternalServerError(reason=f"Failed to create workshop for asset {asset_key}: {e.reason} - Details: {e.body}")
             
             # Create WorkshopProvision for the workshop
             provision_name = f"{workshop_name}"
@@ -1301,7 +1316,11 @@ async def multiworkshop_approve(request):
                     },
                     "concurrency": 10,  # Default concurrency for provisions
                     "count": provision_count,
-                    "parameters": {},  # Empty parameters object - can be customized later
+                    "parameters": {
+                        "purpose": spec.get('purpose', 'Practice / Enablement'),
+                        "purpose_activity": spec.get('purpose-activity', 'Multi Workshop'),
+                        "salesforce_id": spec.get('salesforceId', '')
+                    },
                     "startDelay": 10,  # Default start delay in seconds
                     "workshopName": workshop_name
                 }
@@ -1327,6 +1346,7 @@ async def multiworkshop_approve(request):
                 created_provisions.append(created_provision)
                 
             except kubernetes_asyncio.client.exceptions.ApiException as e:
+                logging.error(f"Failed to create provision for asset {asset_key}: status={e.status}, reason={e.reason}, body={e.body}")
                 if e.status == 409:
                     # WorkshopProvision already exists, get the existing one
                     existing_provision = await custom_objects_api.get_namespaced_custom_object(
@@ -1338,7 +1358,7 @@ async def multiworkshop_approve(request):
                     )
                     created_provisions.append(existing_provision)
                 else:
-                    raise web.HTTPInternalServerError(reason=f"Failed to create workshop provision for asset {asset_key}: {e.reason}")
+                    raise web.HTTPInternalServerError(reason=f"Failed to create workshop provision for asset {asset_key}: {e.reason} - Details: {e.body}")
             
             # Update the asset with workshop info (workshop ID will be updated asynchronously)
             updated_asset = asset.copy()

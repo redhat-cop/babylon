@@ -13,6 +13,7 @@ const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
 const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
 const MultiWorkshopsList = React.lazy(() => import('@app/Admin/MultiWorkshops'));
 const MultiWorkshopItem = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopItem'));
+const MultiWorkshopLanding = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopLanding'));
 const WorkshopsScheduled = React.lazy(() => import('@app/Admin/WorkshopsScheduled'));
 const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
@@ -316,6 +317,11 @@ const publicRoutes: IAppRoute[] = [
     component: Workshop,
     path: '/workshop/:workshopId',
     title: 'Workshop | Babylon',
+  },
+  {
+    component: MultiWorkshopLanding,
+    path: '/multiworkshops/:namespace/:name',
+    title: 'Babylon | Multi-Workshop',
   },
   {
     component: SupportPage,
