@@ -303,6 +303,9 @@ class WorkshopProvision(CachedKopfObject):
             f"{Babylon.workshop_provision_label}={self.name}",
             namespace=self.namespace,
         ):
+            # Ignore ResourceClaims that are being deleted (have deletionTimestamp)
+            if resource_claim.deletion_timestamp is not None:
+                continue
             yield resource_claim
 
     async def manage(self, logger):

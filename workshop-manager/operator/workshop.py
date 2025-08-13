@@ -228,7 +228,7 @@ class Workshop(CachedKopfObject):
             },
             "provisionCount": {
                 "failed": total_failed_count,
-                "completed": total_resource_claim_count,
+                "active": total_resource_claim_count,
                 "retries": total_retry_count,
             }
         })
