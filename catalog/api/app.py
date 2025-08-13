@@ -1023,7 +1023,11 @@ async def multiworkshop_post(request):
     
     # If the name is empty after sanitization, generate a default name
     if not multiworkshop_name:
-        multiworkshop_name = f"multiworkshop-{random_string(8).lower()}"
+        multiworkshop_name = "multiworkshop"
+    
+    # Add random suffix to prevent name conflicts
+    random_suffix = random_string(4).lower()
+    multiworkshop_name = f"{multiworkshop_name}-{random_suffix}"
     
     multiworkshop_object = {
         "apiVersion": "babylon.gpte.redhat.com/v1",
