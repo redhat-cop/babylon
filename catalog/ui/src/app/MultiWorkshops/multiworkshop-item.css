@@ -1,0 +1,4 @@
+.multiworkshop-item__topbar.pf-v6-c-page__main-section .pf-c-dropdown__menu {
+  max-height: 25em;
+  overflow-y: scroll;
+}

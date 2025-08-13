@@ -11,6 +11,8 @@ const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'))
 const Services = React.lazy(() => import('@app/Services/Services'));
 const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
 const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
+const MultiWorkshopsList = React.lazy(() => import('@app/Admin/MultiWorkshops'));
+const MultiWorkshopItem = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopItem'));
 const WorkshopsScheduled = React.lazy(() => import('@app/Admin/WorkshopsScheduled'));
 const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
@@ -114,6 +116,30 @@ const appRoutes: IAppRoute[] = [
     component: WorkshopsList,
     path: '/admin/workshops',
     title: 'Babylon | Workshops',
+  },
+  {
+    component: MultiWorkshopItem,
+    path: '/admin/multiworkshops/:namespace/:name/:tab',
+    title: 'Babylon | Multi-Workshops',
+    accessControl: 'admin',
+  },
+  {
+    component: MultiWorkshopItem,
+    path: '/admin/multiworkshops/:namespace/:name',
+    title: 'Babylon | Multi-Workshops',
+    accessControl: 'admin',
+  },
+  {
+    component: MultiWorkshopsList,
+    path: '/admin/multiworkshops/:namespace',
+    title: 'Babylon | Multi-Workshops',
+    accessControl: 'admin',
+  },
+  {
+    component: MultiWorkshopsList,
+    path: '/admin/multiworkshops',
+    title: 'Babylon | Multi-Workshops',
+    accessControl: 'admin',
   },
 
   {

@@ -10,7 +10,7 @@ import re
 
 import aiohttp
 from aiohttp import web
-from time import time
+import time
 
 import kubernetes_asyncio
 import redis.asyncio as redis
@@ -33,6 +33,7 @@ reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOK
 response_cache = {}
 response_cache_clean_interval = int(os.environ.get('RESPONSE_CACHE_CLEAN_INTERVAL', 60))
 response_cache_clean_task = None
+workshop_id_update_task = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 
@@ -120,10 +121,13 @@ async def on_startup(app):
         )
 
     response_cache_clean_task = asyncio.create_task(response_cache_clean())
+    workshop_id_update_task = asyncio.create_task(update_workshop_ids())
 
 async def on_cleanup(app):
     response_cache_clean_task.cancel()
+    workshop_id_update_task.cancel()
     await response_cache_clean_task
+    await workshop_id_update_task
     await app_api_client.close()
 
 async def check_admin_access(api_client):
@@ -226,7 +230,7 @@ async def get_openshift_auth_user():
 
 async def get_user_groups(user):
     global groups
-    if groups_last_update < time() - 60:
+    if groups_last_update < time.time() - 60:
         group_list = await custom_objects_api.list_cluster_custom_object(
             group='user.openshift.io',
             plural='groups',
@@ -1010,9 +1014,11 @@ async def multiworkshop_post(request):
     # Get user namespace
     user_namespace = session.get('userNamespace')
     if not user_namespace:
+        logging.error(f"User namespace not found in session: {session}")
         raise web.HTTPInternalServerError(reason="User namespace not found")
     
     namespace_name = user_namespace['name']
+    logging.info(f"Creating MultiWorkshop in namespace: {namespace_name}")
     
     # Create MultiWorkshop CRD object
     # Generate Kubernetes-compliant resource name from the display name
@@ -1040,6 +1046,7 @@ async def multiworkshop_post(request):
             }
         },
         "spec": {
+            "name": data['name'],  # Required field
             "displayName": data['name'],  # Store original name as displayName
             "startDate": data['startDate'],
             "endDate": data['endDate']
@@ -1069,10 +1076,17 @@ async def multiworkshop_post(request):
         return web.json_response(result, status=201)
         
     except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        # Debug: Log the full exception details
+        logging.error(f"Kubernetes API exception creating MultiWorkshop: {exception}")
+        logging.error(f"Exception body: {exception.body}")
+        
         if exception.status == 409:
             raise web.HTTPConflict(reason=f"MultiWorkshop with name '{multiworkshop_name}' already exists")
         elif exception.status == 403:
             raise web.HTTPForbidden(reason="Insufficient permissions to create MultiWorkshop")
+        elif exception.status == 422:
+            # Unprocessable Entity - validation error
+            raise web.HTTPBadRequest(reason=f"Validation error creating MultiWorkshop: {exception.body}")
         else:
             raise web.HTTPInternalServerError(reason=f"Failed to create MultiWorkshop: {exception.reason}")
 
@@ -1121,6 +1135,10 @@ async def multiworkshop_approve(request):
             # Generate workshop name
             workshop_name = f"{multiworkshop_name}-{asset_key}".lower()
             workshop_name = re.sub(r'[^a-z0-9\-]', '-', workshop_name)
+            
+            # Add random suffix to prevent name conflicts with same asset keys
+            random_suffix = random_string(4).lower()
+            workshop_name = f"{workshop_name}-{random_suffix}"
             workshop_name = re.sub(r'-+', '-', workshop_name).strip('-')
             
             # Build workshop annotations
@@ -1157,8 +1175,8 @@ async def multiworkshop_approve(request):
                     "annotations": workshop_annotations
                 },
                 "spec": {
-                    "displayName": f"{spec.get('displayName', multiworkshop_name)} - {asset_key}",
-                    "description": spec.get('description', f"Workshop for asset {asset_key}"),
+                    "displayName": asset.get('workshopDisplayName', f"{spec.get('displayName', multiworkshop_name)} - {asset_key}"),
+                    "description": "",
                     "openRegistration": True,
                     "multiuserServices": False
                 }
@@ -1322,13 +1340,10 @@ async def multiworkshop_approve(request):
                 else:
                     raise web.HTTPInternalServerError(reason=f"Failed to create workshop provision for asset {asset_key}: {e.reason}")
             
-            # Generate workshop URL
-            workshop_url = f"/workshop/{workshop_name}"
-            
-            # Update the asset with workshop info
+            # Update the asset with workshop info (workshop ID will be updated asynchronously)
             updated_asset = asset.copy()
             updated_asset['workshopName'] = workshop_name
-            updated_asset['workshopUrl'] = workshop_url
+            # Note: workshopId will be populated by a background task once the operator creates the label
             updated_assets.append(updated_asset)
         
         # Update the MultiWorkshop with the workshop information
@@ -1384,7 +1399,7 @@ async def openshift_api_proxy_with_cache(request):
         raise web.HTTPForbidden()
 
     resp, cache_time = response_cache.get(request.path_qs, (None, None))
-    if resp != None and time() - cache_time < response_cache_clean_interval:
+    if resp != None and time.time() - cache_time < response_cache_clean_interval:
         return web.Response(
             body=resp.body,
             headers=resp.headers,
@@ -1392,7 +1407,7 @@ async def openshift_api_proxy_with_cache(request):
         )
 
     resp = await openshift_api_proxy(request)
-    response_cache[request.path_qs] = (resp, time())
+    response_cache[request.path_qs] = (resp, time.time())
     return resp
 
 @routes.delete("/{path:apis?/.*}")
@@ -1472,9 +1487,82 @@ async def response_cache_clean():
         while True:
             for key, value in list(response_cache.items()):
                 cache_time = value[1]
-                if time() - cache_time > response_cache_clean_interval:
+                if time.time() - cache_time > response_cache_clean_interval:
                     response_cache.pop(key, None)
             await asyncio.sleep(response_cache_clean_interval)
+    except asyncio.CancelledError:
+        return
+
+async def update_workshop_ids():
+    """Periodically check for workshop IDs and update MultiWorkshop assets."""
+    try:
+        while True:
+            await asyncio.sleep(30)  # Check every 30 seconds
+            try:
+                # Get all MultiWorkshops that are approved but missing workshop IDs
+                multiworkshops = await custom_objects_api.list_cluster_custom_object(
+                    group='babylon.gpte.redhat.com',
+                    version='v1',
+                    plural='multiworkshops'
+                )
+                
+                for multiworkshop in multiworkshops.get('items', []):
+                    # Check if this MultiWorkshop is approved and has assets without workshop IDs
+                    if not multiworkshop.get('metadata', {}).get('annotations', {}).get('babylon.gpte.redhat.com/approved-at'):
+                        continue
+                    
+                    assets = multiworkshop.get('spec', {}).get('assets', [])
+                    if not assets:
+                        continue
+                    
+                    # Check if any assets are missing workshop IDs
+                    needs_update = False
+                    updated_assets = []
+                    
+                    for asset in assets:
+                        if asset.get('workshopName') and not asset.get('workshopId'):
+                            # Try to get the workshop and its ID
+                            try:
+                                workshop = await custom_objects_api.get_namespaced_custom_object(
+                                    group='babylon.gpte.redhat.com',
+                                    version='v1',
+                                    namespace=multiworkshop['metadata']['namespace'],
+                                    plural='workshops',
+                                    name=asset['workshopName']
+                                )
+                                
+                                workshop_id = workshop.get('metadata', {}).get('labels', {}).get('babylon.gpte.redhat.com/workshop-id')
+                                if workshop_id:
+                                    asset = asset.copy()
+                                    asset['workshopId'] = workshop_id
+                                    needs_update = True
+                                    logging.info(f"Found workshop ID {workshop_id} for MultiWorkshop {multiworkshop['metadata']['name']} asset {asset['key']}")
+                                
+                            except kubernetes_asyncio.client.exceptions.ApiException:
+                                # Workshop might not exist yet or other error, skip
+                                pass
+                        
+                        updated_assets.append(asset)
+                    
+                    # Update the MultiWorkshop if any assets were updated
+                    if needs_update:
+                        try:
+                            multiworkshop['spec']['assets'] = updated_assets
+                            await custom_objects_api.replace_namespaced_custom_object(
+                                group='babylon.gpte.redhat.com',
+                                version='v1',
+                                namespace=multiworkshop['metadata']['namespace'],
+                                plural='multiworkshops',
+                                name=multiworkshop['metadata']['name'],
+                                body=multiworkshop
+                            )
+                            logging.info(f"Updated workshop IDs for MultiWorkshop {multiworkshop['metadata']['name']}")
+                        except kubernetes_asyncio.client.exceptions.ApiException as e:
+                            logging.error(f"Failed to update MultiWorkshop {multiworkshop['metadata']['name']}: {e}")
+                            
+            except Exception as e:
+                logging.error(f"Error in workshop ID update task: {e}")
+                
     except asyncio.CancelledError:
         return
 

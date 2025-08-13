@@ -123,6 +123,11 @@ const Navigation: React.FC = () => {
         </ExactNavLink>
       </NavItem>
       <NavItem>
+        <ExactNavLink className={locationStartsWith('/admin/multiworkshops') ? 'pf-m-current' : ''} to="/admin/multiworkshops">
+          Multi-Workshops
+        </ExactNavLink>
+      </NavItem>
+      <NavItem>
         <ExactNavLink
           className={locationStartsWith('/admin/scheduled/workshops') ? 'pf-m-current' : ''}
           to="/admin/scheduled/workshops"

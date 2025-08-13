@@ -16,9 +16,9 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import Editor from '@app/components/Editor/Editor';
 import { EditorState, LexicalEditor } from 'lexical';
 import EditorViewer from '@app/components/Editor/EditorViewer';
+import useSession from '@app/utils/useSession';
 
 import './admin.css';
-import useSession from '@app/utils/useSession';
 
 type IncidentData = Omit<Incident, 'updated_at' | 'created_at'>;
 

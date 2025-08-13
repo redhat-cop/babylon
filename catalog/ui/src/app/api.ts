@@ -15,6 +15,7 @@ import {
   ServiceNamespace,
   Workshop,
   WorkshopProvision,
+  MultiWorkshop,
   UserList,
   Session,
   Nullable,
@@ -967,6 +968,68 @@ export async function deleteWorkshop(workshop: Workshop) {
   return await deleteK8sObject(workshop);
 }
 
+export async function deleteMultiWorkshop(multiworkshop: MultiWorkshop) {
+  return await deleteK8sObject(multiworkshop);
+}
+
+export async function createMultiWorkshop(multiworkshopData: {
+  name: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  numberSeats?: number;
+  salesforceId?: string;
+  purpose?: string;
+  'purpose-activity'?: string;
+  backgroundImage?: string;
+  logoImage?: string;
+  assets?: Array<{ key: string; workshopDisplayName?: string }>;
+  userEmail?: string;
+}): Promise<MultiWorkshop> {
+  const resp = await apiFetch('/api/multiworkshop', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(multiworkshopData),
+  });
+  return await resp.json();
+}
+
+export async function patchMultiWorkshop({
+  name,
+  namespace,
+  patch,
+}: {
+  name: string;
+  namespace: string;
+  patch: Record<string, unknown>;
+}): Promise<MultiWorkshop> {
+  return await patchK8sObject({
+    name,
+    namespace,
+    plural: 'multiworkshops',
+    patch,
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+  });
+}
+
+export async function approveMultiWorkshop({
+  name,
+  namespace,
+}: {
+  name: string;
+  namespace: string;
+}): Promise<{ multiworkshop: MultiWorkshop; createdWorkshops: string[]; createdProvisions: string[]; message: string }> {
+  const resp = await apiFetch(`/api/multiworkshop/${namespace}/${name}/approve`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  return await resp.json();
+}
+
 export async function setWorkshopLifespanEnd(workshop: Workshop, date: Date = new Date()) {
   const patch = { spec: { lifespan: { end: dateToApiString(date) } } };
   return await patchWorkshop({
@@ -1660,6 +1723,12 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshops/${workshopName}`,
   WORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number; continueId?: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
+      limit ? `limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}`,
+  MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/multiworkshops/${multiworkshopName}`,
+  MULTIWORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number; continueId?: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/multiworkshops?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
   WORKSHOP_PROVISIONS: ({

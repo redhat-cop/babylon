@@ -75,9 +75,13 @@ spec:
                       description: >-
                         Unique identifier or name for the asset.
                       type: string
-                    workshopUrl:
+                    workshopDisplayName:
                       description: >-
-                        URL to the workshop for this asset.
+                        Display name for the workshop created from this asset.
+                      type: string
+                    workshopId:
+                      description: >-
+                        Id to the workshop for this asset.
                       type: string
                     workshopName:
                       description: >-
