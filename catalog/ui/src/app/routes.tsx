@@ -12,7 +12,9 @@ const Services = React.lazy(() => import('@app/Services/Services'));
 const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
 const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
 const MultiWorkshopsList = React.lazy(() => import('@app/Admin/MultiWorkshops'));
+const MultiWorkshopList = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopList'));
 const MultiWorkshopItem = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopItem'));
+const MultiWorkshopCreate = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopCreate'));
 const MultiWorkshopLanding = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopLanding'));
 const WorkshopsScheduled = React.lazy(() => import('@app/Admin/WorkshopsScheduled'));
 const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
@@ -79,6 +81,21 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | Services',
   },
   {
+    component: MultiWorkshopList,
+    path: '/event-wizard/:namespace',
+    title: 'Babylon | Event Wizard',
+  },
+  {
+    component: MultiWorkshopList,
+    path: '/event-wizard',
+    title: 'Babylon | Event Wizard',
+  },
+  {
+    component: MultiWorkshopCreate,
+    path: '/event-wizard/create',
+    title: 'Babylon | Create Event',
+  },
+  {
     component: WorkshopsItem,
     path: '/workshops/:namespace/:name/:tab',
     title: 'Babylon | Workshops',
@@ -121,27 +138,28 @@ const appRoutes: IAppRoute[] = [
   {
     component: MultiWorkshopItem,
     path: '/admin/multiworkshops/:namespace/:name/:tab',
-    title: 'Babylon | Multi-Workshops',
+    title: 'Babylon | Event Wizard',
     accessControl: 'admin',
   },
   {
     component: MultiWorkshopItem,
     path: '/admin/multiworkshops/:namespace/:name',
-    title: 'Babylon | Multi-Workshops',
+    title: 'Babylon | Event Wizard',
     accessControl: 'admin',
   },
   {
     component: MultiWorkshopsList,
     path: '/admin/multiworkshops/:namespace',
-    title: 'Babylon | Multi-Workshops',
+    title: 'Babylon | Event Wizard',
     accessControl: 'admin',
   },
   {
     component: MultiWorkshopsList,
     path: '/admin/multiworkshops',
-    title: 'Babylon | Multi-Workshops',
+    title: 'Babylon | Event Wizard',
     accessControl: 'admin',
   },
+
 
   {
     component: AnarchyActionInstance,

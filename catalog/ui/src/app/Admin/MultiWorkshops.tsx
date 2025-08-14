@@ -11,19 +11,12 @@ import {
   Title,
   EmptyStateFooter,
   Button,
-  Form,
-  FormGroup,
-  TextInput,
-  DatePicker,
-  NumberInput,
-  TextArea,
 } from '@patternfly/react-core';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { apiPaths, createMultiWorkshop, dateToApiString, deleteMultiWorkshop, fetcher } from '@app/api';
+import { apiPaths, deleteMultiWorkshop, fetcher } from '@app/api';
 import { MultiWorkshop, MultiWorkshopList } from '@app/types';
-import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT } from '@app/util';
+import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 import Footer from '@app/components/Footer';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -53,7 +46,6 @@ const MultiWorkshops: React.FC<{}> = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
   const [modalAction, openModalAction] = useModal();
-  const [createModal, openCreateModal] = useModal();
   const [searchParams, setSearchParams] = useSearchParams();
   const keywordFilter = useMemo(
     () =>
@@ -68,19 +60,6 @@ const MultiWorkshops: React.FC<{}> = () => {
   );
   const [modalState, setModalState] = useState<{ action?: string; multiworkshop?: MultiWorkshop }>({});
   const [selectedUids, setSelectedUids] = useState([]);
-  const [createFormData, setCreateFormData] = useState({
-    name: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-    numberSeats: 10,
-    salesforceId: '',
-    purpose: '',
-    'purpose-activity': '',
-    backgroundImage: '',
-    logoImage: '',
-    assets: [{ key: '', workshopDisplayName: '' }]
-  });
   const { cache } = useSWRConfig();
   const showModal = useCallback(
     ({ action, multiworkshop }: { action: string; multiworkshop?: MultiWorkshop }) => {
@@ -205,82 +184,6 @@ const MultiWorkshops: React.FC<{}> = () => {
     return multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
   }
 
-  async function onCreateMultiWorkshop(): Promise<void> {
-    try {
-      // Filter out empty assets and include key and workshopDisplayName fields
-      const filteredAssets = createFormData.assets
-        .filter(asset => asset.key.trim() !== '')
-        .map(asset => ({ 
-          key: asset.key.trim(),
-          ...(asset.workshopDisplayName?.trim() && { workshopDisplayName: asset.workshopDisplayName.trim() })
-        }));
-      
-      const payload = {
-        name: createFormData.name,
-        description: createFormData.description || undefined,
-        startDate: dateToApiString(new Date(createFormData.startDate)),
-        endDate: dateToApiString(new Date(createFormData.endDate)),
-        numberSeats: createFormData.numberSeats || undefined,
-        salesforceId: createFormData.salesforceId || undefined,
-        purpose: createFormData.purpose || undefined,
-        'purpose-activity': createFormData['purpose-activity'] || undefined,
-        backgroundImage: createFormData.backgroundImage || undefined,
-        logoImage: createFormData.logoImage || undefined,
-        assets: filteredAssets.length > 0 ? filteredAssets : undefined,
-      };
-
-      // Remove undefined fields
-      Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
-
-      // Use the API function that handles authorization automatically
-      await createMultiWorkshop(payload);
-
-      // Reset form
-      setCreateFormData({
-        name: '',
-        description: '',
-        startDate: '',
-        endDate: '',
-        numberSeats: 10,
-        salesforceId: '',
-        purpose: '',
-        'purpose-activity': '',
-        backgroundImage: '',
-        logoImage: '',
-        assets: [{ key: '', workshopDisplayName: '' }]
-      });
-      
-      // Refresh the list
-      mutate();
-    } catch (error) {
-      console.error('Error creating MultiWorkshop:', error);
-      // TODO: Add proper error handling/notification
-    }
-  }
-
-  function updateAsset(index: number, field: string, value: string) {
-    setCreateFormData(prev => ({
-      ...prev,
-      assets: prev.assets.map((asset, i) => 
-        i === index ? { ...asset, [field]: value } : asset
-      )
-    }));
-  }
-
-  function addAsset() {
-    setCreateFormData(prev => ({
-      ...prev,
-      assets: [...prev.assets, { key: '', workshopDisplayName: '' }]
-    }));
-  }
-
-  function removeAsset(index: number) {
-    setCreateFormData(prev => ({
-      ...prev,
-      assets: prev.assets.filter((_, i) => i !== index)
-    }));
-  }
-
   return (
     <div onScroll={scrollHandler} className="admin-container">
       <Modal
@@ -295,200 +198,7 @@ const MultiWorkshops: React.FC<{}> = () => {
         <p>All associated workshops and provisioned services WILL NOT be deleted.</p>
       </Modal>
 
-      <Modal
-        ref={createModal}
-        onConfirm={onCreateMultiWorkshop}
-        title="Create Multi-Workshop"
-        isDisabled={!createFormData.name || !createFormData.startDate || !createFormData.endDate}
-      >
-        <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '8px' }}>
-          <Form style={{ padding: '8px 0' }}>
-          <FormGroup label="Name" isRequired fieldId="name">
-            <TextInput
-              isRequired
-              type="text"
-              id="name"
-              name="name"
-              value={createFormData.name}
-              onChange={(_, value) => setCreateFormData(prev => ({ ...prev, name: value }))}
-              placeholder="Enter multi-workshop name"
-            />
-          </FormGroup>
 
-          <FormGroup label="Description" fieldId="description">
-            <TextArea
-              id="description"
-              name="description"
-              value={createFormData.description}
-              onChange={(_, value) => setCreateFormData(prev => ({ ...prev, description: value }))}
-              placeholder="Enter description (optional)"
-              rows={3}
-            />
-          </FormGroup>
-
-
-
-          <Split hasGutter>
-            <SplitItem isFilled>
-              <FormGroup label="Start Date" isRequired fieldId="startDate">
-                <TextInput
-                  isRequired
-                  type="datetime-local"
-                  id="startDate"
-                  name="startDate"
-                  value={createFormData.startDate}
-                  onChange={(_, value) => setCreateFormData(prev => ({ ...prev, startDate: value }))}
-                />
-              </FormGroup>
-            </SplitItem>
-            <SplitItem isFilled>
-              <FormGroup label="End Date" isRequired fieldId="endDate">
-                <TextInput
-                  isRequired
-                  type="datetime-local"
-                  id="endDate"
-                  name="endDate"
-                  value={createFormData.endDate}
-                  onChange={(_, value) => setCreateFormData(prev => ({ ...prev, endDate: value }))}
-                />
-              </FormGroup>
-            </SplitItem>
-          </Split>
-
-          <div style={{ marginTop: '20px' }}>
-          <Split hasGutter>
-            <SplitItem isFilled>
-              <FormGroup label="Number of Seats" fieldId="numberSeats">
-                <NumberInput
-                  id="numberSeats"
-                  value={createFormData.numberSeats}
-                  onMinus={() => setCreateFormData(prev => ({ ...prev, numberSeats: Math.max(1, prev.numberSeats - 1) }))}
-                  onPlus={() => setCreateFormData(prev => ({ ...prev, numberSeats: prev.numberSeats + 1 }))}
-                  onChange={(event) => {
-                    const value = parseInt((event.target as HTMLInputElement).value) || 1;
-                    setCreateFormData(prev => ({ ...prev, numberSeats: Math.max(1, value) }));
-                  }}
-                  min={1}
-                />
-              </FormGroup>
-            </SplitItem>
-            <SplitItem isFilled>
-              <FormGroup label="Salesforce ID" fieldId="salesforceId">
-                <TextInput
-                  id="salesforceId"
-                  name="salesforceId"
-                  value={createFormData.salesforceId}
-                  onChange={(_, value) => setCreateFormData(prev => ({ ...prev, salesforceId: value }))}
-                  placeholder="Optional Salesforce ID"
-                />
-              </FormGroup>
-            </SplitItem>
-          </Split>
-          </div>
-
-          <div style={{ marginTop: '20px' }}>
-          <Split hasGutter>
-            <SplitItem isFilled>
-              <FormGroup label="Purpose" fieldId="purpose">
-                <TextInput
-                  id="purpose"
-                  name="purpose"
-                  value={createFormData.purpose}
-                  onChange={(_, value) => setCreateFormData(prev => ({ ...prev, purpose: value }))}
-                  placeholder="e.g., Customer Training"
-                />
-              </FormGroup>
-            </SplitItem>
-            <SplitItem isFilled>
-              <FormGroup label="Purpose Activity" fieldId="purpose-activity">
-                <TextInput
-                  id="purpose-activity"
-                  name="purpose-activity"
-                  value={createFormData['purpose-activity']}
-                  onChange={(_, value) => setCreateFormData(prev => ({ ...prev, 'purpose-activity': value }))}
-                  placeholder="e.g., Demo Workshop"
-                />
-              </FormGroup>
-            </SplitItem>
-          </Split>
-          </div>
-
-          <div style={{ marginTop: '20px' }}>
-          <Split hasGutter>
-            <SplitItem isFilled>
-              <FormGroup label="Background Image URL" fieldId="backgroundImage">
-                <TextInput
-                  id="backgroundImage"
-                  name="backgroundImage"
-                  value={createFormData.backgroundImage}
-                  onChange={(_, value) => setCreateFormData(prev => ({ ...prev, backgroundImage: value }))}
-                  placeholder="Optional background image URL"
-                />
-              </FormGroup>
-            </SplitItem>
-            <SplitItem isFilled>
-              <FormGroup label="Logo Image URL" fieldId="logoImage">
-                <TextInput
-                  id="logoImage"
-                  name="logoImage"
-                  value={createFormData.logoImage}
-                  onChange={(_, value) => setCreateFormData(prev => ({ ...prev, logoImage: value }))}
-                  placeholder="Optional logo image URL"
-                />
-              </FormGroup>
-            </SplitItem>
-          </Split>
-          </div>
-
-          <div style={{ marginTop: '24px' }}>
-          <FormGroup label="Assets" fieldId="assets">
-            {createFormData.assets.map((asset, index) => (
-              <div 
-                key={index} 
-                style={{ 
-                  marginBottom: '12px', 
-                  padding: '16px', 
-                  border: '1px solid var(--pf-t--chart--color--black--300)', 
-                  borderRadius: '4px',
-                  backgroundColor: 'var(--pf-t--chart--color--black--100)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <span style={{ fontWeight: 'bold', fontSize: '14px' }}>Asset {index + 1}</span>
-                  <Button 
-                    variant="link" 
-                    onClick={() => removeAsset(index)}
-                    isDisabled={createFormData.assets.length === 1}
-                    size="sm"
-                    isDanger
-                  >
-                    Remove
-                  </Button>
-                </div>
-                <FormGroup label="Asset Key" fieldId={`asset-key-${index}`} style={{ marginBottom: '12px' }}>
-                  <TextInput
-                    placeholder="Asset key (e.g., tests.babylon-empty-config.prod)"
-                    value={asset.key}
-                    onChange={(_, value) => updateAsset(index, 'key', value)}
-                  />
-                </FormGroup>
-                <FormGroup label="Workshop Display Name" fieldId={`asset-display-name-${index}`}>
-                  <TextInput
-                    placeholder="Optional display name for this workshop (e.g., 'Container Basics')"
-                    value={asset.workshopDisplayName}
-                    onChange={(_, value) => updateAsset(index, 'workshopDisplayName', value)}
-                  />
-                </FormGroup>
-              </div>
-            ))}
-            <Button variant="link" onClick={addAsset} icon={<PlusIcon />}>
-              Add Asset
-            </Button>
-          </FormGroup>
-          </div>
-          </Form>
-        </div>
-      </Modal>
       <PageSection hasBodyWrapper={false} key="header" className="admin-header">
         <Split hasGutter>
           <SplitItem isFilled>
@@ -518,15 +228,7 @@ const MultiWorkshops: React.FC<{}> = () => {
               }}
             />
           </SplitItem>
-          <SplitItem>
-            <Button 
-              variant="primary" 
-              icon={<PlusIcon />}
-              onClick={openCreateModal}
-            >
-              Create Multi-Workshop
-            </Button>
-          </SplitItem>
+
           <SplitItem>
             <ButtonCircleIcon
               isDisabled={selectedUids.length === 0}

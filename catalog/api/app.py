@@ -1011,13 +1011,30 @@ async def multiworkshop_post(request):
         user = await get_proxy_user(request)
         session = await get_user_session(request, user)
     
-    # Get user namespace
-    user_namespace = session.get('userNamespace')
-    if not user_namespace:
-        logging.error(f"User namespace not found in session: {session}")
-        raise web.HTTPInternalServerError(reason="User namespace not found")
+    # Determine target namespace
+    # Use provided namespace if specified, otherwise use user's default namespace
+    target_namespace = data.get('namespace')
     
-    namespace_name = user_namespace['name']
+    if target_namespace:
+        # Validate that user has access to the specified namespace
+        user_namespaces = session.get('serviceNamespaces', [])
+        is_admin = session.get('admin', False)
+        
+        # Allow admin users to create in any namespace, or check user has access to the namespace
+        if not is_admin:
+            user_namespace_names = [ns['name'] for ns in user_namespaces]
+            if target_namespace not in user_namespace_names:
+                raise web.HTTPForbidden(reason=f"Access denied to namespace '{target_namespace}'")
+        
+        namespace_name = target_namespace
+    else:
+        # Use user's default namespace
+        user_namespace = session.get('userNamespace')
+        if not user_namespace:
+            logging.error(f"User namespace not found in session: {session}")
+            raise web.HTTPInternalServerError(reason="User namespace not found")
+        namespace_name = user_namespace['name']
+    
     logging.info(f"Creating MultiWorkshop in namespace: {namespace_name}")
     
     # Create MultiWorkshop CRD object
@@ -1129,8 +1146,13 @@ async def multiworkshop_approve(request):
         
         for asset in assets:
             asset_key = asset.get('key')
-            if not asset_key:
+            asset_namespace = asset.get('assetNamespace')
+            
+            if not asset_key or not asset_namespace:
+                logging.warning(f"Skipping asset with missing key or assetNamespace: key={asset_key}, assetNamespace={asset_namespace}")
                 continue
+            
+            catalog_item_name = asset_key  # Asset key is now just the catalog item name
                 
             # Generate workshop name
             # Sanitize asset key to make it Kubernetes-compliant
@@ -1187,7 +1209,7 @@ async def multiworkshop_approve(request):
                 },
                 "spec": {
                     "displayName": asset.get('workshopDisplayName', f"{spec.get('displayName', multiworkshop_name)} - {asset_key}"),
-                    "description": "",
+                    "description": asset.get('workshopDescription', ''),
                     "openRegistration": True,
                     "multiuserServices": False
                 }
@@ -1238,42 +1260,30 @@ async def multiworkshop_approve(request):
             # Get default count from numberSeats or use 1 as default
             provision_count = spec.get('numberSeats', 1)
             
-            # Try to get the catalogItem from the namespace to extract metadata
+            # Try to get the catalogItem from the specified asset namespace
             catalog_item = None
-            catalog_item_namespace = target_namespace  # Default to target namespace
+            catalog_item_namespace = asset_namespace  # Use the stored asset namespace
             
             try:
-                # Try to find catalogItem in the target namespace first
                 catalog_item = await custom_objects_api.get_namespaced_custom_object(
                     group='babylon.gpte.redhat.com',
                     version='v1',
-                    namespace=target_namespace,
+                    namespace=asset_namespace,
                     plural='catalogitems',
-                    name=asset_key
+                    name=catalog_item_name
                 )
+
             except kubernetes_asyncio.client.exceptions.ApiException as e:
-                if e.status == 404:
-                    # If not found in target namespace, try to find in catalog namespaces
-                    for catalog_namespace in session.get('catalogNamespaces', []):
-                        try:
-                            catalog_item = await custom_objects_api.get_namespaced_custom_object(
-                                group='babylon.gpte.redhat.com',
-                                version='v1',
-                                namespace=catalog_namespace['name'],
-                                plural='catalogitems',
-                                name=asset_key
-                            )
-                            catalog_item_namespace = catalog_namespace['name']
-                            break
-                        except kubernetes_asyncio.client.exceptions.ApiException:
-                            continue
+                logging.warning(f"Catalog item {catalog_item_name} not found in namespace {asset_namespace}: {e.reason}")
+                # Continue with provision creation even if catalog item is not found
+                # This allows for more flexibility in case the catalog item is temporarily unavailable
             
             # Build labels for WorkshopProvision
             provision_labels = {
                 "babylon.gpte.redhat.com/multiworkshop": multiworkshop_name,
                 "babylon.gpte.redhat.com/asset-key": asset_key,
                 "babylon.gpte.redhat.com/workshop": workshop_name,
-                "babylon.gpte.redhat.com/catalogItemName": asset_key,
+                "babylon.gpte.redhat.com/catalogItemName": catalog_item_name,
                 "babylon.gpte.redhat.com/catalogItemNamespace": catalog_item_namespace
             }
             
@@ -1311,8 +1321,8 @@ async def multiworkshop_approve(request):
                 },
                 "spec": {
                     "catalogItem": {
-                        "name": asset_key,  # Using asset key as catalog item name
-                        "namespace": catalog_item_namespace
+                        "name": catalog_item_name,  # Using catalog item name from asset key
+                        "namespace": catalog_item_namespace  # Use asset namespace from CRD
                     },
                     "concurrency": 10,  # Default concurrency for provisions
                     "count": provision_count,

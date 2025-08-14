@@ -75,9 +75,17 @@ spec:
                       description: >-
                         Unique identifier or name for the asset.
                       type: string
+                    assetNamespace:
+                      description: >-
+                        Namespace where the catalog item for this asset is located.
+                      type: string
                     workshopDisplayName:
                       description: >-
                         Display name for the workshop created from this asset.
+                      type: string
+                    workshopDescription:
+                      description: >-
+                        Description for the workshop created from this asset.
                       type: string
                     workshopId:
                       description: >-
@@ -89,6 +97,7 @@ spec:
                       type: string
                   required:
                   - key
+                  - assetNamespace
               numberSeats:
                 description: >-
                   Number of available seats/participants for this multi-workshop.

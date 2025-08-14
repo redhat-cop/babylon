@@ -615,7 +615,9 @@ export interface MultiWorkshopSpec {
 
 export interface MultiWorkshopAsset {
   key: string;
+  assetNamespace: string;
   workshopDisplayName?: string;
+  workshopDescription?: string;
   workshopId?: string;
   workshopName?: string;
 }

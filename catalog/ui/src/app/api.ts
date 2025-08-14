@@ -983,8 +983,9 @@ export async function createMultiWorkshop(multiworkshopData: {
   'purpose-activity'?: string;
   backgroundImage?: string;
   logoImage?: string;
-  assets?: Array<{ key: string; workshopDisplayName?: string }>;
+  assets?: Array<{ key: string; assetNamespace: string; workshopDisplayName?: string; workshopDescription?: string }>;
   userEmail?: string;
+  namespace?: string;
 }): Promise<MultiWorkshop> {
   const resp = await apiFetch('/api/multiworkshop', {
     method: 'POST',
