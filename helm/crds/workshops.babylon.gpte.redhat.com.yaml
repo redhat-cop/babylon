@@ -162,14 +162,17 @@ spec:
               provisionCount:
                 type: object
                 properties:
+                  ordered:
+                    description: Total number of ordered provisions.
+                    type: integer
                   failed:
-                    description: Number of WorkshopProvisions that have failed.
+                    description: Number of provisions that have failed.
                     type: integer
                   active:
-                    description: Number of WorkshopProvisions that are active.
+                    description: Number of provisions that are active.
                     type: integer
                   retries:
-                    description: Number of WorkshopProvisions retries.
+                    description: Number of provisions retries.
                     type: integer
         required:
         - apiVersion

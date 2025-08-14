@@ -407,14 +407,13 @@ class WorkshopProvision(CachedKopfObject):
             if resource_claim.is_failed:
                 failed_count += 1
 
-        # Calculate retry count - how many additional resource claims were created due to failures
-        retry_count = max(0, resource_claim_count - self.count)
-
         # Store counts in WorkshopProvision status
+        # We don't know how many failed resourceclaims were deleted, so can't
+        # accurately count retries
         await self.merge_patch_status({
             "resourceClaimCount": resource_claim_count,
             "failedCount": failed_count,
-            "retryCount": retry_count,
+            "retryCount": failed_count,
         })
 
         # Do not start any provisions if lifespan start is in the future
