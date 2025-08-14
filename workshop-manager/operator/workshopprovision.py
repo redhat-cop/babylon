@@ -303,6 +303,9 @@ class WorkshopProvision(CachedKopfObject):
             f"{Babylon.workshop_provision_label}={self.name}",
             namespace=self.namespace,
         ):
+            # Ignore ResourceClaims that are being deleted (have deletionTimestamp)
+            if resource_claim.deletion_timestamp is not None:
+                continue
             yield resource_claim
 
     async def manage(self, logger):
@@ -404,6 +407,15 @@ class WorkshopProvision(CachedKopfObject):
             if resource_claim.is_failed:
                 failed_count += 1
 
+        # Store counts in WorkshopProvision status
+        # We don't know how many failed resourceclaims were deleted, so can't
+        # accurately count retries
+        await self.merge_patch_status({
+            "resourceClaimCount": resource_claim_count,
+            "failedCount": failed_count,
+            "retryCount": failed_count,
+        })
+
         # Do not start any provisions if lifespan start is in the future
         if self.lifespan_start and self.lifespan_start > datetime.now(timezone.utc):
             return
@@ -422,14 +434,6 @@ class WorkshopProvision(CachedKopfObject):
             and provisioning_count < self.concurrency
         ):
             await self.create_resource_claim(logger=logger, workshop=workshop)
-
-        # Update workshop provision status
-        await workshop.update_provision_count(
-            ordered=self.count,
-            provisioning=provisioning_count,
-            failed=failed_count,
-            completed=resource_claim_count - provisioning_count - failed_count,
-        )
 
     async def set_owner_references(self, logger):
         try:
