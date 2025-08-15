@@ -13,8 +13,9 @@ const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
 const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
 const MultiWorkshopsList = React.lazy(() => import('@app/Admin/MultiWorkshops'));
 const MultiWorkshopList = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopList'));
-const MultiWorkshopItem = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopItem'));
+
 const MultiWorkshopCreate = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopCreate'));
+const MultiWorkshopDetail = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopDetail'));
 const MultiWorkshopLanding = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopLanding'));
 const WorkshopsScheduled = React.lazy(() => import('@app/Admin/WorkshopsScheduled'));
 const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
@@ -81,6 +82,16 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | Services',
   },
   {
+    component: MultiWorkshopCreate,
+    path: '/event-wizard/create',
+    title: 'Babylon | Create Event',
+  },
+  {
+    component: MultiWorkshopDetail,
+    path: '/event-wizard/:namespace/:name',
+    title: 'Babylon | Event Details',
+  },
+  {
     component: MultiWorkshopList,
     path: '/event-wizard/:namespace',
     title: 'Babylon | Event Wizard',
@@ -89,11 +100,6 @@ const appRoutes: IAppRoute[] = [
     component: MultiWorkshopList,
     path: '/event-wizard',
     title: 'Babylon | Event Wizard',
-  },
-  {
-    component: MultiWorkshopCreate,
-    path: '/event-wizard/create',
-    title: 'Babylon | Create Event',
   },
   {
     component: WorkshopsItem,
@@ -135,18 +141,7 @@ const appRoutes: IAppRoute[] = [
     path: '/admin/workshops',
     title: 'Babylon | Workshops',
   },
-  {
-    component: MultiWorkshopItem,
-    path: '/admin/multiworkshops/:namespace/:name/:tab',
-    title: 'Babylon | Event Wizard',
-    accessControl: 'admin',
-  },
-  {
-    component: MultiWorkshopItem,
-    path: '/admin/multiworkshops/:namespace/:name',
-    title: 'Babylon | Event Wizard',
-    accessControl: 'admin',
-  },
+
   {
     component: MultiWorkshopsList,
     path: '/admin/multiworkshops/:namespace',

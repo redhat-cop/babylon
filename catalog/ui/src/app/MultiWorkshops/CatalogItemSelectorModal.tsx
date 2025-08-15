@@ -1,20 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import Fuse from 'fuse.js';
 import {
   Modal,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
   Grid,
   GridItem,
   SearchInput,
   EmptyState,
   EmptyStateBody,
   Title,
-  Badge,
-  Split,
-  SplitItem,
-  Tooltip,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -23,12 +17,11 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import useSWRInfinite from 'swr/infinite';
-import useSWRImmutable from 'swr/immutable';
+import useSWR from 'swr';
 import { CatalogItem, CatalogItemList } from '@app/types';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT } from '@app/util';
-import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
-import { getStage, getSLA } from '@app/Catalog/catalog-utils';
+import CatalogItemCard from '@app/Catalog/CatalogItemCard';
 import useSession from '@app/utils/useSession';
 
 interface CatalogItemSelectorModalProps {
@@ -66,10 +59,8 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   const { catalogNamespaces } = useSession().getSession();
   const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
 
-  const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
-    apiPaths.CATALOG_ITEMS({
-      namespace: selectedCatalogNamespace ? selectedCatalogNamespace : 'all-catalogs',
-    }),
+  const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
+    `catalog-items-${selectedCatalogNamespace || 'all-catalogs'}`,
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
@@ -78,11 +69,11 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
     [catalogItemsArr],
   );
 
-  const filteredCatalogItems = useMemo(() => {
+  const [catalogItemsFuse, allowedCatalogItems] = useMemo(() => {
     // First filter out items with spec.parameters that have annotations other than allowed ones
     const allowedAnnotations = ['pfe.redhat.com/salesforce-id', 'demo.redhat.com/purpose'];
     
-    const allowedCatalogItems = catalogItems.filter((item) => {
+    const filteredItems = catalogItems.filter((item) => {
       const parameters = item.spec?.parameters || [];
       
       // Only allow items where ALL parameters have one of the allowed annotations
@@ -97,17 +88,51 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
       return allParametersHaveAllowedAnnotations;
     });
 
-    // Then apply search filter
+    // Create Fuse search instance with the same options as Catalog.tsx
+    const options = {
+      minMatchCharLength: 3,
+      threshold: 0,
+      ignoreLocation: true,
+      fieldNormWeight: 0,
+      useExtendedSearch: true,
+      keys: [
+        {
+          name: ['spec', 'displayName'],
+          weight: 10,
+        },
+        {
+          name: ['metadata', 'name'],
+          weight: 8,
+        },
+        {
+          name: ['spec', 'description'],
+          weight: 6,
+        },
+        {
+          name: ['spec', 'summary'],
+          weight: 4,
+        },
+        {
+          name: ['spec', 'keywords'],
+          weight: 2,
+        },
+        {
+          name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Product_Family'],
+          weight: 0.5,
+        },
+      ],
+    };
+    
+    const fuse = new Fuse(filteredItems, options);
+    return [fuse, filteredItems];
+  }, [catalogItems]);
+
+  const filteredCatalogItems = useMemo(() => {
     if (!searchValue.trim()) return allowedCatalogItems;
-    const searchLower = searchValue.toLowerCase();
-    return allowedCatalogItems.filter((item) => {
-      const name = displayName(item);
-      return (
-        name.toLowerCase().includes(searchLower) ||
-        item.metadata.name.includes(searchLower)
-      );
-    });
-  }, [catalogItems, searchValue]);
+    
+    // Use Fuse search with the same pattern as Catalog.tsx
+    return catalogItemsFuse.search("'" + searchValue.split(' ').join(" '")).map((x) => x.item);
+  }, [searchValue, catalogItemsFuse, allowedCatalogItems]);
 
   const handleItemSelect = useCallback((catalogItem: CatalogItem) => {
     onSelect(catalogItem);
@@ -116,64 +141,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
 
   const selectedCatalogNamespaceObj = catalogNamespaces.find((ns) => ns.name === selectedCatalogNamespace);
 
-  const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
-    const stage = getStage(catalogItem);
-    const sla = getSLA(catalogItem);
-    
-    return (
-      <Card 
-        isSelectable 
-        onClick={() => handleItemSelect(catalogItem)}
-        style={{ cursor: 'pointer', height: '100%' }}
-      >
-        <CardHeader>
-          <Split hasGutter>
-            <SplitItem>
-              <CatalogItemIcon catalogItem={catalogItem} />
-            </SplitItem>
-            <SplitItem isFilled>
-              <Title headingLevel="h4" size="md" style={{ lineHeight: '1.2' }}>
-                {displayName(catalogItem)}
-              </Title>
-            </SplitItem>
-            <SplitItem>
-              {sla && stage === 'prod' ? (
-                <Tooltip content="Service Level">
-                  <Badge color="blue">{sla.replace(/_+/g, ' | ')}</Badge>
-                </Tooltip>
-              ) : stage === 'dev' ? (
-                <Badge color="orange">development</Badge>
-              ) : stage === 'test' ? (
-                <Badge color="purple">test</Badge>
-              ) : stage === 'event' ? (
-                <Badge color="green">event</Badge>
-              ) : null}
-            </SplitItem>
-          </Split>
-        </CardHeader>
-        <CardBody>
-          <div style={{ 
-            fontSize: '14px', 
-            color: 'var(--pf-t--color--text--secondary)',
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical'
-          }}>
-            {'No description available'}
-          </div>
-          <div style={{ 
-            marginTop: '8px', 
-            fontSize: '13px', 
-            color: 'var(--pf-t--color--text--secondary)',
-            fontFamily: 'monospace'
-          }}>
-            {catalogItem.metadata.namespace}/{catalogItem.metadata.name}
-          </div>
-        </CardBody>
-      </Card>
-    );
-  };
+
 
   return (
     <Modal
@@ -182,8 +150,9 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
       title={title}
       width="80%"
       height="70%"
+      
     >
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px', backgroundColor: 'var(--pf-t--global--background--color--200)', marginRight: 0, paddingRight: '64px' }}>
         <div style={{ marginBottom: '16px' }}>
           <div style={{ marginBottom: '12px' }}>
             <Dropdown
@@ -222,12 +191,14 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
               </DropdownList>
             </Dropdown>
           </div>
-          <SearchInput
-            placeholder="Search catalog items..."
-            value={searchValue}
-            onChange={(_, value) => setSearchValue(value)}
-            onClear={() => setSearchValue('')}
-          />
+          <div style={{ maxWidth: '400px' }}>
+            <SearchInput
+              placeholder="Search catalog items..."
+              value={searchValue}
+              onChange={(_, value) => setSearchValue(value)}
+              onClear={() => setSearchValue('')}
+            />
+          </div>
         </div>
         
         <div 
@@ -254,8 +225,14 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
           ) : (
             <Grid hasGutter>
               {filteredCatalogItems.map((catalogItem) => (
-                <GridItem key={`${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`} span={12} md={6} lg={4}>
-                  <CatalogItemCard catalogItem={catalogItem} />
+                <GridItem key={`${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`} span={12} md={6} lg={3}>
+                  <div style={{ height: '260px', width: '280px' }}>
+                    <CatalogItemCard 
+                      catalogItem={catalogItem} 
+                      isSelectable={true}
+                      onClick={handleItemSelect}
+                    />
+                  </div>
                 </GridItem>
               ))}
             </Grid>

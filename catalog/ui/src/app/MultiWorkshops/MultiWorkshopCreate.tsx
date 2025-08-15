@@ -178,9 +178,7 @@ const MultiWorkshopCreate: React.FC = () => {
       </PageSection>
 
       <PageSection>
-        <Card>
-          <CardBody>
-            <Form className="multiworkshop-create__form">
+        <Form className="multiworkshop-create__form">
               {(isAdmin || serviceNamespaces.length > 1) && (
                 <FormGroup label="Create Event in Project" fieldId="project-selector">
                   <ProjectSelector
@@ -388,8 +386,6 @@ const MultiWorkshopCreate: React.FC = () => {
                 </Button>
               </ActionGroup>
             </Form>
-          </CardBody>
-        </Card>
       </PageSection>
 
       <CatalogItemSelectorModal

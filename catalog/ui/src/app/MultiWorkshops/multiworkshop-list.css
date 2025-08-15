@@ -1,39 +1,7 @@
-.multiworkshop-list__card {
-  transition: all 0.2s ease-in-out;
-  border: 1px solid var(--pf-t--color--border--default);
-}
-
-.multiworkshop-list__card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-color: var(--pf-t--color--border--hover);
-}
-
 .multiworkshop-list__card-title {
   font-weight: var(--pf-t--font--weight--bold);
   color: var(--pf-t--color--text--primary);
   margin-bottom: 8px;
-}
-
-.multiworkshop-list__card-description {
-  margin-bottom: 16px;
-  color: var(--pf-t--color--text--secondary);
-  font-size: 14px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.multiworkshop-list__card-meta {
-  font-size: 14px;
-  color: var(--pf-t--color--text--secondary);
-}
-
-.multiworkshop-list__status-chip {
-  font-size: 12px;
-  font-weight: var(--pf-t--font--weight--bold);
 }
 
 .multiworkshop-list__empty-state {

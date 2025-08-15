@@ -14,7 +14,6 @@ import { MultiWorkshop } from '@app/types';
 import { compareK8sObjects } from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
-import Footer from '@app/components/Footer';
 
 import './multiworkshop-landing.css';
 import heroImg from './hero-img.jpeg';
@@ -24,6 +23,7 @@ interface WorkshopCardProps {
   asset: {
     key: string;
     workshopDisplayName?: string;
+    workshopDescription?: string;
     workshopId?: string;
     workshopName?: string;
   };
@@ -55,6 +55,9 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
         </div>
         <div className="demo-card__body">
           <h3 className="demo-card__title">{displayName}</h3>
+          {asset.workshopDescription && (
+            <p className="demo-card__description">{asset.workshopDescription}</p>
+          )}
           <p className="demo-card__subtitle demo-card__subtitle--disabled">
             Preparing workshop...
           </p>
@@ -85,6 +88,9 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
       </div>
       <div className="demo-card__body">
         <h3 className="demo-card__title">{displayName}</h3>
+        {asset.workshopDescription && (
+          <p className="demo-card__description">{asset.workshopDescription}</p>
+        )}
         <p className="demo-card__subtitle">
           Access this lab{' '}
           <svg 
@@ -149,13 +155,14 @@ const MultiWorkshopLandingComponent: React.FC<{
   const assets = multiworkshop.spec.assets || [];
 
   return (
-    <div className="multi-workshop-landing">
+    <div className="multi-workshop-landing" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div className="header-container">
+      <div className="header-container" style={{ flexShrink: 0 }}>
         <header className="dms-band header bg-gray-900 d-flex align-items-center position-fixed top-0 w-100 z-1 py-0" style={{ height: '80px' }}>
           <div className="container">
-            <div className="navbar navbar-expand-lg p-0" role="navigation">
-              <div className="navbar-header d-flex align-items-center justify-content-between">
+            <div className="navbar navbar-expand-lg p-0 d-flex justify-content-between w-100" role="navigation">
+              {/* Left side - Red Hat Demo Platform Logo */}
+              <div className="navbar-brand">
                 <a href="https://demo.redhat.com" title="Red Hat Demo Platform">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1508.5 178.739" style={{ width: '278px' }}>
                     <g fill="#fff">
@@ -169,39 +176,39 @@ const MultiWorkshopLandingComponent: React.FC<{
                     </text>
                   </svg>
                 </a>
-                
-                {/* MultiWorkshop Logo */}
-                {multiworkshop.spec.logoImage && (
-                  <div className="navbar-collapse collapse" id="nav-main">
-                    <div className="ml-auto d-none d-lg-inline-block">
-                      <img 
-                        style={{ maxWidth: '150px', maxHeight: '60px', objectFit: 'contain' }} 
-                        src={multiworkshop.spec.logoImage} 
-                        alt={`${displayName} Logo`}
-                        title={displayName}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
+              
+              {/* Right side - MultiWorkshop Logo */}
+              {multiworkshop.spec.logoImage && (
+                <div className="navbar-logo-right d-flex align-items-center">
+                  <img 
+                    style={{ maxWidth: '200px', maxHeight: '60px', objectFit: 'contain' }} 
+                    src={multiworkshop.spec.logoImage} 
+                    alt={`${displayName} Logo`}
+                    title={displayName}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </header>
       </div>
 
       {/* Content */}
-      <div className="content-container" style={{ marginTop: '80px' }}>
+      <div className="content-container" style={{ marginTop: '80px', display: 'flex', flexDirection: 'column', flexGrow: 1, overflow: 'hidden' }}>
         {/* Hero Banner */}
-        <img 
-          className="img-fluid d-md-block d-none" 
-          src={multiworkshop.spec.backgroundImage || heroImg} 
-          alt={`${displayName} - Red Hat Demo Platform`}
-          style={{ width: '100%', height: 'auto', maxHeight: '350px', objectFit: 'cover' }}
-        />
+        <div style={{ flexShrink: 0 }}>
+          <img 
+            className="img-fluid d-md-block d-none" 
+            src={multiworkshop.spec.backgroundImage || heroImg} 
+            alt={`${displayName} - Red Hat Demo Platform`}
+            style={{ width: '100%', height: 'auto', maxHeight: '250px', objectFit: 'cover' }}
+          />
+        </div>
 
         {/* Main Content */}
-        <section className="dms-band py-0 mt-n1">
-          <div className="py-3 bg-gray-200 d-flex flex-column align-items-center">
+        <section className="dms-band py-0 mt-n1 flex-grow-1 d-flex flex-column" style={{ overflow: 'auto' }}>
+          <div className="py-3 bg-gray-200 d-flex flex-column align-items-center flex-grow-1">
             <div className="row mb-3">
               <div className="col-12 p-2 text-sm-center" style={{ maxWidth: '650px' }}>
                 <h3 className="px-1 my-1">{displayName}</h3>
@@ -222,29 +229,28 @@ const MultiWorkshopLandingComponent: React.FC<{
             </div>
 
             {/* Workshop Cards */}
-            {assets.length === 0 ? (
-              <div style={{ marginTop: '24px' }}>
-                <Alert variant="info" title="No Workshop Sessions">
-                  This multi-workshop doesn't have any workshop sessions configured yet.
-                </Alert>
-              </div>
-            ) : (
-              <div className="demo-card-grid">
-                {assets.map((asset, index) => (
-                  <WorkshopCard
-                    key={asset.key || index}
-                    asset={asset}
-                    isAvailable={isApproved && !!asset.workshopId}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="assets-container flex-grow-1 d-flex flex-column justify-content-center w-100">
+              {assets.length === 0 ? (
+                <div style={{ marginTop: '24px' }}>
+                  <Alert variant="info" title="No Workshop Sessions">
+                    This multi-workshop doesn't have any workshop sessions configured yet.
+                  </Alert>
+                </div>
+              ) : (
+                <div className="demo-card-grid">
+                  {assets.map((asset, index) => (
+                    <WorkshopCard
+                      key={asset.key || index}
+                      asset={asset}
+                      isAvailable={isApproved && !!asset.workshopId}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
       </div>
-      
-      {/* Footer */}
-      <Footer />
     </div>
   );
 };

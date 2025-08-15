@@ -1,9 +1,10 @@
 /* Multi-Workshop Landing Page Styling */
 .multi-workshop-landing {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   font-family: 'Red Hat Text', 'Overpass', overpass, helvetica, arial, sans-serif;
+  overflow: hidden;
 }
 
 /* Header Styling */
@@ -48,8 +49,27 @@
   flex-wrap: wrap !important;
 }
 
+.multi-workshop-landing .flex-grow-1 {
+  flex-grow: 1 !important;
+}
+
 .multi-workshop-landing .flex-column {
   flex-direction: column !important;
+}
+
+.multi-workshop-landing .w-100 {
+  width: 100% !important;
+}
+
+/* Assets container styling */
+.multi-workshop-landing .assets-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+  overflow: auto;
+  padding: 20px 0;
 }
 
 .multi-workshop-landing .container {
@@ -73,6 +93,15 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+}
+
+.multi-workshop-landing .navbar-brand {
+  flex-shrink: 0;
+}
+
+.multi-workshop-landing .navbar-logo-right {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .multi-workshop-landing .navbar-collapse {
@@ -246,6 +275,14 @@
   margin-top: 0 !important;
   font-weight: 600;
   line-height: 1.3;
+}
+
+.multi-workshop-landing .demo-card__description {
+  font-size: 14px !important;
+  color: #666;
+  margin: 0 0 8px 0 !important;
+  line-height: 1.4;
+  font-weight: 400;
 }
 
 .multi-workshop-landing .demo-card__scheduled {

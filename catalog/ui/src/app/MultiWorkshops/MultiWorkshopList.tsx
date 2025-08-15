@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import useSWRInfinite from 'swr/infinite';
+import { useSWRConfig } from 'swr';
 import {
   EmptyState,
   EmptyStateBody,
@@ -10,27 +11,24 @@ import {
   Title,
   EmptyStateFooter,
   Button,
-  Card,
-  CardBody,
-  Grid,
-  GridItem,
-  Divider,
 } from '@patternfly/react-core';
+
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
+import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import CalendarAltIcon from '@patternfly/react-icons/dist/js/icons/calendar-alt-icon';
-import UsersIcon from '@patternfly/react-icons/dist/js/icons/users-icon';
-import { apiPaths, fetcher } from '@app/api';
+import { apiPaths, fetcher, deleteMultiWorkshop } from '@app/api';
 import { MultiWorkshop, MultiWorkshopList as MultiWorkshopListType } from '@app/types';
 import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 import Footer from '@app/components/Footer';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
+import SelectableTable from '@app/components/SelectableTable';
+import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
+import Modal, { useModal } from '@app/Modal/Modal';
 import useSession from '@app/utils/useSession';
 
 import './multiworkshop-list.css';
-import { Chip } from '@patternfly/react-core/deprecated';
 
 function keywordMatch(multiworkshop: MultiWorkshop, keyword: string): boolean {
   const keywordLowerCased = keyword.toLowerCase();
@@ -50,6 +48,10 @@ const MultiWorkshopList: React.FC = () => {
   const { namespace } = useParams();
   const { userNamespace } = useSession().getSession();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [modalAction, openModalAction] = useModal();
+  const [modalState, setModalState] = useState<{ action?: string; multiworkshop?: MultiWorkshop }>({});
+  const [selectedUids, setSelectedUids] = useState([]);
+  const { cache } = useSWRConfig();
   
   // Use namespace from params or fall back to user's namespace
   const currentNamespace = namespace || userNamespace?.name;
@@ -102,6 +104,36 @@ const MultiWorkshopList: React.FC = () => {
   const isLoadingMore =
     isLoadingInitialData || (size > 0 && multiworkshopsPages && typeof multiworkshopsPages[size - 1] === 'undefined');
 
+  const revalidate = useCallback(
+    ({ updatedItems, action }: { updatedItems: MultiWorkshop[]; action: 'update' | 'delete' }) => {
+      const multiworkshopsPagesCpy = JSON.parse(JSON.stringify(multiworkshopsPages));
+      let p: MultiWorkshopListType;
+      let i: number;
+      for ([i, p] of multiworkshopsPagesCpy.entries()) {
+        for (const updatedItem of updatedItems) {
+          const foundIndex = p.items.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+          if (foundIndex > -1) {
+            if (action === 'update') {
+              multiworkshopsPagesCpy[i].items[foundIndex] = updatedItem;
+            } else if (action === 'delete') {
+              multiworkshopsPagesCpy[i].items.splice(foundIndex, 1);
+            }
+            mutate(multiworkshopsPagesCpy);
+          }
+        }
+      }
+    },
+    [mutate, multiworkshopsPages],
+  );
+
+  const showModal = useCallback(
+    ({ action, multiworkshop }: { action: string; multiworkshop?: MultiWorkshop }) => {
+      setModalState({ action, multiworkshop });
+      openModalAction();
+    },
+    [openModalAction],
+  );
+
   const filterMultiWorkshop = useCallback(
     (multiworkshop: MultiWorkshop): boolean => {
       // Hide anything pending deletion
@@ -134,23 +166,34 @@ const MultiWorkshopList: React.FC = () => {
     }
   };
 
+  async function onMultiWorkshopDeleteConfirm(): Promise<void> {
+    const deletedMultiWorkshops: MultiWorkshop[] = [];
+    if (modalState.multiworkshop) {
+      await deleteMultiWorkshop(modalState.multiworkshop);
+      deletedMultiWorkshops.push(modalState.multiworkshop);
+    } else {
+      for (const multiworkshop of multiworkshops) {
+        if (selectedUids.includes(multiworkshop.metadata.uid)) {
+          await deleteMultiWorkshop(multiworkshop);
+          cache.delete(
+            apiPaths.MULTIWORKSHOP({
+              namespace: multiworkshop.metadata.namespace,
+              multiworkshopName: multiworkshop.metadata.name,
+            }),
+          );
+          deletedMultiWorkshops.push(multiworkshop);
+        }
+      }
+    }
+    revalidate({ updatedItems: deletedMultiWorkshops, action: 'delete' });
+    setSelectedUids([]); // Clear selections after delete
+  }
+
   function getMultiWorkshopDisplayName(multiworkshop: MultiWorkshop): string {
     return multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
   }
 
-  function getStatusColor(multiworkshop: MultiWorkshop): 'blue' | 'green' | 'orange' | 'red' | 'grey' {
-    const now = new Date();
-    const startDate = multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate) : null;
-    const endDate = multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate) : null;
-    
-    if (startDate && endDate) {
-      if (now < startDate) return 'blue'; // Upcoming
-      if (now > endDate) return 'grey'; // Ended
-      return 'green'; // Active
-    }
-    
-    return 'orange'; // No dates set
-  }
+
 
   function getStatusText(multiworkshop: MultiWorkshop): string {
     const now = new Date();
@@ -178,6 +221,18 @@ const MultiWorkshopList: React.FC = () => {
 
   return (
     <div onScroll={scrollHandler} style={{ height: '100vh', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <Modal
+        ref={modalAction}
+        onConfirm={onMultiWorkshopDeleteConfirm}
+        title={
+          modalState.multiworkshop 
+            ? `Delete event ${getMultiWorkshopDisplayName(modalState.multiworkshop)}?` 
+            : 'Delete selected events?'
+        }
+      >
+        <p>This action cannot be undone. All associated workshop data WILL NOT be deleted.</p>
+      </Modal>
+
       <PageSection hasBodyWrapper={false} key="header" variant="default" className="multiworkshop-list__header">
         <Split hasGutter>
           <SplitItem isFilled>
@@ -200,6 +255,14 @@ const MultiWorkshopList: React.FC = () => {
                 }
                 setSearchParams(searchParams);
               }}
+            />
+          </SplitItem>
+          <SplitItem>
+            <ButtonCircleIcon
+              isDisabled={selectedUids.length === 0}
+              onClick={() => showModal({ action: 'delete' })}
+              description="Delete Selected"
+              icon={TrashIcon}
             />
           </SplitItem>
           <SplitItem>
@@ -238,68 +301,87 @@ const MultiWorkshopList: React.FC = () => {
           </PageSection>
         ) : (
           <PageSection hasBodyWrapper={false} key="body">
-            <Grid hasGutter>
-              {multiworkshops.map((multiworkshop: MultiWorkshop) => (
-                <GridItem key={multiworkshop.metadata.uid} span={12} md={6} lg={4}>
-                  <Card 
-                    className="multiworkshop-list__card"
-                    isSelectable 
-                    isSelected={false}
-                    onClick={() => navigate(`/multiworkshops/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`)}
-                    style={{ height: '100%', cursor: 'pointer' }}
+            <SelectableTable
+              columns={['Event Name', 'Status', 'Description', 'Workshops', 'Seats', 'Start Date', 'Created', 'Actions']}
+              onSelectAll={(isSelected: boolean) => {
+                if (isSelected) {
+                  setSelectedUids(multiworkshops.map((multiworkshop) => multiworkshop.metadata.uid));
+                } else {
+                  setSelectedUids([]);
+                }
+              }}
+              rows={multiworkshops.map((multiworkshop: MultiWorkshop) => {
+                const actionHandlers = {
+                  delete: () => showModal({ action: 'delete', multiworkshop }),
+                };
+
+                const cells: any[] = [];
+                cells.push(
+                  // Event Name
+                  <Link
+                    key="event-name"
+                    to={`/event-wizard/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
                   >
-                    <CardBody>
-                      <Split hasGutter>
-                        <SplitItem isFilled>
-                          <Title headingLevel="h3" size="lg" className="multiworkshop-list__card-title">
-                            {getMultiWorkshopDisplayName(multiworkshop)}
-                          </Title>
-                        </SplitItem>
-                        <SplitItem>
-                          <Chip className="multiworkshop-list__status-chip" color={getStatusColor(multiworkshop)} isReadOnly>
-                            {getStatusText(multiworkshop)}
-                          </Chip>
-                        </SplitItem>
-                      </Split>
-                      
-                      {multiworkshop.spec.description && (
-                        <p className="multiworkshop-list__card-description">
-                          {multiworkshop.spec.description}
-                        </p>
-                      )}
-
-                      <Divider style={{ margin: '12px 0' }} />
-
-                      <div className="multiworkshop-list__card-meta">
-                        <Split hasGutter style={{ marginBottom: '8px' }}>
-                          <SplitItem>
-                            <UsersIcon style={{ marginRight: '4px' }} />
-                            {multiworkshop.spec.assets ? multiworkshop.spec.assets.length : 0} workshops
-                          </SplitItem>
-                          <SplitItem>
-                            <UsersIcon style={{ marginRight: '4px' }} />
-                            {multiworkshop.spec.numberSeats || 'N/A'} seats
-                          </SplitItem>
-                        </Split>
-
-                        {multiworkshop.spec.startDate && (
-                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                            <CalendarAltIcon style={{ marginRight: '4px' }} />
-                            <span style={{ fontSize: '13px', color: 'var(--pf-t--color--text--secondary)' }}>
-                              Starts: <LocalTimestamp timestamp={multiworkshop.spec.startDate} />
-                            </span>
-                          </div>
-                        )}
-
-                        <div style={{ fontSize: '13px', color: 'var(--pf-t--color--text--secondary)', marginTop: '8px' }}>
-                          Created <TimeInterval toTimestamp={multiworkshop.metadata.creationTimestamp} />
-                        </div>
-                      </div>
-                    </CardBody>
-                  </Card>
-                </GridItem>
-              ))}
-            </Grid>
+                    {getMultiWorkshopDisplayName(multiworkshop)}
+                  </Link>,
+                  // Status
+                  <span key="status">
+                    {getStatusText(multiworkshop)}
+                  </span>,
+                  // Description
+                  <span key="description" style={{ color: 'var(--pf-t--color--text--secondary)' }}>
+                    {multiworkshop.spec.description || 'No description'}
+                  </span>,
+                  // Workshops
+                  <>{multiworkshop.spec.assets ? multiworkshop.spec.assets.length : 0}</>,
+                  // Seats
+                  <>{multiworkshop.spec.numberSeats || 'N/A'}</>,
+                  // Start Date
+                  <>
+                    {multiworkshop.spec.startDate ? (
+                      <LocalTimestamp key="start-timestamp" timestamp={multiworkshop.spec.startDate} />
+                    ) : (
+                      'Not scheduled'
+                    )}
+                  </>,
+                  // Created
+                  <TimeInterval key="created" toTimestamp={multiworkshop.metadata.creationTimestamp} />,
+                  // Actions
+                  <React.Fragment key="actions">
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        gap: 'var(--pf-t--global--spacer--sm)',
+                      }}
+                    >
+                      <ButtonCircleIcon
+                        key="actions__delete"
+                        onClick={actionHandlers.delete}
+                        description="Delete"
+                        icon={TrashIcon}
+                      />
+                    </div>
+                  </React.Fragment>,
+                );
+                return {
+                  cells: cells,
+                  onSelect: (isSelected) =>
+                    setSelectedUids((uids) => {
+                      if (isSelected) {
+                        if (uids.includes(multiworkshop.metadata.uid)) {
+                          return uids;
+                        } else {
+                          return [...uids, multiworkshop.metadata.uid];
+                        }
+                      } else {
+                        return uids.filter((uid) => uid !== multiworkshop.metadata.uid);
+                      }
+                    }),
+                  selected: selectedUids.includes(multiworkshop.metadata.uid),
+                };
+              })}
+            />
           </PageSection>
         )}
       </div>

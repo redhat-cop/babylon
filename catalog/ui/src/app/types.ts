@@ -608,6 +608,7 @@ export interface MultiWorkshopSpec {
   endDate: string;
   numberSeats?: number;
   salesforceId?: string;
+  salesforceType?: SfdcType;
   purpose?: string;
   'purpose-activity'?: string;
   assets?: MultiWorkshopAsset[];

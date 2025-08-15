@@ -6,7 +6,3 @@
   background-color: var(--pf-t--color--gray--100);
   border: 1px solid var(--pf-t--color--border--default);
 }
-
-.multiworkshop-create__asset-card .pf-v5-c-card__body {
-  padding: var(--pf-t--global--spacer--md);
-}

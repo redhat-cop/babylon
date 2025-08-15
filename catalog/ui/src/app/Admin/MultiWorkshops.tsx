@@ -275,7 +275,7 @@ const MultiWorkshops: React.FC<{}> = () => {
                 <>
                   <Link
                     key="multiworkshops"
-                    to={`/admin/multiworkshops/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
+                    to={`/event-wizard/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
                   >
                     {getMultiWorkshopDisplayName(multiworkshop)}
                   </Link>
