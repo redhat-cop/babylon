@@ -50,6 +50,17 @@ const Navigation: React.FC = () => {
     </NavItem>
   ) : null;
 
+  const multiWorkshopNavigation = userNamespace ? (
+    <NavItem>
+      <NavLink
+        to={`/event-wizard/${userNamespace.name}`}
+        className={locationStartsWith('/event-wizard/') ? 'pf-m-current' : ''}
+      >
+        Event Wizard
+      </NavLink>
+    </NavItem>
+  ) : null;
+
   const adminNavigation = isAdmin ? (
     <NavExpandable title="Admin" isExpanded={locationStartsWith('/admin/')}>
       <NavItem>
@@ -123,6 +134,11 @@ const Navigation: React.FC = () => {
         </ExactNavLink>
       </NavItem>
       <NavItem>
+        <ExactNavLink className={locationStartsWith('/admin/multiworkshops') ? 'pf-m-current' : ''} to="/admin/multiworkshops">
+          Multi-Workshops
+        </ExactNavLink>
+      </NavItem>
+      <NavItem>
         <ExactNavLink
           className={locationStartsWith('/admin/scheduled/workshops') ? 'pf-m-current' : ''}
           to="/admin/scheduled/workshops"
@@ -145,6 +161,7 @@ const Navigation: React.FC = () => {
       <NavList id="nav-list-simple">
         {catalogNavigation}
         {serviceNavigation}
+        {multiWorkshopNavigation}
         {adminNavigation}
       </NavList>
     </Nav>

@@ -1,0 +1,399 @@
+/* Multi-Workshop Landing Page Styling */
+.multi-workshop-landing {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Red Hat Text', 'Overpass', overpass, helvetica, arial, sans-serif;
+  overflow: hidden;
+}
+
+/* Header Styling */
+.multi-workshop-landing .header-container {
+  position: relative;
+  z-index: 1000;
+}
+
+.multi-workshop-landing .bg-gray-900 {
+  background-color: #111 !important;
+}
+
+.multi-workshop-landing .position-fixed {
+  position: fixed !important;
+}
+
+.multi-workshop-landing .top-0 {
+  top: 0 !important;
+}
+
+.multi-workshop-landing .w-100 {
+  width: 100% !important;
+}
+
+.multi-workshop-landing .z-1 {
+  z-index: 1 !important;
+}
+
+.multi-workshop-landing .d-flex {
+  display: flex !important;
+}
+
+.multi-workshop-landing .align-items-center {
+  align-items: center !important;
+}
+
+.multi-workshop-landing .justify-content-center {
+  justify-content: center !important;
+}
+
+.multi-workshop-landing .flex-wrap {
+  flex-wrap: wrap !important;
+}
+
+.multi-workshop-landing .flex-grow-1 {
+  flex-grow: 1 !important;
+}
+
+.multi-workshop-landing .flex-column {
+  flex-direction: column !important;
+}
+
+.multi-workshop-landing .w-100 {
+  width: 100% !important;
+}
+
+/* Assets container styling */
+.multi-workshop-landing .assets-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+  overflow: auto;
+  padding: 20px 0;
+}
+
+.multi-workshop-landing .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px;
+  width: 100%;
+}
+
+.multi-workshop-landing .navbar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+}
+
+.multi-workshop-landing .navbar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.multi-workshop-landing .navbar-brand {
+  flex-shrink: 0;
+}
+
+.multi-workshop-landing .navbar-logo-right {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.multi-workshop-landing .navbar-collapse {
+  flex-basis: 100%;
+  flex-grow: 1;
+  align-items: center;
+}
+
+.multi-workshop-landing .ml-auto {
+  margin-left: auto !important;
+}
+
+.multi-workshop-landing .d-lg-inline-block {
+  display: inline-block !important;
+}
+
+.multi-workshop-landing .d-none {
+  display: none !important;
+}
+
+@media (min-width: 992px) {
+  .multi-workshop-landing .d-lg-inline-block {
+    display: inline-block !important;
+  }
+}
+
+/* Content Styling */
+.multi-workshop-landing .content-container {
+  flex: 1;
+}
+
+.multi-workshop-landing .dms-band {
+  position: relative;
+}
+
+.multi-workshop-landing .py-0 {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.multi-workshop-landing .py-3 {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+.multi-workshop-landing .mt-n1 {
+  margin-top: -0.25rem !important;
+}
+
+.multi-workshop-landing .bg-gray-200 {
+  background-color: #f0f0f0 !important;
+}
+
+.multi-workshop-landing .mb-3 {
+  margin-bottom: 1rem !important;
+}
+
+.multi-workshop-landing .row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+.multi-workshop-landing .col-12 {
+  flex: 0 0 100%;
+  max-width: 100%;
+}
+
+.multi-workshop-landing .p-2 {
+  padding: 0.5rem !important;
+}
+
+.multi-workshop-landing .text-sm-center {
+  text-align: center !important;
+}
+
+.multi-workshop-landing .px-1 {
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
+}
+
+.multi-workshop-landing .my-1 {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Demo Card Grid */
+.multi-workshop-landing .demo-card-grid {
+  display: grid;
+  gap: 16px;
+  grid-auto-flow: dense;
+  grid-template-columns: repeat(auto-fill, 280px);
+  grid-template-rows: repeat(auto-fill, 260px);
+  max-width: 875px;
+  width: 100%;
+  padding-bottom: 42px;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .multi-workshop-landing .demo-card-grid {
+    max-width: 100%;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+/* Demo Cards */
+.multi-workshop-landing .demo-card {
+  background-color: #fff;
+  box-shadow: 0 0.0625rem 0.125rem 0 rgba(3, 3, 3, 0.12), 0 0 0.125rem 0 rgba(3, 3, 3, 0.06);
+  color: #151515;
+  display: flex;
+  flex-direction: column;
+  height: 260px;
+  overflow: hidden;
+  padding: 24px;
+  width: 280px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.multi-workshop-landing .demo-card:hover,
+.multi-workshop-landing .demo-card:focus {
+  box-shadow: 0 0.5rem 1rem 0 rgba(3, 3, 3, 0.16), 0 0 0.375rem 0 rgba(3, 3, 3, 0.08);
+  transform: translateY(-2px);
+}
+
+.multi-workshop-landing .demo-card--unavailable {
+  opacity: 0.7;
+  cursor: not-allowed !important;
+}
+
+.multi-workshop-landing .demo-card--unavailable:hover {
+  transform: none;
+  box-shadow: 0 0.0625rem 0.125rem 0 rgba(3, 3, 3, 0.12), 0 0 0.125rem 0 rgba(3, 3, 3, 0.06);
+}
+
+.multi-workshop-landing .demo-card__header {
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  margin-bottom: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.multi-workshop-landing .demo-card__icon {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.multi-workshop-landing .demo-card__badges {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.multi-workshop-landing .demo-card__body {
+  margin-top: 12px;
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+}
+
+.multi-workshop-landing .demo-card__title {
+  font-size: 16px !important;
+  color: #111;
+  margin-bottom: 6px !important;
+  margin-top: 0 !important;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.multi-workshop-landing .demo-card__description {
+  font-size: 14px !important;
+  color: #666;
+  margin: 0 0 8px 0 !important;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.multi-workshop-landing .demo-card__scheduled {
+  color: #777;
+  font-size: 12px !important;
+  margin-bottom: 8px;
+  margin-top: 0;
+}
+
+.multi-workshop-landing .demo-card__subtitle {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  color: rgb(0, 102, 204);
+  margin-top: auto !important;
+  margin-bottom: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  font-family: 'Red Hat Display', Overpass, Helvetica, Arial, sans-serif !important;
+  cursor: pointer;
+}
+
+.multi-workshop-landing .demo-card__subtitle svg {
+  fill: rgb(0, 102, 204);
+  transition: padding 0.3s cubic-bezier(0.465, 0.183, 0.153, 0.946);
+  margin-bottom: -1px;
+  height: 13px;
+  width: 13px;
+  margin-left: 6px;
+}
+
+.multi-workshop-landing .demo-card__subtitle:hover {
+  color: rgb(0, 64, 128);
+}
+
+.multi-workshop-landing .demo-card__subtitle:hover svg {
+  fill: rgb(0, 64, 128);
+  transform: translateX(3px);
+}
+
+.multi-workshop-landing .demo-card__subtitle--disabled {
+  color: #777 !important;
+  cursor: default !important;
+}
+
+.multi-workshop-landing .demo-card__subtitle--disabled:hover {
+  color: #777 !important;
+}
+
+/* PFE Arrow styling */
+.multi-workshop-landing .pfe-cta--arrow {
+  fill: rgb(0, 102, 204);
+  transition: transform 0.3s cubic-bezier(0.465, 0.183, 0.153, 0.946);
+  margin-bottom: -1px;
+  height: 13px;
+  width: 13px;
+  margin-left: 6px;
+}
+
+.multi-workshop-landing .demo-card__subtitle:hover .pfe-cta--arrow {
+  fill: rgb(0, 64, 128);
+  transform: translateX(3px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .multi-workshop-landing .demo-card-grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  
+  .multi-workshop-landing .demo-card {
+    width: 100%;
+    max-width: 320px;
+  }
+  
+  .multi-workshop-landing .container {
+    padding: 0 10px;
+  }
+}
+
+/* Additional utility classes */
+.multi-workshop-landing .img-fluid {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (min-width: 768px) {
+  .multi-workshop-landing .d-md-block {
+    display: block !important;
+  }
+}
+
+/* Workshop details styling */
+.multi-workshop-landing h3.px-1.my-1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0.5rem 0.25rem;
+}
+
+.multi-workshop-landing p.px-1 {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.5;
+  margin: 0.25rem;
+}
+
+/* Small text for dates and details */
+.multi-workshop-landing small {
+  font-size: 0.9rem;
+  color: #666;
+}

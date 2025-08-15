@@ -1,0 +1,12 @@
+.multiworkshop-detail__header {
+  margin-top: 16px;
+  align-items: flex-start;
+}
+
+.multiworkshop-detail__description {
+  color: var(--pf-t--color--text--secondary);
+  margin-top: 8px;
+  margin-bottom: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}

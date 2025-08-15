@@ -10,7 +10,13 @@ import CatalogItemIcon from './CatalogItemIcon';
 
 import './catalog-item-card.css';
 
-const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }) => {
+interface CatalogItemCardProps {
+  catalogItem: CatalogItem;
+  onClick?: (catalogItem: CatalogItem) => void;
+  isSelectable?: boolean;
+}
+
+const CatalogItemCard: React.FC<CatalogItemCardProps> = ({ catalogItem, onClick, isSelectable = false }) => {
   const location = useLocation();
   const { namespace } = useParams();
   const [searchParams] = useSearchParams();
@@ -20,11 +26,21 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
   const rating = getRating(catalogItem);
   const status = getStatus(catalogItem);
   const sla = getSLA(catalogItem);
-  if (namespace && searchParams.get('item') !== catalogItem.metadata.name) {
-    searchParams.set('item', catalogItem.metadata.name);
-  } else if (searchParams.get('item') !== `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`) {
-    searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
+  
+  // Only handle routing params if not in selectable mode
+  if (!isSelectable) {
+    if (namespace && searchParams.get('item') !== catalogItem.metadata.name) {
+      searchParams.set('item', catalogItem.metadata.name);
+    } else if (searchParams.get('item') !== `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`) {
+      searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
+    }
   }
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick(catalogItem);
+    }
+  };
 
   return (
     <div className="catalog-item-card__wrapper">
@@ -43,37 +59,72 @@ const CatalogItemCard: React.FC<{ catalogItem: CatalogItem }> = ({ catalogItem }
           <Badge className="catalog-item-card__badge--event">event</Badge>
         ) : null}
       </div>
-      <Link
-        className={`catalog-item-card ${status && status.disabled ? 'catalog-item-card--disabled' : ''}`}
-        to={`${location.pathname}?${searchParams.toString()}`}
-      >
-        <CardHeader className="catalog-item-card__header">
-          <Split>
-            <SplitItem>
-              <CatalogItemIcon catalogItem={catalogItem} />
-              {status && status.name !== 'Operational' ? (
-                <StatusPageIcons status={status.name} className="catalog-item-card__statusPageIcon" />
-              ) : null}
-            </SplitItem>
-          </Split>
-        </CardHeader>
-        <CardBody className="catalog-item-card__body">
-          <Title className="catalog-item-card__title" headingLevel="h3">
-            {displayName(catalogItem)}
-          </Title>
-          <Title className="catalog-item-card__subtitle" headingLevel="h6">
-            provided by {formatString(provider)}
-          </Title>
-          {description ? (
-            <div className="catalog-item-card__description">
-              {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+{isSelectable ? (
+        <div
+          className={`catalog-item-card ${status && status.disabled ? 'catalog-item-card--disabled' : ''}`}
+          onClick={handleClick}
+          style={{ cursor: 'pointer' }}
+        >
+          <CardHeader className="catalog-item-card__header">
+            <Split>
+              <SplitItem>
+                <CatalogItemIcon catalogItem={catalogItem} />
+                {status && status.name !== 'Operational' ? (
+                  <StatusPageIcons status={status.name} className="catalog-item-card__statusPageIcon" />
+                ) : null}
+              </SplitItem>
+            </Split>
+          </CardHeader>
+          <CardBody className="catalog-item-card__body">
+            <Title className="catalog-item-card__title" headingLevel="h3">
+              {displayName(catalogItem)}
+            </Title>
+            <Title className="catalog-item-card__subtitle" headingLevel="h6">
+              provided by {formatString(provider)}
+            </Title>
+            {description ? (
+              <div className="catalog-item-card__description">
+                {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+              </div>
+            ) : null}
+            <div className="catalog-item-card__rating">
+              <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly hideIfNotRated />
             </div>
-          ) : null}
-          <div className="catalog-item-card__rating">
-            <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly hideIfNotRated />
-          </div>
-        </CardBody>
-      </Link>
+          </CardBody>
+        </div>
+      ) : (
+        <Link
+          className={`catalog-item-card ${status && status.disabled ? 'catalog-item-card--disabled' : ''}`}
+          to={`${location.pathname}?${searchParams.toString()}`}
+        >
+          <CardHeader className="catalog-item-card__header">
+            <Split>
+              <SplitItem>
+                <CatalogItemIcon catalogItem={catalogItem} />
+                {status && status.name !== 'Operational' ? (
+                  <StatusPageIcons status={status.name} className="catalog-item-card__statusPageIcon" />
+                ) : null}
+              </SplitItem>
+            </Split>
+          </CardHeader>
+          <CardBody className="catalog-item-card__body">
+            <Title className="catalog-item-card__title" headingLevel="h3">
+              {displayName(catalogItem)}
+            </Title>
+            <Title className="catalog-item-card__subtitle" headingLevel="h6">
+              provided by {formatString(provider)}
+            </Title>
+            {description ? (
+              <div className="catalog-item-card__description">
+                {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+              </div>
+            ) : null}
+            <div className="catalog-item-card__rating">
+              <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly hideIfNotRated />
+            </div>
+          </CardBody>
+        </Link>
+      )}
     </div>
   );
 };
