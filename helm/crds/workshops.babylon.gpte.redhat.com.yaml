@@ -163,16 +163,16 @@ spec:
                 type: object
                 properties:
                   ordered:
-                    description: Total number of WorkshopProvisions ordered.
-                    type: integer
-                  provisioning:
-                    description: Number of WorkshopProvisions that are provisioning.
+                    description: Total number of ordered provisions.
                     type: integer
                   failed:
-                    description: Number of WorkshopProvisions that have failed.
+                    description: Number of provisions that have failed.
                     type: integer
-                  completed:
-                    description: Number of WorkshopProvisions that have completed.
+                  active:
+                    description: Number of provisions that are active.
+                    type: integer
+                  retries:
+                    description: Number of provisions retries.
                     type: integer
         required:
         - apiVersion

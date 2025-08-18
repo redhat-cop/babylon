@@ -32,7 +32,7 @@ class ResourceClaim(K8sObject):
         event_type = event.get('type')
         logger.debug(f"Handling {resource_claim} {event.get('type') or 'EVENT'}")
 
-        if event.get('type') == 'DELETED':
+        if event.get('type') == 'DELETED' or resource_claim.deletion_timestamp is not None:
             await resource_claim.delete_workshop_user_assignments(logger=logger)
             return
 
@@ -56,6 +56,10 @@ class ResourceClaim(K8sObject):
                 workshop = workshop,
             )
 
+    @property
+    def deletion_timestamp(self):
+        return self.metadata.get('deletionTimestamp')
+    
     @property
     def effective_lifespan_end(self):
         lifespan_end_timestamp = self.definition.get('status', {}).get('lifespan', {}).get('end')
