@@ -106,6 +106,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
           </SplitItem>
           <SplitItem>
             <ActionDropdown
+              position="right"
               actionDropdownItems={[
                 <ActionDropdownItem key="delete" label="Delete" onSelect={() => confirmThenDelete()} />,
                 <ActionDropdownItem
