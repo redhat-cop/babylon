@@ -616,11 +616,13 @@ export interface MultiWorkshopSpec {
 
 export interface MultiWorkshopAsset {
   key: string;
-  assetNamespace: string;
+  assetNamespace?: string; // Not required for external assets
   workshopDisplayName?: string;
   workshopDescription?: string;
   workshopId?: string;
   workshopName?: string;
+  url?: string; // For external workshops
+  type?: 'catalog' | 'external'; // Asset type
 }
 
 export type Session = {

@@ -26,13 +26,21 @@ interface WorkshopCardProps {
     workshopDescription?: string;
     workshopId?: string;
     workshopName?: string;
+    url?: string;
+    type?: 'catalog' | 'external';
   };
   isAvailable: boolean;
 }
 
 const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
   const displayName = asset.workshopDisplayName || asset.key;
-  const workshopUrl = asset.workshopId ? `/workshop/${asset.workshopId}` : null;
+  
+  // Determine the URL based on asset type
+  const workshopUrl = asset.type === 'external' 
+    ? asset.url 
+    : asset.workshopId 
+      ? `/workshop/${asset.workshopId}` 
+      : null;
 
   const handleCardClick = () => {
     if (isAvailable && workshopUrl) {
@@ -59,7 +67,7 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
             <p className="demo-card__description">{asset.workshopDescription}</p>
           )}
           <p className="demo-card__subtitle demo-card__subtitle--disabled">
-            Preparing workshop...
+            {asset.type === 'external' ? 'External workshop unavailable...' : 'Preparing workshop...'}
           </p>
         </div>
       </div>
@@ -238,13 +246,21 @@ const MultiWorkshopLandingComponent: React.FC<{
                 </div>
               ) : (
                 <div className="demo-card-grid">
-                  {assets.map((asset, index) => (
-                    <WorkshopCard
-                      key={asset.key || index}
-                      asset={asset}
-                      isAvailable={isApproved && !!asset.workshopId}
-                    />
-                  ))}
+                  {assets.map((asset, index) => {
+                    // External workshops are always available if they have a URL
+                    // Catalog workshops need approval and workshopId
+                    const isAvailable = asset.type === 'external' 
+                      ? !!asset.url 
+                      : isApproved && !!asset.workshopId;
+                    
+                    return (
+                      <WorkshopCard
+                        key={asset.key || index}
+                        asset={asset}
+                        isAvailable={isAvailable}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>

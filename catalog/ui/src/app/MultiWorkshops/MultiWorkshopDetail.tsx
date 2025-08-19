@@ -22,7 +22,10 @@ import {
   TabTitleText,
   TextInput,
   NumberInput,
+  Checkbox,
+  SearchInput,
 } from '@patternfly/react-core';
+import { ModalVariant } from '@patternfly/react-core/deprecated';
 import {
   Table,
   Thead,
@@ -36,16 +39,19 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
-import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, approveMultiWorkshop, dateToApiString } from '@app/api';
-import { MultiWorkshop, SfdcType } from '@app/types';
+import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, approveMultiWorkshop, dateToApiString, fetcherItemsInAllPages } from '@app/api';
+import { MultiWorkshop, SfdcType, Workshop, WorkshopList } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
 import Label from '@app/components/Label';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import SalesforceIdField from './SalesforceIdField';
+import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import useSession from '@app/utils/useSession';
 import purposeOptions from './purposeOptions.json';
+import { FETCH_BATCH_LIMIT } from '@app/util';
+import ExternalWorkshopModal from './ExternalWorkshopModal';
 
 import './multiworkshop-detail.css';
 
@@ -56,12 +62,27 @@ const MultiWorkshopDetail: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('details');
   const [modalDelete, openModalDelete] = useModal();
   const [modalApprove, openModalApprove] = useModal();
+  const [modalAddWorkshop, openModalAddWorkshop] = useModal();
+  const [modalExternalWorkshop, openModalExternalWorkshop] = useModal();
+  const [selectedWorkshops, setSelectedWorkshops] = useState<string[]>([]);
+  const [workshopSearchValue, setWorkshopSearchValue] = useState('');
 
   const { data: multiworkshop, error } = useSWR<MultiWorkshop>(
     namespace && name ? apiPaths.MULTIWORKSHOP({ namespace, multiworkshopName: name }) : null,
     fetcher,
     {
       refreshInterval: 8000,
+    }
+  );
+
+  // Fetch workshops in the same namespace as the MultiWorkshop
+  const { data: workshops } = useSWR<Workshop[]>(
+    namespace ? `workshops-${namespace}` : null,
+    () => fetcherItemsInAllPages((continueId) =>
+      apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+    ),
+    {
+      refreshInterval: 30000, // Refresh less frequently than multiworkshop
     }
   );
 
@@ -203,6 +224,106 @@ const MultiWorkshopDetail: React.FC = () => {
     }
   }
 
+  async function onAddWorkshopsConfirm(): Promise<void> {
+    if (!multiworkshop || !workshops || selectedWorkshops.length === 0) return;
+    
+    try {
+      // Create new assets from selected workshops
+      const newAssets = selectedWorkshops.map(workshopName => {
+        const workshop = workshops.find(w => w.metadata.name === workshopName);
+        return {
+          key: workshopName, // Use workshop name as key
+          assetNamespace: namespace!, // Same namespace as MultiWorkshop
+          workshopDisplayName: workshop?.spec?.displayName || workshopName,
+          workshopDescription: workshop?.spec?.description || '',
+          workshopName: workshopName,
+          type: 'catalog' as const,
+        };
+      });
+
+      // Combine existing assets with new ones
+      const existingAssets = multiworkshop.spec.assets || [];
+      const combinedAssets = [...existingAssets, ...newAssets];
+
+      const updatedMultiWorkshop = await patchMultiWorkshop({
+        name: multiworkshop.metadata.name,
+        namespace: multiworkshop.metadata.namespace,
+        patch: { 
+          spec: { 
+            assets: combinedAssets
+          } 
+        },
+      });
+      
+      // Update local data via SWR mutate for immediate UI update
+      mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+      
+      // Clear selection and close modal
+      setSelectedWorkshops([]);
+    } catch (error) {
+      console.error('Failed to add workshops:', error);
+      // You might want to show an error message here
+    }
+  }
+
+  async function onAddExternalWorkshopConfirm(data: { url: string; workshopDisplayName: string; workshopDescription: string }): Promise<void> {
+    if (!multiworkshop) return;
+    
+    try {
+      // Create new external asset
+      const newExternalAsset = {
+        key: `external-${Date.now()}`, // Generate unique key for external workshop
+        url: data.url,
+        workshopDisplayName: data.workshopDisplayName,
+        workshopDescription: data.workshopDescription,
+        type: 'external' as const,
+      };
+
+      // Combine existing assets with new external asset
+      const existingAssets = multiworkshop.spec.assets || [];
+      const combinedAssets = [...existingAssets, newExternalAsset];
+
+      const updatedMultiWorkshop = await patchMultiWorkshop({
+        name: multiworkshop.metadata.name,
+        namespace: multiworkshop.metadata.namespace,
+        patch: { 
+          spec: { 
+            assets: combinedAssets
+          } 
+        },
+      });
+      
+      // Update local data via SWR mutate for immediate UI update
+      mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+    } catch (error) {
+      console.error('Failed to add external workshop:', error);
+      // You might want to show an error message here
+    }
+  }
+
+  // Get available workshops (exclude already added ones and those being deleted)
+  const availableWorkshops = workshops?.filter(workshop => {
+    // Filter out workshops that are being deleted
+    if (workshop.metadata.deletionTimestamp) {
+      return false;
+    }
+    
+    const existingWorkshopNames = multiworkshop?.spec.assets?.map(asset => asset.workshopName).filter(Boolean) || [];
+    return !existingWorkshopNames.includes(workshop.metadata.name);
+  }) || [];
+
+  // Filter workshops by search value
+  const filteredAvailableWorkshops = availableWorkshops.filter(workshop => {
+    if (!workshopSearchValue.trim()) return true;
+    const searchLower = workshopSearchValue.toLowerCase();
+    const displayName = workshop.spec?.displayName || workshop.metadata.name;
+    return (
+      displayName.toLowerCase().includes(searchLower) ||
+      workshop.metadata.name.toLowerCase().includes(searchLower) ||
+      (workshop.spec?.description && workshop.spec.description.toLowerCase().includes(searchLower))
+    );
+  });
+
   if (error) {
     return (
       <PageSection>
@@ -248,6 +369,112 @@ const MultiWorkshopDetail: React.FC = () => {
       >
         <p>This will create workshop instances for each asset and make the event available to users.</p>
       </Modal>
+
+      <Modal
+        ref={modalAddWorkshop}
+        onConfirm={onAddWorkshopsConfirm}
+        title="Add Existing Workshops"
+        confirmText="Add Selected Workshops"
+        isDisabled={selectedWorkshops.length === 0}
+        variant={ModalVariant.large}
+        onClose={() => {
+          setSelectedWorkshops([]);
+          setWorkshopSearchValue('');
+        }}
+      >
+        <div>
+          <p style={{ marginBottom: '16px' }}>
+            Select existing workshops from your namespace to add to this event.
+          </p>
+          
+          <SearchInput
+            placeholder="Search workshops..."
+            value={workshopSearchValue}
+            onChange={(_event, value) => setWorkshopSearchValue(value)}
+            onClear={() => setWorkshopSearchValue('')}
+            style={{ marginBottom: '16px' }}
+          />
+
+          {filteredAvailableWorkshops.length === 0 ? (
+            <EmptyState variant="sm">
+              <EmptyStateBody>
+                {availableWorkshops.length === 0 
+                  ? "No workshops available to add. All existing workshops in this namespace may already be included."
+                  : "No workshops match your search criteria."
+                }
+              </EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <Table aria-label="Available workshops" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th width={10}></Th>
+                  <Th>Display Name</Th>
+                  <Th>Name</Th>
+                  <Th width={15}>Created</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {filteredAvailableWorkshops.map((workshop) => {
+                  const handleSelectionToggle = () => {
+                    const isSelected = selectedWorkshops.includes(workshop.metadata.name);
+                    if (isSelected) {
+                      setSelectedWorkshops(prev => prev.filter(name => name !== workshop.metadata.name));
+                    } else {
+                      setSelectedWorkshops(prev => [...prev, workshop.metadata.name]);
+                    }
+                  };
+
+                  return (
+                    <Tr 
+                      key={workshop.metadata.name}
+                      isSelectable
+                      isRowSelected={selectedWorkshops.includes(workshop.metadata.name)}
+                    >
+                      <Td>
+                        <Checkbox
+                          id={`workshop-${workshop.metadata.name}`}
+                          isChecked={selectedWorkshops.includes(workshop.metadata.name)}
+                          onChange={handleSelectionToggle}
+                        />
+                      </Td>
+                      <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
+                        <strong>{workshop.spec?.displayName || workshop.metadata.name}</strong>
+                      </Td>
+                      <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
+                          {workshop.metadata.name}
+                        </span>
+                      </Td>
+                      <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
+                        <TimeInterval toTimestamp={workshop.metadata.creationTimestamp} />
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </Tbody>
+            </Table>
+          )}
+          
+          {selectedWorkshops.length > 0 && (
+            <div style={{ 
+              marginTop: '16px', 
+              padding: '12px', 
+              backgroundColor: 'var(--pf-t--global--background--color--200)',
+              borderRadius: '4px'
+            }}>
+              <p style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
+                {selectedWorkshops.length} workshop{selectedWorkshops.length !== 1 ? 's' : ''} selected
+              </p>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      <ExternalWorkshopModal
+        ref={modalExternalWorkshop}
+        onConfirm={onAddExternalWorkshopConfirm}
+      />
 
       <PageSection variant="default">
         <Breadcrumb>
@@ -303,6 +530,16 @@ const MultiWorkshopDetail: React.FC = () => {
                       onChange={updateEventTitle}
                       placeholder="Event display name"
                     />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Name</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <span style={{ fontFamily: 'monospace', fontSize: '14px', marginRight: '8px' }}>
+                      {multiworkshop.metadata.name}
+                    </span>
+                    <OpenshiftConsoleLink resource={multiworkshop} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
@@ -411,9 +648,30 @@ const MultiWorkshopDetail: React.FC = () => {
           <Tab eventKey="assets" title={<TabTitleText>Workshop Assets</TabTitleText>}>
             {activeTab === 'assets' ? (
               <>
-                <Title headingLevel="h2" size="xl" style={{ marginBottom: '24px' }}>
-                  Workshop Assets ({multiworkshop.spec.assets?.length || 0})
-                </Title>
+                <Split hasGutter style={{ marginBottom: '24px' }}>
+                  <SplitItem isFilled>
+                    <Title headingLevel="h2" size="xl">
+                      Workshop Assets ({multiworkshop.spec.assets?.length || 0})
+                    </Title>
+                  </SplitItem>
+                  <SplitItem>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <Button 
+                        variant="primary" 
+                        onClick={openModalAddWorkshop}
+                        isDisabled={availableWorkshops.length === 0}
+                      >
+                        Add Workshop
+                      </Button>
+                      <Button 
+                        variant="secondary" 
+                        onClick={openModalExternalWorkshop}
+                      >
+                        Add External Workshop
+                      </Button>
+                    </div>
+                  </SplitItem>
+                </Split>
                 
                 {multiworkshop.spec.assets && multiworkshop.spec.assets.length > 0 ? (
                   <Table aria-label="Workshop assets" variant="compact">
@@ -429,7 +687,16 @@ const MultiWorkshopDetail: React.FC = () => {
                       {multiworkshop.spec.assets.map((asset, index) => (
                         <Tr key={index}>
                           <Td>
-                            {asset.workshopName ? (
+                            {asset.type === 'external' ? (
+                              <a 
+                                href={asset.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ textDecoration: 'none', color: 'var(--pf-t--color--link--default)' }}
+                              >
+                                {asset.workshopDisplayName || asset.key}
+                              </a>
+                            ) : asset.workshopName ? (
                               <Link 
                                 to={`/workshops/${multiworkshop.metadata.namespace}/${asset.workshopName}`}
                                 style={{ textDecoration: 'none' }}
@@ -458,7 +725,9 @@ const MultiWorkshopDetail: React.FC = () => {
                             />
                           </Td>
                           <Td>
-                            {asset.workshopName ? (
+                            {asset.type === 'external' ? (
+                              <span>External</span>
+                            ) : asset.workshopName ? (
                               <span>Created</span>
                             ) : (
                               <span>Pending</span>
