@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useSWR from 'swr';
 import useSession from '@app/utils/useSession';
 import {
   PageSection,
@@ -17,11 +18,12 @@ import {
   ActionGroup,
   Breadcrumb,
   BreadcrumbItem,
+  Alert,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
 import { createMultiWorkshop, dateToApiString, createWorkshopFromAsset, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths } from '@app/api';
-import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace } from '@app/types';
-import { displayName } from '@app/util';
+import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable } from '@app/types';
+import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
 import SalesforceIdField from './SalesforceIdField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
@@ -29,6 +31,18 @@ import ProjectSelector from '@app/components/ProjectSelector';
 import purposeOptions from './purposeOptions.json';
 
 import './multiworkshop-create.css';
+
+
+export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
+  const items = [];
+  let continueId: Nullable<string> = null;
+  while (continueId || continueId === null) {
+    const res: { metadata: { continue: string }; items: unknown[] } = await fetcher(pathFn(continueId), opts);
+    continueId = res.metadata.continue || '';
+    items.push(...res.items);
+  }
+  return items;
+}
 
 const MultiWorkshopCreate: React.FC = () => {
   const navigate = useNavigate();
@@ -53,10 +67,56 @@ const MultiWorkshopCreate: React.FC = () => {
     assets: [{ key: '', assetNamespace: '', workshopDisplayName: '', workshopDescription: '', type: 'catalog' as 'catalog' | 'external' }]
   });
 
+  // Fetch user's existing services for quota check
+  const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
+    selectedNamespace?.name
+      ? apiPaths.RESOURCE_CLAIMS({
+          namespace: selectedNamespace.name,
+          limit: 'ALL',
+        })
+      : null,
+      () => fetcherItemsInAllPages((continueId) =>
+        apiPaths.RESOURCE_CLAIMS({
+          namespace: selectedNamespace.name,
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        }),
+        {
+          refreshInterval: 8000,
+          compare: compareK8sObjectsArr,
+        },  
+      ),
+  );
+
+  // Calculate current active services (excluding deleted ones and workshop-related ones)
+  const currentServices: ResourceClaim[] = useMemo(
+    () =>
+      Array.isArray(userResourceClaims)
+        ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r) && !r.metadata.deletionTimestamp))
+        : [],
+    [userResourceClaims],
+  );
+
+  // Calculate how many catalog assets will be created (each counts as 1 service)
+  const catalogAssetsCount = useMemo(() => {
+    return createFormData.assets.filter(asset => 
+      asset.type !== 'external' && 
+      asset.key.trim() !== '' && 
+      asset.assetNamespace.trim() !== ''
+    ).length;
+  }, [createFormData.assets]);
+
+  // Check if creating this multiworkshop would exceed the quota
+  const wouldExceedQuota = useMemo(() => {
+    if (isAdmin) return false; // Admins bypass quota
+    return (currentServices.length + catalogAssetsCount) > 5;
+  }, [currentServices.length, catalogAssetsCount, isAdmin]);
+
   const isFormValid = createFormData.name && 
                       createFormData.startDate && 
                       createFormData.endDate &&
-                      (isAdmin || (createFormData.salesforceId && createFormData.salesforceType));
+                      (isAdmin || (createFormData.salesforceId && createFormData.salesforceType)) &&
+                      !wouldExceedQuota;
 
   async function onCreateMultiWorkshop(): Promise<void> {
     if (!isFormValid) return;
@@ -454,6 +514,19 @@ const MultiWorkshopCreate: React.FC = () => {
                   Add Asset
                 </Button>
               </FormGroup>
+
+              {wouldExceedQuota && (
+                <Alert 
+                  variant="warning" 
+                  title="Service Quota Exceeded"
+                  style={{ marginBottom: '24px' }}
+                >
+                  <p>
+                    You have {currentServices.length} active service{currentServices.length !== 1 ? 's' : ''} and this event would create {catalogAssetsCount} additional service{catalogAssetsCount !== 1 ? 's' : ''}.
+                    You cannot exceed the quota of 5 services. Please reduce the number of catalog assets or retire existing services.
+                  </p>
+                </Alert>
+              )}
 
               <ActionGroup>
                 <Button 
