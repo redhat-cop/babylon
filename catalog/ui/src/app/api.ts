@@ -979,14 +979,80 @@ export async function deleteWorkshop(workshop: Workshop) {
 }
 
 export async function getWorkshopsForMultiWorkshop(multiworkshop: MultiWorkshop): Promise<Workshop[]> {
-  const labelSelector = `${BABYLON_DOMAIN}/multiworkshop=${multiworkshop.metadata.name}`;
-  const workShopList = await listK8sObjects({
-    apiVersion: `${BABYLON_DOMAIN}/v1`,
+  const workshops: Workshop[] = [];
+  
+  // Get workshops directly from multiworkshop assets (only catalog type assets)
+  if (multiworkshop.spec.assets) {
+    for (const asset of multiworkshop.spec.assets) {
+      // Only include catalog assets (external assets don't have workshop objects)
+      if (asset.type !== 'external') {
+        const workshopName = asset.workshopName || asset.key;
+        if (workshopName) {
+          try {
+            const workshop = await getK8sObject<Workshop>({
+              apiVersion: `${BABYLON_DOMAIN}/v1`,
+              name: workshopName,
+              namespace: multiworkshop.metadata.namespace,
+              plural: 'workshops',
+            });
+            workshops.push(workshop);
+          } catch (error) {
+            console.warn(`Workshop ${workshopName} referenced in multiworkshop ${multiworkshop.metadata.name} not found:`, error);
+            // Continue with other workshops even if one is missing
+          }
+        }
+      }
+    }
+  }
+  
+  return workshops;
+}
+
+export async function deleteAssetFromMultiWorkshop({
+  multiworkshop,
+  assetIndex,
+}: {
+  multiworkshop: MultiWorkshop;
+  assetIndex: number;
+}): Promise<MultiWorkshop> {
+  if (!multiworkshop.spec.assets || assetIndex < 0 || assetIndex >= multiworkshop.spec.assets.length) {
+    throw new Error('Invalid asset index');
+  }
+
+  const asset = multiworkshop.spec.assets[assetIndex];
+  
+  // If it's a catalog asset with a workshop, delete the workshop first
+  if (asset.type !== 'external') {
+    const workshopName = asset.workshopName || asset.key;
+    if (workshopName) {
+      try {
+        const workshop = await getK8sObject<Workshop>({
+          apiVersion: `${BABYLON_DOMAIN}/v1`,
+          name: workshopName,
+          namespace: multiworkshop.metadata.namespace,
+          plural: 'workshops',
+        });
+        await deleteWorkshop(workshop);
+      } catch (error) {
+        console.warn(`Failed to delete workshop ${workshopName}:`, error);
+        // Continue with asset removal even if workshop deletion fails
+      }
+    }
+  }
+  
+  // Remove the asset from the multiworkshop
+  const updatedAssets = [...multiworkshop.spec.assets];
+  updatedAssets.splice(assetIndex, 1);
+  
+  return await patchMultiWorkshop({
+    name: multiworkshop.metadata.name,
     namespace: multiworkshop.metadata.namespace,
-    plural: 'workshops',
-    labelSelector,
-  }) as WorkshopList;
-  return workShopList.items || [];
+    patch: {
+      spec: {
+        assets: updatedAssets,
+      },
+    },
+  });
 }
 
 export async function deleteMultiWorkshop(multiworkshop: MultiWorkshop) {

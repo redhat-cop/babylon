@@ -39,7 +39,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
-import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, dateToApiString, fetcherItemsInAllPages } from '@app/api';
+import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages } from '@app/api';
 import { MultiWorkshop, SfdcType, Workshop, WorkshopList } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
@@ -61,11 +61,13 @@ const MultiWorkshopDetail: React.FC = () => {
   const { userNamespace, isAdmin } = useSession().getSession();
   const [activeTab, setActiveTab] = useState<string>('details');
   const [modalDelete, openModalDelete] = useModal();
+  const [modalDeleteAsset, openModalDeleteAsset] = useModal();
 
   const [modalAddWorkshop, openModalAddWorkshop] = useModal();
   const [modalExternalWorkshop, openModalExternalWorkshop] = useModal();
   const [selectedWorkshops, setSelectedWorkshops] = useState<string[]>([]);
   const [workshopSearchValue, setWorkshopSearchValue] = useState('');
+  const [assetToDelete, setAssetToDelete] = useState<{ index: number; asset: any } | null>(null);
 
   const { data: multiworkshop, error } = useSWR<MultiWorkshop>(
     namespace && name ? apiPaths.MULTIWORKSHOP({ namespace, multiworkshopName: name }) : null,
@@ -189,6 +191,31 @@ const MultiWorkshopDetail: React.FC = () => {
     // Navigate back to the list page
     const currentNamespace = namespace || userNamespace?.name;
     navigate(currentNamespace ? `/event-wizard/${currentNamespace}` : '/event-wizard');
+  }
+
+  async function onDeleteAssetConfirm(): Promise<void> {
+    if (!multiworkshop || !assetToDelete) return;
+    
+    try {
+      const updatedMultiWorkshop = await deleteAssetFromMultiWorkshop({
+        multiworkshop,
+        assetIndex: assetToDelete.index,
+      });
+      
+      // Update local data via SWR mutate for immediate UI update
+      mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+      
+      // Clear the asset to delete
+      setAssetToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete asset:', error);
+      // You might want to show an error message here
+    }
+  }
+
+  function showDeleteAssetModal(index: number, asset: any): void {
+    setAssetToDelete({ index, asset });
+    openModalDeleteAsset();
   }
 
 
@@ -331,7 +358,17 @@ const MultiWorkshopDetail: React.FC = () => {
         <p>This action cannot be undone. All associated workshop data will be deleted.</p>
       </Modal>
 
-
+      <Modal
+        ref={modalDeleteAsset}
+        onConfirm={onDeleteAssetConfirm}
+        title={`Delete asset "${assetToDelete?.asset?.workshopDisplayName || assetToDelete?.asset?.key || 'Unknown'}"?`}
+      >
+        <p>This action cannot be undone. 
+          {assetToDelete?.asset?.type !== 'external' && assetToDelete?.asset?.workshopName 
+            ? ' The associated workshop will also be deleted.' 
+            : ' The asset will be removed from this event.'}
+        </p>
+      </Modal>
 
       <Modal
         ref={modalAddWorkshop}
@@ -612,6 +649,7 @@ const MultiWorkshopDetail: React.FC = () => {
                         <Th>Display Name</Th>
                         <Th>Description</Th>
                         <Th>Status</Th>
+                        <Th>Actions</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -651,7 +689,6 @@ const MultiWorkshopDetail: React.FC = () => {
                             <EditableText
                               value={asset.workshopDescription || ''}
                               onChange={(value) => updateAssetDescription(index, value)}
-                              placeholder="Workshop description"
                               componentType="TextArea"
                             />
                           </Td>
@@ -663,6 +700,13 @@ const MultiWorkshopDetail: React.FC = () => {
                             ) : (
                               <span>Pending</span>
                             )}
+                          </Td>
+                          <Td>
+                            <ButtonCircleIcon
+                              onClick={() => showDeleteAssetModal(index, asset)}
+                              description="Delete asset"
+                              icon={TrashIcon}
+                            />
                           </Td>
                         </Tr>
                       ))}
