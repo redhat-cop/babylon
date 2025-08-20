@@ -256,7 +256,7 @@ const MultiWorkshops: React.FC<{}> = () => {
       ) : (
         <PageSection hasBodyWrapper={false} key="body" className="admin-body">
           <SelectableTable
-            columns={['Name', 'Service Namespace', 'Assets', 'Seats', 'Start Date', 'End Date', 'Created At', 'Actions']}
+            columns={['Name', 'Service Namespace', 'Assets', 'Seats', 'Start provisioning date', 'End Date', 'Created At', 'Actions']}
             onSelectAll={(isSelected: boolean) => {
               if (isSelected) {
                 setSelectedUids(multiworkshops.map((multiworkshop) => multiworkshop.metadata.uid));

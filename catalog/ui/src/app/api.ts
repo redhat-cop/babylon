@@ -39,6 +39,31 @@ declare const window: Window &
     sessionPromiseInstance?: Promise<Session>;
   };
 
+/**
+ * Sanitize a name to be Kubernetes DNS compliant
+ * - Convert to lowercase
+ * - Replace non-alphanumeric characters with hyphens
+ * - Collapse multiple hyphens
+ * - Remove leading/trailing hyphens
+ */
+function sanitizeForK8s(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+/**
+ * Generate a Kubernetes-compliant name with random suffix
+ * @param baseName - Base name to use (will be sanitized)
+ * @param maxLength - Maximum total length (default: 63 for Kubernetes)
+ * @returns Sanitized name with random suffix within length limit
+ */
+function generateK8sNameWithSuffix(baseName: string, maxLength: number = 63): string {
+  const sanitizedBase = sanitizeForK8s(baseName);
+  const suffix = generateRandom5CharsSuffix().toLowerCase();
+  const maxBaseLength = maxLength - 6; // Reserve 6 chars for "-{5char}"
+  const truncatedBase = sanitizedBase.substring(0, maxBaseLength);
+  return `${truncatedBase}-${suffix}`;
+}
+
 type CreateServiceRequestOpt = {
   catalogItem: CatalogItem;
   catalogNamespaceName: string;
@@ -409,7 +434,7 @@ export async function createServiceRequest({
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
   const access = checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin);
-  const suffix = generateRandom5CharsSuffix();
+  const resourceClaimName = generateK8sNameWithSuffix(catalogItem.metadata.name);
   const requestResourceClaim: ResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     kind: 'ResourceClaim',
@@ -420,7 +445,7 @@ export async function createServiceRequest({
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
-        [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}-${suffix}`,
+        [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${resourceClaimName}`,
         ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
         ...(catalogItem.spec.userData
           ? { [`${BABYLON_DOMAIN}/userData`]: JSON.stringify(catalogItem.spec.userData) }
@@ -444,7 +469,7 @@ export async function createServiceRequest({
         ...(catalogItem.spec.bookbag ? { [`${BABYLON_DOMAIN}/labUserInterface`]: 'bookbag' } : {}),
         [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
       },
-      name: `${catalogItem.metadata.name}-${suffix}`,
+      name: resourceClaimName,
       namespace: serviceNamespace.name,
     },
     spec: {
@@ -509,10 +534,10 @@ export async function createServiceRequest({
       return resourceClaim;
     } catch (error: any) {
       if (error.status === 409) {
-        const suffix = generateRandom5CharsSuffix();
-        definition.metadata.name = `${catalogItem.metadata.name}-${suffix}`;
+        const newResourceClaimName = generateK8sNameWithSuffix(catalogItem.metadata.name);
+        definition.metadata.name = newResourceClaimName;
         definition.metadata.annotations[`${BABYLON_DOMAIN}/url`] =
-          `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}-${suffix}`;
+          `${baseUrl}/services/${serviceNamespace.name}/${newResourceClaimName}`;
       } else {
         throw error;
       }
@@ -556,11 +581,14 @@ export async function createWorkshop({
   customAnnotations?: Record<string, string>;
 }): Promise<Workshop> {
   const session = await getApiSession();
+  // Generate workshop name with random suffix and ensure Kubernetes compliance
+  const workshopName = generateK8sNameWithSuffix(customWorkshopName || catalogItem.metadata.name);
+
   const _definition: Workshop = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'Workshop',
     metadata: {
-      name: customWorkshopName || catalogItem.metadata.name,
+      name: workshopName,
       namespace: serviceNamespace.name,
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -613,20 +641,25 @@ export async function createWorkshop({
 
   const definition = addPurposeAndSfdc(_definition, parameterValues, skippedSfdc);
 
-  let n = 0;
-  while (true) {
+  let retryCount = 0;
+  const maxRetries = 3;
+  
+  while (retryCount <= maxRetries) {
     try {
       return await createK8sObject(definition);
     } catch (error: any) {
-      if (error.status === 409) {
-        n++;
-        const baseName = customWorkshopName || catalogItem.metadata.name;
-        definition.metadata.name = `${baseName}-${n}`;
+      if (error.status === 409 && retryCount < maxRetries) {
+        retryCount++;
+        // Generate a new name with random suffix on conflict
+        definition.metadata.name = generateK8sNameWithSuffix(customWorkshopName || catalogItem.metadata.name);
       } else {
         throw error;
       }
     }
   }
+  
+  // This should never be reached, but TypeScript requires a return
+  throw new Error('Failed to create workshop after maximum retries');
 }
 
 export async function createWorkshopForMultiuserService({
@@ -1115,6 +1148,59 @@ export async function patchMultiWorkshop({
   });
 }
 
+export async function createWorkshopFromAssetWithRetry({
+  multiworkshopName,
+  namespace,
+  asset,
+  multiworkshopData,
+  catalogItem,
+  retryCount = 3,
+  delay = 0,
+}: {
+  multiworkshopName: string;
+  namespace: string;
+  asset: { key: string; assetNamespace: string; workshopDisplayName?: string; workshopDescription?: string };
+  multiworkshopData: any;
+  catalogItem?: CatalogItem;
+  retryCount?: number;
+  delay?: number;
+}): Promise<Workshop> {
+  // Add initial delay to stagger requests
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  
+  let lastError: Error;
+  
+  for (let attempt = 1; attempt <= retryCount; attempt++) {
+    try {
+      return await createWorkshopFromAsset({
+        multiworkshopName,
+        namespace,
+        asset,
+        multiworkshopData,
+        catalogItem,
+      });
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`Attempt ${attempt}/${retryCount} failed for workshop creation of asset ${asset.key}:`, error.message);
+      
+      // If this is the last attempt, throw the error
+      if (attempt === retryCount) {
+        throw lastError;
+      }
+      
+      // Wait before retrying (exponential backoff)
+      const retryDelay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
+  }
+  
+  throw lastError;
+}
+
+
+
 export async function createWorkshopFromAsset({
   multiworkshopName,
   namespace,
@@ -1132,9 +1218,8 @@ export async function createWorkshopFromAsset({
     throw new Error('CatalogItem is required for creating Workshop');
   }
 
-  // Generate unique workshop name
-  const sanitizedAssetKey = asset.key.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  const workshopName = `${multiworkshopName}-${sanitizedAssetKey}`.substring(0, 59) + '-' + generateRandom5CharsSuffix().toLowerCase();
+  // Generate custom workshop name combining multiworkshop and catalog item names
+  const baseWorkshopName = `${multiworkshopName}-${catalogItem.metadata.name}`;
   
   const session = await getApiSession();
   
@@ -1156,13 +1241,13 @@ export async function createWorkshopFromAsset({
     endDate: multiworkshopData.endDate ? new Date(multiworkshopData.endDate) : undefined,
     email: session.user,
     parameterValues: {
-      purpose: multiworkshopData.purpose || 'Practice / Enablement',
-      purpose_activity: multiworkshopData['purpose-activity'] || 'Multi Workshop',
+      purpose: multiworkshopData.purpose,
+      purpose_activity: multiworkshopData['purpose-activity'],
       salesforce_id: multiworkshopData.salesforceId || '',
     },
     skippedSfdc: !multiworkshopData.salesforceId,
     whiteGloved: false,
-    customWorkshopName: workshopName,
+    customWorkshopName: baseWorkshopName,
     customLabels: {
       [`${BABYLON_DOMAIN}/multiworkshop`]: multiworkshopName,
       [`${BABYLON_DOMAIN}/asset-key`]: asset.key,
@@ -1197,8 +1282,8 @@ export async function createWorkshopProvisionFromAsset({
     concurrency: 10,
     count: multiworkshopData.numberSeats || 1,
     parameters: {
-      purpose: multiworkshopData.purpose || 'Practice / Enablement',
-      purpose_activity: multiworkshopData['purpose-activity'] || 'Multi Workshop',
+      purpose: multiworkshopData.purpose,
+      purpose_activity: multiworkshopData['purpose-activity'],
       salesforce_id: multiworkshopData.salesforceId || '',
     },
     startDelay: 10,

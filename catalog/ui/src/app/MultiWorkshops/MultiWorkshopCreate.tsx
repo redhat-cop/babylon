@@ -21,7 +21,7 @@ import {
   Alert,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
-import { createMultiWorkshop, dateToApiString, createWorkshopFromAsset, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths } from '@app/api';
+import { createMultiWorkshop, dateToApiString, createWorkshopFromAsset, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths } from '@app/api';
 import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
@@ -106,15 +106,16 @@ const MultiWorkshopCreate: React.FC = () => {
     ).length;
   }, [createFormData.assets]);
 
-  // Check if creating this multiworkshop would exceed the quota
   const wouldExceedQuota = useMemo(() => {
-    if (isAdmin) return false; // Admins bypass quota
+    if (isAdmin) return false;
     return (currentServices.length + catalogAssetsCount) > 5;
   }, [currentServices.length, catalogAssetsCount, isAdmin]);
 
   const isFormValid = createFormData.name && 
                       createFormData.startDate && 
                       createFormData.endDate &&
+                      createFormData.activity &&
+                      createFormData.purpose &&
                       (isAdmin || (createFormData.salesforceId && createFormData.salesforceType)) &&
                       !wouldExceedQuota;
 
@@ -158,86 +159,130 @@ const MultiWorkshopCreate: React.FC = () => {
       // If we have catalog assets, create workshops and provisions for them
       const catalogAssets = filteredAssets.filter(asset => !asset.type || asset.type === 'catalog');
       if (catalogAssets.length > 0) {
-        const updatedAssets = [];
-        
-        for (const asset of catalogAssets) {
-          try {
-            // Get catalog item to verify it exists and get metadata
-            let catalogItem: CatalogItem | undefined;
+        // Process catalog assets in parallel with proper error handling
+        const assetResults = await Promise.allSettled(
+          catalogAssets.map(async (asset, index) => {
             try {
-              catalogItem = await fetcher(apiPaths.CATALOG_ITEM({ 
-                namespace: asset.assetNamespace, 
-                name: asset.key 
-              }));
-            } catch (error) {
-              console.warn(`Could not fetch catalog item ${asset.key} from namespace ${asset.assetNamespace}:`, error);
+              // Get catalog item to verify it exists and get metadata
+              let catalogItem: CatalogItem | undefined;
+              try {
+                catalogItem = await fetcher(apiPaths.CATALOG_ITEM({ 
+                  namespace: asset.assetNamespace, 
+                  name: asset.key 
+                }));
+              } catch (error) {
+                console.warn(`Could not fetch catalog item ${asset.key} from namespace ${asset.assetNamespace}:`, error);
+                throw new Error(`Catalog item ${asset.key} not found in namespace ${asset.assetNamespace}`);
+              }
+              
+              // Create workshop for this asset with retry logic
+              const workshop = await createWorkshopFromAssetWithRetry({
+                multiworkshopName: createdMultiWorkshop.metadata.name,
+                namespace: createdMultiWorkshop.metadata.namespace,
+                asset,
+                multiworkshopData: {
+                  ...createFormData,
+                  name: createFormData.name,
+                  startDate: payload.startDate,
+                  endDate: payload.endDate,
+                },
+                catalogItem,
+                retryCount: 3,
+                delay: index * 100, // Stagger creation to avoid naming conflicts
+              });
+              
+              // Create workshop provision for this asset
+              await createWorkshopProvisionFromAsset({
+                workshop,
+                asset,
+                multiworkshopName: createdMultiWorkshop.metadata.name,
+                multiworkshopData: {
+                  ...createFormData,
+                  numberSeats: createFormData.numberSeats,
+                  startDate: payload.startDate,
+                  endDate: payload.endDate,
+                },
+                catalogItem,
+              });
+              
+              // Return updated asset with workshop name
+              return {
+                success: true,
+                asset: {
+                  ...asset,
+                  workshopName: workshop.metadata.name,
+                },
+                error: null,
+              };
+              
+            } catch (error: any) {
+              console.error(`Failed to create workshop for asset ${asset.key}:`, error);
+              return {
+                success: false,
+                asset: asset,
+                error: error?.message || 'Unknown error',
+              };
             }
-            
-            // Create workshop for this asset
-            const workshop = await createWorkshopFromAsset({
-              multiworkshopName: createdMultiWorkshop.metadata.name,
-              namespace: createdMultiWorkshop.metadata.namespace,
-              asset,
-              multiworkshopData: {
-                ...createFormData,
-                name: createFormData.name,
-                startDate: payload.startDate,
-                endDate: payload.endDate,
-              },
-              catalogItem,
+          })
+        );
+        
+        // Collect results and separate successful from failed
+        const updatedAssets = [];
+        const failedAssets = [];
+        
+        assetResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            if (result.value.success) {
+              updatedAssets.push(result.value.asset);
+            } else {
+              failedAssets.push({
+                asset: result.value.asset,
+                error: result.value.error,
+              });
+              // Add asset without workshop name
+              updatedAssets.push(result.value.asset);
+            }
+          } else {
+            console.error(`Promise rejected for asset ${catalogAssets[index].key}:`, result.reason);
+            failedAssets.push({
+              asset: catalogAssets[index],
+              error: result.reason?.message || 'Promise rejected',
             });
-            
-            // Create workshop provision for this asset
-            await createWorkshopProvisionFromAsset({
-              workshop,
-              asset,
-              multiworkshopName: createdMultiWorkshop.metadata.name,
-              multiworkshopData: {
-                ...createFormData,
-                numberSeats: createFormData.numberSeats,
-                startDate: payload.startDate,
-                endDate: payload.endDate,
-              },
-              catalogItem,
-            });
-            
-            // Update asset with workshop name
-            updatedAssets.push({
-              ...asset,
-              workshopName: workshop.metadata.name,
-            });
-            
-          } catch (error) {
-            console.error(`Failed to create workshop for asset ${asset.key}:`, error);
-            // Still add the asset but without workshop name
-            updatedAssets.push(asset);
+            // Add asset without workshop name
+            updatedAssets.push(catalogAssets[index]);
           }
-        }
+        });
         
         // Include external assets unchanged
         const externalAssets = filteredAssets.filter(asset => asset.type === 'external');
         updatedAssets.push(...externalAssets);
         
         // Update the MultiWorkshop with workshop information
-        if (updatedAssets.length > 0) {
-          try {
-            await patchMultiWorkshop({
-              name: createdMultiWorkshop.metadata.name,
-              namespace: createdMultiWorkshop.metadata.namespace,
-              patch: {
-                spec: {
-                  assets: updatedAssets,
-                },
+        try {
+          await patchMultiWorkshop({
+            name: createdMultiWorkshop.metadata.name,
+            namespace: createdMultiWorkshop.metadata.namespace,
+            patch: {
+              spec: {
+                assets: updatedAssets,
               },
-            });
-          } catch (error) {
-            console.error('Failed to update MultiWorkshop with workshop information:', error);
-          }
+            },
+          });
+        } catch (error) {
+          console.error('Failed to update MultiWorkshop with workshop information:', error);
         }
+        
+        // Log summary of results
+        if (failedAssets.length > 0) {
+          console.warn(`Failed to create workshops for ${failedAssets.length} assets:`, 
+            failedAssets.map(f => `${f.asset.key}: ${f.error}`).join(', ')
+          );
+        }
+        console.log(`Successfully created ${updatedAssets.filter(a => a.workshopName).length} workshops out of ${catalogAssets.length} catalog assets`);
       }
 
-      // Navigate back to the list page
-      navigate(selectedNamespace ? `/event-wizard/${selectedNamespace.name}` : '/event-wizard');
+      // Navigate to the created multiworkshop detail page
+      navigate(`/event-wizard/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
     } catch (error) {
       console.error('Error creating MultiWorkshop:', error);
       // TODO: Add proper error handling/notification
@@ -358,7 +403,7 @@ const MultiWorkshopCreate: React.FC = () => {
 
               <Split hasGutter>
                 <SplitItem isFilled>
-                  <FormGroup label="Start Date" isRequired fieldId="startDate">
+                  <FormGroup label="Start provisioning date" isRequired fieldId="startDate">
                     <TextInput
                       isRequired
                       type="datetime-local"
@@ -388,13 +433,23 @@ const MultiWorkshopCreate: React.FC = () => {
                   id="numberSeats"
                   value={createFormData.numberSeats}
                   onMinus={() => setCreateFormData(prev => ({ ...prev, numberSeats: Math.max(1, prev.numberSeats - 1) }))}
-                  onPlus={() => setCreateFormData(prev => ({ ...prev, numberSeats: prev.numberSeats + 1 }))}
+                  onPlus={() => {
+                    const maxSeats = isAdmin ? 200 : 30;
+                    setCreateFormData(prev => ({ ...prev, numberSeats: Math.min(maxSeats, prev.numberSeats + 1) }));
+                  }}
                   onChange={(event) => {
                     const value = parseInt((event.target as HTMLInputElement).value) || 1;
-                    setCreateFormData(prev => ({ ...prev, numberSeats: Math.max(1, value) }));
+                    const maxSeats = isAdmin ? 200 : 30;
+                    setCreateFormData(prev => ({ ...prev, numberSeats: Math.max(1, Math.min(maxSeats, value)) }));
                   }}
                   min={1}
+                  max={isAdmin ? undefined : 30}
                 />
+                {!isAdmin && (
+                  <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                    Maximum 30 seats allowed
+                  </div>
+                )}
               </FormGroup>
 
               <ActivityPurposeSelector

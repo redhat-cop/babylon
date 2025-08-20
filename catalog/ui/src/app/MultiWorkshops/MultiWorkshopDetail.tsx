@@ -724,7 +724,7 @@ const MultiWorkshopDetail: React.FC = () => {
           </Tab>
           <Tab eventKey="provisioning" title={<TabTitleText>Default Provisioning Settings</TabTitleText>}>
             {activeTab === 'provisioning' ? (
-              <DescriptionList isHorizontal>
+              <DescriptionList isHorizontal className="multiworkshop-detail__provisioning">
                 <DescriptionListGroup>
                   <DescriptionListTerm>Number of Seats</DescriptionListTerm>
                   <DescriptionListDescription>
@@ -767,7 +767,7 @@ const MultiWorkshopDetail: React.FC = () => {
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Start Date</DescriptionListTerm>
+                  <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
                   <DescriptionListDescription>
                     <div style={{ maxWidth: '300px' }}>
                       <TextInput
@@ -809,6 +809,34 @@ const MultiWorkshopDetail: React.FC = () => {
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
+                  <DescriptionListTerm>Activity & Purpose</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <div style={{ maxWidth: '400px' }}>
+                      <ActivityPurposeSelector
+                        value={{
+                          activity: multiworkshop.spec['purpose-activity'] || '',
+                          purpose: multiworkshop.spec.purpose || '',
+                        }}
+                        purposeOpts={purposeOptions}
+                        onChange={async (activity, purpose, explanation) => {
+                          const updatedMultiWorkshop = await patchMultiWorkshop({
+                            name: multiworkshop.metadata.name,
+                            namespace: multiworkshop.metadata.namespace,
+                            patch: { 
+                              spec: { 
+                                'purpose-activity': activity,
+                                purpose: purpose,
+                              } 
+                            },
+                          });
+                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                        }}
+                      />
+                    </div>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                
+                <DescriptionListGroup>
                   <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
                   <DescriptionListDescription>
                     <div style={{ maxWidth: '400px' }}>
@@ -833,34 +861,6 @@ const MultiWorkshopDetail: React.FC = () => {
                         }}
                         fieldId="multiworkshop-salesforce-id"
                         label=""
-                      />
-                    </div>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Activity & Purpose</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div style={{ maxWidth: '400px' }}>
-                      <ActivityPurposeSelector
-                        value={{
-                          activity: multiworkshop.spec['purpose-activity'] || '',
-                          purpose: multiworkshop.spec.purpose || '',
-                        }}
-                        purposeOpts={purposeOptions}
-                        onChange={async (activity, purpose, explanation) => {
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { 
-                              spec: { 
-                                'purpose-activity': activity,
-                                purpose: purpose,
-                              } 
-                            },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
                       />
                     </div>
                   </DescriptionListDescription>
