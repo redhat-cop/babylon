@@ -39,7 +39,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
-import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, approveMultiWorkshop, dateToApiString, fetcherItemsInAllPages } from '@app/api';
+import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, dateToApiString, fetcherItemsInAllPages } from '@app/api';
 import { MultiWorkshop, SfdcType, Workshop, WorkshopList } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
@@ -61,7 +61,7 @@ const MultiWorkshopDetail: React.FC = () => {
   const { userNamespace, isAdmin } = useSession().getSession();
   const [activeTab, setActiveTab] = useState<string>('details');
   const [modalDelete, openModalDelete] = useModal();
-  const [modalApprove, openModalApprove] = useModal();
+
   const [modalAddWorkshop, openModalAddWorkshop] = useModal();
   const [modalExternalWorkshop, openModalExternalWorkshop] = useModal();
   const [selectedWorkshops, setSelectedWorkshops] = useState<string[]>([]);
@@ -88,22 +88,6 @@ const MultiWorkshopDetail: React.FC = () => {
 
   function getMultiWorkshopDisplayName(multiworkshop: MultiWorkshop): string {
     return multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
-  }
-
-
-
-  function getStatusText(multiworkshop: MultiWorkshop): string {
-    const now = new Date();
-    const startDate = multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate) : null;
-    const endDate = multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate) : null;
-    
-    if (startDate && endDate) {
-      if (now < startDate) return 'Upcoming';
-      if (now > endDate) return 'Ended';
-      return 'Active';
-    }
-    
-    return 'No Schedule';
   }
 
   function apiDateToLocalDateTime(apiDate: string): string {
@@ -207,22 +191,7 @@ const MultiWorkshopDetail: React.FC = () => {
     navigate(currentNamespace ? `/event-wizard/${currentNamespace}` : '/event-wizard');
   }
 
-  async function onApproveConfirm(): Promise<void> {
-    if (!multiworkshop) return;
-    
-    try {
-      const result = await approveMultiWorkshop({
-        name: multiworkshop.metadata.name,
-        namespace: multiworkshop.metadata.namespace,
-      });
-      
-      // Update local data via SWR mutate for immediate UI update
-      mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), result.multiworkshop, false);
-    } catch (error) {
-      console.error('Failed to approve multiworkshop:', error);
-      // You might want to show an error message here
-    }
-  }
+
 
   async function onAddWorkshopsConfirm(): Promise<void> {
     if (!multiworkshop || !workshops || selectedWorkshops.length === 0) return;
@@ -359,16 +328,10 @@ const MultiWorkshopDetail: React.FC = () => {
         onConfirm={onDeleteConfirm}
         title={`Delete event ${getMultiWorkshopDisplayName(multiworkshop)}?`}
       >
-        <p>This action cannot be undone. All associated workshop data WILL NOT be deleted.</p>
+        <p>This action cannot be undone. All associated workshop data will be deleted.</p>
       </Modal>
 
-      <Modal
-        ref={modalApprove}
-        onConfirm={onApproveConfirm}
-        title={`Approve event ${getMultiWorkshopDisplayName(multiworkshop)}?`}
-      >
-        <p>This will create workshop instances for each asset and make the event available to users.</p>
-      </Modal>
+
 
       <Modal
         ref={modalAddWorkshop}
@@ -499,11 +462,6 @@ const MultiWorkshopDetail: React.FC = () => {
             </Title>
           </SplitItem>
           <SplitItem>
-            <Label key="event-status-label">
-              {getStatusText(multiworkshop)}
-            </Label>
-          </SplitItem>
-          <SplitItem>
             <ButtonCircleIcon
               onClick={openModalDelete}
               description="Delete Event"
@@ -569,23 +527,7 @@ const MultiWorkshopDetail: React.FC = () => {
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
-                {multiworkshop.metadata.annotations?.['babylon.gpte.redhat.com/approved-by'] && (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Approved By</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {multiworkshop.metadata.annotations['babylon.gpte.redhat.com/approved-by']}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                )}
 
-                {multiworkshop.metadata.annotations?.['babylon.gpte.redhat.com/approved-at'] && (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Approved At</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <LocalTimestamp timestamp={multiworkshop.metadata.annotations['babylon.gpte.redhat.com/approved-at']} />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                )}
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Created</DescriptionListTerm>
@@ -630,18 +572,7 @@ const MultiWorkshopDetail: React.FC = () => {
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               </DescriptionList>
-              
-              {/* Approval button for admin users if not yet approved */}
-              {isAdmin && !multiworkshop.metadata.annotations?.[`babylon.gpte.redhat.com/approved-at`] && (
-                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--pf-t--color--border--default)' }}>
-                  <Button 
-                    variant="primary" 
-                    onClick={openModalApprove}
-                  >
-                    Approve Event
-                  </Button>
-                </div>
-              )}
+
               </>
             ) : null}
           </Tab>

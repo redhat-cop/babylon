@@ -19,7 +19,7 @@ import {
   BreadcrumbItem,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
-import { createMultiWorkshop, dateToApiString } from '@app/api';
+import { createMultiWorkshop, dateToApiString, createWorkshopFromAsset, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths } from '@app/api';
 import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace } from '@app/types';
 import { displayName } from '@app/util';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
@@ -50,7 +50,7 @@ const MultiWorkshopCreate: React.FC = () => {
     explanation: '',
     backgroundImage: '',
     logoImage: '',
-    assets: [{ key: '', assetNamespace: '', workshopDisplayName: '', workshopDescription: '' }]
+    assets: [{ key: '', assetNamespace: '', workshopDisplayName: '', workshopDescription: '', type: 'catalog' as 'catalog' | 'external' }]
   });
 
   const isFormValid = createFormData.name && 
@@ -70,7 +70,8 @@ const MultiWorkshopCreate: React.FC = () => {
           key: asset.key.trim(),
           assetNamespace: asset.assetNamespace.trim(),
           ...(asset.workshopDisplayName?.trim() && { workshopDisplayName: asset.workshopDisplayName.trim() }),
-          ...(asset.workshopDescription?.trim() && { workshopDescription: asset.workshopDescription.trim() })
+          ...(asset.workshopDescription?.trim() && { workshopDescription: asset.workshopDescription.trim() }),
+          type: asset.type || 'catalog'
         }));
       
       const payload = {
@@ -91,8 +92,89 @@ const MultiWorkshopCreate: React.FC = () => {
       // Remove undefined fields
       Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
-      // Use the API function that handles authorization automatically
-      await createMultiWorkshop(payload);
+      // Create the MultiWorkshop first
+      const createdMultiWorkshop = await createMultiWorkshop(payload);
+      
+      // If we have catalog assets, create workshops and provisions for them
+      const catalogAssets = filteredAssets.filter(asset => !asset.type || asset.type === 'catalog');
+      if (catalogAssets.length > 0) {
+        const updatedAssets = [];
+        
+        for (const asset of catalogAssets) {
+          try {
+            // Get catalog item to verify it exists and get metadata
+            let catalogItem: CatalogItem | undefined;
+            try {
+              catalogItem = await fetcher(apiPaths.CATALOG_ITEM({ 
+                namespace: asset.assetNamespace, 
+                name: asset.key 
+              }));
+            } catch (error) {
+              console.warn(`Could not fetch catalog item ${asset.key} from namespace ${asset.assetNamespace}:`, error);
+            }
+            
+            // Create workshop for this asset
+            const workshop = await createWorkshopFromAsset({
+              multiworkshopName: createdMultiWorkshop.metadata.name,
+              namespace: createdMultiWorkshop.metadata.namespace,
+              asset,
+              multiworkshopData: {
+                ...createFormData,
+                name: createFormData.name,
+                startDate: payload.startDate,
+                endDate: payload.endDate,
+              },
+              catalogItem,
+            });
+            
+            // Create workshop provision for this asset
+            await createWorkshopProvisionFromAsset({
+              workshop,
+              asset,
+              multiworkshopName: createdMultiWorkshop.metadata.name,
+              multiworkshopData: {
+                ...createFormData,
+                numberSeats: createFormData.numberSeats,
+                startDate: payload.startDate,
+                endDate: payload.endDate,
+              },
+              catalogItem,
+            });
+            
+            // Update asset with workshop name
+            updatedAssets.push({
+              ...asset,
+              workshopName: workshop.metadata.name,
+            });
+            
+          } catch (error) {
+            console.error(`Failed to create workshop for asset ${asset.key}:`, error);
+            // Still add the asset but without workshop name
+            updatedAssets.push(asset);
+          }
+        }
+        
+        // Include external assets unchanged
+        const externalAssets = filteredAssets.filter(asset => asset.type === 'external');
+        updatedAssets.push(...externalAssets);
+        
+        // Update the MultiWorkshop with workshop information
+        if (updatedAssets.length > 0) {
+          try {
+            await patchMultiWorkshop({
+              name: createdMultiWorkshop.metadata.name,
+              namespace: createdMultiWorkshop.metadata.namespace,
+              patch: {
+                spec: {
+                  assets: updatedAssets,
+                },
+              },
+            });
+          } catch (error) {
+            console.error('Failed to update MultiWorkshop with workshop information:', error);
+          }
+        }
+      }
 
       // Navigate back to the list page
       navigate(selectedNamespace ? `/event-wizard/${selectedNamespace.name}` : '/event-wizard');
@@ -116,7 +198,7 @@ const MultiWorkshopCreate: React.FC = () => {
   function addAsset() {
     setCreateFormData(prev => ({
       ...prev,
-      assets: [...prev.assets, { key: '', assetNamespace: '', workshopDisplayName: '', workshopDescription: '' }]
+      assets: [...prev.assets, { key: '', assetNamespace: '', workshopDisplayName: '', workshopDescription: '', type: 'catalog' as 'catalog' | 'external' }]
     }));
   }
 
@@ -146,7 +228,8 @@ const MultiWorkshopCreate: React.FC = () => {
                 ...asset, 
                 key,
                 assetNamespace,
-                workshopDisplayName: workshopDisplayName  // Always update with new catalog item's display name
+                workshopDisplayName: workshopDisplayName,  // Always update with new catalog item's display name
+                type: 'catalog' as 'catalog' | 'external'
               } 
             : asset
         )

@@ -193,22 +193,6 @@ const MultiWorkshopList: React.FC = () => {
     return multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
   }
 
-
-
-  function getStatusText(multiworkshop: MultiWorkshop): string {
-    const now = new Date();
-    const startDate = multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate) : null;
-    const endDate = multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate) : null;
-    
-    if (startDate && endDate) {
-      if (now < startDate) return 'Upcoming';
-      if (now > endDate) return 'Ended';
-      return 'Active';
-    }
-    
-    return 'No Schedule';
-  }
-
   if (!currentNamespace) {
     return (
       <PageSection>
@@ -230,7 +214,7 @@ const MultiWorkshopList: React.FC = () => {
             : 'Delete selected events?'
         }
       >
-        <p>This action cannot be undone. All associated workshop data WILL NOT be deleted.</p>
+        <p>This action cannot be undone. All associated workshop data will be deleted.</p>
       </Modal>
 
       <PageSection hasBodyWrapper={false} key="header" variant="default" className="multiworkshop-list__header">
@@ -302,7 +286,7 @@ const MultiWorkshopList: React.FC = () => {
         ) : (
           <PageSection hasBodyWrapper={false} key="body">
             <SelectableTable
-              columns={['Event Name', 'Status', 'Description', 'Workshops', 'Seats', 'Start Date', 'Created', 'Actions']}
+              columns={['Event Name', 'Description', 'Workshops', 'Seats', 'Start Date', 'Created', 'Actions']}
               onSelectAll={(isSelected: boolean) => {
                 if (isSelected) {
                   setSelectedUids(multiworkshops.map((multiworkshop) => multiworkshop.metadata.uid));
@@ -324,10 +308,6 @@ const MultiWorkshopList: React.FC = () => {
                   >
                     {getMultiWorkshopDisplayName(multiworkshop)}
                   </Link>,
-                  // Status
-                  <span key="status">
-                    {getStatusText(multiworkshop)}
-                  </span>,
                   // Description
                   <span key="description" style={{ color: 'var(--pf-t--color--text--secondary)' }}>
                     {multiworkshop.spec.description || 'No description'}

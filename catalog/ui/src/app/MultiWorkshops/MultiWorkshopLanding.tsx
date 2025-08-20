@@ -6,14 +6,10 @@ import {
   Spinner,
   Alert,
 } from '@patternfly/react-core';
-import {
-  ExternalLinkAltIcon,
-} from '@patternfly/react-icons';
+
 import { apiPaths, fetcher } from '@app/api';
 import { MultiWorkshop } from '@app/types';
 import { compareK8sObjects } from '@app/util';
-import LocalTimestamp from '@app/components/LocalTimestamp';
-import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import './multiworkshop-landing.css';
 import heroImg from './hero-img.jpeg';
@@ -67,7 +63,7 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
             <p className="demo-card__description">{asset.workshopDescription}</p>
           )}
           <p className="demo-card__subtitle demo-card__subtitle--disabled">
-            {asset.type === 'external' ? 'External workshop unavailable...' : 'Preparing workshop...'}
+            {asset.type === 'external' ? 'External workshop unavailable' : 'Workshop unavailable'}
           </p>
         </div>
       </div>
@@ -159,7 +155,6 @@ const MultiWorkshopLandingComponent: React.FC<{
   }
 
   const displayName = multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
-  const isApproved = !!multiworkshop.metadata.annotations?.['babylon.gpte.redhat.com/approved-at'];
   const assets = multiworkshop.spec.assets || [];
 
   return (
@@ -223,16 +218,6 @@ const MultiWorkshopLandingComponent: React.FC<{
                 {multiworkshop.spec.description && (
                   <p className="px-1">{multiworkshop.spec.description}</p>
                 )}
-                
-
-
-                {!isApproved && (
-                  <div style={{ marginTop: '16px' }}>
-                    <Alert variant="info" title="Workshop Preparation" isInline>
-                      This multi-workshop is currently being prepared. Individual workshops will be available soon.
-                    </Alert>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -247,11 +232,11 @@ const MultiWorkshopLandingComponent: React.FC<{
               ) : (
                 <div className="demo-card-grid">
                   {assets.map((asset, index) => {
-                    // External workshops are always available if they have a URL
-                    // Catalog workshops need approval and workshopId
+                    // External workshops are available if they have a URL
+                    // Catalog workshops are available if they have a workshopId
                     const isAvailable = asset.type === 'external' 
                       ? !!asset.url 
-                      : isApproved && !!asset.workshopId;
+                      : !!asset.workshopId;
                     
                     return (
                       <WorkshopCard

@@ -14,6 +14,7 @@ import {
   ResourceProvider,
   ServiceNamespace,
   Workshop,
+  WorkshopList,
   WorkshopProvision,
   MultiWorkshop,
   UserList,
@@ -533,6 +534,9 @@ export async function createWorkshop({
   parameterValues,
   skippedSfdc,
   whiteGloved,
+  customWorkshopName,
+  customLabels,
+  customAnnotations,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -547,13 +551,16 @@ export async function createWorkshop({
   parameterValues: any;
   skippedSfdc: boolean;
   whiteGloved: boolean;
+  customWorkshopName?: string;
+  customLabels?: Record<string, string>;
+  customAnnotations?: Record<string, string>;
 }): Promise<Workshop> {
   const session = await getApiSession();
   const _definition: Workshop = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'Workshop',
     metadata: {
-      name: catalogItem.metadata.name,
+      name: customWorkshopName || catalogItem.metadata.name,
       namespace: serviceNamespace.name,
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -562,6 +569,7 @@ export async function createWorkshop({
           ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
           : {}),
         [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
+        ...(customLabels || {}),
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
@@ -574,6 +582,7 @@ export async function createWorkshop({
           startDate && startDate.getTime() + parseDuration('15min') > Date.now() ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
+        ...(customAnnotations || {}),
       },
     },
     spec: {
@@ -611,7 +620,8 @@ export async function createWorkshop({
     } catch (error: any) {
       if (error.status === 409) {
         n++;
-        definition.metadata.name = `${catalogItem.metadata.name}-${n}`;
+        const baseName = customWorkshopName || catalogItem.metadata.name;
+        definition.metadata.name = `${baseName}-${n}`;
       } else {
         throw error;
       }
@@ -968,7 +978,31 @@ export async function deleteWorkshop(workshop: Workshop) {
   return await deleteK8sObject(workshop);
 }
 
+export async function getWorkshopsForMultiWorkshop(multiworkshop: MultiWorkshop): Promise<Workshop[]> {
+  const labelSelector = `${BABYLON_DOMAIN}/multiworkshop=${multiworkshop.metadata.name}`;
+  const workShopList = await listK8sObjects({
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    namespace: multiworkshop.metadata.namespace,
+    plural: 'workshops',
+    labelSelector,
+  }) as WorkshopList;
+  return workShopList.items || [];
+}
+
 export async function deleteMultiWorkshop(multiworkshop: MultiWorkshop) {
+  // First, delete all associated workshops
+  const workshops = await getWorkshopsForMultiWorkshop(multiworkshop);
+  
+  for (const workshop of workshops) {
+    try {
+      await deleteWorkshop(workshop);
+    } catch (error) {
+      console.warn(`Failed to delete workshop ${workshop.metadata.name}:`, error);
+      // Continue with other workshops even if one fails
+    }
+  }
+  
+  // Then delete the multiworkshop itself
   return await deleteK8sObject(multiworkshop);
 }
 
@@ -1015,20 +1049,130 @@ export async function patchMultiWorkshop({
   });
 }
 
-export async function approveMultiWorkshop({
-  name,
+export async function createWorkshopFromAsset({
+  multiworkshopName,
   namespace,
+  asset,
+  multiworkshopData,
+  catalogItem,
 }: {
-  name: string;
+  multiworkshopName: string;
   namespace: string;
-}): Promise<{ multiworkshop: MultiWorkshop; createdWorkshops: string[]; createdProvisions: string[]; message: string }> {
-  const resp = await apiFetch(`/api/multiworkshop/${namespace}/${name}/approve`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  asset: { key: string; assetNamespace: string; workshopDisplayName?: string; workshopDescription?: string };
+  multiworkshopData: any;
+  catalogItem?: CatalogItem;
+}): Promise<Workshop> {
+  if (!catalogItem) {
+    throw new Error('CatalogItem is required for creating Workshop');
+  }
+
+  // Generate unique workshop name
+  const sanitizedAssetKey = asset.key.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const workshopName = `${multiworkshopName}-${sanitizedAssetKey}`.substring(0, 59) + '-' + generateRandom5CharsSuffix().toLowerCase();
+  
+  const session = await getApiSession();
+  
+  // Create ServiceNamespace object from namespace string
+  const serviceNamespace: ServiceNamespace = {
+    name: namespace,
+    displayName: namespace,
+    requester: '',
+  };
+  
+  // Use the existing createWorkshop function with MultiWorkshop-specific parameters
+  return await createWorkshop({
+    catalogItem,
+    description: asset.workshopDescription || '',
+    displayName: asset.workshopDisplayName || `${multiworkshopData.name} - ${asset.key}`,
+    openRegistration: true,
+    serviceNamespace,
+    startDate: multiworkshopData.startDate ? new Date(multiworkshopData.startDate) : undefined,
+    endDate: multiworkshopData.endDate ? new Date(multiworkshopData.endDate) : undefined,
+    email: session.user,
+    parameterValues: {
+      purpose: multiworkshopData.purpose || 'Practice / Enablement',
+      purpose_activity: multiworkshopData['purpose-activity'] || 'Multi Workshop',
+      salesforce_id: multiworkshopData.salesforceId || '',
+    },
+    skippedSfdc: !multiworkshopData.salesforceId,
+    whiteGloved: false,
+    customWorkshopName: workshopName,
+    customLabels: {
+      [`${BABYLON_DOMAIN}/multiworkshop`]: multiworkshopName,
+      [`${BABYLON_DOMAIN}/asset-key`]: asset.key,
+    },
+    customAnnotations: {
+      [`${BABYLON_DOMAIN}/created-by`]: session.user,
+      [`${BABYLON_DOMAIN}/multiworkshop-source`]: multiworkshopName,
     },
   });
-  return await resp.json();
+}
+
+export async function createWorkshopProvisionFromAsset({
+  workshop,
+  asset,
+  multiworkshopName,
+  multiworkshopData,
+  catalogItem,
+}: {
+  workshop: Workshop;
+  asset: { key: string; assetNamespace: string };
+  multiworkshopName: string;
+  multiworkshopData: any;
+  catalogItem?: CatalogItem;
+}): Promise<WorkshopProvision> {
+  if (!catalogItem) {
+    throw new Error('CatalogItem is required for creating WorkshopProvision');
+  }
+  
+  // Use the existing createWorkshopProvision function
+  const provision = await createWorkshopProvision({
+    catalogItem,
+    concurrency: 10,
+    count: multiworkshopData.numberSeats || 1,
+    parameters: {
+      purpose: multiworkshopData.purpose || 'Practice / Enablement',
+      purpose_activity: multiworkshopData['purpose-activity'] || 'Multi Workshop',
+      salesforce_id: multiworkshopData.salesforceId || '',
+    },
+    startDelay: 10,
+    workshop,
+    useAutoDetach: false,
+    usePoolIfAvailable: true,
+  });
+  
+  // Update the provision with MultiWorkshop-specific metadata
+  return await patchK8sObject<WorkshopProvision>({
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    name: provision.metadata.name,
+    namespace: provision.metadata.namespace,
+    plural: 'workshopprovisions',
+    patch: {
+      metadata: {
+        labels: {
+          ...provision.metadata.labels,
+          [`${BABYLON_DOMAIN}/multiworkshop`]: multiworkshopName,
+          [`${BABYLON_DOMAIN}/asset-key`]: asset.key,
+        },
+        annotations: {
+          ...provision.metadata.annotations,
+          [`${BABYLON_DOMAIN}/multiworkshop-source`]: multiworkshopName,
+        },
+      },
+      spec: {
+        ...provision.spec,
+        // Add lifespan if start/end dates are provided
+        ...(multiworkshopData.startDate && multiworkshopData.endDate
+          ? {
+              lifespan: {
+                start: multiworkshopData.startDate,
+                end: multiworkshopData.endDate,
+              },
+            }
+          : {}),
+      },
+    },
+  });
 }
 
 export async function setWorkshopLifespanEnd(workshop: Workshop, date: Date = new Date()) {
