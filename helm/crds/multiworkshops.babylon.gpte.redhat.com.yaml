@@ -75,15 +75,15 @@ spec:
                       description: >-
                         Unique identifier or name for the asset.
                       type: string
-                    assetNamespace:
+                    namespace:
                       description: >-
                         Namespace where the catalog item for this asset is located. Not required for external assets.
                       type: string
-                    workshopDisplayName:
+                    displayName:
                       description: >-
                         Display name for the workshop created from this asset.
                       type: string
-                    workshopDescription:
+                    description:
                       description: >-
                         Description for the workshop created from this asset.
                       type: string
@@ -91,7 +91,7 @@ spec:
                       description: >-
                         Id to the workshop for this asset.
                       type: string
-                    workshopName:
+                    name:
                       description: >-
                         Name of the Workshop resource created for this asset.
                       type: string
@@ -101,11 +101,12 @@ spec:
                       type: string
                     type:
                       description: >-
-                        Type of asset: 'catalog' for catalog-based workshops, 'external' for external URL-based workshops.
+                        Type of asset: 'Workshop' for catalog-based workshops, 'external' for external URL-based workshops.
                       type: string
-                      enum: ['catalog', 'external']
+                      enum: ['Workshop', 'external']
                   required:
                   - key
+                  - name
               numberSeats:
                 description: >-
                   Number of available seats/participants for this multi-workshop.

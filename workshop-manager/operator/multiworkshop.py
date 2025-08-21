@@ -40,8 +40,9 @@ class MultiWorkshop(K8sObject):
         updated_assets = []
 
         for asset in assets:
-            # Skip if asset already has workshop ID or doesn't have workshop name
-            if asset.get('workshopId') or not asset.get('workshopName'):
+            # Skip if asset already has workshop ID or doesn't have workshop name or asset name
+            workshop_name = asset.get('workshopName') or asset.get('name')
+            if asset.get('workshopId') or not workshop_name:
                 updated_assets.append(asset)
                 continue
 
@@ -52,7 +53,7 @@ class MultiWorkshop(K8sObject):
                     version='v1',
                     namespace=self.namespace,
                     plural='workshops',
-                    name=asset['workshopName']
+                    name=workshop_name
                 )
 
                 workshop_id = workshop.get('metadata', {}).get('labels', {}).get(f'{Babylon.babylon_domain}/workshop-id')
@@ -69,7 +70,7 @@ class MultiWorkshop(K8sObject):
 
             except Exception as e:
                 # Workshop might not exist yet or other error, keep original asset
-                logger.debug(f"Could not get workshop {asset['workshopName']} for MultiWorkshop {self.name}: {e}")
+                logger.debug(f"Could not get workshop {workshop_name} for MultiWorkshop {self.name}: {e}")
                 updated_assets.append(asset)
 
         # Update the MultiWorkshop if any assets were updated

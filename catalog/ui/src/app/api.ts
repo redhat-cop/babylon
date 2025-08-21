@@ -1019,7 +1019,7 @@ export async function getWorkshopsForMultiWorkshop(multiworkshop: MultiWorkshop)
     for (const asset of multiworkshop.spec.assets) {
       // Only include catalog assets (external assets don't have workshop objects)
       if (asset.type !== 'external') {
-        const workshopName = asset.workshopName || asset.key;
+        const workshopName = asset.name || asset.key;
         if (workshopName) {
           try {
             const workshop = await getK8sObject<Workshop>({
@@ -1056,7 +1056,7 @@ export async function deleteAssetFromMultiWorkshop({
   
   // If it's a catalog asset with a workshop, delete the workshop first
   if (asset.type !== 'external') {
-    const workshopName = asset.workshopName || asset.key;
+    const workshopName = asset.name || asset.key;
     if (workshopName) {
       try {
         const workshop = await getK8sObject<Workshop>({
@@ -1116,7 +1116,7 @@ export async function createMultiWorkshop(multiworkshopData: {
   'purpose-activity'?: string;
   backgroundImage?: string;
   logoImage?: string;
-  assets?: Array<{ key: string; assetNamespace: string; workshopDisplayName?: string; workshopDescription?: string; type?: 'catalog' | 'external' }>;
+  assets?: Array<{ key: string; name: string; namespace: string; displayName?: string; description?: string; type?: 'Workshop' | 'external' }>;
   namespace: string;
 }): Promise<MultiWorkshop> {
   const session = await getApiSession();
@@ -1201,7 +1201,7 @@ export async function createWorkshopFromAssetWithRetry({
 }: {
   multiworkshopName: string;
   namespace: string;
-  asset: { key: string; assetNamespace: string; workshopDisplayName?: string; workshopDescription?: string };
+  asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
   multiworkshopData: any;
   catalogItem?: CatalogItem;
   retryCount?: number;
@@ -1252,7 +1252,7 @@ export async function createWorkshopFromAsset({
 }: {
   multiworkshopName: string;
   namespace: string;
-  asset: { key: string; assetNamespace: string; workshopDisplayName?: string; workshopDescription?: string };
+  asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
   multiworkshopData: any;
   catalogItem?: CatalogItem;
 }): Promise<Workshop> {
@@ -1275,8 +1275,8 @@ export async function createWorkshopFromAsset({
   // Use the existing createWorkshop function with MultiWorkshop-specific parameters
   return await createWorkshop({
     catalogItem,
-    description: asset.workshopDescription || '',
-    displayName: asset.workshopDisplayName || `${multiworkshopData.name} - ${asset.key}`,
+    description: asset.description || '',
+    displayName: asset.displayName || `${multiworkshopData.name} - ${asset.key}`,
     openRegistration: true,
     serviceNamespace,
     startDate: multiworkshopData.startDate ? new Date(multiworkshopData.startDate) : undefined,
@@ -1309,7 +1309,7 @@ export async function createWorkshopProvisionFromAsset({
   catalogItem,
 }: {
   workshop: Workshop;
-  asset: { key: string; assetNamespace: string };
+  asset: { key: string; name: string; namespace: string };
   multiworkshopName: string;
   multiworkshopData: any;
   catalogItem?: CatalogItem;

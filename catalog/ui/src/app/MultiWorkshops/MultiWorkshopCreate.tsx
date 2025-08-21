@@ -64,7 +64,7 @@ const MultiWorkshopCreate: React.FC = () => {
     explanation: '',
     backgroundImage: '',
     logoImage: '',
-    assets: [{ key: '', assetNamespace: '', workshopDisplayName: '', workshopDescription: '', type: 'catalog' as 'catalog' | 'external' }]
+    assets: [{ key: '', name: '', namespace: '', displayName: '', description: '', type: 'Workshop' as 'Workshop' | 'external' }]
   });
 
   // Fetch user's existing services for quota check
@@ -102,7 +102,8 @@ const MultiWorkshopCreate: React.FC = () => {
     return createFormData.assets.filter(asset => 
       asset.type !== 'external' && 
       asset.key.trim() !== '' && 
-      asset.assetNamespace.trim() !== ''
+      asset.name.trim() !== '' && 
+      asset.namespace.trim() !== ''
     ).length;
   }, [createFormData.assets]);
 
@@ -124,15 +125,16 @@ const MultiWorkshopCreate: React.FC = () => {
     
     setIsSubmitting(true);
     try {
-      // Filter out empty assets and include key, assetNamespace, workshopDisplayName, and workshopDescription fields
+      // Filter out empty assets and include key, name, namespace, displayName, and description fields
       const filteredAssets = createFormData.assets
-        .filter(asset => asset.key.trim() !== '' && asset.assetNamespace.trim() !== '')
+        .filter(asset => asset.key.trim() !== '' && asset.name.trim() !== '' && asset.namespace.trim() !== '')
         .map(asset => ({ 
           key: asset.key.trim(),
-          assetNamespace: asset.assetNamespace.trim(),
-          ...(asset.workshopDisplayName?.trim() && { workshopDisplayName: asset.workshopDisplayName.trim() }),
-          ...(asset.workshopDescription?.trim() && { workshopDescription: asset.workshopDescription.trim() }),
-          type: asset.type || 'catalog'
+          name: asset.name.trim(),
+          namespace: asset.namespace.trim(),
+          ...(asset.displayName?.trim() && { displayName: asset.displayName.trim() }),
+          ...(asset.description?.trim() && { description: asset.description.trim() }),
+          type: asset.type || 'Workshop'
         }));
       
       const payload = {
@@ -154,7 +156,7 @@ const MultiWorkshopCreate: React.FC = () => {
       const createdMultiWorkshop = await createMultiWorkshop(payload);
       
       // If we have catalog assets, create workshops and provisions for them
-      const catalogAssets = filteredAssets.filter(asset => !asset.type || asset.type === 'catalog');
+      const catalogAssets = filteredAssets.filter(asset => !asset.type || asset.type === 'Workshop');
       if (catalogAssets.length > 0) {
         // Process catalog assets in parallel with proper error handling
         const assetResults = await Promise.allSettled(
@@ -164,12 +166,12 @@ const MultiWorkshopCreate: React.FC = () => {
               let catalogItem: CatalogItem | undefined;
               try {
                 catalogItem = await fetcher(apiPaths.CATALOG_ITEM({ 
-                  namespace: asset.assetNamespace, 
+                  namespace: asset.namespace, 
                   name: asset.key 
                 }));
               } catch (error) {
-                console.warn(`Could not fetch catalog item ${asset.key} from namespace ${asset.assetNamespace}:`, error);
-                throw new Error(`Catalog item ${asset.key} not found in namespace ${asset.assetNamespace}`);
+                console.warn(`Could not fetch catalog item ${asset.key} from namespace ${asset.namespace}:`, error);
+                throw new Error(`Catalog item ${asset.key} not found in namespace ${asset.namespace}`);
               }
               
               // Create workshop for this asset with retry logic
@@ -207,6 +209,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 success: true,
                 asset: {
                   ...asset,
+                  name: workshop.metadata.name, // Update name to the actual generated workshop name
                   workshopName: workshop.metadata.name,
                 },
                 error: null,
@@ -300,7 +303,7 @@ const MultiWorkshopCreate: React.FC = () => {
   function addAsset() {
     setCreateFormData(prev => ({
       ...prev,
-      assets: [...prev.assets, { key: '', assetNamespace: '', workshopDisplayName: '', workshopDescription: '', type: 'catalog' as 'catalog' | 'external' }]
+      assets: [...prev.assets, { key: '', name: '', namespace: '', displayName: '', description: '', type: 'Workshop' as 'Workshop' | 'external' }]
     }));
   }
 
@@ -319,7 +322,7 @@ const MultiWorkshopCreate: React.FC = () => {
   function handleCatalogItemSelect(catalogItem: CatalogItem) {
     if (currentAssetIndex !== null) {
       const key = catalogItem.metadata.name;  // Just the catalog item name
-      const assetNamespace = catalogItem.metadata.namespace;  // Store namespace separately
+      const namespace = catalogItem.metadata.namespace;  // Store namespace separately
       const workshopDisplayName = displayName(catalogItem);
       
       setCreateFormData(prev => ({
@@ -329,9 +332,10 @@ const MultiWorkshopCreate: React.FC = () => {
             ? { 
                 ...asset, 
                 key,
-                assetNamespace,
-                workshopDisplayName: workshopDisplayName,  // Always update with new catalog item's display name
-                type: 'catalog' as 'catalog' | 'external'
+                name: key, // Set name to the same value as key for catalog items
+                namespace,
+                displayName: workshopDisplayName,  // Always update with new catalog item's display name
+                type: 'Workshop' as 'Workshop' | 'external'
               } 
             : asset
         )
@@ -526,7 +530,7 @@ const MultiWorkshopCreate: React.FC = () => {
                             <TextInput
                               id={`asset-key-${index}`}
                               placeholder="Select a catalog item..."
-                              value={asset.key && asset.assetNamespace ? `${asset.assetNamespace}.${asset.key}` : ''}
+                              value={asset.key && asset.namespace ? `${asset.namespace}.${asset.key}` : ''}
                               readOnly
                               style={{ 
                                 backgroundColor: 'var(--pf-t--color--background--disabled)', 
@@ -546,16 +550,16 @@ const MultiWorkshopCreate: React.FC = () => {
                       <FormGroup label="Workshop Display Name" fieldId={`asset-display-name-${index}`} style={{ marginBottom: '12px' }}>
                         <TextInput
                           placeholder="Optional display name for this workshop (e.g., 'Container Basics')"
-                          value={asset.workshopDisplayName}
-                          onChange={(_, value) => updateAsset(index, 'workshopDisplayName', value)}
+                          value={asset.displayName}
+                          onChange={(_, value) => updateAsset(index, 'displayName', value)}
                         />
                       </FormGroup>
                       <FormGroup label="Workshop Description" fieldId={`asset-description-${index}`}>
                         <TextArea
                           id={`asset-description-${index}`}
                           placeholder="Optional description for this workshop"
-                          value={asset.workshopDescription}
-                          onChange={(_, value) => updateAsset(index, 'workshopDescription', value)}
+                          value={asset.description}
+                          onChange={(_, value) => updateAsset(index, 'description', value)}
                           rows={3}
                         />
                       </FormGroup>

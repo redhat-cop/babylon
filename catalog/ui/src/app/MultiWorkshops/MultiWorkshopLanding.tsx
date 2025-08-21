@@ -29,7 +29,7 @@ interface WorkshopCardProps {
 }
 
 const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
-  const displayName = asset.workshopDisplayName || asset.key;
+  const displayName = asset.displayName || asset.key;
   
   // Determine the URL based on asset type
   const workshopUrl = asset.type === 'external' 

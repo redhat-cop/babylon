@@ -147,7 +147,7 @@ const MultiWorkshopDetail: React.FC = () => {
     if (!multiworkshop || !multiworkshop.spec.assets) return;
     
     const updatedAssets = [...multiworkshop.spec.assets];
-    updatedAssets[assetIndex] = { ...updatedAssets[assetIndex], workshopDisplayName: newDisplayName };
+    updatedAssets[assetIndex] = { ...updatedAssets[assetIndex], displayName: newDisplayName };
     
     const updatedMultiWorkshop = await patchMultiWorkshop({
       name: multiworkshop.metadata.name,
@@ -167,7 +167,7 @@ const MultiWorkshopDetail: React.FC = () => {
     if (!multiworkshop || !multiworkshop.spec.assets) return;
     
     const updatedAssets = [...multiworkshop.spec.assets];
-    updatedAssets[assetIndex] = { ...updatedAssets[assetIndex], workshopDescription: newDescription };
+    updatedAssets[assetIndex] = { ...updatedAssets[assetIndex], description: newDescription };
     
     const updatedMultiWorkshop = await patchMultiWorkshop({
       name: multiworkshop.metadata.name,
@@ -229,11 +229,12 @@ const MultiWorkshopDetail: React.FC = () => {
         const workshop = workshops.find(w => w.metadata.name === workshopName);
         return {
           key: workshopName, // Use workshop name as key
-          assetNamespace: namespace!, // Same namespace as MultiWorkshop
-          workshopDisplayName: workshop?.spec?.displayName || workshopName,
-          workshopDescription: workshop?.spec?.description || '',
+          name: workshopName, // Same as workshopName for existing workshops
+          namespace: namespace!, // Same namespace as MultiWorkshop
+          displayName: workshop?.spec?.displayName || workshopName,
+          description: workshop?.spec?.description || '',
           workshopName: workshopName,
-          type: 'catalog' as const,
+          type: 'Workshop' as const,
         };
       });
 
@@ -262,16 +263,17 @@ const MultiWorkshopDetail: React.FC = () => {
     }
   }
 
-  async function onAddExternalWorkshopConfirm(data: { url: string; workshopDisplayName: string; workshopDescription: string }): Promise<void> {
+  async function onAddExternalWorkshopConfirm(data: { url: string; displayName: string; description: string }): Promise<void> {
     if (!multiworkshop) return;
     
     try {
       // Create new external asset
       const newExternalAsset = {
         key: `external-${Date.now()}`, // Generate unique key for external workshop
+        name: data.displayName || `external-${Date.now()}`, // Use display name or generate unique name
         url: data.url,
-        workshopDisplayName: data.workshopDisplayName,
-        workshopDescription: data.workshopDescription,
+        displayName: data.displayName,
+        description: data.description,
         type: 'external' as const,
       };
 
@@ -361,7 +363,7 @@ const MultiWorkshopDetail: React.FC = () => {
       <Modal
         ref={modalDeleteAsset}
         onConfirm={onDeleteAssetConfirm}
-        title={`Delete asset "${assetToDelete?.asset?.workshopDisplayName || assetToDelete?.asset?.key || 'Unknown'}"?`}
+        title={`Delete asset "${assetToDelete?.asset?.displayName || assetToDelete?.asset?.key || 'Unknown'}"?`}
       >
         <p>This action cannot be undone. 
           {assetToDelete?.asset?.type !== 'external' && assetToDelete?.asset?.workshopName 
@@ -663,14 +665,14 @@ const MultiWorkshopDetail: React.FC = () => {
                                 rel="noopener noreferrer"
                                 style={{ textDecoration: 'none', color: 'var(--pf-t--color--link--default)' }}
                               >
-                                {asset.workshopDisplayName || asset.key}
+                                {asset.displayName || asset.key}
                               </a>
-                            ) : asset.workshopName ? (
+                            ) : asset.name && asset.type === 'Workshop' ? (
                               <Link 
-                                to={`/workshops/${multiworkshop.metadata.namespace}/${asset.workshopName}`}
+                                to={`/workshops/${multiworkshop.metadata.namespace}/${asset.name}`}
                                 style={{ textDecoration: 'none' }}
                               >
-                                {asset.workshopName}
+                                {asset.name}
                               </Link>
                             ) : (
                               <span style={{ color: 'var(--pf-t--color--text--secondary)', fontStyle: 'italic' }}>
@@ -680,14 +682,14 @@ const MultiWorkshopDetail: React.FC = () => {
                           </Td>
                           <Td>
                             <EditableText
-                              value={asset.workshopDisplayName || ''}
+                              value={asset.displayName || ''}
                               onChange={(value) => updateAssetDisplayName(index, value)}
                               placeholder="Workshop display name"
                             />
                           </Td>
                           <Td>
                             <EditableText
-                              value={asset.workshopDescription || ''}
+                              value={asset.description || ''}
                               onChange={(value) => updateAssetDescription(index, value)}
                               componentType="TextArea"
                             />
@@ -695,7 +697,7 @@ const MultiWorkshopDetail: React.FC = () => {
                           <Td>
                             {asset.type === 'external' ? (
                               <span>External</span>
-                            ) : asset.workshopName ? (
+                            ) : asset.workshopId ? (
                               <span>Created</span>
                             ) : (
                               <span>Pending</span>

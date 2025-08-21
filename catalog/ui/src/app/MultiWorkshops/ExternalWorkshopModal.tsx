@@ -9,8 +9,8 @@ import Modal from '@app/Modal/Modal';
 
 interface ExternalWorkshopFormData {
   url: string;
-  workshopDisplayName: string;
-  workshopDescription: string;
+  displayName: string;
+  description: string;
 }
 
 interface ExternalWorkshopModalProps {
@@ -21,8 +21,8 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
   ({ onConfirm }, ref) => {
     const [formData, setFormData] = useState<ExternalWorkshopFormData>({
       url: '',
-      workshopDisplayName: '',
-      workshopDescription: '',
+      displayName: '',
+      description: '',
     });
 
     const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
@@ -42,8 +42,8 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
       }
 
       // Validate display name
-      if (!formData.workshopDisplayName.trim()) {
-        errors.workshopDisplayName = 'Workshop display name is required';
+      if (!formData.displayName.trim()) {
+        errors.displayName = 'Workshop display name is required';
       }
 
       // Description is optional - no validation needed
@@ -58,8 +58,8 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
         // Reset form after successful submission
         setFormData({
           url: '',
-          workshopDisplayName: '',
-          workshopDescription: '',
+          displayName: '',
+          description: '',
         });
         setValidationErrors({});
       }
@@ -69,8 +69,8 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
       // Reset form on close
       setFormData({
         url: '',
-        workshopDisplayName: '',
-        workshopDescription: '',
+        displayName: '',
+        description: '',
       });
       setValidationErrors({});
     };
@@ -81,7 +81,7 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
         onClose={handleClose}
         title="Add External Workshop"
         confirmText="Add Workshop"
-        isDisabled={!formData.url.trim() || !formData.workshopDisplayName.trim()}
+        isDisabled={!formData.url.trim() || !formData.displayName.trim()}
         variant={ModalVariant.medium}
         ref={ref}
       >
@@ -119,15 +119,15 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
         >
           <TextInput
             id="external-workshop-display-name"
-            value={formData.workshopDisplayName}
+            value={formData.displayName}
             onChange={(_event, value) => {
-              setFormData(prev => ({ ...prev, workshopDisplayName: value }));
-              if (validationErrors.workshopDisplayName) {
-                setValidationErrors(prev => ({ ...prev, workshopDisplayName: '' }));
+              setFormData(prev => ({ ...prev, displayName: value }));
+              if (validationErrors.displayName) {
+                setValidationErrors(prev => ({ ...prev, displayName: '' }));
               }
             }}
             placeholder="Enter workshop display name"
-            validated={validationErrors.workshopDisplayName ? 'error' : 'default'}
+            validated={validationErrors.displayName ? 'error' : 'default'}
           />
         </FormGroup>
 
@@ -138,15 +138,15 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
         >
           <TextArea
             id="external-workshop-description"
-            value={formData.workshopDescription}
+            value={formData.description}
             onChange={(_event, value) => {
-              setFormData(prev => ({ ...prev, workshopDescription: value }));
-              if (validationErrors.workshopDescription) {
-                setValidationErrors(prev => ({ ...prev, workshopDescription: '' }));
+              setFormData(prev => ({ ...prev, description: value }));
+              if (validationErrors.description) {
+                setValidationErrors(prev => ({ ...prev, description: '' }));
               }
             }}
             placeholder="Enter workshop description (optional)"
-            validated={validationErrors.workshopDescription ? 'error' : 'default'}
+            validated={validationErrors.description ? 'error' : 'default'}
             rows={3}
           />
         </FormGroup>
