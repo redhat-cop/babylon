@@ -1116,18 +1116,60 @@ export async function createMultiWorkshop(multiworkshopData: {
   'purpose-activity'?: string;
   backgroundImage?: string;
   logoImage?: string;
-  assets?: Array<{ key: string; assetNamespace: string; workshopDisplayName?: string; workshopDescription?: string }>;
-  userEmail?: string;
-  namespace?: string;
+  assets?: Array<{ key: string; assetNamespace: string; workshopDisplayName?: string; workshopDescription?: string; type?: 'catalog' | 'external' }>;
+  namespace: string;
 }): Promise<MultiWorkshop> {
-  const resp = await apiFetch('/api/multiworkshop', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const session = await getApiSession();
+  
+  // Generate Kubernetes-compliant resource name from the display name
+  const multiworkshopName = generateK8sNameWithSuffix(multiworkshopData.name);
+  
+  // Create MultiWorkshop CRD definition
+  const definition: MultiWorkshop = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'MultiWorkshop',
+    metadata: {
+      name: multiworkshopName,
+      namespace: multiworkshopData.namespace,
+      annotations: {
+        [`${BABYLON_DOMAIN}/created-by`]: session.user,
+      },
     },
-    body: JSON.stringify(multiworkshopData),
-  });
-  return await resp.json();
+    spec: {
+      name: multiworkshopData.name,
+      displayName: multiworkshopData.name,
+      startDate: multiworkshopData.startDate,
+      endDate: multiworkshopData.endDate,
+    },
+  };
+  
+  // Add optional fields if provided
+  if (multiworkshopData.description) {
+    definition.spec.description = multiworkshopData.description;
+  }
+  if (multiworkshopData.backgroundImage) {
+    definition.spec.backgroundImage = multiworkshopData.backgroundImage;
+  }
+  if (multiworkshopData.logoImage) {
+    definition.spec.logoImage = multiworkshopData.logoImage;
+  }
+  if (multiworkshopData.numberSeats) {
+    definition.spec.numberSeats = multiworkshopData.numberSeats;
+  }
+  if (multiworkshopData.assets && multiworkshopData.assets.length > 0) {
+    definition.spec.assets = multiworkshopData.assets;
+  }
+  if (multiworkshopData.salesforceId) {
+    definition.spec.salesforceId = multiworkshopData.salesforceId;
+  }
+  if (multiworkshopData.purpose) {
+    definition.spec.purpose = multiworkshopData.purpose;
+  }
+  if (multiworkshopData['purpose-activity']) {
+    definition.spec['purpose-activity'] = multiworkshopData['purpose-activity'];
+  }
+  
+  return await createK8sObject(definition);
 }
 
 export async function patchMultiWorkshop({

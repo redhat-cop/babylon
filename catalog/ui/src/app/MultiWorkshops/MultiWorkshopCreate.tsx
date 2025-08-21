@@ -137,21 +137,18 @@ const MultiWorkshopCreate: React.FC = () => {
       
       const payload = {
         name: createFormData.name,
-        description: createFormData.description || undefined,
         startDate: dateToApiString(new Date(createFormData.startDate)),
         endDate: dateToApiString(new Date(createFormData.endDate)),
-        numberSeats: createFormData.numberSeats || undefined,
-        salesforceId: createFormData.salesforceId || undefined,
-        purpose: createFormData.purpose || undefined,
-        'purpose-activity': createFormData.activity || undefined,
-        backgroundImage: createFormData.backgroundImage || undefined,
-        logoImage: createFormData.logoImage || undefined,
-        assets: filteredAssets.length > 0 ? filteredAssets : undefined,
-        namespace: selectedNamespace?.name || undefined,
+        namespace: selectedNamespace?.name || userNamespace.name,
+        ...(createFormData.description && { description: createFormData.description }),
+        ...(createFormData.numberSeats && { numberSeats: createFormData.numberSeats }),
+        ...(createFormData.salesforceId && { salesforceId: createFormData.salesforceId }),
+        ...(createFormData.purpose && { purpose: createFormData.purpose }),
+        ...(createFormData.activity && { 'purpose-activity': createFormData.activity }),
+        ...(createFormData.backgroundImage && { backgroundImage: createFormData.backgroundImage }),
+        ...(createFormData.logoImage && { logoImage: createFormData.logoImage }),
+        ...(filteredAssets.length > 0 && { assets: filteredAssets }),
       };
-
-      // Remove undefined fields
-      Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
       // Create the MultiWorkshop first
       const createdMultiWorkshop = await createMultiWorkshop(payload);
