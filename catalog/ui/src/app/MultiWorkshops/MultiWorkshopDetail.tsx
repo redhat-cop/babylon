@@ -190,6 +190,9 @@ const MultiWorkshopDetail: React.FC = () => {
     
     await deleteMultiWorkshop(multiworkshop);
     
+    // Clear workshops cache since associated workshops are also deleted
+    mutate(`workshops-${namespace}`, undefined, false);
+    
     // Navigate back to the list page
     const currentNamespace = namespace || userNamespace?.name;
     navigate(currentNamespace ? `/event-wizard/${currentNamespace}` : '/event-wizard');
