@@ -550,7 +550,6 @@ const MultiWorkshopDetail: React.FC = () => {
                     <EditableText
                       value={multiworkshop.spec.description || ''}
                       onChange={updateEventDescription}
-                      placeholder="Event description"
                       componentType="TextArea"
                     />
                   </DescriptionListDescription>
@@ -560,12 +559,12 @@ const MultiWorkshopDetail: React.FC = () => {
                   <DescriptionListTerm>Portal URL</DescriptionListTerm>
                   <DescriptionListDescription>
                     <Link 
-                      to={`/multiworkshops/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
+                      to={`/event/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ fontFamily: 'monospace', fontSize: '14px' }}
                     >
-                      {`${window.location.origin}/multiworkshops/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
+                      {`${window.location.origin}/event/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
                     </Link>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
@@ -592,7 +591,6 @@ const MultiWorkshopDetail: React.FC = () => {
                         });
                         mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
                       }}
-                      placeholder="Background image URL"
                     />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
@@ -610,7 +608,6 @@ const MultiWorkshopDetail: React.FC = () => {
                         });
                         mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
                       }}
-                      placeholder="Logo image URL"
                     />
                   </DescriptionListDescription>
                 </DescriptionListGroup>

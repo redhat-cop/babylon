@@ -112,7 +112,7 @@ const MultiWorkshopLandingComponent: React.FC<{
     error,
     isLoading
   } = useSWR<MultiWorkshop>(
-    apiPaths.MULTIWORKSHOP({
+    apiPaths.PUBLIC_MULTIWORKSHOP({
       namespace: namespace,
       multiworkshopName: multiworkshopName,
     }),

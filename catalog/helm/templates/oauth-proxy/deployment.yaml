@@ -42,6 +42,7 @@ spec:
         - --logout-url=/
         - --provider=openshift
         - --skip-auth-regex=^/(api/)?workshop($|/.*)
+        - --skip-auth-regex=^/(api/)?event($|/.*)
         - --skip-auth-regex=^/support($|/)
         - --skip-auth-regex=^/fonts/.*
         - --skip-auth-regex=^/images/.*

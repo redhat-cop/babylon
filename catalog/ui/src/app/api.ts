@@ -2065,6 +2065,8 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     }${continueId ? `&continue=${continueId}` : ''}`,
   MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/multiworkshops/${multiworkshopName}`,
+  PUBLIC_MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>
+    `/api/event/${namespace}/${multiworkshopName}`,
   MULTIWORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number; continueId?: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/multiworkshops?${
       limit ? `limit=${limit}` : ''

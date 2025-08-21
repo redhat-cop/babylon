@@ -333,7 +333,7 @@ const publicRoutes: IAppRoute[] = [
   },
   {
     component: MultiWorkshopLanding,
-    path: '/multiworkshops/:namespace/:name',
+    path: '/event/:namespace/:name',
     title: 'Babylon | Multi-Workshop',
   },
   {

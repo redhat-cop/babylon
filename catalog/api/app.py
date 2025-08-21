@@ -845,6 +845,40 @@ async def usage_cost_workshop(request):
         url=f"{reporting_api}/usage-cost/workshop/{workshop_id}",
     )
 
+@routes.get("/api/event/{namespace}/{name}")
+async def public_multiworkshop_get(request):
+    """
+    Publicly accessible endpoint to get basic multiworkshop information.
+    This endpoint doesn't require authentication and is used by the event landing page.
+    
+    Returns basic multiworkshop details needed for the public event page without
+    exposing sensitive data or requiring user authentication.
+    """
+    namespace = request.match_info.get('namespace')
+    name = request.match_info.get('name')
+    
+    try:
+        # Get multiworkshop directly from kubernetes API without user authentication
+        multiworkshop = await custom_objects_api.get_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=namespace,
+            plural='multiworkshops',
+            name=name
+        )
+        
+        return web.json_response(multiworkshop)
+        
+    except kubernetes_asyncio.client.exceptions.ApiException as e:
+        if e.status == 404:
+            return web.json_response({'error': 'MultiWorkshop not found'}, status=404)
+        else:
+            logging.error(f"Error fetching multiworkshop {namespace}/{name}: {e}")
+            return web.json_response({'error': 'Internal server error'}, status=500)
+    except Exception as e:
+        logging.error(f"Error fetching multiworkshop {namespace}/{name}: {str(e)}")
+        return web.json_response({'error': 'Internal server error'}, status=500)
+
 @routes.get("/api/workshop/{workshop_id}")
 async def workshop_get(request):
     """
