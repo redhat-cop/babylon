@@ -348,8 +348,6 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
 
   const selectedCatalogNamespaceObj = catalogNamespaces.find((ns) => ns.name === selectedCatalogNamespace);
 
-
-
   return (
     <Modal
       isOpen={isOpen}

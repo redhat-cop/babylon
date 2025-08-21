@@ -21,7 +21,7 @@ import {
   Alert,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
-import { createMultiWorkshop, dateToApiString, createWorkshopFromAsset, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths } from '@app/api';
+import { createMultiWorkshop, dateToApiString, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths } from '@app/api';
 import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
@@ -210,7 +210,6 @@ const MultiWorkshopCreate: React.FC = () => {
                 asset: {
                   ...asset,
                   name: workshop.metadata.name, // Update name to the actual generated workshop name
-                  workshopName: workshop.metadata.name,
                 },
                 error: null,
               };
@@ -285,7 +284,6 @@ const MultiWorkshopCreate: React.FC = () => {
       navigate(`/event-wizard/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
     } catch (error) {
       console.error('Error creating MultiWorkshop:', error);
-      // TODO: Add proper error handling/notification
     } finally {
       setIsSubmitting(false);
     }

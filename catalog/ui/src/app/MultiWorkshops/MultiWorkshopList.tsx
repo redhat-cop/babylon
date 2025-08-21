@@ -12,7 +12,6 @@ import {
   EmptyStateFooter,
   Button,
 } from '@patternfly/react-core';
-
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';

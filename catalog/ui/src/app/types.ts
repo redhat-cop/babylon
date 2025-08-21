@@ -621,7 +621,6 @@ export interface MultiWorkshopAsset {
   displayName?: string;
   description?: string;
   workshopId?: string;
-  workshopName?: string;
   url?: string; // For external workshops
   type?: 'Workshop' | 'external'; // Asset type
 }

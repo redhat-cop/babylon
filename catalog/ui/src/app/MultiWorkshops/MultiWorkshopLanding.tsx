@@ -2,7 +2,6 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
-  Bullseye,
   Spinner,
   Alert,
 } from '@patternfly/react-core';
@@ -10,20 +9,20 @@ import {
 import { apiPaths, fetcher } from '@app/api';
 import { MultiWorkshop } from '@app/types';
 import { compareK8sObjects } from '@app/util';
-
-import './multiworkshop-landing.css';
 import heroImg from './hero-img.jpeg';
 import LabIcon from './LabIcon';
+
+import './multiworkshop-landing.css';
 
 interface WorkshopCardProps {
   asset: {
     key: string;
-    workshopDisplayName?: string;
-    workshopDescription?: string;
+    displayName?: string;
+    description?: string;
     workshopId?: string;
-    workshopName?: string;
+    name?: string;
     url?: string;
-    type?: 'catalog' | 'external';
+    type?: 'Workshop' | 'external';
   };
   isAvailable: boolean;
 }
@@ -38,14 +37,6 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
       ? `/workshop/${asset.workshopId}` 
       : null;
 
-  const handleCardClick = () => {
-    if (isAvailable && workshopUrl) {
-      window.open(workshopUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  // Remove lab code extraction since we're not showing it anymore
-
   if (!isAvailable) {
     return (
       <div className="demo-card demo-card--unavailable">
@@ -59,8 +50,8 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
         </div>
         <div className="demo-card__body">
           <h3 className="demo-card__title">{displayName}</h3>
-          {asset.workshopDescription && (
-            <p className="demo-card__description">{asset.workshopDescription}</p>
+          {asset.description && (
+            <p className="demo-card__description">{asset.description}</p>
           )}
           <p className="demo-card__subtitle demo-card__subtitle--disabled">
             {asset.type === 'external' ? 'External workshop unavailable' : 'Workshop unavailable'}
@@ -92,8 +83,8 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
       </div>
       <div className="demo-card__body">
         <h3 className="demo-card__title">{displayName}</h3>
-        {asset.workshopDescription && (
-          <p className="demo-card__description">{asset.workshopDescription}</p>
+        {asset.description && (
+          <p className="demo-card__description">{asset.description}</p>
         )}
         <p className="demo-card__subtitle">
           Access this lab{' '}

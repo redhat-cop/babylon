@@ -40,8 +40,7 @@ class MultiWorkshop(K8sObject):
         updated_assets = []
 
         for asset in assets:
-            # Skip if asset already has workshop ID or doesn't have workshop name or asset name
-            workshop_name = asset.get('workshopName') or asset.get('name')
+            workshop_name = asset.get('name')
             if asset.get('workshopId') or not workshop_name:
                 updated_assets.append(asset)
                 continue

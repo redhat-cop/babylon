@@ -34,14 +34,12 @@ import {
   Th,
   Td,
 } from '@patternfly/react-table';
-
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages } from '@app/api';
-import { MultiWorkshop, SfdcType, Workshop, WorkshopList } from '@app/types';
-import LocalTimestamp from '@app/components/LocalTimestamp';
+import { MultiWorkshop, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
 import Label from '@app/components/Label';
@@ -50,15 +48,19 @@ import SalesforceIdField from './SalesforceIdField';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import useSession from '@app/utils/useSession';
 import purposeOptions from './purposeOptions.json';
-import { FETCH_BATCH_LIMIT } from '@app/util';
+import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import ExternalWorkshopModal from './ExternalWorkshopModal';
 
 import './multiworkshop-detail.css';
 
+function stripHtmlTags(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
 const MultiWorkshopDetail: React.FC = () => {
   const navigate = useNavigate();
   const { namespace, name } = useParams();
-  const { userNamespace, isAdmin } = useSession().getSession();
+  const { userNamespace } = useSession().getSession();
   const [activeTab, setActiveTab] = useState<string>('details');
   const [modalDelete, openModalDelete] = useModal();
   const [modalDeleteAsset, openModalDeleteAsset] = useModal();
@@ -228,12 +230,11 @@ const MultiWorkshopDetail: React.FC = () => {
       const newAssets = selectedWorkshops.map(workshopName => {
         const workshop = workshops.find(w => w.metadata.name === workshopName);
         return {
-          key: workshopName, // Use workshop name as key
+          key: workshop.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || workshopName,
           name: workshopName, // Same as workshopName for existing workshops
           namespace: namespace!, // Same namespace as MultiWorkshop
           displayName: workshop?.spec?.displayName || workshopName,
-          description: workshop?.spec?.description || '',
-          workshopName: workshopName,
+          description: stripHtmlTags(workshop?.spec?.description || ''),
           type: 'Workshop' as const,
         };
       });
@@ -306,7 +307,7 @@ const MultiWorkshopDetail: React.FC = () => {
       return false;
     }
     
-    const existingWorkshopNames = multiworkshop?.spec.assets?.map(asset => asset.workshopName).filter(Boolean) || [];
+    const existingWorkshopNames = multiworkshop?.spec.assets?.map(asset => asset.name).filter(Boolean) || [];
     return !existingWorkshopNames.includes(workshop.metadata.name);
   }) || [];
 
