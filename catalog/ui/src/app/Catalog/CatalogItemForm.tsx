@@ -26,6 +26,7 @@ import {
 import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSWRImmutable from 'swr/immutable';
+import useSWR from 'swr';
 import {
   apiFetch,
   apiPaths,
@@ -35,8 +36,9 @@ import {
   createWorkshopProvision,
   fetcher,
   saveExternalItemRequest,
+  silentFetcher,
 } from '@app/api';
-import { CatalogItem, TPurposeOpts } from '@app/types';
+import { CatalogItem, CatalogItemIncident, TPurposeOpts } from '@app/types';
 import { checkAccessControl, displayName, getStageFromK8sObject, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
@@ -49,7 +51,7 @@ import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
-import { formatCurrency, getEstimatedCost, isAutoStopDisabled } from './catalog-utils';
+import { formatCurrency, getEstimatedCost, getIncident, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import { SearchIcon } from '@patternfly/react-icons';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
@@ -72,6 +74,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher,
+  );
+  const stage = getStageFromK8sObject(catalogItem);
+  const asset_uuid = catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid'];
+  const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
+    asset_uuid ? apiPaths.CATALOG_ITEM_LAST_INCIDENT({ stage, asset_uuid }) : null,
+    silentFetcher,
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    },
   );
 
   const _displayName = displayName(catalogItem);
@@ -126,8 +138,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   }
   const purposeObj =
     purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
-  const submitRequestEnabled = checkEnableSubmit(formState) && !isLoading;
-
+  const incident = getIncident(catalogItemIncident);
+  const submitRequestEnabled = incident && incident.disabled ? false : checkEnableSubmit(formState) && !isLoading;
+  
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
       checkConditionsInFormState(formState, dispatchFormState, debouncedApiFetch);
