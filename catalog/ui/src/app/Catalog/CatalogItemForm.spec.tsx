@@ -7,6 +7,7 @@ import { CatalogItem, ServiceNamespace, UserNamespace } from '@app/types';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
+  getIncident: () => ({name: 'Operational', disabled: false, incidentUrl: null}),
   fetcher: () => Promise.resolve(catalogItemObj as CatalogItem),
 }));
 
