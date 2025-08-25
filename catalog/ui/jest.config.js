@@ -37,4 +37,6 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/test-setup.ts'],
 
   testEnvironment: 'jsdom',
+
+  watchman: false,
 };

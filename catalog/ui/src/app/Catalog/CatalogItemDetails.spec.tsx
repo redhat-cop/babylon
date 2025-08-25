@@ -7,7 +7,7 @@ import { CatalogItem, ResourceClaim } from '@app/types';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
-  getIncident: () => ({name: 'Operational', disabled: false, incidentUrl: null}),
+  silentFetcher: () => Promise.resolve(null),
   fetcherItemsInAllPages: jest.fn(() => Promise.resolve([] as ResourceClaim[])),
 }));
 jest.mock('@app/utils/useSession', () =>

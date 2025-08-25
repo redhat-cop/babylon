@@ -80,6 +80,9 @@ export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   return null;
 }
 export function getIncident(incident: CatalogItemIncident) {
+  if (!incident) {
+    return { name: 'Operational', disabled: false, incidentUrl: null };
+  }
   return {
     name: incident.status,
     updated: { author: incident.created_by, updatedAt: incident.updated_at },
