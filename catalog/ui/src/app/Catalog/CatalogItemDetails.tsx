@@ -25,7 +25,7 @@ import {
 } from '@patternfly/react-core';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import useSWR from 'swr';
-import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
+import { apiPaths, fetcher, fetcherItemsInAllPages, silentFetcher } from '@app/api';
 import { AssetMetrics, BookmarkList, CatalogItem, CatalogItemIncident, ResourceClaim } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
@@ -50,7 +50,6 @@ import {
   getProvider,
   getDescription,
   formatTime,
-  getStatus,
   HIDDEN_LABELS_DETAIL_VIEW,
   formatString,
   getRating,
@@ -59,6 +58,7 @@ import {
   formatCurrency,
   getLastSuccessfulProvisionTime,
   convertToGitHubUrl,
+  getIncident,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -91,7 +91,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const asset_uuid = catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid'];
   const { data: metrics } = useSWRImmutable<AssetMetrics>(
     asset_uuid ? apiPaths.ASSET_METRICS({ asset_uuid }) : null,
-    fetcher,
+    silentFetcher,
     {
       shouldRetryOnError: false,
       suspense: false,
@@ -99,7 +99,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   );
   const { data: catalogItemIncident } = useSWR<CatalogItemIncident>(
     asset_uuid ? apiPaths.CATALOG_ITEM_LAST_INCIDENT({ stage, asset_uuid }) : null,
-    fetcher,
+    silentFetcher,
     {
       shouldRetryOnError: false,
       suspense: false,
@@ -107,7 +107,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   );
   const { data: assetsFavList, mutate: mutateFavorites } = useSWRImmutable<BookmarkList>(
     asset_uuid ? apiPaths.FAVORITES({}) : null,
-    fetcher,
+    silentFetcher,
     {
       shouldRetryOnError: false,
       suspense: false,
@@ -117,11 +117,6 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   if (asset_uuid && assetsFavList) {
     isFavorite = assetsFavList.bookmarks.some((b) => b.asset_uuid === asset_uuid);
   }
-  const catalogItemCpy = useMemo(() => {
-    const cpy = Object.assign({}, catalogItem);
-    cpy.metadata.annotations[`${BABYLON_DOMAIN}/incident`] = JSON.stringify(catalogItemIncident);
-    return cpy;
-  }, [catalogItem, catalogItemIncident]);
   const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
     userNamespace?.name
       ? apiPaths.RESOURCE_CLAIMS({
@@ -163,7 +158,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     [description, descriptionFormat],
   );
 
-  const status = getStatus(catalogItemCpy);
+  const incident = getIncident(catalogItemIncident);
   const rating = getRating(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups, isAdmin);
   let autoStopTime = catalogItem.spec.runtime?.default;
@@ -280,7 +275,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 key="order-catalog-item"
                 onClick={orderCatalogItem}
                 variant="primary"
-                isDisabled={isAdmin ? false : status && status.disabled}
+                isDisabled={isAdmin ? false : incident && incident.disabled}
                 className="catalog-item-details__main-btn"
               >
                 Order
@@ -303,23 +298,23 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                 }
                 name={catalogItemName}
               />
-              {status && status.name !== 'Operational' ? (
+              {incident && incident.name !== 'Operational' ? (
                 <div className="catalog-item-details__status">
                   <Label
-                    className={`catalog-item-details__status--${status.name.replace(/\s+/g, '-').toLowerCase()}`}
+                    className={`catalog-item-details__status--${incident.name.replace(/\s+/g, '-').toLowerCase()}`}
                     variant="outline"
                     render={({ className, content }) =>
-                      status && status.incidentUrl ? (
-                        <a href={status.incidentUrl} target="_blank" rel="noreferrer" className={className}>
+                      incident && incident.incidentUrl ? (
+                        <a href={incident.incidentUrl} target="_blank" rel="noreferrer" className={className}>
                           {content}
                         </a>
                       ) : (
                         <p className={className}>{content}</p>
                       )
                     }
-                    icon={<StatusPageIcons style={{ width: '20px' }} status={status.name} />}
+                    icon={<StatusPageIcons style={{ width: '20px' }} status={incident.name} />}
                   >
-                    {status.name}
+                    {incident.name}
                   </Label>
                 </div>
               ) : null}
