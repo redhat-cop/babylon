@@ -8,7 +8,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import { fetchCatalog } from '@app/Catalog/Catalog';
 import useSession from '@app/utils/useSession';
 import { BABYLON_DOMAIN, displayName, getStageFromK8sObject } from '@app/util';
-import { getStage, getStatus } from '@app/Catalog/catalog-utils';
+import { getStage, getStatusFromCatalogItem } from '@app/Catalog/catalog-utils';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 
 import './admin.css';
@@ -81,24 +81,24 @@ const CatalogIncidentsAlertList: React.FC = () => {
                                 </Td>
                                 <Td dataLabel="status">
                                     <Label
-                                        className={`catalog-item-details__status--${getStatus(ci).name.replace(/\s+/g, '-').toLowerCase()}`}
+                                        className={`catalog-item-details__status--${getStatusFromCatalogItem(ci).name.replace(/\s+/g, '-').toLowerCase()}`}
                                         variant="outline"
                                         render={({ className, content }) =>
-                                            getStatus(ci).incidentUrl ? (
-                                                <a href={getStatus(ci).incidentUrl} target="_blank" rel="noreferrer" className={className}>
+                                            getStatusFromCatalogItem(ci).incidentUrl ? (
+                                                <a href={getStatusFromCatalogItem(ci).incidentUrl} target="_blank" rel="noreferrer" className={className}>
                                                 {content}
                                                 </a>
                                             ) : (
                                                 <p className={className}>{content}</p>
                                             )}
-                                        icon={<StatusPageIcons style={{ width: '20px' }} status={getStatus(ci).name} />}
+                                        icon={<StatusPageIcons style={{ width: '20px' }} status={getStatusFromCatalogItem(ci).name} />}
                                     >
-                                        {getStatus(ci).name}
+                                        {getStatusFromCatalogItem(ci).name}
                                     </Label>
                                 </Td>
-                                <Td dataLabel="disabled">{getStatus(ci).disabled.toString()}</Td>
+                                <Td dataLabel="disabled">{getStatusFromCatalogItem(ci).disabled.toString()}</Td>
                                 <Td dataLabel="updated">
-                                    <TimeInterval toTimestamp={getStatus(ci).updated.updatedAt} />
+                                    <TimeInterval toTimestamp={getStatusFromCatalogItem(ci).updated.updatedAt} />
                                 </Td>
                             </Tr>
                         ))}

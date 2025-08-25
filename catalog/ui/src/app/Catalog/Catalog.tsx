@@ -55,7 +55,7 @@ import {
   HIDDEN_LABELS,
   CUSTOM_LABELS,
   setLastFilter,
-  getStatus,
+  getStatusFromCatalogItem,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
@@ -455,7 +455,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     const operationalItems = [];
     const disabledItems = [];
     for (let catalogItem of items) {
-      const status = getStatus(catalogItem);
+      const status = getStatusFromCatalogItem(catalogItem);
       if (status) {
         const isDisabled = status.disabled;
         const statusName = status.name;

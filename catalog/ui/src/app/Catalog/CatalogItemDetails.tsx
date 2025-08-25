@@ -58,7 +58,7 @@ import {
   formatCurrency,
   getLastSuccessfulProvisionTime,
   convertToGitHubUrl,
-  getIncident,
+  getStatus,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -158,7 +158,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     [description, descriptionFormat],
   );
 
-  const incident = getIncident(catalogItemIncident);
+  const incident = getStatus(catalogItemIncident);
   const rating = getRating(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups, isAdmin);
   let autoStopTime = catalogItem.spec.runtime?.default;
