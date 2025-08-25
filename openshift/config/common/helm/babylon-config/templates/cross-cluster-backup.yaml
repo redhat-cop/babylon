@@ -49,6 +49,7 @@ rules:
   resources:
   - workshops
   - workshopprovisions
+  - multiworkshops
   verbs:
   - get
   - list

@@ -15,15 +15,38 @@ class MultiWorkshop(CachedKopfObject):
 
     cache = {}
 
+    @classmethod
+    async def preload(cls):
+        """Override preload to avoid issues during startup.
+        
+        MultiWorkshop preloading can be skipped as resources will be loaded
+        on-demand when needed by the operator handlers.
+        """
+        pass
+
+    def __init__(self, **kwargs):
+        """Initialize MultiWorkshop with kopf event parameters."""
+        # Extract the parameters that KopfObject expects
+        meta = kwargs.get('meta', {})
+        
+        # Provide defaults for required parameters
+        init_kwargs = {
+            'annotations': kwargs.get('annotations', meta.get('annotations', {})),
+            'labels': kwargs.get('labels', meta.get('labels', {})),
+            'meta': meta,
+            'name': kwargs.get('name', meta.get('name', '')),
+            'namespace': kwargs.get('namespace', meta.get('namespace', '')),
+            'spec': kwargs.get('spec', {}),
+            'status': kwargs.get('status', {}),
+            'uid': kwargs.get('uid', meta.get('uid', '')),
+        }
+        
+        super().__init__(**init_kwargs)
+
     @property
     def assets(self):
         """Get assets from MultiWorkshop spec."""
         return self.spec.get('assets', [])
-
-    @property
-    def namespace(self):
-        """Get namespace from MultiWorkshop metadata."""
-        return self.metadata['namespace']
 
     async def update_workshop_ids(self, logger=None):
         """Check if any assets are missing workshop IDs and update them."""
@@ -78,7 +101,7 @@ class MultiWorkshop(CachedKopfObject):
                         'assets': updated_assets
                     }
                 }
-                await self.json_patch(patch)
+                await self.merge_patch(patch)
                 logger.info(f"Updated workshop IDs for MultiWorkshop {self.name}")
                 return True
             except Exception as e:

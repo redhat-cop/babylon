@@ -49,6 +49,7 @@ rules:
   resources:
   - workshops
   - workshopprovisions
+  - multiworkshops
   verbs:
   - create
   - delete
@@ -148,6 +149,7 @@ rules:
   resources:
   - workshops
   - workshopprovisions
+  - multiworkshops
   verbs:
   - create
   - delete
@@ -173,6 +175,7 @@ rules:
   resources:
   - workshops
   - workshopprovisions
+  - multiworkshops
   verbs:
   - create
   - delete

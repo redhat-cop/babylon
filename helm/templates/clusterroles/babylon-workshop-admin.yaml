@@ -16,6 +16,7 @@ rules:
   - workshops
   - workshopprovisions
   - workshopuserassignments
+  - multiworkshops
   verbs:
   - create
   - delete

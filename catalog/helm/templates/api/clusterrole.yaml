@@ -27,6 +27,7 @@ rules:
   - babylon.gpte.redhat.com
   resources:
   - workshops
+  - multiworkshops
   verbs:
   - get
   - list

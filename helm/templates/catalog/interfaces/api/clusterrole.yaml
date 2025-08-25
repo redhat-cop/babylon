@@ -30,6 +30,7 @@ rules:
   resources:
   - workshops
   - workshopuserassignments
+  - multiworkshops
   verbs:
   - get
   - list
