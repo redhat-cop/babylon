@@ -51,7 +51,7 @@ import TermsOfService from '@app/components/TermsOfService';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
-import { formatCurrency, getEstimatedCost, getIncident, isAutoStopDisabled } from './catalog-utils';
+import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import { SearchIcon } from '@patternfly/react-icons';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
@@ -138,7 +138,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   }
   const purposeObj =
     purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
-  const incident = getIncident(catalogItemIncident);
+  const incident = getStatus(catalogItemIncident);
   const submitRequestEnabled = incident && incident.disabled ? false : checkEnableSubmit(formState) && !isLoading;
   
   useEffect(() => {
@@ -569,6 +569,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         <DynamicFormInput
                           id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
                           isDisabled={parameterState.isDisabled}
+                          isGroup={formGroup.parameters.length > 1}
                           parameter={parameterState.spec}
                           validationResult={parameterState.validationResult}
                           value={parameterState.value}

@@ -5,7 +5,7 @@ import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import StarRating from '@app/components/StarRating';
-import { formatString, getDescription, getProvider, getRating, getStage, getStatus, getSLA } from './catalog-utils';
+import { formatString, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 
 import './catalog-item-card.css';
@@ -24,7 +24,7 @@ const CatalogItemCard: React.FC<CatalogItemCardProps> = ({ catalogItem, onClick,
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
   const rating = getRating(catalogItem);
-  const status = getStatus(catalogItem);
+  const status = getStatusFromCatalogItem(catalogItem);
   const sla = getSLA(catalogItem);
   
   // Only handle routing params if not in selectable mode

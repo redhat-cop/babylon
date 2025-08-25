@@ -79,7 +79,7 @@ export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   }
   return null;
 }
-export function getIncident(incident: CatalogItemIncident) {
+export function getStatus(incident: CatalogItemIncident) {
   if (!incident) {
     return { name: 'Operational', disabled: false, incidentUrl: null };
   }
@@ -90,7 +90,7 @@ export function getIncident(incident: CatalogItemIncident) {
     incidentUrl: incident.incident_url,
   };
 }
-export function getStatus(
+export function getStatusFromCatalogItem(
   catalogItem: CatalogItem,
 ): { name: string; updated?: { author: string; updatedAt: string }; disabled: boolean; incidentUrl?: string } | null {
   if (catalogItem.metadata.annotations?.[`${BABYLON_DOMAIN}/incident`]) {
@@ -98,7 +98,7 @@ export function getStatus(
       catalogItem.metadata.annotations[`${BABYLON_DOMAIN}/incident`],
     );
     if (catalog_incident) {
-      return getIncident(catalog_incident);
+      return getStatus(catalog_incident);
     }
   }
   return { name: 'Operational', disabled: false, incidentUrl: null };

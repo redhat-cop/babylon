@@ -18,7 +18,8 @@ const DynamicFormInput: React.FC<{
   parameter: any;
   validationResult?: boolean;
   value?: any;
-}> = ({ id, isDisabled, onChange, parameter, validationResult, value }) => {
+  isGroup?: boolean;
+}> = ({ id, isDisabled, onChange, parameter, validationResult, value, isGroup = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   if (parameter.openAPIV3Schema?.enum || parameter.openAPIV3Schema?.['x-form-options']) {
     if (parameter.openAPIV3Schema?.['x-display'] === 'radio') {
@@ -137,6 +138,7 @@ const DynamicFormInput: React.FC<{
         type="text"
         key={parameter.name}
         id={id}
+        label={isGroup ? parameter.formLabel || parameter.name : null}
         isDisabled={isDisabled}
         onChange={(_event, v) => onChange(v, validationRegExp ? validationRegExp.test(v) : null)}
         value={value || ''}
