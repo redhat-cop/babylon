@@ -569,6 +569,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         <DynamicFormInput
                           id={formGroup.parameters.length === 1 ? `${formGroup.key}-${formGroupIdx}` : null}
                           isDisabled={parameterState.isDisabled}
+                          isGroup={formGroup.parameters.length > 1}
                           parameter={parameterState.spec}
                           validationResult={parameterState.validationResult}
                           value={parameterState.value}
