@@ -4,18 +4,16 @@ import asyncio
 import logging
 
 from babylon import Babylon
-from k8sobject import K8sObject
+from cachedkopfobject import CachedKopfObject
 
 
-class MultiWorkshop(K8sObject):
+class MultiWorkshop(CachedKopfObject):
     api_group = Babylon.babylon_domain
-    api_version = 'v1'
+    api_version = Babylon.babylon_api_version
+    kind = 'MultiWorkshop'
     plural = 'multiworkshops'
 
-    @classmethod
-    async def preload(cls):
-        """Preload MultiWorkshop CRD."""
-        await cls._preload()
+    cache = {}
 
     @property
     def assets(self):
