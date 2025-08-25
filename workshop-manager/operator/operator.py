@@ -12,6 +12,7 @@ from resourceclaim import ResourceClaim
 from workshop import Workshop
 from workshopprovision import WorkshopProvision
 from workshopuserassignment import WorkshopUserAssignment
+from multiworkshop import MultiWorkshop
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 from userassignment import UserAssignment
@@ -44,6 +45,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
 
     await Workshop.preload()
     await WorkshopProvision.preload()
+    await MultiWorkshop.preload()
 
 @kopf.on.cleanup()
 async def on_cleanup(**_):
@@ -187,3 +189,51 @@ async def workshop_user_assignment_delete(logger, **kwargs):
 async def workshop_user_assignment_update(logger, **kwargs):
     workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)
     await workshop_user_assignment.handle_update(logger=logger)
+
+
+@kopf.on.create(
+    MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def multiworkshop_create(logger, **kwargs):
+    multiworkshop = MultiWorkshop.load(**kwargs)
+    await multiworkshop.handle_create(logger=logger)
+
+@kopf.on.delete(
+    MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def multiworkshop_delete(logger, **kwargs):
+    multiworkshop = MultiWorkshop.load(**kwargs)
+    await multiworkshop.handle_delete(logger=logger)
+
+@kopf.on.resume(
+    MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def multiworkshop_resume(logger, **kwargs):
+    multiworkshop = MultiWorkshop.load(**kwargs)
+    # Check for missing workshop IDs on resume
+    await multiworkshop.update_workshop_ids(logger=logger)
+
+@kopf.on.update(
+    MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def multiworkshop_update(logger, **kwargs):
+    multiworkshop = MultiWorkshop.load(**kwargs)
+    await multiworkshop.handle_update(logger=logger)
+
+@kopf.daemon(
+    MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
+    cancellation_timeout = 1,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def multiworkshop_daemon(logger, stopped, **kwargs):
+    multiworkshop = MultiWorkshop.load(**kwargs)
+    try:
+        while not stopped:
+            await multiworkshop.manage(logger=logger)
+            await asyncio.sleep(30)  # Check every 30sec for workshop IDs
+    except asyncio.CancelledError:
+        pass

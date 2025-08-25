@@ -3,6 +3,7 @@ import { LinkProps, NavLink, useLocation, useMatch, useResolvedPath } from 'reac
 import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import BetaBadge from '@app/components/BetaBadge';
 
 const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
   const resolved = useResolvedPath(to);
@@ -46,6 +47,20 @@ const Navigation: React.FC = () => {
         }
       >
         Services
+      </NavLink>
+    </NavItem>
+  ) : null;
+
+  const multiWorkshopNavigation = userNamespace ? (
+    <NavItem>
+      <NavLink
+        to={`/event-wizard/${userNamespace.name}`}
+        className={locationStartsWith('/event-wizard/') ? 'pf-m-current' : ''}
+      >
+        <span style={{ display: 'flex', alignItems: 'center' }}>
+          Event Wizard
+          <BetaBadge />
+        </span>
       </NavLink>
     </NavItem>
   ) : null;
@@ -123,6 +138,11 @@ const Navigation: React.FC = () => {
         </ExactNavLink>
       </NavItem>
       <NavItem>
+        <ExactNavLink className={locationStartsWith('/admin/multiworkshops') ? 'pf-m-current' : ''} to="/admin/multiworkshops">
+          Multi-Workshops
+        </ExactNavLink>
+      </NavItem>
+      <NavItem>
         <ExactNavLink
           className={locationStartsWith('/admin/scheduled/workshops') ? 'pf-m-current' : ''}
           to="/admin/scheduled/workshops"
@@ -145,6 +165,7 @@ const Navigation: React.FC = () => {
       <NavList id="nav-list-simple">
         {catalogNavigation}
         {serviceNavigation}
+        {multiWorkshopNavigation}
         {adminNavigation}
       </NavList>
     </Nav>

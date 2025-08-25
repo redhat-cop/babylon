@@ -588,6 +588,43 @@ export interface WorkshopUserAssignment extends K8sObject {
   status?: any;
 }
 
+export interface MultiWorkshop extends K8sObject {
+  spec: MultiWorkshopSpec;
+  status?: any;
+}
+
+export interface MultiWorkshopList {
+  items: MultiWorkshop[];
+  metadata: K8sObjectListMeta;
+}
+
+export interface MultiWorkshopSpec {
+  name?: string;
+  displayName: string;
+  description?: string;
+  backgroundImage?: string;
+  logoImage?: string;
+  startDate: string;
+  endDate: string;
+  numberSeats?: number;
+  salesforceId?: string;
+  salesforceType?: SfdcType;
+  purpose?: string;
+  'purpose-activity'?: string;
+  assets?: MultiWorkshopAsset[];
+}
+
+export interface MultiWorkshopAsset {
+  key: string;
+  name: string; // Required asset name
+  namespace?: string; // Not required for external assets
+  displayName?: string;
+  description?: string;
+  workshopId?: string;
+  url?: string; // For external workshops
+  type?: 'Workshop' | 'external'; // Asset type
+}
+
 export type Session = {
   lifetime: number;
   token: string;
@@ -631,6 +668,9 @@ export type ResourceType =
   | 'NAMESPACES'
   | 'WORKSHOP'
   | 'WORKSHOPS'
+  | 'MULTIWORKSHOP'
+  | 'PUBLIC_MULTIWORKSHOP'
+  | 'MULTIWORKSHOPS'
   | 'WORKSHOP_PROVISIONS'
   | 'RESOURCE_HANDLE'
   | 'RESOURCE_HANDLES'

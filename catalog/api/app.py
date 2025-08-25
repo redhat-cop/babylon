@@ -10,7 +10,7 @@ import re
 
 import aiohttp
 from aiohttp import web
-from time import time
+import time
 
 import kubernetes_asyncio
 import redis.asyncio as redis
@@ -226,7 +226,7 @@ async def get_openshift_auth_user():
 
 async def get_user_groups(user):
     global groups
-    if groups_last_update < time() - 60:
+    if groups_last_update < time.time() - 60:
         group_list = await custom_objects_api.list_cluster_custom_object(
             group='user.openshift.io',
             plural='groups',
@@ -845,6 +845,40 @@ async def usage_cost_workshop(request):
         url=f"{reporting_api}/usage-cost/workshop/{workshop_id}",
     )
 
+@routes.get("/api/event/{namespace}/{name}")
+async def public_multiworkshop_get(request):
+    """
+    Publicly accessible endpoint to get basic multiworkshop information.
+    This endpoint doesn't require authentication and is used by the event landing page.
+    
+    Returns basic multiworkshop details needed for the public event page without
+    exposing sensitive data or requiring user authentication.
+    """
+    namespace = request.match_info.get('namespace')
+    name = request.match_info.get('name')
+    
+    try:
+        # Get multiworkshop directly from kubernetes API without user authentication
+        multiworkshop = await custom_objects_api.get_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=namespace,
+            plural='multiworkshops',
+            name=name
+        )
+        
+        return web.json_response(multiworkshop)
+        
+    except kubernetes_asyncio.client.exceptions.ApiException as e:
+        if e.status == 404:
+            return web.json_response({'error': 'MultiWorkshop not found'}, status=404)
+        else:
+            logging.error(f"Error fetching multiworkshop {namespace}/{name}: {e}")
+            return web.json_response({'error': 'Internal server error'}, status=500)
+    except Exception as e:
+        logging.error(f"Error fetching multiworkshop {namespace}/{name}: {str(e)}")
+        return web.json_response({'error': 'Internal server error'}, status=500)
+
 @routes.get("/api/workshop/{workshop_id}")
 async def workshop_get(request):
     """
@@ -959,6 +993,10 @@ async def workshop_post(request):
 
     raise web.HTTPConflict()
 
+
+
+
+
 @routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems")
 @routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems/{name}")
 async def openshift_api_proxy_with_cache(request):
@@ -974,7 +1012,7 @@ async def openshift_api_proxy_with_cache(request):
         raise web.HTTPForbidden()
 
     resp, cache_time = response_cache.get(request.path_qs, (None, None))
-    if resp != None and time() - cache_time < response_cache_clean_interval:
+    if resp != None and time.time() - cache_time < response_cache_clean_interval:
         return web.Response(
             body=resp.body,
             headers=resp.headers,
@@ -982,7 +1020,7 @@ async def openshift_api_proxy_with_cache(request):
         )
 
     resp = await openshift_api_proxy(request)
-    response_cache[request.path_qs] = (resp, time())
+    response_cache[request.path_qs] = (resp, time.time())
     return resp
 
 @routes.delete("/{path:apis?/.*}")
@@ -1062,12 +1100,11 @@ async def response_cache_clean():
         while True:
             for key, value in list(response_cache.items()):
                 cache_time = value[1]
-                if time() - cache_time > response_cache_clean_interval:
+                if time.time() - cache_time > response_cache_clean_interval:
                     response_cache.pop(key, None)
             await asyncio.sleep(response_cache_clean_interval)
     except asyncio.CancelledError:
         return
-
 
 app = web.Application()
 app.add_routes(routes)

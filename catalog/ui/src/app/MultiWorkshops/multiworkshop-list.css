@@ -1,0 +1,20 @@
+.multiworkshop-list__card-title {
+  font-weight: var(--pf-t--font--weight--bold);
+  color: var(--pf-t--color--text--primary);
+  margin-bottom: 8px;
+}
+
+.multiworkshop-list__empty-state {
+  text-align: center;
+  padding: var(--pf-t--global--spacer--2xl);
+}
+
+.multiworkshop-list__header {
+  margin-bottom: var(--pf-t--global--spacer--lg);
+}
+
+.multiworkshop-list__header-subtitle {
+  margin-top: 8px;
+  color: var(--pf-t--color--text--secondary);
+  font-size: 16px;
+}

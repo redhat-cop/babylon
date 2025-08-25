@@ -21,7 +21,8 @@ const CatalogCategorySelector: React.FC<{
   catalogItems: CatalogItem[];
   onSelect: (category: string) => void;
   selected: string;
-}> = ({ catalogItems, onSelect, selected }) => {
+  isVertical?: boolean;
+}> = ({ catalogItems, onSelect, selected, isVertical = true }) => {
   const categories = Array.from(
     new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null)),
   );
@@ -40,7 +41,7 @@ const CatalogCategorySelector: React.FC<{
   return (
     <Tabs
       className="catalog-category-selector"
-      isVertical
+      isVertical={isVertical}
       activeKey={selected || 'all'}
       onSelect={(event, category) => (category === 'all' ? onSelect(null) : onSelect(`${category}`))}
     >

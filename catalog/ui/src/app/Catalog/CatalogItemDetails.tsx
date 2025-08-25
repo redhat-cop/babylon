@@ -146,7 +146,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const services: ResourceClaim[] = useMemo(
     () =>
       Array.isArray(userResourceClaims)
-        ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r)))
+        ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r) && !r.metadata.deletionTimestamp))
         : [],
     [userResourceClaims],
   );

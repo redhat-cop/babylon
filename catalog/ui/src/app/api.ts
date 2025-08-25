@@ -14,7 +14,9 @@ import {
   ResourceProvider,
   ServiceNamespace,
   Workshop,
+  WorkshopList,
   WorkshopProvision,
+  MultiWorkshop,
   UserList,
   Session,
   Nullable,
@@ -36,6 +38,31 @@ declare const window: Window &
   typeof globalThis & {
     sessionPromiseInstance?: Promise<Session>;
   };
+
+/**
+ * Sanitize a name to be Kubernetes DNS compliant
+ * - Convert to lowercase
+ * - Replace non-alphanumeric characters with hyphens
+ * - Collapse multiple hyphens
+ * - Remove leading/trailing hyphens
+ */
+function sanitizeForK8s(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+/**
+ * Generate a Kubernetes-compliant name with random suffix
+ * @param baseName - Base name to use (will be sanitized)
+ * @param maxLength - Maximum total length (default: 63 for Kubernetes)
+ * @returns Sanitized name with random suffix within length limit
+ */
+function generateK8sNameWithSuffix(baseName: string, maxLength: number = 63): string {
+  const sanitizedBase = sanitizeForK8s(baseName);
+  const suffix = generateRandom5CharsSuffix().toLowerCase();
+  const maxBaseLength = maxLength - 6; // Reserve 6 chars for "-{5char}"
+  const truncatedBase = sanitizedBase.substring(0, maxBaseLength);
+  return `${truncatedBase}-${suffix}`;
+}
 
 type CreateServiceRequestOpt = {
   catalogItem: CatalogItem;
@@ -407,7 +434,7 @@ export async function createServiceRequest({
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
   const access = checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin);
-  const suffix = generateRandom5CharsSuffix();
+  const resourceClaimName = generateK8sNameWithSuffix(catalogItem.metadata.name);
   const requestResourceClaim: ResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     kind: 'ResourceClaim',
@@ -418,7 +445,7 @@ export async function createServiceRequest({
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
-        [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}-${suffix}`,
+        [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${resourceClaimName}`,
         ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
         ...(catalogItem.spec.userData
           ? { [`${BABYLON_DOMAIN}/userData`]: JSON.stringify(catalogItem.spec.userData) }
@@ -442,7 +469,7 @@ export async function createServiceRequest({
         ...(catalogItem.spec.bookbag ? { [`${BABYLON_DOMAIN}/labUserInterface`]: 'bookbag' } : {}),
         [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
       },
-      name: `${catalogItem.metadata.name}-${suffix}`,
+      name: resourceClaimName,
       namespace: serviceNamespace.name,
     },
     spec: {
@@ -507,10 +534,10 @@ export async function createServiceRequest({
       return resourceClaim;
     } catch (error: any) {
       if (error.status === 409) {
-        const suffix = generateRandom5CharsSuffix();
-        definition.metadata.name = `${catalogItem.metadata.name}-${suffix}`;
+        const newResourceClaimName = generateK8sNameWithSuffix(catalogItem.metadata.name);
+        definition.metadata.name = newResourceClaimName;
         definition.metadata.annotations[`${BABYLON_DOMAIN}/url`] =
-          `${baseUrl}/services/${serviceNamespace.name}/${catalogItem.metadata.name}-${suffix}`;
+          `${baseUrl}/services/${serviceNamespace.name}/${newResourceClaimName}`;
       } else {
         throw error;
       }
@@ -532,6 +559,9 @@ export async function createWorkshop({
   parameterValues,
   skippedSfdc,
   whiteGloved,
+  customWorkshopName,
+  customLabels,
+  customAnnotations,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -546,13 +576,19 @@ export async function createWorkshop({
   parameterValues: any;
   skippedSfdc: boolean;
   whiteGloved: boolean;
+  customWorkshopName?: string;
+  customLabels?: Record<string, string>;
+  customAnnotations?: Record<string, string>;
 }): Promise<Workshop> {
   const session = await getApiSession();
+  // Generate workshop name with random suffix and ensure Kubernetes compliance
+  const workshopName = generateK8sNameWithSuffix(customWorkshopName || catalogItem.metadata.name);
+
   const _definition: Workshop = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'Workshop',
     metadata: {
-      name: catalogItem.metadata.name,
+      name: workshopName,
       namespace: serviceNamespace.name,
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -561,6 +597,7 @@ export async function createWorkshop({
           ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
           : {}),
         [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
+        ...(customLabels || {}),
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
@@ -573,6 +610,7 @@ export async function createWorkshop({
           startDate && startDate.getTime() + parseDuration('15min') > Date.now() ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
+        ...(customAnnotations || {}),
       },
     },
     spec: {
@@ -603,19 +641,25 @@ export async function createWorkshop({
 
   const definition = addPurposeAndSfdc(_definition, parameterValues, skippedSfdc);
 
-  let n = 0;
-  while (true) {
+  let retryCount = 0;
+  const maxRetries = 3;
+  
+  while (retryCount <= maxRetries) {
     try {
       return await createK8sObject(definition);
     } catch (error: any) {
-      if (error.status === 409) {
-        n++;
-        definition.metadata.name = `${catalogItem.metadata.name}-${n}`;
+      if (error.status === 409 && retryCount < maxRetries) {
+        retryCount++;
+        // Generate a new name with random suffix on conflict
+        definition.metadata.name = generateK8sNameWithSuffix(customWorkshopName || catalogItem.metadata.name);
       } else {
         throw error;
       }
     }
   }
+  
+  // This should never be reached, but TypeScript requires a return
+  throw new Error('Failed to create workshop after maximum retries');
 }
 
 export async function createWorkshopForMultiuserService({
@@ -965,6 +1009,363 @@ export async function deleteResourceProvider(resourceProvider: ResourceProvider)
 
 export async function deleteWorkshop(workshop: Workshop) {
   return await deleteK8sObject(workshop);
+}
+
+export async function getWorkshopsForMultiWorkshop(multiworkshop: MultiWorkshop): Promise<Workshop[]> {
+  const workshops: Workshop[] = [];
+  
+  // Get workshops directly from multiworkshop assets (only catalog type assets)
+  if (multiworkshop.spec.assets) {
+    for (const asset of multiworkshop.spec.assets) {
+      // Only include catalog assets (external assets don't have workshop objects)
+      if (asset.type !== 'external') {
+        const workshopName = asset.name || asset.key;
+        if (workshopName) {
+          try {
+            const workshop = await getK8sObject<Workshop>({
+              apiVersion: `${BABYLON_DOMAIN}/v1`,
+              name: workshopName,
+              namespace: multiworkshop.metadata.namespace,
+              plural: 'workshops',
+            });
+            workshops.push(workshop);
+          } catch (error) {
+            console.warn(`Workshop ${workshopName} referenced in multiworkshop ${multiworkshop.metadata.name} not found:`, error);
+            // Continue with other workshops even if one is missing
+          }
+        }
+      }
+    }
+  }
+  
+  return workshops;
+}
+
+export async function deleteAssetFromMultiWorkshop({
+  multiworkshop,
+  assetIndex,
+}: {
+  multiworkshop: MultiWorkshop;
+  assetIndex: number;
+}): Promise<MultiWorkshop> {
+  if (!multiworkshop.spec.assets || assetIndex < 0 || assetIndex >= multiworkshop.spec.assets.length) {
+    throw new Error('Invalid asset index');
+  }
+
+  const asset = multiworkshop.spec.assets[assetIndex];
+  
+  // If it's a catalog asset with a workshop, delete the workshop first
+  if (asset.type !== 'external') {
+    const workshopName = asset.name || asset.key;
+    if (workshopName) {
+      try {
+        const workshop = await getK8sObject<Workshop>({
+          apiVersion: `${BABYLON_DOMAIN}/v1`,
+          name: workshopName,
+          namespace: multiworkshop.metadata.namespace,
+          plural: 'workshops',
+        });
+        await deleteWorkshop(workshop);
+      } catch (error) {
+        console.warn(`Failed to delete workshop ${workshopName}:`, error);
+        // Continue with asset removal even if workshop deletion fails
+      }
+    }
+  }
+  
+  // Remove the asset from the multiworkshop
+  const updatedAssets = [...multiworkshop.spec.assets];
+  updatedAssets.splice(assetIndex, 1);
+  
+  return await patchMultiWorkshop({
+    name: multiworkshop.metadata.name,
+    namespace: multiworkshop.metadata.namespace,
+    patch: {
+      spec: {
+        assets: updatedAssets,
+      },
+    },
+  });
+}
+
+export async function deleteMultiWorkshop(multiworkshop: MultiWorkshop) {
+  // First, delete all associated workshops
+  const workshops = await getWorkshopsForMultiWorkshop(multiworkshop);
+  
+  for (const workshop of workshops) {
+    try {
+      await deleteWorkshop(workshop);
+    } catch (error) {
+      console.warn(`Failed to delete workshop ${workshop.metadata.name}:`, error);
+      // Continue with other workshops even if one fails
+    }
+  }
+  
+  // Then delete the multiworkshop itself
+  return await deleteK8sObject(multiworkshop);
+}
+
+export async function createMultiWorkshop(multiworkshopData: {
+  name: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  numberSeats?: number;
+  salesforceId?: string;
+  purpose?: string;
+  'purpose-activity'?: string;
+  backgroundImage?: string;
+  logoImage?: string;
+  assets?: Array<{ key: string; name: string; namespace: string; displayName?: string; description?: string; type?: 'Workshop' | 'external' }>;
+  namespace: string;
+}): Promise<MultiWorkshop> {
+  const session = await getApiSession();
+  
+  // Generate Kubernetes-compliant resource name from the display name
+  const multiworkshopName = generateK8sNameWithSuffix(multiworkshopData.name);
+  
+  // Create MultiWorkshop CRD definition
+  const definition: MultiWorkshop = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'MultiWorkshop',
+    metadata: {
+      name: multiworkshopName,
+      namespace: multiworkshopData.namespace,
+      annotations: {
+        [`${BABYLON_DOMAIN}/created-by`]: session.user,
+      },
+    },
+    spec: {
+      name: multiworkshopData.name,
+      displayName: multiworkshopData.name,
+      startDate: multiworkshopData.startDate,
+      endDate: multiworkshopData.endDate,
+    },
+  };
+  
+  // Add optional fields if provided
+  if (multiworkshopData.description) {
+    definition.spec.description = multiworkshopData.description;
+  }
+  if (multiworkshopData.backgroundImage) {
+    definition.spec.backgroundImage = multiworkshopData.backgroundImage;
+  }
+  if (multiworkshopData.logoImage) {
+    definition.spec.logoImage = multiworkshopData.logoImage;
+  }
+  if (multiworkshopData.numberSeats) {
+    definition.spec.numberSeats = multiworkshopData.numberSeats;
+  }
+  if (multiworkshopData.assets && multiworkshopData.assets.length > 0) {
+    definition.spec.assets = multiworkshopData.assets;
+  }
+  if (multiworkshopData.salesforceId) {
+    definition.spec.salesforceId = multiworkshopData.salesforceId;
+  }
+  if (multiworkshopData.purpose) {
+    definition.spec.purpose = multiworkshopData.purpose;
+  }
+  if (multiworkshopData['purpose-activity']) {
+    definition.spec['purpose-activity'] = multiworkshopData['purpose-activity'];
+  }
+  
+  return await createK8sObject(definition);
+}
+
+export async function patchMultiWorkshop({
+  name,
+  namespace,
+  patch,
+}: {
+  name: string;
+  namespace: string;
+  patch: Record<string, unknown>;
+}): Promise<MultiWorkshop> {
+  return await patchK8sObject({
+    name,
+    namespace,
+    plural: 'multiworkshops',
+    patch,
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+  });
+}
+
+export async function createWorkshopFromAssetWithRetry({
+  multiworkshopName,
+  namespace,
+  asset,
+  multiworkshopData,
+  catalogItem,
+  retryCount = 3,
+  delay = 0,
+}: {
+  multiworkshopName: string;
+  namespace: string;
+  asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
+  multiworkshopData: any;
+  catalogItem?: CatalogItem;
+  retryCount?: number;
+  delay?: number;
+}): Promise<Workshop> {
+  // Add initial delay to stagger requests
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  
+  let lastError: Error;
+  
+  for (let attempt = 1; attempt <= retryCount; attempt++) {
+    try {
+      return await createWorkshopFromAsset({
+        multiworkshopName,
+        namespace,
+        asset,
+        multiworkshopData,
+        catalogItem,
+      });
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`Attempt ${attempt}/${retryCount} failed for workshop creation of asset ${asset.key}:`, error.message);
+      
+      // If this is the last attempt, throw the error
+      if (attempt === retryCount) {
+        throw lastError;
+      }
+      
+      // Wait before retrying (exponential backoff)
+      const retryDelay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
+  }
+  
+  throw lastError;
+}
+
+
+
+export async function createWorkshopFromAsset({
+  multiworkshopName,
+  namespace,
+  asset,
+  multiworkshopData,
+  catalogItem,
+}: {
+  multiworkshopName: string;
+  namespace: string;
+  asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
+  multiworkshopData: any;
+  catalogItem?: CatalogItem;
+}): Promise<Workshop> {
+  if (!catalogItem) {
+    throw new Error('CatalogItem is required for creating Workshop');
+  }
+
+  // Generate custom workshop name combining multiworkshop and catalog item names
+  const baseWorkshopName = `${multiworkshopName}-${catalogItem.metadata.name}`;
+  
+  const session = await getApiSession();
+  
+  // Create ServiceNamespace object from namespace string
+  const serviceNamespace: ServiceNamespace = {
+    name: namespace,
+    displayName: namespace,
+    requester: '',
+  };
+  
+  // Use the existing createWorkshop function with MultiWorkshop-specific parameters
+  return await createWorkshop({
+    catalogItem,
+    description: asset.description || '',
+    displayName: asset.displayName || `${multiworkshopData.name} - ${asset.key}`,
+    openRegistration: true,
+    serviceNamespace,
+    startDate: multiworkshopData.startDate ? new Date(multiworkshopData.startDate) : undefined,
+    endDate: multiworkshopData.endDate ? new Date(multiworkshopData.endDate) : undefined,
+    email: session.user,
+    parameterValues: {
+      purpose: multiworkshopData.purpose,
+      purpose_activity: multiworkshopData['purpose-activity'],
+      salesforce_id: multiworkshopData.salesforceId || '',
+    },
+    skippedSfdc: !multiworkshopData.salesforceId,
+    whiteGloved: false,
+    customWorkshopName: baseWorkshopName,
+    customLabels: {
+      [`${BABYLON_DOMAIN}/multiworkshop`]: multiworkshopName,
+      [`${BABYLON_DOMAIN}/asset-key`]: asset.key,
+    },
+    customAnnotations: {
+      [`${BABYLON_DOMAIN}/created-by`]: session.user,
+      [`${BABYLON_DOMAIN}/multiworkshop-source`]: multiworkshopName,
+    },
+  });
+}
+
+export async function createWorkshopProvisionFromAsset({
+  workshop,
+  asset,
+  multiworkshopName,
+  multiworkshopData,
+  catalogItem,
+}: {
+  workshop: Workshop;
+  asset: { key: string; name: string; namespace: string };
+  multiworkshopName: string;
+  multiworkshopData: any;
+  catalogItem?: CatalogItem;
+}): Promise<WorkshopProvision> {
+  if (!catalogItem) {
+    throw new Error('CatalogItem is required for creating WorkshopProvision');
+  }
+  
+  // Use the existing createWorkshopProvision function
+  const provision = await createWorkshopProvision({
+    catalogItem,
+    concurrency: 10,
+    count: multiworkshopData.numberSeats || 1,
+    parameters: {
+      purpose: multiworkshopData.purpose,
+      purpose_activity: multiworkshopData['purpose-activity'],
+      salesforce_id: multiworkshopData.salesforceId || '',
+    },
+    startDelay: 10,
+    workshop,
+    useAutoDetach: false,
+    usePoolIfAvailable: true,
+  });
+  
+  // Update the provision with MultiWorkshop-specific metadata
+  return await patchK8sObject<WorkshopProvision>({
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    name: provision.metadata.name,
+    namespace: provision.metadata.namespace,
+    plural: 'workshopprovisions',
+    patch: {
+      metadata: {
+        labels: {
+          ...provision.metadata.labels,
+          [`${BABYLON_DOMAIN}/multiworkshop`]: multiworkshopName,
+          [`${BABYLON_DOMAIN}/asset-key`]: asset.key,
+        },
+        annotations: {
+          ...provision.metadata.annotations,
+          [`${BABYLON_DOMAIN}/multiworkshop-source`]: multiworkshopName,
+        },
+      },
+      spec: {
+        ...provision.spec,
+        // Add lifespan if start/end dates are provided
+        ...(multiworkshopData.startDate && multiworkshopData.endDate
+          ? {
+              lifespan: {
+                start: multiworkshopData.startDate,
+                end: multiworkshopData.endDate,
+              },
+            }
+          : {}),
+      },
+    },
+  });
 }
 
 export async function setWorkshopLifespanEnd(workshop: Workshop, date: Date = new Date()) {
@@ -1660,6 +2061,14 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshops/${workshopName}`,
   WORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number; continueId?: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
+      limit ? `limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}`,
+  MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/multiworkshops/${multiworkshopName}`,
+  PUBLIC_MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>
+    `/api/event/${namespace}/${multiworkshopName}`,
+  MULTIWORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number; continueId?: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/multiworkshops?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
   WORKSHOP_PROVISIONS: ({
