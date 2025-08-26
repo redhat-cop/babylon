@@ -6,7 +6,7 @@ import {
   Alert,
 } from '@patternfly/react-core';
 
-import { apiPaths, fetcher } from '@app/api';
+import { apiPaths, publicFetcher } from '@app/api';
 import { MultiWorkshop } from '@app/types';
 import { compareK8sObjects } from '@app/util';
 import heroImg from './hero-img.jpeg';
@@ -116,7 +116,7 @@ const MultiWorkshopLandingComponent: React.FC<{
       namespace: namespace,
       multiworkshopName: multiworkshopName,
     }),
-    fetcher,
+    publicFetcher,
     {
       refreshInterval: 10000,
       compare: compareK8sObjects,
