@@ -344,6 +344,7 @@ export function getLang(): string {
 }
 
 export function isLabDeveloper(groups: string[]): boolean {
+  if (!groups) return false;
   return groups.includes('rhpds-devs');
 }
 
