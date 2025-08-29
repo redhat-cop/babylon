@@ -245,15 +245,29 @@ export function isWorkshopPartOfResourceClaim(workshop: Workshop) {
 
 export function getStageFromK8sObject(k8sObject: K8sObject): 'dev' | 'test' | 'event' | 'prod' {
   if (!k8sObject) return null;
-  const nameSplitted = k8sObject.metadata.name.split('.');
-  if (Array.isArray(nameSplitted) && nameSplitted.length > 0) {
-    const stage = nameSplitted[nameSplitted.length - 1].split('-')[0];
-    const validStages = ['dev', 'test', 'event', 'prod'];
-    if (validStages.includes(stage)) {
-      return stage as 'dev' | 'test' | 'event' | 'prod';
-    }
-    return null;
+  const name = k8sObject.metadata.name;
+  if (!name) return null;
+  
+  const nameSegments = name.split('-');
+  if (nameSegments.length < 2) return null;
+  
+  const validStages = ['dev', 'test', 'event', 'prod'];
+  
+  // Check if last segment is a valid stage
+  const lastSegment = nameSegments[nameSegments.length - 1];
+  if (validStages.includes(lastSegment)) {
+    return lastSegment as 'dev' | 'test' | 'event' | 'prod';
   }
+  
+  // If last segment is not a valid stage (likely a random suffix),
+  // check the second-to-last segment
+  if (nameSegments.length >= 2) {
+    const secondToLastSegment = nameSegments[nameSegments.length - 2];
+    if (validStages.includes(secondToLastSegment)) {
+      return secondToLastSegment as 'dev' | 'test' | 'event' | 'prod';
+    }
+  }
+  
   return null;
 }
 
