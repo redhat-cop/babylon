@@ -132,10 +132,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     parseDuration(catalogItem.spec.lifespan?.relativeMaximum),
   );
   let maxAutoStopTime = parseDuration(catalogItem.spec.runtime?.maximum);
-  if (formState.parameters['open_environment']?.value === true) {
-    maxAutoDestroyTime = parseDuration('365d');
-    maxAutoStopTime = maxAutoDestroyTime;
-  }
   const purposeObj =
     purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
   const incident = getStatus(catalogItemIncident);
