@@ -53,11 +53,14 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
         return `${_item.metadata.name} Service Request`;
       }
     } else {
+      console.log(catalogItemDisplayName.replace(/\./g, "-"), _item.metadata.name)
       if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
         return catalogItemDisplayName;
       } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName.replace(/\./g, "-"))) {
         return `${catalogItemDisplayName} - ${_item.metadata.name.substring(1 + catalogItemName.length)}`;
-      } else {
+      } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
+        return `${catalogItemDisplayName} - ${_item.metadata.name.substring(1 + catalogItemName.length)}`;
+      }  else {
         return _item.metadata.name;
       }
     }
@@ -68,6 +71,8 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
     if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
       return catalogItemDisplayName;
     } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName.replace(/\./g, "-"))) {
+      return `${catalogItemDisplayName} - ${_item.metadata.name.substring(1 + catalogItemName.length)}`;
+    } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
       return `${catalogItemDisplayName} - ${_item.metadata.name.substring(1 + catalogItemName.length)}`;
     } else {
       return _item.metadata.name;
