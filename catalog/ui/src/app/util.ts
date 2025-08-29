@@ -248,18 +248,21 @@ export function getStageFromK8sObject(k8sObject: K8sObject): 'dev' | 'test' | 'e
   const name = k8sObject.metadata.name;
   if (!name) return null;
   
+  const validStages = ['dev', 'test', 'event', 'prod'];
+  
+  // First, check if name contains dots (e.g., "sandboxes-gpte.rosa-uplift.dev")
+  if (name.includes('.')) {
+    const dotSegments = name.split('.');
+    const lastDotSegment = dotSegments[dotSegments.length - 1];
+    if (validStages.includes(lastDotSegment)) {
+      return lastDotSegment as 'dev' | 'test' | 'event' | 'prod';
+    }
+  }
+  
+  // Fall back to hyphen-based logic for names like "sandboxes-gpte-enhancing-developer-dev-67lgt"
   const nameSegments = name.split('-');
   if (nameSegments.length < 2) return null;
   
-  const validStages = ['dev', 'test', 'event', 'prod'];
-  
-  // Check if last segment is a valid stage
-  const lastSegment = nameSegments[nameSegments.length - 1];
-  if (validStages.includes(lastSegment)) {
-    return lastSegment as 'dev' | 'test' | 'event' | 'prod';
-  }
-  
-  // If last segment is not a valid stage (likely a random suffix),
   // check the second-to-last segment
   if (nameSegments.length >= 2) {
     const secondToLastSegment = nameSegments[nameSegments.length - 2];
