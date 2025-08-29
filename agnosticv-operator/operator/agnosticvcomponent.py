@@ -940,6 +940,7 @@ class AgnosticVComponent(KopfObject):
                 "parameterValues": {
                     "start_timestamp": "{{ start_timestamp }}",
                     "stop_timestamp": "{{ stop_timestamp }}",
+                    **linked_component.parameter_values,
                 },
                 "resourceName": linked_component.name,
                 "templateVars": [
@@ -952,6 +953,7 @@ class AgnosticVComponent(KopfObject):
                     }
                 ]
             }
+
             if linked_component.when:
                 linked_resource_provider['when'] = linked_component.when
             definition['spec'].setdefault('linkedResourceProviders', []).append(linked_resource_provider)
@@ -965,7 +967,8 @@ class AgnosticVComponent(KopfObject):
 
         if self.catalog_parameters:
             if self.deployer_type:
-                open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars']
+                open_api_schema_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']
+                open_api_schema_job_vars = open_api_schema_vars['properties']['job_vars']
             for parameter in self.catalog_parameters:
                 parameter_name = parameter['name']
                 resource_broker_parameter = {
@@ -1365,6 +1368,7 @@ class LinkedComponent:
             component_name_parts.append(parent.stage)
         self.component_name = '.'.join(component_name_parts)
         self.name = definition.get('name', self.component_name)
+        self.parameter_values = definition.get('parameter_values', {})
         self.short_name = component_name_parts[1]
         self.when = definition.get('when')
 
