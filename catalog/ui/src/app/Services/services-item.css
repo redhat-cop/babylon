@@ -83,7 +83,9 @@
   padding-bottom: var(--pf-t--global--spacer--sm);
   padding-top: var(--pf-t--global--spacer--sm);
 }
-
+.services-item__body .pf-v6-c-expandable-section__content > .pf-v6-c-description-list__group {
+  grid-template-columns: 200px auto;
+}
 .services-item__provision-data.pf-v6-c-description-list {
   border-left: 3px solid var(--pf-t--chart--color--black--300);
   padding-left: var(--pf-t--global--spacer--sm);

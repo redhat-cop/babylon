@@ -245,15 +245,32 @@ export function isWorkshopPartOfResourceClaim(workshop: Workshop) {
 
 export function getStageFromK8sObject(k8sObject: K8sObject): 'dev' | 'test' | 'event' | 'prod' {
   if (!k8sObject) return null;
-  const nameSplitted = k8sObject.metadata.name.split('.');
-  if (Array.isArray(nameSplitted) && nameSplitted.length > 0) {
-    const stage = nameSplitted[nameSplitted.length - 1].split('-')[0];
-    const validStages = ['dev', 'test', 'event', 'prod'];
-    if (validStages.includes(stage)) {
-      return stage as 'dev' | 'test' | 'event' | 'prod';
+  const name = k8sObject.metadata.name;
+  if (!name) return null;
+  
+  const validStages = ['dev', 'test', 'event', 'prod'];
+  
+  // First, check if name contains dots (e.g., "sandboxes-gpte.rosa-uplift.dev")
+  if (name.includes('.')) {
+    const dotSegments = name.split('.');
+    const lastDotSegment = dotSegments[dotSegments.length - 1];
+    if (validStages.includes(lastDotSegment)) {
+      return lastDotSegment as 'dev' | 'test' | 'event' | 'prod';
     }
-    return null;
   }
+  
+  // Fall back to hyphen-based logic for names like "sandboxes-gpte-enhancing-developer-dev-67lgt"
+  const nameSegments = name.split('-');
+  if (nameSegments.length < 2) return null;
+  
+  // check the second-to-last segment
+  if (nameSegments.length >= 2) {
+    const secondToLastSegment = nameSegments[nameSegments.length - 2];
+    if (validStages.includes(secondToLastSegment)) {
+      return secondToLastSegment as 'dev' | 'test' | 'event' | 'prod';
+    }
+  }
+  
   return null;
 }
 
