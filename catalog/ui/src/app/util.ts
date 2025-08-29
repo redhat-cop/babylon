@@ -55,7 +55,7 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
     } else {
       if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
         return catalogItemDisplayName;
-      } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
+      } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName.replace(/\./g, "-"))) {
         return `${catalogItemDisplayName} - ${_item.metadata.name.substring(1 + catalogItemName.length)}`;
       } else {
         return _item.metadata.name;
