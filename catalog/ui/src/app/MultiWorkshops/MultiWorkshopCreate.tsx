@@ -28,6 +28,7 @@ import CatalogItemSelectorModal from './CatalogItemSelectorModal';
 import SalesforceIdField from './SalesforceIdField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
+import DateTimePicker from '@app/components/DateTimePicker';
 import purposeOptions from './purposeOptions.json';
 
 import './multiworkshop-create.css';
@@ -51,20 +52,25 @@ const MultiWorkshopCreate: React.FC = () => {
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
   const [currentAssetIndex, setCurrentAssetIndex] = useState<number | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<ServiceNamespace>(userNamespace);
-  const [createFormData, setCreateFormData] = useState({
-    name: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-    numberSeats: 10,
-    salesforceId: '',
-    salesforceType: null as SfdcType | null,
-    activity: '',
-    purpose: '',
-    explanation: '',
-    backgroundImage: '',
-    logoImage: '',
-    assets: [{ key: '', name: '', namespace: '', displayName: '', description: '', type: 'Workshop' as 'Workshop' | 'external' }]
+  const [createFormData, setCreateFormData] = useState(() => {
+    const now = new Date();
+    const endDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    return {
+      name: '',
+      description: '',
+      startDate: now,
+      endDate: endDateTime,
+      numberSeats: 1,
+      salesforceId: '',
+      salesforceType: null as SfdcType | null,
+      activity: '',
+      purpose: '',
+      explanation: '',
+      backgroundImage: '',
+      logoImage: '',
+      assets: [{ key: '', name: '', namespace: '', displayName: '', description: '', type: 'Workshop' as 'Workshop' | 'external' }]
+    };
   });
 
   // Fetch user's existing services for quota check
@@ -139,8 +145,8 @@ const MultiWorkshopCreate: React.FC = () => {
       
       const payload = {
         name: createFormData.name,
-        startDate: dateToApiString(new Date(createFormData.startDate)),
-        endDate: dateToApiString(new Date(createFormData.endDate)),
+        startDate: dateToApiString(createFormData.startDate),
+        endDate: dateToApiString(createFormData.endDate),
         namespace: selectedNamespace?.name || userNamespace.name,
         ...(createFormData.description && { description: createFormData.description }),
         ...(createFormData.numberSeats && { numberSeats: createFormData.numberSeats }),
@@ -402,27 +408,40 @@ const MultiWorkshopCreate: React.FC = () => {
 
               <Split hasGutter>
                 <SplitItem isFilled>
-                  <FormGroup label="Start provisioning date" isRequired fieldId="startDate">
-                    <TextInput
-                      isRequired
-                      type="datetime-local"
-                      id="startDate"
-                      name="startDate"
-                      value={createFormData.startDate}
-                      onChange={(_, value) => setCreateFormData(prev => ({ ...prev, startDate: value }))}
+                  <FormGroup label="Start provisioning workshops" isRequired fieldId="startDate">
+                    <DateTimePicker
+                      key="start-date"
+                      defaultTimestamp={createFormData.startDate.getTime()}
+                      onSelect={(date: Date) => {
+                        setCreateFormData(prev => {
+                          // Auto-set endDate to 24 hours after startDate
+                          const endDateTime = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+                          return {
+                            ...prev,
+                            startDate: date,
+                            endDate: endDateTime,
+                          };
+                        });
+                      }}
                     />
+                    <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Date and time are based on your device's timezone
+                    </div>
                   </FormGroup>
                 </SplitItem>
                 <SplitItem isFilled>
-                  <FormGroup label="End Date" isRequired fieldId="endDate">
-                    <TextInput
-                      isRequired
-                      type="datetime-local"
-                      id="endDate"
-                      name="endDate"
-                      value={createFormData.endDate}
-                      onChange={(_, value) => setCreateFormData(prev => ({ ...prev, endDate: value }))}
+                  <FormGroup label="Auto-destroy workshops" isRequired fieldId="endDate">
+                    <DateTimePicker
+                      key="end-date"
+                      defaultTimestamp={createFormData.endDate.getTime()}
+                      minDate={createFormData.startDate.getTime()}
+                      onSelect={(date: Date) => {
+                        setCreateFormData(prev => ({ ...prev, endDate: date }));
+                      }}
                     />
+                    <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Date and time are based on your device's timezone
+                    </div>
                   </FormGroup>
                 </SplitItem>
               </Split>
