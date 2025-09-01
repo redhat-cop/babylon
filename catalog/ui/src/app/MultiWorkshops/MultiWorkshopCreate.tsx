@@ -409,7 +409,32 @@ const MultiWorkshopCreate: React.FC = () => {
                       id="startDate"
                       name="startDate"
                       value={createFormData.startDate}
-                      onChange={(_, value) => setCreateFormData(prev => ({ ...prev, startDate: value }))}
+                      onChange={(_, value) => {
+                        setCreateFormData(prev => {
+                          const updates: any = { startDate: value };
+                          
+                          // Auto-set endDate to 24 hours after startDate
+                          if (value) {
+                            try {
+                              const startDateTime = new Date(value);
+                              const endDateTime = new Date(startDateTime.getTime() + 24 * 60 * 60 * 1000);
+                              
+                              // Format back to datetime-local format (YYYY-MM-DDTHH:MM)
+                              const year = endDateTime.getFullYear();
+                              const month = String(endDateTime.getMonth() + 1).padStart(2, '0');
+                              const day = String(endDateTime.getDate()).padStart(2, '0');
+                              const hours = String(endDateTime.getHours()).padStart(2, '0');
+                              const minutes = String(endDateTime.getMinutes()).padStart(2, '0');
+                              
+                              updates.endDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+                            } catch (error) {
+                              console.warn('Error setting auto endDate:', error);
+                            }
+                          }
+                          
+                          return { ...prev, ...updates };
+                        });
+                      }}
                     />
                   </FormGroup>
                 </SplitItem>
