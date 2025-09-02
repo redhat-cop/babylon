@@ -438,6 +438,7 @@ const MultiWorkshopCreate: React.FC = () => {
                       onSelect={(date: Date) => {
                         setCreateFormData(prev => ({ ...prev, endDate: date }));
                       }}
+                      forceUpdateTimestamp={createFormData.endDate?.getTime()}
                     />
                     <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                       Date and time are based on your device's timezone
