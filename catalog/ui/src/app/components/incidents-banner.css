@@ -6,6 +6,9 @@
   background-color: #e7f1fa;
   border-top: 2px solid #2b9af3;
 }
+.pf-v6-c-banner .editor-link {
+  text-decoration: underline !important;
+}
 .pf-v6-c-banner.pf-m-blue a,
 .pf-v6-c-banner.pf-m-blue .editor-link {
   color: #151515 !important;
