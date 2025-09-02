@@ -133,17 +133,25 @@ const DynamicFormInput: React.FC<{
           : textValidationResult === false
             ? 'error'
             : 'default';
+            console.log(parameter.name, isGroup, parameter.formLabel, parameter.name)
     return (
-      <TextInput
-        type="text"
-        key={parameter.name}
-        id={id}
-        label={isGroup ? parameter.formLabel || parameter.name : null}
-        isDisabled={isDisabled}
-        onChange={(_event, v) => onChange(v, validationRegExp ? validationRegExp.test(v) : null)}
-        value={value || ''}
-        validated={validated}
-      />
+      <>
+        {isGroup && (
+          <span style={{ display: 'block', fontWeight: 'bold', minWidth: '82px', textAlign: 'right' }}>
+            {parameter.formLabel || parameter.name}
+          </span>
+        )}
+        <TextInput
+          aria-label={parameter.formLabel || parameter.name}
+          type="text"
+          key={parameter.name}
+          id={id}
+          isDisabled={isDisabled}
+          onChange={(_event, v) => onChange(v, validationRegExp ? validationRegExp.test(v) : null)}
+          value={value || ''}
+          validated={validated}
+        />
+      </>
     );
   }
 };
