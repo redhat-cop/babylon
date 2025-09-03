@@ -42,12 +42,13 @@ declare const window: Window &
 /**
  * Sanitize a name to be Kubernetes DNS compliant
  * - Convert to lowercase
- * - Replace non-alphanumeric characters with hyphens
+ * - Replace non-alphanumeric characters with hyphens (optionally preserve dots)
  * - Collapse multiple hyphens
  * - Remove leading/trailing hyphens
  */
-function sanitizeForK8s(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+function sanitizeForK8s(name: string, preserveDots: boolean = false): string {
+  const pattern = preserveDots ? /[^a-z0-9.]/g : /[^a-z0-9]/g;
+  return name.toLowerCase().replace(pattern, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 }
 
 /**
@@ -57,7 +58,7 @@ function sanitizeForK8s(name: string): string {
  * @returns Sanitized name with random suffix within length limit
  */
 function generateK8sNameWithSuffix(baseName: string, maxLength: number = 63): string {
-  const sanitizedBase = sanitizeForK8s(baseName);
+  const sanitizedBase = sanitizeForK8s(baseName, true); // preserve dots
   const suffix = generateRandom5CharsSuffix().toLowerCase();
   const maxBaseLength = maxLength - 6; // Reserve 6 chars for "-{5char}"
   const truncatedBase = sanitizedBase.substring(0, maxBaseLength);
