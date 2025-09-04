@@ -53,7 +53,6 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
         return `${_item.metadata.name} Service Request`;
       }
     } else {
-      console.log(catalogItemDisplayName.replace(/\./g, "-"), _item.metadata.name)
       if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
         return catalogItemDisplayName;
       } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName.replace(/\./g, "-"))) {
