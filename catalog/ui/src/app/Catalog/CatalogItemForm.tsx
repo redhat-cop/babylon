@@ -135,7 +135,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const purposeObj =
     purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
   const incident = getStatus(catalogItemIncident);
-  const submitRequestEnabled = incident && incident.disabled ? false : checkEnableSubmit(formState) && !isLoading;
+  const submitRequestEnabled = incident && incident.disabled && !isAdmin ? false : checkEnableSubmit(formState) && !isLoading;
   
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
