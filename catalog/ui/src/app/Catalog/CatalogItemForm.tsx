@@ -148,10 +148,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   }, [dispatchFormState, formState, debouncedApiFetch]);
 
   const checkAvailability = useCallback(async () => {
-    const agnosticvName = catalogItem.spec.agnosticvRepo?.name;
-    if (!agnosticvName) {
-      return undefined;
-    }
 
     // Extract sandbox cloud selectors from catalog item parameters
     const sandboxCloudSelectors: (SandboxCloudSelector & { parameterName: string })[] = [];
@@ -192,7 +188,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         };
         return resource;
       });
-      const result = await checkCatalogItemAvailability(agnosticvName, resources);
+      const result = await checkCatalogItemAvailability(catalogItem.metadata.name, resources);
       setAvailabilityData(result);
     } catch (error) {
       setAvailabilityData({
