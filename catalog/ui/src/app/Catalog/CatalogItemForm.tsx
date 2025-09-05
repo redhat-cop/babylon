@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useReducer, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
 import { EditorState } from 'lexical/LexicalEditorState';
@@ -30,6 +30,7 @@ import useSWR from 'swr';
 import {
   apiFetch,
   apiPaths,
+  checkCatalogItemAvailability,
   createServiceRequest,
   CreateServiceRequestParameterValues,
   createWorkshop,
@@ -38,7 +39,7 @@ import {
   saveExternalItemRequest,
   silentFetcher,
 } from '@app/api';
-import { CatalogItem, CatalogItemIncident, TPurposeOpts } from '@app/types';
+import { AvailabilityCheckResponse, CatalogItem, CatalogItemIncident, SandboxCloudSelector, TPurposeOpts } from '@app/types';
 import { checkAccessControl, displayName, getStageFromK8sObject, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
@@ -69,6 +70,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
   const [searchSalesforceIdModal, openSearchSalesforceIdModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [availabilityData, setAvailabilityData] = useState<AvailabilityCheckResponse | null>(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const prevSandboxParametersRef = React.useRef<Record<string, any>>({});
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
@@ -142,6 +146,118 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       checkConditionsInFormState(formState, dispatchFormState, debouncedApiFetch);
     }
   }, [dispatchFormState, formState, debouncedApiFetch]);
+
+  const checkAvailability = useCallback(async () => {
+    const agnosticvName = catalogItem.spec.agnosticvRepo?.name;
+    if (!agnosticvName) {
+      return undefined;
+    }
+
+    // Extract sandbox cloud selectors from catalog item parameters
+    const sandboxCloudSelectors: (SandboxCloudSelector & { parameterName: string })[] = [];
+    for (const parameter of catalogItem.spec.parameters || []) {
+      if (parameter.sandboxCloudSelectors) {
+        sandboxCloudSelectors.push(...parameter.sandboxCloudSelectors.map(selector => ({
+          ...selector,
+          parameterName: parameter.name
+        })));
+      }
+    }
+
+    // If no sandbox cloud selectors, don't call the endpoint
+    if (sandboxCloudSelectors.length === 0) {
+      setAvailabilityData(null);
+      return undefined;
+    }
+    setAvailabilityLoading(true);
+
+    try {
+      // Build resources array based on sandbox cloud selectors and current form state
+      const resources = sandboxCloudSelectors.map(selector => {
+        const annotations: Record<string, string> = {};
+        
+        // Add the annotation from the selector if it exists
+        if (selector.annotation) {
+          // Get the value from form state for this parameter
+          const parameterState = formState.parameters[selector.parameterName];
+          
+          if (parameterState && parameterState.value !== undefined) {
+            annotations[selector.annotation] = String(parameterState.value);
+          }
+        }
+
+        const resource = {
+          kind: selector.kind,
+          annotations
+        };
+        return resource;
+      });
+      const result = await checkCatalogItemAvailability(agnosticvName, resources);
+      setAvailabilityData(result);
+    } catch (error) {
+      setAvailabilityData({
+        overallAvailable: false,
+        overallMessage: 'Failed to check availability',
+        results: []
+      });
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  }, [catalogItem, formState.parameters]);
+
+  // Get parameter names that have sandbox cloud selectors
+  const getParametersWithSandboxSelectors = useCallback(() => {
+    const parameterNames = [];
+    for (const parameter of catalogItem.spec.parameters || []) {
+      if (parameter.sandboxCloudSelectors) {
+        parameterNames.push(parameter.name);
+      }
+    }
+    return parameterNames;
+  }, [catalogItem.spec.parameters]);
+
+  // Trigger availability check when sandbox selector parameters change
+  useEffect(() => {
+    const parametersWithSelectors = getParametersWithSandboxSelectors();
+    
+    if (parametersWithSelectors.length === 0) {
+      setAvailabilityData(null);
+      prevSandboxParametersRef.current = {};
+      return undefined;
+    }
+
+    // Get current values of parameters with sandbox selectors
+    const currentSandboxParams: Record<string, any> = {};
+    let hasRelevantValues = false;
+
+    parametersWithSelectors.forEach(paramName => {
+      const paramState = formState.parameters[paramName];
+      const currentValue = paramState?.value;
+      currentSandboxParams[paramName] = currentValue;
+      if (currentValue !== undefined && currentValue !== '' && currentValue !== null) {
+        hasRelevantValues = true;
+      }
+    });
+
+    // Check if any sandbox selector parameter values have actually changed
+    const prevParams = prevSandboxParametersRef.current;
+    const shouldTrigger = parametersWithSelectors.some(paramName => {
+      return currentSandboxParams[paramName] !== prevParams[paramName];
+    });
+    // Update the ref with current values AFTER checking for changes
+    prevSandboxParametersRef.current = currentSandboxParams;
+
+    if (shouldTrigger) {
+      if (hasRelevantValues) {
+        checkAvailability();
+        return undefined;
+      } else {
+        setAvailabilityData(null);
+        return undefined;
+      }
+    }
+    return undefined;
+  }, [formState.parameters, getParametersWithSandboxSelectors, checkAvailability]);
 
   async function submitRequest(): Promise<void> {
     if (!submitRequestEnabled) {
@@ -1026,6 +1142,28 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             text={catalogItem.spec.termsOfService}
           />
         ) : null}
+
+        <div>
+          {availabilityLoading && (
+            <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Alert variant="info" title="Checking availability..." isInline>
+                <p>Checking resource availability for this catalog item...</p>
+              </Alert>
+            </AlertGroup>
+          )}
+          
+          {availabilityData && !availabilityLoading && (
+            <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Alert 
+                variant={availabilityData.overallAvailable ? "success" : "danger"} 
+                title={`Resource Availability: ${availabilityData.overallAvailable ? "Available" : "Not Available"}`} 
+                isInline
+              >
+                <p>{availabilityData.overallMessage}</p>
+              </Alert>
+            </AlertGroup>
+          )}
+        </div>
 
         <ActionList>
           <ActionListItem>

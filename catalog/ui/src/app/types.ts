@@ -208,6 +208,24 @@ export interface CatalogItemSpec {
   };
 }
 
+export interface SandboxCloudSelector {
+  annotation?: string;
+  kind: string;
+}
+
+export interface AvailabilityResourceResult {
+  kind: string;
+  available: boolean;
+  message: string;
+  error?: string;
+}
+
+export interface AvailabilityCheckResponse {
+  overallAvailable: boolean;
+  overallMessage: string;
+  results: AvailabilityResourceResult[];
+}
+
 export interface CatalogItemSpecParameter {
   annotation?: string;
   description?: string;
@@ -220,6 +238,7 @@ export interface CatalogItemSpecParameter {
   openAPIV3Schema?: any;
   required?: boolean;
   resourceIndexes?: (number | '@')[];
+  sandboxCloudSelectors?: SandboxCloudSelector[];
   validation?: string;
   value?: string;
   variable?: string;
@@ -699,7 +718,8 @@ export type ResourceType =
   | 'FAVORITES_DELETE'
   | 'EXTERNAL_ITEM_REQUEST'
   | 'USAGE_COST_REQUEST'
-  | 'USAGE_COST_WORKSHOP';
+  | 'USAGE_COST_WORKSHOP'
+  | 'CATALOG_ITEM_CHECK_AVAILABILITY';
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 

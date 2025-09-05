@@ -133,7 +133,6 @@ const DynamicFormInput: React.FC<{
           : textValidationResult === false
             ? 'error'
             : 'default';
-            console.log(parameter.name, isGroup, parameter.formLabel, parameter.name)
     return (
       <>
         {isGroup && (

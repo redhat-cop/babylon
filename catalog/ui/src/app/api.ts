@@ -4,6 +4,8 @@ import {
   AnarchyGovernor,
   AnarchySubject,
   AnarchyRun,
+  AvailabilityCheckResponse,
+  AvailabilityResourceResult,
   CatalogItem,
   JSONPatch,
   K8sObject,
@@ -2194,4 +2196,14 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   EXTERNAL_ITEM_REQUEST: ({ asset_uuid }: { asset_uuid: string }) => `/api/external_item/${asset_uuid}/request`,
   USAGE_COST_REQUEST: ({ requestId }: { requestId: string }) => `/api/usage-cost/request/${requestId}`,
   USAGE_COST_WORKSHOP: ({ workshopId }: { workshopId: string }) => `/api/usage-cost/workshop/${workshopId}`,
+  CATALOG_ITEM_CHECK_AVAILABILITY: ({ agnosticvName }: { agnosticvName: string }) => `/api/${agnosticvName}/check-availability`,
 };
+
+export async function checkCatalogItemAvailability(agnosticvName: string, resources: Array<{kind: string, annotations?: Record<string, string>}>): Promise<AvailabilityCheckResponse> {
+  const response = await apiFetch(apiPaths.CATALOG_ITEM_CHECK_AVAILABILITY({ agnosticvName }), {
+    method: 'POST',
+    body: JSON.stringify(resources),
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.json();
+}
