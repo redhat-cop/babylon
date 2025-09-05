@@ -794,7 +794,7 @@ class AgnosticVComponent(KopfObject):
                     "runtime_default": self.runtime_default,
                     "runtime_maximum": self.runtime_maximum,
                     "start_is_scheduled":
-                        "{{ (start_timestamp | default('1970-01-01T00:00:00Z') <= now(true, '%FT%TZ') and stop_timestamp | default('1970-01-01T00:00:00Z') > now(true, '%FT%TZ')) | bool }}",
+                        "{{ (start_timestamp | default('1970-01-01T00:00:00Z') <= now(true, '%FT%TZ') and stop_timestamp | default('2999-01-01T00:00:00Z') > now(true, '%FT%TZ')) | bool }}",
                     "stop_is_scheduled":
                         "{{ (not start_is_scheduled) | bool }}",
                 }
