@@ -33,7 +33,6 @@ body,
   height: 100%;
   max-height: none;
   z-index: 10;
-  overflow: initial;
 }
 .pf-v6-c-menu-toggle.pf-m-plain .pf-v6-c-menu-toggle__controls {
   margin-left: 0;
