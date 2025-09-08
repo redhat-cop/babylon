@@ -171,12 +171,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       // Build resources array based on sandbox cloud selectors and current form state
       const resources = sandboxCloudSelectors.map(selector => {
         const annotations: Record<string, string> = {};
-        
         // Add the annotation from the selector if it exists
         if (selector.annotation) {
           // Get the value from form state for this parameter
           const parameterState = formState.parameters[selector.parameterName];
-          
           if (parameterState && parameterState.value !== undefined) {
             annotations[selector.annotation] = String(parameterState.value);
           }

@@ -69,7 +69,7 @@ oc process -f build-template.yaml | oc apply -f -
 Build API:
 
 --------------------------------------------------------
-oc start-build --follow babylon-catalog-ui --from-dir=..
+oc start-build --follow babylon-catalog-api --from-dir=..
 --------------------------------------------------------
 
 Build React UI:
