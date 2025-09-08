@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
+import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
 import {
   PageSection,
@@ -19,11 +20,18 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Alert,
+  DescriptionList,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
+  Tooltip,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
-import { createMultiWorkshop, dateToApiString, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths } from '@app/api';
-import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable } from '@app/types';
+import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
+import { createMultiWorkshop, dateToApiString, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths, silentFetcher } from '@app/api';
+import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable, AssetMetrics } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
+import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
 import SalesforceIdField from './SalesforceIdField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
@@ -103,15 +111,117 @@ const MultiWorkshopCreate: React.FC = () => {
     [userResourceClaims],
   );
 
-  // Calculate how many catalog assets will be created (each counts as 1 service)
-  const catalogAssetsCount = useMemo(() => {
-    return createFormData.assets.filter(asset => 
+  // Get catalog items for metrics fetching
+  const validAssets = useMemo(() => 
+    createFormData.assets.filter(asset => 
       asset.type !== 'external' && 
       asset.key.trim() !== '' && 
       asset.name.trim() !== '' && 
       asset.namespace.trim() !== ''
-    ).length;
-  }, [createFormData.assets]);
+    ),
+    [createFormData.assets],
+  );
+
+  // Fetch catalog items to get asset UUIDs
+  const catalogItemsQueries = validAssets.map(asset => ({
+    key: `catalogItem-${asset.namespace}-${asset.key}`,
+    path: apiPaths.CATALOG_ITEM({ namespace: asset.namespace, name: asset.key }),
+    shouldFetch: !!asset.namespace && !!asset.key,
+  }));
+
+  // Fetch all catalog items
+  const catalogItemsData = useSWRImmutable(
+    catalogItemsQueries.length > 0 ? catalogItemsQueries : null,
+    async (queries) => {
+      if (!queries) return [];
+      const results = await Promise.allSettled(
+        queries.map(query => 
+          query.shouldFetch ? silentFetcher(query.path) : Promise.resolve(null)
+        )
+      );
+      return results.map((result, index) => ({
+        asset: validAssets[index],
+        catalogItem: result.status === 'fulfilled' ? result.value : null,
+        error: result.status === 'rejected' ? result.reason : null,
+      }));
+    },
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    },
+  );
+
+  // Fetch metrics for catalog items that have asset UUIDs
+  const metricsData = useSWRImmutable(
+    catalogItemsData.data ? 'asset-metrics' : null,
+    async () => {
+      if (!catalogItemsData.data) return [];
+      const metricsPromises = catalogItemsData.data.map(async ({ asset, catalogItem }) => {
+        if (!catalogItem) return { asset, metrics: null, error: 'Catalog item not found' };
+        const asset_uuid = catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid'];
+        if (!asset_uuid) return { asset, metrics: null, error: 'No asset UUID' };
+        
+        try {
+          const metrics = await silentFetcher(apiPaths.ASSET_METRICS({ asset_uuid }));
+          return { asset, metrics, error: null };
+        } catch (error) {
+          return { asset, metrics: null, error: (error as any)?.message || 'Failed to fetch metrics' };
+        }
+      });
+      
+      return Promise.all(metricsPromises);
+    },
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    },
+  );
+
+  // Calculate how many catalog assets will be created (each counts as 1 service)  
+  const catalogAssetsCount = validAssets.length;
+
+  // Calculate estimates based on metrics data
+  const estimates = useMemo(() => {
+    if (!metricsData.data || !catalogItemsData.data) {
+      return { totalProvisionTime: null, totalCost: null };
+    }
+
+    let totalProvisionHours = 0;
+    let totalHourlyCost = 0;
+    let hasProvisionData = false;
+    let hasCostData = false;
+
+    metricsData.data.forEach(({ asset, metrics }, index) => {
+      if (metrics?.medianProvisionHour) {
+        totalProvisionHours = Math.max(totalProvisionHours, metrics.medianProvisionHour * 1.1);
+        hasProvisionData = true;
+      }
+      if (metrics?.medianLifetimeCostByHour) {
+        const catalogItemData = catalogItemsData.data[index];
+        const catalogItem = catalogItemData?.catalogItem;
+        const hourlyCost = metrics.medianLifetimeCostByHour * 1.1;
+        
+        // For multiuser catalog items, don't multiply by seats (one instance serves all users)
+        // For single-user catalog items, multiply by seats (each user needs their own instance)
+        const isMultiuser = catalogItem?.spec?.multiuser === true;
+        totalHourlyCost += isMultiuser ? hourlyCost : hourlyCost * createFormData.numberSeats;
+        hasCostData = true;
+      }
+    });
+
+    // Calculate total cost based on duration
+    let totalEventCost = null;
+    if (hasCostData && createFormData.startDate && createFormData.endDate) {
+      const durationMs = createFormData.endDate.getTime() - createFormData.startDate.getTime();
+      const durationHours = durationMs / (1000 * 60 * 60);
+      totalEventCost = totalHourlyCost * durationHours;
+    }
+
+    return {
+      totalProvisionTime: hasProvisionData ? totalProvisionHours : null,
+      totalCost: totalEventCost,
+    };
+  }, [metricsData.data, catalogItemsData.data, createFormData.startDate, createFormData.endDate, createFormData.numberSeats]);
 
   const wouldExceedQuota = useMemo(() => {
     if (isAdmin) return false;
@@ -600,6 +710,57 @@ const MultiWorkshopCreate: React.FC = () => {
                     You cannot exceed the quota of 5 services. Please reduce the number of catalog assets or retire existing services.
                   </p>
                 </Alert>
+              )}
+
+              {/* Cost and Time Estimates */}
+              {validAssets.length > 0 && (estimates.totalProvisionTime !== null || estimates.totalCost !== null) && (
+                <Card style={{ marginBottom: '24px' }}>
+                  <CardBody>
+                    <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
+                      Event Estimates
+                    </Title>
+                    <DescriptionList isHorizontal>
+                      {estimates.totalProvisionTime !== null && (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>
+                            Estimated Provision Time
+                            <Tooltip content="Maximum estimated time for all workshops to be provisioned simultaneously.">
+                              <InfoAltIcon
+                                style={{
+                                  paddingTop: "var(--pf-t--global--spacer--xs)",
+                                  marginLeft: "var(--pf-t--global--spacer--xs)",
+                                  width: "var(--pf-t--global--icon--size--font--xs)",
+                                }}
+                              />
+                            </Tooltip>
+                          </DescriptionListTerm>
+                          <DescriptionListDescription>
+                            {`±${formatTime(`${estimates.totalProvisionTime * 60}m`)}`}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      )}
+                      {estimates.totalCost !== null && (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>
+                            Estimated Total Cost
+                            <Tooltip content="Estimated cost over the event duration if not stopped.">
+                              <InfoAltIcon
+                                style={{
+                                  paddingTop: "var(--pf-t--global--spacer--xs)",
+                                  marginLeft: "var(--pf-t--global--spacer--xs)",
+                                  width: "var(--pf-t--global--icon--size--font--xs)",
+                                }}
+                              />
+                            </Tooltip>
+                          </DescriptionListTerm>
+                          <DescriptionListDescription>
+                            {formatCurrency(estimates.totalCost)}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      )}
+                    </DescriptionList>
+                  </CardBody>
+                </Card>
               )}
 
               <ActionGroup>
