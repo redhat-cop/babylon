@@ -122,21 +122,20 @@ const MultiWorkshopCreate: React.FC = () => {
     [createFormData.assets],
   );
 
-  // Fetch catalog items to get asset UUIDs
-  const catalogItemsQueries = validAssets.map(asset => ({
-    key: `catalogItem-${asset.namespace}-${asset.key}`,
-    path: apiPaths.CATALOG_ITEM({ namespace: asset.namespace, name: asset.key }),
-    shouldFetch: !!asset.namespace && !!asset.key,
-  }));
+  // Create a stable key for catalog items fetching
+  const catalogItemsKey = useMemo(() => {
+    if (validAssets.length === 0) return null;
+    return `catalogItems-${validAssets.map(asset => `${asset.namespace}.${asset.key}`).sort().join('|')}`;
+  }, [validAssets]);
 
   // Fetch all catalog items
   const catalogItemsData = useSWRImmutable(
-    catalogItemsQueries.length > 0 ? catalogItemsQueries : null,
-    async (queries) => {
-      if (!queries) return [];
+    catalogItemsKey,
+    async () => {
+      if (!validAssets.length) return [];
       const results = await Promise.allSettled(
-        queries.map(query => 
-          query.shouldFetch ? silentFetcher(query.path) : Promise.resolve(null)
+        validAssets.map(asset => 
+          silentFetcher(apiPaths.CATALOG_ITEM({ namespace: asset.namespace, name: asset.key }))
         )
       );
       return results.map((result, index) => ({
@@ -151,9 +150,20 @@ const MultiWorkshopCreate: React.FC = () => {
     },
   );
 
+  // Create a stable key for metrics fetching based on asset UUIDs
+  const metricsKey = useMemo(() => {
+    if (!catalogItemsData.data) return null;
+    const assetUuids = catalogItemsData.data
+      .map(({ catalogItem }) => catalogItem?.metadata.labels?.['gpte.redhat.com/asset-uuid'])
+      .filter(Boolean)
+      .sort();
+    if (assetUuids.length === 0) return null;
+    return `asset-metrics-${assetUuids.join('|')}`;
+  }, [catalogItemsData.data]);
+
   // Fetch metrics for catalog items that have asset UUIDs
   const metricsData = useSWRImmutable(
-    catalogItemsData.data ? 'asset-metrics' : null,
+    metricsKey,
     async () => {
       if (!catalogItemsData.data) return [];
       const metricsPromises = catalogItemsData.data.map(async ({ asset, catalogItem }) => {
