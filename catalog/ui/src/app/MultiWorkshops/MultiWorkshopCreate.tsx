@@ -157,16 +157,20 @@ const MultiWorkshopCreate: React.FC = () => {
     async () => {
       if (!catalogItemsData.data) return [];
       const metricsPromises = catalogItemsData.data.map(async ({ asset, catalogItem }) => {
+        // Skip if catalog item not found
         if (!catalogItem) return { asset, metrics: null, error: 'Catalog item not found' };
-        const asset_uuid = catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid'];
-        if (!asset_uuid) return { asset, metrics: null, error: 'No asset UUID' };
         
-        try {
-          const metrics = await silentFetcher(apiPaths.ASSET_METRICS({ asset_uuid }));
-          return { asset, metrics, error: null };
-        } catch (error) {
-          return { asset, metrics: null, error: (error as any)?.message || 'Failed to fetch metrics' };
-        }
+        // Skip if no asset UUID (catalog item has no metrics)
+        const asset_uuid = catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid'];
+        if (!asset_uuid) return { asset, metrics: null, error: null }; // Not an error, just no metrics available
+        
+        // Try to fetch metrics, silentFetcher returns null for 404 or other errors
+        const metrics = await silentFetcher(apiPaths.ASSET_METRICS({ asset_uuid }));
+        return { 
+          asset, 
+          metrics, 
+          error: metrics === null ? null : null // silentFetcher already handles errors by returning null
+        };
       });
       
       return Promise.all(metricsPromises);
@@ -183,20 +187,31 @@ const MultiWorkshopCreate: React.FC = () => {
   // Calculate estimates based on metrics data
   const estimates = useMemo(() => {
     if (!metricsData.data || !catalogItemsData.data) {
-      return { totalProvisionTime: null, totalCost: null };
+      return { 
+        totalProvisionTime: null, 
+        totalCost: null, 
+        itemsWithMetrics: 0, 
+        totalItems: validAssets.length 
+      };
     }
 
     let totalProvisionHours = 0;
     let totalHourlyCost = 0;
     let hasProvisionData = false;
     let hasCostData = false;
+    let itemsWithMetrics = 0;
 
     metricsData.data.forEach(({ asset, metrics }, index) => {
-      if (metrics?.medianProvisionHour) {
+      // Only process items that have valid metrics data
+      if (!metrics) return;
+      itemsWithMetrics++;
+      
+      if (metrics.medianProvisionHour && metrics.medianProvisionHour > 0) {
         totalProvisionHours = Math.max(totalProvisionHours, metrics.medianProvisionHour * 1.1);
         hasProvisionData = true;
       }
-      if (metrics?.medianLifetimeCostByHour) {
+      
+      if (metrics.medianLifetimeCostByHour && metrics.medianLifetimeCostByHour > 0) {
         const catalogItemData = catalogItemsData.data[index];
         const catalogItem = catalogItemData?.catalogItem;
         const hourlyCost = metrics.medianLifetimeCostByHour * 1.1;
@@ -220,8 +235,10 @@ const MultiWorkshopCreate: React.FC = () => {
     return {
       totalProvisionTime: hasProvisionData ? totalProvisionHours : null,
       totalCost: totalEventCost,
+      itemsWithMetrics,
+      totalItems: validAssets.length,
     };
-  }, [metricsData.data, catalogItemsData.data, createFormData.startDate, createFormData.endDate, createFormData.numberSeats]);
+  }, [metricsData.data, catalogItemsData.data, createFormData.startDate, createFormData.endDate, createFormData.numberSeats, validAssets.length]);
 
   const wouldExceedQuota = useMemo(() => {
     if (isAdmin) return false;
@@ -713,7 +730,7 @@ const MultiWorkshopCreate: React.FC = () => {
               )}
 
               {/* Cost and Time Estimates */}
-              {validAssets.length > 0 && (estimates.totalProvisionTime !== null || estimates.totalCost !== null) && (
+              {validAssets.length > 0 && (estimates.totalProvisionTime !== null || estimates.totalCost !== null || estimates.itemsWithMetrics < estimates.totalItems) && (
                 <Card style={{ marginBottom: '24px' }}>
                   <CardBody>
                     <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
@@ -759,6 +776,13 @@ const MultiWorkshopCreate: React.FC = () => {
                         </DescriptionListGroup>
                       )}
                     </DescriptionList>
+                    {estimates.itemsWithMetrics < estimates.totalItems && (
+                      <div style={{ marginTop: '12px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        <InfoAltIcon style={{ marginRight: '8px', width: '14px' }} />
+                        Estimates shown for {estimates.itemsWithMetrics} of {estimates.totalItems} catalog items. 
+                        Some items may not have historical data available yet.
+                      </div>
+                    )}
                   </CardBody>
                 </Card>
               )}
