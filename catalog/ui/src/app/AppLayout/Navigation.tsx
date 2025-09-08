@@ -4,7 +4,6 @@ import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import BetaBadge from '@app/components/BetaBadge';
-import { isLabDeveloper } from '@app/util';
 
 const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
   const resolved = useResolvedPath(to);
@@ -52,7 +51,7 @@ const Navigation: React.FC = () => {
     </NavItem>
   ) : null;
 
-  const multiWorkshopNavigation = userNamespace && (isAdmin || isLabDeveloper(groups)) ? (
+  const multiWorkshopNavigation = userNamespace ? (
     <NavItem>
       <NavLink
         to={`/event-wizard/${userNamespace.name}`}
