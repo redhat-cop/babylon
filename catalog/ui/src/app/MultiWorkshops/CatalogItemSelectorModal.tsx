@@ -188,7 +188,7 @@ const CategorySelectorContent: React.FC<{
   onSelect: (category: string) => void;
   selected: string | null;
 }> = ({ selectedCatalogNamespace, onSelect, selected }) => {
-  const { catalogNamespaces } = useSession().getSession();
+  const { catalogNamespaces, isAdmin } = useSession().getSession();
   const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
 
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
@@ -196,10 +196,34 @@ const CategorySelectorContent: React.FC<{
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
-  const catalogItems: CatalogItem[] = useMemo(
-    () => catalogItemsArr || [],
-    [catalogItemsArr],
-  );
+  const catalogItems: CatalogItem[] = useMemo(() => {
+    const items = catalogItemsArr || [];
+    
+    // Apply the same filtering logic as in CatalogItemsContent
+    const allowedAnnotations = ['pfe.redhat.com/salesforce-id', 'demo.redhat.com/purpose'];
+    
+    return items.filter((item) => {
+      const parameters = item.spec?.parameters || [];
+      
+      // Only allow items where ALL parameters have one of the allowed annotations
+      const allParametersHaveAllowedAnnotations = parameters.every((param) => {
+        const annotation = param.annotation;
+        
+        // Parameter must have an annotation AND it must be in the allowed list
+        return annotation && allowedAnnotations.includes(annotation);
+      });
+      
+      // Filter for catalog items with demo.redhat.com/assetGroup = ZEROTOUCH (only for non-admin users)
+      const assetGroupLabel = item.metadata?.labels?.['demo.redhat.com/assetGroup'];
+      const hasZerotouchAssetGroup = assetGroupLabel === 'ZEROTOUCH';
+      
+      // For admin users: only check parameter annotations
+      // For non-admin users: check both parameter annotations AND ZEROTOUCH asset group
+      return isAdmin 
+        ? allParametersHaveAllowedAnnotations 
+        : allParametersHaveAllowedAnnotations && hasZerotouchAssetGroup;
+    });
+  }, [catalogItemsArr, isAdmin]);
 
   return (
     <div style={{ overflowX: 'auto' }}>
@@ -223,7 +247,7 @@ const CatalogItemsContent: React.FC<{
   selectedItems: Map<string, CatalogItem>;
   onToggleItem: (catalogItem: CatalogItem, isSelected: boolean) => void;
 }> = ({ searchValue, selectedCatalogNamespace, selectedCategory, onItemSelect, isMultiSelectMode, selectedItems, onToggleItem }) => {
-  const { catalogNamespaces } = useSession().getSession();
+  const { catalogNamespaces, isAdmin } = useSession().getSession();
   const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
 
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
@@ -261,12 +285,15 @@ const CatalogItemsContent: React.FC<{
         return annotation && allowedAnnotations.includes(annotation);
       });
       
-      // Filter for catalog items with demo.redhat.com/assetGroup = ZEROTOUCH
+      // Filter for catalog items with demo.redhat.com/assetGroup = ZEROTOUCH (only for non-admin users)
       const assetGroupLabel = item.metadata?.labels?.['demo.redhat.com/assetGroup'];
       const hasZerotouchAssetGroup = assetGroupLabel === 'ZEROTOUCH';
       
-      // Include items only if all parameters have allowed annotations AND has ZEROTOUCH asset group
-      return allParametersHaveAllowedAnnotations && hasZerotouchAssetGroup;
+      // For admin users: only check parameter annotations
+      // For non-admin users: check both parameter annotations AND ZEROTOUCH asset group
+      return isAdmin 
+        ? allParametersHaveAllowedAnnotations 
+        : allParametersHaveAllowedAnnotations && hasZerotouchAssetGroup;
     });
 
     // Create Fuse search instance with the same options as Catalog.tsx
@@ -533,21 +560,8 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
       
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px', backgroundColor: 'var(--pf-t--global--background--color--200)', marginRight: 0, paddingRight: '64px' }}>
-        {/* Header with multi-select toggle */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{ flex: 1 }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Checkbox
-              id="multi-select-toggle"
-              label="Multi-Select"
-              isChecked={isMultiSelectMode}
-              onChange={(_, checked) => handleMultiSelectToggle(checked)}
-            />
-          </div>
-        </div>
-        
         <div style={{ marginBottom: '16px' }}>
-          <div style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
             <Dropdown
               isOpen={isCatalogDropdownOpen}
               onOpenChange={(isOpen: boolean) => setIsCatalogDropdownOpen(isOpen)}
@@ -583,6 +597,14 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
                 ))}
               </DropdownList>
             </Dropdown>
+            
+            {/* Multi-select checkbox aligned with catalog dropdown */}
+            <Checkbox
+              id="multi-select-toggle"
+              label="Multi-Select"
+              isChecked={isMultiSelectMode}
+              onChange={(_, checked) => handleMultiSelectToggle(checked)}
+            />
           </div>
           <div style={{ maxWidth: '400px' }}>
             <SearchInput
