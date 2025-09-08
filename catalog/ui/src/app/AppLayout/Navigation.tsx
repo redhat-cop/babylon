@@ -21,7 +21,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { incidents_enabled, ratings_enabled } = useInterfaceConfig();
-  const { isAdmin, groups, userNamespace } = useSession().getSession();
+  const { isAdmin, userNamespace } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
     return location.pathname.startsWith(str);
