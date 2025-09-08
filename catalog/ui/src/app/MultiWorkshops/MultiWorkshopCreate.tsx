@@ -460,10 +460,34 @@ const MultiWorkshopCreate: React.FC = () => {
     setIsCatalogSelectorOpen(true);
   }
 
-  function handleCatalogItemSelect(catalogItem: CatalogItem) {
-    if (currentAssetIndex !== null) {
-      const key = catalogItem.metadata.name;  // Just the catalog item name
-      const namespace = catalogItem.metadata.namespace;  // Store namespace separately
+  function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
+    // Handle multi-select (array of catalog items)
+    if (Array.isArray(catalogItemOrItems)) {
+      const newAssets = catalogItemOrItems.map(catalogItem => ({
+        key: catalogItem.metadata.name,
+        name: catalogItem.metadata.name,
+        namespace: catalogItem.metadata.namespace,
+        displayName: displayName(catalogItem),
+        description: '',
+        type: 'Workshop' as 'Workshop' | 'external'
+      }));
+
+      setCreateFormData(prev => {
+        // Filter out empty assets and add the new selected ones
+        const nonEmptyAssets = prev.assets.filter(asset => 
+          asset.key.trim() !== '' || asset.name.trim() !== '' || asset.namespace.trim() !== ''
+        );
+        return {
+          ...prev,
+          assets: [...nonEmptyAssets, ...newAssets]
+        };
+      });
+    } 
+    // Handle single select (single catalog item)
+    else if (currentAssetIndex !== null) {
+      const catalogItem = catalogItemOrItems;
+      const key = catalogItem.metadata.name;
+      const namespace = catalogItem.metadata.namespace;
       const workshopDisplayName = displayName(catalogItem);
       
       setCreateFormData(prev => ({
@@ -473,15 +497,16 @@ const MultiWorkshopCreate: React.FC = () => {
             ? { 
                 ...asset, 
                 key,
-                name: key, // Set name to the same value as key for catalog items
+                name: key,
                 namespace,
-                displayName: workshopDisplayName,  // Always update with new catalog item's display name
+                displayName: workshopDisplayName,
                 type: 'Workshop' as 'Workshop' | 'external'
               } 
             : asset
         )
       }));
     }
+    
     setIsCatalogSelectorOpen(false);
     setCurrentAssetIndex(null);
   }
