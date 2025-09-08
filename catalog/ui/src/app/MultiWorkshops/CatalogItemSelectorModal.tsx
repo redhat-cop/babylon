@@ -261,8 +261,12 @@ const CatalogItemsContent: React.FC<{
         return annotation && allowedAnnotations.includes(annotation);
       });
       
-      // Include items only if all parameters have allowed annotations
-      return allParametersHaveAllowedAnnotations;
+      // Filter for catalog items with demo.redhat.com/assetGroup = ZEROTOUCH
+      const assetGroupLabel = item.metadata?.labels?.['demo.redhat.com/assetGroup'];
+      const hasZerotouchAssetGroup = assetGroupLabel === 'ZEROTOUCH';
+      
+      // Include items only if all parameters have allowed annotations AND has ZEROTOUCH asset group
+      return allParametersHaveAllowedAnnotations && hasZerotouchAssetGroup;
     });
 
     // Create Fuse search instance with the same options as Catalog.tsx
