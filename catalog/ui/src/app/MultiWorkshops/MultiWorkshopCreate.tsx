@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
+import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
 import {
   PageSection,
@@ -19,11 +20,18 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Alert,
+  DescriptionList,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
+  Tooltip,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
-import { createMultiWorkshop, dateToApiString, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths } from '@app/api';
-import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable } from '@app/types';
+import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
+import { createMultiWorkshop, dateToApiString, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths, silentFetcher } from '@app/api';
+import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable, AssetMetrics } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
+import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
 import SalesforceIdField from './SalesforceIdField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
@@ -103,15 +111,144 @@ const MultiWorkshopCreate: React.FC = () => {
     [userResourceClaims],
   );
 
-  // Calculate how many catalog assets will be created (each counts as 1 service)
-  const catalogAssetsCount = useMemo(() => {
-    return createFormData.assets.filter(asset => 
+  // Get catalog items for metrics fetching
+  const validAssets = useMemo(() => 
+    createFormData.assets.filter(asset => 
       asset.type !== 'external' && 
       asset.key.trim() !== '' && 
       asset.name.trim() !== '' && 
       asset.namespace.trim() !== ''
-    ).length;
-  }, [createFormData.assets]);
+    ),
+    [createFormData.assets],
+  );
+
+  // Create a stable key for catalog items fetching
+  const catalogItemsKey = useMemo(() => {
+    if (validAssets.length === 0) return null;
+    return `catalogItems-${validAssets.map(asset => `${asset.namespace}.${asset.key}`).sort().join('|')}`;
+  }, [validAssets]);
+
+  // Fetch all catalog items
+  const catalogItemsData = useSWRImmutable(
+    catalogItemsKey,
+    async () => {
+      if (!validAssets.length) return [];
+      const results = await Promise.allSettled(
+        validAssets.map(asset => 
+          silentFetcher(apiPaths.CATALOG_ITEM({ namespace: asset.namespace, name: asset.key }))
+        )
+      );
+      return results.map((result, index) => ({
+        asset: validAssets[index],
+        catalogItem: result.status === 'fulfilled' ? result.value : null,
+        error: result.status === 'rejected' ? result.reason : null,
+      }));
+    },
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    },
+  );
+
+  // Create a stable key for metrics fetching based on asset UUIDs
+  const metricsKey = useMemo(() => {
+    if (!catalogItemsData.data) return null;
+    const assetUuids = catalogItemsData.data
+      .map(({ catalogItem }) => catalogItem?.metadata.labels?.['gpte.redhat.com/asset-uuid'])
+      .filter(Boolean)
+      .sort();
+    if (assetUuids.length === 0) return null;
+    return `asset-metrics-${assetUuids.join('|')}`;
+  }, [catalogItemsData.data]);
+
+  // Fetch metrics for catalog items that have asset UUIDs
+  const metricsData = useSWRImmutable(
+    metricsKey,
+    async () => {
+      if (!catalogItemsData.data) return [];
+      const metricsPromises = catalogItemsData.data.map(async ({ asset, catalogItem }) => {
+        // Skip if catalog item not found
+        if (!catalogItem) return { asset, metrics: null, error: 'Catalog item not found' };
+        
+        // Skip if no asset UUID (catalog item has no metrics)
+        const asset_uuid = catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid'];
+        if (!asset_uuid) return { asset, metrics: null, error: null }; // Not an error, just no metrics available
+        
+        // Try to fetch metrics, silentFetcher returns null for 404 or other errors
+        const metrics = await silentFetcher(apiPaths.ASSET_METRICS({ asset_uuid }));
+        return { 
+          asset, 
+          metrics, 
+          error: metrics === null ? null : null // silentFetcher already handles errors by returning null
+        };
+      });
+      
+      return Promise.all(metricsPromises);
+    },
+    {
+      shouldRetryOnError: false,
+      suspense: false,
+    },
+  );
+
+  // Calculate how many catalog assets will be created (each counts as 1 service)  
+  const catalogAssetsCount = validAssets.length;
+
+  // Calculate estimates based on metrics data
+  const estimates = useMemo(() => {
+    if (!metricsData.data || !catalogItemsData.data) {
+      return { 
+        totalProvisionTime: null, 
+        totalCost: null, 
+        itemsWithMetrics: 0, 
+        totalItems: validAssets.length 
+      };
+    }
+
+    let totalProvisionHours = 0;
+    let totalHourlyCost = 0;
+    let hasProvisionData = false;
+    let hasCostData = false;
+    let itemsWithMetrics = 0;
+
+    metricsData.data.forEach(({ asset, metrics }, index) => {
+      // Only process items that have valid metrics data
+      if (!metrics) return;
+      itemsWithMetrics++;
+      
+      if (metrics.medianProvisionHour && metrics.medianProvisionHour > 0) {
+        totalProvisionHours = Math.max(totalProvisionHours, metrics.medianProvisionHour * 1.1);
+        hasProvisionData = true;
+      }
+      
+      if (metrics.medianLifetimeCostByHour && metrics.medianLifetimeCostByHour > 0) {
+        const catalogItemData = catalogItemsData.data[index];
+        const catalogItem = catalogItemData?.catalogItem;
+        const hourlyCost = metrics.medianLifetimeCostByHour * 1.1;
+        
+        // For multiuser catalog items, don't multiply by seats (one instance serves all users)
+        // For single-user catalog items, multiply by seats (each user needs their own instance)
+        const isMultiuser = catalogItem?.spec?.multiuser === true;
+        totalHourlyCost += isMultiuser ? hourlyCost : hourlyCost * createFormData.numberSeats;
+        hasCostData = true;
+      }
+    });
+
+    // Calculate total cost based on duration
+    let totalEventCost = null;
+    if (hasCostData && createFormData.startDate && createFormData.endDate) {
+      const durationMs = createFormData.endDate.getTime() - createFormData.startDate.getTime();
+      const durationHours = durationMs / (1000 * 60 * 60);
+      totalEventCost = totalHourlyCost * durationHours;
+    }
+
+    return {
+      totalProvisionTime: hasProvisionData ? totalProvisionHours : null,
+      totalCost: totalEventCost,
+      itemsWithMetrics,
+      totalItems: validAssets.length,
+    };
+  }, [metricsData.data, catalogItemsData.data, createFormData.startDate, createFormData.endDate, createFormData.numberSeats, validAssets.length]);
 
   const wouldExceedQuota = useMemo(() => {
     if (isAdmin) return false;
@@ -323,10 +460,34 @@ const MultiWorkshopCreate: React.FC = () => {
     setIsCatalogSelectorOpen(true);
   }
 
-  function handleCatalogItemSelect(catalogItem: CatalogItem) {
-    if (currentAssetIndex !== null) {
-      const key = catalogItem.metadata.name;  // Just the catalog item name
-      const namespace = catalogItem.metadata.namespace;  // Store namespace separately
+  function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
+    // Handle multi-select (array of catalog items)
+    if (Array.isArray(catalogItemOrItems)) {
+      const newAssets = catalogItemOrItems.map(catalogItem => ({
+        key: catalogItem.metadata.name,
+        name: catalogItem.metadata.name,
+        namespace: catalogItem.metadata.namespace,
+        displayName: displayName(catalogItem),
+        description: '',
+        type: 'Workshop' as 'Workshop' | 'external'
+      }));
+
+      setCreateFormData(prev => {
+        // Filter out empty assets and add the new selected ones
+        const nonEmptyAssets = prev.assets.filter(asset => 
+          asset.key.trim() !== '' || asset.name.trim() !== '' || asset.namespace.trim() !== ''
+        );
+        return {
+          ...prev,
+          assets: [...nonEmptyAssets, ...newAssets]
+        };
+      });
+    } 
+    // Handle single select (single catalog item)
+    else if (currentAssetIndex !== null) {
+      const catalogItem = catalogItemOrItems;
+      const key = catalogItem.metadata.name;
+      const namespace = catalogItem.metadata.namespace;
       const workshopDisplayName = displayName(catalogItem);
       
       setCreateFormData(prev => ({
@@ -336,15 +497,16 @@ const MultiWorkshopCreate: React.FC = () => {
             ? { 
                 ...asset, 
                 key,
-                name: key, // Set name to the same value as key for catalog items
+                name: key,
                 namespace,
-                displayName: workshopDisplayName,  // Always update with new catalog item's display name
+                displayName: workshopDisplayName,
                 type: 'Workshop' as 'Workshop' | 'external'
               } 
             : asset
         )
       }));
     }
+    
     setIsCatalogSelectorOpen(false);
     setCurrentAssetIndex(null);
   }
@@ -368,6 +530,28 @@ const MultiWorkshopCreate: React.FC = () => {
         <Title headingLevel="h1" size="2xl">
           Create Event
         </Title>
+        
+        {/* Informational Banner */}
+        <Alert 
+          variant="info" 
+          title="Event Wizard - Multi-Catalog Item Events"
+          style={{ marginTop: '16px' }}
+        >
+          <p>
+            This tool is designed for creating events that use <strong>multiple catalog items</strong>. 
+            If your event only uses one catalog item, please go through the normal catalog ordering process instead.
+          </p>
+          <p style={{ marginTop: '8px' }}>
+            If you need assistance or our workshop white glove service, please{' '}
+            <a href="https://red.ht/workshop-help" target="_blank" rel="noopener noreferrer">
+              raise a ticket with our team
+            </a>{' '}
+            or reach out via the{' '}
+            <a href="https://app.slack.com/client/E030G10V24F/C04N203SNUW" target="_blank" rel="noopener noreferrer">
+              Slack forum
+            </a>.
+          </p>
+        </Alert>
       </PageSection>
 
       <PageSection>
@@ -600,6 +784,64 @@ const MultiWorkshopCreate: React.FC = () => {
                     You cannot exceed the quota of 5 services. Please reduce the number of catalog assets or retire existing services.
                   </p>
                 </Alert>
+              )}
+
+              {/* Cost and Time Estimates */}
+              {validAssets.length > 0 && (estimates.totalProvisionTime !== null || estimates.totalCost !== null || estimates.itemsWithMetrics < estimates.totalItems) && (
+                <Card style={{ marginBottom: '24px' }}>
+                  <CardBody>
+                    <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
+                      Event Estimates
+                    </Title>
+                    <DescriptionList isHorizontal>
+                      {estimates.totalProvisionTime !== null && (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>
+                            Estimated Provision Time
+                            <Tooltip content="Maximum estimated time for all workshops to be provisioned simultaneously.">
+                              <InfoAltIcon
+                                style={{
+                                  paddingTop: "var(--pf-t--global--spacer--xs)",
+                                  marginLeft: "var(--pf-t--global--spacer--xs)",
+                                  width: "var(--pf-t--global--icon--size--font--xs)",
+                                }}
+                              />
+                            </Tooltip>
+                          </DescriptionListTerm>
+                          <DescriptionListDescription>
+                            {`±${formatTime(`${estimates.totalProvisionTime * 60}m`)}`}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      )}
+                      {estimates.totalCost !== null && (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>
+                            Estimated Total Cost
+                            <Tooltip content="Estimated cost over the event duration if not stopped.">
+                              <InfoAltIcon
+                                style={{
+                                  paddingTop: "var(--pf-t--global--spacer--xs)",
+                                  marginLeft: "var(--pf-t--global--spacer--xs)",
+                                  width: "var(--pf-t--global--icon--size--font--xs)",
+                                }}
+                              />
+                            </Tooltip>
+                          </DescriptionListTerm>
+                          <DescriptionListDescription>
+                            {formatCurrency(estimates.totalCost)}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      )}
+                    </DescriptionList>
+                    {estimates.itemsWithMetrics < estimates.totalItems && (
+                      <div style={{ marginTop: '12px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        <InfoAltIcon style={{ marginRight: '8px', width: '14px' }} />
+                        Estimates shown for {estimates.itemsWithMetrics} of {estimates.totalItems} catalog items. 
+                        Some items may not have historical data available yet.
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
               )}
 
               <ActionGroup>

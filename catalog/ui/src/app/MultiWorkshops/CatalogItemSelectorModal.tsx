@@ -13,22 +13,146 @@ import {
   DropdownList,
   MenuToggle,
   MenuToggleElement,
+  Checkbox,
+  Split,
+  SplitItem,
+  CardBody,
+  CardHeader,
+  Badge,
+  Tooltip,
 } from '@patternfly/react-core';
 import LoadingSection from '@app/components/LoadingSection';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
 import { CatalogItem, Bookmark, BookmarkList } from '@app/types';
 import { apiPaths, fetcherItemsInAllPages, fetcher } from '@app/api';
-import { displayName, FETCH_BATCH_LIMIT } from '@app/util';
+import { displayName, FETCH_BATCH_LIMIT, renderContent, stripHtml } from '@app/util';
 import CatalogItemCard from '@app/Catalog/CatalogItemCard';
+import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogCategorySelector from '@app/Catalog/CatalogCategorySelector';
-import { getCategory } from '@app/Catalog/catalog-utils';
+import { getCategory, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA, formatString } from '@app/Catalog/catalog-utils';
+import StarRating from '@app/components/StarRating';
+import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
+
+// Import the catalog item card styles
+import '@app/Catalog/catalog-item-card.css';
 
 // Constants for react-window grid
 const GUTTER_SIZE = 16;
 const GRID_COLUMN_WIDTH = 280;
 const GRID_ROW_HEIGHT = 260;
+
+// Selectable Catalog Item Card Component for multi-select mode
+const SelectableCatalogItemCard: React.FC<{
+  catalogItem: CatalogItem;
+  isSelected: boolean;
+  onToggle: (catalogItem: CatalogItem, isSelected: boolean) => void;
+  onClick?: (catalogItem: CatalogItem) => void;
+  isMultiSelectMode: boolean;
+}> = ({ catalogItem, isSelected, onToggle, onClick, isMultiSelectMode }) => {
+  const { description, descriptionFormat } = getDescription(catalogItem);
+  const provider = getProvider(catalogItem);
+  const stage = getStage(catalogItem);
+  const rating = getRating(catalogItem);
+  const status = getStatusFromCatalogItem(catalogItem);
+  const sla = getSLA(catalogItem);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (isMultiSelectMode) {
+      // In multi-select mode, clicking the card toggles selection
+      e.preventDefault();
+      onToggle(catalogItem, !isSelected);
+    } else {
+      // In single-select mode, clicking selects the item
+      if (onClick) {
+        onClick(catalogItem);
+      }
+    }
+  };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    onToggle(catalogItem, checked);
+  };
+
+  return (
+    <div className="catalog-item-card__wrapper">
+      <div className="catalog-item-card__badge">
+        {sla && stage === 'prod' ? (
+          <Tooltip content={<p>Service Level</p>}>
+            <a href="/support" target="_blank" rel="nofollow noreferrer">
+              <Badge className="catalog-item-card__badge--sla">{sla.replace(/_+/g, ' | ')}</Badge>
+            </a>
+          </Tooltip>
+        ) : stage === 'dev' ? (
+          <Badge className="catalog-item-card__badge--dev">development</Badge>
+        ) : stage === 'test' ? (
+          <Badge className="catalog-item-card__badge--test">test</Badge>
+        ) : stage === 'event' ? (
+          <Badge className="catalog-item-card__badge--event">event</Badge>
+        ) : null}
+      </div>
+      
+      <div
+        className={`catalog-item-card ${status && status.disabled ? 'catalog-item-card--disabled' : ''} ${
+          isSelected ? 'catalog-item-card--selected' : ''
+        }`}
+        onClick={handleCardClick}
+        style={{ 
+          cursor: 'pointer',
+          border: isSelected ? '2px solid var(--pf-t--global--color--brand--default)' : undefined,
+          position: 'relative'
+        }}
+      >
+        {isMultiSelectMode && (
+          <div style={{ 
+            position: 'absolute', 
+            top: '8px', 
+            right: '8px', 
+            zIndex: 1,
+            backgroundColor: 'white',
+            borderRadius: '4px',
+            padding: '2px'
+          }}>
+            <Checkbox
+              id={`checkbox-${catalogItem.metadata.namespace}-${catalogItem.metadata.name}`}
+              isChecked={isSelected}
+              onChange={(_, checked) => handleCheckboxChange(checked)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+        
+        <CardHeader className="catalog-item-card__header">
+          <Split>
+            <SplitItem>
+              <CatalogItemIcon catalogItem={catalogItem} />
+              {status && status.name !== 'Operational' ? (
+                <StatusPageIcons status={status.name} className="catalog-item-card__statusPageIcon" />
+              ) : null}
+            </SplitItem>
+          </Split>
+        </CardHeader>
+        <CardBody className="catalog-item-card__body">
+          <Title className="catalog-item-card__title" headingLevel="h3">
+            {displayName(catalogItem)}
+          </Title>
+          <Title className="catalog-item-card__subtitle" headingLevel="h6">
+            provided by {formatString(provider)}
+          </Title>
+          {description ? (
+            <div className="catalog-item-card__description">
+              {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+            </div>
+          ) : null}
+          <div className="catalog-item-card__rating">
+            <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly hideIfNotRated />
+          </div>
+        </CardBody>
+      </div>
+    </div>
+  );
+};
 
 // Helper function to filter favorites, same as in Catalog.tsx
 function filterFavorites(catalogItem: CatalogItem, favList: Bookmark[] = []) {
@@ -38,7 +162,7 @@ function filterFavorites(catalogItem: CatalogItem, favList: Bookmark[] = []) {
 interface CatalogItemSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (catalogItem: CatalogItem) => void;
+  onSelect: (catalogItem: CatalogItem | CatalogItem[]) => void;
   title?: string;
 }
 
@@ -64,7 +188,7 @@ const CategorySelectorContent: React.FC<{
   onSelect: (category: string) => void;
   selected: string | null;
 }> = ({ selectedCatalogNamespace, onSelect, selected }) => {
-  const { catalogNamespaces } = useSession().getSession();
+  const { catalogNamespaces, isAdmin } = useSession().getSession();
   const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
 
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
@@ -72,10 +196,34 @@ const CategorySelectorContent: React.FC<{
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
-  const catalogItems: CatalogItem[] = useMemo(
-    () => catalogItemsArr || [],
-    [catalogItemsArr],
-  );
+  const catalogItems: CatalogItem[] = useMemo(() => {
+    const items = catalogItemsArr || [];
+    
+    // Apply the same filtering logic as in CatalogItemsContent
+    const allowedAnnotations = ['pfe.redhat.com/salesforce-id', 'demo.redhat.com/purpose'];
+    
+    return items.filter((item) => {
+      const parameters = item.spec?.parameters || [];
+      
+      // Only allow items where ALL parameters have one of the allowed annotations
+      const allParametersHaveAllowedAnnotations = parameters.every((param) => {
+        const annotation = param.annotation;
+        
+        // Parameter must have an annotation AND it must be in the allowed list
+        return annotation && allowedAnnotations.includes(annotation);
+      });
+      
+      // Filter for catalog items with demo.redhat.com/assetGroup = ZEROTOUCH (only for non-admin users)
+      const assetGroupLabel = item.metadata?.labels?.['demo.redhat.com/assetGroup'];
+      const hasZerotouchAssetGroup = assetGroupLabel === 'ZEROTOUCH';
+      
+      // For admin users: only check parameter annotations
+      // For non-admin users: check both parameter annotations AND ZEROTOUCH asset group
+      return isAdmin 
+        ? allParametersHaveAllowedAnnotations 
+        : allParametersHaveAllowedAnnotations && hasZerotouchAssetGroup;
+    });
+  }, [catalogItemsArr, isAdmin]);
 
   return (
     <div style={{ overflowX: 'auto' }}>
@@ -95,8 +243,11 @@ const CatalogItemsContent: React.FC<{
   selectedCatalogNamespace: string | null;
   selectedCategory: string | null;
   onItemSelect: (catalogItem: CatalogItem) => void;
-}> = ({ searchValue, selectedCatalogNamespace, selectedCategory, onItemSelect }) => {
-  const { catalogNamespaces } = useSession().getSession();
+  isMultiSelectMode: boolean;
+  selectedItems: Map<string, CatalogItem>;
+  onToggleItem: (catalogItem: CatalogItem, isSelected: boolean) => void;
+}> = ({ searchValue, selectedCatalogNamespace, selectedCategory, onItemSelect, isMultiSelectMode, selectedItems, onToggleItem }) => {
+  const { catalogNamespaces, isAdmin } = useSession().getSession();
   const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
 
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
@@ -134,8 +285,15 @@ const CatalogItemsContent: React.FC<{
         return annotation && allowedAnnotations.includes(annotation);
       });
       
-      // Include items only if all parameters have allowed annotations
-      return allParametersHaveAllowedAnnotations;
+      // Filter for catalog items with demo.redhat.com/assetGroup = ZEROTOUCH (only for non-admin users)
+      const assetGroupLabel = item.metadata?.labels?.['demo.redhat.com/assetGroup'];
+      const hasZerotouchAssetGroup = assetGroupLabel === 'ZEROTOUCH';
+      
+      // For admin users: only check parameter annotations
+      // For non-admin users: check both parameter annotations AND ZEROTOUCH asset group
+      return isAdmin 
+        ? allParametersHaveAllowedAnnotations 
+        : allParametersHaveAllowedAnnotations && hasZerotouchAssetGroup;
     });
 
     // Create Fuse search instance with the same options as Catalog.tsx
@@ -276,6 +434,9 @@ const CatalogItemsContent: React.FC<{
       const catalogItem = catalogItemsGrid[rowIndex]?.[columnIndex];
       if (!catalogItem) return null;
 
+      const itemKey = `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`;
+      const isSelected = selectedItems.has(itemKey);
+
       return (
         <div
           style={{
@@ -286,15 +447,17 @@ const CatalogItemsContent: React.FC<{
             height: style.height - GUTTER_SIZE,
           }}
         >
-          <CatalogItemCard 
-            catalogItem={catalogItem} 
-            isSelectable={true}
+          <SelectableCatalogItemCard
+            catalogItem={catalogItem}
+            isSelected={isSelected}
+            onToggle={onToggleItem}
             onClick={onItemSelect}
+            isMultiSelectMode={isMultiSelectMode}
           />
         </div>
       );
     },
-    [catalogItemsGrid, onItemSelect],
+    [catalogItemsGrid, onItemSelect, isMultiSelectMode, selectedItems, onToggleItem],
   );
 
   return (
@@ -339,19 +502,58 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   const [selectedCatalogNamespace, setSelectedCatalogNamespace] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(new Map());
   const { catalogNamespaces } = useSession().getSession();
 
   const handleItemSelect = useCallback((catalogItem: CatalogItem) => {
-    onSelect(catalogItem);
+    if (!isMultiSelectMode) {
+      onSelect(catalogItem);
+      onClose();
+    }
+  }, [onSelect, onClose, isMultiSelectMode]);
+
+  const handleToggleItem = useCallback((catalogItem: CatalogItem, isSelected: boolean) => {
+    const itemKey = `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`;
+    setSelectedItems(prev => {
+      const newMap = new Map(prev);
+      if (isSelected) {
+        newMap.set(itemKey, catalogItem);
+      } else {
+        newMap.delete(itemKey);
+      }
+      return newMap;
+    });
+  }, []);
+
+  const handleMultiSelectSubmit = useCallback(() => {
+    if (selectedItems.size > 0) {
+      const catalogItems = Array.from(selectedItems.values());
+      onSelect(catalogItems);
+      setSelectedItems(new Map());
+      onClose();
+    }
+  }, [selectedItems, onSelect, onClose]);
+
+  const handleClose = useCallback(() => {
+    setSelectedItems(new Map());
+    setIsMultiSelectMode(false);
     onClose();
-  }, [onSelect, onClose]);
+  }, [onClose]);
+
+  const handleMultiSelectToggle = useCallback((checked: boolean) => {
+    setIsMultiSelectMode(checked);
+    if (!checked) {
+      setSelectedItems(new Map());
+    }
+  }, []);
 
   const selectedCatalogNamespaceObj = catalogNamespaces.find((ns) => ns.name === selectedCatalogNamespace);
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title={title}
       width="80%"
       height="80%"
@@ -359,7 +561,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px', backgroundColor: 'var(--pf-t--global--background--color--200)', marginRight: 0, paddingRight: '64px' }}>
         <div style={{ marginBottom: '16px' }}>
-          <div style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
             <Dropdown
               isOpen={isCatalogDropdownOpen}
               onOpenChange={(isOpen: boolean) => setIsCatalogDropdownOpen(isOpen)}
@@ -395,6 +597,14 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
                 ))}
               </DropdownList>
             </Dropdown>
+            
+            {/* Multi-select checkbox aligned with catalog dropdown */}
+            <Checkbox
+              id="multi-select-toggle"
+              label="Multi-Select"
+              isChecked={isMultiSelectMode}
+              onChange={(_, checked) => handleMultiSelectToggle(checked)}
+            />
           </div>
           <div style={{ maxWidth: '400px' }}>
             <SearchInput
@@ -434,15 +644,41 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
                 selectedCatalogNamespace={selectedCatalogNamespace}
                 selectedCategory={selectedCategory}
                 onItemSelect={handleItemSelect}
+                isMultiSelectMode={isMultiSelectMode}
+                selectedItems={selectedItems}
+                onToggleItem={handleToggleItem}
               />
             </Suspense>
           ) : null}
         </div>
         
         <div style={{ marginTop: '16px', textAlign: 'right' }}>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Split hasGutter>
+            <SplitItem isFilled />
+            {isMultiSelectMode && (
+              <SplitItem>
+                <span style={{ marginRight: '16px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  {selectedItems.size} item{selectedItems.size !== 1 ? 's' : ''} selected
+                </span>
+              </SplitItem>
+            )}
+            <SplitItem>
+              <Button variant="secondary" onClick={handleClose}>
+                Cancel
+              </Button>
+            </SplitItem>
+            {isMultiSelectMode && (
+              <SplitItem>
+                <Button 
+                  variant="primary" 
+                  onClick={handleMultiSelectSubmit}
+                  isDisabled={selectedItems.size === 0}
+                >
+                  Add Selected ({selectedItems.size})
+                </Button>
+              </SplitItem>
+            )}
+          </Split>
         </div>
       </div>
     </Modal>
