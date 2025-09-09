@@ -20,6 +20,7 @@ const ButtonCircleIcon: React.FC<
         onClick={onClick}
         variant="plain"
         className="button-circle-icon"
+        style={{ ...(isDisabled) ? { opacity: 0.5 } : { opacity: 1 } }}
        />
     </Tooltip>
   );
