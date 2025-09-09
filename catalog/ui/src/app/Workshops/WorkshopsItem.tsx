@@ -76,6 +76,7 @@ export interface ModalState {
     | 'scheduleDelete'
     | 'scheduleStop'
     | 'scheduleStart'
+    | 'scheduleStartDate'
     | 'startWorkshop';
   resourceClaims?: ResourceClaim[];
 }
@@ -108,7 +109,7 @@ const WorkshopsItemComponent: React.FC<{
         action === 'startWorkshop'
       ) {
         openModalAction();
-      } else if (action === 'scheduleDelete' || action === 'scheduleStop' || action === 'scheduleStart') {
+      } else if (action === 'scheduleDelete' || action === 'scheduleStop' || action === 'scheduleStart' || action === 'scheduleStartDate') {
         openModalSchedule();
       }
     },
@@ -334,6 +335,17 @@ const WorkshopsItemComponent: React.FC<{
         resourceClaims,
       );
       mutateWorkshop(workshopUpdated);
+    } else if (modalState.action === 'scheduleStartDate') {
+      // Note: date here is already converted back to provisioning time by WorkshopScheduleAction
+      const workshopUpdated = await startWorkshop(
+        workshop,
+        !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(new Date(date.getTime())) : null,
+        !isWorkshopStarted(workshop, workshopProvisions)
+          ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
+          : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
+        resourceClaims,
+      );
+      mutateWorkshop(workshopUpdated);
     }
   }
 
@@ -367,14 +379,16 @@ const WorkshopsItemComponent: React.FC<{
           <WorkshopActionModal onConfirm={onWorkshopStartConfirm} action="start" />
         ) : null}
       </Modal>
-      <Modal ref={modalSchedule} onConfirm={onModalScheduleAction} passModifiers={true} title={workshopName}>
+      <Modal ref={modalSchedule} onConfirm={onModalScheduleAction} passModifiers={true} title={displayName(workshop)}>
         <WorkshopScheduleAction
           action={
             modalState.action === 'scheduleDelete'
               ? 'retirement'
               : modalState.action === 'scheduleStart'
                 ? 'start'
-                : 'stop'
+                : modalState.action === 'scheduleStartDate'
+                  ? 'start-date'
+                  : 'stop'
           }
           workshop={workshop}
           resourceClaims={resourceClaims}

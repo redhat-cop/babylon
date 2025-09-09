@@ -72,6 +72,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const [isLoading, setIsLoading] = useState(false);
   const [availabilityData, setAvailabilityData] = useState<AvailabilityCheckResponse | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
   const prevSandboxParametersRef = React.useRef<Record<string, any>>({});
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
@@ -823,38 +824,117 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
         {formState.workshop ? (
           <div className="catalog-item-form__workshop-form">
-            <FormGroup fieldId="workshopStartProvisioningDate" isRequired label="Start Provisioning Date">
-              <div className="catalog-item-form__group-control--single">
-                <DateTimePicker
-                  defaultTimestamp={Date.now()}
-                  onSelect={(d: Date) =>
-                    dispatchFormState({
-                      type: 'dates',
-                      startDate: d,
-                      stopDate: new Date(
-                        d.getTime() +
-                          parseDuration(
-                            formState.activity?.startsWith('Customer Facing')
-                              ? '365d'
-                              : catalogItem.spec.runtime?.default || '30h',
-                          ),
-                      ),
-                      endDate: new Date(d.getTime() + parseDuration('30h')),
-                    })
-                  }
-                  minDate={Date.now()}
-                />
-                <Tooltip
-                  position="right"
-                  content={<p>Select the date you'd like the workshop to start provisioning.</p>}
-                >
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Select the date you'd like the workshop to start provisioning."
-                    className="tooltip-icon-only"
-                  />
-                </Tooltip>
+            {/* Workshop Dates FormGroup - Start Date and Provisioning Date side by side */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)', alignItems: 'flex-start' }}>
+                
+                {/* Start Date and Provisioning Date Row */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)'      }}>
+                  
+                  {/* Start Date */}
+                  <FormGroup fieldId="startDate" isRequired label="Start Date">
+                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 'var(--pf-t--global--spacer--md)' }}>
+                      <DateTimePicker
+                        key={`start-${useDirectProvisioningDate}`}
+                        defaultTimestamp={
+                          formState.startDate 
+                            ? formState.startDate.getTime() - (6 * 60 * 60 * 1000) // Show start date as 6 hours before provisioning
+                            : Date.now()
+                        }
+                        forceUpdateTimestamp={formState.startDate?.getTime() - (6 * 60 * 60 * 1000)}
+                        onSelect={(d: Date) => {
+                          // Calculate provisioning date as 6 hours after start date
+                          const provisioningDate = new Date(d.getTime() + 6 * 60 * 60 * 1000);
+                          dispatchFormState({
+                            type: 'dates',
+                            startDate: provisioningDate, // Internal API still uses provisioning date as startDate
+                            stopDate: new Date(
+                              provisioningDate.getTime() +
+                                parseDuration(
+                                  formState.activity?.startsWith('Customer Facing')
+                                    ? '365d'
+                                    : catalogItem.spec.runtime?.default || '30h',
+                                ),
+                            ),
+                            endDate: new Date(provisioningDate.getTime() + parseDuration('30h')),
+                          });
+                        }}
+                        minDate={Date.now()}
+                        isDisabled={isAdmin && useDirectProvisioningDate}
+                      />
+                      <Tooltip
+                        position="right"
+                        content={<p>Select the date you'd like the workshop to start. Provisioning will begin 6 hours after this time.</p>}
+                      >
+                        <OutlinedQuestionCircleIcon
+                          aria-label="Select the date you'd like the workshop to start. Provisioning will begin 6 hours after this time."
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip></div>
+                      {/* Admin Toggle - Only visible to admins */}
+                {isAdmin ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                    <Switch
+                      id="provisioning-mode-switch"
+                      aria-label="Use direct provisioning date control"
+                      label="Set provisioning date directly (admin mode)"
+                      isChecked={useDirectProvisioningDate}
+                      hasCheckIcon
+                      onChange={(_event, isChecked) => {
+                        setUseDirectProvisioningDate(isChecked);
+                      }}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={<p>When enabled, allows direct control of the provisioning date instead of calculating it from the start date.</p>}
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                ) : null}
+                  </FormGroup>
+
+                  {/* Provisioning Date */}
+                   <FormGroup fieldId="provisioningDate" isRequired label="Provisioning Date">
+                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 'var(--pf-t--global--spacer--md)' }}>
+                       {isAdmin && useDirectProvisioningDate ? (
+                         <DateTimePicker
+                           key={`provisioning-${useDirectProvisioningDate}`}
+                           defaultTimestamp={formState.startDate?.getTime() || Date.now()}
+                           forceUpdateTimestamp={formState.startDate?.getTime()}
+                           onSelect={(d: Date) => {
+                             dispatchFormState({
+                               type: 'dates',
+                               startDate: d, // Direct provisioning date control
+                               stopDate: new Date(
+                                 d.getTime() +
+                                   parseDuration(
+                                     formState.activity?.startsWith('Customer Facing')
+                                       ? '365d'
+                                       : catalogItem.spec.runtime?.default || '30h',
+                                   ),
+                               ),
+                               endDate: new Date(d.getTime() + parseDuration('30h')),
+                             });
+                           }}
+                           minDate={Date.now()}
+                         />
+                       ) : (
+                         <div style={{
+                           border: '0',
+                           fontSize: 'var(--pf-t--global--font--size--body--default)',
+                           padding: 'var(--pf-t--global--spacer--sm) 0',
+                         }}>
+                           Provisioning will automatically begin 6 hours before the selected start date
+                         </div>
+                       )}
+</div>
+                </FormGroup>
+                
+                 </div>
               </div>
-            </FormGroup>
             {!isAutoStopDisabled(catalogItem) ? (
               <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
                 <div className="catalog-item-form__group-control--single">
