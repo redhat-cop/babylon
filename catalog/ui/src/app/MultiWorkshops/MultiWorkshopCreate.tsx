@@ -530,6 +530,28 @@ const MultiWorkshopCreate: React.FC = () => {
         <Title headingLevel="h1" size="2xl">
           Create Event
         </Title>
+        
+        {/* Informational Banner */}
+        <Alert 
+          variant="info" 
+          title="Event Wizard - Multi-Catalog Item Events"
+          style={{ marginTop: '16px' }}
+        >
+          <p>
+            This tool is designed for creating events that use <strong>multiple catalog items</strong>. 
+            If your event only uses one catalog item, please go through the normal catalog ordering process instead.
+          </p>
+          <p style={{ marginTop: '8px' }}>
+            If you need assistance or our workshop white glove service, please{' '}
+            <a href="https://red.ht/workshop-help" target="_blank" rel="noopener noreferrer">
+              raise a ticket with our team
+            </a>{' '}
+            or reach out via the{' '}
+            <a href="https://app.slack.com/client/E030G10V24F/C04N203SNUW" target="_blank" rel="noopener noreferrer">
+              Slack forum
+            </a>.
+          </p>
+        </Alert>
       </PageSection>
 
       <PageSection>
