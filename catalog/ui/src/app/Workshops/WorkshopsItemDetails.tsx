@@ -427,27 +427,48 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListGroup>
           <DescriptionListTerm>Start Date</DescriptionListTerm>
           <DescriptionListDescription>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)', alignItems: 'flex-start' }}>
-              
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--pf-t--global--spacer--md)',
+                alignItems: 'flex-start',
+              }}
+            >
               {/* Start Date and Provisioning Date Row */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
-                
                 {/* Start Date */}
-                <FormGroup fieldId="workshopStartDate" isRequired label={isAdmin && useDirectProvisioningDate ? "Start Date" : ""}>
-                  <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 'var(--pf-t--global--spacer--md)' }}>
+                <FormGroup
+                  fieldId="workshopStartDate"
+                  isRequired
+                  label={isAdmin && useDirectProvisioningDate ? 'Start Date' : ''}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 'var(--pf-t--global--spacer--md)',
+                    }}
+                  >
                     <AutoStopDestroy
                       type="auto-start"
                       variant="extended"
                       onClick={() => {
-                        (showModal ? showModal({ resourceClaims: [], action: 'scheduleStartDate' }) : null);
+                        showModal ? showModal({ resourceClaims: [], action: 'scheduleStartDate' }) : null;
                       }}
                       className="workshops-item__schedule-btn"
                       isDisabled={!showModal || (isAdmin && useDirectProvisioningDate)}
-                      time={autoStartTime + (6 * 60 * 60 * 1000)} // Show start date as 6 hours after provisioning
+                      time={autoStartTime + 6 * 60 * 60 * 1000} // Show start date as 6 hours after provisioning
                     />
                     <Tooltip
                       position="right"
-                      content={<p>Select the date you'd like the workshop to start. Provisioning will begin 6 hours before this time.</p>}
+                      content={
+                        <p>
+                          Select the date you'd like the workshop to start. Provisioning will begin 6 hours before this
+                          time.
+                        </p>
+                      }
                     >
                       <OutlinedQuestionCircleIcon
                         aria-label="Select the date you'd like the workshop to start. Provisioning will begin 6 hours before this time."
@@ -455,10 +476,17 @@ const WorkshopsItemDetails: React.FC<{
                       />
                     </Tooltip>
                   </div>
-                  
+
                   {/* Admin Toggle - Only visible to admins */}
                   {isAdmin ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--pf-t--global--spacer--sm)',
+                        marginTop: 'var(--pf-t--global--spacer--md)',
+                      }}
+                    >
                       <Switch
                         id="provisioning-mode-switch"
                         aria-label="Use direct provisioning date control"
@@ -471,7 +499,12 @@ const WorkshopsItemDetails: React.FC<{
                       />
                       <Tooltip
                         position="right"
-                        content={<p>When enabled, allows direct control of the provisioning date instead of calculating it from the start date.</p>}
+                        content={
+                          <p>
+                            When enabled, allows direct control of the provisioning date instead of calculating it from
+                            the start date.
+                          </p>
+                        }
                       >
                         <OutlinedQuestionCircleIcon
                           aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
@@ -483,8 +516,19 @@ const WorkshopsItemDetails: React.FC<{
                 </FormGroup>
 
                 {/* Provisioning Date */}
-                <FormGroup fieldId="workshopProvisioningDate" isRequired label={isAdmin && useDirectProvisioningDate ? "Provisioning Date" : ""}>
-                  <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 'var(--pf-t--global--spacer--md)' }}>
+                <FormGroup
+                  fieldId="workshopProvisioningDate"
+                  isRequired
+                  label={isAdmin && useDirectProvisioningDate ? 'Provisioning Date' : ''}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 'var(--pf-t--global--spacer--md)',
+                    }}
+                  >
                     {isAdmin && useDirectProvisioningDate ? (
                       <AutoStopDestroy
                         type="auto-start"
@@ -495,19 +539,19 @@ const WorkshopsItemDetails: React.FC<{
                         time={autoStartTime}
                       />
                     ) : (
-                      <div style={{
-                        border: '0',
-                        fontSize: 'var(--pf-t--global--font--size--body--default)',
-                        marginTop: 'var(--pf-t--global--spacer--xs)',
-                      }}>
+                      <div
+                        style={{
+                          border: '0',
+                          fontSize: 'var(--pf-t--global--font--size--body--default)',
+                          marginTop: 'var(--pf-t--global--spacer--xs)',
+                        }}
+                      >
                         Provisioning will automatically begin 6 hours before the selected start date
                       </div>
                     )}
                   </div>
                 </FormGroup>
-                
               </div>
-              
             </div>
           </DescriptionListDescription>
         </DescriptionListGroup>

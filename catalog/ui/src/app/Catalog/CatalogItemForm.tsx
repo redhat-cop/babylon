@@ -39,7 +39,13 @@ import {
   saveExternalItemRequest,
   silentFetcher,
 } from '@app/api';
-import { AvailabilityCheckResponse, CatalogItem, CatalogItemIncident, SandboxCloudSelector, TPurposeOpts } from '@app/types';
+import {
+  AvailabilityCheckResponse,
+  CatalogItem,
+  CatalogItemIncident,
+  SandboxCloudSelector,
+  TPurposeOpts,
+} from '@app/types';
 import { checkAccessControl, displayName, getStageFromK8sObject, isLabDeveloper, randomString } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
@@ -140,8 +146,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const purposeObj =
     purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
   const incident = getStatus(catalogItemIncident);
-  const submitRequestEnabled = incident && incident.disabled && !isAdmin ? false : checkEnableSubmit(formState) && !isLoading;
-  
+  const submitRequestEnabled =
+    incident && incident.disabled && !isAdmin ? false : checkEnableSubmit(formState) && !isLoading;
+
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
       checkConditionsInFormState(formState, dispatchFormState, debouncedApiFetch);
@@ -149,15 +156,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   }, [dispatchFormState, formState, debouncedApiFetch]);
 
   const checkAvailability = useCallback(async () => {
-
     // Extract sandbox cloud selectors from catalog item parameters
     const sandboxCloudSelectors: (SandboxCloudSelector & { parameterName: string })[] = [];
     for (const parameter of catalogItem.spec.parameters || []) {
       if (parameter.sandboxCloudSelectors) {
-        sandboxCloudSelectors.push(...parameter.sandboxCloudSelectors.map(selector => ({
-          ...selector,
-          parameterName: parameter.name
-        })));
+        sandboxCloudSelectors.push(
+          ...parameter.sandboxCloudSelectors.map((selector) => ({
+            ...selector,
+            parameterName: parameter.name,
+          })),
+        );
       }
     }
 
@@ -170,7 +178,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
     try {
       // Build resources array based on sandbox cloud selectors and current form state
-      const resources = sandboxCloudSelectors.map(selector => {
+      const resources = sandboxCloudSelectors.map((selector) => {
         const annotations: Record<string, string> = {};
         // Add the annotation from the selector if it exists
         if (selector.annotation) {
@@ -183,7 +191,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
         const resource = {
           kind: selector.kind,
-          annotations
+          annotations,
         };
         return resource;
       });
@@ -193,7 +201,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       setAvailabilityData({
         overallAvailable: false,
         overallMessage: 'Failed to check availability',
-        results: []
+        results: [],
       });
     } finally {
       setAvailabilityLoading(false);
@@ -214,7 +222,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   // Trigger availability check when sandbox selector parameters change
   useEffect(() => {
     const parametersWithSelectors = getParametersWithSandboxSelectors();
-    
+
     if (parametersWithSelectors.length === 0) {
       setAvailabilityData(null);
       prevSandboxParametersRef.current = {};
@@ -225,7 +233,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     const currentSandboxParams: Record<string, any> = {};
     let hasRelevantValues = false;
 
-    parametersWithSelectors.forEach(paramName => {
+    parametersWithSelectors.forEach((paramName) => {
       const paramState = formState.parameters[paramName];
       const currentValue = paramState?.value;
       currentSandboxParams[paramName] = currentValue;
@@ -236,7 +244,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
     // Check if any sandbox selector parameter values have actually changed
     const prevParams = prevSandboxParametersRef.current;
-    const shouldTrigger = parametersWithSelectors.some(paramName => {
+    const shouldTrigger = parametersWithSelectors.some((paramName) => {
       return currentSandboxParams[paramName] !== prevParams[paramName];
     });
     // Update the ref with current values AFTER checking for changes
@@ -825,116 +833,154 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         {formState.workshop ? (
           <div className="catalog-item-form__workshop-form">
             {/* Workshop Dates FormGroup - Start Date and Provisioning Date side by side */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)', alignItems: 'flex-start' }}>
-                
-                {/* Start Date and Provisioning Date Row */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)'      }}>
-                  
-                  {/* Start Date */}
-                  <FormGroup fieldId="startDate" isRequired label="Start Date">
-                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 'var(--pf-t--global--spacer--md)' }}>
-                      <DateTimePicker
-                        key={`start-${useDirectProvisioningDate}`}
-                        defaultTimestamp={
-                          formState.startDate 
-                            ? formState.startDate.getTime() - (6 * 60 * 60 * 1000) // Show start date as 6 hours before provisioning
-                            : Date.now()
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--pf-t--global--spacer--md)',
+                alignItems: 'flex-start',
+              }}
+            >
+              {/* Start Date and Provisioning Date Row */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
+                {/* Start Date */}
+                <FormGroup fieldId="startDate" isRequired label="Start Date">
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 'var(--pf-t--global--spacer--md)',
+                    }}
+                  >
+                    <DateTimePicker
+                      key={`start-${useDirectProvisioningDate}`}
+                      defaultTimestamp={
+                        formState.startDate
+                          ? formState.startDate.getTime() - 6 * 60 * 60 * 1000 // Show start date as 6 hours before provisioning
+                          : Date.now()
+                      }
+                      forceUpdateTimestamp={formState.startDate?.getTime() - 6 * 60 * 60 * 1000}
+                      onSelect={(d: Date) => {
+                        // Calculate provisioning date as 6 hours after start date
+                        const provisioningDate = new Date(d.getTime() + 6 * 60 * 60 * 1000);
+                        dispatchFormState({
+                          type: 'dates',
+                          startDate: provisioningDate, // Internal API still uses provisioning date as startDate
+                          stopDate: new Date(
+                            provisioningDate.getTime() +
+                              parseDuration(
+                                formState.activity?.startsWith('Customer Facing')
+                                  ? '365d'
+                                  : catalogItem.spec.runtime?.default || '30h',
+                              ),
+                          ),
+                          endDate: new Date(provisioningDate.getTime() + parseDuration('30h')),
+                        });
+                      }}
+                      minDate={Date.now()}
+                      isDisabled={isAdmin && useDirectProvisioningDate}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={
+                        <p>
+                          Select the date you'd like the workshop to start. Provisioning will begin 6 hours after this
+                          time.
+                        </p>
+                      }
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Select the date you'd like the workshop to start. Provisioning will begin 6 hours after this time."
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                  {/* Admin Toggle - Only visible to admins */}
+                  {isAdmin ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--pf-t--global--spacer--sm)',
+                        marginTop: 'var(--pf-t--global--spacer--md)',
+                      }}
+                    >
+                      <Switch
+                        id="provisioning-mode-switch"
+                        aria-label="Use direct provisioning date control"
+                        label="Set provisioning date directly (admin mode)"
+                        isChecked={useDirectProvisioningDate}
+                        hasCheckIcon
+                        onChange={(_event, isChecked) => {
+                          setUseDirectProvisioningDate(isChecked);
+                        }}
+                      />
+                      <Tooltip
+                        position="right"
+                        content={
+                          <p>
+                            When enabled, allows direct control of the provisioning date instead of calculating it from
+                            the start date.
+                          </p>
                         }
-                        forceUpdateTimestamp={formState.startDate?.getTime() - (6 * 60 * 60 * 1000)}
+                      >
+                        <OutlinedQuestionCircleIcon
+                          aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    </div>
+                  ) : null}
+                </FormGroup>
+
+                {/* Provisioning Date */}
+                <FormGroup fieldId="provisioningDate" isRequired label="Provisioning Date">
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 'var(--pf-t--global--spacer--md)',
+                    }}
+                  >
+                    {isAdmin && useDirectProvisioningDate ? (
+                      <DateTimePicker
+                        key={`provisioning-${useDirectProvisioningDate}`}
+                        defaultTimestamp={formState.startDate?.getTime() || Date.now()}
+                        forceUpdateTimestamp={formState.startDate?.getTime()}
                         onSelect={(d: Date) => {
-                          // Calculate provisioning date as 6 hours after start date
-                          const provisioningDate = new Date(d.getTime() + 6 * 60 * 60 * 1000);
                           dispatchFormState({
                             type: 'dates',
-                            startDate: provisioningDate, // Internal API still uses provisioning date as startDate
+                            startDate: d, // Direct provisioning date control
                             stopDate: new Date(
-                              provisioningDate.getTime() +
+                              d.getTime() +
                                 parseDuration(
                                   formState.activity?.startsWith('Customer Facing')
                                     ? '365d'
                                     : catalogItem.spec.runtime?.default || '30h',
                                 ),
                             ),
-                            endDate: new Date(provisioningDate.getTime() + parseDuration('30h')),
+                            endDate: new Date(d.getTime() + parseDuration('30h')),
                           });
                         }}
                         minDate={Date.now()}
-                        isDisabled={isAdmin && useDirectProvisioningDate}
                       />
-                      <Tooltip
-                        position="right"
-                        content={<p>Select the date you'd like the workshop to start. Provisioning will begin 6 hours after this time.</p>}
+                    ) : (
+                      <div
+                        style={{
+                          border: '0',
+                          fontSize: 'var(--pf-t--global--font--size--body--default)',
+                          padding: 'var(--pf-t--global--spacer--sm) 0',
+                        }}
                       >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="Select the date you'd like the workshop to start. Provisioning will begin 6 hours after this time."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip></div>
-                      {/* Admin Toggle - Only visible to admins */}
-                {isAdmin ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                    <Switch
-                      id="provisioning-mode-switch"
-                      aria-label="Use direct provisioning date control"
-                      label="Set provisioning date directly (admin mode)"
-                      isChecked={useDirectProvisioningDate}
-                      hasCheckIcon
-                      onChange={(_event, isChecked) => {
-                        setUseDirectProvisioningDate(isChecked);
-                      }}
-                    />
-                    <Tooltip
-                      position="right"
-                      content={<p>When enabled, allows direct control of the provisioning date instead of calculating it from the start date.</p>}
-                    >
-                      <OutlinedQuestionCircleIcon
-                        aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
-                        className="tooltip-icon-only"
-                      />
-                    </Tooltip>
+                        Provisioning will automatically begin 6 hours before the selected start date
+                      </div>
+                    )}
                   </div>
-                ) : null}
-                  </FormGroup>
-
-                  {/* Provisioning Date */}
-                   <FormGroup fieldId="provisioningDate" isRequired label="Provisioning Date">
-                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 'var(--pf-t--global--spacer--md)' }}>
-                       {isAdmin && useDirectProvisioningDate ? (
-                         <DateTimePicker
-                           key={`provisioning-${useDirectProvisioningDate}`}
-                           defaultTimestamp={formState.startDate?.getTime() || Date.now()}
-                           forceUpdateTimestamp={formState.startDate?.getTime()}
-                           onSelect={(d: Date) => {
-                             dispatchFormState({
-                               type: 'dates',
-                               startDate: d, // Direct provisioning date control
-                               stopDate: new Date(
-                                 d.getTime() +
-                                   parseDuration(
-                                     formState.activity?.startsWith('Customer Facing')
-                                       ? '365d'
-                                       : catalogItem.spec.runtime?.default || '30h',
-                                   ),
-                               ),
-                               endDate: new Date(d.getTime() + parseDuration('30h')),
-                             });
-                           }}
-                           minDate={Date.now()}
-                         />
-                       ) : (
-                         <div style={{
-                           border: '0',
-                           fontSize: 'var(--pf-t--global--font--size--body--default)',
-                           padding: 'var(--pf-t--global--spacer--sm) 0',
-                         }}>
-                           Provisioning will automatically begin 6 hours before the selected start date
-                         </div>
-                       )}
-</div>
                 </FormGroup>
-                
-                 </div>
               </div>
+            </div>
             {!isAutoStopDisabled(catalogItem) ? (
               <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
                 <div className="catalog-item-form__group-control--single">
@@ -1225,12 +1271,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               </Alert>
             </AlertGroup>
           )}
-          
+
           {availabilityData && !availabilityLoading && (
             <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <Alert 
-                variant={availabilityData.overallAvailable ? "success" : "danger"} 
-                title={`Resource Availability: ${availabilityData.overallAvailable ? "Available" : "Not Available"}`} 
+              <Alert
+                variant={availabilityData.overallAvailable ? 'success' : 'danger'}
+                title={`Resource Availability: ${availabilityData.overallAvailable ? 'Available' : 'Not Available'}`}
                 isInline
               >
                 <p>{availabilityData.overallMessage}</p>
