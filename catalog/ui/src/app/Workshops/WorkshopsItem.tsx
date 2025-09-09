@@ -121,10 +121,14 @@ const WorkshopsItemComponent: React.FC<{
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     enableFetchUserNamespaces ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
     fetcher,
+    {
+      revalidateOnMount: false, // Don't revalidate on mount
+      dedupingInterval: 10000, // Longer deduping for namespace data
+    },
   );
   const serviceNamespaces = useMemo(() => {
     return enableFetchUserNamespaces
-      ? userNamespaceList.items.map(namespaceToServiceNamespaceMapper)
+      ? userNamespaceList?.items?.map(namespaceToServiceNamespaceMapper) || []
       : sessionServiceNamespaces;
   }, [enableFetchUserNamespaces, sessionServiceNamespaces, userNamespaceList]);
 
@@ -134,6 +138,8 @@ const WorkshopsItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjects,
+      revalidateOnMount: true,
+      dedupingInterval: 2000, // Dedupe requests within 2s
     },
   );
   const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
@@ -144,15 +150,25 @@ const WorkshopsItemComponent: React.FC<{
     fetcher,
     {
       refreshInterval: 15000,
+      revalidateOnMount: false, // Don't revalidate on mount
+      revalidateIfStale: false, // Don't auto-revalidate stale data
+      dedupingInterval: 4000, // Dedupe requests
     },
   );
+
+  const stage = getStageFromK8sObject(workshop);
+
   const { data: usageCost } = useSWR<RequestUsageCost>(
-    workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`]
+    workshop?.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`]
       ? apiPaths.USAGE_COST_WORKSHOP({ workshopId: workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] })
       : null,
     silentFetcher,
+    {
+      revalidateOnMount: false, // Don't revalidate on mount to prevent extra requests
+      revalidateIfStale: false, // Don't auto-revalidate stale data
+      dedupingInterval: 5000, // Longer deduping for cost data
+    },
   );
-  const stage = getStageFromK8sObject(workshop);
 
   const { data: workshopProvisions } = useSWR<WorkshopProvision[]>(
     workshop
@@ -173,6 +189,11 @@ const WorkshopsItemComponent: React.FC<{
             }),
           )
         : [],
+    {
+      revalidateOnMount: false, // Don't revalidate on mount
+      revalidateIfStale: false, // Don't auto-revalidate stale data
+      dedupingInterval: 3000, // Dedupe requests
+    },
   );
 
   const { data: resourceClaims, mutate: mutateRC } = useSWR<ResourceClaim[]>(
@@ -195,6 +216,9 @@ const WorkshopsItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
+      revalidateOnMount: false, // Don't revalidate on mount
+      revalidateIfStale: false, // Don't auto-revalidate stale data
+      dedupingInterval: 3000, // Dedupe requests
     },
   );
 
@@ -476,7 +500,7 @@ const WorkshopsItemComponent: React.FC<{
                 showModal={showModal}
                 resourceClaims={resourceClaims}
                 workshopProvisions={workshopProvisions}
-                workshopUserAssignments={userAssigmentsList.items}
+                workshopUserAssignments={userAssigmentsList?.items || []}
                 usageCost={usageCost}
               />
             ) : null}
@@ -497,7 +521,7 @@ const WorkshopsItemComponent: React.FC<{
                 setSelectedResourceClaims={setSelectedResourceClaims}
                 resourceClaims={resourceClaims || []}
                 workshopProvisions={workshopProvisions}
-                userAssignments={userAssigmentsList.items}
+                userAssignments={userAssigmentsList?.items || []}
               />
             ) : null}
           </Tab>
@@ -505,7 +529,7 @@ const WorkshopsItemComponent: React.FC<{
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
             {activeTab === 'users' ? (
               <WorkshopsItemUserAssignments
-                userAssignments={userAssigmentsList.items}
+                userAssignments={userAssigmentsList?.items || []}
                 onUserAssignmentsUpdate={mutateUserAssigments}
               />
             ) : null}
