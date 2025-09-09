@@ -190,7 +190,13 @@ export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean
     resourceClaim.status?.summary?.state === 'stop-pending' ||
     resourceClaim.status?.summary?.state === 'stopping'
   ) {
-    return false;
+    return !!(resourceClaim?.status?.resources || []).find((r) => {
+      const state = r.state;
+      if (!state) {
+        return false;
+      }
+      return canExecuteAction(state, 'stop');
+    });
   }
   return !!(resourceClaim?.status?.resources || []).find((r) => {
     const state = r.state;
