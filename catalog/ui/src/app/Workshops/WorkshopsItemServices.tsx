@@ -216,19 +216,7 @@ const WorkshopsItemServices: React.FC<{
               </>,
 
               // Status
-              <>
-                {specResources.length >= 1 || resourceClaim.status?.summary ? (
-                  <ServiceStatus
-                    creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                    resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
-                    resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
-                    resourceClaim={resourceClaim}
-                    summary={resourceClaim.status?.summary}
-                  />
-                ) : (
-                  <p>...</p>
-                )}
-              </>,
+              <ServiceStatus resourceClaim={resourceClaim} />,
 
               // User
               <>

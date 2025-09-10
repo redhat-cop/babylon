@@ -903,22 +903,12 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {resourceClaim.spec.resources?.length > 0 ||
-                  resourceClaim.status?.summary ||
-                  new Date(resourceClaim.spec.lifespan.start).getTime() > new Date().getTime() ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Status</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <ServiceStatus
-                          creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                          resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
-                          resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
-                          resourceClaim={resourceClaim}
-                          summary={resourceClaim.status?.summary}
-                        />
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Status</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ServiceStatus resourceClaim={resourceClaim} />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
                   {!isPartOfWorkshop ? (
                     <DescriptionListGroup>

@@ -51,7 +51,7 @@ const Navigation: React.FC = () => {
     </NavItem>
   ) : null;
 
-  const multiWorkshopNavigation = userNamespace ? (
+  const multiWorkshopNavigation = userNamespace && isAdmin ? (
     <NavItem>
       <NavLink
         to={`/event-wizard/${userNamespace.name}`}

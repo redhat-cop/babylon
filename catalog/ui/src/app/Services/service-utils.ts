@@ -77,11 +77,12 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
         Date.parse(resourceClaim.metadata.creationTimestamp),
         startTime,
         stopTime,
+        resourceClaim,
       ).phase,
     });
   }
 
-  const codeLevels = ['failed', 'stopped', 'in-progress', 'available', 'running'];
+  const codeLevels = ['failed', 'stopped', 'in-progress', 'waiting', 'available', 'running'];
   function cmp(a: { phase: phaseProps }, b: { phase: phaseProps }) {
     return codeLevels.indexOf(a.phase) > codeLevels.indexOf(b.phase) ? 1 : -1;
   }
