@@ -430,17 +430,7 @@ const ResourceClaims: React.FC<{}> = () => {
               const statusCell = (
                 // Status
                 <React.Fragment key="status">
-                  {specResources.length >= 1 || resourceClaim.status?.summary ? (
-                    <ServiceStatus
-                      creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                      resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
-                      resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
-                      resourceClaim={resourceClaim}
-                      summary={resourceClaim.status?.summary}
-                    />
-                  ) : (
-                    <p>...</p>
-                  )}
+                  <ServiceStatus resourceClaim={resourceClaim} />
                 </React.Fragment>
               );
               const createdAtCell = (

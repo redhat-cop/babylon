@@ -10,3 +10,7 @@
 .service-status--running {
   color: var(--pf-t--global--border--color--status--success--default);
 }
+
+.service-status--waiting {
+  color: var(--pf-t--global--icon--color--status--info--default);
+}

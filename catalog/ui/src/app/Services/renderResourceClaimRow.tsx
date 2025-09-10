@@ -150,19 +150,7 @@ const renderResourceClaimRow = ({
   const statusCell = (
     // Status
     <React.Fragment key="resource-claim-status">
-      {specResources.length >= 1 ||
-      resourceClaim.status?.summary ||
-      new Date(resourceClaim.spec.lifespan?.start).getTime() > new Date().getTime() ? (
-        <ServiceStatus
-          creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-          resource={getMostRelevantResourceAndTemplate(resourceClaim).resource}
-          resourceTemplate={getMostRelevantResourceAndTemplate(resourceClaim).template}
-          resourceClaim={resourceClaim}
-          summary={resourceClaim.status?.summary}
-        />
-      ) : (
-        <p>...</p>
-      )}
+      <ServiceStatus resourceClaim={resourceClaim} />
     </React.Fragment>
   );
   const createdAtCell = (

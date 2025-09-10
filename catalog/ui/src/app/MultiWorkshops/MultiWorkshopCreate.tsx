@@ -420,7 +420,6 @@ const MultiWorkshopCreate: React.FC = () => {
             failedAssets.map(f => `${f.asset.key}: ${f.error}`).join(', ')
           );
         }
-        console.log(`Successfully created ${updatedAssets.filter(a => a.workshopName).length} workshops out of ${catalogAssets.length} catalog assets`);
       }
 
       // Navigate to the created multiworkshop detail page

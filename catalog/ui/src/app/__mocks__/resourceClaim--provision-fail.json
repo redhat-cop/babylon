@@ -1,0 +1,217 @@
+{
+    "apiVersion": "poolboy.gpte.redhat.com/v1",
+    "kind": "ResourceClaim",
+    "metadata": {
+      "annotations": {
+        "babylon.gpte.redhat.com/catalogDisplayName": "babylon-catalog-dev",
+        "babylon.gpte.redhat.com/catalogItemDisplayName": "Experience OpenShift Virtualization: Advanced Operations and Automation",
+        "babylon.gpte.redhat.com/category": "Workshops",
+        "demo.redhat.com/orderedBy": "email@redhat.com",
+        "demo.redhat.com/provide_salesforce-id_later": "false",
+        "demo.redhat.com/purpose": "Asset Development",
+        "demo.redhat.com/purpose-activity": "Admin",
+        "demo.redhat.com/requester": "email@redhat.com",
+        "demo.redhat.com/salesforce-id": "",
+        "demo.redhat.com/scheduled": "false",
+        "demo.redhat.com/service-alias": "",
+        "poolboy.gpte.redhat.com/resource-claim-init-timestamp": "2025-08-28T03:22:27Z"
+      },
+      "creationTimestamp": "2025-08-28T03:22:26Z",
+      "deletionGracePeriodSeconds": 0,
+      "deletionTimestamp": "2025-08-28T13:49:26Z",
+      "finalizers": [
+        "demo.redhat.com/reporting"
+      ],
+      "generation": 2,
+      "labels": {
+        "babylon.gpte.redhat.com/catalogItemName": "openshift-cnv.ocp-virt-advanced-ops.dev",
+        "babylon.gpte.redhat.com/catalogItemNamespace": "babylon-catalog-dev",
+        "demo.redhat.com/white-glove": "false",
+        "gpte.redhat.com/asset-uuid": "1005e629-87a0-43d4-a24d-8c2b1c215641"
+      },
+      "name": "openshift-cnv.ocp-virt-advanced-ops.dev-cqnkd",
+      "namespace": "user-email-redhat-com",
+      "resourceVersion": "2941958883",
+      "uid": "9cbc7dd9-7517-4d64-9a34-358b2e17e5f1"
+    },
+    "spec": {
+      "lifespan": {
+        "end": "2025-08-31T03:22:07Z"
+      },
+      "provider": {
+        "name": "openshift-cnv.ocp-virt-advanced-ops.dev",
+        "parameterValues": {
+          "ocp4_workload_cert_manager_install_ingress_certificates": true,
+          "purpose": "Asset Development",
+          "stop_timestamp": "2026-08-28T03:22:20Z"
+        }
+      }
+    },
+    "status": {
+      "healthy": false,
+      "lifespan": {
+        "end": "2025-08-31T03:22:07Z",
+        "maximum": "14d",
+        "relativeMaximum": "5d",
+        "start": "2025-08-28T03:22:27Z"
+      },
+      "provider": {
+        "name": "openshift-cnv.ocp-virt-advanced-ops.dev",
+        "parameterValues": {
+          "ocp4_workload_cert_manager_install_ingress_certificates": true,
+          "purpose": "Asset Development",
+          "start_timestamp": "2025-08-28T03:22:27Z",
+          "stop_timestamp": "2026-08-28T03:22:20Z"
+        }
+      },
+      "ready": false,
+      "resourceHandle": {
+        "apiVersion": "poolboy.gpte.redhat.com/v1",
+        "kind": "ResourceHandle",
+        "name": "guid-8xjlv",
+        "namespace": "poolboy"
+      },
+      "resources": [
+        {
+          "healthy": false,
+          "name": "openshift-cnv.ocp-virt-advanced-ops.dev",
+          "provider": {
+            "apiVersion": "poolboy.gpte.redhat.com/v1",
+            "kind": "ResourceProvider",
+            "name": "openshift-cnv.ocp-virt-advanced-ops.dev",
+            "namespace": "poolboy"
+          },
+          "ready": false,
+          "reference": {
+            "apiVersion": "anarchy.gpte.redhat.com/v1",
+            "kind": "AnarchySubject",
+            "name": "openshift-cnv.ocp-virt-advanced-ops.dev-8xjlv",
+            "namespace": "babylon-anarchy-ocp-wksp"
+          },
+          "state": {
+            "apiVersion": "anarchy.gpte.redhat.com/v1",
+            "kind": "AnarchySubject",
+            "metadata": {
+              "annotations": {
+                "poolboy.gpte.redhat.com/resource-claim-name": "openshift-cnv.ocp-virt-advanced-ops.dev-cqnkd",
+                "poolboy.gpte.redhat.com/resource-claim-namespace": "user-email-redhat-com",
+                "poolboy.gpte.redhat.com/resource-handle-name": "guid-8xjlv",
+                "poolboy.gpte.redhat.com/resource-handle-namespace": "poolboy",
+                "poolboy.gpte.redhat.com/resource-handle-uid": "ae455b71-14e0-45b1-8257-7a189269545e",
+                "poolboy.gpte.redhat.com/resource-index": "0",
+                "poolboy.gpte.redhat.com/resource-provider-name": "openshift-cnv.ocp-virt-advanced-ops.dev",
+                "poolboy.gpte.redhat.com/resource-provider-namespace": "poolboy",
+                "poolboy.gpte.redhat.com/resource-requester-email": "email@redhat.com",
+                "poolboy.gpte.redhat.com/resource-requester-name": "USER",
+                "poolboy.gpte.redhat.com/resource-requester-preferred-username": "email@redhat.com",
+                "poolboy.gpte.redhat.com/resource-requester-user": "email@redhat.com"
+              },
+              "creationTimestamp": "2025-08-28T03:22:27Z",
+              "finalizers": [
+                "anarchy.gpte.redhat.com",
+                "anarchy.gpte.redhat.com/subject",
+                "demo.redhat.com/reporting"
+              ],
+              "generation": 5,
+              "labels": {
+                "OcpSandbox": "8xjlv-d77cde71-3911-5766-a68a-64e1c7892bce",
+                "anarchy.gpte.redhat.com/governor": "openshift-cnv.ocp-virt-advanced-ops.dev",
+                "sandbox": "8xjlv-d77cde71-3911-5766-a68a-64e1c7892bce",
+                "state": "provision-failed"
+              },
+              "name": "openshift-cnv.ocp-virt-advanced-ops.dev-8xjlv",
+              "namespace": "babylon-anarchy-ocp-wksp",
+              "resourceVersion": "2941519423",
+              "uid": "d544fe33-3cb0-45a7-8474-15eb8837e938"
+            },
+            "spec": {
+              "governor": "openshift-cnv.ocp-virt-advanced-ops.dev",
+              "vars": {
+                "action_schedule": {
+                  "default_runtime": "4h",
+                  "maximum_runtime": "8h",
+                  "start": "2025-08-28T03:22:27Z",
+                  "stop": "2026-08-28T03:22:20Z"
+                },
+                "check_status_state": "",
+                "current_state": "provision-failed",
+                "desired_state": "started",
+                "healthy": false,
+                "job_vars": {
+                  "agnosticd_collect_forensics": true,
+                  "ai_storage_class": "ocs-storagecluster-ceph-rbd",
+                  "cloud_provider": "openshift_cnv",
+                  "guid": "8xjlv",
+                  "ocp4_workload_cert_manager_install_ingress_certificates": true,
+                  "odf_external_pool": "ocpv-tenants",
+                  "openshift_cnv_ssh_address": "ssh.ocpv06.rhdp.net",
+                  "platform": "rhpds",
+                  "sandbox_openshift_api_url": "REDACTED",
+                  "sandbox_openshift_apps_domain": "REDACTED",
+                  "sandbox_openshift_cluster": "ocpv06",
+                  "sandbox_openshift_console_url": "REDACTED",
+                  "sandbox_openshift_name:REDACTED": null,
+                  "sandbox_openshift_namespace": "REDACTED-cluster",
+                  "uuid": "d77cde71-3911-5766-a68a-64e1c7892bce",
+                  "vcenter_cluster": "vcs-rs-01"
+                }
+              }
+            },
+            "status": {
+              "actions": {
+                "provision": {
+                  "completeTimestamp": "2025-08-28T06:01:50Z",
+                  "startTimestamp": "2025-08-28T03:22:52Z",
+                  "state": "failed"
+                }
+              },
+              "pendingActions": [],
+              "runStatus": "successful",
+              "runs": {
+                "active": []
+              },
+              "sandboxAPIJobs": {
+                "provision": {
+                  "httpStatus": "200",
+                  "startTimestamp": "2025-08-28T03:23:08Z"
+                }
+              },
+              "supportedActions": {
+                "destroy": {},
+                "provision": {},
+                "start": {},
+                "status": {},
+                "stop": {}
+              },
+              "towerJobs": {
+                "provision": {
+                  "completeTimestamp": "2025-08-28T06:01:50Z",
+                  "deployerJob": 1514134,
+                  "jobStatus": "failed",
+                  "startTimestamp": "2025-08-28T03:22:52Z",
+                  "towerHost": "REDACTED",
+                  "towerJobURL": "REDACTED"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "summary": {
+        "agnosticv": {
+          "account": "openshift-cnv",
+          "asset_uuid": "1005e629-87a0-43d4-a24d-8c2b1c215641",
+          "path": "REDACTED",
+          "repo": "rhpds-agnosticv",
+          "short_name": "ocp-virt-advanced-ops",
+          "stage": "dev"
+        },
+        "catalog_item_name": "openshift-cnv.ocp-virt-advanced-ops.dev",
+        "catalog_item_namespace": "babylon-catalog-dev",
+        "provision_data": {},
+        "runtime_default": "4h",
+        "runtime_maximum": "8h",
+        "state": "provision-failed"
+      }
+    }
+  }  

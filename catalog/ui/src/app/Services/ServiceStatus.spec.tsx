@@ -1,7 +1,6 @@
 import React from 'react';
-import resourceClaimObj from '../__mocks__/resourceClaim.json';
-import anarchySubjectObj from '../__mocks__/anarchySubject.json';
-import anarchySubjectFailedObj from '../__mocks__/anarchySubject--start-failed.json';
+import stoppedResourceClaimObj from '../__mocks__/resourceClaim--stopped.json';
+import failedResourceClaimObj from '../__mocks__/resourceClaim--provision-fail.json';
 import { render, waitFor } from '@app/utils/test-utils';
 import { ResourceClaim } from '@app/types';
 import ServiceStatus from './ServiceStatus';
@@ -14,26 +13,16 @@ jest.mock('react-redux', () => ({
 describe('ServiceStatus', () => {
   test('When ServiceStatus layout renders with stopped, should display ServiceStatus', async () => {
     const { getByText } = render(
-      <ServiceStatus
-        creationTime={1}
-        resource={anarchySubjectObj}
-        resourceTemplate={anarchySubjectObj}
-        resourceClaim={resourceClaimObj as ResourceClaim}
-      />,
+      <ServiceStatus resourceClaim={stoppedResourceClaimObj as unknown as ResourceClaim} />,
     );
-    const status = getByText('Stopped');
+    const status = getByText(/Stopped/i);
     await waitFor(() => expect(status).toBeInTheDocument());
   });
-  test('When ServiceStatus layout renders with start-failed, should display ServiceStatus', async () => {
+  test('When ServiceStatus layout renders with provision-failed, should display ServiceStatus', async () => {
     const { getByText } = render(
-      <ServiceStatus
-        creationTime={1}
-        resource={anarchySubjectFailedObj}
-        resourceTemplate={anarchySubjectFailedObj}
-        resourceClaim={resourceClaimObj as ResourceClaim}
-      />,
+      <ServiceStatus resourceClaim={failedResourceClaimObj as unknown as ResourceClaim} />,
     );
-    const status = getByText(/Start Failed/i);
+    const status = getByText(/Provision Failed/i);
     await waitFor(() => expect(status).toBeInTheDocument());
   });
 });

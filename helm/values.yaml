@@ -48,7 +48,7 @@ anarchy:
     sources:
       babylon_anarchy_governor:
         src: https://github.com/rhpds/babylon_anarchy_governor.git
-        version: v0.30.5
+        version: v0.30.6
   api:
     group: anarchy.gpte.redhat.com
     version: v1
@@ -128,7 +128,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.33.22
+        tag: v0.33.23
       replicaCount: 1
       resources:
         requests:
