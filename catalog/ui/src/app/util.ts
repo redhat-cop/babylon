@@ -190,13 +190,7 @@ export function checkResourceClaimCanStop(resourceClaim: ResourceClaim): boolean
     resourceClaim.status?.summary?.state === 'stop-pending' ||
     resourceClaim.status?.summary?.state === 'stopping'
   ) {
-    return !!(resourceClaim?.status?.resources || []).find((r) => {
-      const state = r.state;
-      if (!state) {
-        return false;
-      }
-      return canExecuteAction(state, 'stop');
-    });
+    return false;
   }
   return !!(resourceClaim?.status?.resources || []).find((r) => {
     const state = r.state;
@@ -237,20 +231,14 @@ export function checkResourceClaimCanRate(resourceClaim: ResourceClaim): boolean
 }
 
 export function isResourceClaimPartOfWorkshop(resourceClaim: ResourceClaim) {
-  if (!resourceClaim) return false;
-  return (
-    resourceClaim.metadata.ownerReferences &&
-    resourceClaim.metadata.ownerReferences.filter((x) => x.kind === 'WorkshopProvision' || x.kind === 'Workshop')
-      .length > 0
-  );
+  if (!resourceClaim || !resourceClaim.metadata?.ownerReferences) return false;
+  return resourceClaim.metadata.ownerReferences.filter((x) => x.kind === 'WorkshopProvision' || x.kind === 'Workshop')
+    .length > 0;
 }
 
 export function isWorkshopPartOfResourceClaim(workshop: Workshop) {
-  if (!workshop) return false;
-  return (
-    workshop.metadata.ownerReferences &&
-    workshop.metadata.ownerReferences.filter((x) => x.kind === 'ResourceClaim').length > 0
-  );
+  if (!workshop || !workshop.metadata?.ownerReferences) return false;
+  return workshop.metadata.ownerReferences.filter((x) => x.kind === 'ResourceClaim').length > 0;
 }
 
 export function getStageFromK8sObject(k8sObject: K8sObject): 'dev' | 'test' | 'event' | 'prod' {

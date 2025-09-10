@@ -15,7 +15,7 @@ import { getMaxRuntime } from '@app/Services/service-utils';
 const minDefault = parseDuration('6h');
 
 const WorkshopScheduleAction: React.FC<{
-  action: 'retirement' | 'stop' | 'start';
+  action: 'retirement' | 'stop' | 'start' | 'start-date';
   resourceClaims: ResourceClaim[];
   workshop: Workshop;
   workshopProvisions: WorkshopProvision[];
@@ -26,12 +26,15 @@ const WorkshopScheduleAction: React.FC<{
   let currentActionDate: Date = null;
   const { end: autoDestroyTime, start: autoStartTime } = getWorkshopLifespan(workshop, workshopProvisions);
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
-  if (action === 'retirement' || action === 'start') {
+  if (action === 'retirement' || action === 'start' || action === 'start-date') {
     if (action === 'retirement') {
       currentActionDate = autoDestroyTime ? new Date(autoDestroyTime) : new Date(new Date().getTime() + 14400000); // By default: 14400000 = 4h;
       maxDate = getMaxAutoDestroy(workshop);
-    } else {
+    } else if (action === 'start') {
       currentActionDate = autoStartTime ? new Date(autoStartTime) : null;
+    } else if (action === 'start-date') {
+      // User start date is 6 hours after provisioning time
+      currentActionDate = autoStartTime ? new Date(autoStartTime + (6 * 60 * 60 * 1000)) : null;
     }
   } else {
     currentActionDate = autoStopTime ? new Date(autoStopTime) : null;
@@ -40,10 +43,23 @@ const WorkshopScheduleAction: React.FC<{
 
   const [selectedDate, setSelectedDate] = useState(currentActionDate || new Date());
   const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
-  useEffect(() => setState(selectedDate), [setState, selectedDate]);
+  
+  // Convert selected date for setState based on action type
+  useEffect(() => {
+    if (action === 'start-date') {
+      // Convert user start date back to provisioning date (6 hours earlier)
+      const provisioningDate = new Date(selectedDate.getTime() - (6 * 60 * 60 * 1000));
+      setState(provisioningDate);
+    } else {
+      setState(selectedDate);
+    }
+  }, [setState, selectedDate, action]);
 
   const actionLabel =
-    action === 'retirement' ? 'Auto-destroy' : action === 'start' ? 'Start Provisioning Date' : 'Auto-stop';
+    action === 'retirement' ? 'Auto-destroy' : 
+    action === 'start' ? 'Start Provisioning Date' : 
+    action === 'start-date' ? 'Start Date' : 
+    'Auto-stop';
 
   const minMaxProps = {
     minDate: Date.now(),

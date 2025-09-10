@@ -87,10 +87,18 @@ const AutoStopDestroy: React.FC<{
   if (!!resourceClaim) {
     if (isDisabled === null || typeof isDisabled === 'undefined') {
       if (type === 'auto-stop') {
-        isDisabled = !checkResourceClaimCanStop(resourceClaim) || isPartOfWorkshop;
+        if (isPartOfWorkshop) {
+          isDisabled = true;
+        } else {
+          isDisabled = !checkResourceClaimCanStop(resourceClaim);
+        }
       }
       if (type === 'auto-destroy') {
-        isDisabled = !resourceClaim?.status?.lifespan || isPartOfWorkshop;
+        if (isPartOfWorkshop) {
+          isDisabled = true;
+        } else {
+          isDisabled = !resourceClaim?.status?.lifespan;
+        }
       }
     }
   }
@@ -113,7 +121,6 @@ const AutoStopDestroy: React.FC<{
       }
     }
   }
-
   return (
     <span>
       <Button
