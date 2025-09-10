@@ -1,3 +1,43 @@
 = Workshop Provisioner
 
 Component to deploy services for workshops.
+
+== Auto-Scaling
+
+The Workshop Provisioner supports automatic scaling of UserAssignments based on allocation demand. When the utilization rate exceeds a configured threshold, the system automatically increases the number of ResourceClaims to provide more UserAssignments.
+
+=== Configuration
+
+Auto-scaling is configured in the Workshop spec under the `autoScaling` section:
+
+[source,yaml]
+----
+spec:
+  autoScaling:
+    enabled: true              # Enable/disable auto-scaling
+    threshold: 0.8             # Scale when 80% of UserAssignments are allocated
+    scaleFactor: 1.5           # Increase capacity by 50% when scaling
+    maxProvisions: 100         # Maximum number of provisions per WorkshopProvision
+----
+
+=== Parameters
+
+* `enabled` (boolean, default: false): Enable or disable auto-scaling functionality
+* `threshold` (float, default: 0.8): Utilization threshold (0.0-1.0) that triggers scaling
+* `scaleFactor` (float, default: 1.5): Multiplier for capacity increase when scaling
+* `maxProvisions` (integer, default: 100): Maximum number of provisions allowed per WorkshopProvision
+
+=== How it Works
+
+1. The Workshop continuously monitors UserAssignment allocation rates
+2. When `assigned_users / total_users >= threshold`, auto-scaling is triggered for each WorkshopProvision
+3. Each WorkshopProvision independently manages its own auto-scaling:
+   - Sets `autoScalingActive: true` in status to prevent concurrent scaling
+   - Increases its `count` by the specified `scaleFactor`
+   - Clears the flag when all ResourceClaims are complete (success/failed)
+4. New ResourceClaims are created automatically, generating additional UserAssignments
+5. Race conditions are prevented by the per-provision `autoScalingActive` flag
+
+=== Example
+
+See link:example-auto-scaling-workshop.yaml[example-auto-scaling-workshop.yaml] for a complete Workshop configuration with auto-scaling enabled.

@@ -458,3 +458,39 @@ class WorkshopProvision(CachedKopfObject):
                     }
                 }
             )
+
+    async def handle_auto_scaling(self, workshop_utilization_rate, scaling_threshold, scaling_factor, max_provisions):
+        """Handle auto-scaling for this WorkshopProvision"""
+        
+        # Check if auto-scaling is already active for this provision
+        if self.status.get('autoScalingActive', False):
+            # Check if we can clear the flag (all ResourceClaims are complete)
+            all_complete = await self._check_auto_scaling_completion()
+            if all_complete:
+                await self.merge_patch_status({"autoScalingActive": None})
+            return  # Skip scaling if still active
+        
+        # Calculate how many additional ResourceClaims this provision needs
+        current_count = self.count
+        target_count = max(current_count + 1, int(current_count * scaling_factor))
+        
+        # Respect max provisions limit
+        if target_count > max_provisions:
+            target_count = max_provisions
+            
+        if target_count > current_count:
+            # Set auto-scaling flag and update count
+            await self.merge_patch({
+                "spec": {"count": target_count},
+                "status": {"autoScalingActive": True}
+            })
+            
+            print(f"Auto-scaled {self.name}: {current_count} → {target_count} provisions "
+                  f"(workshop utilization: {workshop_utilization_rate:.2%}, threshold: {scaling_threshold:.2%})")
+
+    async def _check_auto_scaling_completion(self):
+        """Check if all ResourceClaims are complete (success or failed)"""
+        async for resource_claim in self.list_resource_claims():
+            if not resource_claim.provision_complete and not resource_claim.is_failed:
+                return False  # Still have pending ResourceClaims
+        return True  # All ResourceClaims are complete
