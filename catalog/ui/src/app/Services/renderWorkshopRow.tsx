@@ -85,13 +85,7 @@ const renderWorkshopRow = ({
   const statusCell = (
     <>
       {workshop.resourceClaims && workshop.resourceClaims.length > 0 ? (
-        <ServiceStatus
-          creationTime={Date.parse(workshop.resourceClaims[0].metadata.creationTimestamp)}
-          resource={getMostRelevantResourceAndTemplate(workshop.resourceClaims[0]).resource}
-          resourceTemplate={getMostRelevantResourceAndTemplate(workshop.resourceClaims[0]).template}
-          resourceClaim={workshop.resourceClaims[0]}
-          summary={workshop.resourceClaims[0].status?.summary}
-        />
+        <ServiceStatus resourceClaim={workshop.resourceClaims[0]} />
       ) : autoStartTime && autoStartTime > Date.now() ? (
         <span className="services-item__status--scheduled" key="scheduled">
           <CheckCircleIcon key="scheduled-icon" /> Scheduled

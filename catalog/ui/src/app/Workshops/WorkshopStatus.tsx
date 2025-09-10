@@ -54,7 +54,7 @@ const WorkshopStatus: React.FC<{
       } else {
         resourceClaimsStatus.push({
           uid: resourceClaim.metadata.uid,
-          state: getStatus(currentState, desiredState, creationTime, _startTime, _stopTime).statusName,
+          state: getStatus(currentState, desiredState, creationTime, _startTime, _stopTime, resourceClaim, resource, resourceTemplate).statusName,
         });
       }
     }

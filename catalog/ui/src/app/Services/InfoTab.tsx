@@ -75,13 +75,7 @@ const InfoTab: React.FC<{
           <DescriptionListGroup>
             <DescriptionListTerm>Status:</DescriptionListTerm>
             <DescriptionListDescription>
-              <ServiceStatus
-                creationTime={Date.parse(resourceClaim.metadata.creationTimestamp)}
-                resource={mostRelevantResource}
-                resourceTemplate={mostRelevantTemplate}
-                resourceClaim={resourceClaim}
-                summary={resourceClaim.status?.summary}
-              />
+              <ServiceStatus resourceClaim={resourceClaim} />
             </DescriptionListDescription>
           </DescriptionListGroup>
 

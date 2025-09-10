@@ -1,0 +1,260 @@
+{
+    "apiVersion": "poolboy.gpte.redhat.com/v1",
+    "kind": "ResourceClaim",
+    "metadata": {
+      "annotations": {
+        "babylon.gpte.redhat.com/catalogDisplayName": "babylon-catalog-test",
+        "babylon.gpte.redhat.com/catalogItemDisplayName": "Babylon Empty Config",
+        "babylon.gpte.redhat.com/category": "Other",
+        "babylon.gpte.redhat.com/url": "REDACTED",
+        "demo.redhat.com/info-message-template": "REDACTED",
+        "demo.redhat.com/orderedBy": "email@redhat.com",
+        "demo.redhat.com/provide_salesforce-id_later": "false",
+        "demo.redhat.com/purpose": "QA",
+        "demo.redhat.com/purpose-activity": "Admin",
+        "demo.redhat.com/requester": "email@redhat.com",
+        "demo.redhat.com/salesforce-id": "",
+        "demo.redhat.com/scheduled": "false",
+        "demo.redhat.com/service-alias": "",
+        "poolboy.gpte.redhat.com/resource-claim-init-timestamp": "2025-09-10T09:59:11Z"
+      },
+      "creationTimestamp": "2025-09-10T09:59:08Z",
+      "finalizers": [
+        "poolboy.gpte.redhat.com",
+        "demo.redhat.com/reporting"
+      ],
+      "generation": 2,
+      "labels": {
+        "babylon.gpte.redhat.com/catalogItemName": "tests.babylon-empty-config.prod",
+        "babylon.gpte.redhat.com/catalogItemNamespace": "babylon-catalog-test",
+        "demo.redhat.com/white-glove": "false",
+        "gpte.redhat.com/asset-uuid": "5ff5cd98-7079-4692-84ca-e0250a4da6ee"
+      },
+      "name": "tests.babylon-empty-config.prod-9w9wj",
+      "namespace": "user-email-redhat-com",
+      "resourceVersion": "2957120118",
+      "uid": "743f66f8-0e36-4580-a5cc-945eeb1c544e"
+    },
+    "spec": {
+      "autoDetach": {
+        "when": "status.resources | json_query(\"[?state.spec.vars.current_state == 'provision-failed']\") | length != 0"
+      },
+      "lifespan": {
+        "end": "2025-09-13T09:59:02Z"
+      },
+      "provider": {
+        "name": "tests.babylon-empty-config.prod",
+        "parameterValues": {
+          "bookbag_deploy": false,
+          "bookbag_git_repo": "REDACTED",
+          "example_regex_validated_var": "",
+          "fail_infra": false,
+          "fail_post_infra": false,
+          "fail_post_software": false,
+          "fail_pre_infra": false,
+          "fail_pre_software": false,
+          "fail_software": false,
+          "purpose": "QA",
+          "region": "NA",
+          "stop_timestamp": "2025-09-10T10:21:31Z",
+          "test_empty_config_multi_user": false,
+          "test_empty_config_pause_post_software": false,
+          "test_empty_config_pause_post_software_seconds": 30
+        }
+      }
+    },
+    "status": {
+      "diffBase": "REDACTED",
+      "healthy": true,
+      "lifespan": {
+        "end": "2025-09-13T09:59:02Z",
+        "firstReady": "2025-09-10T10:06:11Z",
+        "maximum": "14d",
+        "relativeMaximum": "5d",
+        "start": "2025-09-10T10:02:00Z"
+      },
+      "provider": {
+        "name": "tests.babylon-empty-config.prod",
+        "parameterValues": {
+          "bookbag_deploy": false,
+          "bookbag_git_repo": "REDACTED",
+          "example_regex_validated_var": "",
+          "fail_infra": false,
+          "fail_post_infra": false,
+          "fail_post_software": false,
+          "fail_pre_infra": false,
+          "fail_pre_software": false,
+          "fail_software": false,
+          "purpose": "QA",
+          "region": "NA",
+          "start_timestamp": "2025-09-10T09:59:12Z",
+          "stop_timestamp": "2025-09-10T10:21:31Z",
+          "test_empty_config_multi_user": false,
+          "test_empty_config_pause_post_software": false,
+          "test_empty_config_pause_post_software_seconds": 30
+        }
+      },
+      "ready": true,
+      "resourceHandle": {
+        "apiVersion": "poolboy.gpte.redhat.com/v1",
+        "kind": "ResourceHandle",
+        "name": "guid-s6vg7",
+        "namespace": "poolboy"
+      },
+      "resources": [
+        {
+          "healthy": true,
+          "name": "tests.babylon-empty-config.prod",
+          "provider": {
+            "apiVersion": "poolboy.gpte.redhat.com/v1",
+            "kind": "ResourceProvider",
+            "name": "tests.babylon-empty-config.prod",
+            "namespace": "poolboy"
+          },
+          "ready": true,
+          "reference": {
+            "apiVersion": "anarchy.gpte.redhat.com/v1",
+            "kind": "AnarchySubject",
+            "name": "tests.babylon-empty-config.prod-s6vg7",
+            "namespace": "babylon-anarchy-test"
+          },
+          "state": {
+            "apiVersion": "anarchy.gpte.redhat.com/v1",
+            "kind": "AnarchySubject",
+            "metadata": {
+              "annotations": {
+                "anarchy.gpte.redhat.com/spec-sha256": "0hf7yszuz0ZGflNVZt74Z0GbtC09tWH9NKoOiY0hI/8="
+              },
+              "creationTimestamp": "2025-09-10T10:04:50Z",
+              "finalizers": [
+                "anarchy.gpte.redhat.com",
+                "anarchy.gpte.redhat.com/subject",
+                "demo.redhat.com/reporting"
+              ],
+              "labels": {
+                "anarchy.gpte.redhat.com/governor": "tests.babylon-empty-config.prod",
+                "state": "stopped"
+              },
+              "name": "tests.babylon-empty-config.prod-s6vg7",
+              "namespace": "babylon-anarchy-test",
+              "resourceVersion": "2957116878",
+              "uid": "111702ea-5ed9-4be1-8b2d-88bdc19105b7"
+            },
+            "spec": {
+              "governor": "tests.babylon-empty-config.prod",
+              "vars": {
+                "action_schedule": {
+                  "default_runtime": "4h",
+                  "maximum_runtime": "8h",
+                  "start": "2025-09-10T09:59:12Z",
+                  "stop": "2025-09-10T10:21:31Z"
+                },
+                "check_status_state": "",
+                "current_state": "stopped",
+                "desired_state": "stopped",
+                "healthy": true,
+                "job_vars": {
+                  "bookbag_deploy": false,
+                  "bookbag_git_repo": "REDACTED",
+                  "cloud_provider": "test",
+                  "example_regex_validated_var": "",
+                  "fail_infra": false,
+                  "fail_post_infra": false,
+                  "fail_post_software": false,
+                  "fail_pre_infra": false,
+                  "fail_pre_software": false,
+                  "fail_software": false,
+                  "guid": "s6vg7",
+                  "platform": "babylon",
+                  "region": "NA",
+                  "test_empty_config_multi_user": false,
+                  "test_empty_config_pause_post_software": false,
+                  "test_empty_config_pause_post_software_seconds": 30,
+                  "uuid": "f3e8adc2-272e-5ac8-bdfc-de0af1c32c24"
+                },
+                "provision_data": {
+                  "GUID": "s6vg7",
+                  "random_string": "XkjwJBdRvRxHElv"
+                },
+                "provision_messages": [
+                  "GUID is s6vg7",
+                  "Some random string ZKZEZCeolSJnbtT"
+                ]
+              }
+            },
+            "status": {
+              "actions": {
+                "provision": {
+                  "completeTimestamp": "2025-09-10T10:06:11Z",
+                  "startTimestamp": "2025-09-10T10:05:17Z",
+                  "state": "successful"
+                },
+                "stop": {
+                  "completeTimestamp": "2025-09-10T10:24:26Z",
+                  "startTimestamp": "2025-09-10T10:23:36Z",
+                  "state": "successful"
+                }
+              },
+              "pendingActions": [],
+              "runStatus": "successful",
+              "runs": {
+                "active": []
+              },
+              "supportedActions": {
+                "destroy": {},
+                "provision": {},
+                "start": {},
+                "status": {},
+                "stop": {}
+              },
+              "towerJobs": {
+                "provision": {
+                  "completeTimestamp": "2025-09-10T10:06:11Z",
+                  "deployerJob": 1542935,
+                  "jobStatus": "successful",
+                  "startTimestamp": "2025-09-10T10:05:13Z",
+                  "towerHost": "REDACTED",
+                  "towerJobURL": "REDACTED"
+                },
+                "stop": {
+                  "completeTimestamp": "2025-09-10T10:24:26Z",
+                  "deployerJob": 1543005,
+                  "jobStatus": "successful",
+                  "startTimestamp": "2025-09-10T10:23:32Z",
+                  "towerHost": "REDACTED",
+                  "towerJobURL": "REDACTED"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "summary": {
+        "agnosticv": {
+          "account": "tests",
+          "asset_uuid": "5ff5cd98-7079-4692-84ca-e0250a4da6ee",
+          "path": "REDACTED",
+          "repo": "rhpds-agnosticv",
+          "short_name": "babylon-empty-config",
+          "stage": "prod"
+        },
+        "catalog_item_name": "tests.babylon-empty-config.prod",
+        "catalog_item_namespace": "babylon-catalog-test",
+        "provision_data": {
+          "GUID": "s6vg7",
+          "random_string": "XkjwJBdRvRxHElv"
+        },
+        "runtime_default": "4h",
+        "runtime_maximum": "8h",
+        "state": "stopped",
+        "supportedActions": {
+          "destroy": {},
+          "provision": {},
+          "start": {},
+          "status": {},
+          "stop": {}
+        }
+      }
+    }
+  }
+  
