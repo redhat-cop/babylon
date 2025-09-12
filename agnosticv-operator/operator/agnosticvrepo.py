@@ -13,7 +13,7 @@ import aiohttp
 import aioshutil
 import asyncio
 import functools
-import git
+import pygit2
 import kopf
 import kubernetes_asyncio
 import pytimeparse
@@ -58,6 +58,12 @@ class AgnosticVRepo(CachedKopfObject):
         self.git_hexsha = self.git_checkout_ref = self.git_repo = None
         self.git_changed_files = []
         self.git_deleted_files = set()
+        self.fetched_branches = set()  # Track which branches we've fetched fully
+        self.last_pr_commits = {}  # Track last known commit for each PR branch
+        self.last_cleanup_time = None  # Timestamp of last repository cleanup
+        self.cleanup_interval = 3600  # Run git cleanup every hour (in seconds)
+        self.max_tracked_pr_commits = 1000  # Maximum number of PR commits to track
+        self.max_fetched_branches = 500  # Maximum number of fetched branches to track
 
     @property
     def agnosticv_path(self):
@@ -159,68 +165,249 @@ class AgnosticVRepo(CachedKopfObject):
     @property
     def ssh_key_secret_name(self):
         return self.spec.get('sshKey')
+    
+    def needs_full_fetch(self, ref):
+        """Check if we need to fetch full history for a branch"""
+        return ref not in self.fetched_branches
+    
+    def mark_branch_fetched(self, ref):
+        """Mark a branch as having full history fetched"""
+        self.fetched_branches.add(ref)
+    
+    def has_local_ref_changed(self, ref):
+        """Check if local ref differs from remote ref"""
+        try:
+            local_ref_name = f'refs/remotes/origin/{ref}'
+            if local_ref_name not in self.git_repo.references:
+                return True  # Branch doesn't exist locally, needs fetch
+            
+            # For a more thorough check, we could compare with remote
+            # For now, we'll rely on the fetched_branches tracking
+            return False
+        except (pygit2.GitError, KeyError):
+            return True  # If we can't check, assume it needs fetch
 
     def __git_changed_files_in_branch(self, logger, ref=None):
-        merge_base = self.git_repo.git.merge_base('origin/' + self.git_ref, 'origin/' + ref)
-        return self.git_repo.git.diff(merge_base, 'origin/' + ref, name_only=True).split()
+        """
+        Internal method to compute changed files between branches.
+        This runs in a thread executor, so NO LOGGING should be done here.
+        Return tuple of (files, error_message) instead.
+        """
+        try:
+            origin_ref_name = f'refs/remotes/origin/{self.git_ref}'
+            origin_other_name = f'refs/remotes/origin/{ref}'
+            
+            if origin_ref_name not in self.git_repo.references or origin_other_name not in self.git_repo.references:
+                return [], f"References {origin_ref_name} or {origin_other_name} not found in repository"
+                
+            origin_ref_oid = self.git_repo.references[origin_ref_name].target
+            origin_other_oid = self.git_repo.references[origin_other_name].target
+            merge_base_oid = self.git_repo.merge_base(origin_ref_oid, origin_other_oid)
+            
+            # Check if merge_base returned None (no common ancestor)
+            if merge_base_oid is None:
+                return [], f"No common ancestor found between {origin_ref_name} and {origin_other_name}"
+            
+            # Get commit objects from OIDs for diff()
+            # Use direct indexing for commit objects (pygit2 standard approach)
+            try:
+                merge_base_commit = self.git_repo[merge_base_oid]
+                origin_other_commit = self.git_repo[origin_other_oid]
+            except (KeyError, TypeError):
+                # If we can't get the commit objects, return empty list
+                return [], f"Unable to retrieve commit objects for OIDs {merge_base_oid} or {origin_other_oid}"
+            
+            # Ensure we have commit objects, not other git object types
+            if merge_base_commit.type != pygit2.GIT_OBJECT_COMMIT or origin_other_commit.type != pygit2.GIT_OBJECT_COMMIT:
+                return [], f"One of the OIDs {merge_base_oid} or {origin_other_oid} is not a commit"
+            
+            diff = self.git_repo.diff(merge_base_commit, origin_other_commit)
+            
+            return [delta.new_file.path if delta.new_file.path else delta.old_file.path for delta in diff.deltas], None
+        except (pygit2.GitError, KeyError, ValueError, TypeError) as e:
+            return [], f"Unable to compute changed files in branch {ref}: {e}"
 
     def __git_repo_checkout(self, logger, ref=None):
         if not ref:
             ref = self.git_ref
 
-        if ref in self.git_repo.remotes.origin.refs:
-            self.git_repo.git.checkout(f"origin/{ref}")
-            self.git_hexsha = self.git_repo.head.commit.hexsha
-        elif re.match(r'[0-9a-f]+$', ref):
-            try:
-                self.git_repo.git.checkout(ref)
-            except git.exc.GitCommandError:
-                raise kopf.TemporaryError(f"Unable to checkout commit {self.git_hexsha}", delay=60)
-            self.git_hexsha = self.git_repo.head.commit.hexsha
-        else:
-            raise kopf.TemporaryError(f"Unable to resolve reference {ref}", delay=60)
+        try:
+            # Try to checkout as a remote branch first
+            remote_ref = f'refs/remotes/origin/{ref}'
+            if remote_ref in self.git_repo.references:
+                target_oid = self.git_repo.references[remote_ref].target
+                commit = self.git_repo[target_oid]
+                self.git_repo.checkout_tree(commit.tree)
+                # Set HEAD to point to this commit (detached HEAD)
+                self.git_repo.set_head(target_oid)
+                self.git_hexsha = str(target_oid)
+            # Try as direct commit hash
+            elif re.match(r'[0-9a-f]+$', ref):
+                try:
+                    target_oid = pygit2.Oid(hex=ref)
+                    commit = self.git_repo[target_oid]
+                    self.git_repo.checkout_tree(commit.tree)
+                    self.git_repo.set_head(target_oid)
+                    self.git_hexsha = str(target_oid)
+                except (pygit2.GitError, ValueError, KeyError):
+                    raise kopf.TemporaryError(f"Unable to checkout commit {ref}", delay=60)
+            else:
+                raise kopf.TemporaryError(f"Unable to resolve reference {ref}", delay=60)
+        except pygit2.GitError as e:
+            raise kopf.TemporaryError(f"Git checkout failed: {e}", delay=60)
 
         self.git_checkout_ref = ref
 
     def __git_repo_clone(self, logger):
-        self.git_repo = git.Repo.clone_from(
-            env = self.git_env,
-            to_path = self.git_repo_path,
-            url = self.git_url,
-        )
-        self.__git_repo_checkout(logger=logger)
-        logger.info(f"Cloned {self.git_ref} [{self.git_hexsha}]")
+        # Create callbacks for authentication if SSH key is provided
+        callbacks = None
+        if self.ssh_key_secret_name and os.path.exists(self.git_ssh_key_path):
+            def credentials_callback(url, username_from_url, allowed_types):
+                if allowed_types & pygit2.GIT_CREDENTIAL_SSH_KEY:
+                    return pygit2.Keypair(
+                        username='git',
+                        pubkey=f'{self.git_ssh_key_path}.pub',
+                        privkey=self.git_ssh_key_path,
+                        passphrase=''
+                    )
+                return None
+            
+            # For pygit2, we need to handle certificate checking differently
+            def certificate_check_callback(cert, valid, host):
+                # Accept all certificates for now (equivalent to original SSH settings)
+                # TODO: Implement proper known_hosts checking
+                return True
+                
+            callbacks = pygit2.RemoteCallbacks(
+                credentials=credentials_callback,
+                certificate_check=certificate_check_callback
+            )
+        
+        try:
+            # Clone with full history for optimal merge base calculations
+            # This is a one-time cost that enables efficient incremental updates
+            self.git_repo = pygit2.clone_repository(
+                url=self.git_url,
+                path=self.git_repo_path,
+                callbacks=callbacks,
+                bare=False,
+                checkout_branch=self.git_ref
+                # No depth limit - we want full history for efficient operations
+            )
+            self.__git_repo_checkout(logger=logger)
+            self.mark_branch_fetched(self.git_ref)
+            logger.info(f"Cloned {self.git_ref} [{self.git_hexsha}] with full history")
+        except pygit2.GitError as e:
+            raise kopf.TemporaryError(f"Git clone failed: {e}", delay=60)
 
     def __git_repo_pull(self, logger):
         if not self.git_repo:
-            self.git_repo = git.Repo(self.git_repo_path)
-        with self.git_repo.git.custom_environment(**self.git_env):
-            self.git_repo.remotes.origin.fetch()
-        prev_hexsha = self.git_hexsha
-        self.__git_repo_checkout(logger=logger)
-
-        self.git_changed_files.clear()
-        self.git_deleted_files.clear()
-
-        if prev_hexsha == self.git_hexsha:
-            return
-
-        logger.info(f"Checked out {self.git_ref} [{self.git_hexsha}]")
-
-        if not self.last_successful_git_hexsha:
-            return
-
-        git_diff = self.git_repo.git.diff(
-            self.last_successful_git_hexsha, name_status=True, no_renames=True
-        )
-        if not git_diff:
-            return
-        for line in git_diff.split("\n"):
-            change, path = line.split()
-            if change == 'D':
-                self.git_deleted_files.add(path)
+            self.git_repo = pygit2.Repository(self.git_repo_path)
+            # Initialize git_hexsha from current HEAD if not set
+            if not self.git_hexsha:
+                try:
+                    head = self.git_repo.head
+                    self.git_hexsha = str(head.target)
+                except pygit2.GitError:
+                    # Repository might not have any commits yet
+                    self.git_hexsha = None
+            
+        # Create callbacks for authentication if SSH key is provided
+        callbacks = None
+        if self.ssh_key_secret_name and os.path.exists(self.git_ssh_key_path):
+            def credentials_callback(url, username_from_url, allowed_types):
+                if allowed_types & pygit2.GIT_CREDENTIAL_SSH_KEY:
+                    return pygit2.Keypair(
+                        username='git',
+                        pubkey=f'{self.git_ssh_key_path}.pub',
+                        privkey=self.git_ssh_key_path,
+                        passphrase=''
+                    )
+                return None
+            
+            # For pygit2, we need to handle certificate checking differently
+            def certificate_check_callback(cert, valid, host):
+                # Accept all certificates for now (equivalent to original SSH settings)
+                # TODO: Implement proper known_hosts checking
+                return True
+                
+            callbacks = pygit2.RemoteCallbacks(
+                credentials=credentials_callback,
+                certificate_check=certificate_check_callback
+            )
+        
+        try:
+            # Smart incremental fetch strategy
+            remote = self.git_repo.remotes['origin']
+            
+            # Check if we need to fetch the main branch
+            if self.needs_full_fetch(self.git_ref):
+                # First time fetching this branch - get full history
+                main_refspec = f'refs/heads/{self.git_ref}:refs/remotes/origin/{self.git_ref}'
+                remote.fetch(
+                    refspecs=[main_refspec],
+                    callbacks=callbacks
+                    # No depth limit for full history
+                )
+                self.mark_branch_fetched(self.git_ref)
+                logger.info(f"Fetched full history for {self.git_ref}")
             else:
-                self.git_changed_files.append(path)
+                # Incremental update - just get new commits
+                main_refspec = f'refs/heads/{self.git_ref}:refs/remotes/origin/{self.git_ref}'
+                remote.fetch(
+                    refspecs=[main_refspec],
+                    callbacks=callbacks
+                    # No depth limit for incremental - git is smart about this
+                )
+                logger.debug(f"Incremental fetch for {self.git_ref}")
+            
+            # If GitHub preload PRs is enabled, handle PR branches intelligently
+            if self.github_preload_pull_requests:
+                try:
+                    # For PR processing, we fetch all branches but git will only download
+                    # what's actually new since we have full history
+                    logger.debug("Fetching all branches for PR processing...")
+                    remote.fetch(
+                        refspecs=["+refs/heads/*:refs/remotes/origin/*"],
+                        callbacks=callbacks
+                        # No depth limit - git handles incremental efficiently with full history
+                    )
+                    logger.info(f"Fetched all refs (incremental update with full history cache)")
+                except pygit2.GitError as e:
+                    logger.warning(f"Failed to fetch all branches: {e}, falling back to individual fetches")
+            
+            prev_hexsha = self.git_hexsha
+            self.__git_repo_checkout(logger=logger)
+
+            self.git_changed_files.clear()
+            self.git_deleted_files.clear()
+
+            if prev_hexsha == self.git_hexsha:
+                return
+
+            logger.info(f"Checked out {self.git_ref} [{self.git_hexsha}]")
+
+            if not self.last_successful_git_hexsha:
+                return
+
+            # Get diff between last successful commit and current
+            try:
+                old_oid = pygit2.Oid(hex=self.last_successful_git_hexsha)
+                new_oid = pygit2.Oid(hex=self.git_hexsha)
+                diff = self.git_repo.diff(old_oid, new_oid)
+                
+                for delta in diff.deltas:
+                    if delta.status == pygit2.GIT_DELTA_DELETED:
+                        self.git_deleted_files.add(delta.old_file.path)
+                    else:
+                        # Use new_file.path for added/modified, old_file.path for renamed
+                        path = delta.new_file.path if delta.new_file.path else delta.old_file.path
+                        self.git_changed_files.append(path)
+            except (pygit2.GitError, ValueError) as e:
+                logger.warning(f"Unable to compute diff: {e}")
+                
+        except pygit2.GitError as e:
+            raise kopf.TemporaryError(f"Git fetch failed: {e}", delay=60)
 
     def validate_component_definition(self, definition, source):
         self.validate_execution_environment(
@@ -357,6 +544,7 @@ class AgnosticVRepo(CachedKopfObject):
         }
 
         if self.github_preload_pull_requests:
+            logger.info(f"Full history cache in place for repo {self.name} - processing PRs efficiently")
             github_token = await self.get_github_token()
             pull_requests = []
             async with aiohttp.ClientSession() as session:
@@ -369,12 +557,57 @@ class AgnosticVRepo(CachedKopfObject):
                     }
                 ) as response:
                     pull_requests = await response.json()
+                    logger.info(f"Found {len(pull_requests)} open PRs to process")
+                    
+                    # Cleanup: Remove tracking for PRs that are no longer open
+                    open_pr_refs = {pr['head']['ref'] for pr in pull_requests}
+                    stale_refs = set(self.last_pr_commits.keys()) - open_pr_refs
+                    if stale_refs:
+                        logger.info(f"Cleaning up {len(stale_refs)} closed/merged PR branches: {sorted(stale_refs)}")
+                        for stale_ref in stale_refs:
+                            del self.last_pr_commits[stale_ref]
+                            self.fetched_branches.discard(stale_ref)
+                    
+                    # Memory management: Enforce size limits on tracking dictionaries
+                    await self.enforce_memory_limits(logger=logger)
+                    
                     pull_requests.reverse()
+                    processed_branches = set()
                     for pull_request in pull_requests:
                         ref = pull_request['head']['ref']
-                        await self.git_repo_checkout(logger=logger, ref=ref)
-                        logger.info(f"Checked out {ref} [{self.git_hexsha}] for PR #{pull_request['number']}")
-                        changed_files = await self.git_changed_files_in_branch(logger=logger, ref=ref)
+                        pr_number = pull_request['number']
+                        current_commit = pull_request['head']['sha']
+                        
+                        # Check if this branch has changed since last time
+                        last_known_commit = self.last_pr_commits.get(ref)
+                        is_new_branch = ref not in processed_branches and f'refs/remotes/origin/{ref}' not in self.git_repo.references
+                        has_new_commits = last_known_commit != current_commit
+                        
+                        if is_new_branch:
+                            logger.info(f"New PR branch detected: {ref} (PR #{pr_number})")
+                        elif not has_new_commits:
+                            logger.debug(f"PR branch {ref} (PR #{pr_number}) unchanged, skipping checkout")
+                            # Skip processing - no changes, don't add to processed_branches
+                            continue
+                        else:
+                            logger.info(f"PR branch {ref} (PR #{pr_number}) has new commits: {last_known_commit} -> {current_commit}")
+                        
+                        processed_branches.add(ref)
+                        
+                        # Only checkout if the branch is new or has changes
+                        try:
+                            await self.git_repo_checkout(logger=logger, ref=ref)
+                            self.last_pr_commits[ref] = current_commit  # Update our tracking
+                            
+                            if is_new_branch:
+                                logger.info(f"Checked out new PR branch {ref} [{self.git_hexsha}] for PR #{pr_number}")
+                            else:
+                                logger.info(f"Checked out {ref} [{self.git_hexsha}] for PR #{pr_number}")
+                            changed_files = await self.git_changed_files_in_branch(logger=logger, ref=ref)
+                        except kopf.TemporaryError:
+                            # Branch might not exist locally, skip this PR
+                            logger.warning(f"Unable to checkout branch {ref} for PR #{pr_number}, skipping")
+                            continue
 
                         error_message = None
                         try:
@@ -406,6 +639,11 @@ class AgnosticVRepo(CachedKopfObject):
 
         component_sources = list(component_sources_by_path.values())
         component_sources.sort(key=lambda cs: cs.sortkey)
+        
+        if self.github_preload_pull_requests:
+            skipped_branches = len(pull_requests) - len(processed_branches)
+            logger.info(f"Optimization summary for {self.name}: processed {len(processed_branches)}/{len(pull_requests)} PRs (skipped {skipped_branches} unchanged), found {len(component_sources)} total components")
+        
         return component_sources, deleted_component_names, error_messages
 
     async def get_github_token(self):
@@ -435,9 +673,12 @@ class AgnosticVRepo(CachedKopfObject):
         return b64decode(secret_data).decode('utf-8')
 
     async def git_changed_files_in_branch(self, logger, ref):
-        return await asyncio.get_event_loop().run_in_executor(
+        files, error_message = await asyncio.get_event_loop().run_in_executor(
             None, self.__git_changed_files_in_branch, logger, ref
         )
+        if error_message:
+            logger.warning(error_message)
+        return files
 
     async def git_repo_checkout(self, logger, ref=None):
         if not ref:
@@ -460,6 +701,10 @@ class AgnosticVRepo(CachedKopfObject):
             await aiofiles.os.unlink(self.git_ssh_key_path)
         except FileNotFoundError:
             pass
+        try:
+            await aiofiles.os.unlink(f'{self.git_ssh_key_path}.pub')
+        except FileNotFoundError:
+            pass
 
     async def git_repo_sync(self, logger):
         if self.ssh_key_secret_name:
@@ -475,22 +720,139 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def git_ssh_key_write(self):
         await aiofiles.os.makedirs(self.git_base_path, exist_ok=True)
+        
+        # Write private key
+        private_key_content = await self.get_ssh_key()
         async with aiofiles.open(self.git_ssh_key_path, mode='w') as fh:
-            await fh.write(await self.get_ssh_key())
+            await fh.write(private_key_content)
         await aiofiles.os.chmod(self.git_ssh_key_path, 0o600)
+        
+        # Generate public key from private key for pygit2
+        # For pygit2, we need to extract the public key from the private key
+        try:
+            result = await asyncio.create_subprocess_exec(
+                'ssh-keygen', '-y', '-f', self.git_ssh_key_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await result.communicate()
+            if result.returncode == 0:
+                async with aiofiles.open(f'{self.git_ssh_key_path}.pub', mode='w') as fh:
+                    await fh.write(stdout.decode('utf-8'))
+                await aiofiles.os.chmod(f'{self.git_ssh_key_path}.pub', 0o644)
+            else:
+                # Fallback: create a dummy public key file to avoid pygit2 errors
+                async with aiofiles.open(f'{self.git_ssh_key_path}.pub', mode='w') as fh:
+                    await fh.write('')
+        except Exception:
+            # If ssh-keygen fails, create empty public key file to avoid errors
+            async with aiofiles.open(f'{self.git_ssh_key_path}.pub', mode='w') as fh:
+                await fh.write('')
+
+    async def git_repo_cleanup(self, logger):
+        """
+        Perform git repository cleanup including:
+        - Remove stale remote branches that no longer exist
+        - Run git garbage collection to optimize storage
+        - Prune unreachable objects
+        """
+        if not self.git_repo:
+            return
+            
+        now = datetime.now(timezone.utc).timestamp()
+        if (self.last_cleanup_time and 
+            now - self.last_cleanup_time < self.cleanup_interval):
+            return
+            
+        try:
+            logger.info(f"Starting git repository cleanup for {self.name}")
+            
+            # Get list of remote branches that no longer exist
+            remote = self.git_repo.remotes['origin']
+            
+            # Fetch to update remote refs (lightweight operation)
+            callbacks = None
+            if self.ssh_key_secret_name and os.path.exists(self.git_ssh_key_path):
+                def credentials_callback(url, username_from_url, allowed_types):
+                    if allowed_types & pygit2.GIT_CREDENTIAL_SSH_KEY:
+                        return pygit2.Keypair(
+                            username='git',
+                            pubkey=f'{self.git_ssh_key_path}.pub',
+                            privkey=self.git_ssh_key_path,
+                            passphrase=''
+                        )
+                    return None
+                
+                def certificate_check_callback(cert, valid, host):
+                    return True
+                    
+                callbacks = pygit2.RemoteCallbacks(
+                    credentials=credentials_callback,
+                    certificate_check=certificate_check_callback
+                )
+            
+            # Prune remote branches (remove refs to deleted branches)
+            remote.fetch(callbacks=callbacks, prune=True)
+            
+            # Run git garbage collection using subprocess for better control
+            proc = await asyncio.create_subprocess_exec(
+                'git', '-C', self.git_repo_path, 'gc', '--auto', '--prune=now',
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await proc.communicate()
+            
+            if proc.returncode == 0:
+                logger.info(f"Git cleanup completed successfully for {self.name}")
+                if stdout:
+                    logger.debug(f"Git gc output: {stdout.decode('utf-8').strip()}")
+            else:
+                logger.warning(f"Git cleanup had issues for {self.name}: {stderr.decode('utf-8').strip()}")
+            
+            self.last_cleanup_time = now
+            
+        except Exception as e:
+            logger.warning(f"Git cleanup failed for {self.name}: {e}")
+
+    async def enforce_memory_limits(self, logger):
+        """
+        Enforce memory limits on tracking dictionaries to prevent unbounded growth.
+        Remove oldest entries when limits are exceeded.
+        """
+        # Limit PR commit tracking dictionary
+        if len(self.last_pr_commits) > self.max_tracked_pr_commits:
+            excess_count = len(self.last_pr_commits) - self.max_tracked_pr_commits
+            # Remove oldest entries (dict maintains insertion order in Python 3.7+)
+            oldest_refs = list(self.last_pr_commits.keys())[:excess_count]
+            for ref in oldest_refs:
+                del self.last_pr_commits[ref]
+            logger.info(f"Memory cleanup: removed {excess_count} oldest PR commit entries from tracking")
+        
+        # Limit fetched branches set
+        if len(self.fetched_branches) > self.max_fetched_branches:
+            excess_count = len(self.fetched_branches) - self.max_fetched_branches
+            # For sets, we can't easily determine "oldest", so remove some arbitrary entries
+            # In practice, this shouldn't happen often since we clean up closed PRs
+            excess_branches = list(self.fetched_branches)[:excess_count]
+            for branch in excess_branches:
+                self.fetched_branches.discard(branch)
+            logger.info(f"Memory cleanup: removed {excess_count} branch entries from fetched tracking")
 
     async def handle_create(self, logger):
-        await self.manage_components(logger=logger)
+        # Initial creation requires full processing to establish baseline
+        await self.manage_components(logger=logger, changed_only=False)
 
     async def handle_delete(self, logger):
         await self.git_repo_delete(logger=logger)
         await self.delete_components(logger=logger)
 
     async def handle_resume(self, logger):
-        await self.manage_components(logger=logger)
+        # Resume operations should use incremental processing for efficiency
+        await self.manage_components(logger=logger, changed_only=True)
 
     async def handle_update(self, logger):
-        await self.manage_components(logger=logger)
+        # Update operations should use incremental processing for efficiency  
+        await self.manage_components(logger=logger, changed_only=True)
 
     async def manage_component(self, source, logger):
         definition = await self.get_component_definition(source=source, logger=logger)
@@ -594,13 +956,19 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def __manage_components(self, logger, changed_only):
         await self.git_repo_sync(logger=logger)
+        # Periodic cleanup of git repository and stale branch tracking
+        await self.git_repo_cleanup(logger=logger)
         # Store the hexsha to record in status if successful
         git_hexsha = self.git_hexsha
 
         if changed_only:
             if git_hexsha == self.last_successful_git_hexsha:
-                logger.debug(f"Unchanged [{git_hexsha}]")
-                return
+                # If GitHub preload PRs is enabled, we still need to process PRs even if main branch unchanged
+                if self.github_preload_pull_requests:
+                    logger.debug(f"Main branch unchanged [{git_hexsha}], but processing PRs")
+                else:
+                    logger.debug(f"Unchanged [{git_hexsha}]")
+                    return
             elif self.last_successful_git_hexsha:
                 logger.info(f"Updating components from {self.last_successful_git_hexsha} to {git_hexsha}")
             else:

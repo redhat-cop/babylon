@@ -47,7 +47,7 @@ executionEnvironmentAllowList:
 # Allow custom aap2-workshop image
 - name: ^aap2-workshop$
 
-pollingInterval: 1m
+pollingInterval: 10s
 
 resourceBroker:
   apiGroup: poolboy.gpte.redhat.com
