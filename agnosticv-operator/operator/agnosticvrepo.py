@@ -564,6 +564,9 @@ class AgnosticVRepo(CachedKopfObject):
                     stale_refs = set(self.last_pr_commits.keys()) - open_pr_refs
                     if stale_refs:
                         logger.info(f"Cleaning up {len(stale_refs)} closed/merged PR branches: {sorted(stale_refs)}")
+                        # Closing PRs is not a frequent event, so we can afford to do a full scan
+                        self._has_closed_prs_this_cycle = True  # Trigger full cleanup scan
+                        
                         for stale_ref in stale_refs:
                             del self.last_pr_commits[stale_ref]
                             self.fetched_branches.discard(stale_ref)
@@ -955,6 +958,9 @@ class AgnosticVRepo(CachedKopfObject):
             })
 
     async def __manage_components(self, logger, changed_only):
+        # Reset flag for detecting closed PRs in this cycle
+        self._has_closed_prs_this_cycle = False
+        
         await self.git_repo_sync(logger=logger)
         # Periodic cleanup of git repository and stale branch tracking
         await self.git_repo_cleanup(logger=logger)
@@ -1085,8 +1091,11 @@ class AgnosticVRepo(CachedKopfObject):
             }
         })
 
-        # On full sync we delete any components from the repo that were not handled
-        if not changed_only:
+        # Delete components when we've done a full scan OR when PRs were closed
+        # For incremental updates, we can't safely determine what should be deleted
+        # unless we detected closed PRs (stored in get_component_sources)
+        has_closed_prs = hasattr(self, '_has_closed_prs_this_cycle') and self._has_closed_prs_this_cycle
+        if not changed_only or has_closed_prs:
             async for agnosticv_component in AgnosticVComponent.list(
                 label_selector = f"{Babylon.agnosticv_repo_label}={self.name}",
                 namespace = self.namespace,

@@ -94,7 +94,7 @@ async def agnoticvrepo_daemon(logger, stopped, **kwargs):
                 break
             async with agnosticv_repo.lock:
                 await agnosticv_repo.manage_components(
-                    changed_only = not agnosticv_repo.github_preload_pull_requests,
+                    changed_only = agnosticv_repo.github_preload_pull_requests,
                     logger = logger,
                 )
     except asyncio.CancelledError:
