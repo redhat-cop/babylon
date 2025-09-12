@@ -93,10 +93,8 @@ async def agnoticvrepo_daemon(logger, stopped, **kwargs):
             if stopped:
                 break
             async with agnosticv_repo.lock:
-                # Daemon should always use incremental processing for efficiency
-                # Full processing is only needed on initial creation
                 await agnosticv_repo.manage_components(
-                    changed_only = True,
+                    changed_only = not agnosticv_repo.github_preload_pull_requests,
                     logger = logger,
                 )
     except asyncio.CancelledError:
