@@ -25,9 +25,11 @@ import {
   DescriptionListTerm,
   DescriptionListDescription,
   Tooltip,
+  Switch,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
+import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { createMultiWorkshop, dateToApiString, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths, silentFetcher } from '@app/api';
 import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable, AssetMetrics } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
@@ -60,14 +62,17 @@ const MultiWorkshopCreate: React.FC = () => {
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
   const [currentAssetIndex, setCurrentAssetIndex] = useState<number | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<ServiceNamespace>(userNamespace);
+  const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
   const [createFormData, setCreateFormData] = useState(() => {
     const now = new Date();
-    const endDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    // Default start date is 6 hours from now (for provisioning), actual workshop starts 6 hours later
+    const defaultProvisioningDate = new Date(now.getTime() + 6 * 60 * 60 * 1000); 
+    const endDateTime = new Date(defaultProvisioningDate.getTime() + 30 * 60 * 60 * 1000); // 24h after actual start
 
     return {
       name: '',
       description: '',
-      startDate: now,
+      startDate: defaultProvisioningDate, // This is actually the provisioning date
       endDate: endDateTime,
       numberSeats: 1,
       salesforceId: '',
@@ -589,35 +594,120 @@ const MultiWorkshopCreate: React.FC = () => {
                 />
               </FormGroup>
 
-              <Split hasGutter>
-                <SplitItem isFilled>
-                  <FormGroup label="Start provisioning workshops" isRequired fieldId="startDate">
+              {/* Workshop Dates - Start Date and Provisioning Date side by side */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
+                <FormGroup fieldId="startDate" isRequired label="Start Date">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
                     <DateTimePicker
-                      key="start-date"
-                      defaultTimestamp={createFormData.startDate.getTime()}
-                      onSelect={(date: Date) => {
+                      key={`start-${useDirectProvisioningDate}`}
+                      defaultTimestamp={
+                        createFormData.startDate
+                          ? createFormData.startDate.getTime() + 6 * 60 * 60 * 1000 // Show actual start date (6 hours after provisioning)
+                          : Date.now() + 6 * 60 * 60 * 1000
+                      }
+                      isDisabled={useDirectProvisioningDate}
+                      forceUpdateTimestamp={createFormData.startDate?.getTime() + 6 * 60 * 60 * 1000}
+                      onSelect={(d: Date) => {
+                        // Calculate provisioning date as 6 hours BEFORE start date
+                        const provisioningDate = new Date(d.getTime() - 6 * 60 * 60 * 1000);
                         setCreateFormData(prev => {
-                          // Auto-set endDate to 24 hours after startDate
-                          const endDateTime = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+                          const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000); // End date based on actual start date
                           return {
                             ...prev,
-                            startDate: date,
+                            startDate: provisioningDate, // Internal API uses provisioning date as startDate
                             endDate: endDateTime,
                           };
                         });
                       }}
+                      minDate={Date.now() + 6 * 60 * 60 * 1000} // Minimum must account for 6-hour provisioning lead time
                     />
-                    <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Date and time are based on your device's timezone
+                    <Tooltip
+                      position="right"
+                      content={
+                        <p>
+                          Select the date you'd like the workshop to start. Provisioning will automatically begin 6 hours before this time.
+                        </p>
+                      }
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Select the date you'd like the workshop to start. Provisioning will automatically begin 6 hours before this time."
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                  
+                  {/* Admin Switch */}
+                  {isAdmin && (
+                    <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                      <Switch
+                        id="provisioning-mode-switch"
+                        aria-label="Use direct provisioning date control"
+                        label="Set provisioning date directly (admin mode)"
+                        isChecked={useDirectProvisioningDate}
+                        hasCheckIcon
+                        onChange={(_event, isChecked) => {
+                          setUseDirectProvisioningDate(isChecked);
+                        }}
+                      />
+                      <Tooltip
+                        position="right"
+                        content={
+                          <p>
+                            When enabled, allows direct control of the provisioning date instead of calculating it from
+                            the start date.
+                          </p>
+                        }
+                      >
+                        <OutlinedQuestionCircleIcon
+                          aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
                     </div>
-                  </FormGroup>
-                </SplitItem>
+                  )}
+                </FormGroup>
+
+                {/* Provisioning Date */}
+                <FormGroup fieldId="provisioningDate" label={isAdmin && useDirectProvisioningDate ? "Provisioning Start Date" : " "}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                    {isAdmin && useDirectProvisioningDate ? (
+                      <DateTimePicker
+                        key={`provisioning-${useDirectProvisioningDate}`}
+                        defaultTimestamp={createFormData.startDate?.getTime() || Date.now()}
+                        forceUpdateTimestamp={createFormData.startDate?.getTime()}
+                        onSelect={(d: Date) => {
+                          setCreateFormData(prev => {
+                            const actualStartDate = new Date(d.getTime() + 6 * 60 * 60 * 1000); // Actual start is 6 hours after provisioning
+                            const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
+                            return {
+                              ...prev,
+                              startDate: d, // Direct provisioning date control
+                              endDate: endDateTime,
+                            };
+                          });
+                        }}
+                        minDate={Date.now()}
+                      />
+                    ) : (
+                      <div style={{ 
+                        padding: 'var(--pf-t--global--spacer--sm) 0',
+                        fontSize: '14px',
+                        color: 'var(--pf-t--global--text--color--subtle)'
+                      }}>
+                        Provisioning will automatically begin 6 hours before the selected start date
+                      </div>
+                    )}
+                  </div>
+                </FormGroup>
+              </div>
+
+              <Split hasGutter>
                 <SplitItem isFilled>
                   <FormGroup label="Auto-destroy workshops" isRequired fieldId="endDate">
                     <DateTimePicker
                       key="end-date"
                       defaultTimestamp={createFormData.endDate.getTime()}
-                      minDate={createFormData.startDate.getTime()}
+                      minDate={createFormData.startDate.getTime() + 6 * 60 * 60 * 1000} // Min date is actual start date, not provisioning date
                       onSelect={(date: Date) => {
                         setCreateFormData(prev => ({ ...prev, endDate: date }));
                       }}
