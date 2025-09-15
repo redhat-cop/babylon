@@ -6,3 +6,8 @@
   background-color: var(--pf-t--color--gray--100);
   border: 1px solid var(--pf-t--color--border--default);
 }
+
+.tooltip-icon-only {
+  color: var(--pf-t--global--text--color--subtle);
+  margin-left: var(--pf-t--global--spacer--xs);
+}
