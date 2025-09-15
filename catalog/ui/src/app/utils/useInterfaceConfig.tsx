@@ -5,7 +5,6 @@ import useSession from './useSession';
 type TInterface = {
   incidents_enabled: boolean;
   ratings_enabled: boolean;
-  status_page_id: string;
   status_page_url: string;
   help_text: string;
   help_link: string;
@@ -29,7 +28,6 @@ export default function useInterfaceConfig() {
     return {
       incidents_enabled: false,
       ratings_enabled: false,
-      status_page_id: null,
       status_page_url: '',
       help_link: '',
       help_text: '',
