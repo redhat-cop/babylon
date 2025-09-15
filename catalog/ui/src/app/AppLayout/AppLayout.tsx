@@ -5,7 +5,6 @@ import Header from '@app/Header/Header';
 import LoadingSection from '@app/components/LoadingSection';
 import useDocumentTitle from '@app/utils/useDocumentTitle';
 import useSession from '@app/utils/useSession';
-import useStatusPageEmbed from './useStatusPageEmbed';
 import Navigation from './Navigation';
 import { publicFetcher } from '@app/api';
 import useSWRImmutable from 'swr/immutable';
@@ -22,7 +21,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   const [isMobileView, setIsMobileView] = useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = useState(false);
   useDocumentTitle(title);
-  useStatusPageEmbed();
   const { isAdmin } = useSession().getSession();
   const { partner_connect_header_enabled } = useInterfaceConfig();
 

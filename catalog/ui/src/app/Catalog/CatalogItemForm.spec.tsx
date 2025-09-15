@@ -38,7 +38,6 @@ jest.mock('@app/utils/useInterfaceConfig', () => {
   return jest.fn(() => ({
     incidents_enabled: false,
     ratings_enabled: false,
-    status_page_id: '123',
     status_page_url: 'https://redhat.com',
     help_text: '',
     help_link: '',

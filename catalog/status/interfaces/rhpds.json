@@ -2,7 +2,6 @@
     "incidents_enabled": true,
     "ratings_enabled": true,
     "status_page_url": "https://rhdp.statuspage.io/",
-    "status_page_id": "05mhm9ljgsqq",
     "help_text": "Open Support Case",
     "help_link": "https://red.ht/open-support",
     "internal_help_link": "https://red.ht/demo-help",
