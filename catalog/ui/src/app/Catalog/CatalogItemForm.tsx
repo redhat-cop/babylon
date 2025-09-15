@@ -748,7 +748,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   if (!formState.startDate) {
                     dispatchFormState({
                       type: 'dates',
-                      startDate: new Date(),
+                      startDate: new Date(Date.now() - 6 * 60 * 60 * 1000), // Provisioning date is 6 hours before start
                     });
                   }
                 }}
@@ -857,13 +857,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       key={`start-${useDirectProvisioningDate}`}
                       defaultTimestamp={
                         formState.startDate
-                          ? formState.startDate.getTime() - 6 * 60 * 60 * 1000 // Show start date as 6 hours before provisioning
+                          ? formState.startDate.getTime() + 6 * 60 * 60 * 1000 // Show actual start date (6 hours after provisioning)
                           : Date.now()
                       }
-                      forceUpdateTimestamp={formState.startDate?.getTime() - 6 * 60 * 60 * 1000}
+                      forceUpdateTimestamp={formState.startDate?.getTime() + 6 * 60 * 60 * 1000}
                       onSelect={(d: Date) => {
-                        // Calculate provisioning date as 6 hours after start date
-                        const provisioningDate = new Date(d.getTime() + 6 * 60 * 60 * 1000);
+                        // Calculate provisioning date as 6 hours BEFORE start date
+                        const provisioningDate = new Date(d.getTime() - 6 * 60 * 60 * 1000);
                         dispatchFormState({
                           type: 'dates',
                           startDate: provisioningDate, // Internal API still uses provisioning date as startDate
@@ -878,20 +878,20 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                           endDate: new Date(provisioningDate.getTime() + parseDuration('30h')),
                         });
                       }}
-                      minDate={Date.now()}
+                      minDate={Date.now()} // Allow current time as start date
                       isDisabled={isAdmin && useDirectProvisioningDate}
                     />
                     <Tooltip
                       position="right"
                       content={
                         <p>
-                          Select the date you'd like the workshop to start. Provisioning will begin 6 hours after this
+                          Select the date you'd like the workshop to start. Provisioning will begin 6 hours before this
                           time.
                         </p>
                       }
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="Select the date you'd like the workshop to start. Provisioning will begin 6 hours after this time."
+                        aria-label="Select the date you'd like the workshop to start. Provisioning will begin 6 hours before this time."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
