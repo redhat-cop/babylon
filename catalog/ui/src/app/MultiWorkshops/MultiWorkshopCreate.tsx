@@ -65,9 +65,10 @@ const MultiWorkshopCreate: React.FC = () => {
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
   const [createFormData, setCreateFormData] = useState(() => {
     const now = new Date();
-    // Default start date is 6 hours from now (for provisioning), actual workshop starts 6 hours later
-    const defaultProvisioningDate = new Date(now.getTime() + 6 * 60 * 60 * 1000); 
-    const endDateTime = new Date(defaultProvisioningDate.getTime() + 30 * 60 * 60 * 1000); // 24h after actual start
+    // Default start date is current time (for actual workshop start)
+    // Provisioning will be 6 hours before this
+    const defaultProvisioningDate = new Date(now.getTime() - 6 * 60 * 60 * 1000); 
+    const endDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h after actual start
 
     return {
       name: '',
@@ -603,7 +604,7 @@ const MultiWorkshopCreate: React.FC = () => {
                       defaultTimestamp={
                         createFormData.startDate
                           ? createFormData.startDate.getTime() + 6 * 60 * 60 * 1000 // Show actual start date (6 hours after provisioning)
-                          : Date.now() + 6 * 60 * 60 * 1000
+                          : Date.now()
                       }
                       isDisabled={useDirectProvisioningDate}
                       forceUpdateTimestamp={createFormData.startDate?.getTime() + 6 * 60 * 60 * 1000}
