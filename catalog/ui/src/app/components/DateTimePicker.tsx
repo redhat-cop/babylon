@@ -80,7 +80,7 @@ const DateTimePicker: React.FC<{
 
   // sync updated timestamp from parent
   useEffect(() => {
-    if (!!forceUpdateTimestamp) {
+    if (forceUpdateTimestamp) {
       const dateTime = new Date(forceUpdateTimestamp);
       const { date, time } = getDateAndTime(dateTime);
       setValueDate(date);
@@ -129,16 +129,9 @@ const DateTimePicker: React.FC<{
 
     return true;
   };
-  const rangeValidatorTime = (date: Date) => {
-    if (minDate && date < new Date(minDate)) return false;
-    else if (maxDate && date > new Date(maxDate)) return false;
-
-    return true;
-  };
 
   const timeOptions = hours.map((hour) =>
     minutes
-      .filter((minute) => rangeValidatorTime(getDateTime(valueDate, `${hour}:${minute}`)))
       .map((minute) => (
         <DropdownItem key={`${hour}-${minute}`} value={formatAmPm(`${hour}:${minute}`)} component="button">
           {formatAmPm(`${hour}:${minute}`)}

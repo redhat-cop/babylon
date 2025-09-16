@@ -67,6 +67,7 @@ const CatalogCategorySelector: React.FC<{
       {categories.map((category) => {
         return (
           <Tab
+            key={category}
             eventKey={category}
             title={
               <TabTitleText>

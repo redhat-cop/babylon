@@ -25,6 +25,7 @@ import {
 } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
+import BetaBadge from '@app/components/BetaBadge';
 import useSWRImmutable from 'swr/immutable';
 import useSWR from 'swr';
 import {
@@ -748,7 +749,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   if (!formState.startDate) {
                     dispatchFormState({
                       type: 'dates',
-                      startDate: new Date(Date.now() - 6 * 60 * 60 * 1000), // Provisioning date is 6 hours before start
+                      startDate: new Date(Date.now() - 8 * 60 * 60 * 1000), // Provisioning date is 8 hours before start
                     });
                   }
                 }}
@@ -844,7 +845,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               {/* Start Date and Provisioning Date Row */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
                 {/* Start Date */}
-                <FormGroup fieldId="startDate" isRequired label="Start Date">
+                <FormGroup 
+                  fieldId="startDate" 
+                  isRequired 
+                  label={
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      Start Date
+                      <BetaBadge />
+                    </div>
+                  }
+                >
                   <div
                     style={{
                       display: 'flex',
@@ -857,13 +867,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       key={`start-${useDirectProvisioningDate}`}
                       defaultTimestamp={
                         formState.startDate
-                          ? formState.startDate.getTime() + 6 * 60 * 60 * 1000 // Show actual start date (6 hours after provisioning)
+                          ? formState.startDate.getTime() + 8 * 60 * 60 * 1000 // Show actual start date (8 hours after provisioning)
                           : Date.now()
                       }
-                      forceUpdateTimestamp={formState.startDate?.getTime() + 6 * 60 * 60 * 1000}
+                      forceUpdateTimestamp={formState.startDate?.getTime() + 8 * 60 * 60 * 1000}
                       onSelect={(d: Date) => {
-                        // Calculate provisioning date as 6 hours BEFORE start date
-                        const provisioningDate = new Date(d.getTime() - 6 * 60 * 60 * 1000);
+                        // Calculate provisioning date as 8 hours BEFORE start date
+                        const provisioningDate = new Date(d.getTime() - 8 * 60 * 60 * 1000);
                         dispatchFormState({
                           type: 'dates',
                           startDate: provisioningDate, // Internal API still uses provisioning date as startDate
@@ -879,59 +889,57 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         });
                       }}
                       minDate={Date.now()} // Allow current time as start date
-                      isDisabled={isAdmin && useDirectProvisioningDate}
+                      isDisabled={useDirectProvisioningDate}
                     />
                     <Tooltip
                       position="right"
                       content={
                         <p>
-                          Select the date you'd like the workshop to start. Provisioning will begin 6 hours before this
+                          Select the date you'd like the workshop to start. Provisioning will begin 8 hours before this
                           time.
                         </p>
                       }
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="Select the date you'd like the workshop to start. Provisioning will begin 6 hours before this time."
+                        aria-label="Select the date you'd like the workshop to start. Provisioning will begin 8 hours before this time."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
                   </div>
-                  {/* Admin Toggle - Only visible to admins */}
-                  {isAdmin ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--pf-t--global--spacer--sm)',
-                        marginTop: 'var(--pf-t--global--spacer--md)',
+                  {/* Provisioning Mode Toggle */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--pf-t--global--spacer--sm)',
+                      marginTop: 'var(--pf-t--global--spacer--md)',
+                    }}
+                  >
+                    <Switch
+                      id="provisioning-mode-switch"
+                      aria-label="Use direct provisioning date control"
+                      label="Set provisioning date directly"
+                      isChecked={useDirectProvisioningDate}
+                      hasCheckIcon
+                      onChange={(_event, isChecked) => {
+                        setUseDirectProvisioningDate(isChecked);
                       }}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={
+                        <p>
+                          When enabled, allows direct control of the provisioning date instead of calculating it from
+                          the start date.
+                        </p>
+                      }
                     >
-                      <Switch
-                        id="provisioning-mode-switch"
-                        aria-label="Use direct provisioning date control"
-                        label="Set provisioning date directly (admin mode)"
-                        isChecked={useDirectProvisioningDate}
-                        hasCheckIcon
-                        onChange={(_event, isChecked) => {
-                          setUseDirectProvisioningDate(isChecked);
-                        }}
+                      <OutlinedQuestionCircleIcon
+                        aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
+                        className="tooltip-icon-only"
                       />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            When enabled, allows direct control of the provisioning date instead of calculating it from
-                            the start date.
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  ) : null}
+                    </Tooltip>
+                  </div>
                 </FormGroup>
 
                 {/* Provisioning Date */}
@@ -944,7 +952,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       gap: 'var(--pf-t--global--spacer--md)',
                     }}
                   >
-                    {isAdmin && useDirectProvisioningDate ? (
+                    {useDirectProvisioningDate ? (
                       <DateTimePicker
                         key={`provisioning-${useDirectProvisioningDate}`}
                         defaultTimestamp={formState.startDate?.getTime() || Date.now()}
@@ -974,7 +982,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                           padding: 'var(--pf-t--global--spacer--sm) 0',
                         }}
                       >
-                        Provisioning will automatically begin 6 hours before the selected start date
+                        Provisioning will automatically begin 8 hours before the selected start date
                       </div>
                     )}
                   </div>
