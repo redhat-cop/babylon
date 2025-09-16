@@ -55,16 +55,17 @@ const MultiWorkshopList: React.FC = () => {
   // Use namespace from params or fall back to user's namespace
   const currentNamespace = namespace || userNamespace?.name;
   
+  const hasSearch = searchParams.has('search');
+  const searchValue = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      hasSearch
+        ? searchValue
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [hasSearch, searchValue],
   );
 
   const {
@@ -263,10 +264,10 @@ const MultiWorkshopList: React.FC = () => {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {multiworkshops.length === 0 ? (
           <PageSection hasBodyWrapper={false} key="multiworkshops-list-empty" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No events found" variant="full">
+            <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No multi-workshops found" variant="full">
               <EmptyStateFooter>
                 {keywordFilter ? (
-                  <EmptyStateBody>No events matched your search criteria.</EmptyStateBody>
+                  <EmptyStateBody>No multi-workshops matched your search criteria.</EmptyStateBody>
                 ) : (
                   <EmptyStateBody>
                     Get started by creating your first event to organize multiple workshop sessions.
@@ -298,7 +299,7 @@ const MultiWorkshopList: React.FC = () => {
                   delete: () => showModal({ action: 'delete', multiworkshop }),
                 };
 
-                const cells: any[] = [];
+                const cells: unknown[] = [];
                 cells.push(
                   // Event Name
                   <Link
