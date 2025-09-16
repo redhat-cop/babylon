@@ -436,20 +436,13 @@ const WorkshopsItemDetails: React.FC<{
                 alignItems: 'flex-start',
               }}
             >
-              {/* Start Date and Provisioning Date Row */}
+              {/* Provisioning Date first, then Ready by */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
-                {/* Start Date */}
+                {/* Provisioning Date */}
                 <FormGroup
-                  fieldId="workshopStartDate"
+                  fieldId="workshopProvisioningDate"
                   isRequired
-                  label={
-                    useDirectProvisioningDate ? (
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Start Date
-                        <BetaBadge />
-                      </div>
-                    ) : ''
-                  }
+                  label="Provisioning Date"
                 >
                   <div
                     style={{
@@ -462,24 +455,21 @@ const WorkshopsItemDetails: React.FC<{
                     <AutoStopDestroy
                       type="auto-start"
                       variant="extended"
-                      onClick={() => {
-                        showModal ? showModal({ resourceClaims: [], action: 'scheduleStartDate' }) : null;
-                      }}
+                      onClick={() => (showModal ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null)}
                       className="workshops-item__schedule-btn"
                       isDisabled={!showModal || useDirectProvisioningDate}
-                      time={autoStartTime + 8 * 60 * 60 * 1000} // Show start date as 8 hours after provisioning
+                      time={autoStartTime}
                     />
                     <Tooltip
                       position="right"
                       content={
                         <p>
-                          Select the date you'd like the workshop to start. Provisioning will begin 8 hours before this
-                          time.
+                          Select when you want the workshop provisioning to start.
                         </p>
                       }
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="Select the date you'd like the workshop to start. Provisioning will begin 8 hours before this time."
+                        aria-label="Select when you want the workshop provisioning to start."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
@@ -496,8 +486,8 @@ const WorkshopsItemDetails: React.FC<{
                   >
                     <Switch
                       id="provisioning-mode-switch"
-                      aria-label="Use direct provisioning date control"
-                      label="Set provisioning date directly"
+                      aria-label="Set ready by date"
+                      label="Set ready by date"
                       isChecked={useDirectProvisioningDate}
                       hasCheckIcon
                       onChange={(_event, isChecked) => {
@@ -508,55 +498,63 @@ const WorkshopsItemDetails: React.FC<{
                       position="right"
                       content={
                         <p>
-                          When enabled, allows direct control of the provisioning date instead of calculating it from
-                          the start date.
+                          When enabled, allows you to specify when the workshop should be ready by (8 hours after provisioning starts).
                         </p>
                       }
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
+                        aria-label="When enabled, allows you to specify when the workshop should be ready by."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
                   </div>
                 </FormGroup>
 
-                {/* Provisioning Date */}
-                <FormGroup
-                  fieldId="workshopProvisioningDate"
-                  isRequired
-                  label={useDirectProvisioningDate ? 'Provisioning Date' : ''}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 'var(--pf-t--global--spacer--md)',
-                    }}
+                {/* Ready by Date - Only show when switch is enabled */}
+                {useDirectProvisioningDate && (
+                  <FormGroup
+                    fieldId="workshopReadyByDate"
+                    label={
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        Ready by
+                        <BetaBadge />
+                      </div>
+                    }
                   >
-                    {useDirectProvisioningDate ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 'var(--pf-t--global--spacer--md)',
+                      }}
+                    >
                       <AutoStopDestroy
                         type="auto-start"
                         variant="extended"
-                        onClick={() => (showModal ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null)}
+                        onClick={() => {
+                          showModal ? showModal({ resourceClaims: [], action: 'scheduleStartDate' }) : null;
+                        }}
                         className="workshops-item__schedule-btn"
                         isDisabled={!showModal}
-                        time={autoStartTime}
+                        time={autoStartTime + 8 * 60 * 60 * 1000} // Show ready by date as 8 hours after provisioning
                       />
-                    ) : (
-                      <div
-                        style={{
-                          border: '0',
-                          fontSize: 'var(--pf-t--global--font--size--body--default)',
-                          marginTop: 'var(--pf-t--global--spacer--xs)',
-                        }}
+                      <Tooltip
+                        position="right"
+                        content={
+                          <p>
+                            Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
+                          </p>
+                        }
                       >
-                        Provisioning will automatically begin 8 hours before the selected start date
-                      </div>
-                    )}
-                  </div>
-                </FormGroup>
+                        <OutlinedQuestionCircleIcon
+                          aria-label="Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time."
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    </div>
+                  </FormGroup>
+                )}
               </div>
             </div>
           </DescriptionListDescription>
