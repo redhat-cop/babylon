@@ -285,15 +285,15 @@ const CatalogItemsContent: React.FC<{
         return annotation && allowedAnnotations.includes(annotation);
       });
       
-      // Filter for catalog items with demo.redhat.com/assetGroup = ZEROTOUCH (only for non-admin users)
-      const assetGroupLabel = item.metadata?.labels?.['demo.redhat.com/assetGroup'];
-      const hasZerotouchAssetGroup = assetGroupLabel === 'ZEROTOUCH';
+      // Filter for catalog items with demo.redhat.com/multiAsset = true (only for non-admin users)
+      const isMultiAsset = item.metadata?.labels?.['demo.redhat.com/multiAsset'];
+      const hasMultiAssetGroup = isMultiAsset === 'true';
       
       // For admin users: only check parameter annotations
-      // For non-admin users: check both parameter annotations AND ZEROTOUCH asset group
+      // For non-admin users: check both parameter annotations AND multi asset group
       return isAdmin 
         ? allParametersHaveAllowedAnnotations 
-        : allParametersHaveAllowedAnnotations && hasZerotouchAssetGroup;
+        : allParametersHaveAllowedAnnotations && hasMultiAssetGroup;
     });
 
     // Create Fuse search instance with the same options as Catalog.tsx
@@ -502,7 +502,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   const [selectedCatalogNamespace, setSelectedCatalogNamespace] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
-  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(true);
   const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(new Map());
   const { catalogNamespaces } = useSession().getSession();
 
@@ -556,10 +556,17 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
       onClose={handleClose}
       title={title}
       width="80%"
-      height="80%"
-      
+      height="80vh"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px', backgroundColor: 'var(--pf-t--global--background--color--200)', marginRight: 0, paddingRight: '64px' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        backgroundColor: 'var(--pf-t--global--background--color--200)', 
+        overflow: 'hidden',
+        padding: '24px',
+        margin: 0
+      }}>
         <div style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
             <Dropdown
@@ -634,7 +641,9 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
             overflow: 'auto',
             border: '1px solid var(--pf-t--color--border--default)',
             borderRadius: '4px',
-            padding: '16px'
+            padding: '16px',
+            marginBottom: '16px',
+            minHeight: 0 // This ensures the flex item can shrink below its content size
           }}
         >
           {isOpen ? (
@@ -652,8 +661,17 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
           ) : null}
         </div>
         
-        <div style={{ marginTop: '16px', textAlign: 'right' }}>
-          <Split hasGutter>
+        {/* Fixed Actions Bar at Bottom */}
+        <div 
+          style={{ 
+            flexShrink: 0, // Prevent shrinking
+            padding: '16px 0 0 0', // Top padding only, horizontal padding from main container
+            borderTop: '1px solid var(--pf-t--color--border--default)',
+            backgroundColor: 'var(--pf-t--global--background--color--200)',
+            textAlign: 'right'
+          }}
+        >
+          <Split hasGutter style={{alignItems: 'center'}}>
             <SplitItem isFilled />
             {isMultiSelectMode && (
               <SplitItem>

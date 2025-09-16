@@ -18,6 +18,7 @@ import {
 import { Select, SelectOption, SelectList } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
+import BetaBadge from '@app/components/BetaBadge';
 import {
   apiFetch,
   apiPaths,
@@ -441,7 +442,14 @@ const WorkshopsItemDetails: React.FC<{
                 <FormGroup
                   fieldId="workshopStartDate"
                   isRequired
-                  label={isAdmin && useDirectProvisioningDate ? 'Start Date' : ''}
+                  label={
+                    useDirectProvisioningDate ? (
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        Start Date
+                        <BetaBadge />
+                      </div>
+                    ) : ''
+                  }
                 >
                   <div
                     style={{
@@ -458,68 +466,66 @@ const WorkshopsItemDetails: React.FC<{
                         showModal ? showModal({ resourceClaims: [], action: 'scheduleStartDate' }) : null;
                       }}
                       className="workshops-item__schedule-btn"
-                      isDisabled={!showModal || (isAdmin && useDirectProvisioningDate)}
-                      time={autoStartTime + 6 * 60 * 60 * 1000} // Show start date as 6 hours after provisioning
+                      isDisabled={!showModal || useDirectProvisioningDate}
+                      time={autoStartTime + 8 * 60 * 60 * 1000} // Show start date as 8 hours after provisioning
                     />
                     <Tooltip
                       position="right"
                       content={
                         <p>
-                          Select the date you'd like the workshop to start. Provisioning will begin 6 hours before this
+                          Select the date you'd like the workshop to start. Provisioning will begin 8 hours before this
                           time.
                         </p>
                       }
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="Select the date you'd like the workshop to start. Provisioning will begin 6 hours before this time."
+                        aria-label="Select the date you'd like the workshop to start. Provisioning will begin 8 hours before this time."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
                   </div>
 
-                  {/* Admin Toggle - Only visible to admins */}
-                  {isAdmin ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--pf-t--global--spacer--sm)',
-                        marginTop: 'var(--pf-t--global--spacer--md)',
+                  {/* Provisioning Mode Toggle */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--pf-t--global--spacer--sm)',
+                      marginTop: 'var(--pf-t--global--spacer--md)',
+                    }}
+                  >
+                    <Switch
+                      id="provisioning-mode-switch"
+                      aria-label="Use direct provisioning date control"
+                      label="Set provisioning date directly"
+                      isChecked={useDirectProvisioningDate}
+                      hasCheckIcon
+                      onChange={(_event, isChecked) => {
+                        setUseDirectProvisioningDate(isChecked);
                       }}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={
+                        <p>
+                          When enabled, allows direct control of the provisioning date instead of calculating it from
+                          the start date.
+                        </p>
+                      }
                     >
-                      <Switch
-                        id="provisioning-mode-switch"
-                        aria-label="Use direct provisioning date control"
-                        label="Set provisioning date directly (admin mode)"
-                        isChecked={useDirectProvisioningDate}
-                        hasCheckIcon
-                        onChange={(_event, isChecked) => {
-                          setUseDirectProvisioningDate(isChecked);
-                        }}
+                      <OutlinedQuestionCircleIcon
+                        aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
+                        className="tooltip-icon-only"
                       />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            When enabled, allows direct control of the provisioning date instead of calculating it from
-                            the start date.
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  ) : null}
+                    </Tooltip>
+                  </div>
                 </FormGroup>
 
                 {/* Provisioning Date */}
                 <FormGroup
                   fieldId="workshopProvisioningDate"
                   isRequired
-                  label={isAdmin && useDirectProvisioningDate ? 'Provisioning Date' : ''}
+                  label={useDirectProvisioningDate ? 'Provisioning Date' : ''}
                 >
                   <div
                     style={{
@@ -529,7 +535,7 @@ const WorkshopsItemDetails: React.FC<{
                       gap: 'var(--pf-t--global--spacer--md)',
                     }}
                   >
-                    {isAdmin && useDirectProvisioningDate ? (
+                    {useDirectProvisioningDate ? (
                       <AutoStopDestroy
                         type="auto-start"
                         variant="extended"
@@ -546,7 +552,7 @@ const WorkshopsItemDetails: React.FC<{
                           marginTop: 'var(--pf-t--global--spacer--xs)',
                         }}
                       >
-                        Provisioning will automatically begin 6 hours before the selected start date
+                        Provisioning will automatically begin 8 hours before the selected start date
                       </div>
                     )}
                   </div>

@@ -54,11 +54,11 @@ const Navigation: React.FC = () => {
   const multiWorkshopNavigation = userNamespace ? (
     <NavItem>
       <NavLink
-        to={`/event-wizard/${userNamespace.name}`}
-        className={locationStartsWith('/event-wizard/') ? 'pf-m-current' : ''}
+        to={`/multi-workshop/${userNamespace.name}`}
+        className={locationStartsWith('/multi-workshop/') ? 'pf-m-current' : ''}
       >
         <span style={{ display: 'flex', alignItems: 'center' }}>
-          Event Wizard
+          Multi Workshop
           <BetaBadge />
         </span>
       </NavLink>

@@ -81,3 +81,8 @@ body,
 .pf-v6-c-table__td > a:hover {
   text-decoration: underline;
 }
+.pf-v6-c-form__group-label, .pf-v6-c-form__label {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-t--global--spacer--xs);
+}

@@ -30,6 +30,7 @@ import {
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
+import BetaBadge from '@app/components/BetaBadge';
 import { createMultiWorkshop, dateToApiString, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths, silentFetcher } from '@app/api';
 import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable, AssetMetrics } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
@@ -66,8 +67,8 @@ const MultiWorkshopCreate: React.FC = () => {
   const [createFormData, setCreateFormData] = useState(() => {
     const now = new Date();
     // Default start date is current time (for actual workshop start)
-    // Provisioning will be 6 hours before this
-    const defaultProvisioningDate = new Date(now.getTime() - 6 * 60 * 60 * 1000); 
+    // Provisioning will be 8 hours before this
+    const defaultProvisioningDate = new Date(now.getTime() - 8 * 60 * 60 * 1000); 
     const endDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h after actual start
 
     return {
@@ -429,7 +430,7 @@ const MultiWorkshopCreate: React.FC = () => {
       }
 
       // Navigate to the created multiworkshop detail page
-      navigate(`/event-wizard/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
+      navigate(`/multi-workshop/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
     } catch (error) {
       console.error('Error creating MultiWorkshop:', error);
     } finally {
@@ -526,20 +527,20 @@ const MultiWorkshopCreate: React.FC = () => {
       <PageSection variant="default">
         <Breadcrumb>
           <BreadcrumbItem>
-            <Button variant="link" onClick={() => navigate(selectedNamespace ? `/event-wizard/${selectedNamespace.name}` : '/event-wizard')}>
-              Event Wizard
+            <Button variant="link" onClick={() => navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')}>
+              Multi Workshop
             </Button>
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Create Event</BreadcrumbItem>
+          <BreadcrumbItem isActive>Create Multi Workshop</BreadcrumbItem>
         </Breadcrumb>
         <Title headingLevel="h1" size="2xl">
-          Create Event
+          Create Multi Workshop
         </Title>
         
         {/* Informational Banner */}
         <Alert 
           variant="info" 
-          title="Event Wizard - Multi-Catalog Item Events"
+          title="Multi Workshop - Multi-Catalog Item Events"
           style={{ marginTop: '16px' }}
         >
           <p>
@@ -562,7 +563,7 @@ const MultiWorkshopCreate: React.FC = () => {
       <PageSection>
         <Form className="multiworkshop-create__form">
               {(isAdmin || serviceNamespaces.length > 1) && (
-                <FormGroup label="Create Event in Project" fieldId="project-selector">
+                <FormGroup label="Create Multi Workshop in Project" fieldId="project-selector">
                   <ProjectSelector
                     currentNamespaceName={selectedNamespace?.name}
                     onSelect={(namespace) => setSelectedNamespace(namespace)}
@@ -597,20 +598,29 @@ const MultiWorkshopCreate: React.FC = () => {
 
               {/* Workshop Dates - Start Date and Provisioning Date side by side */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
-                <FormGroup fieldId="startDate" isRequired label="Start Date">
+                <FormGroup 
+                  fieldId="startDate" 
+                  isRequired 
+                  label={
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      Start Date
+                      <BetaBadge />
+                    </div>
+                  }
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
                     <DateTimePicker
                       key={`start-${useDirectProvisioningDate}`}
                       defaultTimestamp={
                         createFormData.startDate
-                          ? createFormData.startDate.getTime() + 6 * 60 * 60 * 1000 // Show actual start date (6 hours after provisioning)
+                          ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Show actual start date (8 hours after provisioning)
                           : Date.now()
                       }
                       isDisabled={useDirectProvisioningDate}
-                      forceUpdateTimestamp={createFormData.startDate?.getTime() + 6 * 60 * 60 * 1000}
+                      forceUpdateTimestamp={createFormData.startDate?.getTime() + 8 * 60 * 60 * 1000}
                       onSelect={(d: Date) => {
-                        // Calculate provisioning date as 6 hours BEFORE start date
-                        const provisioningDate = new Date(d.getTime() - 6 * 60 * 60 * 1000);
+                        // Calculate provisioning date as 8 hours BEFORE start date
+                        const provisioningDate = new Date(d.getTime() - 8 * 60 * 60 * 1000);
                         setCreateFormData(prev => {
                           const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000); // End date based on actual start date
                           return {
@@ -620,65 +630,63 @@ const MultiWorkshopCreate: React.FC = () => {
                           };
                         });
                       }}
-                      minDate={Date.now() + 6 * 60 * 60 * 1000} // Minimum must account for 6-hour provisioning lead time
+                      minDate={Date.now() + 8 * 60 * 60 * 1000} // Minimum must account for 8-hour provisioning lead time
                     />
                     <Tooltip
                       position="right"
                       content={
                         <p>
-                          Select the date you'd like the workshop to start. Provisioning will automatically begin 6 hours before this time.
+                          Select the date you'd like the workshop to start. Provisioning will automatically begin 8 hours before this time.
                         </p>
                       }
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="Select the date you'd like the workshop to start. Provisioning will automatically begin 6 hours before this time."
+                        aria-label="Select the date you'd like the workshop to start. Provisioning will automatically begin 8 hours before this time."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
                   </div>
                   
-                  {/* Admin Switch */}
-                  {isAdmin && (
-                    <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                      <Switch
-                        id="provisioning-mode-switch"
-                        aria-label="Use direct provisioning date control"
-                        label="Set provisioning date directly (admin mode)"
-                        isChecked={useDirectProvisioningDate}
-                        hasCheckIcon
-                        onChange={(_event, isChecked) => {
-                          setUseDirectProvisioningDate(isChecked);
-                        }}
+                  {/* Provisioning Mode Switch */}
+                  <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                    <Switch
+                      id="provisioning-mode-switch"
+                      aria-label="Use direct provisioning date control"
+                      label="Set provisioning date directly"
+                      isChecked={useDirectProvisioningDate}
+                      hasCheckIcon
+                      onChange={(_event, isChecked) => {
+                        setUseDirectProvisioningDate(isChecked);
+                      }}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={
+                        <p>
+                          When enabled, allows direct control of the provisioning date instead of calculating it from
+                          the start date.
+                        </p>
+                      }
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
+                        className="tooltip-icon-only"
                       />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            When enabled, allows direct control of the provisioning date instead of calculating it from
-                            the start date.
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  )}
+                    </Tooltip>
+                  </div>
                 </FormGroup>
 
                 {/* Provisioning Date */}
-                <FormGroup fieldId="provisioningDate" label={isAdmin && useDirectProvisioningDate ? "Provisioning Start Date" : " "}>
+                <FormGroup fieldId="provisioningDate" label={useDirectProvisioningDate ? "Provisioning Start Date" : " "}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                    {isAdmin && useDirectProvisioningDate ? (
+                    {useDirectProvisioningDate ? (
                       <DateTimePicker
                         key={`provisioning-${useDirectProvisioningDate}`}
                         defaultTimestamp={createFormData.startDate?.getTime() || Date.now()}
                         forceUpdateTimestamp={createFormData.startDate?.getTime()}
                         onSelect={(d: Date) => {
                           setCreateFormData(prev => {
-                            const actualStartDate = new Date(d.getTime() + 6 * 60 * 60 * 1000); // Actual start is 6 hours after provisioning
+                            const actualStartDate = new Date(d.getTime() + 8 * 60 * 60 * 1000); // Actual start is 8 hours after provisioning
                             const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
                             return {
                               ...prev,
@@ -695,7 +703,7 @@ const MultiWorkshopCreate: React.FC = () => {
                         fontSize: '14px',
                         color: 'var(--pf-t--global--text--color--subtle)'
                       }}>
-                        Provisioning will automatically begin 6 hours before the selected start date
+                        Provisioning will automatically begin 8 hours before the selected start date
                       </div>
                     )}
                   </div>
@@ -708,7 +716,7 @@ const MultiWorkshopCreate: React.FC = () => {
                     <DateTimePicker
                       key="end-date"
                       defaultTimestamp={createFormData.endDate.getTime()}
-                      minDate={createFormData.startDate.getTime() + 6 * 60 * 60 * 1000} // Min date is actual start date, not provisioning date
+                      minDate={createFormData.startDate.getTime() + 8 * 60 * 60 * 1000} // Min date is actual start date, not provisioning date
                       onSelect={(date: Date) => {
                         setCreateFormData(prev => ({ ...prev, endDate: date }));
                       }}
@@ -841,6 +849,7 @@ const MultiWorkshopCreate: React.FC = () => {
                       </FormGroup>
                       <FormGroup label="Workshop Display Name" fieldId={`asset-display-name-${index}`} style={{ marginBottom: '12px' }}>
                         <TextInput
+                          id={`workshop-display-name-${index}`}
                           placeholder="Optional display name for this workshop (e.g., 'Container Basics')"
                           value={asset.displayName}
                           onChange={(_, value) => updateAsset(index, 'displayName', value)}
@@ -941,9 +950,9 @@ const MultiWorkshopCreate: React.FC = () => {
                   isDisabled={!isFormValid || isSubmitting}
                   isLoading={isSubmitting}
                 >
-                  Create Event
+                  Create Multi Workshop
                 </Button>
-                <Button variant="link" onClick={() => navigate(selectedNamespace ? `/event-wizard/${selectedNamespace.name}` : '/event-wizard')}>
+                <Button variant="link" onClick={() => navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')}>
                   Cancel
                 </Button>
               </ActionGroup>
