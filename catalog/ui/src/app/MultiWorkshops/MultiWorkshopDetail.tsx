@@ -195,7 +195,7 @@ const MultiWorkshopDetail: React.FC = () => {
     
     // Navigate back to the list page
     const currentNamespace = namespace || userNamespace?.name;
-    navigate(currentNamespace ? `/event-wizard/${currentNamespace}` : '/event-wizard');
+    navigate(currentNamespace ? `/multi-workshop/${currentNamespace}` : '/multi-workshop');
   }
 
   async function onDeleteAssetConfirm(): Promise<void> {
@@ -487,9 +487,9 @@ const MultiWorkshopDetail: React.FC = () => {
           <BreadcrumbItem>
             <Button 
               variant="link" 
-              onClick={() => navigate(currentNamespace ? `/event-wizard/${currentNamespace}` : '/event-wizard')}
+              onClick={() => navigate(currentNamespace ? `/multi-workshop/${currentNamespace}` : '/multi-workshop')}
             >
-              Event Wizard
+              Multi Workshop
             </Button>
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{getMultiWorkshopDisplayName(multiworkshop)}</BreadcrumbItem>
@@ -499,8 +499,8 @@ const MultiWorkshopDetail: React.FC = () => {
           <SplitItem isFilled>
             <Title headingLevel="h1" size="2xl" style={{ display: 'flex', alignItems: 'center' }}>
               {multiworkshop.metadata.name}
-              <Label key="event-wizard-label" tooltipDescription={<div>Event Wizard interface</div>}>
-                Event Wizard
+              <Label key="multi-workshop-label" tooltipDescription={<div>Multi Workshop interface</div>}>
+                Multi Workshop
               </Label>
             </Title>
           </SplitItem>

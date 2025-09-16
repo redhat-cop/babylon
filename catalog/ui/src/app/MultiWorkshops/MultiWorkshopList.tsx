@@ -220,7 +220,7 @@ const MultiWorkshopList: React.FC = () => {
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h1" size="2xl">
-              Event Wizard
+              Multi Workshop
             </Title>
             <p className="multiworkshop-list__header-subtitle">
               Create and manage your event workshop collections in {currentNamespace}
@@ -252,9 +252,9 @@ const MultiWorkshopList: React.FC = () => {
             <Button 
               variant="primary" 
               icon={<PlusIcon />}
-              onClick={() => navigate('/event-wizard/create')}
+              onClick={() => navigate('/multi-workshop/create')}
             >
-              Create Event
+              Create Multi Workshop
             </Button>
           </SplitItem>
         </Split>
@@ -275,9 +275,9 @@ const MultiWorkshopList: React.FC = () => {
                 <Button 
                   variant="primary" 
                   icon={<PlusIcon />}
-                  onClick={() => navigate('/event-wizard/create')}
+                  onClick={() => navigate('/multi-workshop/create')}
                 >
-                  Create Event
+                  Create Multi Workshop
                 </Button>
               </EmptyStateFooter>
             </EmptyState>
@@ -303,7 +303,7 @@ const MultiWorkshopList: React.FC = () => {
                   // Event Name
                   <Link
                     key="event-name"
-                    to={`/event-wizard/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
+                    to={`/multi-workshop/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
                   >
                     {getMultiWorkshopDisplayName(multiworkshop)}
                   </Link>,

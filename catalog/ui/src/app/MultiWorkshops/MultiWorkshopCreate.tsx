@@ -430,7 +430,7 @@ const MultiWorkshopCreate: React.FC = () => {
       }
 
       // Navigate to the created multiworkshop detail page
-      navigate(`/event-wizard/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
+      navigate(`/multi-workshop/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
     } catch (error) {
       console.error('Error creating MultiWorkshop:', error);
     } finally {
@@ -527,20 +527,20 @@ const MultiWorkshopCreate: React.FC = () => {
       <PageSection variant="default">
         <Breadcrumb>
           <BreadcrumbItem>
-            <Button variant="link" onClick={() => navigate(selectedNamespace ? `/event-wizard/${selectedNamespace.name}` : '/event-wizard')}>
-              Event Wizard
+            <Button variant="link" onClick={() => navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')}>
+              Multi Workshop
             </Button>
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Create Event</BreadcrumbItem>
+          <BreadcrumbItem isActive>Create Multi Workshop</BreadcrumbItem>
         </Breadcrumb>
         <Title headingLevel="h1" size="2xl">
-          Create Event
+          Create Multi Workshop
         </Title>
         
         {/* Informational Banner */}
         <Alert 
           variant="info" 
-          title="Event Wizard - Multi-Catalog Item Events"
+          title="Multi Workshop - Multi-Catalog Item Events"
           style={{ marginTop: '16px' }}
         >
           <p>
@@ -563,7 +563,7 @@ const MultiWorkshopCreate: React.FC = () => {
       <PageSection>
         <Form className="multiworkshop-create__form">
               {(isAdmin || serviceNamespaces.length > 1) && (
-                <FormGroup label="Create Event in Project" fieldId="project-selector">
+                <FormGroup label="Create Multi Workshop in Project" fieldId="project-selector">
                   <ProjectSelector
                     currentNamespaceName={selectedNamespace?.name}
                     onSelect={(namespace) => setSelectedNamespace(namespace)}
@@ -950,9 +950,9 @@ const MultiWorkshopCreate: React.FC = () => {
                   isDisabled={!isFormValid || isSubmitting}
                   isLoading={isSubmitting}
                 >
-                  Create Event
+                  Create Multi Workshop
                 </Button>
-                <Button variant="link" onClick={() => navigate(selectedNamespace ? `/event-wizard/${selectedNamespace.name}` : '/event-wizard')}>
+                <Button variant="link" onClick={() => navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')}>
                   Cancel
                 </Button>
               </ActionGroup>
