@@ -30,7 +30,7 @@ import { displayName, FETCH_BATCH_LIMIT, renderContent, stripHtml } from '@app/u
 import CatalogItemCard from '@app/Catalog/CatalogItemCard';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogCategorySelector from '@app/Catalog/CatalogCategorySelector';
-import { getCategory, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA, formatString } from '@app/Catalog/catalog-utils';
+import { getCategory, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA, formatString, CUSTOM_LABELS } from '@app/Catalog/catalog-utils';
 import StarRating from '@app/components/StarRating';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
@@ -286,7 +286,7 @@ const CatalogItemsContent: React.FC<{
       });
       
       // Filter for catalog items with demo.redhat.com/multiAsset = true (only for non-admin users)
-      const isMultiAsset = item.metadata?.labels?.['demo.redhat.com/multiAsset'];
+      const isMultiAsset = item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`];
       const hasMultiAssetGroup = isMultiAsset === 'true';
       
       // For admin users: only check parameter annotations
