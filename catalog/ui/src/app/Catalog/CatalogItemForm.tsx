@@ -906,7 +906,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     <Switch
                       id="provisioning-mode-switch"
                       aria-label="Set ready by date"
-                      label="Set ready by date"
+                      label={
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          Set ready by date
+                          <BetaBadge />
+                        </div>
+                      }
                       isChecked={useDirectProvisioningDate}
                       hasCheckIcon
                       onChange={(_event, isChecked) => {
@@ -933,12 +938,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 {useDirectProvisioningDate && (
                   <FormGroup 
                     fieldId="readyByDate" 
-                    label={
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Ready by
-                        <BetaBadge />
-                      </div>
-                    }
+                    label="Ready by"
                   >
                     <div
                       style={{

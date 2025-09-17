@@ -242,16 +242,16 @@ const MultiWorkshopCreate: React.FC = () => {
     });
 
     // Calculate total cost based on duration
-    let totalEventCost = null;
+    let totalWorkshopCost = null;
     if (hasCostData && createFormData.startDate && createFormData.endDate) {
       const durationMs = createFormData.endDate.getTime() - createFormData.startDate.getTime();
       const durationHours = durationMs / (1000 * 60 * 60);
-      totalEventCost = totalHourlyCost * durationHours;
+      totalWorkshopCost = totalHourlyCost * durationHours;
     }
 
     return {
       totalProvisionTime: hasProvisionData ? totalProvisionHours : null,
-      totalCost: totalEventCost,
+      totalCost: totalWorkshopCost,
       itemsWithMetrics,
       totalItems: validAssets.length,
     };
@@ -540,12 +540,16 @@ const MultiWorkshopCreate: React.FC = () => {
         {/* Informational Banner */}
         <Alert 
           variant="info" 
-          title="Multi Workshop - Multi-Catalog Item Events"
+          title="Multi Workshop - Multi-Catalog Item Collections"
           style={{ marginTop: '16px' }}
         >
           <p>
-            This tool is designed for creating events that use <strong>multiple catalog items</strong>. 
-            If your event only uses one catalog item, please go through the normal catalog ordering process instead.
+            This tool is designed for creating multi workshops that use <strong>multiple catalog items</strong>. 
+            If your workshop only uses one catalog item, please go through the normal catalog ordering process instead.
+          </p>
+          <p style={{ marginTop: '8px' }}>
+            <strong>Current Availability:</strong> This feature is currently focused on labs migrated from external providers. 
+            In the future, it will be rolled out to additional catalog items as well.
           </p>
           <p style={{ marginTop: '8px' }}>
             If you need assistance or our workshop white glove service, please{' '}
@@ -581,7 +585,7 @@ const MultiWorkshopCreate: React.FC = () => {
                   name="name"
                   value={createFormData.name}
                   onChange={(_, value) => setCreateFormData(prev => ({ ...prev, name: value }))}
-                  placeholder="Enter event name"
+                  placeholder="Enter multi workshop name"
                 />
               </FormGroup>
 
@@ -643,7 +647,12 @@ const MultiWorkshopCreate: React.FC = () => {
                     <Switch
                       id="provisioning-mode-switch"
                       aria-label="Set ready by date"
-                      label="Set ready by date"
+                      label={
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          Set ready by date
+                          <BetaBadge />
+                        </div>
+                      }
                       isChecked={useDirectProvisioningDate}
                       hasCheckIcon
                       onChange={(_event, isChecked) => {
@@ -670,12 +679,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 {useDirectProvisioningDate && (
                   <FormGroup 
                     fieldId="readyByDate" 
-                    label={
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Ready by
-                        <BetaBadge />
-                      </div>
-                    }
+                    label="Ready by"
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
                       <DateTimePicker
@@ -899,7 +903,7 @@ const MultiWorkshopCreate: React.FC = () => {
                   style={{ marginBottom: '24px' }}
                 >
                   <p>
-                    You have {currentServices.length} active service{currentServices.length !== 1 ? 's' : ''} and this event would create {catalogAssetsCount} additional service{catalogAssetsCount !== 1 ? 's' : ''}.
+                    You have {currentServices.length} active service{currentServices.length !== 1 ? 's' : ''} and this multi workshop would create {catalogAssetsCount} additional service{catalogAssetsCount !== 1 ? 's' : ''}.
                     You cannot exceed the quota of 5 services. Please reduce the number of catalog assets or retire existing services.
                   </p>
                 </Alert>
@@ -910,7 +914,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 <Card style={{ marginBottom: '24px' }}>
                   <CardBody>
                     <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
-                      Event Estimates
+                      Multi Workshop Estimates
                     </Title>
                     <DescriptionList isHorizontal>
                       {estimates.totalProvisionTime !== null && (
@@ -936,7 +940,7 @@ const MultiWorkshopCreate: React.FC = () => {
                         <DescriptionListGroup>
                           <DescriptionListTerm>
                             Estimated Total Cost
-                            <Tooltip content="Estimated cost over the event duration if not stopped.">
+                            <Tooltip content="Estimated cost over the workshop duration if not stopped.">
                               <InfoAltIcon
                                 style={{
                                   paddingTop: "var(--pf-t--global--spacer--xs)",
