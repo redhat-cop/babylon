@@ -4,6 +4,7 @@ import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import BetaBadge from '@app/components/BetaBadge';
+import PilotBadge from '@app/components/PilotBadge';
 
 const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
   const resolved = useResolvedPath(to);
@@ -59,7 +60,7 @@ const Navigation: React.FC = () => {
       >
         <span style={{ display: 'flex', alignItems: 'center' }}>
           Multi Workshop
-          <BetaBadge />
+          <PilotBadge />
         </span>
       </NavLink>
     </NavItem>

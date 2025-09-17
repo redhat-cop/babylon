@@ -327,6 +327,7 @@ const MultiWorkshopCreate: React.FC = () => {
               // Create workshop for this asset with retry logic
               const workshop = await createWorkshopFromAssetWithRetry({
                 multiworkshopName: createdMultiWorkshop.metadata.name,
+                multiworkshopUid: createdMultiWorkshop.metadata.uid,
                 namespace: createdMultiWorkshop.metadata.namespace,
                 asset,
                 multiworkshopData: {
@@ -345,6 +346,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 workshop,
                 asset,
                 multiworkshopName: createdMultiWorkshop.metadata.name,
+                multiworkshopUid: createdMultiWorkshop.metadata.uid,
                 multiworkshopData: {
                   ...createFormData,
                   numberSeats: createFormData.numberSeats,
