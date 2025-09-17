@@ -596,52 +596,43 @@ const MultiWorkshopCreate: React.FC = () => {
                 />
               </FormGroup>
 
-              {/* Workshop Dates - Start Date and Provisioning Date side by side */}
+              {/* Workshop Dates - Provisioning Date first, then Ready by */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
+                {/* Provisioning Date */}
                 <FormGroup 
-                  fieldId="startDate" 
+                  fieldId="provisioningDate" 
                   isRequired 
-                  label={
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      Start Date
-                      <BetaBadge />
-                    </div>
-                  }
+                  label="Provisioning Start Date"
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
                     <DateTimePicker
-                      key={`start-${useDirectProvisioningDate}`}
-                      defaultTimestamp={
-                        createFormData.startDate
-                          ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Show actual start date (8 hours after provisioning)
-                          : Date.now()
-                      }
+                      key={`provisioning-${useDirectProvisioningDate}`}
+                      defaultTimestamp={createFormData.startDate?.getTime() || Date.now()}
+                      forceUpdateTimestamp={createFormData.startDate?.getTime()}
                       isDisabled={useDirectProvisioningDate}
-                      forceUpdateTimestamp={createFormData.startDate?.getTime() + 8 * 60 * 60 * 1000}
                       onSelect={(d: Date) => {
-                        // Calculate provisioning date as 8 hours BEFORE start date
-                        const provisioningDate = new Date(d.getTime() - 8 * 60 * 60 * 1000);
                         setCreateFormData(prev => {
-                          const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000); // End date based on actual start date
+                          const actualStartDate = new Date(d.getTime() + 8 * 60 * 60 * 1000); // Actual start is 8 hours after provisioning
+                          const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
                           return {
                             ...prev,
-                            startDate: provisioningDate, // Internal API uses provisioning date as startDate
+                            startDate: d, // Direct provisioning date control
                             endDate: endDateTime,
                           };
                         });
                       }}
-                      minDate={Date.now() + 8 * 60 * 60 * 1000} // Minimum must account for 8-hour provisioning lead time
+                      minDate={Date.now()}
                     />
                     <Tooltip
                       position="right"
                       content={
                         <p>
-                          Select the date you'd like the workshop to start. Provisioning will automatically begin 8 hours before this time.
+                          Select when you want the workshop provisioning to start.
                         </p>
                       }
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="Select the date you'd like the workshop to start. Provisioning will automatically begin 8 hours before this time."
+                        aria-label="Select when you want the workshop provisioning to start."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
@@ -651,8 +642,8 @@ const MultiWorkshopCreate: React.FC = () => {
                   <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
                     <Switch
                       id="provisioning-mode-switch"
-                      aria-label="Use direct provisioning date control"
-                      label="Set provisioning date directly"
+                      aria-label="Set ready by date"
+                      label="Set ready by date"
                       isChecked={useDirectProvisioningDate}
                       hasCheckIcon
                       onChange={(_event, isChecked) => {
@@ -663,51 +654,68 @@ const MultiWorkshopCreate: React.FC = () => {
                       position="right"
                       content={
                         <p>
-                          When enabled, allows direct control of the provisioning date instead of calculating it from
-                          the start date.
+                          When enabled, allows you to specify when the workshop should be ready by (8 hours after provisioning starts).
                         </p>
                       }
                     >
                       <OutlinedQuestionCircleIcon
-                        aria-label="When enabled, allows direct control of the provisioning date instead of calculating it from the start date."
+                        aria-label="When enabled, allows you to specify when the workshop should be ready by."
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
                   </div>
                 </FormGroup>
 
-                {/* Provisioning Date */}
-                <FormGroup fieldId="provisioningDate" label={useDirectProvisioningDate ? "Provisioning Start Date" : " "}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                    {useDirectProvisioningDate ? (
+                {/* Ready by Date - Only show when switch is enabled */}
+                {useDirectProvisioningDate && (
+                  <FormGroup 
+                    fieldId="readyByDate" 
+                    label={
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        Ready by
+                        <BetaBadge />
+                      </div>
+                    }
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
                       <DateTimePicker
-                        key={`provisioning-${useDirectProvisioningDate}`}
-                        defaultTimestamp={createFormData.startDate?.getTime() || Date.now()}
-                        forceUpdateTimestamp={createFormData.startDate?.getTime()}
+                        key={`ready-by-${useDirectProvisioningDate}`}
+                        defaultTimestamp={
+                          createFormData.startDate
+                            ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Show actual start date (8 hours after provisioning)
+                            : Date.now() + 8 * 60 * 60 * 1000
+                        }
+                        forceUpdateTimestamp={createFormData.startDate?.getTime() + 8 * 60 * 60 * 1000}
                         onSelect={(d: Date) => {
+                          // Calculate provisioning date as 8 hours BEFORE ready by date
+                          const provisioningDate = new Date(d.getTime() - 8 * 60 * 60 * 1000);
                           setCreateFormData(prev => {
-                            const actualStartDate = new Date(d.getTime() + 8 * 60 * 60 * 1000); // Actual start is 8 hours after provisioning
-                            const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
+                            const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000); // End date based on ready by date
                             return {
                               ...prev,
-                              startDate: d, // Direct provisioning date control
+                              startDate: provisioningDate, // Internal API uses provisioning date as startDate
                               endDate: endDateTime,
                             };
                           });
                         }}
-                        minDate={Date.now()}
+                        minDate={Date.now() + 8 * 60 * 60 * 1000} // Minimum must account for 8-hour provisioning lead time
                       />
-                    ) : (
-                      <div style={{ 
-                        padding: 'var(--pf-t--global--spacer--sm) 0',
-                        fontSize: '14px',
-                        color: 'var(--pf-t--global--text--color--subtle)'
-                      }}>
-                        Provisioning will automatically begin 8 hours before the selected start date
-                      </div>
-                    )}
-                  </div>
-                </FormGroup>
+                      <Tooltip
+                        position="right"
+                        content={
+                          <p>
+                            Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
+                          </p>
+                        }
+                      >
+                        <OutlinedQuestionCircleIcon
+                          aria-label="Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time."
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    </div>
+                  </FormGroup>
+                )}
               </div>
 
               <Split hasGutter>
@@ -716,7 +724,10 @@ const MultiWorkshopCreate: React.FC = () => {
                     <DateTimePicker
                       key="end-date"
                       defaultTimestamp={createFormData.endDate.getTime()}
-                      minDate={createFormData.startDate.getTime() + 8 * 60 * 60 * 1000} // Min date is actual start date, not provisioning date
+                      minDate={useDirectProvisioningDate 
+                        ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Min date is ready by date
+                        : createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Min date is 8 hours after provisioning
+                      }
                       onSelect={(date: Date) => {
                         setCreateFormData(prev => ({ ...prev, endDate: date }));
                       }}
@@ -748,7 +759,16 @@ const MultiWorkshopCreate: React.FC = () => {
                 />
                 {!isAdmin && (
                   <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    Maximum 30 seats allowed
+                    Maximum 30 seats allowed.{' '}
+                    <a 
+                      href="https://red.ht/workshop-help" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--pf-t--global--color--brand--default)' }}
+                    >
+                      Raise a ticket with our team
+                    </a>
+                    {' '}to request more seats.
                   </div>
                 )}
               </FormGroup>
