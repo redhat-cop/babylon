@@ -1195,6 +1195,7 @@ export async function patchMultiWorkshop({
 
 export async function createWorkshopFromAssetWithRetry({
   multiworkshopName,
+  multiworkshopUid,
   namespace,
   asset,
   multiworkshopData,
@@ -1203,6 +1204,7 @@ export async function createWorkshopFromAssetWithRetry({
   delay = 0,
 }: {
   multiworkshopName: string;
+  multiworkshopUid: string;
   namespace: string;
   asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
   multiworkshopData: any;
@@ -1221,6 +1223,7 @@ export async function createWorkshopFromAssetWithRetry({
     try {
       return await createWorkshopFromAsset({
         multiworkshopName,
+        multiworkshopUid,
         namespace,
         asset,
         multiworkshopData,
@@ -1248,12 +1251,14 @@ export async function createWorkshopFromAssetWithRetry({
 
 export async function createWorkshopFromAsset({
   multiworkshopName,
+  multiworkshopUid,
   namespace,
   asset,
   multiworkshopData,
   catalogItem,
 }: {
   multiworkshopName: string;
+  multiworkshopUid: string;
   namespace: string;
   asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
   multiworkshopData: any;
@@ -1300,6 +1305,7 @@ export async function createWorkshopFromAsset({
     customAnnotations: {
       [`${BABYLON_DOMAIN}/created-by`]: session.user,
       [`${BABYLON_DOMAIN}/multiworkshop-source`]: multiworkshopName,
+      [`${BABYLON_DOMAIN}/multiworkshop-uid`]: multiworkshopUid,
     },
   });
 }
@@ -1308,12 +1314,14 @@ export async function createWorkshopProvisionFromAsset({
   workshop,
   asset,
   multiworkshopName,
+  multiworkshopUid,
   multiworkshopData,
   catalogItem,
 }: {
   workshop: Workshop;
   asset: { key: string; name: string; namespace: string };
   multiworkshopName: string;
+  multiworkshopUid: string;
   multiworkshopData: any;
   catalogItem?: CatalogItem;
 }): Promise<WorkshopProvision> {
@@ -1353,6 +1361,7 @@ export async function createWorkshopProvisionFromAsset({
         annotations: {
           ...provision.metadata.annotations,
           [`${BABYLON_DOMAIN}/multiworkshop-source`]: multiworkshopName,
+          [`${BABYLON_DOMAIN}/multiworkshop-uid`]: multiworkshopUid,
         },
       },
       spec: {
