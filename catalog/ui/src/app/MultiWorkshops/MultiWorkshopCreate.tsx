@@ -66,10 +66,10 @@ const MultiWorkshopCreate: React.FC = () => {
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
   const [createFormData, setCreateFormData] = useState(() => {
     const now = new Date();
-    // Default start date is current time (for actual workshop start)
-    // Provisioning will be 8 hours before this
-    const defaultProvisioningDate = new Date(now.getTime() - 8 * 60 * 60 * 1000); 
-    const endDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h after actual start
+    // Default provisioning start date is current time
+    // Ready by date will be 8 hours after provisioning start
+    const defaultProvisioningDate = now; 
+    const endDateTime = new Date(now.getTime() + 32 * 60 * 60 * 1000); // 24h after ready by date (now + 8h + 24h)
 
     return {
       name: '',

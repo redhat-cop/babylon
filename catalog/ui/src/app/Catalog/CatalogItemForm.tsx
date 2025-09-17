@@ -749,7 +749,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   if (!formState.startDate) {
                     dispatchFormState({
                       type: 'dates',
-                      startDate: new Date(Date.now() - 8 * 60 * 60 * 1000), // Provisioning date is 8 hours before start
+                      startDate: new Date(Date.now()), // Provisioning start date is current time
                     });
                   }
                 }}

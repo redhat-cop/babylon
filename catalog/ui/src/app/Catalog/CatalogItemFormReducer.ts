@@ -278,11 +278,11 @@ function initDates(catalogItem: CatalogItem, currTime?: number) {
     _currTime = currTime;
   }
   return {
-    startDate: currTime ? new Date(currTime - 8 * 60 * 60 * 1000) : null, // Provisioning date is 8 hours before start time
+    startDate: currTime ? new Date(currTime) : null, // Provisioning start date is the current time
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
-      : new Date((_currTime - 8 * 60 * 60 * 1000) + parseDuration(catalogItem.spec.runtime?.default || '4h')), // Base on provisioning date
-    endDate: new Date((_currTime - 8 * 60 * 60 * 1000) + parseDuration(catalogItem.spec.lifespan?.default || '2d')), // Base on provisioning date
+      : new Date(_currTime + parseDuration(catalogItem.spec.runtime?.default || '4h')), // Base on provisioning date
+    endDate: new Date(_currTime + parseDuration(catalogItem.spec.lifespan?.default || '2d')), // Base on provisioning date
   };
 }
 
