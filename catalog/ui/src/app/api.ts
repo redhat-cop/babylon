@@ -129,12 +129,27 @@ export async function apiFetch(path: string, opt?: object): Promise<Response> {
   }
 
   let resp = await window.fetch(path, options);
+  
+  // Handle 302 redirects by triggering a full page refresh
+  // This allows the main page to properly handle authentication redirects
+  if (resp.status === 302) {
+    window.location.reload();
+    return resp; // This won't actually be reached due to the reload
+  }
+  
   if (resp.status >= 400 && resp.status < 600) {
     if (resp.status === 401) {
       // Retry with a refreshed session
       const session = await getApiSession(true);
       options.headers['Authentication'] = `Bearer ${session.token}`;
       resp = await window.fetch(path, options);
+      
+      // Check for 302 redirect on retry as well
+      if (resp.status === 302) {
+        window.location.reload();
+        return resp;
+      }
+      
       if (resp.status >= 400 && resp.status < 600) {
         throw resp;
       }
