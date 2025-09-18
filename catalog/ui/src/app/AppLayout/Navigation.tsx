@@ -5,6 +5,7 @@ import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import BetaBadge from '@app/components/BetaBadge';
 import PilotBadge from '@app/components/PilotBadge';
+import { isLabDeveloper } from '@app/util';
 
 const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
   const resolved = useResolvedPath(to);
@@ -22,7 +23,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { incidents_enabled, ratings_enabled } = useInterfaceConfig();
-  const { isAdmin, userNamespace } = useSession().getSession();
+  const { isAdmin, groups, userNamespace } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
     return location.pathname.startsWith(str);
@@ -52,7 +53,7 @@ const Navigation: React.FC = () => {
     </NavItem>
   ) : null;
 
-  const multiWorkshopNavigation = userNamespace ? (
+  const multiWorkshopNavigation = userNamespace && (isAdmin || isLabDeveloper(groups)) ? (
     <NavItem>
       <NavLink
         to={`/multi-workshop/${userNamespace.name}`}

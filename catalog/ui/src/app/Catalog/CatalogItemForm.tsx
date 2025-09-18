@@ -866,16 +866,21 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       onSelect={(d: Date) => {
                         dispatchFormState({
                           type: 'dates',
-                          startDate: d, // Direct provisioning date control
+                          startDate: d,
                           stopDate: new Date(
                             d.getTime() +
                               parseDuration(
                                 formState.activity?.startsWith('Customer Facing')
                                   ? '365d'
-                                  : catalogItem.spec.runtime?.default || '30h',
+                                  : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
                               ),
                           ),
-                          endDate: new Date(d.getTime() + parseDuration('30h')),
+                          endDate: new Date(
+                            d.getTime() +
+                              parseDuration(
+                                catalogItem.spec.lifespan?.default || '30h'
+                              )
+                          ),
                         });
                       }}
                       minDate={Date.now()}
@@ -895,47 +900,49 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     </Tooltip>
                   </div>
                   {/* Provisioning Mode Toggle */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--pf-t--global--spacer--sm)',
-                      marginTop: 'var(--pf-t--global--spacer--md)',
-                    }}
-                  >
-                    <Switch
-                      id="provisioning-mode-switch"
-                      aria-label="Set ready by date"
-                      label={
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          Set ready by date
-                          <BetaBadge />
-                        </div>
-                      }
-                      isChecked={useDirectProvisioningDate}
-                      hasCheckIcon
-                      onChange={(_event, isChecked) => {
-                        setUseDirectProvisioningDate(isChecked);
+                  {isAdmin && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--pf-t--global--spacer--sm)',
+                        marginTop: 'var(--pf-t--global--spacer--md)',
                       }}
-                    />
-                    <Tooltip
-                      position="right"
-                      content={
-                        <p>
-                          When enabled, allows you to specify when the workshop should be ready by (8 hours after provisioning starts).
-                        </p>
-                      }
                     >
-                      <OutlinedQuestionCircleIcon
-                        aria-label="When enabled, allows you to specify when the workshop should be ready by."
-                        className="tooltip-icon-only"
+                      <Switch
+                        id="provisioning-mode-switch"
+                        aria-label="Set ready by date"
+                        label={
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            Set ready by date
+                            <BetaBadge />
+                          </div>
+                        }
+                        isChecked={useDirectProvisioningDate}
+                        hasCheckIcon
+                        onChange={(_event, isChecked) => {
+                          setUseDirectProvisioningDate(isChecked);
+                        }}
                       />
-                    </Tooltip>
-                  </div>
+                      <Tooltip
+                        position="right"
+                        content={
+                          <p>
+                            When enabled, allows you to specify when the workshop should be ready by (8 hours after provisioning starts).
+                          </p>
+                        }
+                      >
+                        <OutlinedQuestionCircleIcon
+                          aria-label="When enabled, allows you to specify when the workshop should be ready by."
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    </div>
+                  )}
                 </FormGroup>
 
-                {/* Ready by Date - Only show when switch is enabled */}
-                {useDirectProvisioningDate && (
+                {/* Ready by Date - Only show when switch is enabled and user is admin */}
+                {isAdmin && useDirectProvisioningDate && (
                   <FormGroup 
                     fieldId="readyByDate" 
                     label="Ready by"
@@ -967,10 +974,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                                 parseDuration(
                                   formState.activity?.startsWith('Customer Facing')
                                     ? '365d'
-                                    : catalogItem.spec.runtime?.default || '30h',
+                                    : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
                                 ),
                             ),
-                            endDate: new Date(provisioningDate.getTime() + parseDuration('30h')),
+                            endDate: new Date(
+                              provisioningDate.getTime() +
+                                parseDuration(
+                                  catalogItem.spec.lifespan?.default || '30h'
+                                )
+                            ),
                           });
                         }}
                         minDate={Date.now() + 8 * 60 * 60 * 1000} // Minimum must account for 8-hour provisioning lead time
@@ -979,7 +991,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         position="right"
                         content={
                           <p>
-                            Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
+                            Select when you&apos;d like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
                           </p>
                         }
                       >

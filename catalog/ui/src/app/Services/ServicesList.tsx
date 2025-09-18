@@ -106,16 +106,17 @@ const ServicesList: React.FC<{
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [searchParams, setSearchParams] = useSearchParams();
+  const hasSearch = searchParams.has('search')
+  const searchValue = searchParams.get('search')
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      hasSearch
+        ? searchValue
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [hasSearch, searchValue],
   );
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
@@ -259,8 +260,8 @@ const ServicesList: React.FC<{
         );
         try {
           return await deleteResourceClaim(resourceClaim);
-        } catch (error: any) {
-          if (error.status === 404) {
+        } catch (error: unknown) {
+          if ((error as { status?: number })?.status === 404) {
             return resourceClaim;
           }
           throw error;
@@ -282,7 +283,7 @@ const ServicesList: React.FC<{
       console.warn(`Unkown action ${modalState.action}`);
       return resourceClaim;
     },
-    [cache, modalState.action],
+    [cache, modalState.action, modalState.resourceClaim],
   );
 
   const performModalActionForWorkshop = useCallback(
@@ -290,8 +291,8 @@ const ServicesList: React.FC<{
       if (modalState.action === 'delete') {
         try {
           return await deleteWorkshop(workshop);
-        } catch (error: any) {
-          if (error.status === 404) {
+        } catch (error: unknown) {
+          if ((error as { status?: number })?.status === 404) {
             return workshop;
           }
           throw error;
@@ -353,18 +354,7 @@ const ServicesList: React.FC<{
     } else {
       revalidate({ updatedItems: serviceUpdates, action: 'update' });
     }
-  }, [
-    modalState.action,
-    modalState.resourceClaim,
-    modalState.workshop,
-    modalState.rating?.rate,
-    modalState.rating?.comment,
-    performModalActionForResourceClaim,
-    performModalActionForWorkshop,
-    services,
-    revalidate,
-    selectedUids,
-  ]);
+  }, [modalState.resourceClaim, modalState.workshop, modalState.action, modalState.rating, selectedUids, performModalActionForResourceClaim, performModalActionForWorkshop, services, globalMutate, revalidate]);
 
   const showModal = useCallback(
     ({

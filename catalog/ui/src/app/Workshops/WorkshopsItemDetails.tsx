@@ -476,47 +476,49 @@ const WorkshopsItemDetails: React.FC<{
                   </div>
 
                   {/* Provisioning Mode Toggle */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--pf-t--global--spacer--sm)',
-                      marginTop: 'var(--pf-t--global--spacer--md)',
-                    }}
-                  >
-                    <Switch
-                      id="provisioning-mode-switch"
-                      aria-label="Set ready by date"
-                      label={
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          Set ready by date
-                          <BetaBadge />
-                        </div>
-                      }
-                      isChecked={useDirectProvisioningDate}
-                      hasCheckIcon
-                      onChange={(_event, isChecked) => {
-                        setUseDirectProvisioningDate(isChecked);
+                  {isAdmin && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--pf-t--global--spacer--sm)',
+                        marginTop: 'var(--pf-t--global--spacer--md)',
                       }}
-                    />
-                    <Tooltip
-                      position="right"
-                      content={
-                        <p>
-                          When enabled, allows you to specify when the workshop should be ready by (8 hours after provisioning starts).
-                        </p>
-                      }
                     >
-                      <OutlinedQuestionCircleIcon
-                        aria-label="When enabled, allows you to specify when the workshop should be ready by."
-                        className="tooltip-icon-only"
+                      <Switch
+                        id="provisioning-mode-switch"
+                        aria-label="Set ready by date"
+                        label={
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            Set ready by date
+                            <BetaBadge />
+                          </div>
+                        }
+                        isChecked={useDirectProvisioningDate}
+                        hasCheckIcon
+                        onChange={(_event, isChecked) => {
+                          setUseDirectProvisioningDate(isChecked);
+                        }}
                       />
-                    </Tooltip>
-                  </div>
+                      <Tooltip
+                        position="right"
+                        content={
+                          <p>
+                            When enabled, allows you to specify when the workshop should be ready by (8 hours after provisioning starts).
+                          </p>
+                        }
+                      >
+                        <OutlinedQuestionCircleIcon
+                          aria-label="When enabled, allows you to specify when the workshop should be ready by."
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    </div>
+                  )}
                 </FormGroup>
 
-                {/* Ready by Date - Only show when switch is enabled */}
-                {useDirectProvisioningDate && (
+                {/* Ready by Date - Only show when switch is enabled and user is admin */}
+                {isAdmin && useDirectProvisioningDate && (
                   <FormGroup
                     fieldId="workshopReadyByDate"
                     label="Ready by"
