@@ -866,16 +866,21 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       onSelect={(d: Date) => {
                         dispatchFormState({
                           type: 'dates',
-                          startDate: d, // Direct provisioning date control
+                          startDate: d,
                           stopDate: new Date(
                             d.getTime() +
                               parseDuration(
                                 formState.activity?.startsWith('Customer Facing')
                                   ? '365d'
-                                  : catalogItem.spec.runtime?.default || '30h',
+                                  : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
                               ),
                           ),
-                          endDate: new Date(d.getTime() + parseDuration('30h')),
+                          endDate: new Date(
+                            d.getTime() +
+                              parseDuration(
+                                catalogItem.spec.lifespan?.default || '30h'
+                              )
+                          ),
                         });
                       }}
                       minDate={Date.now()}
@@ -969,10 +974,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                                 parseDuration(
                                   formState.activity?.startsWith('Customer Facing')
                                     ? '365d'
-                                    : catalogItem.spec.runtime?.default || '30h',
+                                    : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
                                 ),
                             ),
-                            endDate: new Date(provisioningDate.getTime() + parseDuration('30h')),
+                            endDate: new Date(
+                              provisioningDate.getTime() +
+                                parseDuration(
+                                  catalogItem.spec.lifespan?.default || '30h'
+                                )
+                            ),
                           });
                         }}
                         minDate={Date.now() + 8 * 60 * 60 * 1000} // Minimum must account for 8-hour provisioning lead time
@@ -981,7 +991,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         position="right"
                         content={
                           <p>
-                            Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
+                            Select when you&apos;d like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
                           </p>
                         }
                       >
