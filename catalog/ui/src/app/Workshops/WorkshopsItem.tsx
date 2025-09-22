@@ -548,7 +548,7 @@ const WorkshopsItemComponent: React.FC<{
   );
 };
 
-const WorkshopsItem: React.FC<{}> = () => {
+const WorkshopsItem: React.FC = () => {
   const { name: workshopName, namespace: serviceNamespaceName, tab: activeTab = 'details' } = useParams();
   return (
     <ErrorBoundaryPage namespace={workshopName} name={serviceNamespaceName} type="Workshop">
