@@ -300,6 +300,54 @@ class AgnosticVRepo(CachedKopfObject):
         except pygit2.GitError as e:
             raise kopf.TemporaryError(f"Git clone failed: {e}", delay=60)
 
+    async def __has_remote_changes(self, logger):
+        """Check if remote branch has new commits using GitHub API (lightweight pre-check)"""
+        if not self.github_token_secret_name:
+            logger.debug(f"No GitHub token for {self.name}, falling back to git fetch")
+            return True  # Fall back to git fetch if no API access
+        
+        try:
+            # Get current local commit
+            if not self.git_repo:
+                return True  # Need to fetch if no local repo
+                
+            local_ref_name = f'refs/remotes/origin/{self.git_ref}'
+            if local_ref_name not in self.git_repo.references:
+                return True  # Need to fetch if branch doesn't exist locally
+                
+            local_sha = str(self.git_repo.references[local_ref_name].target)
+            
+            # Check remote commit via GitHub API
+            github_token = await self.get_github_token()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.github_api_base_url}/branches/{self.git_ref}",
+                    headers={
+                        "Accept": "application/vnd.github+json",
+                        "Authorization": "Bearer " + github_token,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=aiohttp.ClientTimeout(total=5)  # Quick timeout
+                ) as response:
+                    if response.status != 200:
+                        logger.debug(f"GitHub API check failed with {response.status}, falling back to git fetch")
+                        return True  # Fall back to git fetch on API errors
+                    
+                    branch_info = await response.json()
+                    remote_sha = branch_info['commit']['sha']
+                    
+                    has_changes = remote_sha != local_sha
+                    if has_changes:
+                        logger.debug(f"GitHub API detected changes: {local_sha[:8]} -> {remote_sha[:8]}")
+                    else:
+                        logger.debug(f"GitHub API: no changes detected for {self.git_ref}")
+                    
+                    return has_changes
+                    
+        except Exception as e:
+            logger.debug(f"GitHub API pre-check failed: {e}, falling back to git fetch")
+            return True  # Fall back to git fetch on any errors
+
     def __git_repo_pull(self, logger):
         if not self.git_repo:
             self.git_repo = pygit2.Repository(self.git_repo_path)
@@ -544,7 +592,6 @@ class AgnosticVRepo(CachedKopfObject):
         }
 
         if self.github_preload_pull_requests:
-            logger.info(f"Full history cache in place for repo {self.name} - processing PRs efficiently")
             github_token = await self.get_github_token()
             pull_requests = []
             async with aiohttp.ClientSession() as session:
@@ -584,9 +631,10 @@ class AgnosticVRepo(CachedKopfObject):
                         # Check if this branch has changed since last time
                         last_known_commit = self.last_pr_commits.get(ref)
                         is_new_branch = ref not in processed_branches and f'refs/remotes/origin/{ref}' not in self.git_repo.references
+                        is_first_time_tracking = last_known_commit is None
                         has_new_commits = last_known_commit != current_commit
                         
-                        if is_new_branch:
+                        if is_new_branch or is_first_time_tracking:
                             logger.info(f"New PR branch detected: {ref} (PR #{pr_number})")
                         elif not has_new_commits:
                             logger.debug(f"PR branch {ref} (PR #{pr_number}) unchanged, skipping checkout")
@@ -645,7 +693,7 @@ class AgnosticVRepo(CachedKopfObject):
         
         if self.github_preload_pull_requests:
             skipped_branches = len(pull_requests) - len(processed_branches)
-            logger.info(f"Optimization summary for {self.name}: processed {len(processed_branches)}/{len(pull_requests)} PRs (skipped {skipped_branches} unchanged), found {len(component_sources)} total components")
+            logger.info(f"Summary for {self.name}: processed {len(processed_branches)}/{len(pull_requests)} PRs (skipped {skipped_branches} unchanged), found {len(component_sources)} total components")
         
         return component_sources, deleted_component_names, error_messages
 
@@ -713,9 +761,13 @@ class AgnosticVRepo(CachedKopfObject):
         if self.ssh_key_secret_name:
             await self.git_ssh_key_write()
         if await aiofiles.os.path.exists(self.git_repo_path):
-            await asyncio.get_event_loop().run_in_executor(
-                None, self.__git_repo_pull, logger
-            )
+            # For existing repos, use GitHub API pre-check to avoid unnecessary git fetches
+            if await self.__has_remote_changes(logger):
+                await asyncio.get_event_loop().run_in_executor(
+                    None, self.__git_repo_pull, logger
+                )
+            else:
+                logger.info(f"No remote changes detected for {self.name}, skipping git fetch")
         else:
             await asyncio.get_event_loop().run_in_executor(
                 None, self.__git_repo_clone, logger
@@ -958,6 +1010,7 @@ class AgnosticVRepo(CachedKopfObject):
             })
 
     async def __manage_components(self, logger, changed_only):
+        logger.debug(f"Starting manage_components for {self.name} (changed_only={changed_only})")
         # Reset flag for detecting closed PRs in this cycle
         self._has_closed_prs_this_cycle = False
         
@@ -971,16 +1024,20 @@ class AgnosticVRepo(CachedKopfObject):
             if git_hexsha == self.last_successful_git_hexsha:
                 # If GitHub preload PRs is enabled, we still need to process PRs even if main branch unchanged
                 if self.github_preload_pull_requests:
-                    logger.debug(f"Main branch unchanged [{git_hexsha}], but processing PRs")
+                    logger.debug(f"Main branch unchanged, processing PRs for {self.name} [{git_hexsha}]")
                 else:
-                    logger.debug(f"Unchanged [{git_hexsha}]")
+                    logger.debug(f"Repository {self.name} unchanged [{git_hexsha}]")
                     return
             elif self.last_successful_git_hexsha:
-                logger.info(f"Updating components from {self.last_successful_git_hexsha} to {git_hexsha}")
+                logger.info(f"Updating components for {self.name} from {self.last_successful_git_hexsha} to {git_hexsha}")
             else:
-                logger.info(f"Initial processing for {git_hexsha}")
+                logger.info(f"Initial processing for {self.name} [{git_hexsha}]")
         else:
-            logger.info(f"Starting full component processing for {git_hexsha}")
+            # Full processing - always process regardless of git SHA
+            if self.last_successful_git_hexsha:
+                logger.info(f"Starting full component processing for {self.name} [{git_hexsha}]")
+            else:
+                logger.info(f"Starting full component processing for {self.name} (initial) [{git_hexsha}]")
 
         pr_hexsha = {}
         pr_messages = {}
@@ -1104,7 +1161,11 @@ class AgnosticVRepo(CachedKopfObject):
                     logger.info(f"Deleting {agnosticv_component} after deleted from {self}")
                     await agnosticv_component.delete()
 
-        logger.info(f"Finished managing components for {git_hexsha}")
+        # Only log completion message when actual changes were processed
+        if git_hexsha != self.last_successful_git_hexsha or not self.last_successful_git_hexsha:
+            logger.info(f"Finished managing components for {self.name} [{git_hexsha}]")
+        else:
+            logger.debug(f"Completed processing for {self.name} (no changes)")
 
 
 class ComponentSource:
