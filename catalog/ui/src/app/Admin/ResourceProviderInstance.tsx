@@ -122,7 +122,6 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/resourceproviders/${resourceProviderName}/${tabIndex}`)}
         >
-          {/* @ts-ignore */}
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
@@ -161,7 +160,6 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
               </DescriptionListGroup>
             </DescriptionList>
           </Tab>
-          {/* @ts-ignore */}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor
               height="500px"

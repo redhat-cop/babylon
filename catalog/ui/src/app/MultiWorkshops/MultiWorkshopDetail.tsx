@@ -60,7 +60,7 @@ function stripHtmlTags(html: string): string {
 const MultiWorkshopDetail: React.FC = () => {
   const navigate = useNavigate();
   const { namespace, name } = useParams();
-  const { userNamespace } = useSession().getSession();
+  const { userNamespace, isAdmin } = useSession().getSession();
   const [activeTab, setActiveTab] = useState<string>('details');
   const [modalDelete, openModalDelete] = useModal();
   const [modalDeleteAsset, openModalDeleteAsset] = useModal();
@@ -69,7 +69,7 @@ const MultiWorkshopDetail: React.FC = () => {
   const [modalExternalWorkshop, openModalExternalWorkshop] = useModal();
   const [selectedWorkshops, setSelectedWorkshops] = useState<string[]>([]);
   const [workshopSearchValue, setWorkshopSearchValue] = useState('');
-  const [assetToDelete, setAssetToDelete] = useState<{ index: number; asset: any } | null>(null);
+  const [assetToDelete, setAssetToDelete] = useState<{ index: number; asset: { type?: string; displayName?: string; key?: string; workshopName?: string; url?: string; name?: string } } | null>(null);
 
   const { data: multiworkshop, error } = useSWR<MultiWorkshop>(
     namespace && name ? apiPaths.MULTIWORKSHOP({ namespace, multiworkshopName: name }) : null,
@@ -105,7 +105,7 @@ const MultiWorkshopDetail: React.FC = () => {
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       return `${year}-${month}-${day}T${hours}:${minutes}`;
-    } catch (error) {
+    } catch {
       return '';
     }
   }
@@ -218,7 +218,7 @@ const MultiWorkshopDetail: React.FC = () => {
     }
   }
 
-  function showDeleteAssetModal(index: number, asset: any): void {
+  function showDeleteAssetModal(index: number, asset: { type?: string; displayName?: string; key?: string; workshopName?: string; url?: string; name?: string }): void {
     setAssetToDelete({ index, asset });
     openModalDeleteAsset();
   }
@@ -329,11 +329,11 @@ const MultiWorkshopDetail: React.FC = () => {
   if (error) {
     return (
       <PageSection>
-        <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="Error loading event" variant="full">
+        <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="Error loading multi asset workshop" variant="full">
           <EmptyStateBody>
             {error.status === 404 ? 
-              'The requested event was not found.' : 
-              'An error occurred while loading the event details.'
+              'The requested multi asset workshop was not found.' : 
+              'An error occurred while loading the multi asset workshop details.'
             }
           </EmptyStateBody>
         </EmptyState>
@@ -359,7 +359,7 @@ const MultiWorkshopDetail: React.FC = () => {
       <Modal
         ref={modalDelete}
         onConfirm={onDeleteConfirm}
-        title={`Delete event ${getMultiWorkshopDisplayName(multiworkshop)}?`}
+        title={`Delete multi asset workshop ${getMultiWorkshopDisplayName(multiworkshop)}?`}
       >
         <p>This action cannot be undone. All associated workshop data will be deleted.</p>
       </Modal>
@@ -489,7 +489,7 @@ const MultiWorkshopDetail: React.FC = () => {
               variant="link" 
               onClick={() => navigate(currentNamespace ? `/multi-workshop/${currentNamespace}` : '/multi-workshop')}
             >
-              Multi Workshop
+              Multi Asset Workshop
             </Button>
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{getMultiWorkshopDisplayName(multiworkshop)}</BreadcrumbItem>
@@ -499,15 +499,15 @@ const MultiWorkshopDetail: React.FC = () => {
           <SplitItem isFilled>
             <Title headingLevel="h1" size="2xl" style={{ display: 'flex', alignItems: 'center' }}>
               {multiworkshop.metadata.name}
-              <Label key="multi-workshop-label" tooltipDescription={<div>Multi Workshop interface</div>}>
-                Multi Workshop
+              <Label key="multi-workshop-label" tooltipDescription={<div>Multi Asset Workshop interface</div>}>
+                Multi Asset Workshop
               </Label>
             </Title>
           </SplitItem>
           <SplitItem>
             <ButtonCircleIcon
               onClick={openModalDelete}
-              description="Delete Event"
+              description="Delete Multi Asset Workshop"
               icon={TrashIcon}
             />
           </SplitItem>
@@ -627,18 +627,20 @@ const MultiWorkshopDetail: React.FC = () => {
                   </SplitItem>
                   <SplitItem>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                      <Button 
-                        variant="primary" 
-                        onClick={openModalAddWorkshop}
-                        isDisabled={availableWorkshops.length === 0}
-                      >
-                        Add Workshop
-                      </Button>
+                      {isAdmin && (
+                        <Button 
+                          variant="primary" 
+                          onClick={openModalAddWorkshop}
+                          isDisabled={availableWorkshops.length === 0}
+                        >
+                          Add preprovisioned asset
+                        </Button>
+                      )}
                       <Button 
                         variant="secondary" 
                         onClick={openModalExternalWorkshop}
                       >
-                        Add External Workshop
+                        Add External Asset
                       </Button>
                     </div>
                   </SplitItem>
@@ -648,7 +650,7 @@ const MultiWorkshopDetail: React.FC = () => {
                   <Table aria-label="Workshop assets" variant="compact">
                     <Thead>
                       <Tr>
-                        <Th>Workshop Name</Th>
+                        <Th>Asset Name</Th>
                         <Th>Display Name</Th>
                         <Th>Description</Th>
                         <Th>Status</Th>
@@ -821,7 +823,7 @@ const MultiWorkshopDetail: React.FC = () => {
                           purpose: multiworkshop.spec.purpose || '',
                         }}
                         purposeOpts={purposeOptions}
-                        onChange={async (activity, purpose, explanation) => {
+                        onChange={async (activity, purpose) => {
                           const updatedMultiWorkshop = await patchMultiWorkshop({
                             name: multiworkshop.metadata.name,
                             namespace: multiworkshop.metadata.namespace,

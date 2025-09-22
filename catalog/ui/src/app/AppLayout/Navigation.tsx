@@ -60,7 +60,7 @@ const Navigation: React.FC = () => {
         className={locationStartsWith('/multi-workshop/') ? 'pf-m-current' : ''}
       >
         <span style={{ display: 'flex', alignItems: 'center' }}>
-          Multi Workshop
+                    Multi Asset Workshop
           <PilotBadge />
         </span>
       </NavLink>

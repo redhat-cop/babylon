@@ -145,7 +145,6 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/anarchyruns/${namespace}/${anarchyRunName}/${tabIndex}`)}
         >
-          {/* @ts-ignore */}
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
@@ -244,7 +243,6 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
               </DescriptionListGroup>
             </DescriptionList>
           </Tab>
-          {/* @ts-ignore */}
           <Tab eventKey="log" title={<TabTitleText>Ansible Log</TabTitleText>}>
             {anarchyRun.spec?.result?.ansibleRun || anarchyRun.status?.result?.ansibleRun ? (
               <AnsibleRunLog
@@ -255,7 +253,6 @@ const AnarchyRunInstanceComponent: React.FC<{ anarchyRunName: string; namespace:
                 </EmptyState>
             )}
           </Tab>
-          {/* @ts-ignore */}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor
               height="500px"
