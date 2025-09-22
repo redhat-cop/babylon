@@ -39,7 +39,6 @@ import {
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
 import Footer from '@app/components/Footer';
-import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
 import ServicesAction from '@app/Services/ServicesAction';
 import ServiceActions from '@app/Services/ServiceActions';
 import ServicesScheduleAction from '@app/Services/ServicesScheduleAction';
@@ -66,21 +65,22 @@ function keywordMatch(r: ResourceClaim, keyword: string): boolean {
   }
   return false;
 }
-const ResourceClaims: React.FC<{}> = () => {
+const ResourceClaims: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { cache } = useSWRConfig();
+  const hasSearch = searchParams.has('search');
+  const searchValue = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      hasSearch
+        ? searchValue
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [hasSearch, searchValue],
   );
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
@@ -361,7 +361,6 @@ const ResourceClaims: React.FC<{}> = () => {
             }}
             rows={resourceClaims.map((resourceClaim: ResourceClaim) => {
               const resourceHandle = resourceClaim.status?.resourceHandle;
-              const specResources = resourceClaim.spec.resources || [];
               const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
               const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
               const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];

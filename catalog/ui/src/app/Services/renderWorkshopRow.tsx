@@ -19,7 +19,6 @@ import Label from '@app/components/Label';
 import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
 import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
 import ServiceStatus from './ServiceStatus';
-import { getMostRelevantResourceAndTemplate } from './service-utils';
 
 const renderWorkshopRow = ({
   workshop,
@@ -38,7 +37,7 @@ const renderWorkshopRow = ({
   }) => void;
   isAdmin: boolean;
 }) => {
-  const isLocked = isWorkshopLocked(workshop, isAdmin);
+  const isLocked = isWorkshopLocked(workshop);
   const actionHandlers = {
     delete: () => showModal({ modal: 'action', action: 'delete', workshop }),
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', workshop }),

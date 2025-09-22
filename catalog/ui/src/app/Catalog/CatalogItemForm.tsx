@@ -80,7 +80,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const [availabilityData, setAvailabilityData] = useState<AvailabilityCheckResponse | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
-  const prevSandboxParametersRef = React.useRef<Record<string, any>>({});
+  const prevSandboxParametersRef = React.useRef<Record<string, unknown>>({});
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
@@ -99,7 +99,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   );
 
   const _displayName = displayName(catalogItem);
-  const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), []);
+  const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), [catalogItem]);
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const workshopInitialProps = useMemo(
     () => ({
@@ -111,7 +111,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
       provisionStartDelay: 30,
     }),
-    [catalogItem],
+    [_displayName, catalogItem.spec.multiuser],
   );
 
   const onToggleClick = () => {
@@ -198,7 +198,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       });
       const result = await checkCatalogItemAvailability(catalogItem.metadata.name, resources);
       setAvailabilityData(result);
-    } catch (error) {
+    } catch {
       setAvailabilityData({
         overallAvailable: false,
         overallMessage: 'Failed to check availability',
@@ -231,7 +231,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }
 
     // Get current values of parameters with sandbox selectors
-    const currentSandboxParams: Record<string, any> = {};
+    const currentSandboxParams: Record<string, unknown> = {};
     let hasRelevantValues = false;
 
     parametersWithSelectors.forEach((paramName) => {
@@ -620,7 +620,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         name="skip-salesforce-id"
                         label="I'll provide the Salesforce ID within 48 hours."
                         isChecked={formState.salesforceId.skip}
-                        onChange={(_event: any, checked: boolean) =>
+                        onChange={(_event: unknown, checked: boolean) =>
                           dispatchFormState({
                             type: 'salesforceId',
                             salesforceId: {
@@ -636,7 +636,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         content={
                           <div>
                             By checking this box, you agree to provide the required number within 48 hours, in alignment
-                            with Red Hat's Code of Ethics. It is your responsibility to ensure the accuracy and timely
+                            with Red Hat&apos;s Code of Ethics. It is your responsibility to ensure the accuracy and timely
                             submission of this information, as it is essential for the integrity and compliance of our
                             processes.
                           </div>
@@ -791,7 +791,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 }
                 minDate={Date.now()}
               />
-              <Tooltip position="right" content={<p>Select the date you'd like the service to start provisioning.</p>}>
+              <Tooltip position="right" content={<p>Select the date you&apos;d like the service to start provisioning.</p>}>
                 <OutlinedQuestionCircleIcon
                   aria-label="Select the date you'd like the service to start provisioning."
                   className="tooltip-icon-only"

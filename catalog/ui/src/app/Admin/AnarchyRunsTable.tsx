@@ -11,7 +11,7 @@ import TimeInterval from '@app/components/TimeInterval';
 const AnarchyRunsTable: React.FC<{
   anarchyRuns: AnarchyRun[];
   selectedUids: string[];
-  selectedUidsReducer: any;
+  selectedUidsReducer: (action: { type: string; uids?: string[] }) => void;
 }> = ({ anarchyRuns, selectedUids, selectedUidsReducer }) => {
   if (anarchyRuns.length === 0) {
     return (

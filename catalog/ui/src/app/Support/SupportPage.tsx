@@ -38,7 +38,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
     if (typeof label === 'undefined' || label === null) {
       label = dataLabel;
     }
-    return [label, ...dataArr.find((i) => i[0].startsWith(dataLabel))?.slice(1)];
+    return [label, ...(dataArr.find((i) => i[0].startsWith(dataLabel))?.slice(1) || [])];
   }
   function createRowFromArr(dataLabel: string, label?: string) {
     if (typeof label === 'undefined' || label === null) {
@@ -58,10 +58,10 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
             />
           </Tooltip>
         </div>,
-        ...arr?.slice(1),
+        ...(arr?.slice(1) || []),
       ];
     }
-    return [label, ...arr?.slice(1)];
+    return [label, ...(arr?.slice(1) || [])];
   }
   const columns = createColumnsFromArr('Types', '');
   const description = createRowFromArr('Description');

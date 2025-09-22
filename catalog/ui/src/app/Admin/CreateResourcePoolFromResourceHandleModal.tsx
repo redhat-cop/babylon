@@ -18,7 +18,7 @@ const formFieldStyle: CSSProperties = {
 const CreateResourcePoolFromResourceHandleModal: React.FC<{
   resourceClaim?: ResourceClaim;
   resourceHandle: ResourceHandle;
-  setOnConfirmCb?: (_: any) => Promise<void>;
+  setOnConfirmCb?: (_: unknown) => Promise<void>;
   setIsDisabled?: React.Dispatch<React.SetStateAction<boolean>>;
 }> = ({ resourceClaim, resourceHandle, setOnConfirmCb, setIsDisabled }) => {
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
           setNameConflict(true);
           setIsDisabled(true);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error instanceof Response && error.status === 404) {
           setNameConflict(false);
           setIsDisabled(!poolNameValidated);

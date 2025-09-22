@@ -42,7 +42,7 @@ function keywordMatch(workshop: Workshop, keyword: string): boolean {
   return false;
 }
 
-const Workshops: React.FC<{}> = () => {
+const Workshops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
   const [modalAction, openModalAction] = useModal();
@@ -263,7 +263,7 @@ const Workshops: React.FC<{}> = () => {
               const owningResourceClaimName =
                 ownerReference && ownerReference.kind === 'ResourceClaim' ? ownerReference.name : null;
 
-              const cells: any[] = [];
+              const cells: unknown[] = [];
               cells.push(
                 // Name
                 <>

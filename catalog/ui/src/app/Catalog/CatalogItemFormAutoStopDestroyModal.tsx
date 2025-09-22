@@ -42,10 +42,10 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   const noAutoStopChecked = _stopDate && _endDate && _stopDate.getTime() >= _endDate.getTime();
 
   useEffect(() => {
-    if (!!type) {
+    if (type) {
       openAutoStopDestroyModal();
     }
-  }, [type]);
+  }, [openAutoStopDestroyModal, type]);
 
   return (
     <Modal ref={autoStopDestroyModal} onConfirm={() => onConfirm(dates)} title={title} onClose={onClose}>
@@ -70,12 +70,13 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                   isChecked={noAutoStopChecked}
                   hasCheckIcon
                   onChange={(_event, isChecked) => {
-                    isChecked
-                      ? setDates({
+                    if (isChecked) {
+                      setDates({
                           ...dates,
                           stopDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
                         })
-                      : setDates({ ...dates, stopDate: new Date(Date.now() + defaultRuntimeTimestamp) });
+                      }else { setDates({ ...dates, stopDate: new Date(Date.now() + defaultRuntimeTimestamp) });
+                    }
                   }}
                 />
               ) : null}

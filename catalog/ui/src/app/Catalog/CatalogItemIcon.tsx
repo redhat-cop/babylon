@@ -11,7 +11,7 @@ const CatalogItemIcon: React.FC<{
     try {
       if (iconConfig.url)
         return <img className="catalog-item-icon" alt={iconConfig.alt} src={iconConfig.url} style={iconConfig.style} />;
-    } catch (_) {
+    } catch {
       //
     }
   }

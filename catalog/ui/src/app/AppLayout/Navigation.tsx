@@ -3,7 +3,6 @@ import { LinkProps, NavLink, useLocation, useMatch, useResolvedPath } from 'reac
 import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
-import BetaBadge from '@app/components/BetaBadge';
 import PilotBadge from '@app/components/PilotBadge';
 
 const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
@@ -22,7 +21,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { incidents_enabled, ratings_enabled } = useInterfaceConfig();
-  const { isAdmin, groups, userNamespace } = useSession().getSession();
+  const { isAdmin, userNamespace } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
     return location.pathname.startsWith(str);

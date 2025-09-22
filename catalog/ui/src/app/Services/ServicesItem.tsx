@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useCallback, useMemo, useState, useReducer, useEffect } from 'react';
 import { useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
@@ -55,8 +54,10 @@ import {
 } from '@app/api';
 import {
   AnarchySubject,
+  CatalogItem,
   K8sObject,
   NamespaceList,
+  RequestUsageCost,
   ResourceClaim,
   ServiceActionActions,
   SfdcType,
@@ -92,7 +93,6 @@ import Label from '@app/components/Label';
 import {
   getAutoStopTime,
   getInfoMessageTemplate,
-  getMostRelevantResourceAndTemplate,
   getStartTime,
 } from './service-utils';
 import ServicesAction from './ServicesAction';
@@ -205,7 +205,7 @@ const ComponentDetailsList: React.FC<{
                             <DescriptionListDescription>
                               {typeof value === 'string' ? (
                                 value.startsWith('https://') ? (
-                                  <a href={value} target="_blank" rel="noopener">
+                                  <a href={value} target="_blank" rel="noopener noreferrer">
                                     <code>{value}</code>
                                   </a>
                                 ) : (
@@ -386,7 +386,7 @@ const ServicesItemComponent: React.FC<{
   useEffect(() => {
     if (!salesforceObj.completed) {
       checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
-        ({ valid, message }: { valid: boolean; message?: string }) =>
+        ({ valid }: { valid: boolean; message?: string }) =>
           dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid }),
       );
     } else if (
@@ -655,7 +655,7 @@ const ServicesItemComponent: React.FC<{
         <ServicesCreateWorkshop resourceClaim={resourceClaim} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
-        <ServicesScheduleAction action={modalState.action || 'stop'} resourceClaim={resourceClaim} />
+        <ServicesScheduleAction action={modalState.action ? modalState.action === "delete" ? "retirement" : "start" : 'stop'} resourceClaim={resourceClaim} />
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection hasBodyWrapper={false} key="topbar" className="services-item__topbar">
@@ -777,7 +777,7 @@ const ServicesItemComponent: React.FC<{
                           type="text"
                           key="service-alias"
                           id="service-alias"
-                          onChange={async (_event: any, value: string) => {
+                          onChange={async (_event: unknown, value: string) => {
                             setServiceAlias(value);
                           }}
                           value={serviceAlias}
@@ -830,7 +830,7 @@ const ServicesItemComponent: React.FC<{
                       <DescriptionListTerm>Start</DescriptionListTerm>
                       <DescriptionListDescription>
                         <AutoStopDestroy
-                          type="start"
+                          type="auto-start"
                           onClick={() => {
                             showModal({ action: 'start', modal: 'scheduleAction', resourceClaim });
                           }}
@@ -974,7 +974,7 @@ const ServicesItemComponent: React.FC<{
                             type="text"
                             key="salesforce_id"
                             id="salesforce_id"
-                            onChange={(_event: any, value: string) =>
+                            onChange={(_event: unknown, value: string) =>
                               dispatchSalesforceObj({
                                 ...salesforceObj,
                                 type: 'set_salesforceId',
@@ -1017,7 +1017,7 @@ const ServicesItemComponent: React.FC<{
                           label="White-Glove Support (for admins to tick when giving a white gloved experience)"
                           isChecked={whiteGloved}
                           hasCheckIcon
-                          onChange={async (_event: any, isChecked: boolean) => {
+                          onChange={async (_event: unknown, isChecked: boolean) => {
                             mutate(
                               await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
                                 metadata: {
@@ -1160,7 +1160,7 @@ const ServicesItemComponent: React.FC<{
             ) : null}
 
             {workshopName && !isPartOfWorkshop ? (
-              [
+              <React.Fragment>
                 <Tab eventKey="workshop" key="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
                   {activeTab === 'workshop' ? (
                     <WorkshopsItemDetails
@@ -1169,7 +1169,7 @@ const ServicesItemComponent: React.FC<{
                       workshopUserAssignments={userAssigmentsList.items}
                     />
                   ) : null}
-                </Tab>,
+                </Tab>
                 <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
                   {activeTab === 'users' ? (
                     <WorkshopsItemUserAssignments
@@ -1177,8 +1177,8 @@ const ServicesItemComponent: React.FC<{
                       userAssignments={userAssigmentsList.items}
                     />
                   ) : null}
-                </Tab>,
-              ]
+                </Tab>
+              </React.Fragment>
             ) : serviceHasUsers ? (
               <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
                 {activeTab === 'users' ? (

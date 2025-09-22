@@ -10,7 +10,7 @@ import React, {
   Suspense,
   useRef,
 } from 'react';
-import ReactDOM, { createPortal } from 'react-dom';
+import { createPortal } from 'react-dom';
 import { Button, Spinner } from '@patternfly/react-core';
 import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import LoadingSection from '@app/components/LoadingSection';
@@ -20,7 +20,7 @@ import './modal.css';
 
 const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : [];
 
-const _Modal: ForwardRefRenderFunction<
+const ModalComponent: ForwardRefRenderFunction<
   {
     open: () => void;
     close: () => void;
@@ -57,7 +57,7 @@ const _Modal: ForwardRefRenderFunction<
 ): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
-  const modalEl = useRef();
+  const modalEl = useRef<HTMLDivElement>();
   const [onConfirmCb, setOnConfirmCb] = useState<() => Promise<void>>(null);
   const close = useCallback(() => {
     setIsLoading(false);
@@ -65,7 +65,7 @@ const _Modal: ForwardRefRenderFunction<
     if (onClose) {
       onClose();
     }
-  }, []);
+  }, [onClose]);
   const [_title, setTitle] = useState(title);
   const [_isDisabled, setIsDisabled] = useState(isDisabled);
   const [domReady, setDomReady] = useState(false);
@@ -104,7 +104,7 @@ const _Modal: ForwardRefRenderFunction<
   const handleClick = useCallback(
     (e: MouseEvent | TouchEvent) => {
       const targetEl = e.target as HTMLElement;
-      const container = ReactDOM.findDOMNode(modalEl.current) as Element;
+      const container = modalEl.current;
       const backdrop = container;
       const modal = container?.querySelector('.pf-v6-c-modal-box');
       if (!modal || !backdrop) return e;
@@ -137,7 +137,9 @@ const _Modal: ForwardRefRenderFunction<
     }
     setIsLoading(true);
     try {
-      onConfirmCb && (await onConfirmCb());
+      if (onConfirmCb) {
+        await onConfirmCb();
+      }
       await onConfirm(state);
       close();
     } catch {
@@ -172,13 +174,13 @@ const _Modal: ForwardRefRenderFunction<
         isOpen ? (
           <Suspense
             fallback={
-              <Modal ref={modalEl} isOpen variant={variant} onClose={close} aria-label="Modal: Loading">
+              <Modal ref={modalEl as never} isOpen variant={variant} onClose={close} aria-label="Modal: Loading">
                 <LoadingSection />
               </Modal>
             }
           >
             <Modal
-              ref={modalEl}
+              ref={modalEl as never}
               className={`modal-component${className ? ` ${className}` : ''} ${optionalFlags
                 .map((flag) => `optional-flags__${flag}`)
                 .join(' ')}`}
@@ -225,4 +227,4 @@ const _Modal: ForwardRefRenderFunction<
 };
 
 export { useModal };
-export default forwardRef(_Modal);
+export default forwardRef(ModalComponent);

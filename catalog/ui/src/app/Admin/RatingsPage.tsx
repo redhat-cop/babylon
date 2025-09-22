@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
+import { PageSection } from '@patternfly/react-core';
 import RatingsList from './RatingsList';
 import LoadingSection from '@app/components/LoadingSection';
 

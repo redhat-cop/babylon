@@ -480,7 +480,7 @@ const WorkshopsItemComponent: React.FC<{
                     ? () => showModal({ action: 'stopServices', resourceClaims })
                     : null,
                 }}
-                isLocked={isWorkshopLocked(workshop, isAdmin)}
+                isLocked={isWorkshopLocked(workshop)}
               />
             </Bullseye>
           </SplitItem>

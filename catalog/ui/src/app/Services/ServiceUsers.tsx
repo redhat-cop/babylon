@@ -57,7 +57,7 @@ const UserMessage: React.FC<{
                     <DescriptionListDescription>
                       {typeof value === 'string' ? (
                         value.startsWith('https://') ? (
-                          <a href={value} target="_blank" rel="noopener">
+                          <a href={value} target="_blank" rel="noopener noreferrer">
                             <code>{value}</code>
                           </a>
                         ) : (
@@ -101,7 +101,7 @@ const ServiceUsers: React.FC<{
 
   return (
     <>
-      {Object.entries(users).map(([userName, userData]: any) => {
+      {Object.entries(users).map(([userName, userData]: [userName: string, userData: {labUserInterfaceUrl?: string, lab_ui_url?: string, bookbag_url?: string, msg?: string}]) => {
         const userLabUrl =
           labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url;
         const userDataEntries = Object.entries(userData).filter(

@@ -7,7 +7,7 @@ import { displayName, randomString } from '@app/util';
 
 const ServicesCreateWorkshop: React.FC<{
   resourceClaim?: ResourceClaim;
-  setOnConfirmCb?: (_: any) => Promise<void>;
+  setOnConfirmCb?: (_: unknown) => Promise<void>;
 }> = ({ resourceClaim, setOnConfirmCb }) => {
   const [userRegistrationValue, setUserRegistrationValue] = useState('open');
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
