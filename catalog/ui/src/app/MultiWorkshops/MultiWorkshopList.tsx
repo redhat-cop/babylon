@@ -221,7 +221,7 @@ const MultiWorkshopList: React.FC = () => {
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h1" size="2xl">
-              Multi Workshop
+              Multi Asset Workshop
             </Title>
             <p className="multiworkshop-list__header-subtitle">
               Create and manage your event workshop collections in {currentNamespace}
@@ -255,7 +255,7 @@ const MultiWorkshopList: React.FC = () => {
               icon={<PlusIcon />}
               onClick={() => navigate('/multi-workshop/create')}
             >
-              Create Multi Workshop
+              Create Multi Asset Workshop
             </Button>
           </SplitItem>
         </Split>
@@ -278,7 +278,7 @@ const MultiWorkshopList: React.FC = () => {
                   icon={<PlusIcon />}
                   onClick={() => navigate('/multi-workshop/create')}
                 >
-                  Create Multi Workshop
+                  Create Multi Asset Workshop
                 </Button>
               </EmptyStateFooter>
             </EmptyState>
@@ -286,7 +286,7 @@ const MultiWorkshopList: React.FC = () => {
         ) : (
           <PageSection hasBodyWrapper={false} key="body">
             <SelectableTable
-              columns={['Event Name', 'Description', 'Workshops', 'Seats', 'Start provisioning date', 'Created', 'Actions']}
+              columns={['Event Name', 'Description', 'Total Assets', 'Seats', 'Start provisioning date', 'Default Asset Auto-destroy date', 'Created', 'Actions']}
               onSelectAll={(isSelected: boolean) => {
                 if (isSelected) {
                   setSelectedUids(multiworkshops.map((multiworkshop) => multiworkshop.metadata.uid));
@@ -320,6 +320,14 @@ const MultiWorkshopList: React.FC = () => {
                   <>
                     {multiworkshop.spec.startDate ? (
                       <LocalTimestamp key="start-timestamp" timestamp={multiworkshop.spec.startDate} />
+                    ) : (
+                      'Not scheduled'
+                    )}
+                  </>,
+                  // Default Asset Auto-destroy date
+                  <>
+                    {multiworkshop.spec.endDate ? (
+                      <LocalTimestamp key="end-timestamp" timestamp={multiworkshop.spec.endDate} />
                     ) : (
                       'Not scheduled'
                     )}

@@ -530,19 +530,19 @@ const MultiWorkshopCreate: React.FC = () => {
         <Breadcrumb>
           <BreadcrumbItem>
             <Button variant="link" onClick={() => navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')}>
-              Multi Workshop
+              Multi Asset Workshop
             </Button>
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Create Multi Workshop</BreadcrumbItem>
+          <BreadcrumbItem isActive>Create Multi Asset Workshop</BreadcrumbItem>
         </Breadcrumb>
         <Title headingLevel="h1" size="2xl">
-          Create Multi Workshop
+          Create Multi Asset Workshop
         </Title>
         
         {/* Informational Banner */}
         <Alert 
           variant="info" 
-          title="Multi Workshop - Multi-Catalog Item Collections"
+          title="Multi Asset Workshop - Multi-Catalog Item Collections"
           style={{ marginTop: '16px' }}
         >
           <p>
@@ -569,7 +569,7 @@ const MultiWorkshopCreate: React.FC = () => {
       <PageSection>
         <Form className="multiworkshop-create__form">
               {(isAdmin || serviceNamespaces.length > 1) && (
-                <FormGroup label="Create Multi Workshop in Project" fieldId="project-selector">
+                <FormGroup label="Create Multi Asset Workshop in Project" fieldId="project-selector">
                   <ProjectSelector
                     currentNamespaceName={selectedNamespace?.name}
                     onSelect={(namespace) => setSelectedNamespace(namespace)}
@@ -587,7 +587,7 @@ const MultiWorkshopCreate: React.FC = () => {
                   name="name"
                   value={createFormData.name}
                   onChange={(_, value) => setCreateFormData(prev => ({ ...prev, name: value }))}
-                  placeholder="Enter multi workshop name"
+                  placeholder="Enter multi workshop name (visible to customers in the landing page)"
                 />
               </FormGroup>
 
@@ -597,9 +597,58 @@ const MultiWorkshopCreate: React.FC = () => {
                   name="description"
                   value={createFormData.description}
                   onChange={(_, value) => setCreateFormData(prev => ({ ...prev, description: value }))}
-                  placeholder="Enter description (optional)"
+                  placeholder="Enter description (optional, visible to customers in the landing page)"
                   rows={3}
                 />
+              </FormGroup>
+
+              {/* Background and Logo Images */}
+              <FormGroup 
+                label={
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    Landing Page Images
+                    <Tooltip
+                      position="right"
+                      content={
+                        <p>
+                          These images will be displayed to customers on the workshop landing page to provide visual context and branding.
+                        </p>
+                      }
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Landing page image information"
+                        className="tooltip-icon-only"
+                        style={{ marginLeft: '8px' }}
+                      />
+                    </Tooltip>
+                  </div>
+                }
+                fieldId="landingPageImages"
+              >
+                <Split hasGutter>
+                  <SplitItem isFilled>
+                    <FormGroup label="Background Image URL" fieldId="backgroundImage">
+                      <TextInput
+                        id="backgroundImage"
+                        name="backgroundImage"
+                        value={createFormData.backgroundImage}
+                        onChange={(_, value) => setCreateFormData(prev => ({ ...prev, backgroundImage: value }))}
+                        placeholder="Optional background image URL"
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                  <SplitItem isFilled>
+                    <FormGroup label="Logo Image URL" fieldId="logoImage">
+                      <TextInput
+                        id="logoImage"
+                        name="logoImage"
+                        value={createFormData.logoImage}
+                        onChange={(_, value) => setCreateFormData(prev => ({ ...prev, logoImage: value }))}
+                        placeholder="Optional logo image URL"
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                </Split>
               </FormGroup>
 
               {/* Workshop Dates - Provisioning Date first, then Ready by */}
@@ -807,30 +856,6 @@ const MultiWorkshopCreate: React.FC = () => {
                 isRequired={!isAdmin}
               />
 
-              <Split hasGutter>
-                <SplitItem isFilled>
-                  <FormGroup label="Background Image URL" fieldId="backgroundImage">
-                    <TextInput
-                      id="backgroundImage"
-                      name="backgroundImage"
-                      value={createFormData.backgroundImage}
-                      onChange={(_, value) => setCreateFormData(prev => ({ ...prev, backgroundImage: value }))}
-                      placeholder="Optional background image URL"
-                    />
-                  </FormGroup>
-                </SplitItem>
-                <SplitItem isFilled>
-                  <FormGroup label="Logo Image URL" fieldId="logoImage">
-                    <TextInput
-                      id="logoImage"
-                      name="logoImage"
-                      value={createFormData.logoImage}
-                      onChange={(_, value) => setCreateFormData(prev => ({ ...prev, logoImage: value }))}
-                      placeholder="Optional logo image URL"
-                    />
-                  </FormGroup>
-                </SplitItem>
-              </Split>
 
               <FormGroup label="Assets" fieldId="assets">
                 {createFormData.assets.map((asset, index) => (
@@ -918,14 +943,14 @@ const MultiWorkshopCreate: React.FC = () => {
                 <Card style={{ marginBottom: '24px' }}>
                   <CardBody>
                     <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
-                      Multi Workshop Estimates
+                      Multi Asset Workshop Estimates
                     </Title>
                     <DescriptionList isHorizontal>
                       {estimates.totalProvisionTime !== null && (
                         <DescriptionListGroup>
                           <DescriptionListTerm>
                             Estimated Provision Time
-                            <Tooltip content="Maximum estimated time for all workshops to be provisioned simultaneously.">
+                            <Tooltip content="Estimated time for all workshops to be provisioned simultaneously.">
                               <InfoAltIcon
                                 style={{
                                   paddingTop: "var(--pf-t--global--spacer--xs)",
@@ -944,7 +969,7 @@ const MultiWorkshopCreate: React.FC = () => {
                         <DescriptionListGroup>
                           <DescriptionListTerm>
                             Estimated Total Cost
-                            <Tooltip content="Estimated cost over the workshop duration if not stopped.">
+                            <Tooltip content="Calculated as: Number of seats × Workshop duration × Catalog items. This represents the estimated cost over the full workshop duration if not stopped early.">
                               <InfoAltIcon
                                 style={{
                                   paddingTop: "var(--pf-t--global--spacer--xs)",
@@ -978,7 +1003,7 @@ const MultiWorkshopCreate: React.FC = () => {
                   isDisabled={!isFormValid || isSubmitting}
                   isLoading={isSubmitting}
                 >
-                  Create Multi Workshop
+                  Create Multi Asset Workshop
                 </Button>
                 <Button variant="link" onClick={() => navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')}>
                   Cancel

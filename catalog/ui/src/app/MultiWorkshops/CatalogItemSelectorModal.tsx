@@ -108,7 +108,7 @@ const SelectableCatalogItemCard: React.FC<{
           <div style={{ 
             position: 'absolute', 
             top: '8px', 
-            right: '8px', 
+            left: '8px', 
             zIndex: 1,
             backgroundColor: 'white',
             borderRadius: '4px',

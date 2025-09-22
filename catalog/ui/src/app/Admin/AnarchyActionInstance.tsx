@@ -146,7 +146,6 @@ const AnarchyActionInstanceComponent: React.FC<{ anarchyActionName: string; name
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/anarchyactions/${namespace}/${anarchyActionName}/${tabIndex}`)}
         >
-          {/* @ts-ignore */}
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
@@ -211,7 +210,6 @@ const AnarchyActionInstanceComponent: React.FC<{ anarchyActionName: string; name
               </DescriptionListGroup>
             </DescriptionList>
           </Tab>
-          {/* @ts-ignore */}
           <Tab eventKey="anarchyruns" title={<TabTitleText>AnarchyRuns</TabTitleText>}>
             <AnarchyRunsTable
               anarchyRuns={anarchyRuns}
@@ -219,7 +217,6 @@ const AnarchyActionInstanceComponent: React.FC<{ anarchyActionName: string; name
               selectedUidsReducer={reduceAnarchyRunSelectedUids}
             />
           </Tab>
-          {/* @ts-ignore */}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor
               height="500px"

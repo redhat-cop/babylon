@@ -17,6 +17,7 @@ interface ExternalWorkshopModalProps {
   onConfirm: (data: ExternalWorkshopFormData) => void;
 }
 
+// Fix: Add displayName to the component to resolve missing display name lint error
 const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }, ExternalWorkshopModalProps>(
   ({ onConfirm }, ref) => {
     const [formData, setFormData] = useState<ExternalWorkshopFormData>({
@@ -43,7 +44,7 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
 
       // Validate display name
       if (!formData.displayName.trim()) {
-        errors.displayName = 'Workshop display name is required';
+        errors.displayName = 'Resource display name is required';
       }
 
       // Description is optional - no validation needed
@@ -79,19 +80,19 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
       <Modal
         onConfirm={handleConfirm}
         onClose={handleClose}
-        title="Add External Workshop"
-        confirmText="Add Workshop"
+        title="Add External Asset"
+        confirmText="Add Asset"
         isDisabled={!formData.url.trim() || !formData.displayName.trim()}
         variant={ModalVariant.medium}
         ref={ref}
       >
       <div>
         <p style={{ marginBottom: '24px', color: 'var(--pf-t--color--text--secondary)' }}>
-          Add an external workshop by providing a URL and details. This workshop will be accessible through the event landing page.
+          Add any resource you want to be displayed in the landing page by providing a URL and details. This can be a call to action, documentation, campaign, or any other external resource that supports your workshop.
         </p>
 
         <FormGroup
-          label="Workshop URL"
+          label="Resource URL"
           fieldId="external-workshop-url"
           isRequired
           style={{ marginBottom: '24px' }}
@@ -106,13 +107,13 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
                 setValidationErrors(prev => ({ ...prev, url: '' }));
               }
             }}
-            placeholder="https://example.com/workshop"
+            placeholder="https://example.com/resource"
             validated={validationErrors.url ? 'error' : 'default'}
           />
         </FormGroup>
 
         <FormGroup
-          label="Workshop Display Name"
+          label="Resource Display Name"
           fieldId="external-workshop-display-name"
           isRequired
           style={{ marginBottom: '24px' }}
@@ -126,13 +127,13 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
                 setValidationErrors(prev => ({ ...prev, displayName: '' }));
               }
             }}
-            placeholder="Enter workshop display name"
+            placeholder="Enter resource display name"
             validated={validationErrors.displayName ? 'error' : 'default'}
           />
         </FormGroup>
 
         <FormGroup
-          label="Workshop Description"
+          label="Resource Description"
           fieldId="external-workshop-description"
           style={{ marginBottom: '0' }}
         >
@@ -145,14 +146,17 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
                 setValidationErrors(prev => ({ ...prev, description: '' }));
               }
             }}
-            placeholder="Enter workshop description (optional)"
+            placeholder="Enter resource description (optional)"
             validated={validationErrors.description ? 'error' : 'default'}
             rows={3}
           />
         </FormGroup>
       </div>
-    </Modal>
-  );
-});
+      </Modal>
+    );
+  }
+);
+
+ExternalWorkshopModal.displayName = 'ExternalWorkshopModal';
 
 export default ExternalWorkshopModal;

@@ -157,7 +157,6 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/resourcehandles/${resourceHandleName}/${tabIndex}`)}
         >
-          {/* @ts-ignore */}
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             <Stack hasGutter>
               <StackItem>
@@ -330,7 +329,6 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
               })}
             </Stack>
           </Tab>
-          {/* @ts-ignore */}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor
               height="500px"

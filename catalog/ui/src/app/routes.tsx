@@ -84,22 +84,22 @@ const appRoutes: IAppRoute[] = [
   {
     component: MultiWorkshopCreate,
     path: '/multi-workshop/create',
-    title: 'Babylon | Create Multi Workshop',
+    title: 'Babylon | Create Multi Asset Workshop',
   },
   {
     component: MultiWorkshopDetail,
     path: '/multi-workshop/:namespace/:name',
-    title: 'Babylon | Multi Workshop Details',
+    title: 'Babylon | Multi Asset Workshop Details',
   },
   {
     component: MultiWorkshopList,
     path: '/multi-workshop/:namespace',
-    title: 'Babylon | Multi Workshop',
+    title: 'Babylon | Multi Asset Workshop',
   },
   {
     component: MultiWorkshopList,
     path: '/multi-workshop',
-    title: 'Babylon | Multi Workshop',
+    title: 'Babylon | Multi Asset Workshop',
   },
   {
     component: WorkshopsItem,
@@ -145,13 +145,13 @@ const appRoutes: IAppRoute[] = [
   {
     component: MultiWorkshopsList,
     path: '/admin/multiworkshops/:namespace',
-    title: 'Babylon | Multi Workshop',
+    title: 'Babylon | Multi Asset Workshop',
     accessControl: 'admin',
   },
   {
     component: MultiWorkshopsList,
     path: '/admin/multiworkshops',
-    title: 'Babylon | Multi Workshop',
+    title: 'Babylon | Multi Asset Workshop',
     accessControl: 'admin',
   },
 

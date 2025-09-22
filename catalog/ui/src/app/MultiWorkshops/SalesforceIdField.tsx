@@ -54,8 +54,6 @@ const SalesforceIdField: React.FC<SalesforceIdFieldProps> = ({
     type: salesforceType
   });
   
-  const debouncedApiFetch = useDebounce(apiFetch, 1000);
-
   // Validate salesforce ID
   const validateSalesforceId = useCallback(async (id: string, type: SfdcType | null) => {
     if (!id.trim() || !type) {
@@ -66,14 +64,14 @@ const SalesforceIdField: React.FC<SalesforceIdFieldProps> = ({
     setSalesforceState(prev => ({ ...prev, validating: true }));
     
     try {
-      const { valid, message } = await checkSalesforceId(id, debouncedApiFetch, type);
+      const { valid, message } = await checkSalesforceId(id, apiFetch, type);
       setSalesforceState(prev => ({ 
         ...prev, 
         valid, 
         validating: false, 
         message: valid ? '' : message 
       }));
-    } catch (error) {
+    } catch {
       setSalesforceState(prev => ({ 
         ...prev, 
         valid: false, 
@@ -81,7 +79,10 @@ const SalesforceIdField: React.FC<SalesforceIdFieldProps> = ({
         message: 'Error validating Salesforce ID' 
       }));
     }
-  }, [debouncedApiFetch]);
+  }, []);
+
+  // Debounce the validation function
+  const debouncedValidation = useDebounce(validateSalesforceId, 1000);
 
   // Update local state when props change
   useEffect(() => {
@@ -92,12 +93,12 @@ const SalesforceIdField: React.FC<SalesforceIdFieldProps> = ({
     }));
   }, [value, salesforceType]);
 
-  // Validate when value or type changes
+  // Validate when value or type changes (debounced)
   useEffect(() => {
     if (salesforceState.value && salesforceState.type) {
-      validateSalesforceId(salesforceState.value, salesforceState.type);
+      debouncedValidation(salesforceState.value, salesforceState.type);
     }
-  }, [salesforceState.value, salesforceState.type, validateSalesforceId]);
+  }, [salesforceState.value, salesforceState.type, debouncedValidation]);
 
   const handleValueChange = (newValue: string) => {
     setSalesforceState(prev => ({ ...prev, value: newValue, valid: false }));
@@ -170,6 +171,15 @@ const SalesforceIdField: React.FC<SalesforceIdFieldProps> = ({
 
         {/* Input field with search button */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+          <Button
+            variant="secondary"
+            icon={<SearchIcon />}
+            onClick={() => setIsSearchModalOpen(true)}
+            isDisabled={!salesforceState.type}
+          >
+            Id Finder
+          </Button>
+          
           <div style={{ flex: 1 }}>
             <TextInput
               id={fieldId}
@@ -181,15 +191,6 @@ const SalesforceIdField: React.FC<SalesforceIdFieldProps> = ({
               isDisabled={salesforceState.validating}
             />
           </div>
-          
-          <Button
-            variant="secondary"
-            icon={<SearchIcon />}
-            onClick={() => setIsSearchModalOpen(true)}
-            isDisabled={!salesforceState.type}
-          >
-            Search
-          </Button>
           
           <Tooltip
             content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}
