@@ -727,7 +727,8 @@ const MultiWorkshopDetail: React.FC = () => {
               </>
             ) : null}
           </Tab>
-          <Tab eventKey="provisioning" title={<TabTitleText>Default Provisioning Settings</TabTitleText>}>
+          {isAdmin && (
+            <Tab eventKey="provisioning" title={<TabTitleText>Default Provisioning Settings</TabTitleText>}>
             {activeTab === 'provisioning' ? (
               <DescriptionList isHorizontal className="multiworkshop-detail__provisioning">
                 <DescriptionListGroup>
@@ -872,7 +873,8 @@ const MultiWorkshopDetail: React.FC = () => {
                 </DescriptionListGroup>
               </DescriptionList>
             ) : null}
-          </Tab>
+            </Tab>
+          )}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             {activeTab === 'yaml' ? (
               <Editor

@@ -32,7 +32,7 @@ import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import BetaBadge from '@app/components/BetaBadge';
 import { createMultiWorkshop, dateToApiString, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths, silentFetcher } from '@app/api';
-import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable, AssetMetrics } from '@app/types';
+import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
 import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
@@ -218,7 +218,7 @@ const MultiWorkshopCreate: React.FC = () => {
     let hasCostData = false;
     let itemsWithMetrics = 0;
 
-    metricsData.data.forEach(({ asset, metrics }, index) => {
+    metricsData.data.forEach(({ metrics }, index) => {
       // Only process items that have valid metrics data
       if (!metrics) return;
       itemsWithMetrics++;
@@ -295,6 +295,7 @@ const MultiWorkshopCreate: React.FC = () => {
         ...(createFormData.description && { description: createFormData.description }),
         ...(createFormData.numberSeats && { numberSeats: createFormData.numberSeats }),
         ...(createFormData.salesforceId && { salesforceId: createFormData.salesforceId }),
+        ...(createFormData.salesforceType && { salesforceType: createFormData.salesforceType }),
         ...(createFormData.purpose && { purpose: createFormData.purpose }),
         ...(createFormData.activity && { 'purpose-activity': createFormData.activity }),
         ...(createFormData.backgroundImage && { backgroundImage: createFormData.backgroundImage }),
@@ -366,12 +367,14 @@ const MultiWorkshopCreate: React.FC = () => {
                 error: null,
               };
               
-            } catch (error: any) {
+            } catch (error: unknown) {
               console.error(`Failed to create workshop for asset ${asset.key}:`, error);
               return {
                 success: false,
                 asset: asset,
-                error: error?.message || 'Unknown error',
+                error: error && typeof error === 'object' && 'message' in error
+                  ? (error as {message: string}).message
+                  : String(error) || 'Unknown error',
               };
             }
           })
@@ -761,7 +764,7 @@ const MultiWorkshopCreate: React.FC = () => {
                         position="right"
                         content={
                           <p>
-                            Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
+                            Select when you&apos;d like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
                           </p>
                         }
                       >
@@ -791,7 +794,7 @@ const MultiWorkshopCreate: React.FC = () => {
                       forceUpdateTimestamp={createFormData.endDate?.getTime()}
                     />
                     <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Date and time are based on your device's timezone
+                      Date and time are based on your device&apos;s timezone
                     </div>
                   </FormGroup>
                 </SplitItem>

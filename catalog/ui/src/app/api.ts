@@ -24,6 +24,7 @@ import {
   Nullable,
   ResourceType,
   WorkshopUserAssignment,
+  SfdcType,
 } from '@app/types';
 import { store, selectImpersonationUser } from '@app/store';
 import {
@@ -430,7 +431,7 @@ export async function saveExternalItemRequest({
       method: 'POST',
     });
     return await resp.json();
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -1132,6 +1133,7 @@ export async function createMultiWorkshop(multiworkshopData: {
   endDate: string;
   numberSeats?: number;
   salesforceId?: string;
+  salesforceType?: string;
   purpose?: string;
   'purpose-activity'?: string;
   backgroundImage?: string;
@@ -1181,6 +1183,9 @@ export async function createMultiWorkshop(multiworkshopData: {
   }
   if (multiworkshopData.salesforceId) {
     definition.spec.salesforceId = multiworkshopData.salesforceId;
+  }
+  if (multiworkshopData.salesforceType) {
+    definition.spec.salesforceType = multiworkshopData.salesforceType as SfdcType;
   }
   if (multiworkshopData.purpose) {
     definition.spec.purpose = multiworkshopData.purpose;
@@ -1311,6 +1316,7 @@ export async function createWorkshopFromAsset({
       purpose: multiworkshopData.purpose,
       purpose_activity: multiworkshopData['purpose-activity'],
       salesforce_id: multiworkshopData.salesforceId || '',
+      sales_type: multiworkshopData.salesforceType || '',
     },
     skippedSfdc: !multiworkshopData.salesforceId,
     whiteGloved: false,
@@ -1355,6 +1361,7 @@ export async function createWorkshopProvisionFromAsset({
       purpose: multiworkshopData.purpose,
       purpose_activity: multiworkshopData['purpose-activity'],
       salesforce_id: multiworkshopData.salesforceId || '',
+      sales_type: multiworkshopData.salesforceType || '',
     },
     startDelay: 10,
     workshop,
