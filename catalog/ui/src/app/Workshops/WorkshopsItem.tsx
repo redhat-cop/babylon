@@ -491,7 +491,6 @@ const WorkshopsItemComponent: React.FC<{
           activeKey={activeTab || 'details'}
           onSelect={(e, tabIndex) => navigate(`/workshops/${serviceNamespaceName}/${workshopName}/${tabIndex}`)}
         >
-          {/* @ts-ignore */}
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             {activeTab === 'details' ? (
               <WorkshopsItemDetails
@@ -512,7 +511,6 @@ const WorkshopsItemComponent: React.FC<{
               ) : null}
             </Tab>
           ) : null}
-          {/* @ts-ignore */}
           <Tab eventKey="instances" title={<TabTitleText>Instances</TabTitleText>}>
             {activeTab === 'instances' ? (
               <WorkshopsItemServices
@@ -525,7 +523,6 @@ const WorkshopsItemComponent: React.FC<{
               />
             ) : null}
           </Tab>
-          {/* @ts-ignore */}
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
             {activeTab === 'users' ? (
               <WorkshopsItemUserAssignments
@@ -534,7 +531,6 @@ const WorkshopsItemComponent: React.FC<{
               />
             ) : null}
           </Tab>
-          {/* @ts-ignore */}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             {activeTab === 'yaml' ? (
               <Editor
