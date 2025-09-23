@@ -27,7 +27,6 @@ import useSWRImmutable from 'swr/immutable';
 import { CatalogItem, Bookmark, BookmarkList } from '@app/types';
 import { apiPaths, fetcherItemsInAllPages, fetcher } from '@app/api';
 import { displayName, FETCH_BATCH_LIMIT, renderContent, stripHtml } from '@app/util';
-import CatalogItemCard from '@app/Catalog/CatalogItemCard';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogCategorySelector from '@app/Catalog/CatalogCategorySelector';
 import { getCategory, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA, formatString, CUSTOM_LABELS } from '@app/Catalog/catalog-utils';

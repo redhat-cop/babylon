@@ -94,7 +94,7 @@ const ServiceOpenStackConsole: React.FC<{
     );
   }
 
-  const serverDropdownItems: any[] = [];
+  const serverDropdownItems = [];
   for (const subject of openStackServers?.subjects || []) {
     for (const server of subject.openStackServers || []) {
       serverDropdownItems.push(

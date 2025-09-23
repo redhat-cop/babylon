@@ -172,6 +172,7 @@ export interface CatalogItemSpec {
   accessControl?: AccessControl;
   agnosticvRepo?: AgnosticVRepo;
   bookbag?: any;
+  linkedComponents?: any;
   messageTemplates?: {
     user?: MessageTemplate;
     info?: MessageTemplate;

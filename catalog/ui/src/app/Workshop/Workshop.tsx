@@ -35,7 +35,7 @@ const Workshop: React.FC<{ title: string }> = ({ title }) => {
       });
       setWorkshopPrivateInfo(workshopPrivateInfo);
       setLoginFailureMessage('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof Error) {
         setLoginFailureMessage(error.message);
       } else {

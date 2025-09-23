@@ -27,7 +27,6 @@ import {
   deleteAnarchyRun,
   deleteAnarchySubject,
   fetcher,
-  forceDeleteAnarchySubject,
 } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchyAction, AnarchyActionList, AnarchyRun, AnarchyRunList, AnarchySubject } from '@app/types';

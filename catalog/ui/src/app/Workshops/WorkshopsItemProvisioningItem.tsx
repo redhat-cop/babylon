@@ -39,7 +39,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
     count?: number;
     concurrency?: number;
     startDelay?: number;
-    parameters?: any;
+    parameters?: unknown;
   }) {
     await patchWorkshopProvision({
       name: workshopProvision.metadata.name,

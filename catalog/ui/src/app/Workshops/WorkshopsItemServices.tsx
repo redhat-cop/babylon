@@ -23,7 +23,6 @@ import TimeInterval from '@app/components/TimeInterval';
 import ServiceStatus from '@app/Services/ServiceStatus';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
-import { getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
 import useSession from '@app/utils/useSession';
 import { ModalState } from './WorkshopsItem';
 import { apiPaths, deleteResourceClaim, patchWorkshopProvision } from '@app/api';
@@ -142,7 +141,6 @@ const WorkshopsItemServices: React.FC<{
           .map((resourceClaim: ResourceClaim) => {
             const resourceHandle: K8sObjectReference = resourceClaim.status?.resourceHandle;
             const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
-            const specResources = resourceClaim.spec.resources || [];
             const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
             const actionHandlers = {
               restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }),
@@ -186,7 +184,7 @@ const WorkshopsItemServices: React.FC<{
                   return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
                 })
                 .find((u) => u != null);
-            const cells: any[] = [
+            const cells: unknown[] = [
               // Name
               <>
                 <Link
@@ -216,14 +214,14 @@ const WorkshopsItemServices: React.FC<{
               </>,
 
               // Status
-              <ServiceStatus resourceClaim={resourceClaim} />,
+              <ServiceStatus key="status" resourceClaim={resourceClaim} />,
 
               // User
               <>
                 {userAssignments.some((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
                   ? userAssignments
                       .filter((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
-                      .map((uA) => <p>{uA.spec.assignment?.email}</p>)
+                      .map((uA) => <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>{uA.spec.assignment?.email}</p>)
                   : '-'}
               </>,
 

@@ -10,7 +10,6 @@ import {
   SplitItem,
   Title,
   EmptyStateFooter,
-  Button,
 } from '@patternfly/react-core';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
@@ -42,21 +41,22 @@ function keywordMatch(multiworkshop: MultiWorkshop, keyword: string): boolean {
   return false;
 }
 
-const MultiWorkshops: React.FC<{}> = () => {
+const MultiWorkshops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
   const [modalAction, openModalAction] = useModal();
   const [searchParams, setSearchParams] = useSearchParams();
+  const hasSearch = searchParams.has('search');
+  const searchValue = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      hasSearch
+        ? searchValue
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchValue, hasSearch],
   );
   const [modalState, setModalState] = useState<{ action?: string; multiworkshop?: MultiWorkshop }>({});
   const [selectedUids, setSelectedUids] = useState([]);
@@ -269,7 +269,7 @@ const MultiWorkshops: React.FC<{}> = () => {
                 delete: () => showModal({ action: 'delete', multiworkshop }),
               };
 
-              const cells: any[] = [];
+              const cells: unknown[] = [];
               cells.push(
                 // Name
                 <>

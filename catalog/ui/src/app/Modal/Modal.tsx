@@ -8,9 +8,8 @@ import React, {
   ReactPortal,
   useLayoutEffect,
   Suspense,
-  useRef,
 } from 'react';
-import ReactDOM, { createPortal } from 'react-dom';
+import { createPortal } from 'react-dom';
 import { Button, Spinner } from '@patternfly/react-core';
 import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import LoadingSection from '@app/components/LoadingSection';
@@ -20,7 +19,7 @@ import './modal.css';
 
 const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : [];
 
-const _Modal: ForwardRefRenderFunction<
+const ModalComponent: ForwardRefRenderFunction<
   {
     open: () => void;
     close: () => void;
@@ -57,7 +56,6 @@ const _Modal: ForwardRefRenderFunction<
 ): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
-  const modalEl = useRef();
   const [onConfirmCb, setOnConfirmCb] = useState<() => Promise<void>>(null);
   const close = useCallback(() => {
     setIsLoading(false);
@@ -65,7 +63,7 @@ const _Modal: ForwardRefRenderFunction<
     if (onClose) {
       onClose();
     }
-  }, []);
+  }, [onClose]);
   const [_title, setTitle] = useState(title);
   const [_isDisabled, setIsDisabled] = useState(isDisabled);
   const [domReady, setDomReady] = useState(false);
@@ -101,20 +99,12 @@ const _Modal: ForwardRefRenderFunction<
     [close],
   );
 
-  const handleClick = useCallback(
-    (e: MouseEvent | TouchEvent) => {
-      const targetEl = e.target as HTMLElement;
-      const container = ReactDOM.findDOMNode(modalEl.current) as Element;
-      const backdrop = container;
-      const modal = container?.querySelector('.pf-v6-c-modal-box');
-      if (!modal || !backdrop) return e;
-      if (e.target === backdrop || backdrop.contains(targetEl)) {
-        if (e.target !== modal && !modal.contains(targetEl)) {
-          close();
-          return null;
-        }
+  const handleBackdropClick = useCallback(
+    (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.classList.contains('pf-v6-c-backdrop') || target.parentElement?.classList.contains('pf-v6-c-backdrop'))) {
+        close();
       }
-      return e;
     },
     [close],
   );
@@ -122,13 +112,16 @@ const _Modal: ForwardRefRenderFunction<
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleEscape, false);
-      document.addEventListener('click', handleClick, false);
+      // Add backdrop click handler
+      setTimeout(() => {
+        document.addEventListener('click', handleBackdropClick, true);
+      }, 100);
     }
     return () => {
       document.removeEventListener('keydown', handleEscape, false);
-      document.removeEventListener('click', handleClick, false);
+      document.removeEventListener('click', handleBackdropClick, true);
     };
-  }, [handleEscape, isOpen, handleClick]);
+  }, [handleEscape, handleBackdropClick, isOpen]);
 
   const handleOnConfirm = useCallback(async () => {
     if (type === 'ack') {
@@ -137,7 +130,9 @@ const _Modal: ForwardRefRenderFunction<
     }
     setIsLoading(true);
     try {
-      onConfirmCb && (await onConfirmCb());
+      if (onConfirmCb) {
+        await onConfirmCb();
+      }
       await onConfirm(state);
       close();
     } catch {
@@ -172,13 +167,12 @@ const _Modal: ForwardRefRenderFunction<
         isOpen ? (
           <Suspense
             fallback={
-              <Modal ref={modalEl} isOpen variant={variant} onClose={close} aria-label="Modal: Loading">
+              <Modal isOpen variant={variant} onClose={close} aria-label="Modal: Loading">
                 <LoadingSection />
               </Modal>
             }
           >
             <Modal
-              ref={modalEl}
               className={`modal-component${className ? ` ${className}` : ''} ${optionalFlags
                 .map((flag) => `optional-flags__${flag}`)
                 .join(' ')}`}
@@ -187,6 +181,7 @@ const _Modal: ForwardRefRenderFunction<
               onClose={close}
               aria-label={`Modal: ${_title}`}
               isOpen={isOpen}
+              disableFocusTrap={false}
               actions={
                 type === 'action'
                   ? [
@@ -225,4 +220,4 @@ const _Modal: ForwardRefRenderFunction<
 };
 
 export { useModal };
-export default forwardRef(_Modal);
+export default forwardRef(ModalComponent);

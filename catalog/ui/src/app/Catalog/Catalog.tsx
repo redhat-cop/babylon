@@ -66,7 +66,6 @@ import CatalogContent from './CatalogContent';
 import IncidentsBanner from '@app/components/IncidentsBanner';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import LoadingSection from '@app/components/LoadingSection';
-import useSWR from 'swr';
 
 import './catalog.css';
 
@@ -213,7 +212,7 @@ function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
   if (urlParams.has('catalog')) {
     urlParams.delete('catalog');
   }
-  catalogNamespaceName && urlParams.append('catalog', catalogNamespaceName);
+  if (catalogNamespaceName) urlParams.append('catalog', catalogNamespaceName);
   setLastFilter(urlParams.toString());
 }
 
@@ -521,20 +520,10 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     setSearchParams(searchParams);
   }
 
-  function onSelectAdminFilter(statuses: string[]) {
-    if (statuses && statuses.length > 0) {
-      searchParams.set('adminStatus', JSON.stringify(statuses));
-    } else {
-      searchParams.delete('adminStatus');
-    }
-    saveFilter(searchParams.toString(), catalogNamespaceName);
-    setSearchParams(searchParams);
-  }
-
   function onClearFilters() {
     saveFilter('', catalogNamespaceName);
     setSearchParams();
-    searchInputStringCb && searchInputStringCb('');
+    if (searchInputStringCb) searchInputStringCb('');
   }
 
   if (isLoading) {
@@ -660,7 +649,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                                           isDisabled={!!searchString}
                                           isExpanded={sortBy.isOpen}
                                         >
-                                          {`Sort by: ${!!searchString ? 'Search' : sortBy.selected === 'AZ' || sortBy.selected === 'ZA' ? `${sortBy.selected[0]}->${sortBy.selected[1]}` : sortBy.selected}`}
+                                          {`Sort by: ${searchString ? 'Search' : sortBy.selected === 'AZ' || sortBy.selected === 'ZA' ? `${sortBy.selected[0]}->${sortBy.selected[1]}` : sortBy.selected}`}
                                         </MenuToggle>
                                       )}
                                       onOpenChange={(isOpen) =>

@@ -27,7 +27,7 @@ const ServiceActions: React.FC<{
   serviceName?: string;
   iconOnly?: boolean;
 }> = ({ actionHandlers, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
-  const actionDropdownItems: JSX.Element[] = [];
+  const actionDropdownItems = [];
   const { ratings_enabled } = useInterfaceConfig();
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : false;

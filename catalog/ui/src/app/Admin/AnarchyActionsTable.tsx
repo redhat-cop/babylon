@@ -11,7 +11,7 @@ import TimeInterval from '@app/components/TimeInterval';
 const AnarchyActionsTable: React.FC<{
   anarchyActions: AnarchyAction[];
   selectedUids: string[];
-  selectedUidsReducer: any;
+  selectedUidsReducer: (action: { type: string; uids?: string[] }) => void;
 }> = ({ anarchyActions, selectedUids, selectedUidsReducer }) => {
   if (anarchyActions.length === 0) {
     return (

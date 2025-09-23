@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState } from 'react';
+import React, { useCallback, useEffect, useReducer, useState } from 'react';
 import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
@@ -104,7 +104,7 @@ const WorkshopsItemDetails: React.FC<{
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { cache } = useSWRConfig();
   const whiteGloved = getWhiteGloved(workshop);
-  const isLocked = isWorkshopLocked(workshop, isAdmin);
+  const isLocked = isWorkshopLocked(workshop);
   const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
@@ -131,10 +131,34 @@ const WorkshopsItemDetails: React.FC<{
     salesforce_type: (workshopProvisions[0]?.spec.parameters?.sales_type as SfdcType) || null,
   });
 
+  const patchWorkshopProvisionSpec = useCallback(async (
+    name: string,
+    namespace: string,
+    patch: {
+      count?: number;
+      concurrency?: number;
+      startDelay?: number;
+      parameters?: unknown;
+    },
+  ) => {
+    await patchWorkshopProvision({
+      name,
+      namespace,
+      patch: { spec: patch },
+    });
+    cache.delete(
+      apiPaths.WORKSHOP_PROVISIONS({
+        workshopName: workshop.metadata.name,
+        namespace,
+        limit: 'ALL',
+      }),
+    );
+  }, [cache, workshop.metadata.name]);
+
   useEffect(() => {
     if (!salesforceObj.completed) {
       checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
-        ({ valid, message }: { valid: boolean; message?: string }) =>
+        ({ valid }: { valid: boolean; message?: string }) =>
           dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid }),
       );
     } else {
@@ -168,31 +192,7 @@ const WorkshopsItemDetails: React.FC<{
         }
       }
     }
-  }, [dispatchSalesforceObj, salesforceObj, debouncedApiFetch]);
-
-  async function patchWorkshopProvisionSpec(
-    name: string,
-    namespace: string,
-    patch: {
-      count?: number;
-      concurrency?: number;
-      startDelay?: number;
-      parameters?: any;
-    },
-  ) {
-    await patchWorkshopProvision({
-      name,
-      namespace,
-      patch: { spec: patch },
-    });
-    cache.delete(
-      apiPaths.WORKSHOP_PROVISIONS({
-        workshopName: workshop.metadata.name,
-        namespace,
-        limit: 'ALL',
-      }),
-    );
-  }
+  }, [dispatchSalesforceObj, salesforceObj, debouncedApiFetch, patchWorkshopProvisionSpec, resourceClaims, workshopProvisions]);
 
   async function patchWorkshopSpec(patch: {
     accessPassword?: string;
@@ -220,7 +220,7 @@ const WorkshopsItemDetails: React.FC<{
     }
   }
 
-  async function handleWhiteGloveChange(_: any, isChecked: boolean) {
+  async function handleWhiteGloveChange(_: unknown, isChecked: boolean) {
     const patchObj = {
       metadata: {
         labels: {
@@ -240,7 +240,7 @@ const WorkshopsItemDetails: React.FC<{
     }
   }
 
-  async function handleLockedChange(_: any, isChecked: boolean) {
+  async function handleLockedChange(_: unknown, isChecked: boolean) {
     const patchObj = {
       metadata: {
         labels: {
@@ -396,7 +396,7 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListDescription>
           <Select
             isOpen={userRegistrationSelectIsOpen}
-            onSelect={(event, selected) => {
+            onSelect={(_event, selected) => {
               const selectedValue = typeof selected === 'string' ? selected : selected.toString();
               patchWorkshopSpec({ openRegistration: selectedValue === 'open' }).then(() =>
                 setUserRegistrationSelectIsOpen(false),
@@ -535,7 +535,9 @@ const WorkshopsItemDetails: React.FC<{
                         type="auto-start"
                         variant="extended"
                         onClick={() => {
-                          showModal ? showModal({ resourceClaims: [], action: 'scheduleStartDate' }) : null;
+                          if (showModal) {
+                            showModal({ resourceClaims: [], action: 'scheduleStartDate' });
+                          }
                         }}
                         className="workshops-item__schedule-btn"
                         isDisabled={!showModal}
@@ -545,7 +547,7 @@ const WorkshopsItemDetails: React.FC<{
                         position="right"
                         content={
                           <p>
-                            Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
+                            Select when you&apos;d like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
                           </p>
                         }
                       >
@@ -664,7 +666,7 @@ const WorkshopsItemDetails: React.FC<{
                 type="text"
                 key="salesforce_id"
                 id="salesforce_id"
-                onChange={(_event: any, value: string) =>
+                onChange={(_event: unknown, value: string) =>
                   dispatchSalesforceObj({
                     ...salesforceObj,
                     type: 'set_salesforceId',
@@ -718,7 +720,7 @@ const WorkshopsItemDetails: React.FC<{
               id="lock-switch"
               aria-label="Locked"
               label="Locked"
-              isChecked={isWorkshopLocked(workshop, false)}
+              isChecked={isWorkshopLocked(workshop)}
               hasCheckIcon
               onChange={handleLockedChange}
             />

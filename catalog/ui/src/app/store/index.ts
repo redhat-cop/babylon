@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createAction, createReducer, configureStore } from '@reduxjs/toolkit';
 import { createSelector } from 'reselect';
 import { CatalogNamespace, ServiceNamespace } from '@app/types';
@@ -24,12 +25,12 @@ export interface ActionStartSession {
 }
 
 // Reducer functions
-function reduce_clearImpersonation(state) {
+function reduce_clearImpersonation(state: {impersonate: string, catalogItems: any[]}) {
   state.impersonate = null;
   state.catalogItems = null;
   sessionStorage.removeItem('impersonateUser');
 }
-function reduce_setImpersonation(state, action) {
+function reduce_setImpersonation(state: any, action: any) {
   const { admin, groups, roles, user, catalogNamespaces, serviceNamespaces, userNamespace } = action.payload;
   state.impersonate = {
     admin: admin || false,
@@ -44,7 +45,7 @@ function reduce_setImpersonation(state, action) {
   state.resourceClaims = null;
 }
 
-function reduce_startSession(state, action) {
+function reduce_startSession(state: any, action: any) {
   state.auth.admin = action.payload.admin || false;
   state.auth.groups = action.payload.groups || [];
   state.auth.roles = action.payload.roles || [];

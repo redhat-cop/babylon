@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor, within, generateSession, act } from '../utils/test-utils';
+import { render, generateSession } from '../utils/test-utils';
 import CatalogRedirections from './CatalogRedirections';
 import catalogItemsObj from '../__mocks__/catalogItems.json';
 import { CatalogItem } from '@app/types';

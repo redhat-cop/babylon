@@ -139,15 +139,6 @@ const ResourceHandles: React.FC = () => {
     [filterResourceHandle, resourceHandlesPages],
   );
 
-  // Trigger continue fetching more resource claims on scroll.
-  const scrollHandler = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollable = e.currentTarget;
-    const scrollRemaining = scrollable.scrollHeight - scrollable.scrollTop - scrollable.clientHeight;
-    if (scrollRemaining < 500 && !isReachingEnd && !isLoadingMore) {
-      setSize(size + 1);
-    }
-  };
-
   async function confirmThenDelete(): Promise<void> {
     if (confirm('Deleted selected ResourceHandles?')) {
       const removedResourceHandles: ResourceHandle[] = [];

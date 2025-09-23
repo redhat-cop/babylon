@@ -44,7 +44,6 @@ const renderResourceClaimRow = ({
   navigate: (n: string) => void;
 }) => {
   const resourceHandle = resourceClaim.status?.resourceHandle;
-  const specResources = resourceClaim.spec.resources || [];
   const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
   const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];

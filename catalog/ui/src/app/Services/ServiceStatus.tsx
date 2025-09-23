@@ -5,15 +5,15 @@ import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-ic
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
-import { AnarchySubject, ResourceClaim, ResourceClaimSpecResourceTemplate } from '@app/types';
-import { getAutoTimes, getMostRelevantResourceAndTemplate } from './service-utils';
+import { AnarchySubject, ResourceClaim } from '@app/types';
+import { getMostRelevantResourceAndTemplate } from './service-utils';
 
 import './service-status.css';
 
 export type phaseProps = 'unknown' | 'scheduled' | 'available' | 'running' | 'in-progress' | 'failed' | 'stopped' | 'waiting';
 
 // Helper function to get scheduled start timestamp from resourceClaim
-function getScheduledStartTimestamp(resourceClaim: ResourceClaim, resource?: AnarchySubject, resourceTemplate?: ResourceClaimSpecResourceTemplate): number | null {
+function getScheduledStartTimestamp(resourceClaim: ResourceClaim): number | null {
   // Check new format first (provider parameterValues)
   if (resourceClaim.spec?.provider?.parameterValues?.start_timestamp) {
     return Date.parse(resourceClaim.spec.provider.parameterValues.start_timestamp);
@@ -22,7 +22,7 @@ function getScheduledStartTimestamp(resourceClaim: ResourceClaim, resource?: Ana
 }
 
 // Helper function to get scheduled stop timestamp from resourceClaim  
-function getScheduledStopTimestamp(resourceClaim: ResourceClaim, resource?: AnarchySubject, resourceTemplate?: ResourceClaimSpecResourceTemplate): number | null {
+function getScheduledStopTimestamp(resourceClaim: ResourceClaim): number | null {
   // Check new format only (provider parameterValues)
   if (resourceClaim.spec?.provider?.parameterValues?.stop_timestamp) {
     return Date.parse(resourceClaim.spec.provider.parameterValues.stop_timestamp);
@@ -38,12 +38,11 @@ export function getStatus(
   stopTime: number,
   resourceClaim?: ResourceClaim,
   resource?: AnarchySubject,
-  resourceTemplate?: ResourceClaimSpecResourceTemplate
 ): { statusName: string; phase: phaseProps } {
   // Check for waiting states first if we have resourceClaim context
   if (resourceClaim) {
-    const scheduledStartTime = getScheduledStartTimestamp(resourceClaim, resource, resourceTemplate);
-    const scheduledStopTime = getScheduledStopTimestamp(resourceClaim, resource, resourceTemplate);
+    const scheduledStartTime = getScheduledStartTimestamp(resourceClaim);
+    const scheduledStopTime = getScheduledStopTimestamp(resourceClaim);
     const now = Date.now();
     
     // Waiting to Provision: resourceClaim exists but no resource state yet and not scheduled for future
@@ -177,8 +176,8 @@ const ServiceStatus: React.FC<{
   const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
 
   // Check for waiting states BEFORE checking summary
-  const scheduledStartTime = getScheduledStartTimestamp(resourceClaim, resource, resourceTemplate);
-  const scheduledStopTime = getScheduledStopTimestamp(resourceClaim, resource, resourceTemplate);
+  const scheduledStartTime = getScheduledStartTimestamp(resourceClaim);
+  const scheduledStopTime = getScheduledStopTimestamp(resourceClaim);
   const now = Date.now();
   
   // Waiting to Stop: scheduled stop time is in the PAST but service still running
@@ -206,7 +205,7 @@ const ServiceStatus: React.FC<{
   if (typeof resource === 'undefined') {
     return <InnerStatus phase="waiting" state="Waiting to Provision" />;
   }
-  const { statusName, phase } = getStatus(currentState, desiredState, creationTime, null, null, resourceClaim, resource, resourceTemplate);
+  const { statusName, phase } = getStatus(currentState, desiredState, creationTime, null, null, resourceClaim, resource);
 
   return <InnerStatus phase={phase} state={statusName} />;
 };

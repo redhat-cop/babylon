@@ -24,7 +24,7 @@ const WorkshopActions: React.FC<{
       icon={isLocked ? <LockedIcon /> : null}
     />,
   ];
-  actionHandlers.restartService &&
+  if (actionHandlers.restartService) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="deleteServices"
@@ -33,7 +33,8 @@ const WorkshopActions: React.FC<{
         onSelect={actionHandlers.restartService}
       />,
     );
-  actionHandlers.deleteService &&
+  }
+  if (actionHandlers.deleteService) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="deleteServices"
@@ -42,7 +43,8 @@ const WorkshopActions: React.FC<{
         onSelect={actionHandlers.deleteService}
       />,
     );
-  actionHandlers.start &&
+  }
+  if (actionHandlers.start) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="startServices"
@@ -51,7 +53,8 @@ const WorkshopActions: React.FC<{
         onSelect={actionHandlers.start}
       />,
     );
-  actionHandlers.stop &&
+  }
+  if (actionHandlers.stop) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="stopServices"
@@ -61,6 +64,7 @@ const WorkshopActions: React.FC<{
         icon={isLocked ? <LockedIcon /> : null}
       />,
     );
+  }
 
   return (
     <ActionDropdown

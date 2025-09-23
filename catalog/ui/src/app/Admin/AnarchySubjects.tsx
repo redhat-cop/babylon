@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'reac
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import useSWRInfinite from 'swr/infinite';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { apiPaths, deleteAnarchySubject, fetcher, forceDeleteAnarchySubject } from '@app/api';
+import { apiPaths, deleteAnarchySubject, fetcher } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchySubject, AnarchySubjectList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';

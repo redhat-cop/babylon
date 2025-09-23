@@ -52,7 +52,7 @@ const filterOutNonScheduled = (w: Workshop) => {
   return (w.metadata.annotations[`${DEMO_DOMAIN}/scheduled`] === 'true')
 };
 
-const eventStyleGetter = (event: TEvent, start: Date, end: Date) => {
+const eventStyleGetter = (_event: TEvent, start: Date) => {
   if (start > new Date()) {
     return {
       style: {
@@ -70,7 +70,7 @@ const eventStyleGetter = (event: TEvent, start: Date, end: Date) => {
   };
 };
 
-const WorkshopsScheduled: React.FC<{}> = () => {
+const WorkshopsScheduled: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
 

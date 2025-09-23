@@ -22,7 +22,7 @@ export async function workshopLogin({
   email: string;
   workshopId: string;
 }): Promise<WorkshopDetails> {
-  const resp: any = await fetch(`/api/workshop/${workshopId}`, {
+  const resp = await fetch(`/api/workshop/${workshopId}`, {
     method: 'PUT',
     body: JSON.stringify({
       accessPassword: accessPassword,
