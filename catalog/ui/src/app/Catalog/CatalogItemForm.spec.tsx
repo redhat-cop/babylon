@@ -40,6 +40,7 @@ jest.mock('@app/utils/useInterfaceConfig', () => {
     ratings_enabled: false,
     status_page_url: 'https://redhat.com',
     help_text: '',
+    multiworkshops_enabled: true,
     help_link: '',
     internal_help_link: '',
     sfdc_enabled: true,

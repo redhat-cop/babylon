@@ -20,7 +20,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 };
 const Navigation: React.FC = () => {
   const location = useLocation();
-  const { incidents_enabled, ratings_enabled } = useInterfaceConfig();
+  const { incidents_enabled, ratings_enabled, multiworkshops_enabled } = useInterfaceConfig();
   const { isAdmin, userNamespace } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
@@ -51,7 +51,7 @@ const Navigation: React.FC = () => {
     </NavItem>
   ) : null;
 
-  const multiWorkshopNavigation = userNamespace ? (
+  const multiWorkshopNavigation = userNamespace && multiworkshops_enabled ? (
     <NavItem>
       <NavLink
         to={`/multi-workshop/${userNamespace.name}`}

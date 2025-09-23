@@ -8,5 +8,6 @@
   "feedback_link": "https://forms.gle/qBBWtXMea8vDqZUu7",
   "learn_more_link": "https://content.redhat.com/content/rhcc/us/en/product/cross-portfolio-initiatives/rhdp.html",
   "sfdc_enabled": false,
-  "partner_connect_header_enabled": true
+  "partner_connect_header_enabled": true,
+  "multiworkshops_enabled": false
 }

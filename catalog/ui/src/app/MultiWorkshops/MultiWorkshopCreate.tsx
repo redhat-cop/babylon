@@ -552,7 +552,7 @@ const MultiWorkshopCreate: React.FC = () => {
             <strong>This is an early release</strong> of the Multi Asset Workshop feature. Currently, only a few catalog items are available for selection, but we will be expanding the catalog in the upcoming weeks.
           </p>
           <p style={{ marginTop: '8px' }}>
-            We're actively working to improve this experience and would love your feedback! Please share your thoughts and suggestions with us via the{' '}
+            We&apos;re actively working to improve this experience and would love your feedback! Please share your thoughts and suggestions with us via the{' '}
             <a href="https://app.slack.com/client/E030G10V24F/C04N203SNUW" target="_blank" rel="noopener noreferrer">
               Slack forum
             </a>{' '}
@@ -579,8 +579,8 @@ const MultiWorkshopCreate: React.FC = () => {
           </p>
           <p style={{ marginTop: '8px' }}>
             If you need assistance or our workshop white glove service, please{' '}
-            <a href="https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link" target="_blank" rel="noopener noreferrer">
-              provide feedback through our form
+            <a href="https://red.ht/workshop-help" target="_blank" rel="noopener noreferrer">
+              raise a ticket with our team
             </a>{' '}
             or reach out via the{' '}
             <a href="https://app.slack.com/client/E030G10V24F/C04N203SNUW" target="_blank" rel="noopener noreferrer">
@@ -842,12 +842,12 @@ const MultiWorkshopCreate: React.FC = () => {
                   <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                     Maximum 30 seats allowed.{' '}
                     <a 
-                      href="https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link" 
+                      href="https://red.ht/workshop-help" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       style={{ color: 'var(--pf-t--global--color--brand--default)' }}
                     >
-                      Provide feedback through our form
+                      Raise a ticket with our team
                     </a>
                     {' '}to request more seats.
                   </div>
