@@ -8,7 +8,6 @@ import React, {
   ReactPortal,
   useLayoutEffect,
   Suspense,
-  useRef,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Spinner } from '@patternfly/react-core';
@@ -57,7 +56,6 @@ const ModalComponent: ForwardRefRenderFunction<
 ): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
-  const modalEl = useRef<HTMLDivElement>();
   const [onConfirmCb, setOnConfirmCb] = useState<() => Promise<void>>(null);
   const close = useCallback(() => {
     setIsLoading(false);
@@ -101,20 +99,12 @@ const ModalComponent: ForwardRefRenderFunction<
     [close],
   );
 
-  const handleClick = useCallback(
-    (e: MouseEvent | TouchEvent) => {
-      const targetEl = e.target as HTMLElement;
-      const container = modalEl.current;
-      const backdrop = container;
-      const modal = container?.querySelector('.pf-v6-c-modal-box');
-      if (!modal || !backdrop) return e;
-      if (e.target === backdrop || backdrop.contains(targetEl)) {
-        if (e.target !== modal && !modal.contains(targetEl)) {
-          close();
-          return null;
-        }
+  const handleBackdropClick = useCallback(
+    (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.classList.contains('pf-v6-c-backdrop') || target.parentElement?.classList.contains('pf-v6-c-backdrop'))) {
+        close();
       }
-      return e;
     },
     [close],
   );
@@ -122,13 +112,16 @@ const ModalComponent: ForwardRefRenderFunction<
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleEscape, false);
-      document.addEventListener('click', handleClick, false);
+      // Add backdrop click handler
+      setTimeout(() => {
+        document.addEventListener('click', handleBackdropClick, true);
+      }, 100);
     }
     return () => {
       document.removeEventListener('keydown', handleEscape, false);
-      document.removeEventListener('click', handleClick, false);
+      document.removeEventListener('click', handleBackdropClick, true);
     };
-  }, [handleEscape, isOpen, handleClick]);
+  }, [handleEscape, handleBackdropClick, isOpen]);
 
   const handleOnConfirm = useCallback(async () => {
     if (type === 'ack') {
@@ -174,13 +167,12 @@ const ModalComponent: ForwardRefRenderFunction<
         isOpen ? (
           <Suspense
             fallback={
-              <Modal ref={modalEl as never} isOpen variant={variant} onClose={close} aria-label="Modal: Loading">
+              <Modal isOpen variant={variant} onClose={close} aria-label="Modal: Loading">
                 <LoadingSection />
               </Modal>
             }
           >
             <Modal
-              ref={modalEl as never}
               className={`modal-component${className ? ` ${className}` : ''} ${optionalFlags
                 .map((flag) => `optional-flags__${flag}`)
                 .join(' ')}`}
@@ -189,6 +181,7 @@ const ModalComponent: ForwardRefRenderFunction<
               onClose={close}
               aria-label={`Modal: ${_title}`}
               isOpen={isOpen}
+              disableFocusTrap={false}
               actions={
                 type === 'action'
                   ? [
