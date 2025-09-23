@@ -710,6 +710,211 @@ class AgnosticVRepo(CachedKopfObject):
             )
         return b64decode(secret_data).decode('utf-8')
 
+    async def is_pr_closed_without_merge(self, pull_request_number, logger):
+        """Check if a PR is closed without being merged using GitHub API"""
+        if not self.github_token_secret_name or not pull_request_number:
+            return False
+        
+        try:
+            github_token = await self.get_github_token()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.github_api_base_url}/pulls/{pull_request_number}",
+                    headers = {
+                        "Accept": "application/vnd.github+json",
+                        "Authorization": "Bearer " + github_token,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=aiohttp.ClientTimeout(total=5)
+                ) as response:
+                    if response.status == 200:
+                        pr_data = await response.json()
+                        state = pr_data.get('state')
+                        merged = pr_data.get('merged', False)
+                        
+                        # PR is "closed without merge" if state is closed and not merged
+                        is_closed_without_merge = (state == 'closed' and not merged)
+                        
+                        if is_closed_without_merge:
+                            logger.debug(f"PR #{pull_request_number} is closed without merge")
+                        elif state == 'closed' and merged:
+                            logger.debug(f"PR #{pull_request_number} is merged (keeping component)")
+                        elif state == 'open':
+                            logger.debug(f"PR #{pull_request_number} is still open")
+                        
+                        return is_closed_without_merge
+                    elif response.status == 404:
+                        # PR doesn't exist, consider it closed without merge for cleanup
+                        logger.debug(f"PR #{pull_request_number} not found, considering it closed without merge")
+                        return True
+                    else:
+                        logger.warning(f"Failed to check PR #{pull_request_number} status: {response.status}")
+                        return False
+        except Exception as e:
+            logger.warning(f"Failed to check if PR #{pull_request_number} is closed without merge: {e}")
+            return False
+
+    async def post_pr_deletion_comment(self, pull_request_number, component_name, logger):
+        """Post a comment to a PR when a component used by that PR is affected"""
+        if not self.github_token_secret_name or not pull_request_number:
+            return
+        
+        try:
+            github_token = await self.get_github_token()
+            message = (
+                f"🗑️ AgnosticV Component `{component_name}` removed from Integration"
+            )
+            
+            async with aiohttp.ClientSession() as session:
+                await session.post(
+                    f"{self.github_api_base_url}/issues/{pull_request_number}/comments",
+                    headers = {
+                        "Accept": "application/vnd.github+json",
+                        "Authorization": "Bearer " + github_token,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    json = {"body": message}
+                )
+            logger.info(f"Posted deletion comment for component {component_name} to PR #{pull_request_number}")
+        except Exception as e:
+            logger.warning(f"Failed to post deletion comment to PR #{pull_request_number}: {e}")
+
+    async def _update_component_pr_list(self, agnosticv_component, pr_number, logger, add=True):
+        """Update the list of PRs using this component"""
+        pr_list_annotation = f"{Babylon.agnosticv_api_group}/used-by-prs"
+        current_prs_str = agnosticv_component.metadata.get('annotations', {}).get(pr_list_annotation, '')
+        
+        # Parse current PR list
+        if current_prs_str:
+            current_prs = set(current_prs_str.split(','))
+        else:
+            current_prs = set()
+        
+        pr_str = str(pr_number)
+        
+        if add:
+            if pr_str not in current_prs:
+                current_prs.add(pr_str)
+                updated = True
+            else:
+                updated = False
+        else:
+            if pr_str in current_prs:
+                current_prs.remove(pr_str)
+                updated = True
+            else:
+                updated = False
+        
+        if updated:
+            new_prs_str = ','.join(sorted(current_prs)) if current_prs else ''
+            
+            # Check if annotations section exists
+            has_annotations = 'annotations' in agnosticv_component.metadata
+            
+            if new_prs_str:
+                if has_annotations:
+                    # Update existing annotation
+                    patch = [{
+                        "op": "add",
+                        "path": f"/metadata/annotations/{pr_list_annotation.replace('/', '~1')}",
+                        "value": new_prs_str
+                    }]
+                else:
+                    # Create annotations section with the annotation
+                    patch = [{
+                        "op": "add",
+                        "path": "/metadata/annotations",
+                        "value": {pr_list_annotation: new_prs_str}
+                    }]
+            else:
+                # Remove the annotation
+                if has_annotations:
+                    patch = [{
+                        "op": "remove", 
+                        "path": f"/metadata/annotations/{pr_list_annotation.replace('/', '~1')}"
+                    }]
+                else:
+                    # Nothing to remove if annotations don't exist
+                    patch = []
+            
+            if patch:
+                await agnosticv_component.json_patch(patch)
+                logger.debug(f"Updated PR list for {agnosticv_component.name}: {new_prs_str}")
+        
+        return updated
+
+    async def cleanup_components_from_closed_prs(self, logger):
+        """Check for components with closed PRs and remove closed PRs from their lists"""
+        logger.debug(f"Starting PR cleanup for {self.name}")
+        if not self.github_token_secret_name:
+            logger.debug(f"No GitHub token for {self.name}, skipping PR cleanup")
+            return []
+        
+        deleted_components = []
+        
+        async for agnosticv_component in AgnosticVComponent.list(
+            label_selector = f"{Babylon.agnosticv_repo_label}={self.name}",
+            namespace = self.namespace,
+        ):
+            # Check if this component has the "used-by-prs" annotation
+            pr_list_annotation = f"{Babylon.agnosticv_api_group}/used-by-prs"
+            pr_list_str = agnosticv_component.metadata.get('annotations', {}).get(pr_list_annotation)
+            
+            # Only process components that have the PR tracking annotation
+            # This avoids touching existing components that were created before this system
+            if pr_list_str:
+                pr_numbers = pr_list_str.split(',')
+                active_prs = []  # Open PRs or merged PRs (keep component)
+                closed_without_merge_prs = []  # Closed without merge PRs (remove component)
+                
+                for pr_str in pr_numbers:
+                    try:
+                        pr_number = int(pr_str.strip())
+                        is_closed_without_merge = await self.is_pr_closed_without_merge(pr_number, logger)
+                        
+                        if is_closed_without_merge:
+                            closed_without_merge_prs.append(pr_number)
+                        else:
+                            # PR is either open or merged (both keep the component)
+                            active_prs.append(pr_str.strip())
+                            
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Invalid PR number in list for component {agnosticv_component.name}: {pr_str}")
+                        # Keep invalid PR numbers in the list to avoid data loss
+                        active_prs.append(pr_str.strip())
+                
+                # If there are PRs closed without merge, update the annotation or delete the component
+                if closed_without_merge_prs:
+                    if active_prs:
+                        # Some PRs are still active (open or merged), just remove the closed ones from the list
+                        new_pr_list = ','.join(sorted(active_prs))
+                        escaped_annotation = pr_list_annotation.replace('/', '~1')
+                        patch = [{
+                            "op": "add",
+                            "path": f"/metadata/annotations/{escaped_annotation}",
+                            "value": new_pr_list
+                        }]
+                        await agnosticv_component.json_patch(patch)
+                        logger.info(f"Removed closed-without-merge PRs {closed_without_merge_prs} from component {agnosticv_component.name}, still used by PRs: {active_prs}")
+                        
+                        # No need to comment on closed PRs when component still exists and is used by other PRs
+                    else:
+                        # No active PRs left, delete the component entirely
+                        logger.info(f"Deleting component {agnosticv_component.name} because all PRs {closed_without_merge_prs} were closed without merge")
+                        
+                        # Post comments to all closed-without-merge PRs (component being deleted)
+                        for pr_number in closed_without_merge_prs:
+                            await self.post_pr_deletion_comment(pr_number, agnosticv_component.name, logger)
+                        
+                        # Delete the component
+                        await agnosticv_component.delete()
+                        deleted_components.append(agnosticv_component.name)
+        
+        if deleted_components:
+            logger.info(f"Cleaned up {len(deleted_components)} components from closed PRs: {deleted_components}")
+        
+        return deleted_components
+
     async def get_ssh_key(self):
         secret = await Babylon.core_v1_api.read_namespaced_secret(
             name = self.ssh_key_secret_name,
@@ -895,6 +1100,7 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def handle_create(self, logger):
         # Initial creation requires full processing to establish baseline
+        logger.info(f"handle_create triggered for {self.name}")
         await self.manage_components(logger=logger, changed_only=False)
 
     async def handle_delete(self, logger):
@@ -903,10 +1109,12 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def handle_resume(self, logger):
         # Resume operations should use incremental processing for efficiency
+        logger.debug(f"handle_resume triggered for {self.name}")
         await self.manage_components(logger=logger, changed_only=True)
 
     async def handle_update(self, logger):
         # Update operations should use incremental processing for efficiency  
+        logger.debug(f"handle_update triggered for {self.name}")
         await self.manage_components(logger=logger, changed_only=True)
 
     async def manage_component(self, source, logger):
@@ -958,9 +1166,17 @@ class AgnosticVRepo(CachedKopfObject):
                         "path": "/spec/pullRequestNumber",
                     })
 
-            if patch:
+            # Update the list of PRs using this component
+            pr_annotation_updated = False
+            if source.pull_request_number:
+                pr_annotation_updated = await self._update_component_pr_list(
+                    agnosticv_component, source.pull_request_number, logger, add=True
+                )
+            
+            if patch or pr_annotation_updated:
+                if patch:
+                    await agnosticv_component.json_patch(patch)
                 logger.info(f"Updating {agnosticv_component} definition for {source}")
-                await agnosticv_component.json_patch(patch)
                 return "updated"
 
             logger.debug(f"{agnosticv_component} unchanged")
@@ -974,15 +1190,22 @@ class AgnosticVRepo(CachedKopfObject):
                     "definition": definition,
                     "path": source.path,
                 }
-                agnosticv_component = await AgnosticVComponent.create({
-                    "metadata": {
-                        "labels": {
-                            Babylon.agnosticv_repo_label: self.name,
-                        },
-                        "name": source.name,
-                        "namespace": self.namespace,
-                        "ownerReferences": [self.as_owner_ref()],
+                
+                metadata = {
+                    "labels": {
+                        Babylon.agnosticv_repo_label: self.name,
                     },
+                    "name": source.name,
+                    "namespace": self.namespace,
+                    "ownerReferences": [self.as_owner_ref()],
+                }
+                
+                # Add annotation to track which PRs are using this component
+                if source.pull_request_number:
+                    metadata.setdefault("annotations", {})[f"{Babylon.agnosticv_api_group}/used-by-prs"] = str(source.pull_request_number)
+                
+                agnosticv_component = await AgnosticVComponent.create({
+                    "metadata": metadata,
                     "spec": spec,
                 })
                 return "created"
@@ -1017,6 +1240,15 @@ class AgnosticVRepo(CachedKopfObject):
         await self.git_repo_sync(logger=logger)
         # Periodic cleanup of git repository and stale branch tracking
         await self.git_repo_cleanup(logger=logger)
+        
+        # Cleanup components from closed PRs
+        logger.debug(f"Checking PR cleanup for {self.name}: github_preload_pull_requests={self.github_preload_pull_requests}")
+        if self.github_preload_pull_requests:
+            deleted_from_closed_prs = await self.cleanup_components_from_closed_prs(logger=logger)
+        else:
+            logger.debug(f"Skipping PR cleanup for {self.name}: preloadPullRequests not enabled")
+            deleted_from_closed_prs = []
+        
         # Store the hexsha to record in status if successful
         git_hexsha = self.git_hexsha
 
@@ -1047,6 +1279,13 @@ class AgnosticVRepo(CachedKopfObject):
             logger = logger,
         )
         handled_component_names = set()
+
+        # If incremental processing finds no components and no deletions, nothing to do
+        if changed_only and not component_sources and not deleted_component_names and not get_component_sources_error_messages and not deleted_from_closed_prs:
+            # Check if there were any changes detected (main branch or PRs)
+            if git_hexsha == self.last_successful_git_hexsha:
+                logger.debug(f"No changes detected for {self.name}, skipping component management")
+                return
 
         # When syncing changed only we get a set of deleted component names
         for name in deleted_component_names:
