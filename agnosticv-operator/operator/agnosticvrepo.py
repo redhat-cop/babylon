@@ -64,6 +64,12 @@ class AgnosticVRepo(CachedKopfObject):
         self.cleanup_interval = 3600  # Run git cleanup every hour (in seconds)
         self.max_tracked_pr_commits = 1000  # Maximum number of PR commits to track
         self.max_fetched_branches = 500  # Maximum number of fetched branches to track
+        
+        # GitHub API rate limiting
+        self.github_api_rate_limited_until = None  # Timestamp when rate limit will reset
+        self.github_api_backoff_delay = 60  # Start with 1 minute backoff
+        self.github_api_max_backoff = 3600  # Maximum 1 hour backoff
+        self.github_api_success_count = 0  # Track successful calls to reduce backoff
 
     @property
     def agnosticv_path(self):
@@ -173,6 +179,41 @@ class AgnosticVRepo(CachedKopfObject):
     def mark_branch_fetched(self, ref):
         """Mark a branch as having full history fetched"""
         self.fetched_branches.add(ref)
+    
+    def is_github_api_rate_limited(self):
+        """Check if we should skip GitHub API calls due to rate limiting"""
+        if not self.github_api_rate_limited_until:
+            return False
+        
+        now = datetime.now(timezone.utc).timestamp()
+        if now >= self.github_api_rate_limited_until:
+            # Rate limit period has passed
+            self.github_api_rate_limited_until = None
+            return False
+        
+        return True
+    
+    def handle_github_api_rate_limit(self, logger):
+        """Handle GitHub API rate limiting with exponential backoff"""
+        now = datetime.now(timezone.utc).timestamp()
+        
+        # Set rate limited until timestamp
+        self.github_api_rate_limited_until = now + self.github_api_backoff_delay
+        
+        logger.warning(f"GitHub API rate limited. Backing off for {self.github_api_backoff_delay} seconds (until {datetime.fromtimestamp(self.github_api_rate_limited_until, timezone.utc)})")
+        
+        # Exponential backoff (double the delay, up to max)
+        self.github_api_backoff_delay = min(self.github_api_backoff_delay * 2, self.github_api_max_backoff)
+        self.github_api_success_count = 0
+    
+    def handle_github_api_success(self):
+        """Handle successful GitHub API call - reduce backoff if we've had multiple successes"""
+        self.github_api_success_count += 1
+        
+        # After 5 successful calls, reduce backoff delay
+        if self.github_api_success_count >= 5:
+            self.github_api_backoff_delay = max(60, self.github_api_backoff_delay // 2)
+            self.github_api_success_count = 0
     
     def has_local_ref_changed(self, ref):
         """Check if local ref differs from remote ref"""
@@ -306,6 +347,11 @@ class AgnosticVRepo(CachedKopfObject):
             logger.debug(f"No GitHub token for {self.name}, falling back to git fetch")
             return True  # Fall back to git fetch if no API access
         
+        # Check if we're in rate limiting backoff period
+        if self.is_github_api_rate_limited():
+            logger.debug(f"GitHub API rate limited for {self.name}, falling back to git fetch")
+            return True  # Fall back to git fetch during rate limit
+        
         try:
             # Get current local commit
             if not self.git_repo:
@@ -329,9 +375,16 @@ class AgnosticVRepo(CachedKopfObject):
                     },
                     timeout=aiohttp.ClientTimeout(total=5)  # Quick timeout
                 ) as response:
-                    if response.status != 200:
+                    if response.status == 403:
+                        # Rate limited - handle backoff
+                        self.handle_github_api_rate_limit(logger)
+                        return True  # Fall back to git fetch
+                    elif response.status != 200:
                         logger.debug(f"GitHub API check failed with {response.status}, falling back to git fetch")
                         return True  # Fall back to git fetch on API errors
+                    
+                    # Successful API call
+                    self.handle_github_api_success()
                     
                     branch_info = await response.json()
                     remote_sha = branch_info['commit']['sha']
@@ -597,6 +650,11 @@ class AgnosticVRepo(CachedKopfObject):
         }
 
         if self.github_preload_pull_requests:
+            # Check if we're in rate limiting backoff period
+            if self.is_github_api_rate_limited():
+                logger.info(f"GitHub API rate limited for {self.name}, skipping PR processing for this cycle")
+                return list(component_sources_by_path.values()), deleted_component_names, error_messages
+            
             try:
                 github_token = await self.get_github_token()
             except Exception as e:
@@ -613,14 +671,20 @@ class AgnosticVRepo(CachedKopfObject):
                         "X-GitHub-Api-Version": "2022-11-28",
                     }
                 ) as response:
-                    if response.status != 200:
+                    if response.status == 403:
+                        # Rate limited - handle backoff
                         error_text = await response.text()
-                        if response.status == 403:
-                            logger.warning(f"GitHub API rate limited (403): {error_text}. Continuing without PR processing for this cycle.")
-                        else:
-                            logger.error(f"GitHub API error {response.status}: {error_text}")
+                        self.handle_github_api_rate_limit(logger)
+                        logger.warning(f"GitHub API rate limited (403): {error_text}. Continuing without PR processing for this cycle.")
+                        pull_requests = []  # Continue with empty list on API error
+                    elif response.status != 200:
+                        error_text = await response.text()
+                        logger.error(f"GitHub API error {response.status}: {error_text}")
                         pull_requests = []  # Continue with empty list on API error
                     else:
+                        # Successful API call
+                        self.handle_github_api_success()
+                        
                         pull_requests = await response.json()
                         # Ensure we got a list, not an error response
                         if not isinstance(pull_requests, list):
@@ -794,6 +858,11 @@ class AgnosticVRepo(CachedKopfObject):
         if not self.github_token_secret_name or not pull_request_number:
             return False
         
+        # Check if we're in rate limiting backoff period
+        if self.is_github_api_rate_limited():
+            logger.debug(f"GitHub API rate limited, skipping PR {pull_request_number} status check")
+            return False  # Don't delete components during rate limiting
+        
         try:
             github_token = await self.get_github_token()
             async with aiohttp.ClientSession() as session:
@@ -807,6 +876,9 @@ class AgnosticVRepo(CachedKopfObject):
                     timeout=aiohttp.ClientTimeout(total=5)
                 ) as response:
                     if response.status == 200:
+                        # Successful API call
+                        self.handle_github_api_success()
+                        
                         pr_data = await response.json()
                         state = pr_data.get('state')
                         merged = pr_data.get('merged', False)
@@ -822,6 +894,11 @@ class AgnosticVRepo(CachedKopfObject):
                             logger.debug(f"PR #{pull_request_number} is still open")
                         
                         return is_closed_without_merge
+                    elif response.status == 403:
+                        # Rate limited
+                        self.handle_github_api_rate_limit(logger)
+                        logger.debug(f"GitHub API rate limited while checking PR #{pull_request_number}")
+                        return False  # Don't delete components during rate limiting
                     elif response.status == 404:
                         # PR doesn't exist, consider it closed without merge for cleanup
                         logger.debug(f"PR #{pull_request_number} not found, considering it closed without merge")
