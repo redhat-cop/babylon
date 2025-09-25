@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: babylon-agnosticv-operator-webhook-dev
+  name: agnosticv-operator
   namespace: babylon-config
   labels:
-    app.kubernetes.io/name: babylon-agnosticv-operator-webhook-dev
+    app.kubernetes.io/name: agnosticv-operator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: babylon-agnosticv-operator-webhook-dev
+      app.kubernetes.io/name: agnosticv-operator
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: babylon-agnosticv-operator-webhook-dev
+        app.kubernetes.io/name: agnosticv-operator
     spec:
       serviceAccountName: agnosticv-operator  # Use existing SA
       containers:
@@ -90,7 +90,7 @@ spec:
       protocol: TCP
       name: webhook
   selector:
-    app.kubernetes.io/name: babylon-agnosticv-operator-webhook-dev
+    app.kubernetes.io/name: agnosticv-operator
 ---
 apiVersion: route.openshift.io/v1
 kind: Route

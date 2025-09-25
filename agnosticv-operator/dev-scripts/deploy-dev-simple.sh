@@ -17,14 +17,16 @@ echo "Built image: $IMAGE_REF"
 
 echo "Deploying webhook-enabled operator (dev)..."
 
-# Stop existing deployment
-oc scale deployment babylon-agnosticv-operator --replicas=0 -n babylon-config || true
+# Delete existing deployment to allow selector change
+echo "Deleting existing deployment..."
+oc delete deployment agnosticv-operator -n babylon-config --ignore-not-found=true
 
 # Apply dev deployment with webhook
+echo "Applying new deployment..."
 sed "s|IMAGE_PLACEHOLDER|$IMAGE_REF|g" deploy-dev-minimal.yaml | oc apply -f -
 
 echo "Waiting for deployment..."
-oc rollout status deployment/babylon-agnosticv-operator-webhook-dev -n babylon-config
+oc rollout status deployment/agnosticv-operator -n babylon-config
 
 echo "Getting webhook URL..."
 WEBHOOK_URL=$(oc get route babylon-agnosticv-operator-webhook-dev -n babylon-config -o jsonpath='{.spec.host}')
@@ -44,5 +46,5 @@ curl -f "https://$WEBHOOK_URL/health" | jq . || echo "Health check failed"
 
 echo ""
 echo "Checking operator status..."
-oc get pods -l app.kubernetes.io/name=babylon-agnosticv-operator-webhook-dev -n babylon-config
-oc logs deployment/babylon-agnosticv-operator-webhook-dev -n babylon-config --tail=10
+oc get pods -l app.kubernetes.io/name=agnosticv-operator -n babylon-config
+oc logs deployment/agnosticv-operator -n babylon-config --tail=10

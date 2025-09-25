@@ -287,7 +287,10 @@ class AgnosticVRepo(CachedKopfObject):
             if remote_ref in self.git_repo.references:
                 target_oid = self.git_repo.references[remote_ref].target
                 commit = self.git_repo[target_oid]
-                self.git_repo.checkout_tree(commit.tree)
+                self.git_repo.checkout_tree(
+                    commit.tree,
+                    strategy=pygit2.GIT_CHECKOUT_FORCE | pygit2.GIT_CHECKOUT_REMOVE_UNTRACKED
+                )
                 # Set HEAD to point to this commit (detached HEAD)
                 self.git_repo.set_head(target_oid)
                 self.git_hexsha = str(target_oid)
@@ -296,7 +299,10 @@ class AgnosticVRepo(CachedKopfObject):
                 try:
                     target_oid = pygit2.Oid(hex=ref)
                     commit = self.git_repo[target_oid]
-                    self.git_repo.checkout_tree(commit.tree)
+                    self.git_repo.checkout_tree(
+                        commit.tree,
+                        strategy=pygit2.GIT_CHECKOUT_FORCE | pygit2.GIT_CHECKOUT_REMOVE_UNTRACKED
+                    )
                     self.git_repo.set_head(target_oid)
                     self.git_hexsha = str(target_oid)
                 except (pygit2.GitError, ValueError, KeyError):
@@ -1720,10 +1726,16 @@ class AgnosticVRepo(CachedKopfObject):
             remote.fetch([branch_refspec], callbacks=callbacks)
             logger.debug(f"Fetched branch {head_ref}")
             
-            # Checkout the PR branch
+            # Checkout the PR branch with force (like git checkout --force)
             branch_ref = self.git_repo.references[f'refs/remotes/origin/{head_ref}']
             target_commit = self.git_repo.get(branch_ref.target)
-            self.git_repo.checkout_tree(target_commit)
+            
+            # Force checkout - equivalent to git checkout --force
+            # This overwrites any local changes and resolves conflicts
+            self.git_repo.checkout_tree(
+                target_commit.tree,
+                strategy=pygit2.GIT_CHECKOUT_FORCE | pygit2.GIT_CHECKOUT_REMOVE_UNTRACKED
+            )
             
             # Use string conversion for set_head (compatible with all pygit2 versions)
             target_sha = str(branch_ref.target)
