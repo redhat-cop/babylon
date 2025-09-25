@@ -2,6 +2,7 @@ import asyncio
 import kopf
 import kubernetes_asyncio
 import logging
+import os
 
 from agnosticvrepo import AgnosticVRepo
 from agnosticvcomponent import AgnosticVComponent
@@ -9,9 +10,16 @@ from babylon import Babylon
 from catalogitem import CatalogItem
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
+from webhook_server import WebhookServer
+
+# Global webhook server instance
+webhook_server = None
+webhook_runner = None
 
 @kopf.on.startup()
 async def on_startup(settings: kopf.OperatorSettings, logger, **_):
+    global webhook_server, webhook_runner
+    
     await Babylon.on_startup()
     await CatalogItem.on_startup()
 
@@ -34,9 +42,35 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     settings.scanning.disabled = True
 
     configure_kopf_logging()
+    
+    # Start webhook server if enabled
+    webhook_port = int(os.environ.get('WEBHOOK_PORT', '8080'))
+    webhook_enabled = os.environ.get('WEBHOOK_ENABLED', 'true').lower() == 'true'
+    
+    if webhook_enabled:
+        try:
+            webhook_server = WebhookServer(port=webhook_port)
+            webhook_runner = await webhook_server.start_server()
+            logger.info(f"GitHub webhook server started on port {webhook_port}")
+        except Exception as e:
+            logger.error(f"Failed to start webhook server: {e}")
+            webhook_server = None
+            webhook_runner = None
 
 @kopf.on.cleanup()
-async def on_cleanup(**_):
+async def on_cleanup(logger, **_):
+    global webhook_server, webhook_runner
+    
+    # Stop webhook server
+    if webhook_runner:
+        try:
+            await webhook_server.stop_server(webhook_runner)
+            logger.info("GitHub webhook server stopped")
+        except Exception as e:
+            logger.error(f"Error stopping webhook server: {e}")
+        webhook_server = None
+        webhook_runner = None
+    
     await CatalogItem.on_cleanup()
     await Babylon.on_cleanup()
 
@@ -89,6 +123,7 @@ async def agnoticvrepo_daemon(logger, stopped, **kwargs):
     agnosticv_repo = AgnosticVRepo.load(**kwargs)
     try:
         while not stopped:
+            logger.info(f"Sleeping {agnosticv_repo.polling_interval}")
             await asyncio.sleep(agnosticv_repo.polling_interval)
             if stopped:
                 break

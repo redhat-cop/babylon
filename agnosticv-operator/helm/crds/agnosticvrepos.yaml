@@ -158,6 +158,10 @@ spec:
                     description: >-
                       Name of secret with GitHub token as `token` in secret data.
                     type: string
+                  webhookSecret:
+                    description: >-
+                      Name of secret with GitHub webhook secret as `secret` in secret data.
+                    type: string
               pollingInterval:
                 description: >-
                   Polling interval for checking for AgnosticV Repo Updates

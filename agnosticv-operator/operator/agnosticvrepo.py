@@ -29,7 +29,16 @@ app_root = os.environ.get('APP_ROOT', '/opt/app-root')
 agnosticv_cli_path = os.environ.get('AGNOSTICV_CLI_PATH', f"{app_root}/bin/agnosticv")
 
 def path_to_name(path):
-    return re.sub(r'\.(json|yaml|yml)$', '', path.lower().replace('_', '-').replace('/', '.'))
+    name = re.sub(r'\.(json|yaml|yml)$', '', path.lower().replace('_', '-').replace('/', '.'))
+    
+    # Kubernetes resource names must be <= 63 characters
+    if len(name) > 63:
+        raise AgnosticVComponentValidationError(
+            f"Component name '{name}' ({len(name)} characters) exceeds Kubernetes 63-character limit. "
+            f"Please shorten the path '{path}' to create a valid component name."
+        )
+    
+    return name
 
 class AgnosticVProcessingError(Exception):
     pass
@@ -602,7 +611,7 @@ class AgnosticVRepo(CachedKopfObject):
 
         return definition
 
-    async def get_component_sources(self, changed_only, logger):
+    async def get_component_sources(self, changed_only, logger, skip_pr_processing=False):
         # Collect all non-fatal error messages
         error_messages = []
 
@@ -649,7 +658,10 @@ class AgnosticVRepo(CachedKopfObject):
             path_to_name(path) for path in deleted_component_paths
         }
 
-        if self.github_preload_pull_requests:
+        if skip_pr_processing:
+            logger.info(f"Skipping PR processing for {self.name}: processing only main branch components (skip_pr_processing=True)")
+            return list(component_sources_by_path.values()), deleted_component_names, error_messages
+        elif self.github_preload_pull_requests:
             # Check if we're in rate limiting backoff period
             if self.is_github_api_rate_limited():
                 logger.info(f"GitHub API rate limited for {self.name}, skipping PR processing for this cycle")
@@ -1060,7 +1072,6 @@ class AgnosticVRepo(CachedKopfObject):
             pr_list_str = agnosticv_component.metadata.get('annotations', {}).get(pr_list_annotation)
             
             # Only process components that have the PR tracking annotation
-            # This avoids touching existing components that were created before this system
             if pr_list_str:
                 pr_numbers = pr_list_str.split(',')
                 active_prs = []  # Open PRs or merged PRs (keep component)
@@ -1309,7 +1320,7 @@ class AgnosticVRepo(CachedKopfObject):
     async def handle_resume(self, logger):
         # Resume operations should use incremental processing for efficiency
         logger.debug(f"handle_resume triggered for {self.name}")
-        await self.manage_components(logger=logger, changed_only=True)
+        await self.manage_components(logger=logger, changed_only=False)
 
     async def handle_update(self, logger):
         # Update operations should use incremental processing for efficiency  
@@ -1337,7 +1348,7 @@ class AgnosticVRepo(CachedKopfObject):
             if definition_changed:
                 logger.info(f"Component {source.name} definition changed for PR #{source.pull_request_number}")
             else:
-                logger.info(f"Component {source.name} definition unchanged for PR #{source.pull_request_number}")
+                logger.debug(f"Component {source.name} definition unchanged for PR #{source.pull_request_number}")
             
             if definition_changed:
                 patch.append({
@@ -1427,9 +1438,9 @@ class AgnosticVRepo(CachedKopfObject):
             else:
                 raise
 
-    async def manage_components(self, logger, changed_only=False):
+    async def manage_components(self, logger, changed_only=False, skip_pr_processing=False):
         try:
-            await self.__manage_components(changed_only=changed_only, logger=logger)
+            await self.__manage_components(changed_only=changed_only, logger=logger, skip_pr_processing=skip_pr_processing)
         except AgnosticVProcessingError as error:
             await self.merge_patch_status({
                 "error": {
@@ -1447,8 +1458,8 @@ class AgnosticVRepo(CachedKopfObject):
                 }
             })
 
-    async def __manage_components(self, logger, changed_only):
-        logger.debug(f"Starting manage_components for {self.name} (changed_only={changed_only})")
+    async def __manage_components(self, logger, changed_only, skip_pr_processing=False):
+        logger.debug(f"Starting manage_components for {self.name} (changed_only={changed_only}, skip_pr_processing={skip_pr_processing})")
         # Reset flag for detecting closed PRs in this cycle
         self._has_closed_prs_this_cycle = False
         
@@ -1456,9 +1467,12 @@ class AgnosticVRepo(CachedKopfObject):
         # Periodic cleanup of git repository and stale branch tracking
         await self.git_repo_cleanup(logger=logger)
         
-        # Cleanup components from closed PRs
-        logger.debug(f"Checking PR cleanup for {self.name}: github_preload_pull_requests={self.github_preload_pull_requests}")
-        if self.github_preload_pull_requests:
+        # Cleanup components from closed PRs (only if not skipping PR processing)
+        if skip_pr_processing:
+            logger.debug(f"Skipping PR cleanup for {self.name}: skip_pr_processing=True")
+            deleted_from_closed_prs = []
+        elif self.github_preload_pull_requests:
+            logger.debug(f"Checking PR cleanup for {self.name}: github_preload_pull_requests={self.github_preload_pull_requests}")
             deleted_from_closed_prs = await self.cleanup_components_from_closed_prs(logger=logger)
         else:
             logger.debug(f"Skipping PR cleanup for {self.name}: preloadPullRequests not enabled")
@@ -1492,6 +1506,7 @@ class AgnosticVRepo(CachedKopfObject):
         component_sources, deleted_component_names, get_component_sources_error_messages = await self.get_component_sources(
             changed_only = changed_only,
             logger = logger,
+            skip_pr_processing = skip_pr_processing,
         )
         handled_component_names = set()
 
@@ -1564,7 +1579,6 @@ class AgnosticVRepo(CachedKopfObject):
                 )
 
 
-        logger.info(f"PR messages to post: {dict(pr_messages)}")
         for pull_request_number, messages in pr_messages.items():
             if not pull_request_number:
                 continue
@@ -1593,12 +1607,10 @@ class AgnosticVRepo(CachedKopfObject):
                     total_count = len(messages)
                     
                     if unchanged_count == total_count:
-                        # All components were unchanged
-                        message = (
-                            f"ℹ️ **Processed revision {commit_sha}**\n\n" +
-                            "Components processed (no changes needed):\n" +
-                            "\n".join([f"• {msg}" for msg in messages])
-                        )
+                        # All components were unchanged - skip comment for polling cycles
+                        # Only webhook events (opened/synchronized) should get "no changes" comments
+                        logger.debug(f"Skipping 'no changes' comment for PR #{pull_request_number} (polling cycle)")
+                        message = None  # Skip comment but still add label
                     else:
                         # Mixed results or all updates
                         message = (
@@ -1611,15 +1623,26 @@ class AgnosticVRepo(CachedKopfObject):
                     message += f"\n\nThe updated catalog is available at {self.catalog_url}"
 
                 async with aiohttp.ClientSession() as session:
-                    comment_response = await session.post(
-                        f"{self.github_api_base_url}/issues/{pull_request_number}/comments",
-                        headers = {
-                            "Accept": "application/vnd.github+json",
-                            "Authorization": "Bearer " + github_token,
-                            "X-GitHub-Api-Version": "2022-11-28",
-                        },
-                        json = {"body": message}
-                    )
+                    # Only post comment if message is not None
+                    if message:
+                        comment_response = await session.post(
+                            f"{self.github_api_base_url}/issues/{pull_request_number}/comments",
+                            headers = {
+                                "Accept": "application/vnd.github+json",
+                                "Authorization": "Bearer " + github_token,
+                                "X-GitHub-Api-Version": "2022-11-28",
+                            },
+                            json = {"body": message}
+                        )
+                        
+                        if comment_response.status == 201:
+                            logger.info(f"Posted success comment to PR #{pull_request_number}")
+                        else:
+                            logger.warning(f"Failed to post comment to PR #{pull_request_number}: HTTP {comment_response.status}")
+                    else:
+                        logger.debug(f"Skipped comment for PR #{pull_request_number} (no changes during polling)")
+                    
+                    # Always add integration label regardless of comment
                     await session.post(
                         f"{self.github_api_base_url}/issues/{pull_request_number}/labels",
                         headers = {
@@ -1629,11 +1652,6 @@ class AgnosticVRepo(CachedKopfObject):
                         },
                         json = {"labels": ["integration"]}
                     )
-                    
-                    if comment_response.status == 201:
-                        logger.info(f"Posted success comment to PR #{pull_request_number}")
-                    else:
-                        logger.warning(f"Failed to post comment to PR #{pull_request_number}: HTTP {comment_response.status}")
                         
             except Exception as e:
                 logger.warning(f"Failed to post success comment to PR #{pull_request_number}: {e}")
@@ -1672,6 +1690,154 @@ class AgnosticVRepo(CachedKopfObject):
             logger.info(f"Finished managing components for {self.name} [{git_hexsha}]")
         else:
             logger.debug(f"Completed processing for {self.name} (no changes)")
+
+    async def manage_single_pr(self, pr_number, head_ref, head_sha, logger):
+        """Process a single specific PR for webhook events"""
+        logger.info(f"Processing single PR #{pr_number} ({head_ref} -> {head_sha})")
+        
+        # Ensure git repo is ready
+        await self.git_repo_sync(logger=logger)
+        
+        # Fetch/checkout the specific PR branch
+        try:
+            # First ensure we have the latest commits for this branch
+            remote = self.git_repo.remotes['origin']
+            branch_refspec = f'refs/heads/{head_ref}:refs/remotes/origin/{head_ref}'
+            
+            # Create callbacks for authentication if SSH key is provided
+            callbacks = None
+            if self.ssh_key_secret_name:
+                callbacks = pygit2.RemoteCallbacks(
+                    credentials=pygit2.Keypair(
+                        username='git',
+                        pubkey=f'{self.git_ssh_key_path}.pub',
+                        privkey=self.git_ssh_key_path,
+                        passphrase=''
+                    )
+                )
+            
+            # Fetch this specific branch
+            remote.fetch([branch_refspec], callbacks=callbacks)
+            logger.debug(f"Fetched branch {head_ref}")
+            
+            # Checkout the PR branch
+            branch_ref = self.git_repo.references[f'refs/remotes/origin/{head_ref}']
+            target_commit = self.git_repo.get(branch_ref.target)
+            self.git_repo.checkout_tree(target_commit)
+            
+            # Use string conversion for set_head (compatible with all pygit2 versions)
+            target_sha = str(branch_ref.target)
+            self.git_repo.set_head(f'refs/remotes/origin/{head_ref}')
+            self.git_hexsha = target_sha
+            self.git_checkout_ref = head_ref
+            
+            logger.info(f"Checked out {head_ref} [{self.git_hexsha}] for PR #{pr_number}")
+            
+        except (pygit2.GitError, KeyError) as e:
+            logger.warning(f"Unable to checkout branch {head_ref} for PR #{pr_number}: {e}")
+            raise kopf.TemporaryError(f"Failed to checkout PR branch {head_ref}: {e}", delay=60)
+        
+        # Update tracking
+        self.last_pr_commits[f"pr-{pr_number}"] = head_sha
+        
+        # Get only the components that changed in this specific PR
+        try:
+            # Get the files that changed in this PR compared to the base branch
+            changed_files = await self.git_changed_files_in_branch(logger=logger, ref=head_ref)
+            logger.info(f"PR #{pr_number} changed {len(changed_files)} files: {changed_files[:10]}...")
+            
+            if changed_files:
+                component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(
+                    changed_files, logger=logger
+                )
+                if error_msg:
+                    logger.warning(f"Error getting component paths for PR #{pr_number}: {error_msg}")
+                    component_paths = []
+            else:
+                logger.info(f"No changed files detected in PR #{pr_number}")
+                component_paths = []
+            
+            component_sources = [
+                ComponentSource(
+                    path, ref=head_ref, hexsha=self.git_hexsha, pull_request_number=pr_number
+                ) for path in component_paths
+            ]
+            
+            logger.info(f"Found {len(component_sources)} components affected by PR #{pr_number}")
+            
+        except Exception as e:
+            logger.error(f"Failed to get components for PR #{pr_number}: {e}")
+            component_sources = []
+        
+        # Process each component
+        pr_messages = []
+        errors = []
+        
+        for source in component_sources:
+            try:
+                logger.debug(f"Processing component {source.name} for PR #{pr_number}")
+                result = await self.manage_component(source=source, logger=logger)
+                
+                if result == 'created':
+                    pr_messages.append(f"Created AgnosticVComponent `{source.name}`")
+                    logger.info(f"Created component {source.name} for PR #{pr_number}")
+                elif result == 'updated':
+                    pr_messages.append(f"Updated AgnosticVComponent `{source.name}`")
+                    logger.info(f"Updated component {source.name} for PR #{pr_number}")
+                elif result == 'unchanged':
+                    pr_messages.append(f"Component `{source.name}` up to date (no change)")
+                    logger.info(f"Component {source.name} unchanged for PR #{pr_number}")
+                
+            except AgnosticVProcessingError as error:
+                errors.append(str(error))
+                logger.error(f"Error processing component {source.name} for PR #{pr_number}: {error}")
+        
+        # Post GitHub comment
+        if errors:
+            message = "❌ **Error applying pull request for integration:**\n\n" + "\n".join(
+                [f"• {error}" for error in errors]
+            )
+        elif pr_messages:
+            if all("up to date" in msg for msg in pr_messages):
+                message = f"✅ **No changes detected in revision {head_sha[:8]}**\n\nAll components remain up to date."
+            else:
+                message = (
+                    f"✅ **Successfully applied revision {head_sha[:8]}**\n\n" +
+                    "Components processed for integration testing:\n" +
+                    "\n".join([f"• {msg}" for msg in pr_messages])
+                )
+        else:
+            message = f"ℹ️ **No components found in revision {head_sha[:8]}**"
+        
+        if self.catalog_url:
+            message += f"\n\nThe updated catalog is available at {self.catalog_url}"
+        
+        # Post the comment
+        try:
+            github_token = await self.get_github_token()
+            if github_token:
+                import aiohttp
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        f"{self.github_api_base_url}/issues/{pr_number}/comments",
+                        headers={
+                            "Authorization": f"token {github_token}",
+                            "Accept": "application/vnd.github.v3+json",
+                            "Content-Type": "application/json",
+                        },
+                        json={"body": message},
+                    ) as response:
+                        if response.status == 201:
+                            logger.info(f"Posted comment to PR #{pr_number}")
+                        else:
+                            logger.warning(f"Failed to post comment to PR #{pr_number}: HTTP {response.status}")
+            else:
+                logger.debug(f"No GitHub token available, skipping comment for PR #{pr_number}")
+                
+        except Exception as e:
+            logger.warning(f"Failed to post comment to PR #{pr_number}: {e}")
+        
+        logger.info(f"Completed processing PR #{pr_number}")
 
 
 class ComponentSource:
