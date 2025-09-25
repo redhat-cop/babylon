@@ -73,6 +73,7 @@ class AgnosticVRepo(CachedKopfObject):
         self.cleanup_interval = 3600  # Run git cleanup every hour (in seconds)
         self.max_tracked_pr_commits = 1000  # Maximum number of PR commits to track
         self.max_fetched_branches = 500  # Maximum number of fetched branches to track
+        self.git_repo_lock = asyncio.Lock()  # Prevent concurrent git operations
         
         # GitHub API rate limiting
         self.github_api_rate_limited_until = None  # Timestamp when rate limit will reset
@@ -595,11 +596,13 @@ class AgnosticVRepo(CachedKopfObject):
             await agnosticv_component.delete()
 
     async def get_component_definition(self, source, logger):
-        if self.git_checkout_ref != source.ref:
-            await self.git_repo_checkout(logger=logger, ref=source.ref)
-        stdout, stderr = await self.agnosticv_exec(
-            '--merge', os.path.join(self.agnosticv_path, source.path), '--output=json',
-        )
+        # Ensure atomic git operations to prevent concurrency issues
+        async with self.git_repo_lock:
+            if self.git_checkout_ref != source.ref:
+                await self.git_repo_checkout(logger=logger, ref=source.ref)
+            stdout, stderr = await self.agnosticv_exec(
+                '--merge', os.path.join(self.agnosticv_path, source.path), '--output=json',
+            )
         definition = json.loads(stdout)
         if self.anarchy_collections:
             definition['__meta__'].setdefault('anarchy', {})['collections'] = self.anarchy_collections
@@ -1179,20 +1182,22 @@ class AgnosticVRepo(CachedKopfObject):
             pass
 
     async def git_repo_sync(self, logger):
-        if self.ssh_key_secret_name:
-            await self.git_ssh_key_write()
-        if await aiofiles.os.path.exists(self.git_repo_path):
-            # For existing repos, use GitHub API pre-check to avoid unnecessary git fetches
-            if await self.__has_remote_changes(logger):
-                await asyncio.get_event_loop().run_in_executor(
-                    None, self.__git_repo_pull, logger
-                )
+        # Protect repository synchronization with lock
+        async with self.git_repo_lock:
+            if self.ssh_key_secret_name:
+                await self.git_ssh_key_write()
+            if await aiofiles.os.path.exists(self.git_repo_path):
+                # For existing repos, use GitHub API pre-check to avoid unnecessary git fetches
+                if await self.__has_remote_changes(logger):
+                    await asyncio.get_event_loop().run_in_executor(
+                        None, self.__git_repo_pull, logger
+                    )
+                else:
+                    logger.info(f"No remote changes detected for {self.name}, skipping git fetch")
             else:
-                logger.info(f"No remote changes detected for {self.name}, skipping git fetch")
-        else:
-            await asyncio.get_event_loop().run_in_executor(
-                None, self.__git_repo_clone, logger
-            )
+                await asyncio.get_event_loop().run_in_executor(
+                    None, self.__git_repo_clone, logger
+                )
 
     async def git_ssh_key_write(self):
         await aiofiles.os.makedirs(self.git_base_path, exist_ok=True)
@@ -1814,7 +1819,7 @@ class AgnosticVRepo(CachedKopfObject):
                 message = f"✅ **No changes detected in revision {head_sha[:8]}**\n\nAll components remain up to date."
             else:
                 message = (
-                    f"✅ **Successfully applied revision {head_sha[:8]}**\n\n" +
+                    f"✅ **Successfully applied revision {head_sha}**\n\n" +
                     "Components processed for integration testing:\n" +
                     "\n".join([f"• {msg}" for msg in pr_messages])
                 )
