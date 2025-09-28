@@ -74,10 +74,9 @@ spec:
             httpGet:
               path: /health
               port: webhook
-            {{- else }}
+            {{- end }}
             tcpSocket:
               port: 8080
-            {{- end }}
             timeoutSeconds: 10
           ports:
           - name: metrics

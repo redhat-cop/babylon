@@ -12,11 +12,12 @@ from babylon import Babylon
 
 
 class WebhookServer:
-    def __init__(self, port=8080):
+    def __init__(self, port=8090):
         self.port = port
         self.app = web.Application()
         self.setup_routes()
         self.logger = logging.getLogger(__name__)
+        self.logger.info(f"WebhookServer initialized with port {port} (type: {type(port)})")
         # Cache for webhook secrets to avoid repeated Kubernetes API calls
         self.webhook_secret_cache = {}
         self.cache_ttl = 300  # 5 minutes TTL for cached secrets

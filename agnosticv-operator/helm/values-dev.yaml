@@ -16,7 +16,7 @@ image:
 # Enable webhook features
 webhook:
   enabled: true
-  port: 8090  # Avoid conflict with kopf health server on 8080
+  port: 8090
   service:
     type: ClusterIP
     port: 8090

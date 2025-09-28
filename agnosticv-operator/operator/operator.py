@@ -44,8 +44,12 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     configure_kopf_logging()
     
     # Start webhook server if enabled
-    webhook_port = int(os.environ.get('WEBHOOK_PORT', '8090'))
+    webhook_port_env = os.environ.get('WEBHOOK_PORT', '8090')
+    webhook_port = int(webhook_port_env)
     webhook_enabled = os.environ.get('WEBHOOK_ENABLED', 'true').lower() == 'true'
+    
+    logger.info(f"Webhook configuration: WEBHOOK_ENABLED={webhook_enabled}, WEBHOOK_PORT env='{webhook_port_env}', parsed port={webhook_port}")
+    logger.info(f"All env vars: {dict(os.environ)}")
     
     if webhook_enabled:
         try:

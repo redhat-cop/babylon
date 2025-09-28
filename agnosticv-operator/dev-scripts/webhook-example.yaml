@@ -30,4 +30,4 @@ data:
 ---
 # Environment variables for webhook server (add to deployment)
 # WEBHOOK_ENABLED=true         # Enable webhook server (default: true)
-# WEBHOOK_PORT=8080           # Webhook server port (default: 8080)
+# WEBHOOK_PORT=8090           # Webhook server port (default: 8090)
