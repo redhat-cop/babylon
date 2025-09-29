@@ -1,0 +1,35 @@
+{{- if and .Values.deploy .Values.webhook.enabled .Values.webhook.route.enabled -}}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "babylonAgnosticVOperator.shortName" . }}-webhook
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" . }}
+  labels:
+    {{- include "babylonAgnosticVOperator.labels" . | nindent 4 }}
+    component: webhook
+  {{- with .Values.webhook.route.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.webhook.route.host }}
+  host: {{ .Values.webhook.route.host }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ include "babylonAgnosticVOperator.shortName" . }}-webhook
+    weight: 100
+  port:
+    targetPort: webhook
+  {{- if .Values.webhook.route.tls.enabled }}
+  tls:
+    termination: {{ .Values.webhook.route.tls.termination | default "edge" }}
+    {{- if eq .Values.webhook.route.tls.termination "reencrypt" }}
+    destinationCACertificate: {{ .Values.webhook.route.tls.destinationCACertificate }}
+    {{- end }}
+    {{- if .Values.webhook.route.tls.insecureEdgeTerminationPolicy }}
+    insecureEdgeTerminationPolicy: {{ .Values.webhook.route.tls.insecureEdgeTerminationPolicy }}
+    {{- end }}
+  {{- end }}
+  wildcardPolicy: None
+{{- end -}}

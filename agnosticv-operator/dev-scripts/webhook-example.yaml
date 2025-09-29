@@ -1,0 +1,33 @@
+# Example AgnosticVRepo configuration with webhook support
+apiVersion: gpte.redhat.com/v1
+kind: AgnosticVRepo
+metadata:
+  name: rhpds-agnosticv-webhook
+  namespace: babylon-config
+spec:
+  url: https://github.com/rhpds/agnosticv.git
+  ref: main
+  # Increase polling interval when using webhooks (reduces API usage)
+  pollingInterval: "5m"  # 5 minutes instead of default
+  gitHub:
+    preloadPullRequests:
+      mode: override
+    tokenSecret: gpte-agnosticv-github
+    # Optional: webhook secret for signature verification
+    webhookSecret: github-webhook-secret
+---
+# Example webhook secret (optional but recommended for security)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-webhook-secret
+  namespace: babylon-config
+type: Opaque
+data:
+  # Base64 encoded webhook secret
+  # Generate with: echo -n "your-webhook-secret" | base64
+  secret: eW91ci13ZWJob29rLXNlY3JldA==
+---
+# Environment variables for webhook server (add to deployment)
+# WEBHOOK_ENABLED=true         # Enable webhook server (default: true)
+# WEBHOOK_PORT=8090           # Webhook server port (default: 8090)

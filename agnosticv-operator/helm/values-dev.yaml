@@ -1,0 +1,40 @@
+# Development values for webhook testing
+namespace:
+  create: false
+
+# Skip resources that already exist (use existing ones)
+serviceAccount:
+  create: false
+  name: agnosticv-operator  # Use existing service account
+
+# Use locally built image
+image:
+  repository: "image-registry.openshift-image-registry.svc:5000/babylon-config/babylon-agnosticv-operator"
+  tagOverride: "latest"
+  pullPolicy: Always
+
+# Enable webhook features
+webhook:
+  enabled: true
+  port: 8090
+  service:
+    type: ClusterIP
+    port: 8090
+  route:
+    enabled: true
+    tls:
+      enabled: true
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+
+# Increase polling intervals to test webhook efficiency
+pollingInterval: "5m"
+
+# Development resource limits
+resources:
+  limits:
+    cpu: "2"
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi

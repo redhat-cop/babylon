@@ -1,0 +1,19 @@
+{{- if and .Values.deploy .Values.webhook.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "babylonAgnosticVOperator.shortName" . }}-webhook
+  namespace: {{ include "babylonAgnosticVOperator.namespaceName" . }}
+  labels:
+    {{- include "babylonAgnosticVOperator.labels" . | nindent 4 }}
+    component: webhook
+spec:
+  type: {{ .Values.webhook.service.type }}
+  ports:
+    - port: {{ .Values.webhook.service.port }}
+      targetPort: webhook
+      protocol: TCP
+      name: webhook
+  selector:
+    {{- include "babylonAgnosticVOperator.selectorLabels" . | nindent 4 }}
+{{- end -}}

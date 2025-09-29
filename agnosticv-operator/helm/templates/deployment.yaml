@@ -51,6 +51,15 @@ spec:
               value: {{ .Values.resourceBroker.namespace }}
             - name: RESOURCE_BROKER_VERSION
               value: {{ .Values.resourceBroker.version }}
+            {{- if .Values.webhook.enabled }}
+            - name: WEBHOOK_ENABLED
+              value: "true"
+            - name: WEBHOOK_PORT
+              value: "{{ .Values.webhook.port }}"
+            {{- else }}
+            - name: WEBHOOK_ENABLED
+              value: "false"
+            {{- end }}
 
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
@@ -61,12 +70,21 @@ spec:
           livenessProbe:
             failureThreshold: 5
             initialDelaySeconds: 30
+            {{- if .Values.webhook.enabled }}
+            httpGet:
+              path: /health
+              port: webhook
+            {{- end }}
             tcpSocket:
               port: 8080
             timeoutSeconds: 10
           ports:
           - name: metrics
             containerPort: 8000
+          {{- if .Values.webhook.enabled }}
+          - name: webhook
+            containerPort: {{ .Values.webhook.port }}
+          {{- end }}
       restartPolicy: Always
       securityContext: {}
       serviceAccountName: {{ include "babylonAgnosticVOperator.serviceAccountName" . }}

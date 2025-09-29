@@ -52,6 +52,15 @@ spec:
           value: {{ .Values.resourceBroker.namespace }}
         - name: RESOURCE_BROKER_VERSION
           value: {{ .Values.resourceBroker.api.version }}
+        {{- if $agnosticv.webhook.enabled }}
+        - name: WEBHOOK_ENABLED
+          value: "true"
+        - name: WEBHOOK_PORT
+          value: "{{ $agnosticv.webhook.port }}"
+        {{- else }}
+        - name: WEBHOOK_ENABLED
+          value: "false"
+        {{- end }}
         image: {{ $agnosticv.operator.image.repository }}:{{ $agnosticv.operator.image.tag }}
         imagePullPolicy: {{ $agnosticv.operator.image.pullPolicy }}
         livenessProbe:
@@ -60,9 +69,23 @@ spec:
           tcpSocket:
             port: 8080
           timeoutSeconds: 10
+        {{- if $agnosticv.webhook.enabled }}
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          httpGet:
+            path: /health
+            port: webhook
+          timeoutSeconds: 5
+          periodSeconds: 10
+        {{- end }}
         ports:
         - name: metrics
           containerPort: 8000
+        {{- if $agnosticv.webhook.enabled }}
+        - name: webhook
+          containerPort: {{ $agnosticv.webhook.port }}
+        {{- end }}
         resources:
           {{- toYaml $agnosticv.operator.resources | nindent 10 }}
       {{- with $agnosticv.operator.imagePullSecrets }}
