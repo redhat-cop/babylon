@@ -1,0 +1,37 @@
+{{- $agnosticv := .Values.agnosticv }}
+{{- if and $agnosticv.webhook.enabled $agnosticv.webhook.route.enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: agnosticv-operator-webhook
+  namespace: {{ .Values.configNamespace.name }}
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: agnosticv-operator-webhook
+  {{- with $agnosticv.webhook.route.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if $agnosticv.webhook.route.host }}
+  host: {{ $agnosticv.webhook.route.host }}
+  {{- end }}
+  to:
+    kind: Service
+    name: agnosticv-operator-webhook
+    weight: 100
+  port:
+    targetPort: webhook
+  {{- if $agnosticv.webhook.route.tls.enabled }}
+  tls:
+    termination: {{ $agnosticv.webhook.route.tls.termination | default "edge" }}
+    {{- if eq $agnosticv.webhook.route.tls.termination "reencrypt" }}
+    destinationCACertificate: {{ $agnosticv.webhook.route.tls.destinationCACertificate }}
+    {{- end }}
+    {{- if $agnosticv.webhook.route.tls.insecureEdgeTerminationPolicy }}
+    insecureEdgeTerminationPolicy: {{ $agnosticv.webhook.route.tls.insecureEdgeTerminationPolicy }}
+    {{- end }}
+  {{- end }}
+  wildcardPolicy: None
+{{- end }}

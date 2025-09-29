@@ -34,6 +34,23 @@ agnosticv:
         memory: 256Mi
   pollingInterval: 1m
   repositories: {}
+  # Webhook configuration for GitHub push events
+  webhook:
+    enabled: true
+    port: 8090
+    # Service configuration for exposing webhook endpoint
+    service:
+      type: ClusterIP
+      port: 8090
+    # OpenShift Route configuration (enables external access for GitHub)
+    route:
+      enabled: true  # Set to false if using Ingress instead
+      # host: webhook.your-domain.com  # Optional: custom hostname
+      annotations: {}
+      tls:
+        enabled: true
+        termination: edge  # edge, passthrough, or reencrypt
+        insecureEdgeTerminationPolicy: Redirect
   resources:
     limits:
       cpu: "1"
