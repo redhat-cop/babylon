@@ -6,7 +6,7 @@ set -e
 : ${WEBHOOK_SECRET:?"Please set WEBHOOK_SECRET env var"}
 
 #echo "Building webhook-enabled operator..."
-#oc start-build babylon-agnosticv-operator --from-dir=.. --follow
+oc start-build babylon-agnosticv-operator --from-dir=../.. --follow
 
 echo "Creating/updating webhook secret..."
 ./create-webhook-secret.sh "$WEBHOOK_SECRET" "github-webhook-secret" "babylon-config"

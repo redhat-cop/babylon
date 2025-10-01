@@ -354,6 +354,11 @@ class WebhookServer:
         
         self.logger.info(f"PR webhook: repo={repo_full_name}, action={action}, PR#{pr_number}, head={head_ref}, base={base_ref}")
         
+        # Debug log for closed PRs to troubleshoot merge detection
+        if action == 'closed':
+            merged_field = pull_request.get('merged')
+            self.logger.debug(f"PR #{pr_number} closed payload debug: merged={merged_field}, merged_at={pull_request.get('merged_at')}, state={pr_state}")
+        
         # Only process specific actions
         if action not in ['opened', 'closed', 'reopened', 'synchronize']:
             self.logger.debug(f"Ignoring PR action: {action}")
@@ -385,7 +390,9 @@ class WebhookServer:
                     })
                 elif action == 'closed':
                     # PR closed - remove from tracking (all repos, regardless of preloadPullRequests)
-                    await self.trigger_pr_cleanup(agnosticv_repo, pr_number, head_ref)
+                    merged = pull_request.get('merged', False)
+                    self.logger.info(f"PR #{pr_number} closed: merged={merged}, state={pr_state}")
+                    await self.trigger_pr_cleanup(agnosticv_repo, pr_number, head_ref, merged)
                     results.append({
                         "repo": agnosticv_repo.name,
                         "pr": pr_number,
@@ -451,46 +458,346 @@ class WebhookServer:
             self.logger.error(f"Error processing PR {pr_number}: {e}")
             raise
     
-    async def trigger_pr_cleanup(self, agnosticv_repo, pr_number, head_ref):
-        """Trigger full PR cleanup when PR is closed - delete components and post comments"""
+    async def trigger_main_branch_sync(self, agnosticv_repo, pr_number, logger):
+        """Trigger a full main branch reprocessing after PR merge"""
+        try:
+            logger.info(f"Starting full main branch sync after PR #{pr_number} merge")
+            
+            # Trigger incremental sync to detect deletions properly
+            async with agnosticv_repo.lock:
+                await agnosticv_repo.manage_components(
+                    changed_only=True,
+                    skip_pr_processing=True,  # Skip PR processing, only main branch
+                    logger=logger
+                )
+                
+                # Clean up the merged PR from all component used-by-prs annotations
+                await self.cleanup_merged_pr_annotations(agnosticv_repo, pr_number, logger)
+            
+            logger.info(f"Completed full main branch sync after PR #{pr_number} merge")
+            
+        except Exception as e:
+            logger.error(f"Failed to sync main branch after PR #{pr_number} merge: {e}")
+            # Don't raise - this is a background operation that shouldn't fail the webhook
+    
+    async def cleanup_merged_pr_annotations(self, agnosticv_repo, pr_number, logger):
+        """Remove merged PR from used-by-prs annotations on affected components only"""
+        try:
+            from agnosticvcomponent import AgnosticVComponent
+            from babylon import Babylon
+            import aiohttp
+            
+            # Get the files modified by this PR via GitHub API
+            github_token = await agnosticv_repo.get_github_token()
+            if not github_token:
+                logger.warning(f"No GitHub token available, skipping efficient cleanup for PR #{pr_number}")
+                return
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{agnosticv_repo.github_api_base_url}/pulls/{pr_number}/files",
+                    headers={
+                        "Accept": "application/vnd.github+json",
+                        "Authorization": f"Bearer {github_token}",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as response:
+                    if response.status != 200:
+                        logger.warning(f"Failed to get PR #{pr_number} files (HTTP {response.status}), skipping efficient cleanup")
+                        return
+                    
+                    pr_files = await response.json()
+                    if not isinstance(pr_files, list):
+                        logger.warning(f"Unexpected PR files response format for PR #{pr_number}")
+                        return
+                    
+                    # Extract file paths from PR
+                    modified_files = [file_info.get('filename') for file_info in pr_files if file_info.get('filename')]
+                    
+                    if not modified_files:
+                        logger.debug(f"No modified files found in PR #{pr_number}")
+                        return
+                    
+                    logger.debug(f"PR #{pr_number} modified {len(modified_files)} files: {modified_files[:5]}...")
+                    
+                    # Get components affected by these files
+                    try:
+                        component_paths, error_msg = await agnosticv_repo.agnosticv_get_component_paths_from_related_files(
+                            modified_files, logger=logger
+                        )
+                        if error_msg:
+                            logger.warning(f"Error getting component paths for PR #{pr_number}: {error_msg}")
+                            component_paths = []
+                    except Exception as e:
+                        logger.warning(f"Failed to get component paths for PR #{pr_number}: {e}")
+                        component_paths = []
+                    
+                    if not component_paths:
+                        logger.debug(f"No components affected by PR #{pr_number}")
+                        return
+                    
+                    # Convert paths to component names and clean up annotations
+                    cleaned_components = []
+                    for component_path in component_paths:
+                        try:
+                            from agnosticvrepo import path_to_name
+                            component_name = path_to_name(component_path)
+                            
+                            # Fetch the specific component
+                            agnosticv_component = await AgnosticVComponent.fetch(
+                                name=component_name, 
+                                namespace=agnosticv_repo.namespace
+                            )
+                            
+                            # Check if this component has the used-by-prs annotation with our PR
+                            pr_list_annotation = f"{Babylon.agnosticv_api_group}/used-by-prs"
+                            pr_list_str = agnosticv_component.metadata.get('annotations', {}).get(pr_list_annotation)
+                            
+                            # Check if this component is affected by this PR (either annotation or spec-based)
+                            component_pr_affected = False
+                            
+                            # Check annotation-based tracking
+                            if pr_list_str and str(pr_number) in pr_list_str.split(','):
+                                component_pr_affected = True
+                            
+                            # Check legacy spec-based tracking
+                            if (hasattr(agnosticv_component, 'pull_request_number') and 
+                                agnosticv_component.pull_request_number == pr_number):
+                                component_pr_affected = True
+                            
+                            if component_pr_affected:
+                                # Remove this PR from the component's used-by-prs annotation
+                                updated_annotation = await agnosticv_repo._update_component_pr_list(
+                                    agnosticv_component, pr_number, logger, add=False
+                                )
+                                
+                                # Also remove legacy spec-based PR fields if they match this PR
+                                patch = []
+                                if (hasattr(agnosticv_component, 'pull_request_number') and 
+                                    agnosticv_component.pull_request_number == pr_number):
+                                    patch.append({"op": "remove", "path": "/spec/pullRequestNumber"})
+                                
+                                if (hasattr(agnosticv_component, 'pull_request_commit_hash') and 
+                                    agnosticv_component.pull_request_commit_hash):
+                                    patch.append({"op": "remove", "path": "/spec/pullRequestCommitHash"})
+                                
+                                if patch:
+                                    await agnosticv_component.json_patch(patch)
+                                    logger.info(f"Removed legacy PR spec fields from component {agnosticv_component.name}")
+                                
+                                if updated_annotation or patch:
+                                    cleaned_components.append(agnosticv_component.name)
+                                    logger.info(f"Removed merged PR #{pr_number} metadata from component {agnosticv_component.name}")
+                        except Exception as e:
+                            logger.warning(f"Failed to clean component {component_path} for PR #{pr_number}: {e}")
+                    
+                    if cleaned_components:
+                        logger.info(f"Efficiently cleaned up merged PR #{pr_number} from {len(cleaned_components)} components: {cleaned_components}")
+                    else:
+                        logger.debug(f"No affected components found with PR #{pr_number} in used-by-prs annotations")
+                
+        except Exception as e:
+            logger.error(f"Failed to cleanup merged PR #{pr_number} annotations: {e}")
+    
+    async def trigger_pr_cleanup(self, agnosticv_repo, pr_number, head_ref, merged=False):
+        """Trigger PR cleanup when PR is closed - for merged PRs, keep components; for closed PRs, delete them"""
         try:
             logger = logging.getLogger(f'webhook.{agnosticv_repo.name}.pr{pr_number}')
-            logger.info(f"PR closed: #{pr_number} ({head_ref})")
+            if merged:
+                logger.info(f"PR merged: #{pr_number} ({head_ref}) - triggering full main branch reprocessing")
+                # For merged PRs, trigger a full reprocessing of the main branch
+                # This will apply any deletions and ensure components are up to date
+                await self.trigger_main_branch_sync(agnosticv_repo, pr_number, logger)
+                return
+            else:
+                logger.info(f"PR closed without merge: #{pr_number} ({head_ref}) - deleting components")
             
-            # Find and delete all AgnosticVComponents for this PR
+            # Only delete components for PRs that were closed without merge
             async with agnosticv_repo.lock:
-                # Get all components that belong to this PR
-                async for agnosticv_component in AgnosticVComponent.list(namespace=agnosticv_repo.namespace):
-                    if (hasattr(agnosticv_component, 'pull_request_number') and 
-                        agnosticv_component.pull_request_number == pr_number):
+                # Also use PR-specific lock to coordinate with polling cleanup
+                async with agnosticv_repo.get_pr_lock(pr_number):
+                    # Clean up PR-specific components and collect names for a single comment
+                    deleted_components = []
+                    modified_components = []
+                    
+                    # Import Babylon for label reference
+                    from babylon import Babylon
+                    
+                    # First, get components that exist in main branch to distinguish created vs modified
+                    main_branch_component_names = set()
+                    try:
+                        # Ensure git repo is up to date before checking main branch
+                        await agnosticv_repo.git_repo_sync(logger=logger)
                         
-                        logger.info(f"Deleting component {agnosticv_component.name} from closed PR #{pr_number}")
+                        # Use git repo lock to prevent conflicts with other git operations
+                        async with agnosticv_repo.git_repo_lock:
+                            # Checkout main branch to see what components exist there
+                            original_ref = agnosticv_repo.git_checkout_ref
+                            if original_ref != agnosticv_repo.git_ref:
+                                logger.debug(f"Checking out main branch {agnosticv_repo.git_ref} to get component list")
+                                agnosticv_repo._AgnosticVRepo__git_repo_checkout(logger=logger, ref=agnosticv_repo.git_ref)
                         
-                        # Post deletion comment to GitHub before deleting
-                        try:
-                            github_token = await agnosticv_repo.get_github_token()
-                            if github_token:
-                                import aiohttp
-                                async with aiohttp.ClientSession() as session:
-                                    deletion_message = f"🗑️ **Component `{agnosticv_component.name}` deleted** because PR was closed without merge."
-                                    async with session.post(
-                                        f"{agnosticv_repo.github_api_base_url}/issues/{pr_number}/comments",
-                                        headers={
-                                            "Authorization": f"token {github_token}",
-                                            "Accept": "application/vnd.github.v3+json",
-                                            "Content-Type": "application/json",
-                                        },
-                                        json={"body": deletion_message},
-                                    ) as response:
-                                        if response.status == 201:
-                                            logger.info(f"Posted deletion comment for component {agnosticv_component.name} to PR #{pr_number}")
+                            main_component_paths, error_msg = await agnosticv_repo._agnosticv_get_all_component_paths_no_lock()
+                            if error_msg:
+                                logger.warning(f"Error getting main branch components: {error_msg}")
+                                main_component_paths = []
+                            
+                            # Convert paths to component names
+                            from agnosticvrepo import path_to_name
+                            main_branch_component_names = {path_to_name(path) for path in main_component_paths}
+                            logger.debug(f"Main branch has {len(main_branch_component_names)} components")
+                            
+                            # Restore original checkout
+                            if original_ref and original_ref != agnosticv_repo.git_ref:
+                                logger.debug(f"Restoring checkout to {original_ref}")
+                                agnosticv_repo._AgnosticVRepo__git_repo_checkout(logger=logger, ref=original_ref)
+                            
+                    except Exception as e:
+                        logger.warning(f"Failed to get main branch components for PR cleanup: {e}")
+                        main_branch_component_names = set()
+                    
+                    async for agnosticv_component in AgnosticVComponent.list(
+                        namespace=agnosticv_repo.namespace,
+                        label_selector=f"{Babylon.agnosticv_repo_label}={agnosticv_repo.name}"
+                    ):
+                        # Check both annotation-based and spec-based PR tracking for compatibility
+                        component_pr_numbers = set()
+                        
+                        # Check annotation-based PR tracking (new approach)
+                        pr_annotation = agnosticv_component.annotations.get('gpte.redhat.com/used-by-prs')
+                        if pr_annotation:
+                            try:
+                                component_pr_numbers.update(int(pr) for pr in pr_annotation.split(','))
+                            except (ValueError, AttributeError):
+                                pass
+                        
+                        # Check spec-based PR tracking (legacy approach)
+                        if hasattr(agnosticv_component, 'pull_request_number') and agnosticv_component.pull_request_number:
+                            try:
+                                component_pr_numbers.add(int(agnosticv_component.pull_request_number))
+                            except (ValueError, TypeError):
+                                pass
+                        
+                        if pr_number in component_pr_numbers:
+                            
+                            # Check if this component exists in main branch
+                            if agnosticv_component.name in main_branch_component_names:
+                                # Component exists in main branch - it was MODIFIED by PR, not created
+                                logger.info(f"Removing PR metadata from modified component {agnosticv_component.name} (PR #{pr_number})")
+                                modified_components.append(agnosticv_component.name)
+                            
+                                # Remove PR metadata but keep the component
+                                patch = []
+                                
+                                # Handle annotation-based PR tracking
+                                pr_annotation = agnosticv_component.annotations.get('gpte.redhat.com/used-by-prs')
+                                if pr_annotation:
+                                    try:
+                                        current_prs = set(int(pr) for pr in pr_annotation.split(','))
+                                        current_prs.discard(pr_number)  # Remove the closed PR
+                                        
+                                        if current_prs:
+                                            # Still has other PRs, update the annotation
+                                            new_annotation = ','.join(str(pr) for pr in sorted(current_prs))
+                                            patch.append({
+                                                "op": "replace", 
+                                                "path": "/metadata/annotations/gpte.redhat.com~1used-by-prs",
+                                                "value": new_annotation
+                                            })
                                         else:
-                                            logger.warning(f"Failed to post deletion comment to PR #{pr_number}: HTTP {response.status}")
+                                            # No more PRs, remove the annotation entirely
+                                            patch.append({
+                                                "op": "remove", 
+                                                "path": "/metadata/annotations/gpte.redhat.com~1used-by-prs"
+                                            })
+                                    except (ValueError, AttributeError):
+                                        logger.warning(f"Invalid PR annotation format for {agnosticv_component.name}: {pr_annotation}")
+                                
+                                # Handle legacy spec-based PR tracking
+                                if hasattr(agnosticv_component, 'pull_request_number') and agnosticv_component.pull_request_number:
+                                    patch.append({"op": "remove", "path": "/spec/pullRequestNumber"})
+                                if hasattr(agnosticv_component, 'pull_request_commit_hash') and agnosticv_component.pull_request_commit_hash:
+                                    patch.append({"op": "remove", "path": "/spec/pullRequestCommitHash"})
+                                
+                                if patch:
+                                    try:
+                                        await agnosticv_component.json_patch(patch)
+                                        logger.info(f"Removed PR metadata from component {agnosticv_component.name}")
+                                    except Exception as e:
+                                        logger.error(f"Failed to remove PR metadata from {agnosticv_component.name}: {e}")
+                            else:
+                                # Component does NOT exist in main branch - it was CREATED by PR
+                                logger.info(f"Deleting component {agnosticv_component.name} created by closed PR #{pr_number}")
+                                deleted_components.append(agnosticv_component.name)
+                                
+                                # Delete the component
+                                try:
+                                    await agnosticv_component.delete()
+                                except Exception as e:
+                                    # Import here to avoid circular imports
+                                    import kubernetes_asyncio
+                                    if isinstance(e, kubernetes_asyncio.client.rest.ApiException) and e.status == 404:
+                                        # Component already deleted (e.g., by regular cleanup or another process)
+                                        logger.info(f"Component {agnosticv_component.name} already deleted (404), skipping")
+                                    else:
+                                        logger.error(f"Failed to delete component {agnosticv_component.name}: {e}")
+                                        # Don't raise here as we want to continue processing other components
+                                        # and still post the summary comment
+                
+                # Post a comment only for deleted components (modified components don't need user notification)
+                if deleted_components:
+                    try:
+                        github_token = await agnosticv_repo.get_github_token()
+                        if github_token:
+                            import aiohttp
+                            async with aiohttp.ClientSession() as session:
+                                if len(deleted_components) == 1:
+                                    deletion_message = f"Component `{deleted_components[0]}` deleted because PR was closed without merge."
+                                else:
+                                    component_list = "\n".join([f"• `{name}`" for name in deleted_components])
+                                    deletion_message = f"{len(deleted_components)} components deleted because PR was closed without merge:\n\n{component_list}"
+                                
+                                async with session.post(
+                                    f"{agnosticv_repo.github_api_base_url}/issues/{pr_number}/comments",
+                                    headers={
+                                        "Authorization": f"token {github_token}",
+                                        "Accept": "application/vnd.github.v3+json",
+                                        "Content-Type": "application/json",
+                                    },
+                                    json={"body": deletion_message},
+                                ) as response:
+                                    if response.status == 201:
+                                        logger.info(f"Posted deletion comment for {len(deleted_components)} components to PR #{pr_number}")
+                                    else:
+                                        logger.warning(f"Failed to post comment to PR #{pr_number}: HTTP {response.status}")
+                    except Exception as e:
+                        logger.warning(f"Failed to post deletion comment to PR #{pr_number}: {e}")
+                
+                # Log modified components cleanup (no user comment needed)
+                if modified_components:
+                    logger.info(f"Cleaned up PR metadata for {len(modified_components)} modified components: {modified_components}")
+                
+                # Clean up used-by-prs annotations from components when PR is closed
+                from babylon import Babylon
+                async for agnosticv_component in AgnosticVComponent.list(
+                    namespace=agnosticv_repo.namespace,
+                    label_selector=f"{Babylon.agnosticv_repo_label}={agnosticv_repo.name}"
+                ):
+                    # Remove this PR from used-by-prs annotations (webhook cleanup should be complete)
+                    pr_list_annotation = f"{Babylon.agnosticv_api_group}/used-by-prs"
+                    pr_list_str = agnosticv_component.metadata.get('annotations', {}).get(pr_list_annotation)
+                    
+                    if pr_list_str and str(pr_number) in pr_list_str.split(','):
+                        try:
+                            # Remove this PR from the component's used-by-prs annotation
+                            updated = await agnosticv_repo._update_component_pr_list(
+                                agnosticv_component, pr_number, logger, add=False
+                            )
+                            if updated:
+                                logger.info(f"Removed closed PR #{pr_number} from component {agnosticv_component.name} used-by-prs (webhook cleanup)")
                         except Exception as e:
-                            logger.warning(f"Failed to post deletion comment to PR #{pr_number}: {e}")
-                        
-                        # Delete the component
-                        await agnosticv_component.delete()
+                            logger.warning(f"Failed to remove PR #{pr_number} from {agnosticv_component.name} used-by-prs: {e}")
                 
                 # Remove from tracking
                 pr_key = f"pr-{pr_number}"

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import traceback
@@ -71,9 +72,13 @@ class AgnosticVRepo(CachedKopfObject):
         self.last_pr_commits = {}  # Track last known commit for each PR branch
         self.last_cleanup_time = None  # Timestamp of last repository cleanup
         self.cleanup_interval = 3600  # Run git cleanup every hour (in seconds)
+        self.last_curative_cleanup_time = None  # Timestamp of last curative cleanup
         self.max_tracked_pr_commits = 1000  # Maximum number of PR commits to track
         self.max_fetched_branches = 500  # Maximum number of fetched branches to track
         self.git_repo_lock = asyncio.Lock()  # Prevent concurrent git operations
+        
+        # PR-level locks to prevent race conditions between webhook and polling
+        self.pr_locks = {}  # Dictionary of PR number -> asyncio.Lock()
         
         # GitHub API rate limiting
         self.github_api_rate_limited_until = None  # Timestamp when rate limit will reset
@@ -225,6 +230,26 @@ class AgnosticVRepo(CachedKopfObject):
             self.github_api_backoff_delay = max(60, self.github_api_backoff_delay // 2)
             self.github_api_success_count = 0
     
+    def get_pr_lock(self, pr_number):
+        """Get or create a lock for a specific PR number"""
+        if pr_number not in self.pr_locks:
+            self.pr_locks[pr_number] = asyncio.Lock()
+        return self.pr_locks[pr_number]
+    
+    def cleanup_old_pr_locks(self, active_pr_numbers=None):
+        """Clean up locks for PRs that are no longer active"""
+        if active_pr_numbers is None:
+            active_pr_numbers = set()
+        
+        # Remove locks for PRs that are no longer being tracked
+        stale_pr_numbers = set(self.pr_locks.keys()) - active_pr_numbers
+        for pr_number in stale_pr_numbers:
+            del self.pr_locks[pr_number]
+        
+        if stale_pr_numbers:
+            # Note: We can't easily add logging here since this method doesn't have a logger parameter
+            pass
+    
     def has_local_ref_changed(self, ref):
         """Check if local ref differs from remote ref"""
         try:
@@ -288,9 +313,13 @@ class AgnosticVRepo(CachedKopfObject):
             if remote_ref in self.git_repo.references:
                 target_oid = self.git_repo.references[remote_ref].target
                 commit = self.git_repo[target_oid]
+                
+                # Use more aggressive cleanup strategy to ensure working directory is clean
                 self.git_repo.checkout_tree(
                     commit.tree,
-                    strategy=pygit2.GIT_CHECKOUT_FORCE | pygit2.GIT_CHECKOUT_REMOVE_UNTRACKED
+                    strategy=(pygit2.GIT_CHECKOUT_FORCE | 
+                             pygit2.GIT_CHECKOUT_REMOVE_UNTRACKED |
+                             pygit2.GIT_CHECKOUT_REMOVE_IGNORED)
                 )
                 # Set HEAD to point to this commit (detached HEAD)
                 self.git_repo.set_head(target_oid)
@@ -302,7 +331,9 @@ class AgnosticVRepo(CachedKopfObject):
                     commit = self.git_repo[target_oid]
                     self.git_repo.checkout_tree(
                         commit.tree,
-                        strategy=pygit2.GIT_CHECKOUT_FORCE | pygit2.GIT_CHECKOUT_REMOVE_UNTRACKED
+                        strategy=(pygit2.GIT_CHECKOUT_FORCE | 
+                                 pygit2.GIT_CHECKOUT_REMOVE_UNTRACKED |
+                                 pygit2.GIT_CHECKOUT_REMOVE_IGNORED)
                     )
                     self.git_repo.set_head(target_oid)
                     self.git_hexsha = str(target_oid)
@@ -365,7 +396,7 @@ class AgnosticVRepo(CachedKopfObject):
         
         # Check if we're in rate limiting backoff period
         if self.is_github_api_rate_limited():
-            logger.debug(f"GitHub API rate limited for {self.name}, falling back to git fetch")
+            logger.warning(f"GitHub API rate limited for {self.name}, falling back to git fetch")
             return True  # Fall back to git fetch during rate limit
         
         try:
@@ -520,7 +551,7 @@ class AgnosticVRepo(CachedKopfObject):
                         # Use new_file.path for added/modified, old_file.path for renamed
                         path = delta.new_file.path if delta.new_file.path else delta.old_file.path
                         self.git_changed_files.append(path)
-            except (pygit2.GitError, ValueError) as e:
+            except (pygit2.GitError, ValueError, KeyError) as e:
                 logger.warning(f"Unable to compute diff: {e}")
                 
         except pygit2.GitError as e:
@@ -572,10 +603,46 @@ class AgnosticVRepo(CachedKopfObject):
         return stdout.decode('utf-8'), stderr.decode('utf-8')
 
     async def agnosticv_get_all_component_paths(self):
-        stdout, stderr = await self.agnosticv_exec(
-            '--list', '--has=__meta__', '--dir', self.agnosticv_path
-        )
-        return stdout.split(), stderr
+        # Use internal no-lock version with git_repo_lock to ensure atomic operation
+        async with self.git_repo_lock:
+            return await self._agnosticv_get_all_component_paths_no_lock()
+    
+    async def _agnosticv_get_all_component_paths_no_lock(self):
+        # Internal method - caller must hold git_repo_lock
+        # Ensure we're on the main branch when listing all components
+        logger = logging.getLogger(__name__)
+        if self.git_checkout_ref != self.git_ref:
+            logger.debug(f"Switching from {self.git_checkout_ref} to {self.git_ref} for component listing")
+            self.__git_repo_checkout(logger=logger, ref=self.git_ref)
+        else:
+            logger.debug(f"Already on {self.git_ref} for component listing")
+        
+        # Double-check we're on the right branch and clean working directory
+        logger.debug(f"About to list components on branch {self.git_checkout_ref}, working dir: {self.agnosticv_path}")
+        
+        # Check if agnosticv_path exists before trying to list components
+        if not os.path.exists(self.agnosticv_path):
+            logger.error(f"AgnosticV path does not exist: {self.agnosticv_path}")
+            return [], f"AgnosticV path does not exist: {self.agnosticv_path}"
+        
+        try:
+            stdout, stderr = await self.agnosticv_exec(
+                '--list', '--has=__meta__', '--dir', self.agnosticv_path
+            )
+            if stderr:
+                # Filter out common but harmless warnings for test components
+                error_lines = [line for line in stderr.split('\n') if line.strip() and 
+                              'no such file or directory' in line.lower() and 
+                              not any(test_dir in line for test_dir in [
+                                  'test-', 'isolation-', 'pr-', 'component-deletion', 
+                                  'deletion-isolation', 'close-without-merge'
+                              ])]
+                if error_lines:
+                    logger.warning(f"agnosticv stderr when listing all components: {stderr}")
+            return stdout.split(), stderr
+        except Exception as e:
+            logger.error(f"Failed to list components: {e}")
+            return [], str(e)
 
     async def agnosticv_get_component_paths_from_related_files(self, files, logger):
         if not files:
@@ -587,22 +654,66 @@ class AgnosticVRepo(CachedKopfObject):
         stdout, stderr = await self.agnosticv_exec(*args)
         return stdout.split(), stderr
 
+    async def agnosticv_get_component_paths_from_related_files_on_ref(self, files, ref, logger):
+        """Get component paths from related files, ensuring we're on the specified ref"""
+        if not files:
+            return [], ''
+        
+        async with self.git_repo_lock:
+            # Store current state
+            original_ref = self.git_checkout_ref
+            
+            try:
+                # Ensure we're on the correct ref
+                if self.git_checkout_ref != ref:
+                    logger.debug(f"Checking out {ref} for component path lookup")
+                    self.__git_repo_checkout(logger=logger, ref=ref)
+                
+                # Get component paths
+                return await self.agnosticv_get_component_paths_from_related_files(files, logger)
+                
+            finally:
+                # Restore original ref if we changed it
+                if original_ref and original_ref != ref:
+                    logger.debug(f"Restoring checkout to {original_ref}")
+                    self.__git_repo_checkout(logger=logger, ref=original_ref)
+
+
     async def delete_components(self, logger):
         async for agnosticv_component in AgnosticVComponent.list(
             label_selector = f"{Babylon.agnosticv_repo_label}={self.name}",
             namespace = self.namespace,
         ):
             logger.info(f"Propagating delete of {self} to {agnosticv_component}")
-            await agnosticv_component.delete()
+            try:
+                await agnosticv_component.delete()
+            except kubernetes_asyncio.client.rest.ApiException as e:
+                if e.status == 404:
+                    # Component already deleted
+                    logger.info(f"Component {agnosticv_component.name} already deleted (404), skipping")
+                else:
+                    logger.error(f"Failed to delete component {agnosticv_component.name}: {e}")
+                    raise
 
     async def get_component_definition(self, source, logger):
         # Ensure atomic git operations to prevent concurrency issues
         async with self.git_repo_lock:
-            if self.git_checkout_ref != source.ref:
-                await self.git_repo_checkout(logger=logger, ref=source.ref)
-            stdout, stderr = await self.agnosticv_exec(
-                '--merge', os.path.join(self.agnosticv_path, source.path), '--output=json',
-            )
+            return await self._get_component_definition_no_lock(source, logger)
+    
+    async def _get_component_definition_no_lock(self, source, logger):
+        # Internal method - caller must hold git_repo_lock
+        if self.git_checkout_ref != source.ref:
+            await self.git_repo_checkout(logger=logger, ref=source.ref)
+        
+        # Check if file exists before trying to process it
+        component_file_path = os.path.join(self.agnosticv_path, source.path)
+        if not os.path.exists(component_file_path):
+            logger.warning(f"Component file does not exist: {component_file_path} on ref {source.ref}")
+            raise AgnosticVProcessingError(f"Component file {source.path} does not exist on ref {source.ref}")
+        
+        stdout, stderr = await self.agnosticv_exec(
+            '--merge', component_file_path, '--output=json',
+        )
         definition = json.loads(stdout)
         if self.anarchy_collections:
             definition['__meta__'].setdefault('anarchy', {})['collections'] = self.anarchy_collections
@@ -648,6 +759,8 @@ class AgnosticVRepo(CachedKopfObject):
                 }
             else:
                 component_paths, error_msg = await self.agnosticv_get_all_component_paths()
+                # In full sync mode, we still need to detect deletions by comparing
+                # what exists in Kubernetes vs what exists in the git repo
                 deleted_component_paths = set()
         except AgnosticVProcessingError as error:
             raise kopf.TemporaryError(f"{error}", delay=60)
@@ -673,7 +786,7 @@ class AgnosticVRepo(CachedKopfObject):
         elif self.github_preload_pull_requests:
             # Check if we're in rate limiting backoff period
             if self.is_github_api_rate_limited():
-                logger.info(f"GitHub API rate limited for {self.name}, skipping PR processing for this cycle")
+                logger.warning(f"GitHub API rate limited for {self.name}, skipping PR processing for this cycle")
                 return list(component_sources_by_path.values()), deleted_component_names, error_messages
             
             try:
@@ -852,6 +965,11 @@ class AgnosticVRepo(CachedKopfObject):
                                     hexsha = self.git_hexsha
                                 )
 
+            # After processing all PRs, ensure we're back on the main branch
+            if self.git_checkout_ref != self.git_ref:
+                logger.debug(f"Restoring main branch {self.git_ref} after PR processing")
+                await self.git_repo_checkout(logger=logger, ref=self.git_ref)
+
         component_sources = list(component_sources_by_path.values())
         component_sources.sort(key=lambda cs: cs.sortkey)
         
@@ -874,21 +992,23 @@ class AgnosticVRepo(CachedKopfObject):
             )
         return b64decode(secret_data).decode('utf-8')
 
-    async def is_pr_closed_without_merge(self, pull_request_number, logger):
-        """Check if a PR is closed without being merged using GitHub API"""
+    async def get_pr_state(self, pull_request_number, logger):
+        """Get PR state using GitHub API - returns 'open', 'closed_merged', 'closed_unmerged', or 'unknown'"""
         if not self.github_token_secret_name or not pull_request_number:
-            return False
+            return 'unknown'
         
         # Check if we're in rate limiting backoff period
         if self.is_github_api_rate_limited():
-            logger.debug(f"GitHub API rate limited, skipping PR {pull_request_number} status check")
-            return False  # Don't delete components during rate limiting
+            logger.warning(f"GitHub API rate limited, skipping PR {pull_request_number} status check")
+            return 'unknown'  # Don't make decisions during rate limiting
         
         try:
             github_token = await self.get_github_token()
+            api_url = f"{self.github_api_base_url}/pulls/{pull_request_number}"
+            
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{self.github_api_base_url}/pulls/{pull_request_number}",
+                    api_url,
                     headers = {
                         "Accept": "application/vnd.github+json",
                         "Authorization": "Bearer " + github_token,
@@ -904,32 +1024,33 @@ class AgnosticVRepo(CachedKopfObject):
                         state = pr_data.get('state')
                         merged = pr_data.get('merged', False)
                         
-                        # PR is "closed without merge" if state is closed and not merged
-                        is_closed_without_merge = (state == 'closed' and not merged)
-                        
-                        if is_closed_without_merge:
-                            logger.debug(f"PR #{pull_request_number} is closed without merge")
+                        if state == 'open':
+                            return 'open'
                         elif state == 'closed' and merged:
-                            logger.debug(f"PR #{pull_request_number} is merged (keeping component)")
-                        elif state == 'open':
-                            logger.debug(f"PR #{pull_request_number} is still open")
-                        
-                        return is_closed_without_merge
+                            return 'closed_merged'
+                        elif state == 'closed' and not merged:
+                            return 'closed_unmerged'
+                        else:
+                            logger.warning(f"PR #{pull_request_number} has unexpected state combination: state={state}, merged={merged}")
+                            return 'unknown'
                     elif response.status == 403:
                         # Rate limited
                         self.handle_github_api_rate_limit(logger)
-                        logger.debug(f"GitHub API rate limited while checking PR #{pull_request_number}")
-                        return False  # Don't delete components during rate limiting
+                        return 'unknown'
                     elif response.status == 404:
                         # PR doesn't exist, consider it closed without merge for cleanup
-                        logger.debug(f"PR #{pull_request_number} not found, considering it closed without merge")
-                        return True
+                        return 'closed_unmerged'
                     else:
-                        logger.warning(f"Failed to check PR #{pull_request_number} status: {response.status}")
-                        return False
+                        logger.warning(f"Failed to check PR #{pull_request_number} status: HTTP {response.status}")
+                        return 'unknown'
         except Exception as e:
-            logger.warning(f"Failed to check if PR #{pull_request_number} is closed without merge: {e}")
-            return False
+            logger.warning(f"Exception while checking PR #{pull_request_number} state: {e}")
+            return 'unknown'
+
+    async def is_pr_closed_without_merge(self, pull_request_number, logger):
+        """Check if a PR is closed without being merged using GitHub API"""
+        state = await self.get_pr_state(pull_request_number, logger)
+        return state == 'closed_unmerged'
 
     async def post_pr_success_comment(self, pull_request_number, commit_sha, action_message, logger):
         """Post an immediate success comment to a PR when a component is updated"""
@@ -939,7 +1060,7 @@ class AgnosticVRepo(CachedKopfObject):
         try:
             github_token = await self.get_github_token()
             message = (
-                f"✅ **{action_message}**\n\n"
+                f"{action_message}\n\n"
                 f"Successfully applied revision `{commit_sha}` for integration testing.\n\n"
                 f"The updated catalog is available at {self.catalog_url if self.catalog_url else 'the integration environment'}."
             )
@@ -1058,7 +1179,18 @@ class AgnosticVRepo(CachedKopfObject):
                     patch = []
             
             if patch:
-                await agnosticv_component.json_patch(patch)
+                try:
+                    await agnosticv_component.json_patch(patch)
+                except kubernetes_asyncio.client.rest.ApiException as e:
+                    if e.status == 404:
+                        logger.info(f"Component {agnosticv_component.name} not found")
+                    elif e.status == 422:
+                        logger.warning(f"Component {agnosticv_component.name} Unprocessable Entity: {e}")
+                    else:
+                        logger.warning(f"Failed to patch {agnosticv_component.name}: {e}")
+                except Exception as e:
+                    logger.warning(f"Failed patch {agnosticv_component.name}: {e}")
+
                 logger.debug(f"Updated PR list for {agnosticv_component.name}: {new_prs_str}")
         
         return updated
@@ -1083,56 +1215,222 @@ class AgnosticVRepo(CachedKopfObject):
             # Only process components that have the PR tracking annotation
             if pr_list_str:
                 pr_numbers = pr_list_str.split(',')
-                active_prs = []  # Open PRs or merged PRs (keep component)
+                still_open_prs = []  # Open PRs (keep in annotation)
                 closed_without_merge_prs = []  # Closed without merge PRs (remove component)
+                merged_prs = []  # Merged PRs (remove from annotation but keep component)
                 
                 for pr_str in pr_numbers:
                     try:
                         pr_number = int(pr_str.strip())
-                        is_closed_without_merge = await self.is_pr_closed_without_merge(pr_number, logger)
+                        pr_state = await self.get_pr_state(pr_number, logger)
                         
-                        if is_closed_without_merge:
+                        if pr_state == 'open':
+                            still_open_prs.append(pr_str.strip())
+                        elif pr_state == 'closed_merged':
+                            merged_prs.append(pr_number)
+                        elif pr_state == 'closed_unmerged':
                             closed_without_merge_prs.append(pr_number)
-                        else:
-                            # PR is either open or merged (both keep the component)
-                            active_prs.append(pr_str.strip())
+                        else:  # 'unknown' state
+                            # Keep unknown PRs in the list to avoid data loss during API issues
+                            still_open_prs.append(pr_str.strip())
                             
                     except (ValueError, TypeError) as e:
                         logger.warning(f"Invalid PR number in list for component {agnosticv_component.name}: {pr_str}")
                         # Keep invalid PR numbers in the list to avoid data loss
-                        active_prs.append(pr_str.strip())
+                        still_open_prs.append(pr_str.strip())
+                
+                # Clean up merged PRs from annotation (but keep component)
+                if merged_prs:
+                    for pr_number in merged_prs:
+                        async with self.get_pr_lock(pr_number):
+                            await self._update_component_pr_list(agnosticv_component, pr_number, logger, add=False)
+                    logger.info(f"Removed {len(merged_prs)} merged PRs from component {agnosticv_component.name}: {merged_prs}")
                 
                 # If there are PRs closed without merge, update the annotation or delete the component
                 if closed_without_merge_prs:
-                    if active_prs:
-                        # Some PRs are still active (open or merged), just remove the closed ones from the list
-                        new_pr_list = ','.join(sorted(active_prs))
-                        escaped_annotation = pr_list_annotation.replace('/', '~1')
-                        patch = [{
-                            "op": "add",
-                            "path": f"/metadata/annotations/{escaped_annotation}",
-                            "value": new_pr_list
-                        }]
-                        await agnosticv_component.json_patch(patch)
-                        logger.info(f"Removed closed-without-merge PRs {closed_without_merge_prs} from component {agnosticv_component.name}, still used by PRs: {active_prs}")
-                        
-                        # No need to comment on closed PRs when component still exists and is used by other PRs
-                    else:
-                        # No active PRs left, delete the component entirely
-                        logger.info(f"Deleting component {agnosticv_component.name} because all PRs {closed_without_merge_prs} were closed without merge")
-                        
-                        # Post comments to all closed-without-merge PRs (component being deleted)
-                        for pr_number in closed_without_merge_prs:
-                            await self.post_pr_deletion_comment(pr_number, agnosticv_component.name, logger)
-                        
-                        # Delete the component
-                        await agnosticv_component.delete()
-                        deleted_components.append(agnosticv_component.name)
+                    # Use locks for closed PRs to prevent race conditions with webhook cleanup
+                    # Only lock the first PR to keep it simple (they all affect the same component)
+                    async with self.get_pr_lock(closed_without_merge_prs[0]):
+                        if still_open_prs:
+                            # Some PRs are still open, just remove the closed ones from the list
+                            new_pr_list = ','.join(sorted(still_open_prs))
+                            escaped_annotation = pr_list_annotation.replace('/', '~1')
+                            patch = [{
+                                "op": "add",
+                                "path": f"/metadata/annotations/{escaped_annotation}",
+                                "value": new_pr_list
+                            }]
+                            try:
+                                await agnosticv_component.json_patch(patch)
+                            except kubernetes_asyncio.client.rest.ApiException as e:
+                                if e.status == 404:
+                                    logger.info(f"Component {agnosticv_component.name} not found")
+                                elif e.status == 422:
+                                    logger.warning(f"Component {agnosticv_component.name} Unprocessable Entity: {e}")
+                                else:
+                                    logger.warning(f"Failed to patch {agnosticv_component.name}: {e}")
+                            except Exception as e:
+                                logger.warning(f"Failed patch {agnosticv_component.name}: {e}")
+                            logger.info(f"Removed closed-without-merge PRs {closed_without_merge_prs} from component {agnosticv_component.name}, still used by PRs: {still_open_prs}")
+                            
+                            # No need to comment on closed PRs when component still exists and is used by other PRs
+                        else:
+                            # Delete the component first, then post comments only if deletion succeeded
+                            component_actually_deleted = False
+
+                            # No active PRs left, check if component exists on main branch
+                            # to determine if it should be deleted (created by PR) or just cleaned up (modified by PR)
+                            try:
+                                # Check if component exists in main branch by looking at current working directory
+                                # Use git repo lock to prevent conflicts with other git operations
+                                async with self.git_repo_lock:
+                                    original_ref = self.git_checkout_ref
+                                    if original_ref != self.git_ref:
+                                        logger.debug(f"Checking out main branch {self.git_ref} to check if component exists there")
+                                        self._AgnosticVRepo__git_repo_checkout(logger=logger, ref=self.git_ref)
+                                    
+                                    main_component_paths, error_msg = await self._agnosticv_get_all_component_paths_no_lock()
+                                    if error_msg:
+                                        logger.warning(f"Error getting main branch components for cleanup: {error_msg}")
+                                        main_component_paths = []
+                                    
+                                    # Convert paths to component names
+                                    main_branch_component_names = {path_to_name(path) for path in main_component_paths}
+                                    
+                                    # Restore original checkout
+                                    if original_ref and original_ref != self.git_ref:
+                                        logger.debug(f"Restoring checkout to {original_ref}")
+                                        self._AgnosticVRepo__git_repo_checkout(logger=logger, ref=original_ref)
+                                
+                                if agnosticv_component.name in main_branch_component_names:
+                                    # Component exists in main branch - it was MODIFIED by PR, just remove annotation
+                                    logger.info(f"Component {agnosticv_component.name} exists in main branch, removing PR annotation only (was modified by PRs {closed_without_merge_prs})")
+                                    
+                                    # Check if annotation exists before trying to remove it
+                                    current_annotations = agnosticv_component.metadata.get('annotations', {})
+                                    if pr_list_annotation in current_annotations:
+                                        escaped_annotation = pr_list_annotation.replace('/', '~1')
+                                        patch = [{"op": "remove", "path": f"/metadata/annotations/{escaped_annotation}"}]
+                                        try:
+                                            await agnosticv_component.json_patch(patch)
+                                        except kubernetes_asyncio.client.rest.ApiException as e:
+                                            if e.status == 404:
+                                                logger.info(f"Component {agnosticv_component.name} not found")
+                                            elif e.status == 422:
+                                                logger.warning(f"Component {agnosticv_component.name} Unprocessable Entity: {e}")
+                                            else:
+                                                logger.warning(f"Failed to patch {agnosticv_component.name}: {e}")
+                                        except Exception as e:
+                                            logger.warning(f"Failed patch {agnosticv_component.name}: {e}")
+
+                                        logger.info(f"Removed PR annotation from modified component {agnosticv_component.name}")
+                                    else:
+                                        logger.debug(f"Component {agnosticv_component.name} has no PR annotation to remove")
+                                else:
+                                    # Component does NOT exist in main branch - it was CREATED by PR, delete it
+                                    logger.info(f"Deleting component {agnosticv_component.name} because all PRs {closed_without_merge_prs} were closed without merge (not in main branch)")
+                                    try:
+                                        await agnosticv_component.delete()
+                                        component_actually_deleted = True
+                                        deleted_components.append(agnosticv_component.name)
+                                        logger.info(f"Deleted component {agnosticv_component.name} because all PRs {closed_without_merge_prs} were closed without merge")
+                                    except kubernetes_asyncio.client.rest.ApiException as e:
+                                        if e.status == 404:
+                                            # Component already deleted (e.g., by webhook or another process)
+                                            logger.info(f"Component {agnosticv_component.name} already deleted (404), skipping")
+                                            deleted_components.append(agnosticv_component.name)  # Still count it as cleaned up
+                                            component_actually_deleted = False  # Don't post comment for already-deleted component
+                                        else:
+                                            logger.error(f"Failed to delete component {agnosticv_component.name}: {e}")
+                                            raise
+                            except Exception as e:
+                                logger.warning(f"Failed to check main branch for component {agnosticv_component.name}: {e}, being conservative and only removing PR annotation")
+                                # Conservative fallback: if we can't check main branch, assume component was MODIFIED (not created) by PR
+                                # Just remove the PR annotation instead of deleting the component
+                                logger.info(f"Component {agnosticv_component.name} cleanup: removing PR annotation only (conservative fallback for PRs {closed_without_merge_prs})")
+                                
+                                # Check if annotation exists before trying to remove it
+                                current_annotations = agnosticv_component.metadata.get('annotations', {})
+                                if pr_list_annotation in current_annotations:
+                                    escaped_annotation = pr_list_annotation.replace('/', '~1')
+                                    patch = [{"op": "remove", "path": f"/metadata/annotations/{escaped_annotation}"}]
+                                    try:
+                                        await agnosticv_component.json_patch(patch)
+                                        logger.info(f"Conservative cleanup: removed PR annotation from component {agnosticv_component.name}")
+                                    except kubernetes_asyncio.client.rest.ApiException as e:
+                                        if e.status == 404:
+                                            logger.info(f"Component {agnosticv_component.name} not found")
+                                        elif e.status == 422:
+                                            logger.warning(f"Component {agnosticv_component.name} Unprocessable Entity: {e}")
+                                        else:
+                                            logger.warning(f"Failed to patch {agnosticv_component.name}: {e}")
+                                    except Exception as e:
+                                        logger.warning(f"Failed patch {agnosticv_component.name}: {e}")
+                                else:
+                                    logger.debug(f"Component {agnosticv_component.name} has no PR annotation to remove")
+                            
+                            # Only post comments if we actually deleted the component (not if webhook already did)
+                            if component_actually_deleted:
+                                for pr_number in closed_without_merge_prs:
+                                    await self.post_pr_deletion_comment(pr_number, agnosticv_component.name, logger)
         
         if deleted_components:
             logger.info(f"Cleaned up {len(deleted_components)} components from closed PRs: {deleted_components}")
         
+        # Curative action: Clean up orphaned PR metadata from merged PRs (run hourly)
+        # These are components that still have pullRequestNumber/pullRequestCommitHash
+        # but the PR was merged and should have been cleaned up
+        curated_components = []
+        now = datetime.now(timezone.utc).timestamp()
+        
+        # Only run curative cleanup once per hour to avoid performance impact
+        curative_cleanup_interval = 3600  # 1 hour in seconds
+        should_run_curative_cleanup = (
+            self.last_curative_cleanup_time is None or 
+            now - self.last_curative_cleanup_time >= curative_cleanup_interval
+        )
+        
+        if should_run_curative_cleanup:
+            logger.info(f"Running curative cleanup for orphaned PR metadata (last run: {self.last_curative_cleanup_time})")
+            async for agnosticv_component in AgnosticVComponent.list(
+                label_selector=f"{Babylon.agnosticv_repo_label}={self.name}",
+                namespace=self.namespace,
+            ):
+                if agnosticv_component.pull_request_number:
+                    pr_state = await self.get_pr_state(agnosticv_component.pull_request_number, logger)
+                    if pr_state == 'closed_merged':
+                        logger.info(f"Cleaning up orphaned PR metadata from merged PR #{agnosticv_component.pull_request_number} on component {agnosticv_component.name}")
+                        patch = []
+                        if agnosticv_component.pull_request_number:
+                            patch.append({"op": "remove", "path": "/spec/pullRequestNumber"})
+                        if agnosticv_component.pull_request_commit_hash:
+                            patch.append({"op": "remove", "path": "/spec/pullRequestCommitHash"})
+                        
+                        if patch:
+                            try:
+                                await agnosticv_component.json_patch(patch)
+                            except kubernetes_asyncio.client.rest.ApiException as e:
+                                if e.status == 404:
+                                    logger.info(f"Component {agnosticv_component.name} not found")
+                                elif e.status == 422:
+                                    logger.warning(f"Component {agnosticv_component.name} Unprocessable Entity: {e}")
+                                else:
+                                    logger.warning(f"Failed to patch {agnosticv_component.name}: {e}")
+                            except Exception as e:
+                                logger.warning(f"Failed patch {agnosticv_component.name}: {e}")
+                            curated_components.append(agnosticv_component.name)
+            
+            self.last_curative_cleanup_time = now
+            
+            if curated_components:
+                logger.info(f"Curated {len(curated_components)} components with orphaned PR metadata: {curated_components}")
+            else:
+                logger.debug(f"No orphaned PR metadata found during curative cleanup")
+        else:
+            logger.debug(f"Skipping curative cleanup (last run {int(now - self.last_curative_cleanup_time)}s ago, interval {curative_cleanup_interval}s)")
+        
         return deleted_components
+
 
     async def get_ssh_key(self):
         secret = await Babylon.core_v1_api.read_namespaced_secret(
@@ -1340,6 +1638,38 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def manage_component(self, source, logger):
         definition = await self.get_component_definition(source=source, logger=logger)
+        return await self._manage_component_with_definition(source, definition, logger)
+    
+    async def _manage_component_no_lock(self, source, logger):
+        # Internal method - caller must hold git_repo_lock
+        try:
+            definition = await self._get_component_definition_no_lock(source=source, logger=logger)
+            return await self._manage_component_with_definition(source, definition, logger)
+        except AgnosticVProcessingError as e:
+            # Check if this is a "file does not exist" error for PR processing
+            if "does not exist on ref" in str(e) and source.pull_request_number:
+                logger.info(f"Component file for {source.name} does not exist on PR ref {source.ref} - treating as deletion")
+                # This is likely a revert PR that deleted the file - we should delete the component
+                try:
+                    agnosticv_component = await AgnosticVComponent.fetch(name=source.name, namespace=self.namespace)
+                    if not agnosticv_component.deletion_timestamp:
+                        logger.info(f"Deleting component {source.name} because file was deleted in PR #{source.pull_request_number}")
+                        await agnosticv_component.delete()
+                        return "deleted"
+                    else:
+                        logger.debug(f"Component {source.name} already being deleted")
+                        return "deleted"
+                except kubernetes_asyncio.client.rest.ApiException as api_error:
+                    if api_error.status == 404:
+                        logger.debug(f"Component {source.name} already deleted")
+                        return "deleted"
+                    else:
+                        raise
+            else:
+                # Re-raise the original error for other cases
+                raise
+    
+    async def _manage_component_with_definition(self, source, definition, logger):
 
         self.validate_component_definition(definition=definition, source=source)
 
@@ -1404,8 +1734,18 @@ class AgnosticVRepo(CachedKopfObject):
             
             if patch or pr_annotation_updated:
                 if patch:
-                    await agnosticv_component.json_patch(patch)
-                
+                    try:
+                        await agnosticv_component.json_patch(patch)
+                    except kubernetes_asyncio.client.rest.ApiException as e:
+                        if e.status == 404:
+                            logger.info(f"Component {agnosticv_component.name} already deleted during curative cleanup, skipping")
+                        elif e.status == 422:
+                            logger.warning(f"Component {agnosticv_component.name} Unprocessable Entity")
+                        else:
+                            logger.warning(f"Failed to clean up PR metadata from {agnosticv_component.name}: {e}")
+                    except Exception as e:
+                        logger.warning(f"Failed to clean up PR metadata from {agnosticv_component.name}: {e}")
+
                 # Only return "updated" for meaningful changes (definition changes)
                 # Commit hash updates without definition changes should be "unchanged"
                 if definition_changed:
@@ -1440,12 +1780,48 @@ class AgnosticVRepo(CachedKopfObject):
                 if source.pull_request_number:
                     metadata.setdefault("annotations", {})[f"{Babylon.agnosticv_api_group}/used-by-prs"] = str(source.pull_request_number)
                 
-                agnosticv_component = await AgnosticVComponent.create({
-                    "metadata": metadata,
-                    "spec": spec,
-                })
-                
-                return "created"
+                try:
+                    agnosticv_component = await AgnosticVComponent.create({
+                        "metadata": metadata,
+                        "spec": spec,
+                    })
+                    return "created"
+                except kubernetes_asyncio.client.rest.ApiException as create_error:
+                    if create_error.status == 409:
+                        # Component already exists - likely race condition
+                        # Try to fetch and update it instead
+                        logger.warning(f"Component {source.name} already exists (race condition), trying to update instead")
+                        try:
+                            agnosticv_component = await AgnosticVComponent.fetch(name=source.name, namespace=self.namespace)
+                            # Update with the latest definition
+                            patch = [{
+                                "op": "add",
+                                "path": "/spec/definition",
+                                "value": definition,
+                            }]
+                            if source.pull_request_number:
+                                patch.append({
+                                    "op": "add",
+                                    "path": "/spec/pullRequestNumber",
+                                    "value": source.pull_request_number,
+                                })
+                                patch.append({
+                                    "op": "add",
+                                    "path": "/spec/pullRequestCommitHash",
+                                    "value": source.hexsha,
+                                })
+                                # Update PR annotation
+                                await self._update_component_pr_list(
+                                    agnosticv_component, source.pull_request_number, logger, add=True
+                                )
+                            await agnosticv_component.json_patch(patch)
+                            logger.info(f"Updated existing component {source.name} after creation conflict")
+                            return "updated"
+                        except Exception as update_error:
+                            logger.error(f"Failed to update component {source.name} after creation conflict: {update_error}")
+                            raise create_error
+                    else:
+                        raise
             else:
                 raise
 
@@ -1567,6 +1943,44 @@ class AgnosticVRepo(CachedKopfObject):
                 errors.setdefault(source.pull_request_number, []).append(error)
                 logger.info(f"Added error for PR #{source.pull_request_number}: {error}")
 
+        # For full sync (changed_only=False), detect and delete components that exist in 
+        # Kubernetes but no longer exist in the git repository
+        # The label selector ensures we only affect components from this specific repo
+        if not changed_only:
+            logger.debug(f"Full sync: checking for orphaned components in Kubernetes for repo {self.name}")
+            git_component_names = {source.name for source in component_sources}
+            
+            async for agnosticv_component in AgnosticVComponent.list(
+                namespace=self.namespace,
+                label_selector=f"{Babylon.agnosticv_repo_label}={self.name}"
+            ):
+                # Skip components that have PR annotations (they're managed by PR logic)
+                pr_annotation = agnosticv_component.annotations.get(f'{Babylon.agnosticv_api_group}/used-by-prs')
+                if pr_annotation:
+                    logger.debug(f"Skipping component {agnosticv_component.name} - has PR annotation: {pr_annotation}")
+                    continue
+                
+                # Skip components with legacy PR fields
+                if agnosticv_component.pull_request_number:
+                    logger.debug(f"Skipping component {agnosticv_component.name} - has PR number: {agnosticv_component.pull_request_number}")
+                    continue
+                
+                # If component exists in Kubernetes but not in git, delete it
+                if agnosticv_component.name not in git_component_names:
+                    logger.info(f"Deleting orphaned component {agnosticv_component.name} from repo {self.name} (exists in Kubernetes but not in git repository)")
+                    try:
+                        if not agnosticv_component.deletion_timestamp:
+                            await agnosticv_component.delete()
+                    except kubernetes_asyncio.client.rest.ApiException as e:
+                        if e.status == 404:
+                            logger.debug(f"Component {agnosticv_component.name} already deleted")
+                        else:
+                            logger.warning(f"Failed to delete orphaned component {agnosticv_component.name}: {e}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete orphaned component {agnosticv_component.name}: {e}")
+                else:
+                    logger.debug(f"Component {agnosticv_component.name} exists in both Kubernetes and git - keeping")
+
         github_token = None
         # Post error-only comments for PRs that had errors but no successful components
         for pull_request_number, prerrors in errors.items():
@@ -1574,7 +1988,7 @@ class AgnosticVRepo(CachedKopfObject):
                 continue  # Skip if already handled above
             if not github_token:
                 github_token = await self.get_github_token()
-            message = "❌ **Error applying pull request for integration:**\n\n" + "\n".join(
+            message = "❌ Error applying pull request for integration:\n\n" + "\n".join(
                 [f"• {str(error)}" for error in prerrors]
             )
 
@@ -1606,10 +2020,10 @@ class AgnosticVRepo(CachedKopfObject):
                 if pr_errors:
                     # PR has both successes and errors - post combined message
                     message = (
-                        f"⚠️ **Partially applied revision {commit_sha}**\n\n" +
-                        "**Successfully updated components:**\n" +
+                        f"⚠️ Partially applied revision {commit_sha}\n\n" +
+                        "Successfully updated components:\n" +
                         "\n".join([f"• {msg}" for msg in messages]) + "\n\n" +
-                        "**Errors encountered:**\n" +
+                        "Errors encountered:\n" +
                         "\n".join([f"• {str(error)}" for error in pr_errors])
                     )
                 else:
@@ -1625,7 +2039,7 @@ class AgnosticVRepo(CachedKopfObject):
                     else:
                         # Mixed results or all updates
                         message = (
-                            f"✅ **Successfully applied revision {commit_sha}**\n\n" +
+                            f"Successfully applied revision {commit_sha}\n\n" +
                             "Components processed for integration testing:\n" +
                             "\n".join([f"• {msg}" for msg in messages])
                         )
@@ -1694,7 +2108,15 @@ class AgnosticVRepo(CachedKopfObject):
             ):
                 if agnosticv_component.name not in handled_component_names:
                     logger.info(f"Deleting {agnosticv_component} after deleted from {self}")
-                    await agnosticv_component.delete()
+                    try:
+                        await agnosticv_component.delete()
+                    except kubernetes_asyncio.client.rest.ApiException as e:
+                        if e.status == 404:
+                            # Component already deleted (e.g., by webhook or another process)
+                            logger.info(f"Component {agnosticv_component.name} already deleted (404), skipping")
+                        else:
+                            logger.error(f"Failed to delete component {agnosticv_component.name}: {e}")
+                            raise
 
         # Only log completion message when actual changes were processed
         if git_hexsha != self.last_successful_git_hexsha or not self.last_successful_git_hexsha:
@@ -1702,159 +2124,294 @@ class AgnosticVRepo(CachedKopfObject):
         else:
             logger.debug(f"Completed processing for {self.name} (no changes)")
 
+    async def __restore_git_checkout(self, original_checkout_ref, pr_number, logger):
+        # Restore original git checkout state
+        if original_checkout_ref and self.git_checkout_ref != original_checkout_ref:
+            try:
+                self.__git_repo_checkout(logger=logger, ref=original_checkout_ref)
+                logger.debug(f"Restored git checkout to {original_checkout_ref} after PR #{pr_number} processing")
+            except Exception as restore_error:
+                logger.warning(f"Failed to restore git checkout to {original_checkout_ref}: {restore_error}")
+
     async def manage_single_pr(self, pr_number, head_ref, head_sha, logger):
         """Process a single specific PR for webhook events"""
         logger.info(f"Processing single PR #{pr_number} ({head_ref} -> {head_sha})")
         
-        # Ensure git repo is ready
-        await self.git_repo_sync(logger=logger)
-        
-        # Fetch/checkout the specific PR branch
-        try:
-            # First ensure we have the latest commits for this branch
-            remote = self.git_repo.remotes['origin']
-            branch_refspec = f'refs/heads/{head_ref}:refs/remotes/origin/{head_ref}'
-            
-            # Create callbacks for authentication if SSH key is provided
-            callbacks = None
-            if self.ssh_key_secret_name:
-                callbacks = pygit2.RemoteCallbacks(
-                    credentials=pygit2.Keypair(
-                        username='git',
-                        pubkey=f'{self.git_ssh_key_path}.pub',
-                        privkey=self.git_ssh_key_path,
-                        passphrase=''
-                    )
-                )
-            
-            # Fetch this specific branch
-            remote.fetch([branch_refspec], callbacks=callbacks)
-            logger.debug(f"Fetched branch {head_ref}")
-            
-            # Checkout the PR branch with force (like git checkout --force)
-            branch_ref = self.git_repo.references[f'refs/remotes/origin/{head_ref}']
-            target_commit = self.git_repo.get(branch_ref.target)
-            
-            # Force checkout - equivalent to git checkout --force
-            # This overwrites any local changes and resolves conflicts
-            self.git_repo.checkout_tree(
-                target_commit.tree,
-                strategy=pygit2.GIT_CHECKOUT_FORCE | pygit2.GIT_CHECKOUT_REMOVE_UNTRACKED
-            )
-            
-            # Use string conversion for set_head (compatible with all pygit2 versions)
-            target_sha = str(branch_ref.target)
-            self.git_repo.set_head(f'refs/remotes/origin/{head_ref}')
-            self.git_hexsha = target_sha
-            self.git_checkout_ref = head_ref
-            
-            logger.info(f"Checked out {head_ref} [{self.git_hexsha}] for PR #{pr_number}")
-            
-        except (pygit2.GitError, KeyError) as e:
-            logger.warning(f"Unable to checkout branch {head_ref} for PR #{pr_number}: {e}")
-            raise kopf.TemporaryError(f"Failed to checkout PR branch {head_ref}: {e}", delay=60)
-        
-        # Update tracking
-        self.last_pr_commits[f"pr-{pr_number}"] = head_sha
-        
-        # Get only the components that changed in this specific PR
-        try:
-            # Get the files that changed in this PR compared to the base branch
-            changed_files = await self.git_changed_files_in_branch(logger=logger, ref=head_ref)
-            logger.info(f"PR #{pr_number} changed {len(changed_files)} files: {changed_files[:10]}...")
-            
-            if changed_files:
-                component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(
-                    changed_files, logger=logger
-                )
-                if error_msg:
-                    logger.warning(f"Error getting component paths for PR #{pr_number}: {error_msg}")
-                    component_paths = []
-            else:
-                logger.info(f"No changed files detected in PR #{pr_number}")
-                component_paths = []
-            
-            component_sources = [
-                ComponentSource(
-                    path, ref=head_ref, hexsha=self.git_hexsha, pull_request_number=pr_number
-                ) for path in component_paths
-            ]
-            
-            logger.info(f"Found {len(component_sources)} components affected by PR #{pr_number}")
-            
-        except Exception as e:
-            logger.error(f"Failed to get components for PR #{pr_number}: {e}")
-            component_sources = []
-        
-        # Process each component
-        pr_messages = []
-        errors = []
-        
-        for source in component_sources:
+        # Check if PR is still open before processing (prevent race conditions)
+        if self.github_token_secret_name:
             try:
-                logger.debug(f"Processing component {source.name} for PR #{pr_number}")
-                result = await self.manage_component(source=source, logger=logger)
-                
-                if result == 'created':
-                    pr_messages.append(f"Created AgnosticVComponent `{source.name}`")
-                    logger.info(f"Created component {source.name} for PR #{pr_number}")
-                elif result == 'updated':
-                    pr_messages.append(f"Updated AgnosticVComponent `{source.name}`")
-                    logger.info(f"Updated component {source.name} for PR #{pr_number}")
-                elif result == 'unchanged':
-                    pr_messages.append(f"Component `{source.name}` up to date (no change)")
-                    logger.info(f"Component {source.name} unchanged for PR #{pr_number}")
-                
-            except AgnosticVProcessingError as error:
-                errors.append(str(error))
-                logger.error(f"Error processing component {source.name} for PR #{pr_number}: {error}")
-        
-        # Post GitHub comment
-        if errors:
-            message = "❌ **Error applying pull request for integration:**\n\n" + "\n".join(
-                [f"• {error}" for error in errors]
-            )
-        elif pr_messages:
-            if all("up to date" in msg for msg in pr_messages):
-                message = f"✅ **No changes detected in revision {head_sha[:8]}**\n\nAll components remain up to date."
-            else:
-                message = (
-                    f"✅ **Successfully applied revision {head_sha}**\n\n" +
-                    "Components processed for integration testing:\n" +
-                    "\n".join([f"• {msg}" for msg in pr_messages])
-                )
-        else:
-            message = f"ℹ️ **No components found in revision {head_sha[:8]}**"
-        
-        if self.catalog_url:
-            message += f"\n\nThe updated catalog is available at {self.catalog_url}"
-        
-        # Post the comment
-        try:
-            github_token = await self.get_github_token()
-            if github_token:
-                import aiohttp
+                github_token = await self.get_github_token()
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        f"{self.github_api_base_url}/issues/{pr_number}/comments",
+                    async with session.get(
+                        f"{self.github_api_base_url}/pulls/{pr_number}",
                         headers={
-                            "Authorization": f"token {github_token}",
-                            "Accept": "application/vnd.github.v3+json",
-                            "Content-Type": "application/json",
+                            "Accept": "application/vnd.github+json",
+                            "Authorization": "Bearer " + github_token,
+                            "X-GitHub-Api-Version": "2022-11-28",
                         },
-                        json={"body": message},
+                        timeout=aiohttp.ClientTimeout(total=5)
                     ) as response:
-                        if response.status == 201:
-                            logger.info(f"Posted comment to PR #{pr_number}")
+                        if response.status == 200:
+                            pr_data = await response.json()
+                            if pr_data.get('state') != 'open':
+                                logger.info(f"Skipping processing for PR #{pr_number}: state is '{pr_data.get('state')}', not 'open'")
+                                return
                         else:
-                            logger.warning(f"Failed to post comment to PR #{pr_number}: HTTP {response.status}")
-            else:
-                logger.debug(f"No GitHub token available, skipping comment for PR #{pr_number}")
-                
-        except Exception as e:
-            logger.warning(f"Failed to post comment to PR #{pr_number}: {e}")
+                            logger.warning(f"Could not verify PR #{pr_number} state (HTTP {response.status}), proceeding with processing")
+            except Exception as e:
+                logger.warning(f"Failed to check PR #{pr_number} state: {e}, proceeding with processing")
         
-        logger.info(f"Completed processing PR #{pr_number}")
+        # Use PR-specific lock to prevent race conditions between webhook and polling
+        async with self.get_pr_lock(pr_number):
+            logger.debug(f"Acquired lock for PR #{pr_number}")
+            
+            # Use git repo lock for entire PR processing to prevent race conditions
+            async with self.git_repo_lock:
+                # Store original git checkout state to restore later
+                original_checkout_ref = self.git_checkout_ref
+                original_git_hexsha = self.git_hexsha
+                
+                try:
+                    # Ensure git repo is ready (but don't acquire lock since we already have it)
+                    if self.ssh_key_secret_name:
+                        await self.git_ssh_key_write()
+                    if await aiofiles.os.path.exists(self.git_repo_path):
+                        # For existing repos, use GitHub API pre-check to avoid unnecessary git fetches
+                        if await self.__has_remote_changes(logger):
+                            await asyncio.get_event_loop().run_in_executor(
+                                None, self.__git_repo_pull, logger
+                            )
+                        else:
+                            logger.debug(f"No remote changes detected for {self.name}, skipping git fetch")
+                    else:
+                        await asyncio.get_event_loop().run_in_executor(
+                            None, self.__git_repo_clone, logger
+                        )
+                    # Fetch/checkout the specific PR branch
+                    # First ensure we have the latest commits for this branch
+                    remote = self.git_repo.remotes['origin']
+                    branch_refspec = f'refs/heads/{head_ref}:refs/remotes/origin/{head_ref}'
+                    
+                    # Create callbacks for authentication if SSH key is provided
+                    callbacks = None
+                    if self.ssh_key_secret_name:
+                        callbacks = pygit2.RemoteCallbacks(
+                            credentials=pygit2.Keypair(
+                                username='git',
+                                pubkey=f'{self.git_ssh_key_path}.pub',
+                                privkey=self.git_ssh_key_path,
+                                passphrase=''
+                            )
+                        )
+                    
+                    # Fetch this specific branch
+                    remote.fetch([branch_refspec], callbacks=callbacks)
+                    logger.debug(f"Fetched branch {head_ref}")
+                    
+                    # Checkout the PR branch with force (like git checkout --force)
+                    branch_ref = self.git_repo.references[f'refs/remotes/origin/{head_ref}']
+                    target_commit = self.git_repo.get(branch_ref.target)
+                    
+                    # Force checkout - equivalent to git checkout --force
+                    # This overwrites any local changes and resolves conflicts
+                    self.git_repo.checkout_tree(
+                        target_commit.tree,
+                        strategy=(pygit2.GIT_CHECKOUT_FORCE | 
+                                 pygit2.GIT_CHECKOUT_REMOVE_UNTRACKED |
+                                 pygit2.GIT_CHECKOUT_REMOVE_IGNORED)
+                    )
+                    
+                    # Use string conversion for set_head (compatible with all pygit2 versions)
+                    target_sha = str(branch_ref.target)
+                    self.git_repo.set_head(f'refs/remotes/origin/{head_ref}')
+                    self.git_hexsha = target_sha
+                    self.git_checkout_ref = head_ref
+                    
+                    logger.info(f"Checked out {head_ref} [{self.git_hexsha}] for PR #{pr_number}")
+                    
+                except (pygit2.GitError, KeyError) as e:
+                    logger.warning(f"Unable to checkout branch {head_ref} for PR #{pr_number}: {e}")
+                    await self.__restore_git_checkout(original_checkout_ref, pr_number, logger)
+                    raise kopf.TemporaryError(f"Failed to checkout PR branch {head_ref}: {e}", delay=60)
+
+                # Update tracking
+                self.last_pr_commits[f"pr-{pr_number}"] = head_sha
+                
+                # Get components that changed in this specific PR and handle deletions
+                # (all git operations must stay inside this git_repo_lock)
+                try:
+                    # Get the files that changed in this PR compared to the base branch
+                    changed_files = await self.git_changed_files_in_branch(logger=logger, ref=head_ref)
+                    logger.info(f"PR #{pr_number} changed {len(changed_files)} files: {changed_files[:10]}...")
+                    
+                    # Get components that were added/modified in the PR (we're already on the correct ref with git_repo_lock)
+                    if changed_files:
+                        component_paths, error_msg = await self.agnosticv_get_component_paths_from_related_files(
+                            changed_files, logger=logger
+                        )
+                        if error_msg:
+                            logger.warning(f"Error getting component paths for PR #{pr_number}: {error_msg}")
+                            component_paths = []
+                    else:
+                        logger.info(f"No changed files detected in PR #{pr_number}")
+                        component_paths = []
+                except Exception as e:
+                    logger.error(f"Failed to get components for PR #{pr_number}: {e}")
+                    component_sources = []
+                    components_to_delete = []
+
+                # Only check for deleted components if files were actually deleted in the PR
+                # This prevents false positives when PRs only add new files
+                deleted_files = [f for f in changed_files if not os.path.exists(os.path.join(self.agnosticv_path, f))]
+                
+                if deleted_files:
+                    logger.info(f"PR #{pr_number} deleted {len(deleted_files)} files, checking for component deletions")
+                    # Convert deleted file paths to component names directly
+                    # This is more efficient than comparing entire branch contents
+                    components_to_delete = []
+                    for deleted_file in deleted_files:
+                        # Check if this is a component file (same logic as agnosticv_get_all_component_paths)
+                        is_component_file = (not deleted_file.startswith('.') and
+                            not re.search(r'/\.', deleted_file) and
+                            not re.search(r'/(account|common)\.(json|ya?ml)$', deleted_file) and
+                            re.search(r'\.(json|ya?ml)$', deleted_file))
+                        
+                        if is_component_file:
+                            component_name = path_to_name(deleted_file)
+                            components_to_delete.append(component_name)
+                            logger.debug(f"File {deleted_file} -> Component {component_name} marked for deletion")
+                    
+                    if components_to_delete:
+                        logger.info(f"Found {len(components_to_delete)} components to delete: {components_to_delete}")
+                    else:
+                        logger.debug(f"No component files were deleted in this PR")
+                else:
+                    logger.debug(f"PR #{pr_number} has no deleted files, skipping deletion check")
+                    components_to_delete = []
+                
+                component_sources = [
+                    ComponentSource(
+                        path, ref=head_ref, hexsha=self.git_hexsha, pull_request_number=pr_number
+                    ) for path in component_paths
+                ]
+                
+                logger.info(f"Found {len(component_sources)} components affected by PR #{pr_number}")
+                if components_to_delete:
+                    logger.info(f"Found {len(components_to_delete)} components to delete in PR #{pr_number}: {components_to_delete[:5]}...")
+                
+                # Process each component (inside git_repo_lock to ensure consistency)
+                pr_messages = []
+                errors = []
+
+                for source in component_sources:
+                    try:
+                        logger.debug(f"Processing component {source.name} for PR #{pr_number}")
+                        result = await self._manage_component_no_lock(source=source, logger=logger)
+
+                        if result == 'created':
+                            pr_messages.append(f"Created AgnosticVComponent `{source.name}`")
+                            logger.info(f"Created component {source.name} for PR #{pr_number}")
+                        elif result == 'updated':
+                            pr_messages.append(f"Updated AgnosticVComponent `{source.name}`")
+                            logger.info(f"Updated component {source.name} for PR #{pr_number}")
+                        elif result == 'unchanged':
+                            pr_messages.append(f"Component `{source.name}` up to date (no change)")
+                            logger.info(f"Component {source.name} unchanged for PR #{pr_number}")
+
+                    except AgnosticVProcessingError as error:
+                        errors.append(str(error))
+                        logger.error(f"Error processing component {source.name} for PR #{pr_number}: {error}")
+
+            # Add preview messages for components that would be deleted if PR is merged
+            if components_to_delete:
+                logger.info(f"Found {len(components_to_delete)} components that would be deleted: {components_to_delete}")
+                
+                # Check which deleted components actually exist (to avoid "not found" warnings)
+                existing_components = {}
+                async for agnosticv_component in AgnosticVComponent.list(
+                    namespace=self.namespace,
+                    label_selector=f"{Babylon.agnosticv_repo_label}={self.name}"
+                ):
+                    
+                    # Consider components as existing if they are:
+                    # 1. Main branch components (no PR number)
+                    # 2. Orphaned from merged PRs
+                    # 3. Currently being processed by this deletion PR (they exist but will be deleted)
+                    is_main_branch = not agnosticv_component.pull_request_number
+                    is_orphaned_from_merged_pr = False
+                    is_current_deletion_pr = False
+                    
+                    if agnosticv_component.pull_request_number:
+                        pr_state = await self.get_pr_state(agnosticv_component.pull_request_number, logger)
+                        if pr_state == 'closed_merged':
+                            is_orphaned_from_merged_pr = True
+                        elif agnosticv_component.pull_request_number == pr_number:
+                            is_current_deletion_pr = True
+                    
+                    if is_main_branch or is_orphaned_from_merged_pr or is_current_deletion_pr:
+                        existing_components[agnosticv_component.name] = agnosticv_component
+                
+                
+                # Add preview messages for each component that would be deleted
+                for component_name in components_to_delete:
+                    if component_name in existing_components:
+                        pr_messages.append(f"Would delete AgnosticVComponent `{component_name}` if merged")
+                        logger.info(f"Component {component_name} would be deleted if PR #{pr_number} is merged")
+                    else:
+                        pr_messages.append(f"⚠️ Component `{component_name}` not found (may already be deleted)")
+                        logger.info(f"Component {component_name} not found, may already be deleted")
+            else:
+                logger.info(f"No components would be deleted by PR #{pr_number}")
+
+            # Restore original git checkout state
+            await self.__restore_git_checkout(original_checkout_ref, pr_number, logger)
+            
+            # Post GitHub comment
+            if errors:
+                message = "❌ Error applying pull request for integration:\n\n" + "\n".join(
+                    [f"• {error}" for error in errors]
+                )
+            elif pr_messages:
+                if all("up to date" in msg for msg in pr_messages):
+                    message = f"No changes detected in revision {head_sha[:8]}\n\nAll components remain up to date."
+                else:
+                    message = (
+                        f"Successfully applied revision {head_sha}\n\n" +
+                        "Components processed for integration testing:\n" +
+                        "\n".join([f"• {msg}" for msg in pr_messages])
+                    )
+            else:
+                message = f"No components found in revision {head_sha[:8]}"
+            
+            if self.catalog_url:
+                message += f"\n\nThe updated catalog is available at {self.catalog_url}"
+
+            # Post the comment
+            try:
+                github_token = await self.get_github_token()
+                if github_token:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(
+                            f"{self.github_api_base_url}/issues/{pr_number}/comments",
+                            headers={
+                                "Accept": "application/vnd.github+json",
+                                "Authorization": "Bearer " + github_token,
+                                "X-GitHub-Api-Version": "2022-11-28",
+                            },
+                            json={"body": message},
+                        ) as response:
+                            if response.status == 201:
+                                logger.info(f"Posted comment to PR #{pr_number}")
+                            else:
+                                logger.warning(f"Failed to post comment to PR #{pr_number}: HTTP {response.status}")
+                else:
+                    logger.debug(f"No GitHub token available, skipping comment for PR #{pr_number}")
+                    
+            except Exception as e:
+                logger.warning(f"Failed to post comment to PR #{pr_number}: {e}")
+            
+
+            logger.info(f"Completed processing PR #{pr_number}")
 
 
 class ComponentSource:
