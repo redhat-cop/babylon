@@ -34,6 +34,39 @@ spec:
             description: Specification of Workshop.
             type: object
             properties:
+              autoScaling:
+                type: object
+                description: >-
+                  Auto-scaling configuration for UserAssignments
+                properties:
+                  enabled:
+                    type: boolean
+                    default: false
+                    description: >-
+                      Enable or disable auto-scaling functionality
+                  threshold:
+                    type: number
+                    minimum: 0.0
+                    maximum: 1.0
+                    default: 0.8
+                    description: >-
+                      Utilization threshold (0.0-1.0) that triggers scaling. When
+                      assigned_users/total_users exceeds this value,
+                      auto-scaling is triggered
+                  scaleFactor:
+                    type: number
+                    minimum: 1.0
+                    default: 1.5
+                    description: >-
+                      Multiplier for capacity increase when scaling. For example,
+                      1.5 means increase capacity by 50%
+                  maxProvisions:
+                    type: integer
+                    minimum: 1
+                    default: 100
+                    description: >-
+                      Maximum number of provisions allowed per WorkshopProvision to
+                      prevent runaway scaling
               accessPassword:
                 description: >-
                   Optional password for access to the workshop.
