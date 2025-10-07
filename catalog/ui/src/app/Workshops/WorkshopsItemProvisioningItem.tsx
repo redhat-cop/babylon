@@ -92,14 +92,15 @@ const WorkshopsItemProvisioningItem: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
 
-        <DescriptionListGroup>
+        {!catalogItem.spec.multiuser || isAdmin ? 
+        <><DescriptionListGroup>
           <DescriptionListTerm>
-            {workshop.spec.multiuserServices ? 'Workshop Instance Count' : 'Workshop User Count'}
+            Workshop Instance Count
           </DescriptionListTerm>
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
-              max={workshopProvision.spec.parameters?.salesforce_id || workshop.spec.multiuserServices ? 30 : 1}
+              max={workshopProvision.spec.parameters?.salesforce_id ? 30 : 1}
               adminModifier={true}
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
@@ -123,6 +124,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
                 className="tooltip-icon-only"
               />
             </Tooltip>
+            {catalogItem.spec.multiuser ? <>(only visible to admins)</>:null}
           </DescriptionListDescription>
         </DescriptionListGroup>
         {isAdmin ? (
@@ -155,6 +157,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
             </DescriptionListGroup>
           </>
         ) : null}
+      </>:null}
       </DescriptionList>
     </>
   );
