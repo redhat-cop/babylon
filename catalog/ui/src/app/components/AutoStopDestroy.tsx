@@ -51,7 +51,7 @@ const AutoStopDestroy: React.FC<{
           size="sm"
         >
           <Tooltip position="right" content={<div>This Catalog Item does not support Auto-Stop</div>}>
-            <span style={{ marginRight: "var(--pf-t--global--spacer--sm)" }}>Auto-Stop disabled</span>
+            <span style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>Auto-Stop disabled</span>
           </Tooltip>
         </Button>
       );
@@ -70,7 +70,7 @@ const AutoStopDestroy: React.FC<{
           className={className}
           size="sm"
         >
-          <span style={{ marginRight: "var(--pf-t--global--spacer--sm)" }}>{notDefinedMessage}</span>
+          <span style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>{notDefinedMessage}</span>
         </Button>
         {children}
       </span>
@@ -84,7 +84,7 @@ const AutoStopDestroy: React.FC<{
     time = new Date(_time).getTime();
   }
 
-  if (!!resourceClaim) {
+  if (resourceClaim) {
     if (isDisabled === null || typeof isDisabled === 'undefined') {
       if (type === 'auto-stop') {
         if (isPartOfWorkshop) {
@@ -108,19 +108,20 @@ const AutoStopDestroy: React.FC<{
     if (time > Date.now() + 15778800000) {
       // If is more than 6months show no auto-stop
       showNoAutoStop = true;
-    } else if (!!resourceClaim?.status?.lifespan?.end) {
+    } else if (resourceClaim?.status?.lifespan?.end) {
       // if Auto-Stop is greater than Auto-Destroy, show no auto-stop
       const autoDestroyTime = new Date(resourceClaim.status.lifespan.end).getTime();
       if (time >= autoDestroyTime) {
         showNoAutoStop = true;
       }
-    } else if (!!destroyTimestamp) {
+    } else if (destroyTimestamp) {
       // if Auto-Stop is greater than Auto-Destroy, show no auto-stop
       if (time >= destroyTimestamp) {
         showNoAutoStop = true;
       }
     }
   }
+
   return (
     <span>
       <Button
@@ -133,7 +134,7 @@ const AutoStopDestroy: React.FC<{
         size="sm"
       >
         {showNoAutoStop ? (
-          <span style={{ marginRight: "var(--pf-t--global--spacer--sm)" }}>No auto-stop</span>
+          <span style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>No auto-stop</span>
         ) : (
           <>
             <LocalTimestamp variant="short" time={time} />

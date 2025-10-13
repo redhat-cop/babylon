@@ -90,11 +90,7 @@ import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import Label from '@app/components/Label';
-import {
-  getAutoStopTime,
-  getInfoMessageTemplate,
-  getStartTime,
-} from './service-utils';
+import { getAutoStopTime, getInfoMessageTemplate, getStartTime } from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
@@ -655,7 +651,17 @@ const ServicesItemComponent: React.FC<{
         <ServicesCreateWorkshop resourceClaim={resourceClaim} />
       </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
-        <ServicesScheduleAction action={modalState.action ? modalState.action === "delete" ? "retirement" : "start" : 'stop'} resourceClaim={resourceClaim} />
+        <ServicesScheduleAction
+          action={
+            {
+              delete: 'retirement',
+              retirement: 'retirement',
+              start: 'start',
+              stop: 'stop',
+            }[modalState.action ?? 'stop']
+          }
+          resourceClaim={resourceClaim}
+        />
       </Modal>
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection hasBodyWrapper={false} key="topbar" className="services-item__topbar">
