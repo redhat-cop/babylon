@@ -40,12 +40,12 @@ const ServicesScheduleAction: React.FC<{
       }
     }
     return new Date(time);
-  }, [resourceClaim, workshop, action]);
+  }, [workshop, resourceClaim, action, autoDestroyTime]);
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
-  useEffect(() => setTitle(`${displayName(resourceClaim || workshop)}`), [setTitle, resourceClaim]);
+  useEffect(() => setTitle(`${displayName(resourceClaim || workshop)}`), [setTitle, resourceClaim, workshop]);
 
   const actionLabel = action === 'retirement' ? 'Auto-destroy' : action === 'start' ? 'Start' : 'Auto-stop';
   let maxDate = null;
