@@ -150,7 +150,7 @@ export function checkCondition(condition: string, vars: ConditionValues): boolea
 async function _checkCondition(
   condition: string,
   vars: ConditionValues,
-  debouncedApiFetch: (path: string) => Promise<unknown>,
+  debouncedApiFetch: (path: string) => Promise<Response>,
   dispatchFn: React.Dispatch<FormStateAction>,
 ): Promise<boolean> {
   const checkSalesforceIds: string[] = [];
@@ -179,7 +179,7 @@ async function _checkCondition(
 export async function checkConditionsInFormState(
   initialState: FormState,
   dispatchFn: React.Dispatch<FormStateAction>,
-  debouncedApiFetch: (path: string) => Promise<unknown>,
+  debouncedApiFetch: (path: string) => Promise<Response>,
 ): Promise<void> {
   const parameters = Object.assign({}, initialState.parameters);
   const conditionValues: ConditionValues = {

@@ -662,7 +662,7 @@ async def salesforce_id_validation(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/sales_validation?{queryString}",
+        url=f"{reporting_api}/sales_validation/check?{queryString}",
     )
 
 # Expects a request body with the following structure:
