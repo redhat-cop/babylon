@@ -109,21 +109,17 @@ const SearchSalesforceId: React.FC<{
     }
   };
 
-  async function onSearchButtonClick(value: string, sfdcType: SfdcType) {
+  const onSearchButtonClick = useCallback(async (value: string, sfdcType: SfdcType) => {
     setIsLoading(true);
     const accounts = (await debouncedFetchAccounts(value, sfdcType)) as SalesforceAccount[];
     setFilteredItems(accounts);
     setIsLoading(false);
-  }
+  }, [debouncedFetchAccounts]);
 
-  const onEnterPressed = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
-      onSearchButtonClick(accountValue, sfdcType);
-    }
-  };
   useEffect(() => {
     onSearchButtonClick(accountValue, sfdcType);
-  }, [accountValue, sfdcType]);
+  }, [accountValue, onSearchButtonClick, sfdcType]);
+  
   useEffect(() => {
     setAccountValue('');
     setFilteredItems([]);
@@ -202,10 +198,10 @@ const SearchSalesforceIdModal: React.FC<{
   const [sfdcType, setSfdcType] = useState(defaultSfdcType);
   const [selectedAccount, setSelectedAccount] = useState<SalesforceAccount>(null);
   useEffect(() => {
-    if (!!isOpen) {
+    if (isOpen) {
       openModal();
     }
-  }, [isOpen]);
+  }, [isOpen, openModal]);
   useEffect(() => {
     setSfdcType(defaultSfdcType);
   }, [defaultSfdcType]);

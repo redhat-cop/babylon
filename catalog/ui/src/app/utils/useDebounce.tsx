@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function useDebounce(inner: (...args: any[]) => unknown, ms = 0): (...args: unknown[]) => Promise<Response> {
+function useDebounce<T>(inner: (...args: any[]) => T, ms = 0): (...args: unknown[]) => Promise<T> {
   const [timer, setTimer] = useState(null);
-  const [resolves, setResolves] = useState([]);
-  const callbackRef = useRef((...args: unknown[]) => {
+  const [resolves, setResolves] = useState<((value: T) => void)[]>([]);
+  const callbackRef = useRef<(...args: unknown[]) => Promise<T>>((...args: unknown[]) => {
     clearTimeout(timer);
     setTimer(
       setTimeout(() => {
