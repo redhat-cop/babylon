@@ -106,7 +106,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     },
   );
   const { data: assetsFavList, mutate: mutateFavorites } = useSWRImmutable<BookmarkList>(
-    asset_uuid ? apiPaths.FAVORITES({}) : null,
+    asset_uuid ? apiPaths.FAVORITES() : null,
     silentFetcher,
     {
       shouldRetryOnError: false,
@@ -231,7 +231,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         method: 'DELETE',
       });
     } else {
-      fav = await fetcher(apiPaths.FAVORITES({}), {
+      fav = await fetcher(apiPaths.FAVORITES(), {
         method: 'POST',
         body: JSON.stringify({
           asset_uuid,

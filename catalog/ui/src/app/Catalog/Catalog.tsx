@@ -339,7 +339,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
 
   const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
     apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({
-      stage: catalogNamespaceName ? catalogNamespaceName.split('-').slice(-1) : 'all',
+      stage: catalogNamespaceName ? catalogNamespaceName.split('-').slice(-1)[0] : 'all',
     }),
     fetcher,
     {
@@ -353,14 +353,14 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     }),
     () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames),
   );
-  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES({}), fetcher, {
+  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES(), fetcher, {
     suspense: false,
     shouldRetryOnError: false,
   });
 
   const catalogItems = useMemo(
     () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
-    [catalogItemsArr, groups],
+    [catalogItemsArr, groups, isAdmin],
   );
 
   // Filter & Sort catalog items
