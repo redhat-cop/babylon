@@ -342,7 +342,7 @@ export async function bulkAssignWorkshopUsers({
 
 export async function checkSalesforceId(
   id: string,
-  debouncedApiFetch: (path: string) => Promise<unknown>,
+  debouncedApiFetch: (path: string) => Promise<Response>,
   sales_type?: string,
 ): Promise<{ valid: boolean; message: string }> {
   const defaultMessage = 'A valid Salesforce ID is required for the selected activity / purpose';
@@ -350,16 +350,17 @@ export async function checkSalesforceId(
     return { valid: false, message: defaultMessage };
   }
   try {
-    await debouncedApiFetch(`/api/salesforce/${id}?${sales_type ? `sales_type=${sales_type}` : ''}`);
+    const response = await debouncedApiFetch(`/api/salesforce/${id}?${sales_type ? `sales_type=${sales_type}` : ''}`);
+    const data: {success: boolean; message: string} = await response.json();
+    return { valid: data.success, message: data.message };
   } catch (errorResponse: unknown) {
     try {
       const error = await (errorResponse as Response).json();
       return { valid: false, message: error?.message || defaultMessage };
-    } catch (_) {
+    } catch {
       return { valid: false, message: defaultMessage };
     }
   }
-  return { valid: true, message: '' };
 }
 
 async function createK8sObject<Type extends K8sObject>(definition: Type): Promise<Type> {

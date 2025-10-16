@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function useDebounce(inner: (...args: any[]) => unknown, ms = 0): (...args: unknown[]) => Promise<unknown> {
+function useDebounce(inner: (...args: any[]) => unknown, ms = 0): (...args: unknown[]) => Promise<Response> {
   const [timer, setTimer] = useState(null);
   const [resolves, setResolves] = useState([]);
   const callbackRef = useRef((...args: unknown[]) => {
