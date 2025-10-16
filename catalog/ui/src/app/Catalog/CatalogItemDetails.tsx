@@ -90,7 +90,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const helpLink = useHelpLink();
   const asset_uuid = catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid'];
   const { data: metrics } = useSWRImmutable<AssetMetrics>(
-    asset_uuid ? apiPaths.ASSET_METRICS({ asset_uuid }) : null,
+    asset_uuid ? apiPaths.ASSET_METRICS({ asset_uuid, environment: stage }) : null,
     silentFetcher,
     {
       shouldRetryOnError: false,
@@ -106,7 +106,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     },
   );
   const { data: assetsFavList, mutate: mutateFavorites } = useSWRImmutable<BookmarkList>(
-    asset_uuid ? apiPaths.FAVORITES({}) : null,
+    asset_uuid ? apiPaths.FAVORITES() : null,
     silentFetcher,
     {
       shouldRetryOnError: false,
@@ -141,7 +141,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const services: ResourceClaim[] = useMemo(
     () =>
       Array.isArray(userResourceClaims)
-        ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r) && !r.metadata.deletionTimestamp))
+        ? [].concat(
+            ...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r) && !r.metadata.deletionTimestamp),
+          )
         : [],
     [userResourceClaims],
   );
@@ -229,7 +231,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
         method: 'DELETE',
       });
     } else {
-      fav = await fetcher(apiPaths.FAVORITES({}), {
+      fav = await fetcher(apiPaths.FAVORITES(), {
         method: 'POST',
         body: JSON.stringify({
           asset_uuid,
@@ -268,7 +270,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
             ) : null}
           </SplitItem>
         </Split>
-        <PageSection hasBodyWrapper={false}  className="catalog-item-details__actions">
+        <PageSection hasBodyWrapper={false} className="catalog-item-details__actions">
           {catalogItemAccess === CatalogItemAccess.Allow ? (
             <>
               <Button
@@ -400,9 +402,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                     <Tooltip content="Estimated hourly cost if not stopped.">
                       <InfoAltIcon
                         style={{
-                          paddingTop: "var(--pf-t--global--spacer--xs)",
-                          marginLeft: "var(--pf-t--global--spacer--xs)",
-                          width: "var(--pf-t--global--icon--size--font--xs)",
+                          paddingTop: 'var(--pf-t--global--spacer--xs)',
+                          marginLeft: 'var(--pf-t--global--spacer--xs)',
+                          width: 'var(--pf-t--global--icon--size--font--xs)',
                         }}
                       />
                     </Tooltip>
@@ -428,9 +430,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                   <Tooltip content="Uptime during the last 90 days.">
                     <InfoAltIcon
                       style={{
-                        paddingTop: "var(--pf-t--global--spacer--xs)",
-                        marginLeft: "var(--pf-t--global--spacer--xs)",
-                        width: "var(--pf-t--global--icon--size--font--xs)",
+                        paddingTop: 'var(--pf-t--global--spacer--xs)',
+                        marginLeft: 'var(--pf-t--global--spacer--xs)',
+                        width: 'var(--pf-t--global--icon--size--font--xs)',
                       }}
                     />
                   </Tooltip>

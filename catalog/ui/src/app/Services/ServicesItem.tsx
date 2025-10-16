@@ -558,7 +558,7 @@ const ServicesItemComponent: React.FC<{
           modalState.rating.comment,
           modalState.rating.useful,
         );
-        globalMutate(apiPaths.USER_RATING({ requestUuid: resourceClaim.metadata.uid }));
+        globalMutate(apiPaths.USER_RATING({ requestUid: resourceClaim.metadata.uid }));
       }
     }
     if (modalState.action === 'delete') {

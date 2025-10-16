@@ -106,8 +106,8 @@ const ServicesList: React.FC<{
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [searchParams, setSearchParams] = useSearchParams();
-  const hasSearch = searchParams.has('search')
-  const searchValue = searchParams.get('search')
+  const hasSearch = searchParams.has('search');
+  const searchValue = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
       hasSearch
@@ -346,7 +346,7 @@ const ServicesList: React.FC<{
           modalState.rating.comment,
           modalState.rating.useful,
         );
-        globalMutate(apiPaths.USER_RATING({ requestUuid: modalState.resourceClaim.metadata.uid }));
+        globalMutate(apiPaths.USER_RATING({ requestUid: modalState.resourceClaim.metadata.uid }));
       }
       if (modalState.action === 'delete') {
         revalidate({ updatedItems: serviceUpdates, action: 'delete' });
@@ -354,7 +354,18 @@ const ServicesList: React.FC<{
     } else {
       revalidate({ updatedItems: serviceUpdates, action: 'update' });
     }
-  }, [modalState.resourceClaim, modalState.workshop, modalState.action, modalState.rating, selectedUids, performModalActionForResourceClaim, performModalActionForWorkshop, services, globalMutate, revalidate]);
+  }, [
+    modalState.resourceClaim,
+    modalState.workshop,
+    modalState.action,
+    modalState.rating,
+    selectedUids,
+    performModalActionForResourceClaim,
+    performModalActionForWorkshop,
+    services,
+    globalMutate,
+    revalidate,
+  ]);
 
   const showModal = useCallback(
     ({
