@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createAction, createReducer, configureStore } from '@reduxjs/toolkit';
 import { createSelector } from 'reselect';
-import { CatalogNamespace, ServiceNamespace } from '@app/types';
+import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 
 export interface ActionSetImpersonation {
-  admin: string;
+  admin: boolean;
   user: string;
   groups: string[];
-  catalogNamespaces: [];
-  serviceNamespaces: [];
-  userNamespace: [];
+  catalogNamespaces: CatalogNamespace[];
+  serviceNamespaces: ServiceNamespace[];
+  userNamespace: UserNamespace;
 }
 
 export interface ActionStartSession {
@@ -25,7 +25,7 @@ export interface ActionStartSession {
 }
 
 // Reducer functions
-function reduce_clearImpersonation(state: {impersonate: string, catalogItems: any[]}) {
+function reduce_clearImpersonation(state: { impersonate: string; catalogItems: any[] }) {
   state.impersonate = null;
   state.catalogItems = null;
   sessionStorage.removeItem('impersonateUser');

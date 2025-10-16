@@ -5,7 +5,6 @@ import {
   AnarchySubject,
   AnarchyRun,
   AvailabilityCheckResponse,
-  AvailabilityResourceResult,
   CatalogItem,
   JSONPatch,
   K8sObject,
@@ -16,13 +15,11 @@ import {
   ResourceProvider,
   ServiceNamespace,
   Workshop,
-  WorkshopList,
   WorkshopProvision,
   MultiWorkshop,
   UserList,
   Session,
   Nullable,
-  ResourceType,
   WorkshopUserAssignment,
   SfdcType,
 } from '@app/types';
@@ -32,7 +29,6 @@ import {
   displayName,
   BABYLON_DOMAIN,
   DEMO_DOMAIN,
-  compareStringDates,
   canExecuteAction,
   generateRandom5CharsSuffix,
 } from '@app/util';
@@ -89,7 +85,7 @@ type CreateWorkshopPovisionOpt = {
   catalogItem: CatalogItem;
   concurrency: number;
   count: number;
-  parameters: any;
+  parameters: Record<string, unknown>;
   startDelay: number;
   workshop: Workshop;
   useAutoDetach: boolean;
@@ -131,7 +127,7 @@ export async function apiFetch(path: string, opt?: object): Promise<Response> {
   }
 
   let resp = await window.fetch(path, options);
-  
+
   // Handle 302 redirects manually (when redirect: 'manual' is set)
   // Check for both status 302 and opaque redirect response type
   if (resp.status === 302 || resp.type === 'opaqueredirect') {
@@ -139,20 +135,20 @@ export async function apiFetch(path: string, opt?: object): Promise<Response> {
     window.location.reload();
     return resp; // This won't actually be reached due to the reload
   }
-  
+
   if (resp.status >= 400 && resp.status < 600) {
     if (resp.status === 401) {
       // Retry with a refreshed session
       const session = await getApiSession(true);
       options.headers['Authentication'] = `Bearer ${session.token}`;
       resp = await window.fetch(path, options);
-      
+
       // Check for redirect on retry as well
       if (resp.status === 302 || resp.type === 'opaqueredirect') {
         window.location.reload();
         return resp;
       }
-      
+
       if (resp.status >= 400 && resp.status < 600) {
         throw resp;
       }
@@ -355,9 +351,9 @@ export async function checkSalesforceId(
   }
   try {
     await debouncedApiFetch(`/api/salesforce/${id}?${sales_type ? `sales_type=${sales_type}` : ''}`);
-  } catch (errorResponse: any) {
+  } catch (errorResponse: unknown) {
     try {
-      const error = await errorResponse.json();
+      const error = await (errorResponse as Response).json();
       return { valid: false, message: error?.message || defaultMessage };
     } catch (_) {
       return { valid: false, message: defaultMessage };
@@ -553,8 +549,8 @@ export async function createServiceRequest({
     try {
       const resourceClaim = await createResourceClaim(definition);
       return resourceClaim;
-    } catch (error: any) {
-      if (error.status === 409) {
+    } catch (error: unknown) {
+      if ((error as Response).status === 409) {
         const newResourceClaimName = generateK8sNameWithSuffix(catalogItem.metadata.name);
         definition.metadata.name = newResourceClaimName;
         definition.metadata.annotations[`${BABYLON_DOMAIN}/url`] =
@@ -594,7 +590,7 @@ export async function createWorkshop({
   stopDate?: Date;
   startDate?: Date;
   email: string;
-  parameterValues: any;
+  parameterValues: Record<string, unknown>;
   skippedSfdc: boolean;
   whiteGloved: boolean;
   customWorkshopName?: string;
@@ -664,12 +660,12 @@ export async function createWorkshop({
 
   let retryCount = 0;
   const maxRetries = 3;
-  
+
   while (retryCount <= maxRetries) {
     try {
       return await createK8sObject(definition);
-    } catch (error: any) {
-      if (error.status === 409 && retryCount < maxRetries) {
+    } catch (error: unknown) {
+      if ((error as Response).status === 409 && retryCount < maxRetries) {
         retryCount++;
         // Generate a new name with random suffix on conflict
         definition.metadata.name = generateK8sNameWithSuffix(customWorkshopName || catalogItem.metadata.name);
@@ -678,7 +674,7 @@ export async function createWorkshop({
       }
     }
   }
-  
+
   // This should never be reached, but TypeScript requires a return
   throw new Error('Failed to create workshop after maximum retries');
 }
@@ -766,8 +762,8 @@ export async function createWorkshopForMultiuserService({
         },
       );
       return { resourceClaim: patchedResourceClaim, workshop: workshop };
-    } catch (error: any) {
-      if (error.status === 409) {
+    } catch (error: unknown) {
+      if ((error as Response).status === 409) {
         n++;
         definition.metadata.name = `${definition.metadata.name}-${n}`;
       } else {
@@ -886,7 +882,7 @@ export async function getResourcePool(name: string) {
   )) as ResourcePool;
 }
 
-export async function getUserInfo(user: string): Promise<any> {
+export async function getUserInfo(user: string): Promise<Session> {
   const session = await getApiSession(true);
   const resp = await fetch(`/auth/users/${user}`, {
     headers: {
@@ -894,15 +890,6 @@ export async function getUserInfo(user: string): Promise<any> {
     },
   });
   return await resp.json();
-}
-
-async function getWorkshop(namespace: string, name: string) {
-  return await getK8sObject<Workshop>({
-    apiVersion: `${BABYLON_DOMAIN}/v1`,
-    name: name,
-    namespace: namespace,
-    plural: 'workshops',
-  });
 }
 
 function fetchApiSession() {
@@ -979,8 +966,8 @@ async function deleteK8sObject<Type extends K8sObject>(definition: Type): Promis
   try {
     const resp = await apiFetch(path, { method: 'DELETE' });
     return await resp.json();
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error: unknown) {
+    if ((error as Response).status === 404) {
       return null;
     } else {
       throw error;
@@ -1034,7 +1021,7 @@ export async function deleteWorkshop(workshop: Workshop) {
 
 export async function getWorkshopsForMultiWorkshop(multiworkshop: MultiWorkshop): Promise<Workshop[]> {
   const workshops: Workshop[] = [];
-  
+
   // Get workshops directly from multiworkshop assets (only catalog type assets)
   if (multiworkshop.spec.assets) {
     for (const asset of multiworkshop.spec.assets) {
@@ -1051,14 +1038,17 @@ export async function getWorkshopsForMultiWorkshop(multiworkshop: MultiWorkshop)
             });
             workshops.push(workshop);
           } catch (error) {
-            console.warn(`Workshop ${workshopName} referenced in multiworkshop ${multiworkshop.metadata.name} not found:`, error);
+            console.warn(
+              `Workshop ${workshopName} referenced in multiworkshop ${multiworkshop.metadata.name} not found:`,
+              error,
+            );
             // Continue with other workshops even if one is missing
           }
         }
       }
     }
   }
-  
+
   return workshops;
 }
 
@@ -1074,7 +1064,7 @@ export async function deleteAssetFromMultiWorkshop({
   }
 
   const asset = multiworkshop.spec.assets[assetIndex];
-  
+
   // If it's a catalog asset with a workshop, delete the workshop first
   if (asset.type !== 'external') {
     const workshopName = asset.name || asset.key;
@@ -1093,11 +1083,11 @@ export async function deleteAssetFromMultiWorkshop({
       }
     }
   }
-  
+
   // Remove the asset from the multiworkshop
   const updatedAssets = [...multiworkshop.spec.assets];
   updatedAssets.splice(assetIndex, 1);
-  
+
   return await patchMultiWorkshop({
     name: multiworkshop.metadata.name,
     namespace: multiworkshop.metadata.namespace,
@@ -1112,7 +1102,7 @@ export async function deleteAssetFromMultiWorkshop({
 export async function deleteMultiWorkshop(multiworkshop: MultiWorkshop) {
   // First, delete all associated workshops
   const workshops = await getWorkshopsForMultiWorkshop(multiworkshop);
-  
+
   for (const workshop of workshops) {
     try {
       await deleteWorkshop(workshop);
@@ -1121,7 +1111,7 @@ export async function deleteMultiWorkshop(multiworkshop: MultiWorkshop) {
       // Continue with other workshops even if one fails
     }
   }
-  
+
   // Then delete the multiworkshop itself
   return await deleteK8sObject(multiworkshop);
 }
@@ -1138,14 +1128,21 @@ export async function createMultiWorkshop(multiworkshopData: {
   'purpose-activity'?: string;
   backgroundImage?: string;
   logoImage?: string;
-  assets?: Array<{ key: string; name: string; namespace: string; displayName?: string; description?: string; type?: 'Workshop' | 'external' }>;
+  assets?: Array<{
+    key: string;
+    name: string;
+    namespace: string;
+    displayName?: string;
+    description?: string;
+    type?: 'Workshop' | 'external';
+  }>;
   namespace: string;
 }): Promise<MultiWorkshop> {
   const session = await getApiSession();
-  
+
   // Generate Kubernetes-compliant resource name from the display name
   const multiworkshopName = generateK8sNameWithSuffix(multiworkshopData.name);
-  
+
   // Create MultiWorkshop CRD definition
   const definition: MultiWorkshop = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -1164,7 +1161,7 @@ export async function createMultiWorkshop(multiworkshopData: {
       endDate: multiworkshopData.endDate,
     },
   };
-  
+
   // Add optional fields if provided
   if (multiworkshopData.description) {
     definition.spec.description = multiworkshopData.description;
@@ -1193,7 +1190,7 @@ export async function createMultiWorkshop(multiworkshopData: {
   if (multiworkshopData['purpose-activity']) {
     definition.spec['purpose-activity'] = multiworkshopData['purpose-activity'];
   }
-  
+
   return await createK8sObject(definition);
 }
 
@@ -1229,18 +1226,18 @@ export async function createWorkshopFromAssetWithRetry({
   multiworkshopUid: string;
   namespace: string;
   asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
-  multiworkshopData: any;
+  multiworkshopData: Record<string, unknown>;
   catalogItem?: CatalogItem;
   retryCount?: number;
   delay?: number;
 }): Promise<Workshop> {
   // Add initial delay to stagger requests
   if (delay > 0) {
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
-  
+
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= retryCount; attempt++) {
     try {
       return await createWorkshopFromAsset({
@@ -1251,25 +1248,26 @@ export async function createWorkshopFromAssetWithRetry({
         multiworkshopData,
         catalogItem,
       });
-    } catch (error: any) {
-      lastError = error;
-      console.warn(`Attempt ${attempt}/${retryCount} failed for workshop creation of asset ${asset.key}:`, error.message);
-      
+    } catch (error: unknown) {
+      lastError = error as Error;
+      console.warn(
+        `Attempt ${attempt}/${retryCount} failed for workshop creation of asset ${asset.key}:`,
+        (error as Error).message,
+      );
+
       // If this is the last attempt, throw the error
       if (attempt === retryCount) {
         throw lastError;
       }
-      
+
       // Wait before retrying (exponential backoff)
       const retryDelay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
   }
-  
+
   throw lastError;
 }
-
-
 
 export async function createWorkshopFromAsset({
   multiworkshopName,
@@ -1283,7 +1281,7 @@ export async function createWorkshopFromAsset({
   multiworkshopUid: string;
   namespace: string;
   asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
-  multiworkshopData: any;
+  multiworkshopData: Record<string, unknown>;
   catalogItem?: CatalogItem;
 }): Promise<Workshop> {
   if (!catalogItem) {
@@ -1292,16 +1290,16 @@ export async function createWorkshopFromAsset({
 
   // Generate custom workshop name combining multiworkshop and catalog item names
   const baseWorkshopName = `${multiworkshopName}-${catalogItem.metadata.name}`;
-  
+
   const session = await getApiSession();
-  
+
   // Create ServiceNamespace object from namespace string
   const serviceNamespace: ServiceNamespace = {
     name: namespace,
     displayName: namespace,
     requester: '',
   };
-  
+
   // Use the existing createWorkshop function with MultiWorkshop-specific parameters
   return await createWorkshop({
     catalogItem,
@@ -1309,8 +1307,8 @@ export async function createWorkshopFromAsset({
     displayName: asset.displayName || `${multiworkshopData.name} - ${asset.key}`,
     openRegistration: true,
     serviceNamespace,
-    startDate: multiworkshopData.startDate ? new Date(multiworkshopData.startDate) : undefined,
-    endDate: multiworkshopData.endDate ? new Date(multiworkshopData.endDate) : undefined,
+    startDate: multiworkshopData.startDate ? new Date(multiworkshopData.startDate as string) : undefined,
+    endDate: multiworkshopData.endDate ? new Date(multiworkshopData.endDate as string) : undefined,
     email: session.user,
     parameterValues: {
       purpose: multiworkshopData.purpose,
@@ -1345,18 +1343,18 @@ export async function createWorkshopProvisionFromAsset({
   asset: { key: string; name: string; namespace: string };
   multiworkshopName: string;
   multiworkshopUid: string;
-  multiworkshopData: any;
+  multiworkshopData: Record<string, unknown>;
   catalogItem?: CatalogItem;
 }): Promise<WorkshopProvision> {
   if (!catalogItem) {
     throw new Error('CatalogItem is required for creating WorkshopProvision');
   }
-  
+
   // Use the existing createWorkshopProvision function
   const provision = await createWorkshopProvision({
     catalogItem,
     concurrency: 10,
-    count: multiworkshopData.numberSeats || 1,
+    count: (multiworkshopData.numberSeats as number) || 1,
     parameters: {
       purpose: multiworkshopData.purpose,
       purpose_activity: multiworkshopData['purpose-activity'],
@@ -1368,7 +1366,7 @@ export async function createWorkshopProvisionFromAsset({
     useAutoDetach: false,
     usePoolIfAvailable: true,
   });
-  
+
   // Update the provision with MultiWorkshop-specific metadata
   return await patchK8sObject<WorkshopProvision>({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -1587,7 +1585,7 @@ export async function patchResourceClaim(namespace: string, name: string, patch:
   )) as ResourceClaim;
 }
 
-export async function patchResourcePool(name: string, patch: any) {
+export async function patchResourcePool(name: string, patch: Record<string, unknown>) {
   return (await patchNamespacedCustomObject(
     'poolboy.gpte.redhat.com',
     'v1',
@@ -1647,7 +1645,7 @@ export async function requestStatusForAllResourcesInResourceClaim(resourceClaim:
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
   const resourcesToRequestStatus = [];
-  for (const resource of resourceClaim.status?.resources) {
+  for (const resource of resourceClaim.status?.resources || []) {
     if (canExecuteAction(resource.state, 'status')) {
       resourcesToRequestStatus.push(resource.name);
     }
@@ -1691,6 +1689,7 @@ export async function scheduleStopResourceClaim(resourceClaim: ResourceClaim, da
 
 export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: ResourceClaim, date: Date) {
   const stopTimestamp = dateToApiString(date);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let patch: any = {};
   if (resourceClaim.spec?.provider?.parameterValues?.['stop_timestamp']) {
     patch = {
@@ -1707,7 +1706,7 @@ export async function scheduleStopForAllResourcesInResourceClaim(resourceClaim: 
       spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
     };
     const resourcesToStop = [];
-    for (const resource of resourceClaim.status?.resources) {
+    for (const resource of resourceClaim.status?.resources || []) {
       if (canExecuteAction(resource.state, 'stop')) {
         resourcesToStop.push(resource.name);
       }
@@ -1757,7 +1756,7 @@ export async function scheduleStartForAllResourcesInResourceClaim(
     spec: JSON.parse(JSON.stringify(resourceClaim.spec)),
   };
   const resourcesToStart = [];
-  for (const resource of resourceClaim.status?.resources) {
+  for (const resource of resourceClaim.status?.resources || []) {
     if (canExecuteAction(resource.state, 'start')) {
       resourcesToStart.push(resource.name);
     }
@@ -2049,10 +2048,11 @@ export function setProvisionRating(
 
 export const SERVICES_KEY = ({ namespace }: { namespace: string }) => `services/${namespace}`;
 
-export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
+export const apiPaths = {
   CATALOG_ITEM: ({ namespace, name }: { namespace: string; name: string }): string =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
-  ASSET_METRICS: ({ asset_uuid }: { asset_uuid: string }) => `/api/catalog_item/metrics/${asset_uuid}`,
+  ASSET_METRICS: ({ asset_uuid, environment }: { asset_uuid: string; environment?: string }) =>
+    `/api/catalog_item/metrics/${asset_uuid}${environment ? `?environment=${environment}` : ''}`,
   CATALOG_ITEMS: ({
     namespace,
     limit,
@@ -2229,10 +2229,14 @@ export const apiPaths: { [key in ResourceType]: (args: any) => string } = {
   EXTERNAL_ITEM_REQUEST: ({ asset_uuid }: { asset_uuid: string }) => `/api/external_item/${asset_uuid}/request`,
   USAGE_COST_REQUEST: ({ requestId }: { requestId: string }) => `/api/usage-cost/request/${requestId}`,
   USAGE_COST_WORKSHOP: ({ workshopId }: { workshopId: string }) => `/api/usage-cost/workshop/${workshopId}`,
-  CATALOG_ITEM_CHECK_AVAILABILITY: ({ agnosticvName }: { agnosticvName: string }) => `/api/${agnosticvName}/check-availability`,
+  CATALOG_ITEM_CHECK_AVAILABILITY: ({ agnosticvName }: { agnosticvName: string }) =>
+    `/api/${agnosticvName}/check-availability`,
 };
 
-export async function checkCatalogItemAvailability(agnosticvName: string, resources: Array<{kind: string, annotations?: Record<string, string>}>): Promise<AvailabilityCheckResponse> {
+export async function checkCatalogItemAvailability(
+  agnosticvName: string,
+  resources: Array<{ kind: string; annotations?: Record<string, string> }>,
+): Promise<AvailabilityCheckResponse> {
   const response = await apiFetch(apiPaths.CATALOG_ITEM_CHECK_AVAILABILITY({ agnosticvName }), {
     method: 'POST',
     body: JSON.stringify(resources),

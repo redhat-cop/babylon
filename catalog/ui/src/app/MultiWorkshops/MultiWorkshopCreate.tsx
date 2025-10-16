@@ -31,9 +31,24 @@ import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import BetaBadge from '@app/components/BetaBadge';
-import { createMultiWorkshop, dateToApiString, createWorkshopFromAssetWithRetry, createWorkshopProvisionFromAsset, patchMultiWorkshop, fetcher, apiPaths, silentFetcher } from '@app/api';
+import {
+  createMultiWorkshop,
+  dateToApiString,
+  createWorkshopFromAssetWithRetry,
+  createWorkshopProvisionFromAsset,
+  patchMultiWorkshop,
+  fetcher,
+  apiPaths,
+  silentFetcher,
+} from '@app/api';
 import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable } from '@app/types';
-import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
+import {
+  compareK8sObjectsArr,
+  displayName,
+  FETCH_BATCH_LIMIT,
+  getStageFromK8sObject,
+  isResourceClaimPartOfWorkshop,
+} from '@app/util';
 import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
 import SalesforceIdField from './SalesforceIdField';
@@ -43,7 +58,6 @@ import DateTimePicker from '@app/components/DateTimePicker';
 import purposeOptions from './purposeOptions.json';
 
 import './multiworkshop-create.css';
-
 
 export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
   const items = [];
@@ -68,7 +82,7 @@ const MultiWorkshopCreate: React.FC = () => {
     const now = new Date();
     // Default provisioning start date is current time
     // Ready by date will be 8 hours after provisioning start
-    const defaultProvisioningDate = now; 
+    const defaultProvisioningDate = now;
     const endDateTime = new Date(now.getTime() + 32 * 60 * 60 * 1000); // 24h after ready by date (now + 8h + 24h)
 
     return {
@@ -84,7 +98,16 @@ const MultiWorkshopCreate: React.FC = () => {
       explanation: '',
       backgroundImage: '',
       logoImage: '',
-      assets: [{ key: '', name: '', namespace: '', displayName: '', description: '', type: 'Workshop' as 'Workshop' | 'external' }]
+      assets: [
+        {
+          key: '',
+          name: '',
+          namespace: '',
+          displayName: '',
+          description: '',
+          type: 'Workshop' as 'Workshop' | 'external',
+        },
+      ],
     };
   });
 
@@ -96,16 +119,18 @@ const MultiWorkshopCreate: React.FC = () => {
           limit: 'ALL',
         })
       : null,
-      () => fetcherItemsInAllPages((continueId) =>
-        apiPaths.RESOURCE_CLAIMS({
-          namespace: selectedNamespace.name,
-          limit: FETCH_BATCH_LIMIT,
-          continueId,
-        }),
+    () =>
+      fetcherItemsInAllPages(
+        (continueId) =>
+          apiPaths.RESOURCE_CLAIMS({
+            namespace: selectedNamespace.name,
+            limit: FETCH_BATCH_LIMIT,
+            continueId,
+          }),
         {
           refreshInterval: 8000,
           compare: compareK8sObjectsArr,
-        },  
+        },
       ),
   );
 
@@ -113,26 +138,33 @@ const MultiWorkshopCreate: React.FC = () => {
   const currentServices: ResourceClaim[] = useMemo(
     () =>
       Array.isArray(userResourceClaims)
-        ? [].concat(...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r) && !r.metadata.deletionTimestamp))
+        ? [].concat(
+            ...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r) && !r.metadata.deletionTimestamp),
+          )
         : [],
     [userResourceClaims],
   );
 
   // Get catalog items for metrics fetching
-  const validAssets = useMemo(() => 
-    createFormData.assets.filter(asset => 
-      asset.type !== 'external' && 
-      asset.key.trim() !== '' && 
-      asset.name.trim() !== '' && 
-      asset.namespace.trim() !== ''
-    ),
+  const validAssets = useMemo(
+    () =>
+      createFormData.assets.filter(
+        (asset) =>
+          asset.type !== 'external' &&
+          asset.key.trim() !== '' &&
+          asset.name.trim() !== '' &&
+          asset.namespace.trim() !== '',
+      ),
     [createFormData.assets],
   );
 
   // Create a stable key for catalog items fetching
   const catalogItemsKey = useMemo(() => {
     if (validAssets.length === 0) return null;
-    return `catalogItems-${validAssets.map(asset => `${asset.namespace}.${asset.key}`).sort().join('|')}`;
+    return `catalogItems-${validAssets
+      .map((asset) => `${asset.namespace}.${asset.key}`)
+      .sort()
+      .join('|')}`;
   }, [validAssets]);
 
   // Fetch all catalog items
@@ -141,9 +173,9 @@ const MultiWorkshopCreate: React.FC = () => {
     async () => {
       if (!validAssets.length) return [];
       const results = await Promise.allSettled(
-        validAssets.map(asset => 
-          silentFetcher(apiPaths.CATALOG_ITEM({ namespace: asset.namespace, name: asset.key }))
-        )
+        validAssets.map((asset) =>
+          silentFetcher(apiPaths.CATALOG_ITEM({ namespace: asset.namespace, name: asset.key })),
+        ),
       );
       return results.map((result, index) => ({
         asset: validAssets[index],
@@ -176,20 +208,21 @@ const MultiWorkshopCreate: React.FC = () => {
       const metricsPromises = catalogItemsData.data.map(async ({ asset, catalogItem }) => {
         // Skip if catalog item not found
         if (!catalogItem) return { asset, metrics: null, error: 'Catalog item not found' };
-        
+
         // Skip if no asset UUID (catalog item has no metrics)
         const asset_uuid = catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid'];
+        const stage = getStageFromK8sObject(catalogItem);
         if (!asset_uuid) return { asset, metrics: null, error: null }; // Not an error, just no metrics available
-        
+
         // Try to fetch metrics, silentFetcher returns null for 404 or other errors
-        const metrics = await silentFetcher(apiPaths.ASSET_METRICS({ asset_uuid }));
-        return { 
-          asset, 
-          metrics, 
-          error: metrics === null ? null : null // silentFetcher already handles errors by returning null
+        const metrics = await silentFetcher(apiPaths.ASSET_METRICS({ asset_uuid, environment: stage }));
+        return {
+          asset,
+          metrics,
+          error: metrics === null ? null : null, // silentFetcher already handles errors by returning null
         };
       });
-      
+
       return Promise.all(metricsPromises);
     },
     {
@@ -198,17 +231,17 @@ const MultiWorkshopCreate: React.FC = () => {
     },
   );
 
-  // Calculate how many catalog assets will be created (each counts as 1 service)  
+  // Calculate how many catalog assets will be created (each counts as 1 service)
   const catalogAssetsCount = validAssets.length;
 
   // Calculate estimates based on metrics data
   const estimates = useMemo(() => {
     if (!metricsData.data || !catalogItemsData.data) {
-      return { 
-        totalProvisionTime: null, 
-        totalCost: null, 
-        itemsWithMetrics: 0, 
-        totalItems: validAssets.length 
+      return {
+        totalProvisionTime: null,
+        totalCost: null,
+        itemsWithMetrics: 0,
+        totalItems: validAssets.length,
       };
     }
 
@@ -222,17 +255,17 @@ const MultiWorkshopCreate: React.FC = () => {
       // Only process items that have valid metrics data
       if (!metrics) return;
       itemsWithMetrics++;
-      
+
       if (metrics.medianProvisionHour && metrics.medianProvisionHour > 0) {
         totalProvisionHours = Math.max(totalProvisionHours, metrics.medianProvisionHour * 1.1);
         hasProvisionData = true;
       }
-      
+
       if (metrics.medianLifetimeCostByHour && metrics.medianLifetimeCostByHour > 0) {
         const catalogItemData = catalogItemsData.data[index];
         const catalogItem = catalogItemData?.catalogItem;
         const hourlyCost = metrics.medianLifetimeCostByHour * 1.1;
-        
+
         // For multiuser catalog items, don't multiply by seats (one instance serves all users)
         // For single-user catalog items, multiply by seats (each user needs their own instance)
         const isMultiuser = catalogItem?.spec?.multiuser === true;
@@ -255,38 +288,46 @@ const MultiWorkshopCreate: React.FC = () => {
       itemsWithMetrics,
       totalItems: validAssets.length,
     };
-  }, [metricsData.data, catalogItemsData.data, createFormData.startDate, createFormData.endDate, createFormData.numberSeats, validAssets.length]);
+  }, [
+    metricsData.data,
+    catalogItemsData.data,
+    createFormData.startDate,
+    createFormData.endDate,
+    createFormData.numberSeats,
+    validAssets.length,
+  ]);
 
   const wouldExceedQuota = useMemo(() => {
     if (isAdmin) return false;
-    return (currentServices.length + catalogAssetsCount) > 5;
+    return currentServices.length + catalogAssetsCount > 5;
   }, [currentServices.length, catalogAssetsCount, isAdmin]);
 
-  const isFormValid = createFormData.name && 
-                      createFormData.startDate && 
-                      createFormData.endDate &&
-                      createFormData.activity &&
-                      createFormData.purpose &&
-                      (isAdmin || (createFormData.salesforceId && createFormData.salesforceType)) &&
-                      !wouldExceedQuota;
+  const isFormValid =
+    createFormData.name &&
+    createFormData.startDate &&
+    createFormData.endDate &&
+    createFormData.activity &&
+    createFormData.purpose &&
+    (isAdmin || (createFormData.salesforceId && createFormData.salesforceType)) &&
+    !wouldExceedQuota;
 
   async function onCreateMultiWorkshop(): Promise<void> {
     if (!isFormValid) return;
-    
+
     setIsSubmitting(true);
     try {
       // Filter out empty assets and include key, name, namespace, displayName, and description fields
       const filteredAssets = createFormData.assets
-        .filter(asset => asset.key.trim() !== '' && asset.name.trim() !== '' && asset.namespace.trim() !== '')
-        .map(asset => ({ 
+        .filter((asset) => asset.key.trim() !== '' && asset.name.trim() !== '' && asset.namespace.trim() !== '')
+        .map((asset) => ({
           key: asset.key.trim(),
           name: asset.name.trim(),
           namespace: asset.namespace.trim(),
           ...(asset.displayName?.trim() && { displayName: asset.displayName.trim() }),
           ...(asset.description?.trim() && { description: asset.description.trim() }),
-          type: asset.type || 'Workshop'
+          type: asset.type || 'Workshop',
         }));
-      
+
       const payload = {
         name: createFormData.name,
         startDate: dateToApiString(createFormData.startDate),
@@ -305,9 +346,9 @@ const MultiWorkshopCreate: React.FC = () => {
 
       // Create the MultiWorkshop first
       const createdMultiWorkshop = await createMultiWorkshop(payload);
-      
+
       // If we have catalog assets, create workshops and provisions for them
-      const catalogAssets = filteredAssets.filter(asset => !asset.type || asset.type === 'Workshop');
+      const catalogAssets = filteredAssets.filter((asset) => !asset.type || asset.type === 'Workshop');
       if (catalogAssets.length > 0) {
         // Process catalog assets in parallel with proper error handling
         const assetResults = await Promise.allSettled(
@@ -316,15 +357,17 @@ const MultiWorkshopCreate: React.FC = () => {
               // Get catalog item to verify it exists and get metadata
               let catalogItem: CatalogItem | undefined;
               try {
-                catalogItem = await fetcher(apiPaths.CATALOG_ITEM({ 
-                  namespace: asset.namespace, 
-                  name: asset.key 
-                }));
+                catalogItem = await fetcher(
+                  apiPaths.CATALOG_ITEM({
+                    namespace: asset.namespace,
+                    name: asset.key,
+                  }),
+                );
               } catch (error) {
                 console.warn(`Could not fetch catalog item ${asset.key} from namespace ${asset.namespace}:`, error);
                 throw new Error(`Catalog item ${asset.key} not found in namespace ${asset.namespace}`);
               }
-              
+
               // Create workshop for this asset with retry logic
               const workshop = await createWorkshopFromAssetWithRetry({
                 multiworkshopName: createdMultiWorkshop.metadata.name,
@@ -341,7 +384,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 retryCount: 3,
                 delay: index * 100, // Stagger creation to avoid naming conflicts
               });
-              
+
               // Create workshop provision for this asset
               await createWorkshopProvisionFromAsset({
                 workshop,
@@ -356,7 +399,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 },
                 catalogItem,
               });
-              
+
               // Return updated asset with workshop name
               return {
                 success: true,
@@ -366,24 +409,24 @@ const MultiWorkshopCreate: React.FC = () => {
                 },
                 error: null,
               };
-              
             } catch (error: unknown) {
               console.error(`Failed to create workshop for asset ${asset.key}:`, error);
               return {
                 success: false,
                 asset: asset,
-                error: error && typeof error === 'object' && 'message' in error
-                  ? (error as {message: string}).message
-                  : String(error) || 'Unknown error',
+                error:
+                  error && typeof error === 'object' && 'message' in error
+                    ? (error as { message: string }).message
+                    : String(error) || 'Unknown error',
               };
             }
-          })
+          }),
         );
-        
+
         // Collect results and separate successful from failed
         const updatedAssets = [];
         const failedAssets = [];
-        
+
         assetResults.forEach((result, index) => {
           if (result.status === 'fulfilled') {
             if (result.value.success) {
@@ -406,11 +449,11 @@ const MultiWorkshopCreate: React.FC = () => {
             updatedAssets.push(catalogAssets[index]);
           }
         });
-        
+
         // Include external assets unchanged
-        const externalAssets = filteredAssets.filter(asset => asset.type === 'external');
+        const externalAssets = filteredAssets.filter((asset) => asset.type === 'external');
         updatedAssets.push(...externalAssets);
-        
+
         // Update the MultiWorkshop with workshop information
         try {
           await patchMultiWorkshop({
@@ -425,11 +468,12 @@ const MultiWorkshopCreate: React.FC = () => {
         } catch (error) {
           console.error('Failed to update MultiWorkshop with workshop information:', error);
         }
-        
+
         // Log summary of results
         if (failedAssets.length > 0) {
-          console.warn(`Failed to create workshops for ${failedAssets.length} assets:`, 
-            failedAssets.map(f => `${f.asset.key}: ${f.error}`).join(', ')
+          console.warn(
+            `Failed to create workshops for ${failedAssets.length} assets:`,
+            failedAssets.map((f) => `${f.asset.key}: ${f.error}`).join(', '),
           );
         }
       }
@@ -444,25 +488,33 @@ const MultiWorkshopCreate: React.FC = () => {
   }
 
   function updateAsset(index: number, field: string, value: string) {
-    setCreateFormData(prev => ({
+    setCreateFormData((prev) => ({
       ...prev,
-      assets: prev.assets.map((asset, i) => 
-        i === index ? { ...asset, [field]: value } : asset
-      )
+      assets: prev.assets.map((asset, i) => (i === index ? { ...asset, [field]: value } : asset)),
     }));
   }
 
   function addAsset() {
-    setCreateFormData(prev => ({
+    setCreateFormData((prev) => ({
       ...prev,
-      assets: [...prev.assets, { key: '', name: '', namespace: '', displayName: '', description: '', type: 'Workshop' as 'Workshop' | 'external' }]
+      assets: [
+        ...prev.assets,
+        {
+          key: '',
+          name: '',
+          namespace: '',
+          displayName: '',
+          description: '',
+          type: 'Workshop' as 'Workshop' | 'external',
+        },
+      ],
     }));
   }
 
   function removeAsset(index: number) {
-    setCreateFormData(prev => ({
+    setCreateFormData((prev) => ({
       ...prev,
-      assets: prev.assets.filter((_, i) => i !== index)
+      assets: prev.assets.filter((_, i) => i !== index),
     }));
   }
 
@@ -474,50 +526,50 @@ const MultiWorkshopCreate: React.FC = () => {
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
     // Handle multi-select (array of catalog items)
     if (Array.isArray(catalogItemOrItems)) {
-      const newAssets = catalogItemOrItems.map(catalogItem => ({
+      const newAssets = catalogItemOrItems.map((catalogItem) => ({
         key: catalogItem.metadata.name,
         name: catalogItem.metadata.name,
         namespace: catalogItem.metadata.namespace,
         displayName: displayName(catalogItem),
         description: '',
-        type: 'Workshop' as 'Workshop' | 'external'
+        type: 'Workshop' as 'Workshop' | 'external',
       }));
 
-      setCreateFormData(prev => {
+      setCreateFormData((prev) => {
         // Filter out empty assets and add the new selected ones
-        const nonEmptyAssets = prev.assets.filter(asset => 
-          asset.key.trim() !== '' || asset.name.trim() !== '' || asset.namespace.trim() !== ''
+        const nonEmptyAssets = prev.assets.filter(
+          (asset) => asset.key.trim() !== '' || asset.name.trim() !== '' || asset.namespace.trim() !== '',
         );
         return {
           ...prev,
-          assets: [...nonEmptyAssets, ...newAssets]
+          assets: [...nonEmptyAssets, ...newAssets],
         };
       });
-    } 
+    }
     // Handle single select (single catalog item)
     else if (currentAssetIndex !== null) {
       const catalogItem = catalogItemOrItems;
       const key = catalogItem.metadata.name;
       const namespace = catalogItem.metadata.namespace;
       const workshopDisplayName = displayName(catalogItem);
-      
-      setCreateFormData(prev => ({
+
+      setCreateFormData((prev) => ({
         ...prev,
-        assets: prev.assets.map((asset, i) => 
-          i === currentAssetIndex 
-            ? { 
-                ...asset, 
+        assets: prev.assets.map((asset, i) =>
+          i === currentAssetIndex
+            ? {
+                ...asset,
                 key,
                 name: key,
                 namespace,
                 displayName: workshopDisplayName,
-                type: 'Workshop' as 'Workshop' | 'external'
-              } 
-            : asset
-        )
+                type: 'Workshop' as 'Workshop' | 'external',
+              }
+            : asset,
+        ),
       }));
     }
-    
+
     setIsCatalogSelectorOpen(false);
     setCurrentAssetIndex(null);
   }
@@ -532,7 +584,12 @@ const MultiWorkshopCreate: React.FC = () => {
       <PageSection variant="default">
         <Breadcrumb>
           <BreadcrumbItem>
-            <Button variant="link" onClick={() => navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')}>
+            <Button
+              variant="link"
+              onClick={() =>
+                navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')
+              }
+            >
               Multi Asset Workshop
             </Button>
           </BreadcrumbItem>
@@ -541,41 +598,44 @@ const MultiWorkshopCreate: React.FC = () => {
         <Title headingLevel="h1" size="2xl">
           Create Multi Asset Workshop
         </Title>
-        
+
         {/* Early Release Notice */}
-        <Alert 
-          variant="warning" 
-          title="Early Release - Limited Catalog Items Available"
-          style={{ marginTop: '16px' }}
-        >
+        <Alert variant="warning" title="Early Release - Limited Catalog Items Available" style={{ marginTop: '16px' }}>
           <p>
-            <strong>This is an early release</strong> of the Multi Asset Workshop feature. Currently, only a few catalog items are available for selection, but we will be expanding the catalog in the upcoming weeks.
+            <strong>This is an early release</strong> of the Multi Asset Workshop feature. Currently, only a few catalog
+            items are available for selection, but we will be expanding the catalog in the upcoming weeks.
           </p>
           <p style={{ marginTop: '8px' }}>
-            We&apos;re actively working to improve this experience and would love your feedback! Please share your thoughts and suggestions with us via the{' '}
+            We&apos;re actively working to improve this experience and would love your feedback! Please share your
+            thoughts and suggestions with us via the{' '}
             <a href="https://app.slack.com/client/E030G10V24F/C04N203SNUW" target="_blank" rel="noopener noreferrer">
               Slack forum
             </a>{' '}
             or{' '}
-            <a href="https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfwGW7ql2lDfaLDpg4Bgj_puFEVsM0El6-Nz8fyH48RnGLDrA/viewform?usp=sf_link"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               provide feedback through our form
-            </a>.
+            </a>
+            .
           </p>
         </Alert>
 
         {/* Informational Banner */}
-        <Alert 
-          variant="info" 
+        <Alert
+          variant="info"
           title="Multi Asset Workshop - Multi-Catalog Item Collections"
           style={{ marginTop: '16px' }}
         >
           <p>
-            This tool is designed for creating multi workshops that use <strong>multiple catalog items</strong>. 
-            If your workshop only uses one catalog item, please go through the normal catalog ordering process instead.
+            This tool is designed for creating multi workshops that use <strong>multiple catalog items</strong>. If your
+            workshop only uses one catalog item, please go through the normal catalog ordering process instead.
           </p>
           <p style={{ marginTop: '8px' }}>
-            <strong>Current Availability:</strong> This feature is currently focused on labs migrated from external providers. 
-            In the future, it will be rolled out to additional catalog items as well.
+            <strong>Current Availability:</strong> This feature is currently focused on labs migrated from external
+            providers. In the future, it will be rolled out to additional catalog items as well.
           </p>
           <p style={{ marginTop: '8px' }}>
             If you need assistance or our workshop white glove service, please{' '}
@@ -585,455 +645,457 @@ const MultiWorkshopCreate: React.FC = () => {
             or reach out via the{' '}
             <a href="https://app.slack.com/client/E030G10V24F/C04N203SNUW" target="_blank" rel="noopener noreferrer">
               Slack forum
-            </a>.
+            </a>
+            .
           </p>
         </Alert>
       </PageSection>
 
       <PageSection>
         <Form className="multiworkshop-create__form">
-              {(isAdmin || serviceNamespaces.length > 1) && (
-                <FormGroup label="Create Multi Asset Workshop in Project" fieldId="project-selector">
-                  <ProjectSelector
-                    currentNamespaceName={selectedNamespace?.name}
-                    onSelect={(namespace) => setSelectedNamespace(namespace)}
-                    isPlain={false}
-                    hideLabel={true}
+          {(isAdmin || serviceNamespaces.length > 1) && (
+            <FormGroup label="Create Multi Asset Workshop in Project" fieldId="project-selector">
+              <ProjectSelector
+                currentNamespaceName={selectedNamespace?.name}
+                onSelect={(namespace) => setSelectedNamespace(namespace)}
+                isPlain={false}
+                hideLabel={true}
+              />
+            </FormGroup>
+          )}
+
+          <FormGroup label="Name" isRequired fieldId="name">
+            <TextInput
+              isRequired
+              type="text"
+              id="name"
+              name="name"
+              value={createFormData.name}
+              onChange={(_, value) => setCreateFormData((prev) => ({ ...prev, name: value }))}
+              placeholder="Enter multi workshop name (visible to customers in the landing page)"
+            />
+          </FormGroup>
+
+          <FormGroup label="Description" fieldId="description">
+            <TextArea
+              id="description"
+              name="description"
+              value={createFormData.description}
+              onChange={(_, value) => setCreateFormData((prev) => ({ ...prev, description: value }))}
+              placeholder="Enter description (optional, visible to customers in the landing page)"
+              rows={3}
+            />
+          </FormGroup>
+
+          {/* Background and Logo Images */}
+          <FormGroup
+            label={
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                Landing Page Images
+                <Tooltip
+                  position="right"
+                  content={
+                    <p>
+                      These images will be displayed to customers on the workshop landing page to provide visual context
+                      and branding.
+                    </p>
+                  }
+                >
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Landing page image information"
+                    className="tooltip-icon-only"
+                    style={{ marginLeft: '8px' }}
+                  />
+                </Tooltip>
+              </div>
+            }
+            fieldId="landingPageImages"
+          >
+            <Split hasGutter>
+              <SplitItem isFilled>
+                <FormGroup label="Background Image URL" fieldId="backgroundImage">
+                  <TextInput
+                    id="backgroundImage"
+                    name="backgroundImage"
+                    value={createFormData.backgroundImage}
+                    onChange={(_, value) => setCreateFormData((prev) => ({ ...prev, backgroundImage: value }))}
+                    placeholder="Optional background image URL"
                   />
                 </FormGroup>
-              )}
-
-              <FormGroup label="Name" isRequired fieldId="name">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={createFormData.name}
-                  onChange={(_, value) => setCreateFormData(prev => ({ ...prev, name: value }))}
-                  placeholder="Enter multi workshop name (visible to customers in the landing page)"
-                />
-              </FormGroup>
-
-              <FormGroup label="Description" fieldId="description">
-                <TextArea
-                  id="description"
-                  name="description"
-                  value={createFormData.description}
-                  onChange={(_, value) => setCreateFormData(prev => ({ ...prev, description: value }))}
-                  placeholder="Enter description (optional, visible to customers in the landing page)"
-                  rows={3}
-                />
-              </FormGroup>
-
-              {/* Background and Logo Images */}
-              <FormGroup 
-                label={
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    Landing Page Images
-                    <Tooltip
-                      position="right"
-                      content={
-                        <p>
-                          These images will be displayed to customers on the workshop landing page to provide visual context and branding.
-                        </p>
-                      }
-                    >
-                      <OutlinedQuestionCircleIcon
-                        aria-label="Landing page image information"
-                        className="tooltip-icon-only"
-                        style={{ marginLeft: '8px' }}
-                      />
-                    </Tooltip>
-                  </div>
-                }
-                fieldId="landingPageImages"
-              >
-                <Split hasGutter>
-                  <SplitItem isFilled>
-                    <FormGroup label="Background Image URL" fieldId="backgroundImage">
-                      <TextInput
-                        id="backgroundImage"
-                        name="backgroundImage"
-                        value={createFormData.backgroundImage}
-                        onChange={(_, value) => setCreateFormData(prev => ({ ...prev, backgroundImage: value }))}
-                        placeholder="Optional background image URL"
-                      />
-                    </FormGroup>
-                  </SplitItem>
-                  <SplitItem isFilled>
-                    <FormGroup label="Logo Image URL" fieldId="logoImage">
-                      <TextInput
-                        id="logoImage"
-                        name="logoImage"
-                        value={createFormData.logoImage}
-                        onChange={(_, value) => setCreateFormData(prev => ({ ...prev, logoImage: value }))}
-                        placeholder="Optional logo image URL"
-                      />
-                    </FormGroup>
-                  </SplitItem>
-                </Split>
-              </FormGroup>
-
-              {/* Workshop Dates - Provisioning Date first, then Ready by */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
-                {/* Provisioning Date */}
-                <FormGroup 
-                  fieldId="provisioningDate" 
-                  isRequired 
-                  label="Provisioning Start Date"
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                    <DateTimePicker
-                      key={`provisioning-${useDirectProvisioningDate}`}
-                      defaultTimestamp={createFormData.startDate?.getTime() || Date.now()}
-                      forceUpdateTimestamp={createFormData.startDate?.getTime()}
-                      isDisabled={useDirectProvisioningDate}
-                      onSelect={(d: Date) => {
-                        setCreateFormData(prev => {
-                          const actualStartDate = new Date(d.getTime() + 8 * 60 * 60 * 1000); // Actual start is 8 hours after provisioning
-                          const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
-                          return {
-                            ...prev,
-                            startDate: d, // Direct provisioning date control
-                            endDate: endDateTime,
-                          };
-                        });
-                      }}
-                      minDate={Date.now()}
-                    />
-                    <Tooltip
-                      position="right"
-                      content={
-                        <p>
-                          Select when you want the workshop provisioning to start.
-                        </p>
-                      }
-                    >
-                      <OutlinedQuestionCircleIcon
-                        aria-label="Select when you want the workshop provisioning to start."
-                        className="tooltip-icon-only"
-                      />
-                    </Tooltip>
-                  </div>
-                  
-                  {/* Provisioning Mode Switch - Admin Only */}
-                  {isAdmin && (
-                    <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                      <Switch
-                        id="provisioning-mode-switch"
-                        aria-label="Set ready by date"
-                        label={
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            Set ready by date
-                            <BetaBadge />
-                          </div>
-                        }
-                        isChecked={useDirectProvisioningDate}
-                        hasCheckIcon
-                        onChange={(_event, isChecked) => {
-                          setUseDirectProvisioningDate(isChecked);
-                        }}
-                      />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            When enabled, allows you to specify when the workshop should be ready by (8 hours after provisioning starts).
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="When enabled, allows you to specify when the workshop should be ready by."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  )}
+              </SplitItem>
+              <SplitItem isFilled>
+                <FormGroup label="Logo Image URL" fieldId="logoImage">
+                  <TextInput
+                    id="logoImage"
+                    name="logoImage"
+                    value={createFormData.logoImage}
+                    onChange={(_, value) => setCreateFormData((prev) => ({ ...prev, logoImage: value }))}
+                    placeholder="Optional logo image URL"
+                  />
                 </FormGroup>
+              </SplitItem>
+            </Split>
+          </FormGroup>
 
-                {/* Ready by Date - Only show when switch is enabled and user is admin */}
-                {isAdmin && useDirectProvisioningDate && (
-                  <FormGroup 
-                    fieldId="readyByDate" 
-                    label="Ready by"
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                      <DateTimePicker
-                        key={`ready-by-${useDirectProvisioningDate}`}
-                        defaultTimestamp={
-                          createFormData.startDate
-                            ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Show actual start date (8 hours after provisioning)
-                            : Date.now() + 8 * 60 * 60 * 1000
-                        }
-                        forceUpdateTimestamp={createFormData.startDate?.getTime() + 8 * 60 * 60 * 1000}
-                        onSelect={(d: Date) => {
-                          // Calculate provisioning date as 8 hours BEFORE ready by date
-                          const provisioningDate = new Date(d.getTime() - 8 * 60 * 60 * 1000);
-                          setCreateFormData(prev => {
-                            const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000); // End date based on ready by date
-                            return {
-                              ...prev,
-                              startDate: provisioningDate, // Internal API uses provisioning date as startDate
-                              endDate: endDateTime,
-                            };
-                          });
-                        }}
-                        minDate={Date.now() + 8 * 60 * 60 * 1000} // Minimum must account for 8-hour provisioning lead time
-                      />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            Select when you&apos;d like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  </FormGroup>
-                )}
+          {/* Workshop Dates - Provisioning Date first, then Ready by */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
+            {/* Provisioning Date */}
+            <FormGroup fieldId="provisioningDate" isRequired label="Provisioning Start Date">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                <DateTimePicker
+                  key={`provisioning-${useDirectProvisioningDate}`}
+                  defaultTimestamp={createFormData.startDate?.getTime() || Date.now()}
+                  forceUpdateTimestamp={createFormData.startDate?.getTime()}
+                  isDisabled={useDirectProvisioningDate}
+                  onSelect={(d: Date) => {
+                    setCreateFormData((prev) => {
+                      const actualStartDate = new Date(d.getTime() + 8 * 60 * 60 * 1000); // Actual start is 8 hours after provisioning
+                      const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
+                      return {
+                        ...prev,
+                        startDate: d, // Direct provisioning date control
+                        endDate: endDateTime,
+                      };
+                    });
+                  }}
+                  minDate={Date.now()}
+                />
+                <Tooltip position="right" content={<p>Select when you want the workshop provisioning to start.</p>}>
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Select when you want the workshop provisioning to start."
+                    className="tooltip-icon-only"
+                  />
+                </Tooltip>
               </div>
 
-              <Split hasGutter>
-                <SplitItem isFilled>
-                  <FormGroup label="Auto-destroy workshops" isRequired fieldId="endDate">
-                    <DateTimePicker
-                      key="end-date"
-                      defaultTimestamp={createFormData.endDate.getTime()}
-                      minDate={useDirectProvisioningDate 
-                        ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Min date is ready by date
-                        : createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Min date is 8 hours after provisioning
-                      }
-                      onSelect={(date: Date) => {
-                        setCreateFormData(prev => ({ ...prev, endDate: date }));
-                      }}
-                      forceUpdateTimestamp={createFormData.endDate?.getTime()}
+              {/* Provisioning Mode Switch - Admin Only */}
+              {isAdmin && (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                  <Switch
+                    id="provisioning-mode-switch"
+                    aria-label="Set ready by date"
+                    label={
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        Set ready by date
+                        <BetaBadge />
+                      </div>
+                    }
+                    isChecked={useDirectProvisioningDate}
+                    hasCheckIcon
+                    onChange={(_event, isChecked) => {
+                      setUseDirectProvisioningDate(isChecked);
+                    }}
+                  />
+                  <Tooltip
+                    position="right"
+                    content={
+                      <p>
+                        When enabled, allows you to specify when the workshop should be ready by (8 hours after
+                        provisioning starts).
+                      </p>
+                    }
+                  >
+                    <OutlinedQuestionCircleIcon
+                      aria-label="When enabled, allows you to specify when the workshop should be ready by."
+                      className="tooltip-icon-only"
                     />
-                    <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      Date and time are based on your device&apos;s timezone
+                  </Tooltip>
+                </div>
+              )}
+            </FormGroup>
+
+            {/* Ready by Date - Only show when switch is enabled and user is admin */}
+            {isAdmin && useDirectProvisioningDate && (
+              <FormGroup fieldId="readyByDate" label="Ready by">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                  <DateTimePicker
+                    key={`ready-by-${useDirectProvisioningDate}`}
+                    defaultTimestamp={
+                      createFormData.startDate
+                        ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Show actual start date (8 hours after provisioning)
+                        : Date.now() + 8 * 60 * 60 * 1000
+                    }
+                    forceUpdateTimestamp={createFormData.startDate?.getTime() + 8 * 60 * 60 * 1000}
+                    onSelect={(d: Date) => {
+                      // Calculate provisioning date as 8 hours BEFORE ready by date
+                      const provisioningDate = new Date(d.getTime() - 8 * 60 * 60 * 1000);
+                      setCreateFormData((prev) => {
+                        const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000); // End date based on ready by date
+                        return {
+                          ...prev,
+                          startDate: provisioningDate, // Internal API uses provisioning date as startDate
+                          endDate: endDateTime,
+                        };
+                      });
+                    }}
+                    minDate={Date.now() + 8 * 60 * 60 * 1000} // Minimum must account for 8-hour provisioning lead time
+                  />
+                  <Tooltip
+                    position="right"
+                    content={
+                      <p>
+                        Select when you&apos;d like the workshop to be ready. Provisioning will automatically begin 8
+                        hours before this time.
+                      </p>
+                    }
+                  >
+                    <OutlinedQuestionCircleIcon
+                      aria-label="Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time."
+                      className="tooltip-icon-only"
+                    />
+                  </Tooltip>
+                </div>
+              </FormGroup>
+            )}
+          </div>
+
+          <Split hasGutter>
+            <SplitItem isFilled>
+              <FormGroup label="Auto-destroy workshops" isRequired fieldId="endDate">
+                <DateTimePicker
+                  key="end-date"
+                  defaultTimestamp={createFormData.endDate.getTime()}
+                  minDate={
+                    useDirectProvisioningDate
+                      ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Min date is ready by date
+                      : createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Min date is 8 hours after provisioning
+                  }
+                  onSelect={(date: Date) => {
+                    setCreateFormData((prev) => ({ ...prev, endDate: date }));
+                  }}
+                  forceUpdateTimestamp={createFormData.endDate?.getTime()}
+                />
+                <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  Date and time are based on your device&apos;s timezone
+                </div>
+              </FormGroup>
+            </SplitItem>
+          </Split>
+
+          <FormGroup label="Number of Seats" fieldId="numberSeats">
+            <NumberInput
+              id="numberSeats"
+              value={createFormData.numberSeats}
+              onMinus={() => setCreateFormData((prev) => ({ ...prev, numberSeats: Math.max(1, prev.numberSeats - 1) }))}
+              onPlus={() => {
+                const maxSeats = isAdmin ? 200 : 30;
+                setCreateFormData((prev) => ({ ...prev, numberSeats: Math.min(maxSeats, prev.numberSeats + 1) }));
+              }}
+              onChange={(event) => {
+                const value = parseInt((event.target as HTMLInputElement).value) || 1;
+                const maxSeats = isAdmin ? 200 : 30;
+                setCreateFormData((prev) => ({ ...prev, numberSeats: Math.max(1, Math.min(maxSeats, value)) }));
+              }}
+              min={1}
+              max={isAdmin ? undefined : 30}
+            />
+            {!isAdmin && (
+              <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                Maximum 30 seats allowed.{' '}
+                <a
+                  href="https://red.ht/workshop-help"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--pf-t--global--color--brand--default)' }}
+                >
+                  Raise a ticket with our team
+                </a>{' '}
+                to request more seats.
+              </div>
+            )}
+          </FormGroup>
+
+          <ActivityPurposeSelector
+            value={{
+              purpose: createFormData.purpose,
+              activity: createFormData.activity,
+              explanation: createFormData.explanation,
+            }}
+            purposeOpts={purposeOptions as TPurposeOpts}
+            onChange={(activity: string, purpose: string, explanation: string) => {
+              setCreateFormData((prev) => ({
+                ...prev,
+                activity: activity || '',
+                purpose: purpose || '',
+                explanation: explanation || '',
+              }));
+            }}
+          />
+
+          <SalesforceIdField
+            value={createFormData.salesforceId}
+            onChange={(value) => setCreateFormData((prev) => ({ ...prev, salesforceId: value }))}
+            salesforceType={createFormData.salesforceType}
+            onTypeChange={(type) => setCreateFormData((prev) => ({ ...prev, salesforceType: type }))}
+            fieldId="salesforceId"
+            isRequired={!isAdmin}
+          />
+
+          <FormGroup label="Assets" fieldId="assets">
+            {createFormData.assets.map((asset, index) => (
+              <Card key={index} className="multiworkshop-create__asset-card" style={{ marginBottom: '12px' }}>
+                <CardBody>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    <Title headingLevel="h4" size="md">
+                      Asset {index + 1}
+                    </Title>
+                    <Button
+                      variant="link"
+                      onClick={() => removeAsset(index)}
+                      isDisabled={createFormData.assets.length === 1}
+                      size="sm"
+                      isDanger
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  <FormGroup label="Catalog Item" fieldId={`asset-key-${index}`} style={{ marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                      <div style={{ flex: 1 }}>
+                        <TextInput
+                          id={`asset-key-${index}`}
+                          placeholder="Select a catalog item..."
+                          value={asset.key && asset.namespace ? `${asset.namespace}.${asset.key}` : ''}
+                          readOnly
+                          style={{
+                            backgroundColor: 'var(--pf-t--color--background--disabled)',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => openCatalogSelector(index)}
+                        />
+                      </div>
+                      <Button variant="secondary" onClick={() => openCatalogSelector(index)}>
+                        {asset.key ? 'Change' : 'Select'}
+                      </Button>
                     </div>
                   </FormGroup>
-                </SplitItem>
-              </Split>
+                  <FormGroup
+                    label="Workshop Display Name"
+                    fieldId={`asset-display-name-${index}`}
+                    style={{ marginBottom: '12px' }}
+                  >
+                    <TextInput
+                      id={`workshop-display-name-${index}`}
+                      placeholder="Optional display name for this workshop (e.g., 'Container Basics')"
+                      value={asset.displayName}
+                      onChange={(_, value) => updateAsset(index, 'displayName', value)}
+                    />
+                  </FormGroup>
+                  <FormGroup label="Workshop Description" fieldId={`asset-description-${index}`}>
+                    <TextArea
+                      id={`asset-description-${index}`}
+                      placeholder="Optional description for this workshop"
+                      value={asset.description}
+                      onChange={(_, value) => updateAsset(index, 'description', value)}
+                      rows={3}
+                    />
+                  </FormGroup>
+                </CardBody>
+              </Card>
+            ))}
+            <Button variant="link" onClick={addAsset} icon={<PlusIcon />}>
+              Add Asset
+            </Button>
+          </FormGroup>
 
-              <FormGroup label="Number of Seats" fieldId="numberSeats">
-                <NumberInput
-                  id="numberSeats"
-                  value={createFormData.numberSeats}
-                  onMinus={() => setCreateFormData(prev => ({ ...prev, numberSeats: Math.max(1, prev.numberSeats - 1) }))}
-                  onPlus={() => {
-                    const maxSeats = isAdmin ? 200 : 30;
-                    setCreateFormData(prev => ({ ...prev, numberSeats: Math.min(maxSeats, prev.numberSeats + 1) }));
-                  }}
-                  onChange={(event) => {
-                    const value = parseInt((event.target as HTMLInputElement).value) || 1;
-                    const maxSeats = isAdmin ? 200 : 30;
-                    setCreateFormData(prev => ({ ...prev, numberSeats: Math.max(1, Math.min(maxSeats, value)) }));
-                  }}
-                  min={1}
-                  max={isAdmin ? undefined : 30}
-                />
-                {!isAdmin && (
-                  <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    Maximum 30 seats allowed.{' '}
-                    <a 
-                      href="https://red.ht/workshop-help" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      style={{ color: 'var(--pf-t--global--color--brand--default)' }}
-                    >
-                      Raise a ticket with our team
-                    </a>
-                    {' '}to request more seats.
-                  </div>
-                )}
-              </FormGroup>
+          {wouldExceedQuota && (
+            <Alert variant="warning" title="Service Quota Exceeded" style={{ marginBottom: '24px' }}>
+              <p>
+                You have {currentServices.length} active service{currentServices.length !== 1 ? 's' : ''} and this multi
+                workshop would create {catalogAssetsCount} additional service{catalogAssetsCount !== 1 ? 's' : ''}. You
+                cannot exceed the quota of 5 services. Please reduce the number of catalog assets or retire existing
+                services.
+              </p>
+            </Alert>
+          )}
 
-              <ActivityPurposeSelector
-                value={{ 
-                  purpose: createFormData.purpose, 
-                  activity: createFormData.activity,
-                  explanation: createFormData.explanation
-                }}
-                purposeOpts={purposeOptions as TPurposeOpts}
-                onChange={(activity: string, purpose: string, explanation: string) => {
-                  setCreateFormData(prev => ({
-                    ...prev,
-                    activity: activity || '',
-                    purpose: purpose || '',
-                    explanation: explanation || ''
-                  }));
-                }}
-              />
-
-              <SalesforceIdField
-                value={createFormData.salesforceId}
-                onChange={(value) => setCreateFormData(prev => ({ ...prev, salesforceId: value }))}
-                salesforceType={createFormData.salesforceType}
-                onTypeChange={(type) => setCreateFormData(prev => ({ ...prev, salesforceType: type }))}
-                fieldId="salesforceId"
-                isRequired={!isAdmin}
-              />
-
-
-              <FormGroup label="Assets" fieldId="assets">
-                {createFormData.assets.map((asset, index) => (
-                                  <Card 
-                  key={index} 
-                  className="multiworkshop-create__asset-card"
-                  style={{ marginBottom: '12px' }}
-                >
-                    <CardBody>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <Title headingLevel="h4" size="md">Asset {index + 1}</Title>
-                        <Button 
-                          variant="link" 
-                          onClick={() => removeAsset(index)}
-                          isDisabled={createFormData.assets.length === 1}
-                          size="sm"
-                          isDanger
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                      <FormGroup label="Catalog Item" fieldId={`asset-key-${index}`} style={{ marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                          <div style={{ flex: 1 }}>
-                            <TextInput
-                              id={`asset-key-${index}`}
-                              placeholder="Select a catalog item..."
-                              value={asset.key && asset.namespace ? `${asset.namespace}.${asset.key}` : ''}
-                              readOnly
-                              style={{ 
-                                backgroundColor: 'var(--pf-t--color--background--disabled)', 
-                                cursor: 'pointer' 
+          {/* Cost and Time Estimates */}
+          {validAssets.length > 0 &&
+            (estimates.totalProvisionTime !== null ||
+              estimates.totalCost !== null ||
+              estimates.itemsWithMetrics < estimates.totalItems) && (
+              <Card style={{ marginBottom: '24px' }}>
+                <CardBody>
+                  <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
+                    Multi Asset Workshop Estimates
+                  </Title>
+                  <DescriptionList isHorizontal>
+                    {estimates.totalProvisionTime !== null && (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>
+                          Estimated Provision Time
+                          <Tooltip content="Estimated time for all workshops to be provisioned simultaneously.">
+                            <InfoAltIcon
+                              style={{
+                                paddingTop: 'var(--pf-t--global--spacer--xs)',
+                                marginLeft: 'var(--pf-t--global--spacer--xs)',
+                                width: 'var(--pf-t--global--icon--size--font--xs)',
                               }}
-                              onClick={() => openCatalogSelector(index)}
                             />
-                          </div>
-                          <Button 
-                            variant="secondary" 
-                            onClick={() => openCatalogSelector(index)}
-                          >
-                            {asset.key ? 'Change' : 'Select'}
-                          </Button>
-                        </div>
-                      </FormGroup>
-                      <FormGroup label="Workshop Display Name" fieldId={`asset-display-name-${index}`} style={{ marginBottom: '12px' }}>
-                        <TextInput
-                          id={`workshop-display-name-${index}`}
-                          placeholder="Optional display name for this workshop (e.g., 'Container Basics')"
-                          value={asset.displayName}
-                          onChange={(_, value) => updateAsset(index, 'displayName', value)}
-                        />
-                      </FormGroup>
-                      <FormGroup label="Workshop Description" fieldId={`asset-description-${index}`}>
-                        <TextArea
-                          id={`asset-description-${index}`}
-                          placeholder="Optional description for this workshop"
-                          value={asset.description}
-                          onChange={(_, value) => updateAsset(index, 'description', value)}
-                          rows={3}
-                        />
-                      </FormGroup>
-                    </CardBody>
-                  </Card>
-                ))}
-                <Button variant="link" onClick={addAsset} icon={<PlusIcon />}>
-                  Add Asset
-                </Button>
-              </FormGroup>
-
-              {wouldExceedQuota && (
-                <Alert 
-                  variant="warning" 
-                  title="Service Quota Exceeded"
-                  style={{ marginBottom: '24px' }}
-                >
-                  <p>
-                    You have {currentServices.length} active service{currentServices.length !== 1 ? 's' : ''} and this multi workshop would create {catalogAssetsCount} additional service{catalogAssetsCount !== 1 ? 's' : ''}.
-                    You cannot exceed the quota of 5 services. Please reduce the number of catalog assets or retire existing services.
-                  </p>
-                </Alert>
-              )}
-
-              {/* Cost and Time Estimates */}
-              {validAssets.length > 0 && (estimates.totalProvisionTime !== null || estimates.totalCost !== null || estimates.itemsWithMetrics < estimates.totalItems) && (
-                <Card style={{ marginBottom: '24px' }}>
-                  <CardBody>
-                    <Title headingLevel="h3" size="md" style={{ marginBottom: '16px' }}>
-                      Multi Asset Workshop Estimates
-                    </Title>
-                    <DescriptionList isHorizontal>
-                      {estimates.totalProvisionTime !== null && (
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>
-                            Estimated Provision Time
-                            <Tooltip content="Estimated time for all workshops to be provisioned simultaneously.">
-                              <InfoAltIcon
-                                style={{
-                                  paddingTop: "var(--pf-t--global--spacer--xs)",
-                                  marginLeft: "var(--pf-t--global--spacer--xs)",
-                                  width: "var(--pf-t--global--icon--size--font--xs)",
-                                }}
-                              />
-                            </Tooltip>
-                          </DescriptionListTerm>
-                          <DescriptionListDescription>
-                            {`±${formatTime(`${estimates.totalProvisionTime * 60}m`)}`}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      )}
-                      {estimates.totalCost !== null && (
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>
-                            Estimated Total Cost
-                            <Tooltip content="Calculated as: Number of seats × Workshop duration × Catalog items. This represents the estimated cost over the full workshop duration if not stopped early.">
-                              <InfoAltIcon
-                                style={{
-                                  paddingTop: "var(--pf-t--global--spacer--xs)",
-                                  marginLeft: "var(--pf-t--global--spacer--xs)",
-                                  width: "var(--pf-t--global--icon--size--font--xs)",
-                                }}
-                              />
-                            </Tooltip>
-                          </DescriptionListTerm>
-                          <DescriptionListDescription>
-                            {formatCurrency(estimates.totalCost)}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      )}
-                    </DescriptionList>
-                    {estimates.itemsWithMetrics < estimates.totalItems && (
-                      <div style={{ marginTop: '12px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                        <InfoAltIcon style={{ marginRight: '8px', width: '14px' }} />
-                        Estimates shown for {estimates.itemsWithMetrics} of {estimates.totalItems} catalog items. 
-                        Some items may not have historical data available yet.
-                      </div>
+                          </Tooltip>
+                        </DescriptionListTerm>
+                        <DescriptionListDescription>
+                          {`±${formatTime(`${estimates.totalProvisionTime * 60}m`)}`}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
                     )}
-                  </CardBody>
-                </Card>
-              )}
+                    {estimates.totalCost !== null && (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>
+                          Estimated Total Cost
+                          <Tooltip content="Calculated as: Number of seats × Workshop duration × Catalog items. This represents the estimated cost over the full workshop duration if not stopped early.">
+                            <InfoAltIcon
+                              style={{
+                                paddingTop: 'var(--pf-t--global--spacer--xs)',
+                                marginLeft: 'var(--pf-t--global--spacer--xs)',
+                                width: 'var(--pf-t--global--icon--size--font--xs)',
+                              }}
+                            />
+                          </Tooltip>
+                        </DescriptionListTerm>
+                        <DescriptionListDescription>{formatCurrency(estimates.totalCost)}</DescriptionListDescription>
+                      </DescriptionListGroup>
+                    )}
+                  </DescriptionList>
+                  {estimates.itemsWithMetrics < estimates.totalItems && (
+                    <div
+                      style={{ marginTop: '12px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}
+                    >
+                      <InfoAltIcon style={{ marginRight: '8px', width: '14px' }} />
+                      Estimates shown for {estimates.itemsWithMetrics} of {estimates.totalItems} catalog items. Some
+                      items may not have historical data available yet.
+                    </div>
+                  )}
+                </CardBody>
+              </Card>
+            )}
 
-              <ActionGroup>
-                <Button 
-                  variant="primary" 
-                  onClick={onCreateMultiWorkshop}
-                  isDisabled={!isFormValid || isSubmitting}
-                  isLoading={isSubmitting}
-                >
-                  Create Multi Asset Workshop
-                </Button>
-                <Button variant="link" onClick={() => navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')}>
-                  Cancel
-                </Button>
-              </ActionGroup>
-            </Form>
+          <ActionGroup>
+            <Button
+              variant="primary"
+              onClick={onCreateMultiWorkshop}
+              isDisabled={!isFormValid || isSubmitting}
+              isLoading={isSubmitting}
+            >
+              Create Multi Asset Workshop
+            </Button>
+            <Button
+              variant="link"
+              onClick={() =>
+                navigate(selectedNamespace ? `/multi-workshop/${selectedNamespace.name}` : '/multi-workshop')
+              }
+            >
+              Cancel
+            </Button>
+          </ActionGroup>
+        </Form>
       </PageSection>
 
       <CatalogItemSelectorModal
