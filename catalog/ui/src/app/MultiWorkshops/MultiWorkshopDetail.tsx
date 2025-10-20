@@ -44,7 +44,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
 import Label from '@app/components/Label';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
-import SalesforceIdField from './SalesforceIdField';
+import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import useSession from '@app/utils/useSession';
 import purposeOptions from './purposeOptions.json';
@@ -233,7 +233,7 @@ const MultiWorkshopDetail: React.FC = () => {
       const newAssets = selectedWorkshops.map(workshopName => {
         const workshop = workshops.find(w => w.metadata.name === workshopName);
         return {
-          key: workshop.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || workshopName,
+          key: workshop.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || workshopName,
           name: workshopName, // Same as workshopName for existing workshops
           namespace: namespace!, // Same namespace as MultiWorkshop
           displayName: workshop?.spec?.displayName || workshopName,
@@ -843,30 +843,31 @@ const MultiWorkshopDetail: React.FC = () => {
                 </DescriptionListGroup>
                 
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
+                  <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
                   <DescriptionListDescription>
                     <div style={{ maxWidth: '400px' }}>
-                      <SalesforceIdField
-                        value={multiworkshop.spec.salesforceId || ''}
-                        onChange={async (value) => {
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { salesforceId: value } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                        salesforceType={multiworkshop.spec.salesforceType || null}
-                        onTypeChange={async (type) => {
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { salesforceType: type } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                        fieldId="multiworkshop-salesforce-id"
+                      <SalesforceItemsField
                         label=""
+                        items={
+                          multiworkshop.spec.salesforceId
+                            ? [{ id: multiworkshop.spec.salesforceId, type: multiworkshop.spec.salesforceType }]
+                            : []
+                        }
+                        onChange={async (items) => {
+                          const first = items?.[0];
+                          const updatedMultiWorkshop = await patchMultiWorkshop({
+                            name: multiworkshop.metadata.name,
+                            namespace: multiworkshop.metadata.namespace,
+                            patch: {
+                              spec: {
+                                salesforceId: first?.id || '',
+                                salesforceType: (first?.type as 'campaign' | 'opportunity' | 'project') || null,
+                                salesforceItems: items,
+                              },
+                            },
+                          });
+                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                        }}
                       />
                     </div>
                   </DescriptionListDescription>
