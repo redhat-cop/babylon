@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, ReactNode } from 'react';
 import { Button, FormGroup, TextInput, Tooltip, Split, SplitItem, Radio, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, PlusCircleIcon, TrashIcon, SearchIcon } from '@patternfly/react-icons';
 import { SalesforceItem, SfdcType } from '@app/types';
@@ -22,12 +22,14 @@ const validateItem = async (item: SalesforceItemWithState): Promise<SalesforceIt
 };
 
 const SalesforceItemsField: React.FC<{
-  label?: string;
+  label?: ReactNode;
   helperText?: string;
   items: SalesforceItem[];
   onChange: (items: SalesforceItem[]) => void;
   isRequired?: boolean;
-}> = ({ label = 'Salesforce items', helperText, items, onChange, isRequired = false }) => {
+  fieldId?: string;
+  standalone?: boolean;
+}> = ({ label = 'Salesforce items', helperText, items, onChange, isRequired = false, fieldId = 'salesforce-items', standalone = true }) => {
   const { sfdc_enabled } = useInterfaceConfig();
   const [localItems, setLocalItems] = useState<SalesforceItemWithState[]>(() => {
     const mappedItems = (items || []).map((i) => ({ ...i, validating: false, valid: true, message: '' }));
@@ -113,7 +115,7 @@ const SalesforceItemsField: React.FC<{
                   name={`sfdc-type-${idx}`}
                   onChange={() => handleTypeChange(idx, 'campaign')}
                   label="Campaign"
-                  id={`sfdc-type-${idx}-campaign`}
+                  id={idx === 0 ? `${fieldId}-campaign` : `sfdc-type-${idx}-campaign`}
                 />
               </SplitItem>
               <SplitItem>
@@ -134,6 +136,17 @@ const SalesforceItemsField: React.FC<{
                   id={`sfdc-type-${idx}-project`}
                 />
               </SplitItem>
+              <SplitItem>
+                <Tooltip
+                  position="right"
+                  content={<div>Salesforce ID type: Opportunity ID, Campaign ID or Project ID.</div>}
+                >
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Salesforce ID type: Opportunity ID, Campaign ID or Project ID."
+                    className="tooltip-icon-only"
+                  />
+                </Tooltip>
+              </SplitItem>
             </Split>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Button
@@ -146,7 +159,7 @@ const SalesforceItemsField: React.FC<{
               </Button>
             <TextInput
               style={{ width: 280 }}
-              id={`salesforce-id-${idx}`}
+              id={idx === 0 ? fieldId : `salesforce-id-${idx}`}
               value={item.id || ''}
               onChange={(_e, v) => handleIdChange(idx, v as string)}
               validated={!item.id ? 'default' : item.validating ? 'default' : item.valid ? 'success' : 'error'}
@@ -174,23 +187,31 @@ const SalesforceItemsField: React.FC<{
           <Button variant="plain" aria-label="Remove" onClick={() => removeItem(idx)} icon={<TrashIcon />} />
         </div>
        )),
-    [localItems, handleTypeChange, handleIdChange, removeItem],
+    [localItems, handleTypeChange, handleIdChange, removeItem, fieldId],
   );
 
-  return (
+  const content = (
     <>
-      {!sfdc_enabled ? null : (
-        <FormGroup label={label} fieldId="salesforce-items" isRequired={isRequired}>
       <div>{rows}</div>
       <Button variant="link" icon={<PlusCircleIcon />} onClick={addItem}>
         Add item
       </Button>
-          {helperText ? (
-            <div style={{ marginTop: 4, color: 'var(--pf-t--global--text--color--subtle)', fontSize: 14 }}>
-              {helperText}
-            </div>
-          ) : null}
+      {helperText ? (
+        <div style={{ marginTop: 4, color: 'var(--pf-t--global--text--color--subtle)', fontSize: 14 }}>
+          {helperText}
+        </div>
+      ) : null}
+    </>
+  );
+
+  return (
+    <>
+      {!sfdc_enabled ? null : standalone ? (
+        <FormGroup label={label} fieldId={fieldId} isRequired={isRequired}>
+          {content}
         </FormGroup>
+      ) : (
+        content
       )}
       <SearchSalesforceIdModal
         isOpen={searchRowIdx != null}

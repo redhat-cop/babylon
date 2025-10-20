@@ -929,7 +929,22 @@ const MultiWorkshopCreate: React.FC = () => {
           <SalesforceItemsField
             items={createFormData.salesforceItems}
             onChange={(items) => setCreateFormData((prev) => ({ ...prev, salesforceItems: items }))}
-            label="Salesforce IDs"
+            label={
+              <span>
+                Salesforce IDs{' '}
+                <span
+                  style={{
+                    fontSize: 'var(--pf-t--global--font--size--xs)',
+                    color:
+                      'var(--pf-t--color--gray--60)',
+                    fontStyle: 'italic',
+                    fontWeight: 400,
+                  }}
+                >
+                  (Opportunity ID, Campaign ID or Project ID)
+                </span>
+              </span>
+            }
             helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
             isRequired={!isAdmin}
           />

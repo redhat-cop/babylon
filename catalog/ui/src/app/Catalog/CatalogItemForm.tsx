@@ -17,7 +17,6 @@ import {
   FormGroup,
   FormHelperText,
   PageSection,
-  Radio,
   Switch,
   TextInput,
   Title,
@@ -62,7 +61,6 @@ import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
 import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
-// import { SearchIcon } from '@patternfly/react-icons';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import DateTimePicker from '@app/components/DateTimePicker';
@@ -485,16 +483,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             {sfdc_enabled ? (
               <FormGroup
                 fieldId="salesforce_id"
-                style={purposeOpts.length === 1 && formState.salesforceId.required === false ? { display: 'none' } : {}}
-                isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
                 label={
                   <span>
-                    Salesforce ID{' '}
+                    Salesforce IDs{' '}
                     <span
                       style={{
                         fontSize: 'var(--pf-t--global--font--size--xs)',
                         color:
-                          'var(--pf-t--color--gray--60)' /* CODEMODS: original v5 color was --pf-t--color--gray--60 */,
+                          'var(--pf-t--color--gray--60)',
                         fontStyle: 'italic',
                         fontWeight: 400,
                       }}
@@ -503,72 +499,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     </span>
                   </span>
                 }
+                style={purposeOpts.length === 1 && formState.salesforceId.required === false ? { display: 'none' } : {}}
+                isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
               >
                 <div>
-                  <div className="catalog-item-form__group-control--single" style={{ paddingBottom: '16px' }}>
-                    <Radio
-                      isChecked={'campaign' === formState.salesforceId.type}
-                      name="sfdc-type"
-                      onChange={() => {
-                        dispatchFormState({
-                          type: 'salesforceId',
-                          salesforceId: {
-                            ...formState.salesforceId,
-                            value: formState.salesforceId.value,
-                            type: 'campaign',
-                            valid: false,
-                          },
-                        });
-                      }}
-                      label="Campaign"
-                      id="sfdc-type-campaign"
-                    ></Radio>
-                    <Radio
-                      isChecked={'opportunity' === formState.salesforceId.type}
-                      name="sfdc-type"
-                      onChange={() => {
-                        dispatchFormState({
-                          type: 'salesforceId',
-                          salesforceId: {
-                            ...formState.salesforceId,
-                            value: formState.salesforceId.value,
-                            type: 'opportunity',
-                            valid: false,
-                          },
-                        });
-                      }}
-                      label="Opportunity"
-                      id="sfdc-type-opportunity"
-                    ></Radio>
-                    <Radio
-                      isChecked={'project' === formState.salesforceId.type}
-                      name="sfdc-type"
-                      onChange={() => {
-                        dispatchFormState({
-                          type: 'salesforceId',
-                          salesforceId: {
-                            ...formState.salesforceId,
-                            value: formState.salesforceId.value,
-                            type: 'project',
-                            valid: false,
-                          },
-                        });
-                      }}
-                      label="Project"
-                      id="sfdc-type-project"
-                    ></Radio>
-                    <Tooltip
-                      position="right"
-                      content={<div>Salesforce ID type: Opportunity ID, Campaign ID or Project ID.</div>}
-                    >
-                      <OutlinedQuestionCircleIcon
-                        aria-label="Salesforce ID type: Opportunity ID, Campaign ID or Project ID."
-                        className="tooltip-icon-only"
-                      />
-                    </Tooltip>
-                  </div>
                   <SalesforceItemsField
-                    label="Salesforce IDs"
+                    standalone={false}
+                    fieldId="salesforce_id"
                     items={
                       formState.salesforceId.value
                         ? [{ id: formState.salesforceId.value, type: formState.salesforceId.type }]
