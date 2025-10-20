@@ -249,12 +249,23 @@ export function getStageFromK8sObject(k8sObject: K8sObject): 'dev' | 'test' | 'e
   
   const validStages = ['dev', 'test', 'event', 'prod'];
   
-  // First, check if name contains dots (e.g., "sandboxes-gpte.rosa-uplift.dev")
+  // First, check if name contains dots (e.g., "sandboxes-gpte.rosa-uplift.dev" or "openshift-cnv.etx-ansible.dev-jxlj8")
   if (name.includes('.')) {
     const dotSegments = name.split('.');
     const lastDotSegment = dotSegments[dotSegments.length - 1];
+    
+    // Check if the last dot segment contains a valid stage directly
     if (validStages.includes(lastDotSegment)) {
       return lastDotSegment as 'dev' | 'test' | 'event' | 'prod';
+    }
+    
+    // Check if the last dot segment contains a stage followed by a random suffix (e.g., "dev-jxlj8")
+    if (lastDotSegment.includes('-')) {
+      const hyphenSegments = lastDotSegment.split('-');
+      const firstHyphenSegment = hyphenSegments[0];
+      if (validStages.includes(firstHyphenSegment)) {
+        return firstHyphenSegment as 'dev' | 'test' | 'event' | 'prod';
+      }
     }
   }
   
