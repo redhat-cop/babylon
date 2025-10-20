@@ -823,3 +823,7 @@ export type RequestUsageCost = {
   total_cost: number;
   workshop_id: string;
 };
+export interface SalesforceItem {
+  type: string;
+  id: string;
+}

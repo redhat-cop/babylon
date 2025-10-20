@@ -56,12 +56,13 @@ import DynamicFormInput from '@app/components/DynamicFormInput';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
 import TermsOfService from '@app/components/TermsOfService';
+import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
 import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
-import { SearchIcon } from '@patternfly/react-icons';
+// import { SearchIcon } from '@patternfly/react-icons';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import DateTimePicker from '@app/components/DateTimePicker';
@@ -566,46 +567,28 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                       />
                     </Tooltip>
                   </div>
-                  <div className="catalog-item-form__group-control--single">
-                    <TextInput
-                      type="text"
-                      key="salesforce_id"
-                      id="salesforce_id"
-                      onChange={(_event, value) =>
-                        dispatchFormState({
-                          type: 'salesforceId',
-                          salesforceId: { ...formState.salesforceId, value, valid: false },
-                        })
-                      }
-                      placeholder="Salesforce ID"
-                      value={formState.salesforceId.value || ''}
-                      validated={
-                        formState.salesforceId.value && formState.salesforceId.valid
-                          ? 'success'
-                          : formState.salesforceId.value && formState.conditionChecks.completed
-                            ? 'error'
-                            : 'default'
-                      }
-                    />
-                    <div>
-                      <Button
-                        onClick={() => openSearchSalesforceIdModal(true)}
-                        variant="secondary"
-                        icon={<SearchIcon />}
-                      >
-                        Search
-                      </Button>
-                    </div>
-                    <Tooltip
-                      position="right"
-                      content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}
-                    >
-                      <OutlinedQuestionCircleIcon
-                        aria-label="Salesforce Opportunity ID, Campaign ID or Project ID."
-                        className="tooltip-icon-only"
-                      />
-                    </Tooltip>
-                  </div>
+                  <SalesforceItemsField
+                    label="Salesforce IDs"
+                    items={
+                      formState.salesforceId.value
+                        ? [{ id: formState.salesforceId.value, type: formState.salesforceId.type }]
+                        : []
+                    }
+                    onChange={(items) => {
+                      const first = items?.[0];
+                      dispatchFormState({
+                        type: 'salesforceId',
+                        salesforceId: {
+                          ...formState.salesforceId,
+                          value: first?.id || '',
+                          type: (first?.type as 'campaign' | 'opportunity' | 'project') || null,
+                          valid: false,
+                        },
+                      });
+                    }}
+                    isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
+                    helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
+                  />
                   {!formState.salesforceId.valid && formState.conditionChecks.completed ? (
                     <FormHelperText>{formState.salesforceId.message}</FormHelperText>
                   ) : purposeObj && purposeObj.sfdcRequired ? (

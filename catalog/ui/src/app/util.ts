@@ -9,6 +9,7 @@ import {
   Namespace,
   Nullable,
   ResourceClaim,
+  SalesforceItem,
   Service,
   ServiceNamespace,
   Workshop,
@@ -101,7 +102,7 @@ export function randomString(length: number): string {
   return text;
 }
 
-export function recursiveAssign(target: object, source: object): any {
+export function recursiveAssign(target: object, source: object): void {
   for (const [k, v] of Object.entries(source)) {
     if (v !== null && typeof v === 'object' && k in target && target[k] !== null && typeof target[k] === 'object') {
       recursiveAssign(target[k], v);
@@ -399,13 +400,13 @@ export function canExecuteAction(
 }
 
 export function escapeRegex(string: string) {
-  return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  return string.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
 export function stripTags(unStrippedHtml: string) {
   if (!unStrippedHtml) return '';
   const parseHTML = new DOMParser().parseFromString(
-    dompurify.sanitize(unStrippedHtml.replace(/<\!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
+    dompurify.sanitize(unStrippedHtml.replace(/<!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
     'text/html',
   );
   return parseHTML.body.textContent || '';
@@ -443,4 +444,73 @@ export function calculateUptimePercentage(downtimeHours: number) {
   const uptimePercentage = (uptimeHours / totalTimeHours) * 100;
 
   return uptimePercentage;
+}
+
+/**
+ * Parses Salesforce items from the new JSON array format
+ * Falls back to legacy single annotation format for backward compatibility
+ */
+export function parseSalesforceItems(annotations: Record<string, string>): SalesforceItem[] {
+  const salesforceItemsAnnotation = annotations[`${DEMO_DOMAIN}/salesforce-items`];
+  
+  if (salesforceItemsAnnotation) {
+    try {
+      return JSON.parse(salesforceItemsAnnotation);
+    } catch (error) {
+      console.warn('Failed to parse salesforce-items annotation:', error);
+      return [];
+    }
+  }
+  
+  // Fallback to legacy format for backward compatibility
+  const legacyId = annotations[`${DEMO_DOMAIN}/salesforce-id`];
+  const legacyType = annotations[`${DEMO_DOMAIN}/sales-type`];
+  
+  if (legacyId && legacyType) {
+    return [{ type: legacyType, id: legacyId }];
+  }
+  
+  return [];
+}
+
+/**
+ * Sets Salesforce items in the new JSON array format
+ * For UI compatibility, only stores the first item when multiple items exist
+ */
+export function setSalesforceItems(annotations: Record<string, string>, items: SalesforceItem[]): void {
+  if (items.length === 0) {
+    // Remove both new and legacy annotations
+    delete annotations[`${DEMO_DOMAIN}/salesforce-items`];
+    delete annotations[`${DEMO_DOMAIN}/salesforce-id`];
+    delete annotations[`${DEMO_DOMAIN}/sales-type`];
+    return;
+  }
+  
+  // Store in new format
+  annotations[`${DEMO_DOMAIN}/salesforce-items`] = JSON.stringify(items);
+}
+
+/**
+ * Gets the first Salesforce item (for UI compatibility)
+ */
+export function getFirstSalesforceItem(annotations: Record<string, string>): SalesforceItem | null {
+  const items = parseSalesforceItems(annotations);
+  return items.length > 0 ? items[0] : null;
+}
+
+/**
+ * Adds or updates a Salesforce item
+ * If an item with the same type exists, it updates it; otherwise adds a new one
+ */
+export function upsertSalesforceItem(annotations: Record<string, string>, newItem: SalesforceItem): void {
+  const items = parseSalesforceItems(annotations);
+  const existingIndex = items.findIndex(item => item.type === newItem.type);
+  
+  if (existingIndex >= 0) {
+    items[existingIndex] = newItem;
+  } else {
+    items.push(newItem);
+  }
+  
+  setSalesforceItems(annotations, items);
 }

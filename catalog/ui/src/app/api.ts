@@ -31,6 +31,7 @@ import {
   DEMO_DOMAIN,
   canExecuteAction,
   generateRandom5CharsSuffix,
+  upsertSalesforceItem,
 } from '@app/util';
 
 declare const window: Window &
@@ -208,8 +209,11 @@ function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any, skipped
     d.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] = parameterValues.purpose_explanation as string;
   }
   if (parameterValues.salesforce_id) {
-    d.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] = parameterValues.salesforce_id as string;
-    d.metadata.annotations[`${DEMO_DOMAIN}/sales-type`] = parameterValues.sales_type as string;
+    // Use the new Salesforce data management utilities
+    upsertSalesforceItem(d.metadata.annotations, {
+      type: parameterValues.sales_type as string,
+      id: parameterValues.salesforce_id as string
+    });
   }
   d.metadata.annotations[`${DEMO_DOMAIN}/provide_salesforce-id_later`] = skippedSfdc.toString();
   return d;

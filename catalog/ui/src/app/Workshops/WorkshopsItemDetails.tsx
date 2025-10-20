@@ -2,19 +2,7 @@ import React, { useCallback, useEffect, useReducer, useState } from 'react';
 import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
-import {
-  DescriptionList,
-  DescriptionListTerm,
-  DescriptionListGroup,
-  DescriptionListDescription,
-  Tooltip,
-  Switch,
-  TextInput,
-  Radio,
-  MenuToggle,
-  MenuToggleElement,
-  FormGroup,
-} from '@patternfly/react-core';
+import { DescriptionList, DescriptionListTerm, DescriptionListGroup, DescriptionListDescription, Tooltip, Switch, MenuToggle, MenuToggleElement, FormGroup } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
@@ -35,7 +23,8 @@ import {
   WorkshopProvision,
   WorkshopUserAssignment,
 } from '@app/types';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, getFirstSalesforceItem, upsertSalesforceItem, parseSalesforceItems, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
+import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import useDebounce from '@app/utils/useDebounce';
 import useSession from '@app/utils/useSession';
 import EditableText from '@app/components/EditableText';
@@ -175,16 +164,22 @@ const WorkshopsItemDetails: React.FC<{
             },
           });
           for (let resourceClaim of resourceClaims) {
+            const currentItem = getFirstSalesforceItem(resourceClaim.metadata.annotations);
             if (
-              resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/salesforce-id`] !== salesforceObj.salesforce_id ||
-              resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/sales-type`] !== salesforceObj.salesforce_type
+              !currentItem ||
+              currentItem.id !== salesforceObj.salesforce_id ||
+              currentItem.type !== salesforceObj.salesforce_type
             ) {
+              // Update the Salesforce item using the new utility function
+              const annotations = { ...resourceClaim.metadata.annotations };
+              upsertSalesforceItem(annotations, {
+                type: salesforceObj.salesforce_type,
+                id: salesforceObj.salesforce_id
+              });
+              
               patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
                 metadata: {
-                  annotations: {
-                    [`${DEMO_DOMAIN}/salesforce-id`]: salesforceObj.salesforce_id,
-                    [`${DEMO_DOMAIN}/sales-type`]: salesforceObj.salesforce_type,
-                  },
+                  annotations,
                 },
               });
             }
@@ -605,94 +600,19 @@ const WorkshopsItemDetails: React.FC<{
 
       {workshopProvisions.length > 0 ? (
         <DescriptionListGroup>
-          <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
-
-          <div>
-            <div className="workshops-item__group-control--single" style={{ padding: '8px' }}>
-              <Radio
-                isChecked={'campaign' === salesforceObj.salesforce_type}
-                name="sfdc-type"
-                onChange={() =>
-                  dispatchSalesforceObj({
-                    ...salesforceObj,
-                    salesforceType: 'campaign',
-                    type: 'set_salesforceId',
-                    salesforceId: salesforceObj.salesforce_id,
-                  })
-                }
-                label="Campaign"
-                id="sfdc-type-campaign"
-              ></Radio>
-              <Radio
-                isChecked={'opportunity' === salesforceObj.salesforce_type}
-                name="sfdc-type"
-                onChange={() => {
-                  dispatchSalesforceObj({
-                    ...salesforceObj,
-                    type: 'set_salesforceId',
-                    salesforceType: 'opportunity',
-                    salesforceId: salesforceObj.salesforce_id,
-                  });
-                }}
-                label="Opportunity"
-                id="sfdc-type-opportunity"
-              ></Radio>
-              <Radio
-                isChecked={'project' === salesforceObj.salesforce_type}
-                name="sfdc-type"
-                onChange={() =>
-                  dispatchSalesforceObj({
-                    ...salesforceObj,
-                    type: 'set_salesforceId',
-                    salesforceType: 'project',
-                    salesforceId: salesforceObj.salesforce_id,
-                  })
-                }
-                label="Project"
-                id="sfdc-type-project"
-              ></Radio>
-              <Tooltip
-                position="right"
-                content={<div>Salesforce ID type: Opportunity ID, Campaign ID or Project ID.</div>}
-              >
-                <OutlinedQuestionCircleIcon
-                  aria-label="Salesforce ID type: Opportunity ID, Campaign ID or Project ID."
-                  className="tooltip-icon-only"
-                />
-              </Tooltip>
-            </div>
-            <div className="workshops-item__group-control--single" style={{ maxWidth: 300, paddingBottom: '16px' }}>
-              <TextInput
-                type="text"
-                key="salesforce_id"
-                id="salesforce_id"
-                onChange={(_event: unknown, value: string) =>
-                  dispatchSalesforceObj({
-                    ...salesforceObj,
-                    type: 'set_salesforceId',
-                    salesforceId: value,
-                    salesforceType: salesforceObj.salesforce_type,
-                  })
-                }
-                value={salesforceObj.salesforce_id}
-                validated={
-                  salesforceObj.salesforce_id
-                    ? salesforceObj.completed && salesforceObj.valid
-                      ? 'success'
-                      : salesforceObj.completed
-                        ? 'error'
-                        : 'default'
-                    : 'default'
-                }
-              />
-              <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
-                <OutlinedQuestionCircleIcon
-                  aria-label="Salesforce Opportunity ID, Campaign ID or Project ID."
-                  className="tooltip-icon-only"
-                />
-              </Tooltip>
-            </div>
-          </div>
+          <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
+          <SalesforceItemsField
+            label="Salesforce IDs"
+            items={parseSalesforceItems((resourceClaims?.[0]?.metadata.annotations) || {})}
+            onChange={(next) => {
+              if (!resourceClaims || resourceClaims.length === 0) return;
+              const rc = resourceClaims[0];
+              const annotations = { ...rc.metadata.annotations };
+              setSalesforceItemsAnno(annotations, next);
+              patchResourceClaim(rc.metadata.namespace, rc.metadata.name, { metadata: { annotations } });
+            }}
+            helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
+          />
         </DescriptionListGroup>
       ) : null}
 

@@ -41,7 +41,7 @@ import {
   apiPaths,
   silentFetcher,
 } from '@app/api';
-import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable } from '@app/types';
+import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable, SalesforceItem } from '@app/types';
 import {
   compareK8sObjectsArr,
   displayName,
@@ -51,7 +51,7 @@ import {
 } from '@app/util';
 import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
-import SalesforceIdField from './SalesforceIdField';
+import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
 import DateTimePicker from '@app/components/DateTimePicker';
@@ -91,8 +91,7 @@ const MultiWorkshopCreate: React.FC = () => {
       startDate: defaultProvisioningDate, // This is actually the provisioning date
       endDate: endDateTime,
       numberSeats: 1,
-      salesforceId: '',
-      salesforceType: null as SfdcType | null,
+      salesforceItems: [] as SalesforceItem[],
       activity: '',
       purpose: '',
       explanation: '',
@@ -302,13 +301,16 @@ const MultiWorkshopCreate: React.FC = () => {
     return currentServices.length + catalogAssetsCount > 5;
   }, [currentServices.length, catalogAssetsCount, isAdmin]);
 
+  const hasAtLeastOneSalesforce = (createFormData.salesforceItems || []).some(
+    (i) => (i?.id || '').trim() && (i?.type || null),
+  );
   const isFormValid =
     createFormData.name &&
     createFormData.startDate &&
     createFormData.endDate &&
     createFormData.activity &&
     createFormData.purpose &&
-    (isAdmin || (createFormData.salesforceId && createFormData.salesforceType)) &&
+    (isAdmin || hasAtLeastOneSalesforce) &&
     !wouldExceedQuota;
 
   async function onCreateMultiWorkshop(): Promise<void> {
@@ -328,6 +330,7 @@ const MultiWorkshopCreate: React.FC = () => {
           type: asset.type || 'Workshop',
         }));
 
+      const firstSf = (createFormData.salesforceItems || [])[0];
       const payload = {
         name: createFormData.name,
         startDate: dateToApiString(createFormData.startDate),
@@ -335,8 +338,9 @@ const MultiWorkshopCreate: React.FC = () => {
         namespace: selectedNamespace?.name || userNamespace.name,
         ...(createFormData.description && { description: createFormData.description }),
         ...(createFormData.numberSeats && { numberSeats: createFormData.numberSeats }),
-        ...(createFormData.salesforceId && { salesforceId: createFormData.salesforceId }),
-        ...(createFormData.salesforceType && { salesforceType: createFormData.salesforceType }),
+        ...(firstSf?.id && { salesforceId: firstSf.id }), // compatibility
+        ...(firstSf?.type && { salesforceType: firstSf.type as SfdcType }), // compatibility
+        ...(createFormData.salesforceItems?.length > 0 && { salesforceItems: createFormData.salesforceItems }),
         ...(createFormData.purpose && { purpose: createFormData.purpose }),
         ...(createFormData.activity && { 'purpose-activity': createFormData.activity }),
         ...(createFormData.backgroundImage && { backgroundImage: createFormData.backgroundImage }),
@@ -922,12 +926,11 @@ const MultiWorkshopCreate: React.FC = () => {
             }}
           />
 
-          <SalesforceIdField
-            value={createFormData.salesforceId}
-            onChange={(value) => setCreateFormData((prev) => ({ ...prev, salesforceId: value }))}
-            salesforceType={createFormData.salesforceType}
-            onTypeChange={(type) => setCreateFormData((prev) => ({ ...prev, salesforceType: type }))}
-            fieldId="salesforceId"
+          <SalesforceItemsField
+            items={createFormData.salesforceItems}
+            onChange={(items) => setCreateFormData((prev) => ({ ...prev, salesforceItems: items }))}
+            label="Salesforce IDs"
+            helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
             isRequired={!isAdmin}
           />
 
