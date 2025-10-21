@@ -331,6 +331,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         parameterValues,
         skippedSfdc: formState.salesforceId.skip,
         whiteGloved: formState.whiteGloved,
+        salesforceItems: formState.salesforceItems,
       });
       const redirectUrl = `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`;
       await createWorkshopProvision({
@@ -360,6 +361,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         email,
         skippedSfdc: formState.salesforceId.skip,
         whiteGloved: formState.whiteGloved,
+        salesforceItems: formState.salesforceItems,
       });
 
       navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);

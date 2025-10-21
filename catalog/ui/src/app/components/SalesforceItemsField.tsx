@@ -37,7 +37,7 @@ const SalesforceItemsField: React.FC<{
       ...i, 
       type: (i.type as SfdcType) || null, 
       validating: false, 
-      valid: true, 
+      valid: !!(i.id && i.type), // Only valid if both id and type exist
       message: '' 
     }));
     // If no items provided, show one empty item by default
@@ -53,7 +53,7 @@ const SalesforceItemsField: React.FC<{
         ...i, 
         type: (i.type as SfdcType) || null, 
         validating: false, 
-        valid: true, 
+        valid: !!(i.id && i.type), // Only valid if both id and type exist
         message: '' 
       }));
       setLocalItems(mappedItems);

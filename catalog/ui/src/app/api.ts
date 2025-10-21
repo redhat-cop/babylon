@@ -80,6 +80,7 @@ type CreateServiceRequestOpt = {
   email: string;
   skippedSfdc: boolean;
   whiteGloved: boolean;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 };
 
 type CreateWorkshopPovisionOpt = {
@@ -196,7 +197,7 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
-function addPurposeAndSfdc(_definition: K8sObject, parameterValues: Record<string, unknown>, skippedSfdc: boolean) {
+function addPurposeAndSfdc(_definition: K8sObject, parameterValues: Record<string, unknown>, skippedSfdc: boolean, salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>) {
   const d = Object.assign({}, _definition) as ResourceClaim | Workshop;
   // Purpose & SFDC
   if (parameterValues.purpose) {
@@ -208,12 +209,8 @@ function addPurposeAndSfdc(_definition: K8sObject, parameterValues: Record<strin
   if (parameterValues.purpose_explanation) {
     d.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] = parameterValues.purpose_explanation as string;
   }
-  if (parameterValues.salesforce_id) {
-    // Use the new Salesforce data management utilities
-    upsertSalesforceItem(d.metadata.annotations, {
-      type: parameterValues.sales_type as 'campaign' | 'project' | 'opportunity',
-      id: parameterValues.salesforce_id as string
-    });
+  if (salesforceItems && salesforceItems.length > 0) {
+    d.metadata.annotations[`${DEMO_DOMAIN}/salesforce-items`] = JSON.stringify(salesforceItems);
   }
   d.metadata.annotations[`${DEMO_DOMAIN}/provide_salesforce-id_later`] = skippedSfdc.toString();
   return d;
@@ -452,6 +449,7 @@ export async function createServiceRequest({
   email,
   skippedSfdc,
   whiteGloved,
+  salesforceItems,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
@@ -548,7 +546,7 @@ export async function createServiceRequest({
   }
 
   // Purpose & SFDC
-  const definition = addPurposeAndSfdc(requestResourceClaim, parameterValues, skippedSfdc);
+  const definition = addPurposeAndSfdc(requestResourceClaim, parameterValues, skippedSfdc, salesforceItems);
 
   while (true) {
     try {
@@ -584,6 +582,7 @@ export async function createWorkshop({
   customWorkshopName,
   customLabels,
   customAnnotations,
+  salesforceItems,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -601,6 +600,7 @@ export async function createWorkshop({
   customWorkshopName?: string;
   customLabels?: Record<string, string>;
   customAnnotations?: Record<string, string>;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 }): Promise<Workshop> {
   const session = await getApiSession();
   // Generate workshop name with random suffix and ensure Kubernetes compliance
@@ -661,7 +661,7 @@ export async function createWorkshop({
     _definition.spec.displayName = displayName;
   }
 
-  const definition = addPurposeAndSfdc(_definition, parameterValues, skippedSfdc);
+  const definition = addPurposeAndSfdc(_definition, parameterValues, skippedSfdc, salesforceItems);
 
   let retryCount = 0;
   const maxRetries = 3;
