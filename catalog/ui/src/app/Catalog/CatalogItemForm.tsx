@@ -285,9 +285,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     parameterValues['purpose'] = formState.purpose;
     parameterValues['purpose_activity'] = formState.activity;
     parameterValues['purpose_explanation'] = formState.explanation;
-    if (formState.salesforceId.value) {
-      parameterValues['salesforce_id'] = formState.salesforceId.value;
-      parameterValues['sales_type'] = formState.salesforceId.type;
+    if (formState.salesforceItems && formState.salesforceItems.length > 0) {
+      const firstItem = formState.salesforceItems[0];
+      parameterValues['salesforce_id'] = firstItem.id;
+      parameterValues['sales_type'] = firstItem.type;
     }
 
     if (catalogItem.spec.externalUrl) {
@@ -297,8 +298,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         purpose: formState.purpose,
         purposeActivity: formState.activity,
         purposeExplanation: formState.explanation,
-        salesforceId: formState.salesforceId?.value,
-        salesType: formState.salesforceId?.type,
+        salesforceId: formState.salesforceItems?.[0]?.id,
+        salesType: formState.salesforceItems?.[0]?.type,
         stage: getStageFromK8sObject(catalogItem),
       });
       setIsLoading(false);
@@ -506,21 +507,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   <SalesforceItemsField
                     standalone={false}
                     fieldId="salesforce_id"
-                    items={
-                      formState.salesforceId.value || formState.salesforceId.type
-                        ? [{ id: formState.salesforceId.value || '', type: formState.salesforceId.type }]
-                        : []
-                    }
+                    items={formState.salesforceItems || []}
                     onChange={(items) => {
-                      const first = items?.[0];
                       dispatchFormState({
-                        type: 'salesforceId',
-                        salesforceId: {
-                          ...formState.salesforceId,
-                          value: first?.id || '',
-                          type: (first?.type as 'campaign' | 'opportunity' | 'project') || null,
-                          valid: false,
-                        },
+                        type: 'salesforceItems',
+                        salesforceItems: items,
                       });
                     }}
                     isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
@@ -545,7 +536,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                             type: 'salesforceId',
                             salesforceId: {
                               ...formState.salesforceId,
-                              value: formState.salesforceId.value,
                               skip: checked,
                             },
                           })

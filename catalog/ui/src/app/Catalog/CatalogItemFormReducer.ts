@@ -51,6 +51,7 @@ type FormState = {
     skip?: boolean;
     type?: 'campaign' | 'project' | 'opportunity';
   };
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
   sfdc_enabled: boolean;
 };
 type ParameterProps = {
@@ -72,6 +73,7 @@ export type FormStateAction = {
     | 'purpose'
     | 'salesforceId'
     | 'salesforceIdMessage'
+    | 'salesforceItems'
     | 'serviceNamespace'
     | 'whiteGloved'
     | 'complete';
@@ -93,6 +95,7 @@ export type FormStateAction = {
     skip?: boolean;
     type?: 'campaign' | 'project' | 'opportunity';
   };
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
   message?: string;
   salesforceIdValid?: boolean;
   error?: string;
@@ -365,6 +368,7 @@ function reduceFormStateInit(
       skip: false,
       message: '',
     },
+    salesforceItems: [],
     sfdc_enabled,
     ...initDates(catalogItem, null),
   };
@@ -557,6 +561,11 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormStateSalesforceId(state, action.salesforceId);
     case 'salesforceIdMessage':
       return reduceFormStateSalesforceIdMessage(state, action.message);
+    case 'salesforceItems':
+      return {
+        ...state,
+        salesforceItems: action.salesforceItems,
+      };
     case 'serviceNamespace':
       return reduceFormStateServiceNamespace(state, action.serviceNamespace);
     case 'dates':

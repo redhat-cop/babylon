@@ -186,7 +186,7 @@ const SalesforceItemsField: React.FC<{
               placeholder="Enter Salesforce ID..."
             />
             <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
-              <OutlinedQuestionCircleIcon className="tooltip-icon-only" style={{ flexShrink: 0 }} />
+              <OutlinedQuestionCircleIcon className="tooltip-icon-only" style={{ flexShrink: 0, marginRight: 'var(--pf-v6-global--spacer--lg)' }} />
             </Tooltip>
             </div>
             {item.message && (
