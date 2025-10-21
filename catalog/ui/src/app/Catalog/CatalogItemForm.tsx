@@ -526,6 +526,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         name="skip-salesforce-id"
                         label="I'll provide the Salesforce ID within 48 hours."
                         isChecked={formState.salesforceId.skip}
+                        isDisabled={
+                          // Disable if there's valid Salesforce data
+                          (formState.salesforceItems && formState.salesforceItems.some(item => item.id && item.valid)) ||
+                          (formState.salesforceId.value && formState.salesforceId.valid)
+                        }
                         onChange={(_event: unknown, checked: boolean) =>
                           dispatchFormState({
                             type: 'skipSalesforceId',
