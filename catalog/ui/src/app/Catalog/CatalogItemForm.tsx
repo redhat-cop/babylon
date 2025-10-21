@@ -407,13 +407,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         defaultSfdcType={formState.salesforceId.type || null}
         onSubmitCb={(value: string, type: 'campaign' | 'project' | 'opportunity') =>
           dispatchFormState({
-            type: 'salesforceId',
-            salesforceId: {
-              ...formState.salesforceId,
-              value,
-              type,
-              valid: false,
-            },
+            type: 'salesforceItems',
+            salesforceItems: [{ id: value, type, required: formState.salesforceItems?.[0]?.required || formState.salesforceId.required, valid: false, message: '' }],
           })
         }
       />
@@ -500,8 +495,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     </span>
                   </span>
                 }
-                style={purposeOpts.length === 1 && formState.salesforceId.required === false ? { display: 'none' } : {}}
-                isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
+                style={purposeOpts.length === 1 && (formState.salesforceItems?.[0]?.required === false || !formState.salesforceItems?.[0]?.required) ? { display: 'none' } : {}}
+                isRequired={(formState.salesforceItems?.[0]?.required || formState.salesforceId.required) && !formState.salesforceId.skip}
               >
                 <div>
                   <SalesforceItemsField
@@ -514,11 +509,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         salesforceItems: items,
                       });
                     }}
-                    isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
+                    isRequired={(formState.salesforceItems?.[0]?.required || formState.salesforceId.required) && !formState.salesforceId.skip}
                     helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
                   />
-                  {!formState.salesforceId.valid && formState.conditionChecks.completed ? (
-                    <FormHelperText>{formState.salesforceId.message}</FormHelperText>
+                  {!(formState.salesforceItems?.[0]?.valid ?? formState.salesforceId.valid) && formState.conditionChecks.completed ? (
+                    <FormHelperText>{formState.salesforceItems?.[0]?.message || formState.salesforceId.message}</FormHelperText>
                   ) : purposeObj && purposeObj.sfdcRequired ? (
                     <FormHelperText>
                       A valid Salesforce ID is required for the selected activity / purpose
@@ -533,11 +528,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         isChecked={formState.salesforceId.skip}
                         onChange={(_event: unknown, checked: boolean) =>
                           dispatchFormState({
-                            type: 'salesforceId',
-                            salesforceId: {
-                              ...formState.salesforceId,
-                              skip: checked,
-                            },
+                            type: 'skipSalesforceId',
+                            skipSalesforceId: checked,
                           })
                         }
                       />

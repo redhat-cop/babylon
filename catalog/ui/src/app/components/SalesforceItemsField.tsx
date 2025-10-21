@@ -178,7 +178,7 @@ const SalesforceItemsField: React.FC<{
                 Id Finder
               </Button>
             <TextInput
-              style={{ width: 400, minWidth: '300px', flex: 1 }}
+              style={{ minWidth: '300px', flex: 1 }}
               id={idx === 0 ? fieldId : `salesforce-id-${idx}`}
               value={item.id || ''}
               onChange={(_e, v) => handleIdChange(idx, v as string)}
@@ -186,7 +186,7 @@ const SalesforceItemsField: React.FC<{
               placeholder="Enter Salesforce ID..."
             />
             <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
-              <OutlinedQuestionCircleIcon className="tooltip-icon-only" style={{ flexShrink: 0, marginRight: 'var(--pf-v6-global--spacer--lg)' }} />
+              <OutlinedQuestionCircleIcon className="tooltip-icon-only" style={{ flexShrink: 0 }} />
             </Tooltip>
             </div>
             {item.message && (

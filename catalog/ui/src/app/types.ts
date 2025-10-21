@@ -824,6 +824,6 @@ export type RequestUsageCost = {
   workshop_id: string;
 };
 export interface SalesforceItem {
-  type: string;
+  type: 'campaign' | 'project' | 'opportunity';
   id: string;
 }
