@@ -196,7 +196,7 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
-function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any, skippedSfdc: boolean) {
+function addPurposeAndSfdc(_definition: K8sObject, parameterValues: Record<string, unknown>, skippedSfdc: boolean) {
   const d = Object.assign({}, _definition) as ResourceClaim | Workshop;
   // Purpose & SFDC
   if (parameterValues.purpose) {
@@ -211,7 +211,7 @@ function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any, skipped
   if (parameterValues.salesforce_id) {
     // Use the new Salesforce data management utilities
     upsertSalesforceItem(d.metadata.annotations, {
-      type: parameterValues.sales_type as string,
+      type: parameterValues.sales_type as 'campaign' | 'project' | 'opportunity',
       id: parameterValues.salesforce_id as string
     });
   }

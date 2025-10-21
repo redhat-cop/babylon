@@ -4,7 +4,6 @@ import CatalogItemForm from './CatalogItemForm';
 import catalogItemObj from '../__mocks__/catalogItem.json';
 import userEvent from '@testing-library/user-event';
 import { CatalogItem, ServiceNamespace, UserNamespace } from '@app/types';
-import { silentFetcher } from '@app/api';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),

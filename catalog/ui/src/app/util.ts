@@ -478,7 +478,7 @@ export function parseSalesforceItems(annotations: Record<string, string>): Sales
   const legacyType = annotations[`${DEMO_DOMAIN}/sales-type`];
   
   if (legacyId && legacyType) {
-    return [{ type: legacyType, id: legacyId }];
+    return [{ type: legacyType as 'campaign' | 'project' | 'opportunity', id: legacyId }];
   }
   
   return [];
