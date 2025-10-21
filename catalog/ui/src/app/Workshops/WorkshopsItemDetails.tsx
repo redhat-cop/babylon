@@ -602,7 +602,7 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListGroup>
           <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
           <SalesforceItemsField
-            label="Salesforce IDs"
+            label=""
             items={parseSalesforceItems((resourceClaims?.[0]?.metadata.annotations) || {})}
             onChange={(next) => {
               if (!resourceClaims || resourceClaims.length === 0) return;

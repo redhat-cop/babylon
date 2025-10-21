@@ -950,7 +950,7 @@ const ServicesItemComponent: React.FC<{
                       <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
 
                       <SalesforceItemsField
-                        label="Salesforce IDs"
+                        label=""
                         items={salesforceItems}
                         onChange={(next) => setSalesforceItems(next)}
                         helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."

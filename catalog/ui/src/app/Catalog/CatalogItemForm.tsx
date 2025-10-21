@@ -507,8 +507,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     standalone={false}
                     fieldId="salesforce_id"
                     items={
-                      formState.salesforceId.value
-                        ? [{ id: formState.salesforceId.value, type: formState.salesforceId.type }]
+                      formState.salesforceId.value || formState.salesforceId.type
+                        ? [{ id: formState.salesforceId.value || '', type: formState.salesforceId.type }]
                         : []
                     }
                     onChange={(items) => {
