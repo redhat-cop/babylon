@@ -41,7 +41,7 @@ import {
   apiPaths,
   silentFetcher,
 } from '@app/api';
-import { CatalogItem, SfdcType, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable, SalesforceItem } from '@app/types';
+import { CatalogItem, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable, SalesforceItem } from '@app/types';
 import {
   compareK8sObjectsArr,
   displayName,
@@ -330,7 +330,6 @@ const MultiWorkshopCreate: React.FC = () => {
           type: asset.type || 'Workshop',
         }));
 
-      const firstSf = (createFormData.salesforceItems || [])[0];
       const payload = {
         name: createFormData.name,
         startDate: dateToApiString(createFormData.startDate),
@@ -338,8 +337,6 @@ const MultiWorkshopCreate: React.FC = () => {
         namespace: selectedNamespace?.name || userNamespace.name,
         ...(createFormData.description && { description: createFormData.description }),
         ...(createFormData.numberSeats && { numberSeats: createFormData.numberSeats }),
-        ...(firstSf?.id && { salesforceId: firstSf.id }), // compatibility
-        ...(firstSf?.type && { salesforceType: firstSf.type as SfdcType }), // compatibility
         ...(createFormData.salesforceItems?.length > 0 && { salesforceItems: createFormData.salesforceItems }),
         ...(createFormData.purpose && { purpose: createFormData.purpose }),
         ...(createFormData.activity && { 'purpose-activity': createFormData.activity }),

@@ -285,11 +285,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     parameterValues['purpose'] = formState.purpose;
     parameterValues['purpose_activity'] = formState.activity;
     parameterValues['purpose_explanation'] = formState.explanation;
-    if (formState.salesforceItems && formState.salesforceItems.length > 0) {
-      const firstItem = formState.salesforceItems[0];
-      parameterValues['salesforce_id'] = firstItem.id;
-      parameterValues['sales_type'] = firstItem.type;
-    }
 
     if (catalogItem.spec.externalUrl) {
       await saveExternalItemRequest({

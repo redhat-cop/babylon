@@ -1127,8 +1127,7 @@ export async function createMultiWorkshop(multiworkshopData: {
   startDate: string;
   endDate: string;
   numberSeats?: number;
-  salesforceId?: string;
-  salesforceType?: string;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
   purpose?: string;
   'purpose-activity'?: string;
   backgroundImage?: string;
@@ -1183,11 +1182,8 @@ export async function createMultiWorkshop(multiworkshopData: {
   if (multiworkshopData.assets && multiworkshopData.assets.length > 0) {
     definition.spec.assets = multiworkshopData.assets;
   }
-  if (multiworkshopData.salesforceId) {
-    definition.spec.salesforceId = multiworkshopData.salesforceId;
-  }
-  if (multiworkshopData.salesforceType) {
-    definition.spec.salesforceType = multiworkshopData.salesforceType as SfdcType;
+  if (multiworkshopData.salesforceItems && multiworkshopData.salesforceItems.length > 0) {
+    definition.spec.salesforceItems = multiworkshopData.salesforceItems;
   }
   if (multiworkshopData.purpose) {
     definition.spec.purpose = multiworkshopData.purpose;

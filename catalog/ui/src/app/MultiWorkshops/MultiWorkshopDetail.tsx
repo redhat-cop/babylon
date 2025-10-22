@@ -848,20 +848,13 @@ const MultiWorkshopDetail: React.FC = () => {
                     <div style={{ maxWidth: '400px' }}>
                       <SalesforceItemsField
                         label=""
-                        items={
-                          multiworkshop.spec.salesforceId
-                            ? [{ id: multiworkshop.spec.salesforceId, type: multiworkshop.spec.salesforceType }]
-                            : []
-                        }
+                        items={multiworkshop.spec.salesforceItems || []}
                         onChange={async (items) => {
-                          const first = items?.[0];
                           const updatedMultiWorkshop = await patchMultiWorkshop({
                             name: multiworkshop.metadata.name,
                             namespace: multiworkshop.metadata.namespace,
                             patch: {
                               spec: {
-                                salesforceId: first?.id || '',
-                                salesforceType: (first?.type as 'campaign' | 'opportunity' | 'project') || null,
                                 salesforceItems: items,
                               },
                             },
