@@ -1222,6 +1222,7 @@ export async function createWorkshopFromAssetWithRetry({
   catalogItem,
   retryCount = 3,
   delay = 0,
+  salesforceItems,
 }: {
   multiworkshopName: string;
   multiworkshopUid: string;
@@ -1231,6 +1232,7 @@ export async function createWorkshopFromAssetWithRetry({
   catalogItem?: CatalogItem;
   retryCount?: number;
   delay?: number;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 }): Promise<Workshop> {
   // Add initial delay to stagger requests
   if (delay > 0) {
@@ -1248,6 +1250,7 @@ export async function createWorkshopFromAssetWithRetry({
         asset,
         multiworkshopData,
         catalogItem,
+        salesforceItems,
       });
     } catch (error: unknown) {
       lastError = error as Error;
@@ -1277,6 +1280,7 @@ export async function createWorkshopFromAsset({
   asset,
   multiworkshopData,
   catalogItem,
+  salesforceItems
 }: {
   multiworkshopName: string;
   multiworkshopUid: string;
@@ -1284,6 +1288,7 @@ export async function createWorkshopFromAsset({
   asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
   multiworkshopData: Record<string, unknown>;
   catalogItem?: CatalogItem;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 }): Promise<Workshop> {
   if (!catalogItem) {
     throw new Error('CatalogItem is required for creating Workshop');
@@ -1314,10 +1319,9 @@ export async function createWorkshopFromAsset({
     parameterValues: {
       purpose: multiworkshopData.purpose,
       purpose_activity: multiworkshopData['purpose-activity'],
-      salesforce_id: multiworkshopData.salesforceId || '',
-      sales_type: multiworkshopData.salesforceType || '',
     },
-    skippedSfdc: !multiworkshopData.salesforceId,
+    salesforceItems: salesforceItems,
+    skippedSfdc: !salesforceItems || salesforceItems.length === 0,
     whiteGloved: false,
     customWorkshopName: baseWorkshopName,
     customLabels: {

@@ -384,6 +384,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 catalogItem,
                 retryCount: 3,
                 delay: index * 100, // Stagger creation to avoid naming conflicts
+                salesforceItems: createFormData.salesforceItems || [],
               });
 
               // Create workshop provision for this asset
