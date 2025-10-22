@@ -404,7 +404,9 @@ class AgnosticVComponent(KopfObject):
                     "collections": self.anarchy_collections,
                     "roles": self.anarchy_roles,
                 },
-                "pythonRequirements": "awscli==1.18.92\npackaging==20.9\npymysql==0.9.3\n",
+                # awscli: (deprecated) legacy interaction with sandbox database
+                # packaging: for version comparison with git_tag_prefix
+                "pythonRequirements": "awscli==1.42.56\npackaging==25.0\n",
                 "removeFinishedActions": {
                     "after": self.anarchy_remove_finished_actions_after,
                 },
