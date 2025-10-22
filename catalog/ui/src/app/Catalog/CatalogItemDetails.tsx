@@ -173,7 +173,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     }
   }
   const catalogItemAccess: CatalogItemAccess =
-    isAdmin || isLabDeveloper(groups)
+    isAdmin
       ? CatalogItemAccess.Allow
       : accessCheckResult === 'deny'
         ? CatalogItemAccess.Deny
