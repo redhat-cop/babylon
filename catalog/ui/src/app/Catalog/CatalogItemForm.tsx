@@ -333,7 +333,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         catalogItem: catalogItem,
         concurrency: provisionConcurrency,
         count: provisionCount,
-        parameters: parameterValues,
+        parameters: {
+          ...parameterValues,
+          salesforceItems: formState.salesforceItems,
+        },
         startDelay: provisionStartDelay,
         workshop: workshop,
         useAutoDetach: formState.useAutoDetach,

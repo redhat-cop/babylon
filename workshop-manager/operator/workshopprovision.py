@@ -248,6 +248,11 @@ class WorkshopProvision(CachedKopfObject):
                 Babylon.salesforce_id_annotation
             ] = self.parameters['salesforce_id']
 
+        if 'salesforce_items' in self.parameters:
+            resource_claim_definition['metadata']['annotations'][
+                Babylon.salesforce_items_annotation
+            ] = self.parameters['salesforce_items']
+
         resource_claim = await resourceclaim.ResourceClaim.create(
             resource_claim_definition
         )

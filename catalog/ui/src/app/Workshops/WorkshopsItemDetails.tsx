@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useReducer, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
@@ -8,9 +8,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import BetaBadge from '@app/components/BetaBadge';
 import {
-  apiFetch,
   apiPaths,
-  checkSalesforceId,
   patchResourceClaim,
   patchWorkshop,
   patchWorkshopProvision,
@@ -18,12 +16,11 @@ import {
 import {
   RequestUsageCost,
   ResourceClaim,
-  SfdcType,
   Workshop,
   WorkshopProvision,
   WorkshopUserAssignment,
 } from '@app/types';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, getFirstSalesforceItem, upsertSalesforceItem, parseSalesforceItems, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import useDebounce from '@app/utils/useDebounce';
 import useSession from '@app/utils/useSession';
@@ -46,32 +43,6 @@ import TimeInterval from '@app/components/TimeInterval';
 
 import './workshops-item-details.css';
 
-function _reducer(
-  state: { salesforce_id: string; valid: boolean; completed: boolean; salesforce_type: SfdcType },
-  action: {
-    type: 'set_salesforceId' | 'complete';
-    salesforceId?: string;
-    salesforceIdValid?: boolean;
-    salesforceType?: SfdcType;
-  },
-) {
-  switch (action.type) {
-    case 'set_salesforceId':
-      return {
-        salesforce_id: action.salesforceId,
-        valid: false,
-        completed: false,
-        salesforce_type: action.salesforceType,
-      };
-    case 'complete':
-      return {
-        ...state,
-        valid: action.salesforceIdValid,
-        completed: true,
-      };
-  }
-}
-
 const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
   workshop: Workshop;
@@ -90,7 +61,6 @@ const WorkshopsItemDetails: React.FC<{
   usageCost,
 }) => {
   const { isAdmin } = useSession().getSession();
-  const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { cache } = useSWRConfig();
   const whiteGloved = getWhiteGloved(workshop);
   const isLocked = isWorkshopLocked(workshop);
@@ -112,13 +82,6 @@ const WorkshopsItemDetails: React.FC<{
       {userRegistrationValue}
     </MenuToggle>
   );
-
-  const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
-    salesforce_id: workshopProvisions[0]?.spec.parameters?.salesforce_id || '',
-    valid: !!workshopProvisions[0]?.spec.parameters?.salesforce_id,
-    completed: workshopProvisions[0]?.spec.parameters?.salesforce_id ? false : true,
-    salesforce_type: (workshopProvisions[0]?.spec.parameters?.sales_type as SfdcType) || null,
-  });
 
   const patchWorkshopProvisionSpec = useCallback(async (
     name: string,
@@ -144,50 +107,6 @@ const WorkshopsItemDetails: React.FC<{
     );
   }, [cache, workshop.metadata.name]);
 
-  useEffect(() => {
-    if (!salesforceObj.completed) {
-      checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
-        ({ valid }: { valid: boolean; message?: string }) =>
-          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid }),
-      );
-    } else {
-      for (let workshopProvision of workshopProvisions) {
-        if (
-          workshopProvision.spec.parameters?.salesforce_id !== salesforceObj.salesforce_id ||
-          workshopProvision.spec.parameters?.sales_type !== salesforceObj.salesforce_type
-        ) {
-          patchWorkshopProvisionSpec(workshopProvision.metadata.name, workshopProvision.metadata.namespace, {
-            parameters: {
-              ...workshopProvision.spec.parameters,
-              salesforce_id: salesforceObj.salesforce_id,
-              sales_type: salesforceObj.salesforce_type,
-            },
-          });
-          for (let resourceClaim of resourceClaims) {
-            const currentItem = getFirstSalesforceItem(resourceClaim.metadata.annotations);
-            if (
-              !currentItem ||
-              currentItem.id !== salesforceObj.salesforce_id ||
-              currentItem.type !== salesforceObj.salesforce_type
-            ) {
-              // Update the Salesforce item using the new utility function
-              const annotations = { ...resourceClaim.metadata.annotations };
-              upsertSalesforceItem(annotations, {
-                type: salesforceObj.salesforce_type,
-                id: salesforceObj.salesforce_id
-              });
-              
-              patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
-                metadata: {
-                  annotations,
-                },
-              });
-            }
-          }
-        }
-      }
-    }
-  }, [dispatchSalesforceObj, salesforceObj, debouncedApiFetch, patchWorkshopProvisionSpec, resourceClaims, workshopProvisions]);
 
   async function patchWorkshopSpec(patch: {
     accessPassword?: string;
@@ -603,13 +522,32 @@ const WorkshopsItemDetails: React.FC<{
           <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
           <SalesforceItemsField
             label=""
-            items={parseSalesforceItems((resourceClaims?.[0]?.metadata.annotations) || {})}
-            onChange={(next) => {
+            items={JSON.parse(workshopProvisions[0].spec.parameters?.['salesforce_items'] || '[]')}
+            onChange={async (next) => {
+              await patchWorkshop({
+                name: workshop.metadata.name,
+                namespace: workshop.metadata.namespace,
+                patch: {
+                  metadata: {
+                    annotations: {
+                      ...workshop.metadata.annotations,
+                      'demo.redhat.com/salesforce-items': JSON.stringify(next),
+                    },
+                  },
+                },
+              });
+              await patchWorkshopProvisionSpec(workshopProvisions[0].metadata.name, workshopProvisions[0].metadata.namespace, {
+                parameters: {
+                  ...workshopProvisions[0].spec.parameters,
+                  salesforce_items: JSON.stringify(next),
+                },
+              });
               if (!resourceClaims || resourceClaims.length === 0) return;
-              const rc = resourceClaims[0];
-              const annotations = { ...rc.metadata.annotations };
-              setSalesforceItemsAnno(annotations, next);
-              patchResourceClaim(rc.metadata.namespace, rc.metadata.name, { metadata: { annotations } });
+              for (let rc of resourceClaims) {
+                const annotations = { ...rc.metadata.annotations };
+                setSalesforceItemsAnno(annotations, next);
+                await patchResourceClaim(rc.metadata.namespace, rc.metadata.name, { metadata: { annotations } });
+              }
             }}
             helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
           />

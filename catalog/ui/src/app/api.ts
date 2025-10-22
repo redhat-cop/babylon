@@ -88,6 +88,7 @@ type CreateWorkshopPovisionOpt = {
   concurrency: number;
   count: number;
   parameters: Record<string, unknown>;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
   startDelay: number;
   workshop: Workshop;
   useAutoDetach: boolean;
@@ -821,7 +822,7 @@ export async function createWorkshopProvision({
       },
       concurrency: concurrency,
       count: count,
-      parameters: parameters,
+      parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
       enableResourcePools: usePoolIfAvailable,
@@ -1342,7 +1343,7 @@ export async function createWorkshopProvisionFromAsset({
   multiworkshopName,
   multiworkshopUid,
   multiworkshopData,
-  catalogItem,
+  catalogItem
 }: {
   workshop: Workshop;
   asset: { key: string; name: string; namespace: string };
@@ -1363,8 +1364,7 @@ export async function createWorkshopProvisionFromAsset({
     parameters: {
       purpose: multiworkshopData.purpose,
       purpose_activity: multiworkshopData['purpose-activity'],
-      salesforce_id: multiworkshopData.salesforceId || '',
-      sales_type: multiworkshopData.salesforceType || '',
+      salesforceItems: multiworkshopData.salesforceItems || [],
     },
     startDelay: 10,
     workshop,
