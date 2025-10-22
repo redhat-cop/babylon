@@ -1364,7 +1364,7 @@ export async function createWorkshopProvisionFromAsset({
     parameters: {
       purpose: multiworkshopData.purpose,
       purpose_activity: multiworkshopData['purpose-activity'],
-      salesforceItems: multiworkshopData.salesforceItems || [],
+      salesforce_items: JSON.stringify(multiworkshopData.salesforceItems || []),
     },
     startDelay: 10,
     workshop,

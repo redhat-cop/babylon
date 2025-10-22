@@ -335,7 +335,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         count: provisionCount,
         parameters: {
           ...parameterValues,
-          salesforceItems: formState.salesforceItems,
+          salesforce_items: JSON.stringify(formState.salesforceItems),
         },
         startDelay: provisionStartDelay,
         workshop: workshop,
