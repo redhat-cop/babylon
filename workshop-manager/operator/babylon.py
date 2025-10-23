@@ -36,6 +36,7 @@ class Babylon():
     workshop_uid_label = f"{babylon_domain}/workshop-uid"
     workshop_provision_label = f"{babylon_domain}/workshop-provision"
     salesforce_id_annotation = f"{demo_domain}/salesforce-id"
+    salesforce_items_annotation = f"{demo_domain}/salesforce-items"
     user_name_label = f"{babylon_domain}/user-name"
 
     workshop_fail_percentage_threshold = int(os.environ.get('WORKSHOP_FAIL_PERCENTAGE_THRESHOLD', 60))

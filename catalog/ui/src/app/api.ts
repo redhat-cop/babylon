@@ -31,6 +31,7 @@ import {
   DEMO_DOMAIN,
   canExecuteAction,
   generateRandom5CharsSuffix,
+  upsertSalesforceItem,
 } from '@app/util';
 
 declare const window: Window &
@@ -79,6 +80,7 @@ type CreateServiceRequestOpt = {
   email: string;
   skippedSfdc: boolean;
   whiteGloved: boolean;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 };
 
 type CreateWorkshopPovisionOpt = {
@@ -86,6 +88,7 @@ type CreateWorkshopPovisionOpt = {
   concurrency: number;
   count: number;
   parameters: Record<string, unknown>;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
   startDelay: number;
   workshop: Workshop;
   useAutoDetach: boolean;
@@ -195,7 +198,7 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
-function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any, skippedSfdc: boolean) {
+function addPurposeAndSfdc(_definition: K8sObject, parameterValues: Record<string, unknown>, skippedSfdc: boolean, salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>) {
   const d = Object.assign({}, _definition) as ResourceClaim | Workshop;
   // Purpose & SFDC
   if (parameterValues.purpose) {
@@ -207,9 +210,8 @@ function addPurposeAndSfdc(_definition: K8sObject, parameterValues: any, skipped
   if (parameterValues.purpose_explanation) {
     d.metadata.annotations[`${DEMO_DOMAIN}/purpose-explanation`] = parameterValues.purpose_explanation as string;
   }
-  if (parameterValues.salesforce_id) {
-    d.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] = parameterValues.salesforce_id as string;
-    d.metadata.annotations[`${DEMO_DOMAIN}/sales-type`] = parameterValues.sales_type as string;
+  if (salesforceItems && salesforceItems.length > 0) {
+    d.metadata.annotations[`${DEMO_DOMAIN}/salesforce-items`] = JSON.stringify(salesforceItems);
   }
   d.metadata.annotations[`${DEMO_DOMAIN}/provide_salesforce-id_later`] = skippedSfdc.toString();
   return d;
@@ -448,6 +450,7 @@ export async function createServiceRequest({
   email,
   skippedSfdc,
   whiteGloved,
+  salesforceItems,
 }: CreateServiceRequestOpt): Promise<ResourceClaim> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
@@ -544,7 +547,7 @@ export async function createServiceRequest({
   }
 
   // Purpose & SFDC
-  const definition = addPurposeAndSfdc(requestResourceClaim, parameterValues, skippedSfdc);
+  const definition = addPurposeAndSfdc(requestResourceClaim, parameterValues, skippedSfdc, salesforceItems);
 
   while (true) {
     try {
@@ -580,6 +583,7 @@ export async function createWorkshop({
   customWorkshopName,
   customLabels,
   customAnnotations,
+  salesforceItems,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -597,6 +601,7 @@ export async function createWorkshop({
   customWorkshopName?: string;
   customLabels?: Record<string, string>;
   customAnnotations?: Record<string, string>;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 }): Promise<Workshop> {
   const session = await getApiSession();
   // Generate workshop name with random suffix and ensure Kubernetes compliance
@@ -657,7 +662,7 @@ export async function createWorkshop({
     _definition.spec.displayName = displayName;
   }
 
-  const definition = addPurposeAndSfdc(_definition, parameterValues, skippedSfdc);
+  const definition = addPurposeAndSfdc(_definition, parameterValues, skippedSfdc, salesforceItems);
 
   let retryCount = 0;
   const maxRetries = 3;
@@ -817,7 +822,7 @@ export async function createWorkshopProvision({
       },
       concurrency: concurrency,
       count: count,
-      parameters: parameters,
+      parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
       enableResourcePools: usePoolIfAvailable,
@@ -1123,8 +1128,7 @@ export async function createMultiWorkshop(multiworkshopData: {
   startDate: string;
   endDate: string;
   numberSeats?: number;
-  salesforceId?: string;
-  salesforceType?: string;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
   purpose?: string;
   'purpose-activity'?: string;
   backgroundImage?: string;
@@ -1179,11 +1183,8 @@ export async function createMultiWorkshop(multiworkshopData: {
   if (multiworkshopData.assets && multiworkshopData.assets.length > 0) {
     definition.spec.assets = multiworkshopData.assets;
   }
-  if (multiworkshopData.salesforceId) {
-    definition.spec.salesforceId = multiworkshopData.salesforceId;
-  }
-  if (multiworkshopData.salesforceType) {
-    definition.spec.salesforceType = multiworkshopData.salesforceType as SfdcType;
+  if (multiworkshopData.salesforceItems && multiworkshopData.salesforceItems.length > 0) {
+    definition.spec.salesforceItems = multiworkshopData.salesforceItems;
   }
   if (multiworkshopData.purpose) {
     definition.spec.purpose = multiworkshopData.purpose;
@@ -1222,6 +1223,7 @@ export async function createWorkshopFromAssetWithRetry({
   catalogItem,
   retryCount = 3,
   delay = 0,
+  salesforceItems,
 }: {
   multiworkshopName: string;
   multiworkshopUid: string;
@@ -1231,6 +1233,7 @@ export async function createWorkshopFromAssetWithRetry({
   catalogItem?: CatalogItem;
   retryCount?: number;
   delay?: number;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 }): Promise<Workshop> {
   // Add initial delay to stagger requests
   if (delay > 0) {
@@ -1248,6 +1251,7 @@ export async function createWorkshopFromAssetWithRetry({
         asset,
         multiworkshopData,
         catalogItem,
+        salesforceItems,
       });
     } catch (error: unknown) {
       lastError = error as Error;
@@ -1277,6 +1281,7 @@ export async function createWorkshopFromAsset({
   asset,
   multiworkshopData,
   catalogItem,
+  salesforceItems
 }: {
   multiworkshopName: string;
   multiworkshopUid: string;
@@ -1284,6 +1289,7 @@ export async function createWorkshopFromAsset({
   asset: { key: string; name: string; namespace: string; displayName?: string; description?: string };
   multiworkshopData: Record<string, unknown>;
   catalogItem?: CatalogItem;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 }): Promise<Workshop> {
   if (!catalogItem) {
     throw new Error('CatalogItem is required for creating Workshop');
@@ -1314,10 +1320,9 @@ export async function createWorkshopFromAsset({
     parameterValues: {
       purpose: multiworkshopData.purpose,
       purpose_activity: multiworkshopData['purpose-activity'],
-      salesforce_id: multiworkshopData.salesforceId || '',
-      sales_type: multiworkshopData.salesforceType || '',
     },
-    skippedSfdc: !multiworkshopData.salesforceId,
+    salesforceItems: salesforceItems,
+    skippedSfdc: !salesforceItems || salesforceItems.length === 0,
     whiteGloved: false,
     customWorkshopName: baseWorkshopName,
     customLabels: {
@@ -1338,7 +1343,7 @@ export async function createWorkshopProvisionFromAsset({
   multiworkshopName,
   multiworkshopUid,
   multiworkshopData,
-  catalogItem,
+  catalogItem
 }: {
   workshop: Workshop;
   asset: { key: string; name: string; namespace: string };
@@ -1359,8 +1364,7 @@ export async function createWorkshopProvisionFromAsset({
     parameters: {
       purpose: multiworkshopData.purpose,
       purpose_activity: multiworkshopData['purpose-activity'],
-      salesforce_id: multiworkshopData.salesforceId || '',
-      sales_type: multiworkshopData.salesforceType || '',
+      salesforce_items: JSON.stringify(multiworkshopData.salesforceItems || []),
     },
     startDelay: 10,
     workshop,

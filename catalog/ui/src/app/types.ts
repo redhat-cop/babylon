@@ -627,8 +627,7 @@ export interface MultiWorkshopSpec {
   startDate: string;
   endDate: string;
   numberSeats?: number;
-  salesforceId?: string;
-  salesforceType?: SfdcType;
+  salesforceItems?: Array<{ id: string; type: SfdcType }>;
   purpose?: string;
   'purpose-activity'?: string;
   assets?: MultiWorkshopAsset[];
@@ -823,3 +822,7 @@ export type RequestUsageCost = {
   total_cost: number;
   workshop_id: string;
 };
+export interface SalesforceItem {
+  type: 'campaign' | 'project' | 'opportunity';
+  id: string;
+}

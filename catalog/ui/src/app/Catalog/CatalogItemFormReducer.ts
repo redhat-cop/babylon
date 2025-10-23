@@ -51,6 +51,13 @@ type FormState = {
     skip?: boolean;
     type?: 'campaign' | 'project' | 'opportunity';
   };
+  salesforceItems?: Array<{ 
+    id: string; 
+    type: 'campaign' | 'project' | 'opportunity';
+    required?: boolean;
+    valid?: boolean;
+    message?: string;
+  }>;
   sfdc_enabled: boolean;
 };
 type ParameterProps = {
@@ -70,8 +77,9 @@ export type FormStateAction = {
     | 'usePoolIfAvailable'
     | 'useAutoDetach'
     | 'purpose'
-    | 'salesforceId'
-    | 'salesforceIdMessage'
+    | 'salesforceItems'
+    | 'updateSalesforceItems'
+    | 'skipSalesforceId'
     | 'serviceNamespace'
     | 'whiteGloved'
     | 'complete';
@@ -85,16 +93,19 @@ export type FormStateAction = {
   explanation?: string;
   serviceNamespace?: ServiceNamespace;
   termsOfServiceAgreed?: boolean;
-  salesforceId?: {
-    required: boolean;
-    value: string;
-    valid: boolean;
+  salesforceItems?: Array<{ 
+    id: string; 
+    type: 'campaign' | 'project' | 'opportunity';
+    required?: boolean;
+    valid?: boolean;
     message?: string;
-    skip?: boolean;
-    type?: 'campaign' | 'project' | 'opportunity';
+  }>;
+  updateSalesforceItems?: {
+    required?: boolean;
+    valid?: boolean;
+    message?: string;
   };
-  message?: string;
-  salesforceIdValid?: boolean;
+  skipSalesforceId?: boolean;
   error?: string;
   parameters?: { [name: string]: FormStateParameter };
   workshop?: WorkshopProps;
@@ -166,8 +177,11 @@ async function _checkCondition(
       vars['sales_type'] as 'string',
     );
     dispatchFn({
-      type: 'salesforceIdMessage',
-      message,
+      type: 'updateSalesforceItems',
+      updateSalesforceItems: {
+        message,
+        valid,
+      },
     });
     checkResults.push(valid);
   }
@@ -191,18 +205,28 @@ export async function checkConditionsInFormState(
   for (const [name, parameterState] of Object.entries(parameters)) {
     conditionValues[name] = parameterState.value;
   }
-  let salesforceIdValid = true;
   try {
     if (initialState.sfdc_enabled) {
-      conditionValues['salesforce_id'] = initialState.salesforceId.value;
-      salesforceIdValid = initialState.salesforceId.valid;
-      if (initialState.salesforceId.value) {
-        salesforceIdValid = await _checkCondition(
+      const firstItem = initialState.salesforceItems?.[0];
+      if (firstItem?.id) {
+        conditionValues['salesforce_id'] = firstItem.id;
+        await _checkCondition(
           'check_salesforce_id(salesforce_id)',
-          { salesforce_id: initialState.salesforceId.value, sales_type: initialState.salesforceId.type },
+          { salesforce_id: firstItem.id, sales_type: firstItem.type },
           debouncedApiFetch,
           dispatchFn,
         );
+      } else {
+        // Fallback to old salesforceId for backward compatibility
+        conditionValues['salesforce_id'] = initialState.salesforceId.value;
+        if (initialState.salesforceId.value) {
+          await _checkCondition(
+            'check_salesforce_id(salesforce_id)',
+            { salesforce_id: initialState.salesforceId.value, sales_type: initialState.salesforceId.type },
+            debouncedApiFetch,
+            dispatchFn,
+          );
+        }
       }
     }
     for (const [, parameterState] of Object.entries(parameters)) {
@@ -264,7 +288,6 @@ export async function checkConditionsInFormState(
     dispatchFn({
       type: 'complete',
       parameters,
-      salesforceIdValid,
       error: '',
     });
   } catch (error) {
@@ -365,6 +388,7 @@ function reduceFormStateInit(
       skip: false,
       message: '',
     },
+    salesforceItems: [],
     sfdc_enabled,
     ...initDates(catalogItem, null),
   };
@@ -374,18 +398,13 @@ function reduceFormStateComplete(
   state: FormState,
   {
     error = '',
-    salesforceIdValid,
     parameters,
-  }: { error: string; salesforceIdValid: boolean; parameters: { [name: string]: FormStateParameter } },
+  }: { error: string; parameters: { [name: string]: FormStateParameter } },
 ): FormState {
   return {
     ...state,
     ...(parameters ? { parameters } : {}),
     error,
-    salesforceId: {
-      ...state.salesforceId,
-      valid: salesforceIdValid,
-    },
     conditionChecks: {
       completed: true,
     },
@@ -427,9 +446,14 @@ function reduceFormWhiteGloved(initialState: FormState, whiteGloved: boolean): F
 function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProps = null): FormState {
   const isSalesforceIdRequired = salesforceIdRequired({ ...initialState, workshop });
   const salesforceId = { ...initialState.salesforceId, required: isSalesforceIdRequired };
+  const salesforceItems = initialState.salesforceItems?.map(item => ({
+    ...item,
+    required: isSalesforceIdRequired,
+  })) || [];
   return {
     ...initialState,
     salesforceId,
+    salesforceItems,
     workshop,
   };
 }
@@ -482,12 +506,17 @@ function reduceFormStatePurpose(
   purpose: string,
   explanation: string,
 ): FormState {
+  const isRequired = salesforceIdRequired({ ...initialState, purpose });
   return {
     ...initialState,
     salesforceId: {
       ...initialState.salesforceId,
-      required: salesforceIdRequired({ ...initialState, purpose }),
+      required: isRequired,
     },
+    salesforceItems: initialState.salesforceItems?.map(item => ({
+      ...item,
+      required: isRequired,
+    })) || [],
     activity,
     purpose,
     explanation,
@@ -504,31 +533,6 @@ function salesforceIdRequired(state: FormState): boolean {
   return false;
 }
 
-function reduceFormStateSalesforceId(
-  initialState: FormState,
-  salesforceId: { required: boolean; value: string; valid: boolean },
-): FormState {
-  return {
-    ...initialState,
-    salesforceId: {
-      ...initialState.salesforceId,
-      ...salesforceId,
-    },
-    conditionChecks: {
-      completed: false,
-    },
-  };
-}
-
-function reduceFormStateSalesforceIdMessage(initialState: FormState, message: string): FormState {
-  return {
-    ...initialState,
-    salesforceId: {
-      ...initialState.salesforceId,
-      message,
-    },
-  };
-}
 
 export function reduceFormState(state: FormState, action: FormStateAction): FormState {
   switch (action.type) {
@@ -553,10 +557,29 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       });
     case 'purpose':
       return reduceFormStatePurpose(state, action.activity, action.purpose, action.explanation);
-    case 'salesforceId':
-      return reduceFormStateSalesforceId(state, action.salesforceId);
-    case 'salesforceIdMessage':
-      return reduceFormStateSalesforceIdMessage(state, action.message);
+    case 'salesforceItems':
+      return {
+        ...state,
+        salesforceItems: action.salesforceItems,
+      };
+    case 'updateSalesforceItems':
+      return {
+        ...state,
+        salesforceItems: state.salesforceItems?.map(item => ({
+          ...item,
+          required: action.updateSalesforceItems?.required ?? item.required,
+          valid: action.updateSalesforceItems?.valid ?? item.valid,
+          message: action.updateSalesforceItems?.message ?? item.message,
+        })),
+      };
+    case 'skipSalesforceId':
+      return {
+        ...state,
+        salesforceId: {
+          ...state.salesforceId,
+          skip: action.skipSalesforceId,
+        },
+      };
     case 'serviceNamespace':
       return reduceFormStateServiceNamespace(state, action.serviceNamespace);
     case 'dates':
@@ -574,7 +597,6 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
     case 'complete':
       return reduceFormStateComplete(state, {
         error: action.error,
-        salesforceIdValid: action.salesforceIdValid,
         parameters: action.parameters,
       });
     default:

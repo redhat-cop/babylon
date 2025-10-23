@@ -112,15 +112,25 @@ spec:
                   Number of available seats/participants for this multi-workshop.
                 type: integer
                 minimum: 0
-              salesforceId:
+              salesforceItems:
                 description: >-
-                  Salesforce ID associated with this multi-workshop.
-                type: string
-              salesforceType:
-                description: >-
-                  Salesforce ID type (campaign, opportunity, or project).
-                type: string
-                enum: ['campaign', 'opportunity', 'project']
+                  Array of Salesforce items associated with this multi-workshop.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      description: >-
+                        Salesforce ID (Opportunity ID, Campaign ID, or Project ID).
+                      type: string
+                    type:
+                      description: >-
+                        Salesforce ID type (campaign, opportunity, or project).
+                      type: string
+                      enum: ['campaign', 'opportunity', 'project']
+                  required:
+                  - id
+                  - type
               purpose:
                 description: >-
                   Purpose of the multi-workshop.

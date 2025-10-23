@@ -28,7 +28,6 @@ import {
   ExpandableSection,
   List,
   ListItem,
-  Radio,
   Tooltip,
   TextInput,
   Switch,
@@ -77,6 +76,10 @@ import {
   isLabDeveloper,
   DEMO_DOMAIN,
   getWhiteGloved,
+  getFirstSalesforceItem,
+  upsertSalesforceItem,
+  parseSalesforceItems,
+  setSalesforceItems as setSalesforceItemsAnno,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -105,6 +108,7 @@ import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounce from '@app/utils/useDebounce';
 import useDebounceState from '@app/utils/useDebounceState';
+import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import useSWRImmutable from 'swr/immutable';
 
 import './services-item.css';
@@ -356,15 +360,21 @@ const ServicesItemComponent: React.FC<{
   );
 
   const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
-    salesforce_id: resourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] || '',
-    valid: !!resourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`],
-    completed: resourceClaim.metadata.annotations[`${DEMO_DOMAIN}/salesforce-id`] ? false : true,
-    salesforce_type: (resourceClaim.metadata.annotations[`${DEMO_DOMAIN}/sales-type`] as SfdcType) || null,
+    salesforce_id: getFirstSalesforceItem(resourceClaim.metadata.annotations)?.id || '',
+    valid: !!getFirstSalesforceItem(resourceClaim.metadata.annotations)?.id,
+    completed: getFirstSalesforceItem(resourceClaim.metadata.annotations)?.id ? false : true,
+    salesforce_type: (getFirstSalesforceItem(resourceClaim.metadata.annotations)?.type as SfdcType) || null,
   });
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
   );
   const debouncedServiceAlias = useDebounceState(serviceAlias, 300);
+
+  // Multiple Salesforce items state
+  const [salesforceItems, setSalesforceItems] = useState(() =>
+    parseSalesforceItems(resourceClaim.metadata.annotations || {}),
+  );
+  const debouncedSalesforceItems = useDebounceState(salesforceItems, 800);
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
@@ -385,20 +395,41 @@ const ServicesItemComponent: React.FC<{
         ({ valid }: { valid: boolean; message?: string }) =>
           dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid }),
       );
-    } else if (
-      resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/salesforce-id`] !== salesforceObj.salesforce_id ||
-      resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/sales-type`] !== salesforceObj.salesforce_type
-    ) {
-      patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
-        metadata: {
-          annotations: {
-            [`${DEMO_DOMAIN}/salesforce-id`]: salesforceObj.salesforce_id,
-            [`${DEMO_DOMAIN}/sales-type`]: salesforceObj.salesforce_type,
+    } else {
+      const currentItem = getFirstSalesforceItem(resourceClaim.metadata.annotations);
+      if (
+        !currentItem ||
+        currentItem.id !== salesforceObj.salesforce_id ||
+        currentItem.type !== salesforceObj.salesforce_type
+      ) {
+        // Update the Salesforce item using the new utility function
+        const annotations = { ...resourceClaim.metadata.annotations };
+        upsertSalesforceItem(annotations, {
+          type: salesforceObj.salesforce_type,
+          id: salesforceObj.salesforce_id
+        });
+        
+        patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
+          metadata: {
+            annotations,
           },
-        },
-      });
+        });
+      }
     }
   }, [dispatchSalesforceObj, salesforceObj, debouncedApiFetch]);
+
+  // Patch multiple Salesforce items when changed
+  useEffect(() => {
+    if (!resourceClaim) return;
+    const current = parseSalesforceItems(resourceClaim.metadata.annotations || {});
+    const changed = JSON.stringify(current) !== JSON.stringify(debouncedSalesforceItems || []);
+    if (!changed) return;
+    const annotations = { ...resourceClaim.metadata.annotations };
+    setSalesforceItemsAnno(annotations, debouncedSalesforceItems || []);
+    patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
+      metadata: { annotations },
+    });
+  }, [debouncedSalesforceItems]);
 
   useEffect(() => {
     if (debouncedServiceAlias !== resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`]) {
@@ -918,98 +949,12 @@ const ServicesItemComponent: React.FC<{
                     <DescriptionListGroup>
                       <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
 
-                      <div>
-                        <div className="service-item__group-control--single" style={{ padding: '8px' }}>
-                          <Radio
-                            isChecked={'campaign' === salesforceObj.salesforce_type}
-                            name="sfdc-type"
-                            onChange={() =>
-                              dispatchSalesforceObj({
-                                ...salesforceObj,
-                                salesforceType: 'campaign',
-                                type: 'set_salesforceId',
-                                salesforceId: salesforceObj.salesforce_id,
-                              })
-                            }
-                            label="Campaign"
-                            id="sfdc-type-campaign"
-                          ></Radio>
-                          <Radio
-                            isChecked={'opportunity' === salesforceObj.salesforce_type}
-                            name="sfdc-type"
-                            onChange={() => {
-                              dispatchSalesforceObj({
-                                ...salesforceObj,
-                                type: 'set_salesforceId',
-                                salesforceType: 'opportunity',
-                                salesforceId: salesforceObj.salesforce_id,
-                              });
-                            }}
-                            label="Opportunity"
-                            id="sfdc-type-opportunity"
-                          ></Radio>
-                          <Radio
-                            isChecked={'project' === salesforceObj.salesforce_type}
-                            name="sfdc-type"
-                            onChange={() =>
-                              dispatchSalesforceObj({
-                                ...salesforceObj,
-                                type: 'set_salesforceId',
-                                salesforceType: 'project',
-                                salesforceId: salesforceObj.salesforce_id,
-                              })
-                            }
-                            label="Project"
-                            id="sfdc-type-project"
-                          ></Radio>
-                          <Tooltip
-                            position="right"
-                            content={<div>Salesforce ID type: Opportunity ID, Campaign ID or Project ID.</div>}
-                          >
-                            <OutlinedQuestionCircleIcon
-                              aria-label="Salesforce ID type: Opportunity ID, Campaign ID or Project ID."
-                              className="tooltip-icon-only"
-                            />
-                          </Tooltip>
-                        </div>
-                        <div
-                          className="service-item__group-control--single"
-                          style={{ maxWidth: 300, paddingBottom: '16px' }}
-                        >
-                          <TextInput
-                            type="text"
-                            key="salesforce_id"
-                            id="salesforce_id"
-                            onChange={(_event: unknown, value: string) =>
-                              dispatchSalesforceObj({
-                                ...salesforceObj,
-                                type: 'set_salesforceId',
-                                salesforceId: value,
-                                salesforceType: salesforceObj.salesforce_type,
-                              })
-                            }
-                            value={salesforceObj.salesforce_id}
-                            validated={
-                              salesforceObj.salesforce_id
-                                ? salesforceObj.completed && salesforceObj.valid
-                                  ? 'success'
-                                  : salesforceObj.completed
-                                    ? 'error'
-                                    : 'default'
-                                : 'default'
-                            }
-                          />
-                          <Tooltip
-                            position="right"
-                            content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}
-                          >
-                            <OutlinedQuestionCircleIcon
-                              aria-label="Salesforce Opportunity ID, Campaign ID or Project ID."
-                              className="tooltip-icon-only"
-                            />
-                          </Tooltip>
-                        </div>
-                      </div>
+                      <SalesforceItemsField
+                        label=""
+                        items={salesforceItems}
+                        onChange={(next) => setSalesforceItems(next)}
+                        helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
+                      />
                     </DescriptionListGroup>
                   ) : null}
 

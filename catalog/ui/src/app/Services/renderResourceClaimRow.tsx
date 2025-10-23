@@ -16,7 +16,7 @@ import {
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import { getAutoStopTime, getMostRelevantResourceAndTemplate } from './service-utils';
+import { getAutoStopTime } from './service-utils';
 import ServiceStatus from './ServiceStatus';
 import TimeInterval from '@app/components/TimeInterval';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
