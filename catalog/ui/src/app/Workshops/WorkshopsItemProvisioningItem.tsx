@@ -92,15 +92,14 @@ const WorkshopsItemProvisioningItem: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
 
-        {!catalogItem.spec.multiuser || isAdmin ? 
-        <><DescriptionListGroup>
+        <DescriptionListGroup>
           <DescriptionListTerm>
             Workshop Instance Count
           </DescriptionListTerm>
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
-              max={workshopProvision.spec.parameters?.salesforce_id ? 30 : 1}
+              max={workshopProvision.spec.parameters?.salesforce_id ? workshop.spec.multiuserServices ? 5 : 30 : 1}
               adminModifier={true}
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
@@ -110,7 +109,9 @@ const WorkshopsItemProvisioningItem: React.FC<{
               position="right"
               content={
                 workshop.spec.multiuserServices ? (
-                  <p>Number of shared instances for the workshop, each instance supports multiple users.</p>
+                  <p>This item does not support multiple instances by default. If you increase the number of instances, you may need to manage user assignments manually. <br />
+                     A Salesforce ID is required to increase the limit from 1 to 5. For more than 5 instances, please submit a White Glove request.
+                  </p>
                 ) : (
                   <p>
                     Number of independent instances for the workshop, each user gets a dedicated instance. <br />
@@ -124,7 +125,6 @@ const WorkshopsItemProvisioningItem: React.FC<{
                 className="tooltip-icon-only"
               />
             </Tooltip>
-            {catalogItem.spec.multiuser ? <>(only visible to admins)</>:null}
           </DescriptionListDescription>
         </DescriptionListGroup>
         {isAdmin ? (
@@ -157,7 +157,6 @@ const WorkshopsItemProvisioningItem: React.FC<{
             </DescriptionListGroup>
           </>
         ) : null}
-      </>:null}
       </DescriptionList>
     </>
   );
