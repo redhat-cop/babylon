@@ -719,6 +719,7 @@ class AgnosticVComponent(KopfObject):
                         "short_name": self.short_name,
                         "stage": self.stage,
                     },
+                    "error_message": "{{ resources | default([]) | json_query(\"[].state.status.runStatusMessage|join('; ', @)\") | default(omit, true) }}",
                     "provision_data": "{{ resources | default([]) | json_query('[].state.spec.vars.provision_data') | merge_list_of_dicts | object }}",
                     "runtime_default": "{{ runtime_default }}",
                     "runtime_maximum": "{{ runtime_maximum }}",
