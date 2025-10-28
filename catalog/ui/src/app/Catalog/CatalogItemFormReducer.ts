@@ -45,18 +45,11 @@ type FormState = {
   explanation?: string;
   salesforceId: {
     required: boolean;
-    value?: string;
-    valid: boolean;
-    message?: string;
     skip?: boolean;
-    type?: 'campaign' | 'project' | 'opportunity';
   };
   salesforceItems?: Array<{ 
     id: string; 
     type: 'campaign' | 'project' | 'opportunity';
-    required?: boolean;
-    valid?: boolean;
-    message?: string;
   }>;
   sfdc_enabled: boolean;
 };
@@ -216,17 +209,6 @@ export async function checkConditionsInFormState(
           debouncedApiFetch,
           dispatchFn,
         );
-      } else {
-        // Fallback to old salesforceId for backward compatibility
-        conditionValues['salesforce_id'] = initialState.salesforceId.value;
-        if (initialState.salesforceId.value) {
-          await _checkCondition(
-            'check_salesforce_id(salesforce_id)',
-            { salesforce_id: initialState.salesforceId.value, sales_type: initialState.salesforceId.type },
-            debouncedApiFetch,
-            dispatchFn,
-          );
-        }
       }
     }
     for (const [, parameterState] of Object.entries(parameters)) {
@@ -383,10 +365,7 @@ function reduceFormStateInit(
     whiteGloved: false,
     salesforceId: {
       required: false,
-      value: null,
-      valid: false,
       skip: false,
-      message: '',
     },
     salesforceItems: [],
     sfdc_enabled,
@@ -562,16 +541,6 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         ...state,
         salesforceItems: action.salesforceItems,
       };
-    case 'updateSalesforceItems':
-      return {
-        ...state,
-        salesforceItems: state.salesforceItems?.map(item => ({
-          ...item,
-          required: action.updateSalesforceItems?.required ?? item.required,
-          valid: action.updateSalesforceItems?.valid ?? item.valid,
-          message: action.updateSalesforceItems?.message ?? item.message,
-        })),
-      };
     case 'skipSalesforceId':
       return {
         ...state,
@@ -616,8 +585,16 @@ export function checkEnableSubmit(state: FormState): boolean {
     if (!state.purpose || !state.activity) {
       return false;
     }
-    if (!state.salesforceId.skip && state.salesforceId.required && !state.salesforceId.valid) {
-      return false;
+    // Check if Salesforce ID is required and not provided
+    if (!state.salesforceId.skip) {
+      const sfdcRequired = state.salesforceId.required;
+      if (sfdcRequired) {
+        // If required, must have valid salesforce items
+        const hasValidItems = state.salesforceItems && state.salesforceItems.length > 0;
+        if (!hasValidItems) {
+          return false;
+        }
+      }
     }
   }
 

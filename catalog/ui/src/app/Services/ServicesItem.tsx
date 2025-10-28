@@ -948,13 +948,17 @@ const ServicesItemComponent: React.FC<{
                   {!isPartOfWorkshop ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
-
-                      <SalesforceItemsField
-                        label=""
-                        items={salesforceItems}
-                        onChange={(next) => setSalesforceItems(next)}
-                        helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
-                      />
+                      <DescriptionListDescription>
+                        <div style={{ maxWidth: '500px' }}>
+                          <SalesforceItemsField
+                            label=""
+                            items={salesforceItems}
+                            onChange={(next) => setSalesforceItems(next)}
+                            helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
+                            isAdmin={isAdmin}
+                          />
+                        </div>
+                      </DescriptionListDescription>
                     </DescriptionListGroup>
                   ) : null}
 
