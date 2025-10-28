@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
-import { DescriptionList, DescriptionListTerm, DescriptionListGroup, DescriptionListDescription, Tooltip, Switch, MenuToggle, MenuToggleElement, FormGroup } from '@patternfly/react-core';
+import { DescriptionList, DescriptionListTerm, DescriptionListGroup, DescriptionListDescription, Tooltip, Switch, MenuToggle, MenuToggleElement, FormGroup, Button } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
@@ -21,7 +21,8 @@ import {
   WorkshopUserAssignment,
 } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
-import SalesforceItemsField from '@app/components/SalesforceItemsField';
+import SalesforceItemsList from '@app/components/SalesforceItemsList';
+import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useDebounce from '@app/utils/useDebounce';
 import useSession from '@app/utils/useSession';
 import EditableText from '@app/components/EditableText';
@@ -42,6 +43,7 @@ import CurrencyAmount from '@app/components/CurrencyAmount';
 import TimeInterval from '@app/components/TimeInterval';
 
 import './workshops-item-details.css';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 
 const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
@@ -69,6 +71,7 @@ const WorkshopsItemDetails: React.FC<{
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
+  const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
 
   const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, workshopProvisions);
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
@@ -517,46 +520,22 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListGroup>
       ) : null}
 
-      {workshopProvisions.length > 0 ? (
-        <DescriptionListGroup style={{ marginTop: '16px' }}>
+      {workshopProvisions.length > 0 && (
+        <DescriptionListGroup>
           <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
           <DescriptionListDescription>
-            <div style={{ maxWidth: '500px' }}>
-              <SalesforceItemsField
-                label=""
-                items={JSON.parse(workshopProvisions[0].spec.parameters?.['salesforce_items'] || '[]')}
-                onChange={async (next) => {
-                  await patchWorkshop({
-                    name: workshop.metadata.name,
-                    namespace: workshop.metadata.namespace,
-                    patch: {
-                      metadata: {
-                        annotations: {
-                          ...workshop.metadata.annotations,
-                          'demo.redhat.com/salesforce-items': JSON.stringify(next),
-                        },
-                      },
-                    },
-                  });
-                  await patchWorkshopProvisionSpec(workshopProvisions[0].metadata.name, workshopProvisions[0].metadata.namespace, {
-                    parameters: {
-                      ...workshopProvisions[0].spec.parameters,
-                      salesforce_items: JSON.stringify(next),
-                    },
-                  });
-                  if (!resourceClaims || resourceClaims.length === 0) return;
-                  for (let rc of resourceClaims) {
-                    const annotations = { ...rc.metadata.annotations };
-                    setSalesforceItemsAnno(annotations, next);
-                    await patchResourceClaim(rc.metadata.namespace, rc.metadata.name, { metadata: { annotations } });
-                  }
-                }}
-                isAdmin={isAdmin}
-              />
-            </div>
+            <SalesforceItemsList items={JSON.parse(workshopProvisions[0].spec.parameters?.['salesforce_items'] || '[]')} />
+            <Button
+              variant="link"
+              icon={<PlusCircleIcon />}
+              onClick={() => setModalEditSalesforce(true)}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              Add Salesforce IDs
+            </Button>
           </DescriptionListDescription>
         </DescriptionListGroup>
-      ) : null}
+      )}
 
       {isAdmin ? (
         <DescriptionListGroup>
@@ -589,6 +568,40 @@ const WorkshopsItemDetails: React.FC<{
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
+      {workshopProvisions.length > 0 && (
+        <SalesforceItemsEditModal
+          isOpen={modalEditSalesforce}
+          onClose={() => setModalEditSalesforce(false)}
+          items={JSON.parse(workshopProvisions[0].spec.parameters?.['salesforce_items'] || '[]')}
+          onSave={async (next) => {
+            await patchWorkshop({
+              name: workshop.metadata.name,
+              namespace: workshop.metadata.namespace,
+              patch: {
+                metadata: {
+                  annotations: {
+                    ...workshop.metadata.annotations,
+                    'demo.redhat.com/salesforce-items': JSON.stringify(next),
+                  },
+                },
+              },
+            });
+            await patchWorkshopProvisionSpec(workshopProvisions[0].metadata.name, workshopProvisions[0].metadata.namespace, {
+              parameters: {
+                ...workshopProvisions[0].spec.parameters,
+                salesforce_items: JSON.stringify(next),
+              },
+            });
+            if (!resourceClaims || resourceClaims.length === 0) return;
+            for (let rc of resourceClaims) {
+              const annotations = { ...rc.metadata.annotations };
+              setSalesforceItemsAnno(annotations, next);
+              await patchResourceClaim(rc.metadata.namespace, rc.metadata.name, { metadata: { annotations } });
+            }
+          }}
+          isAdmin={isAdmin}
+        />
+      )}
     </DescriptionList>
   );
 };

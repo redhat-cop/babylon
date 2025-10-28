@@ -1,4 +1,4 @@
-import React, { useState, useCallback, ReactNode, useMemo } from 'react';
+import React, { useState, useCallback, ReactNode, useMemo, useEffect } from 'react';
 import { Button, FormGroup, TextInput, Tooltip, Radio, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, PlusCircleIcon, SearchIcon, TrashIcon } from '@patternfly/react-icons';
 import { SalesforceItem, SfdcType } from '@app/types';
@@ -30,8 +30,8 @@ const SalesforceItemsField: React.FC<{
   isRequired?: boolean;
   fieldId?: string;
   standalone?: boolean;
-  isAdmin?: boolean;
-}> = ({ label = 'Salesforce items', helperText, items, onChange, isRequired = false, fieldId = 'salesforce-items', standalone = true, isAdmin = false }) => {
+  hideExistingItems?: boolean;
+}> = ({ label = 'Salesforce items', helperText, items, onChange, isRequired = false, fieldId = 'salesforce-items', standalone = true, hideExistingItems = false }) => {
   const { sfdc_enabled } = useInterfaceConfig();
   
   // Existing items (from props) - these are read-only
@@ -45,7 +45,7 @@ const SalesforceItemsField: React.FC<{
     valid: false,
     message: '',
   });
-  const [showAddForm, setShowAddForm] = useState(existingItems.length === 0);
+  const [showAddForm, setShowAddForm] = useState(hideExistingItems || existingItems.length === 0);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   const debouncedValidate = useDebounce(async (item: SalesforceItemWithOptionalType, currentItems: SalesforceItem[]) => {
@@ -56,7 +56,10 @@ const SalesforceItemsField: React.FC<{
     if (validated.valid && validated.id && validated.type) {
       onChange([...currentItems, { id: validated.id, type: validated.type as SfdcType }]);
       setNewItem({ id: '', type: null, validating: false, valid: false, message: '' });
-      setShowAddForm(false); // Always hide form after adding
+      // Keep form visible when hideExistingItems is true
+      if (!hideExistingItems) {
+        setShowAddForm(false);
+      }
     }
   }, 600);
 
@@ -87,34 +90,45 @@ const SalesforceItemsField: React.FC<{
     debouncedValidate(updatedItem, existingItems);
   }, [newItem, debouncedValidate, existingItems]);
 
+  // Ensure the form is always visible when hideExistingItems is true
+  useEffect(() => {
+    if (hideExistingItems && !showAddForm) {
+      setShowAddForm(true);
+    }
+  }, [hideExistingItems, showAddForm]);
+
+  // Show the form when there are no existing items
+  useEffect(() => {
+    if (existingItems.length === 0 && !showAddForm) {
+      setShowAddForm(true);
+    }
+  }, [existingItems.length, showAddForm]);
+
 
   const content = (
     <>
       {/* Display existing items as read-only input fields */}
-      {existingItems.map((item, idx) => (
+      {!hideExistingItems && existingItems.map((item, idx) => (
         <div key={`existing-${idx}`} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16, minWidth: '600px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 4, opacity: isAdmin ? 1 : 0.6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 4 }}>
               <Radio
                 isChecked={item.type === 'campaign'}
                 name={`sfdc-type-existing-${idx}`}
                 label="Campaign"
                 id={`sfdc-type-existing-${idx}-campaign`}
-                isDisabled={!isAdmin}
               />
               <Radio
                 isChecked={item.type === 'opportunity'}
                 name={`sfdc-type-existing-${idx}`}
                 label="Opportunity"
                 id={`sfdc-type-existing-${idx}-opportunity`}
-                isDisabled={!isAdmin}
               />
               <Radio
                 isChecked={item.type === 'project'}
                 name={`sfdc-type-existing-${idx}`}
                 label="Project"
                 id={`sfdc-type-existing-${idx}-project`}
-                isDisabled={!isAdmin}
               />
               <Tooltip
                 position="right"
@@ -126,11 +140,10 @@ const SalesforceItemsField: React.FC<{
                 />
               </Tooltip>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap', opacity: isAdmin ? 1 : 0.6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
               <Button
                 variant="secondary"
                 icon={<SearchIcon />}
-                isDisabled={!isAdmin}
                 style={{ minWidth: '120px', flexShrink: 0 }}
               >
                 Id Finder
@@ -139,21 +152,18 @@ const SalesforceItemsField: React.FC<{
                 style={{ minWidth: '300px', flex: 1 }}
                 id={`${fieldId}-existing-${idx}`}
                 value={item.id || ''}
-                readOnly={!isAdmin}
                 validated="success"
                 aria-label={`Salesforce ID: ${item.id}`}
               />
               <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
                 <OutlinedQuestionCircleIcon className="tooltip-icon-only" style={{ flexShrink: 0 }} />
               </Tooltip>
-              {isAdmin && idx > 0 && (
-                <Button 
-                  variant="plain" 
-                  aria-label="Remove" 
-                  onClick={() => onChange(existingItems.filter((_, i) => i !== idx))}
-                  icon={<TrashIcon />}
-                />
-              )}
+              <Button 
+                variant="plain" 
+                aria-label="Remove" 
+                onClick={() => onChange(existingItems.filter((_, i) => i !== idx))}
+                icon={<TrashIcon />}
+              />
             </div>
           </div>
         </div>

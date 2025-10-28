@@ -71,7 +71,6 @@ export type FormStateAction = {
     | 'useAutoDetach'
     | 'purpose'
     | 'salesforceItems'
-    | 'updateSalesforceItems'
     | 'skipSalesforceId'
     | 'serviceNamespace'
     | 'whiteGloved'
@@ -93,11 +92,6 @@ export type FormStateAction = {
     valid?: boolean;
     message?: string;
   }>;
-  updateSalesforceItems?: {
-    required?: boolean;
-    valid?: boolean;
-    message?: string;
-  };
   skipSalesforceId?: boolean;
   error?: string;
   parameters?: { [name: string]: FormStateParameter };
@@ -155,7 +149,6 @@ async function _checkCondition(
   condition: string,
   vars: ConditionValues,
   debouncedApiFetch: (path: string) => Promise<Response>,
-  dispatchFn: React.Dispatch<FormStateAction>,
 ): Promise<boolean> {
   const checkSalesforceIds: string[] = [];
   condition.replace(checkSalesforceIdRegex, (match, name) => {
@@ -164,18 +157,11 @@ async function _checkCondition(
   });
   const checkResults: boolean[] = [];
   for (const name of checkSalesforceIds) {
-    const { valid, message } = await checkSalesforceId(
+    const { valid } = await checkSalesforceId(
       vars[name] as string,
       debouncedApiFetch,
       vars['sales_type'] as 'string',
     );
-    dispatchFn({
-      type: 'updateSalesforceItems',
-      updateSalesforceItems: {
-        message,
-        valid,
-      },
-    });
     checkResults.push(valid);
   }
   return checkCondition(
@@ -207,7 +193,6 @@ export async function checkConditionsInFormState(
           'check_salesforce_id(salesforce_id)',
           { salesforce_id: firstItem.id, sales_type: firstItem.type },
           debouncedApiFetch,
-          dispatchFn,
         );
       }
     }
@@ -219,7 +204,6 @@ export async function checkConditionsInFormState(
           parameterSpec.formDisableCondition,
           conditionValues,
           debouncedApiFetch,
-          dispatchFn,
         );
       }
 
@@ -228,7 +212,6 @@ export async function checkConditionsInFormState(
           parameterSpec.formHideCondition,
           conditionValues,
           debouncedApiFetch,
-          dispatchFn,
         );
       }
 
@@ -237,7 +220,6 @@ export async function checkConditionsInFormState(
           parameterSpec.formRequireCondition,
           conditionValues,
           debouncedApiFetch,
-          dispatchFn,
         );
       }
 
@@ -248,7 +230,6 @@ export async function checkConditionsInFormState(
               parameterSpec.validation,
               conditionValues,
               debouncedApiFetch,
-              dispatchFn,
             );
             parameterState.validationMessage = undefined;
           } catch (error) {
