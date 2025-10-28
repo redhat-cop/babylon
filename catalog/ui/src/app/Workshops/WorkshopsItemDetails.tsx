@@ -520,37 +520,42 @@ const WorkshopsItemDetails: React.FC<{
       {workshopProvisions.length > 0 ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
-          <SalesforceItemsField
-            label=""
-            items={JSON.parse(workshopProvisions[0].spec.parameters?.['salesforce_items'] || '[]')}
-            onChange={async (next) => {
-              await patchWorkshop({
-                name: workshop.metadata.name,
-                namespace: workshop.metadata.namespace,
-                patch: {
-                  metadata: {
-                    annotations: {
-                      ...workshop.metadata.annotations,
-                      'demo.redhat.com/salesforce-items': JSON.stringify(next),
+          <DescriptionListDescription>
+            <div style={{ maxWidth: '500px' }}>
+              <SalesforceItemsField
+                label=""
+                items={JSON.parse(workshopProvisions[0].spec.parameters?.['salesforce_items'] || '[]')}
+                onChange={async (next) => {
+                  await patchWorkshop({
+                    name: workshop.metadata.name,
+                    namespace: workshop.metadata.namespace,
+                    patch: {
+                      metadata: {
+                        annotations: {
+                          ...workshop.metadata.annotations,
+                          'demo.redhat.com/salesforce-items': JSON.stringify(next),
+                        },
+                      },
                     },
-                  },
-                },
-              });
-              await patchWorkshopProvisionSpec(workshopProvisions[0].metadata.name, workshopProvisions[0].metadata.namespace, {
-                parameters: {
-                  ...workshopProvisions[0].spec.parameters,
-                  salesforce_items: JSON.stringify(next),
-                },
-              });
-              if (!resourceClaims || resourceClaims.length === 0) return;
-              for (let rc of resourceClaims) {
-                const annotations = { ...rc.metadata.annotations };
-                setSalesforceItemsAnno(annotations, next);
-                await patchResourceClaim(rc.metadata.namespace, rc.metadata.name, { metadata: { annotations } });
-              }
-            }}
-            helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
-          />
+                  });
+                  await patchWorkshopProvisionSpec(workshopProvisions[0].metadata.name, workshopProvisions[0].metadata.namespace, {
+                    parameters: {
+                      ...workshopProvisions[0].spec.parameters,
+                      salesforce_items: JSON.stringify(next),
+                    },
+                  });
+                  if (!resourceClaims || resourceClaims.length === 0) return;
+                  for (let rc of resourceClaims) {
+                    const annotations = { ...rc.metadata.annotations };
+                    setSalesforceItemsAnno(annotations, next);
+                    await patchResourceClaim(rc.metadata.namespace, rc.metadata.name, { metadata: { annotations } });
+                  }
+                }}
+                helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
+                isAdmin={isAdmin}
+              />
+            </div>
+          </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
 
