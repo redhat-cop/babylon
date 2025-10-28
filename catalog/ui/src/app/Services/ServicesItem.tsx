@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useReducer, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { useErrorHandler } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
@@ -33,9 +33,7 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import {
-  apiFetch,
   apiPaths,
-  checkSalesforceId,
   deleteResourceClaim,
   fetcher,
   silentFetcher,
@@ -59,7 +57,6 @@ import {
   RequestUsageCost,
   ResourceClaim,
   ServiceActionActions,
-  SfdcType,
   Workshop,
   WorkshopUserAssignment,
   WorkshopUserAssignmentList,
@@ -76,10 +73,7 @@ import {
   isLabDeveloper,
   DEMO_DOMAIN,
   getWhiteGloved,
-  getFirstSalesforceItem,
-  upsertSalesforceItem,
   parseSalesforceItems,
-  setSalesforceItems as setSalesforceItemsAnno,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -106,12 +100,13 @@ import ServiceItemStatus from './ServiceItemStatus';
 import InfoTab from './InfoTab';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import useDebounce from '@app/utils/useDebounce';
 import useDebounceState from '@app/utils/useDebounceState';
-import SalesforceItemsField from '@app/components/SalesforceItemsField';
+import SalesforceItemsList from '@app/components/SalesforceItemsList';
+import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useSWRImmutable from 'swr/immutable';
 
 import './services-item.css';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 
 const ComponentDetailsList: React.FC<{
   resourceState: AnarchySubject;
@@ -303,32 +298,6 @@ const ComponentDetailsList: React.FC<{
   );
 };
 
-function _reducer(
-  state: { salesforce_id: string; valid: boolean; completed: boolean; salesforce_type: SfdcType },
-  action: {
-    type: 'set_salesforceId' | 'complete';
-    salesforceId?: string;
-    salesforceIdValid?: boolean;
-    salesforceType?: SfdcType;
-  },
-) {
-  switch (action.type) {
-    case 'set_salesforceId':
-      return {
-        salesforce_id: action.salesforceId,
-        valid: false,
-        completed: false,
-        salesforce_type: action.salesforceType,
-      };
-    case 'complete':
-      return {
-        ...state,
-        valid: action.salesforceIdValid,
-        completed: true,
-      };
-  }
-}
-
 const ServicesItemComponent: React.FC<{
   activeTab: string;
   resourceClaimName: string;
@@ -336,7 +305,6 @@ const ServicesItemComponent: React.FC<{
 }> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [expanded, setExpanded] = useState([]);
@@ -359,25 +327,15 @@ const ServicesItemComponent: React.FC<{
     silentFetcher,
   );
 
-  const [salesforceObj, dispatchSalesforceObj] = useReducer(_reducer, {
-    salesforce_id: getFirstSalesforceItem(resourceClaim.metadata.annotations)?.id || '',
-    valid: !!getFirstSalesforceItem(resourceClaim.metadata.annotations)?.id,
-    completed: getFirstSalesforceItem(resourceClaim.metadata.annotations)?.id ? false : true,
-    salesforce_type: (getFirstSalesforceItem(resourceClaim.metadata.annotations)?.type as SfdcType) || null,
-  });
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
   );
   const debouncedServiceAlias = useDebounceState(serviceAlias, 300);
-
-  // Multiple Salesforce items state
-  const [salesforceItems, setSalesforceItems] = useState(() =>
-    parseSalesforceItems(resourceClaim.metadata.annotations || {}),
-  );
-  const debouncedSalesforceItems = useDebounceState(salesforceItems, 800);
+  const salesforceItems = parseSalesforceItems(resourceClaim.metadata.annotations || {});
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
+  const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
@@ -389,47 +347,6 @@ const ServicesItemComponent: React.FC<{
     submitDisabled: boolean;
   }>({ action: null, submitDisabled: false });
 
-  useEffect(() => {
-    if (!salesforceObj.completed) {
-      checkSalesforceId(salesforceObj.salesforce_id, debouncedApiFetch, salesforceObj.salesforce_type).then(
-        ({ valid }: { valid: boolean; message?: string }) =>
-          dispatchSalesforceObj({ type: 'complete', salesforceIdValid: valid }),
-      );
-    } else {
-      const currentItem = getFirstSalesforceItem(resourceClaim.metadata.annotations);
-      if (
-        !currentItem ||
-        currentItem.id !== salesforceObj.salesforce_id ||
-        currentItem.type !== salesforceObj.salesforce_type
-      ) {
-        // Update the Salesforce item using the new utility function
-        const annotations = { ...resourceClaim.metadata.annotations };
-        upsertSalesforceItem(annotations, {
-          type: salesforceObj.salesforce_type,
-          id: salesforceObj.salesforce_id
-        });
-        
-        patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
-          metadata: {
-            annotations,
-          },
-        });
-      }
-    }
-  }, [dispatchSalesforceObj, salesforceObj, debouncedApiFetch]);
-
-  // Patch multiple Salesforce items when changed
-  useEffect(() => {
-    if (!resourceClaim) return;
-    const current = parseSalesforceItems(resourceClaim.metadata.annotations || {});
-    const changed = JSON.stringify(current) !== JSON.stringify(debouncedSalesforceItems || []);
-    if (!changed) return;
-    const annotations = { ...resourceClaim.metadata.annotations };
-    setSalesforceItemsAnno(annotations, debouncedSalesforceItems || []);
-    patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
-      metadata: { annotations },
-    });
-  }, [debouncedSalesforceItems]);
 
   useEffect(() => {
     if (debouncedServiceAlias !== resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`]) {
@@ -443,7 +360,7 @@ const ServicesItemComponent: React.FC<{
         mutate(updatedResourceClaim);
       });
     }
-  }, [debouncedServiceAlias]);
+  }, [debouncedServiceAlias, mutate, resourceClaim.metadata.annotations, resourceClaim.metadata.name, resourceClaim.metadata.namespace]);
 
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const { data: userNamespaceList } = useSWR<NamespaceList>(
@@ -946,17 +863,18 @@ const ServicesItemComponent: React.FC<{
                   </DescriptionListGroup>
 
                   {!isPartOfWorkshop ? (
-                    <DescriptionListGroup style={{ marginTop: '16px' }}>
-                      <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
                       <DescriptionListDescription>
-                        <div style={{ maxWidth: '500px' }}>
-                          <SalesforceItemsField
-                            label=""
-                            items={salesforceItems}
-                            onChange={(next) => setSalesforceItems(next)}
-                            isAdmin={isAdmin}
-                          />
-                        </div>
+                        <SalesforceItemsList items={salesforceItems} />
+                        <Button
+                          variant="plain"
+                          icon={<PlusCircleIcon />}
+                          onClick={() => setModalEditSalesforce(true)}
+                          style={{ alignSelf: 'flex-start' }}
+                        >
+                          Add Salesforce IDs
+                        </Button>
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   ) : null}
@@ -1167,6 +1085,18 @@ const ServicesItemComponent: React.FC<{
           </Tabs>
         </PageSection>
       )}
+      <SalesforceItemsEditModal
+        isOpen={modalEditSalesforce}
+        onClose={() => setModalEditSalesforce(false)}
+        items={salesforceItems}
+        onSave={async (next) => {
+          const rc = await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
+            metadata: { annotations: { 'demo.redhat.com/salesforce-items': JSON.stringify(next) } },
+          });
+          mutate(rc);
+        }}
+        isAdmin={isAdmin}
+      />
     </>
   );
 };
