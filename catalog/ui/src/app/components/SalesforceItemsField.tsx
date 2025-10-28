@@ -211,7 +211,7 @@ const SalesforceItemsField: React.FC<{
               </Button>
               <TextInput
                 style={{ minWidth: '300px', flex: 1 }}
-                id={`${fieldId}-new`}
+                id={fieldId}
                 value={newItem.id || ''}
                 onChange={(_e, v) => handleIdChange(v as string)}
                 validated={!newItem.id ? 'default' : newItem.validating ? 'default' : newItem.valid ? 'success' : 'error'}
@@ -255,7 +255,10 @@ const SalesforceItemsField: React.FC<{
           {content}
         </FormGroup>
       ) : (
-        content
+        <>
+          {label && <label htmlFor={fieldId} style={{ display: 'none' }}>{label}</label>}
+          {content}
+        </>
       )}
       <SearchSalesforceIdModal
         isOpen={searchModalOpen}
