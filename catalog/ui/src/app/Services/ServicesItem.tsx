@@ -946,7 +946,7 @@ const ServicesItemComponent: React.FC<{
                   </DescriptionListGroup>
 
                   {!isPartOfWorkshop ? (
-                    <DescriptionListGroup>
+                    <DescriptionListGroup style={{ marginTop: '16px' }}>
                       <DescriptionListTerm>Salesforce ID</DescriptionListTerm>
                       <DescriptionListDescription>
                         <div style={{ maxWidth: '500px' }}>
@@ -954,7 +954,6 @@ const ServicesItemComponent: React.FC<{
                             label=""
                             items={salesforceItems}
                             onChange={(next) => setSalesforceItems(next)}
-                            helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
                             isAdmin={isAdmin}
                           />
                         </div>

@@ -518,7 +518,7 @@ const WorkshopsItemDetails: React.FC<{
       ) : null}
 
       {workshopProvisions.length > 0 ? (
-        <DescriptionListGroup>
+        <DescriptionListGroup style={{ marginTop: '16px' }}>
           <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
           <DescriptionListDescription>
             <div style={{ maxWidth: '500px' }}>
@@ -551,7 +551,6 @@ const WorkshopsItemDetails: React.FC<{
                     await patchResourceClaim(rc.metadata.namespace, rc.metadata.name, { metadata: { annotations } });
                   }
                 }}
-                helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
                 isAdmin={isAdmin}
               />
             </div>

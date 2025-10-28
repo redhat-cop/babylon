@@ -944,7 +944,6 @@ const MultiWorkshopCreate: React.FC = () => {
                   </span>
                 </span>
               }
-              helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
               isRequired={!isAdmin}
             />
           </div>
