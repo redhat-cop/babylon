@@ -15,7 +15,6 @@ interface SalesforceItemsEditModalProps {
   onClose: () => void;
   items: SalesforceItem[];
   onSave: (items: SalesforceItem[]) => Promise<void> | void;
-  isAdmin?: boolean;
 }
 
 const SalesforceItemsEditModal: React.FC<SalesforceItemsEditModalProps> = ({
@@ -23,7 +22,6 @@ const SalesforceItemsEditModal: React.FC<SalesforceItemsEditModalProps> = ({
   onClose,
   items,
   onSave,
-  isAdmin = false,
 }) => {
   const [localItems, setLocalItems] = React.useState<SalesforceItem[]>(items);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -60,8 +58,7 @@ const SalesforceItemsEditModal: React.FC<SalesforceItemsEditModalProps> = ({
             helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
             items={localItems}
             onChange={setLocalItems}
-            isAdmin={isAdmin}
-            hideExistingItems={!isAdmin}
+            hideExistingItems={true}
           />
         </div>
       </ModalBody>

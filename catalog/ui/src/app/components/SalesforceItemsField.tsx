@@ -30,9 +30,8 @@ const SalesforceItemsField: React.FC<{
   isRequired?: boolean;
   fieldId?: string;
   standalone?: boolean;
-  isAdmin?: boolean;
   hideExistingItems?: boolean;
-}> = ({ label = 'Salesforce items', helperText, items, onChange, isRequired = false, fieldId = 'salesforce-items', standalone = true, isAdmin = false, hideExistingItems = false }) => {
+}> = ({ label = 'Salesforce items', helperText, items, onChange, isRequired = false, fieldId = 'salesforce-items', standalone = true, hideExistingItems = false }) => {
   const { sfdc_enabled } = useInterfaceConfig();
   
   // Existing items (from props) - these are read-only
