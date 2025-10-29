@@ -2373,7 +2373,7 @@ class AgnosticVRepo(CachedKopfObject):
                 )
             elif pr_messages:
                 if all("up to date" in msg for msg in pr_messages):
-                    message = f"No changes detected in revision {head_sha[:8]}\n\nAll components remain up to date."
+                    message = f"No changes detected in revision {head_sha}\n\nAll components remain up to date."
                 else:
                     message = (
                         f"Successfully applied revision {head_sha}\n\n" +
@@ -2381,7 +2381,7 @@ class AgnosticVRepo(CachedKopfObject):
                         "\n".join([f"• {msg}" for msg in pr_messages])
                     )
             else:
-                message = f"No components found in revision {head_sha[:8]}"
+                message = f"No components found in revision {head_sha}"
             
             if self.catalog_url:
                 message += f"\n\nThe updated catalog is available at {self.catalog_url}"
