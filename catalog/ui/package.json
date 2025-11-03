@@ -66,7 +66,7 @@
     "prettier": "^3.6.2",
     "prop-types": "^15.6.1",
     "raw-loader": "^4.0.2",
-    "rimraf": "^6.0.1",
+    "rimraf": "^6.1.0",
     "sirv-cli": "^3.0.1",
     "style-loader": "^3.3.4",
     "svg-url-loader": "^8.0.0",
