@@ -14,10 +14,17 @@ type SalesforceItemWithOptionalType = Omit<SalesforceItem, 'type'> & {
   message?: string;
 };
 
-const validateItem = async (item: SalesforceItemWithOptionalType): Promise<SalesforceItemWithOptionalType> => {
+const validateItem = async (item: SalesforceItemWithOptionalType, existingItems: SalesforceItem[]): Promise<SalesforceItemWithOptionalType> => {
   if (!item?.id || !item?.type) {
     return { ...item, validating: false, valid: false, message: '' };
   }
+  
+  // Check if ID already exists
+  const duplicateExists = existingItems.some(existingItem => existingItem.id === item.id);
+  if (duplicateExists) {
+    return { ...item, validating: false, valid: false, message: 'This Salesforce ID already exists' };
+  }
+  
   const { valid, message } = await checkSalesforceId(item.id, apiFetch, item.type);
   return { ...item, validating: false, valid, message: valid ? '' : message };
 };
@@ -49,7 +56,7 @@ const SalesforceItemsField: React.FC<{
   const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   const debouncedValidate = useDebounce(async (item: SalesforceItemWithOptionalType, currentItems: SalesforceItem[]) => {
-    const validated = await validateItem({ ...item, validating: true });
+    const validated = await validateItem({ ...item, validating: true }, currentItems);
     setNewItem(validated);
     
     // Auto-add if valid
