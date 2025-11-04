@@ -56,6 +56,7 @@ import {
   HIDDEN_LABELS,
   CUSTOM_LABELS,
   getStatusFromCatalogItem,
+  getRating,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
@@ -310,16 +311,56 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           return aDisplayName < bDisplayName ? 1 : -1;
         } else {
           // sortBy === 'Featured' and 'Rating'
-          const selector =
-            sortBy.selected === 'Featured'
-              ? `${CUSTOM_LABELS.FEATURED_SCORE.domain}/${CUSTOM_LABELS.FEATURED_SCORE.key}`
-              : `${CUSTOM_LABELS.RATING.domain}/${CUSTOM_LABELS.RATING.key}`;
-          const aRating = a.metadata.labels?.[selector];
-          const bRating = b.metadata.labels?.[selector];
-          if (aRating || bRating) {
-            if (aRating && bRating) return parseInt(aRating, 10) < parseInt(bRating, 10) ? 1 : -1;
-            if (bRating) return 1;
-            return -1;
+          if (sortBy.selected === 'Featured') {
+            const selector = `${CUSTOM_LABELS.FEATURED_SCORE.domain}/${CUSTOM_LABELS.FEATURED_SCORE.key}`;
+            const aRating = a.metadata.labels?.[selector];
+            const bRating = b.metadata.labels?.[selector];
+            if (aRating || bRating) {
+              if (aRating && bRating) return parseInt(aRating, 10) < parseInt(bRating, 10) ? 1 : -1;
+              if (bRating) return 1;
+              return -1;
+            }
+          } else if (sortBy.selected === 'Rating') {
+            // Rating sorting with weighted score considering number of ratings
+            // Uses logarithmic scale to give diminishing returns boost based on rating count
+            const MIN_RATINGS_FOR_BOOST = 3; // Minimum ratings to receive any boost
+            const RATING_LOG_BASE = 50; // Base for logarithmic scaling (higher = less aggressive boost)
+            const MAX_BOOST = 0.15; // Maximum boost percentage (15%)
+            
+            const aRatingData = getRating(a);
+            const bRatingData = getRating(b);
+            
+            if (aRatingData || bRatingData) {
+              if (aRatingData && bRatingData) {
+                const aRatingCount = aRatingData.totalRatings || 0;
+                const bRatingCount = bRatingData.totalRatings || 0;
+                
+                // Calculate boost using logarithmic scale: log(ratingCount + 1) / log(base)
+                // This gives diminishing returns as rating count increases
+                const aBoost = aRatingCount >= MIN_RATINGS_FOR_BOOST
+                  ? MAX_BOOST * Math.log(aRatingCount + 1) / Math.log(RATING_LOG_BASE)
+                  : 0;
+                const bBoost = bRatingCount >= MIN_RATINGS_FOR_BOOST
+                  ? MAX_BOOST * Math.log(bRatingCount + 1) / Math.log(RATING_LOG_BASE)
+                  : 0;
+                
+                // Weighted score = rating * (1 + boost)
+                const aWeightedScore = aRatingData.ratingScore * (1 + aBoost);
+                const bWeightedScore = bRatingData.ratingScore * (1 + bBoost);
+                
+                if (Math.abs(aWeightedScore - bWeightedScore) > 0.001) {
+                  return aWeightedScore < bWeightedScore ? 1 : -1;
+                }
+                // If weighted scores are very close, prioritize items with more ratings
+                if (aRatingCount !== bRatingCount) {
+                  return aRatingCount < bRatingCount ? 1 : -1;
+                }
+                // If everything is equal, fall back to rating score
+                return aRatingData.ratingScore < bRatingData.ratingScore ? 1 : -1;
+              }
+              if (bRatingData) return 1;
+              return -1;
+            }
           }
           return aDisplayName < bDisplayName ? -1 : 1;
         }
