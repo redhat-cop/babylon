@@ -1,4 +1,7 @@
-.catalog-category-selector .pf-v6-c-tabs__item {
-  padding-top: 4px;
-  padding-bottom: 4px;
-} 
+.catalog-category-selector {
+  padding-top: var(--pf-t--global--spacer--md);
+}
+
+.catalog-category-selector .pf-v6-c-stack {
+  gap: var(--pf-t--global--spacer--sm);
+}

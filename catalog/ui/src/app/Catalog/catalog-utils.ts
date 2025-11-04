@@ -135,12 +135,6 @@ export function formatTime(time: string): string {
   return '-';
 }
 
-export function getLastFilter(): string {
-  return sessionStorage.getItem('lastCatalogFilter');
-}
-export function setLastFilter(filter: string): void {
-  sessionStorage.setItem('lastCatalogFilter', filter);
-}
 export function formatString(string: string): string {
   if (!string) return '';
   return (string.charAt(0).toUpperCase() + string.slice(1)).replace(/_/g, ' ');
@@ -182,6 +176,7 @@ export const CUSTOM_LABELS: {
     | 'FEATURED_SCORE'
     | 'STAGE'
     | 'DISABLED'
+    | 'USE_CASE'
     | 'MULTI_ASSET']: {
     key: string;
     weight: number;
@@ -199,6 +194,7 @@ export const CUSTOM_LABELS: {
   STAGE: { key: 'stage', weight: 0, domain: BABYLON_DOMAIN },
   DISABLED: { key: 'disabled', weight: 0, domain: BABYLON_DOMAIN },
   MULTI_ASSET: { key: 'Multi_Asset', weight: 0, domain: BABYLON_DOMAIN },
+  USE_CASE: { key: 'Use_Case', weight: 0, domain: BABYLON_DOMAIN },
 };
 export const HIDDEN_LABELS = [
   'userCatalogItem',
@@ -208,6 +204,10 @@ export const HIDDEN_LABELS = [
   CUSTOM_LABELS.FEATURED_SCORE.key,
   CUSTOM_LABELS.ESTIMATED_COST.key,
   CUSTOM_LABELS.MULTI_ASSET.key,
+  CUSTOM_LABELS.USE_CASE.key,
+  CUSTOM_LABELS.PRODUCT.key,
+  CUSTOM_LABELS.SLA.key,
+  CUSTOM_LABELS.RATING.key,
 ];
 export const HIDDEN_LABELS_DETAIL_VIEW = [
   'userCatalogItem',

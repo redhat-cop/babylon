@@ -23,9 +23,8 @@ import {
 } from '@patternfly/react-core';
 import LoadingSection from '@app/components/LoadingSection';
 import useSWR from 'swr';
-import useSWRImmutable from 'swr/immutable';
-import { CatalogItem, Bookmark, BookmarkList } from '@app/types';
-import { apiPaths, fetcherItemsInAllPages, fetcher } from '@app/api';
+import { CatalogItem } from '@app/types';
+import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { displayName, FETCH_BATCH_LIMIT, renderContent, stripHtml } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogCategorySelector from '@app/Catalog/CatalogCategorySelector';
@@ -165,11 +164,6 @@ const SelectableCatalogItemCard: React.FC<{
   );
 };
 
-// Helper function to filter favorites, same as in Catalog.tsx
-function filterFavorites(catalogItem: CatalogItem, favList: Bookmark[] = []) {
-  return favList.some((f) => f.asset_uuid === catalogItem.metadata?.labels?.['gpte.redhat.com/asset-uuid']);
-}
-
 interface CatalogItemSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -196,8 +190,8 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
 // Component that fetches catalog items for category selector
 const CategorySelectorContent: React.FC<{
   selectedCatalogNamespace: string | null;
-  onSelect: (category: string) => void;
-  selected: string | null;
+  onSelect: (categories: string[]) => void;
+  selected: string[];
 }> = ({ selectedCatalogNamespace, onSelect, selected }) => {
   const { catalogNamespaces, isAdmin } = useSession().getSession();
   const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
@@ -238,7 +232,7 @@ const CategorySelectorContent: React.FC<{
 
   return (
     <div style={{ overflowX: 'auto' }}>
-      <CatalogCategorySelector catalogItems={catalogItems} onSelect={onSelect} selected={selected} isVertical={false} />
+      <CatalogCategorySelector catalogItems={catalogItems} onSelect={onSelect} selected={selected} isHorizontal={true} />
     </div>
   );
 };
@@ -247,7 +241,7 @@ const CategorySelectorContent: React.FC<{
 const CatalogItemsContent: React.FC<{
   searchValue: string;
   selectedCatalogNamespace: string | null;
-  selectedCategory: string | null;
+  selectedCategories: string[];
   onItemSelect: (catalogItem: CatalogItem) => void;
   isMultiSelectMode: boolean;
   selectedItems: Map<string, CatalogItem>;
@@ -255,7 +249,7 @@ const CatalogItemsContent: React.FC<{
 }> = ({
   searchValue,
   selectedCatalogNamespace,
-  selectedCategory,
+  selectedCategories,
   onItemSelect,
   isMultiSelectMode,
   selectedItems,
@@ -269,15 +263,9 @@ const CatalogItemsContent: React.FC<{
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
-  // Fetch bookmarks for favorites functionality
-  const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES(), fetcher, {
-    suspense: false,
-    shouldRetryOnError: false,
-  });
-
   const catalogItems: CatalogItem[] = useMemo(() => catalogItemsArr || [], [catalogItemsArr]);
 
-  const [catalogItemsFuse, allowedCatalogItems] = useMemo(() => {
+  const allowedCatalogItems = useMemo(() => {
     // First filter out items with spec.parameters that have annotations other than allowed ones
     const allowedAnnotations = ['pfe.redhat.com/salesforce-id', 'demo.redhat.com/purpose'];
 
@@ -302,59 +290,18 @@ const CatalogItemsContent: React.FC<{
       return isAdmin ? allParametersHaveAllowedAnnotations : allParametersHaveAllowedAnnotations && hasMultiAssetGroup;
     });
 
-    // Create Fuse search instance with the same options as Catalog.tsx
-    const options = {
-      minMatchCharLength: 3,
-      threshold: 0,
-      ignoreLocation: true,
-      fieldNormWeight: 0,
-      useExtendedSearch: true,
-      keys: [
-        {
-          name: ['spec', 'displayName'],
-          weight: 10,
-        },
-        {
-          name: ['metadata', 'name'],
-          weight: 8,
-        },
-        {
-          name: ['spec', 'description'],
-          weight: 6,
-        },
-        {
-          name: ['spec', 'summary'],
-          weight: 4,
-        },
-        {
-          name: ['spec', 'keywords'],
-          weight: 2,
-        },
-        {
-          name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Product_Family'],
-          weight: 0.5,
-        },
-      ],
-    };
-
-    const fuse = new Fuse(filteredItems, options);
-    return [fuse, filteredItems];
-  }, [catalogItems]);
+    return filteredItems;
+  }, [catalogItems, isAdmin]);
 
   const filteredCatalogItems = useMemo(() => {
     let items = allowedCatalogItems;
 
-    // Apply category filter first
-    if (selectedCategory) {
+    // Apply category filter first (OR logic - show items matching any selected category)
+    if (selectedCategories && selectedCategories.length > 0) {
       items = items.filter((catalogItem) => {
-        if (selectedCategory === 'favorites' && assetsFavList?.bookmarks) {
-          return filterFavorites(catalogItem, assetsFavList.bookmarks);
-        } else if (selectedCategory === 'favorites') {
-          // If no bookmarks data yet, show empty list
-          return false;
-        } else {
-          return getCategory(catalogItem) === selectedCategory;
-        }
+        return selectedCategories.some((category) => {
+          return getCategory(catalogItem) === category;
+        });
       });
     }
 
@@ -397,7 +344,7 @@ const CatalogItemsContent: React.FC<{
     });
 
     return searchFuse.search("'" + searchValue.split(' ').join(" '")).map((x) => x.item);
-  }, [searchValue, selectedCategory, catalogItemsFuse, allowedCatalogItems, assetsFavList]);
+  }, [searchValue, selectedCategories, allowedCatalogItems]);
 
   // Ref for measuring container dimensions
   const containerRef = useRef<HTMLDivElement>(null);
@@ -505,7 +452,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [selectedCatalogNamespace, setSelectedCatalogNamespace] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(true);
   const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(new Map());
@@ -636,8 +583,8 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
             <Suspense fallback={null}>
               <CategorySelectorContent
                 selectedCatalogNamespace={selectedCatalogNamespace}
-                onSelect={setSelectedCategory}
-                selected={selectedCategory}
+                onSelect={setSelectedCategories}
+                selected={selectedCategories}
               />
             </Suspense>
           ) : null}
@@ -659,7 +606,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
               <CatalogItemsContent
                 searchValue={searchValue}
                 selectedCatalogNamespace={selectedCatalogNamespace}
-                selectedCategory={selectedCategory}
+                selectedCategories={selectedCategories}
                 onItemSelect={handleItemSelect}
                 isMultiSelectMode={isMultiSelectMode}
                 selectedItems={selectedItems}

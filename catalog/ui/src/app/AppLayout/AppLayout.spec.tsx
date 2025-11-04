@@ -43,8 +43,8 @@ jest.mock('@app/api', () => ({
 
 describe('Catalog Page Layout Scenario', () => {
   test("When app layout renders, should display 'Catalog' option", async () => {
-    const { getByText } = render(<AppLayout title="test">Test</AppLayout>);
-    const testVar = getByText('Catalog');
+    const { getAllByText } = render(<AppLayout title="test">Test</AppLayout>);
+    const testVar = getAllByText('Catalog')[0];
     await waitFor(() => expect(testVar).toBeInTheDocument());
   });
   test("When app layout renders, should display 'Services' option", async () => {

@@ -1,6 +1,5 @@
-// @ts-nocheck
-import React from 'react';
-import { Tab, Tabs, TabTitleText, Tooltip } from '@patternfly/react-core';
+import React, { useMemo } from 'react';
+import { Checkbox, Tooltip, Stack, StackItem } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import { formatString, getCategory } from './catalog-utils';
@@ -19,77 +18,74 @@ const CATEGORIES_DEFINITIONS = {
 
 const CatalogCategorySelector: React.FC<{
   catalogItems: CatalogItem[];
-  onSelect: (category: string) => void;
-  selected: string;
-  isVertical?: boolean;
-}> = ({ catalogItems, onSelect, selected, isVertical = true }) => {
-  const categories = Array.from(
-    new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null)),
-  );
-  categories.sort((a, b) => {
-    const av = (a as string).toUpperCase();
-    const bv = (b as string).toUpperCase();
-    if (av == 'OTHER') {
-      return 1;
-    } else if (bv == 'OTHER') {
-      return -1;
+  onSelect: (categories: string[]) => void;
+  selected: string[];
+  isHorizontal?: boolean;
+}> = ({ catalogItems, onSelect, selected, isHorizontal = false }) => {
+  const categories = useMemo(() => {
+    const cats = Array.from(
+      new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null)),
+    );
+    cats.sort((a, b) => {
+      const av = (a as string).toUpperCase();
+      const bv = (b as string).toUpperCase();
+      if (av == 'OTHER') {
+        return 1;
+      } else if (bv == 'OTHER') {
+        return -1;
+      } else {
+        return av < bv ? -1 : av > bv ? 1 : 0;
+      }
+    });
+    return cats;
+  }, [catalogItems]);
+
+  const handleCheckboxChange = (category: string, checked: boolean) => {
+    const currentSelected = selected || [];
+    if (checked) {
+      if (!currentSelected.includes(category)) {
+        onSelect([...currentSelected, category]);
+      }
     } else {
-      return av < bv ? -1 : av > bv ? 1 : 0;
+      onSelect(currentSelected.filter((c) => c !== category));
     }
-  });
+  };
+
+  const isChecked = (category: string) => {
+    return (selected || []).includes(category);
+  };
 
   return (
-    <Tabs
-      className="catalog-category-selector"
-      isVertical={isVertical}
-      activeKey={selected || 'all'}
-      onSelect={(event, category) => (category === 'all' ? onSelect(null) : onSelect(`${category}`))}
-    >
-      <Tab eventKey="all" title={<TabTitleText>All Items</TabTitleText>} aria-label="All Items"></Tab>
-      <Tab
-        eventKey="favorites"
-        title={
-          <TabTitleText>
-            Favorites{' '}
-            <Tooltip content="Items marked as favorite">
-              <InfoAltIcon
-                style={{
-                  paddingTop: 'var(--pf-t--global--spacer--xs)',
-                  marginLeft: 'var(--pf-t--global--spacer--sm)',
-                  width: 'var(--pf-t--global--icon--size--font--xs)',
-                }}
-              />
-            </Tooltip>
-          </TabTitleText>
-        }
-        aria-label="Favorites"
-      ></Tab>
+    <Stack className="catalog-category-selector" hasGutter style={isHorizontal ? { flexDirection: 'row', flexWrap: 'wrap' } : undefined}>
       {categories.map((category) => {
         return (
-          <Tab
-            key={category}
-            eventKey={category}
-            title={
-              <TabTitleText>
-                {formatString(category)}
-                {category.toLowerCase() in CATEGORIES_DEFINITIONS ? (
-                  <Tooltip content={CATEGORIES_DEFINITIONS[category.toLowerCase()]}>
-                    <InfoAltIcon
-                      style={{
-                        paddingTop: 'var(--pf-t--global--spacer--xs)',
-                        marginLeft: 'var(--pf-t--global--spacer--sm)',
-                        width: 'var(--pf-t--global--icon--size--font--xs)',
-                      }}
-                    />
-                  </Tooltip>
-                ) : null}
-              </TabTitleText>
-            }
-            aria-label={formatString(category)}
-          ></Tab>
+          <StackItem key={category}>
+            <Checkbox
+              id={`category-${category}`}
+              label={
+                <>
+                  {formatString(category)}
+                  {category.toLowerCase() in CATEGORIES_DEFINITIONS ? (
+                    <Tooltip content={CATEGORIES_DEFINITIONS[category.toLowerCase()]}>
+                      <InfoAltIcon
+                        style={{
+                          paddingTop: 'var(--pf-t--global--spacer--xs)',
+                          marginLeft: 'var(--pf-t--global--spacer--sm)',
+                          width: 'var(--pf-t--global--icon--size--font--xs)',
+                        }}
+                      />
+                    </Tooltip>
+                  ) : null}
+                </>
+              }
+              isChecked={isChecked(category)}
+              onChange={(_, checked) => handleCheckboxChange(category, checked)}
+              aria-label={formatString(category)}
+            />
+          </StackItem>
         );
       })}
-    </Tabs>
+    </Stack>
   );
 };
 

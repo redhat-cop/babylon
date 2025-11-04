@@ -1,33 +1,13 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import useSession from '@app/utils/useSession';
 import Catalog from './Catalog';
-import { getLastFilter } from './catalog-utils';
 
 const CatalogRedirections: React.FC = () => {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { catalogNamespaces, groups } = useSession().getSession();
-  const { namespace: catalogNamespaceName } = useParams();
   const userHasRequiredPropertiesToAccess =
     catalogNamespaces.length > 0 && groups.some((g) => g.startsWith('identity-provider'));
-
-  // Load last filter
-  useEffect(() => {
-    const lastFilter = getLastFilter();
-    const lastFilterParams = new URLSearchParams(lastFilter);
-    if (lastFilterParams.has('catalog')) {
-      const lastCatalogNamespaceName = lastFilterParams.get('catalog');
-      lastFilterParams.delete('catalog');
-      if (!catalogNamespaceName) {
-        const filter = lastFilter ? `?${lastFilterParams.toString()}` : '';
-        return navigate(`/catalog/${lastCatalogNamespaceName}${filter}`, { replace: true });
-      }
-    }
-    if (!searchParams.toString() && lastFilter) {
-      setSearchParams(lastFilterParams);
-    }
-  }, [searchParams.toString(), setSearchParams, catalogNamespaceName]);
 
   useEffect(() => {
     if (!userHasRequiredPropertiesToAccess) {

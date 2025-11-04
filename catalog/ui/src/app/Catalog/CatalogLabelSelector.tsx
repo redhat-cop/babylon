@@ -44,8 +44,8 @@ const CatalogLabelSelector: React.FC<{
       // Allow multiple values for labels with numeric suffixes
       const attr = label.substring(domain.length + 1).replace(/-[0-9]+$/, '');
       const attrKey = attr.toLowerCase();
-      // Only non-hidden labels
-      if (!HIDDEN_LABELS.includes(attr)) {
+      // Only non-hidden labels (case-insensitive check)
+      if (!HIDDEN_LABELS.some(hidden => hidden.toLowerCase() === attr.toLowerCase())) {
         const valueKey = value.toLowerCase();
         if (!labels[attrKey]) {
           labels[attrKey] = {
@@ -70,16 +70,16 @@ const CatalogLabelSelector: React.FC<{
       // Allow multiple values for labels with numeric suffixes
       if (label.startsWith(`${BABYLON_DOMAIN}/`)) {
         const attrKey = label.substring(BABYLON_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
-        // Only non-hidden labels
-        if (!HIDDEN_LABELS.includes(attrKey)) {
+        // Only non-hidden labels (case-insensitive check)
+        if (!HIDDEN_LABELS.some(hidden => hidden.toLowerCase() === attrKey.toLowerCase())) {
           const valueKey = value.toLowerCase();
           labels[attrKey.toLowerCase()].values[valueKey].count++;
         }
       }
       if (label.startsWith(`${CATALOG_MANAGER_DOMAIN}/`)) {
         const attrKey = label.substring(CATALOG_MANAGER_DOMAIN.length + 1).replace(/-[0-9]+$/, '');
-        // Only non-hidden labels
-        if (!HIDDEN_LABELS.includes(attrKey)) {
+        // Only non-hidden labels (case-insensitive check)
+        if (!HIDDEN_LABELS.some(hidden => hidden.toLowerCase() === attrKey.toLowerCase())) {
           const valueKey = value.toLowerCase();
           labels[attrKey.toLowerCase()].values[valueKey].count++;
         }
@@ -141,7 +141,7 @@ const CatalogLabelSelector: React.FC<{
   return (
     <Form
       className="catalog-label-selector"
-      style={{ borderLeft: '1px solid var(--pf-v6-c-card--BorderColor)', gap: 0 }}
+      style={{ gap: 0 }}
     >
       {labelsSorted.map(([attrKey, attr]: [string, CatalogLabelValues]) => (
         <ExpandableSection
