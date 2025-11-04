@@ -20,7 +20,8 @@ const CatalogCategorySelector: React.FC<{
   catalogItems: CatalogItem[];
   onSelect: (categories: string[]) => void;
   selected: string[];
-}> = ({ catalogItems, onSelect, selected }) => {
+  isHorizontal?: boolean;
+}> = ({ catalogItems, onSelect, selected, isHorizontal = false }) => {
   const categories = useMemo(() => {
     const cats = Array.from(
       new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null)),
@@ -55,7 +56,7 @@ const CatalogCategorySelector: React.FC<{
   };
 
   return (
-    <Stack className="catalog-category-selector" hasGutter>
+    <Stack className="catalog-category-selector" hasGutter style={isHorizontal ? { flexDirection: 'row', flexWrap: 'wrap' } : undefined}>
       {categories.map((category) => {
         return (
           <StackItem key={category}>
