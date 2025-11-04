@@ -22,16 +22,4 @@ describe('Catalog Component', () => {
   afterEach(() => {
     window.sessionStorage.clear();
   });
-  test.skip('When rendering the /catalog with a saved filter should redirect', async () => {
-    window.sessionStorage.setItem('lastCatalogFilter', 'category=Other');
-    const history = createMemoryHistory();
-    render(<CatalogRedirections />, { history: history });
-    expect(history.location.search).toBe('?category=Other');
-  });
-  test.skip('When rendering the /catalog with a saved catalogNamespace should redirect', async () => {
-    window.sessionStorage.setItem('lastCatalogFilter', 'catalog=babylon-catalog-test');
-    const history = createMemoryHistory();
-    render(<CatalogRedirections />, { history: history });
-    expect(history.location.pathname).toBe('/catalog/babylon-catalog-test');
-  });
 });

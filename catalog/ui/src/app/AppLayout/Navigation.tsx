@@ -28,11 +28,28 @@ const Navigation: React.FC = () => {
   }
 
   const catalogNavigation = (
-    <NavItem>
-      <NavLink className={locationStartsWith('/catalog') ? 'pf-m-current' : ''} to="/catalog">
-        Catalog
-      </NavLink>
-    </NavItem>
+    <NavExpandable title="Catalog" isExpanded={locationStartsWith('/catalog')}>
+      <NavItem>
+        <NavLink
+          className={
+            locationStartsWith('/catalog') && !locationStartsWith('/catalog/favorites')
+              ? 'pf-m-current'
+              : ''
+          }
+          to="/catalog"
+        >
+          Catalog
+        </NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink
+          className={locationStartsWith('/catalog/favorites') ? 'pf-m-current' : ''}
+          to="/catalog/favorites"
+        >
+          Favorites
+        </NavLink>
+      </NavItem>
+    </NavExpandable>
   );
 
   const serviceNavigation = userNamespace ? (

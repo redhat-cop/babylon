@@ -30,6 +30,7 @@ import {
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
+import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import useSWRImmutable from 'swr/immutable';
 import { AsyncParser } from 'json2csv';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
@@ -54,7 +55,6 @@ import {
   HIDDEN_ANNOTATIONS,
   HIDDEN_LABELS,
   CUSTOM_LABELS,
-  setLastFilter,
   getStatusFromCatalogItem,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
@@ -68,6 +68,8 @@ import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import LoadingSection from '@app/components/LoadingSection';
 
 import './catalog.css';
+
+const DEFAULT_CATEGORIES = ['Demos', 'Labs', 'Workshops'];
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -204,18 +206,6 @@ function filterCatalogItemByAdminFilter(catalogItem: CatalogItem, statuses: stri
   return false;
 }
 
-function saveFilter(urlParmsString: string, catalogNamespaceName: string) {
-  const urlParams = new URLSearchParams(urlParmsString);
-  if (urlParams.has('item')) {
-    urlParams.delete('item');
-  }
-  if (urlParams.has('catalog')) {
-    urlParams.delete('catalog');
-  }
-  if (catalogNamespaceName) urlParams.append('catalog', catalogNamespaceName);
-  setLastFilter(urlParams.toString());
-}
-
 export async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   async function fetchNamespace(namespace: string): Promise<CatalogItem[]> {
     return await fetcherItemsInAllPages((continueId) =>
@@ -236,6 +226,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { namespace: catalogNamespaceName } = useParams();
+  const isFavoritesPage = location.pathname.startsWith('/catalog/favorites');
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const { incidents_enabled } = useInterfaceConfig();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
@@ -256,7 +247,23 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     : null;
 
   const searchString = searchParams.has('search') ? searchParams.get('search').trim() : null;
-  const selectedCategory = searchParams.has('category') ? searchParams.get('category') : null;
+  const selectedCategories: string[] = useMemo(() => {
+    if (searchParams.has('categories')) {
+      try {
+        const categories = JSON.parse(searchParams.get('categories'));
+        // Return empty array if explicitly set to empty, otherwise return the parsed categories
+        return categories;
+      } catch {
+        return [];
+      }
+    }
+    // Default categories for regular catalog page (not favorites)
+    if (!isFavoritesPage) {
+      return [...DEFAULT_CATEGORIES];
+    }
+    // Default to empty (show all items)
+    return [];
+  }, [searchParams, isFavoritesPage]);
   const labelsString = searchParams.has('labels') ? searchParams.get('labels') : null;
   const adminStatusString = searchParams.has('adminStatus') ? searchParams.get('adminStatus') : null;
   const selectedAdminFilter: string[] = useMemo(
@@ -278,6 +285,19 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       searchInputStringCb(searchString);
     }
   }, [searchString, searchInputStringCb]);
+
+  // Set default categories in URL params if not already set (only for regular catalog page)
+  // Don't set defaults if categories is explicitly set to empty array
+  useLayoutEffect(() => {
+    if (!searchParams.has('category') && !isFavoritesPage) {
+      if (!searchParams.has('categories')) {
+        // No categories param at all - set defaults
+        searchParams.set('categories', JSON.stringify(DEFAULT_CATEGORIES));
+        setSearchParams(searchParams, { replace: true });
+      }
+      // If categories param exists (even if empty), leave it as is
+    }
+  }, [isFavoritesPage, searchParams, setSearchParams]);
 
   const compareCatalogItems = useCallback(
     (a: CatalogItem, b: CatalogItem): number => {
@@ -423,12 +443,16 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       ],
     };
     const catalogItemsFuse = new Fuse(catalogItemsCpy, options);
-    if (selectedCategory) {
-      if (selectedCategory === 'favorites' && assetsFavList?.bookmarks) {
-        catalogItemsFuse.remove((ci) => !filterFavorites(ci, assetsFavList?.bookmarks));
-      } else {
-        catalogItemsFuse.remove((ci) => !filterCatalogItemByCategory(ci, selectedCategory));
-      }
+    if (selectedCategories && selectedCategories.length > 0) {
+      catalogItemsFuse.remove((ci) => {
+        // Check if item matches any selected category (OR logic)
+        return !selectedCategories.some((category) => {
+            return filterCatalogItemByCategory(ci, category);
+        });
+      });
+    }
+    if (isFavoritesPage) {
+      catalogItemsFuse.remove((ci) => !filterFavorites(ci, assetsFavList?.bookmarks || []));
     }
     if (selectedLabels) {
       catalogItemsFuse.remove((ci) => !filterCatalogItemByLabels(ci, selectedLabels));
@@ -437,15 +461,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
     }
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [
-    catalogItems,
-    selectedCategory,
-    selectedLabels,
-    compareCatalogItems,
-    selectedAdminFilter,
-    activeIncidents,
-    assetsFavList,
-  ]);
+  }, [catalogItems, compareCatalogItems, selectedCategories, isFavoritesPage, assetsFavList?.bookmarks, selectedLabels, isAdmin, selectedAdminFilter, activeIncidents]);
 
   const catalogItemsResult = useMemo(() => {
     const items = searchString
@@ -487,26 +503,31 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     } else if (searchParams.has('search')) {
       searchParams.delete('search');
     }
-    saveFilter(searchParams.toString(), catalogNamespaceName);
     setSearchParams(searchParams);
   }
 
   function onSelectCatalogNamespace(namespaceName: string) {
-    saveFilter(searchParams.toString(), namespaceName);
-    if (namespaceName) {
-      navigate(`/catalog/${namespaceName}${location.search}`);
+    if (isFavoritesPage) {
+      if (namespaceName) {
+        navigate(`/catalog/favorites/${namespaceName}${location.search}`);
+      } else {
+        navigate(`/catalog/favorites${location.search}`);
+      }
     } else {
-      navigate(`/catalog${location.search}`);
+      if (namespaceName) {
+        navigate(`/catalog/${namespaceName}${location.search}`);
+      } else {
+        navigate(`/catalog${location.search}`);
+      }
     }
   }
 
-  function onSelectCategory(category: string) {
-    if (category) {
-      searchParams.set('category', category);
-    } else if (searchParams.has('category')) {
-      searchParams.delete('category');
+  function onSelectCategories(categories: string[]) {
+    if (categories && categories.length > 0) {
+      searchParams.set('categories', JSON.stringify(categories));
+    } else if (searchParams.has('categories')) {
+      searchParams.delete('categories');
     }
-    saveFilter(searchParams.toString(), catalogNamespaceName);
     setSearchParams(searchParams);
   }
 
@@ -516,15 +537,25 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     } else if (searchParams.has('labels')) {
       searchParams.delete('labels');
     }
-    saveFilter(searchParams.toString(), catalogNamespaceName);
     setSearchParams(searchParams);
   }
 
   function onClearFilters() {
-    saveFilter('', catalogNamespaceName);
-    setSearchParams();
+    const newParams = new URLSearchParams();
+    // Explicitly set empty categories array to uncheck all categories
+    newParams.set('categories', JSON.stringify([]));
+    setSearchParams(newParams);
     if (searchInputStringCb) searchInputStringCb('');
   }
+
+  // Check if there are any active filters (including default categories)
+  const hasActiveFilters = useMemo(() => {
+    const hasSearch = !!searchString;
+    const hasLabels = selectedLabels && Object.keys(selectedLabels).length > 0;
+    const hasAdminFilter = isAdmin && selectedAdminFilter && selectedAdminFilter.length > 0;
+    const hasCategories = selectedCategories.length > 0;
+    return hasSearch || hasLabels || hasAdminFilter || hasCategories;
+  }, [searchString, selectedLabels, selectedAdminFilter, selectedCategories, isAdmin]);
 
   if (isLoading) {
     return <LoadingSection />;
@@ -563,18 +594,36 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
               <Card>
                 <CardBody style={{ padding: 0 }}>
                   <Sidebar tabIndex={0}>
-                    <SidebarPanel style={{ marginTop: 'var(--pf-t--global--spacer--xl)' }}>
-                      <CatalogCategorySelector
-                        catalogItems={catalogItems}
-                        onSelect={onSelectCategory}
-                        selected={selectedCategory}
-                      />
-                      <CatalogLabelSelector
-                        catalogItems={catalogItems}
-                        filteredCatalogItems={catalogItemsResult}
-                        onSelect={onSelectLabels}
-                        selected={selectedLabels}
-                      />
+                    <SidebarPanel style={{ marginTop: 'var(--pf-t--global--spacer--xl)', borderLeft: '1px solid var(--pf-v6-c-card--BorderColor)', padding: '0 var(--pf-t--global--spacer--md)' }}>
+                      <Stack hasGutter>
+                        {hasActiveFilters && (
+                          <StackItem>
+                            <Button
+                              variant="secondary"
+                              icon={<TimesIcon />}
+                              onClick={onClearFilters}
+                              size="sm"
+                            >
+                              Clear all filters
+                            </Button>
+                          </StackItem>
+                        )}
+                        <StackItem>
+                          <CatalogCategorySelector
+                            catalogItems={catalogItems}
+                            onSelect={onSelectCategories}
+                            selected={selectedCategories}
+                          />
+                        </StackItem>
+                        <StackItem>
+                          <CatalogLabelSelector
+                            catalogItems={catalogItems}
+                            filteredCatalogItems={catalogItemsResult}
+                            onSelect={onSelectLabels}
+                            selected={selectedLabels}
+                          />
+                        </StackItem>
+                      </Stack>
                     </SidebarPanel>
                     <SidebarContent style={{ overflow: 'hidden' }}>
                       <PageSection hasBodyWrapper={false} className="catalog__header">
@@ -583,7 +632,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                             <Stack hasGutter>
                               <StackItem>
                                 <Title headingLevel="h2">
-                                  {selectedCategory ? formatString(selectedCategory) : 'All Items'}
+                                  {selectedCategories && selectedCategories.length > 0
+                                      ? selectedCategories.length === 1
+                                        ? formatString(selectedCategories[0])
+                                        : `${selectedCategories.length} Categories Selected`
+                                      : 'All Items'}
                                 </Title>
                               </StackItem>
                               <StackItem>

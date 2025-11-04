@@ -53,6 +53,16 @@ const appRoutes: IAppRoute[] = [
   },
   {
     component: CatalogRedirections,
+    path: '/catalog/favorites/:namespace',
+    title: 'Babylon | Favorites',
+  },
+  {
+    component: CatalogRedirections,
+    path: '/catalog/favorites',
+    title: 'Babylon | Favorites',
+  },
+  {
+    component: CatalogRedirections,
     path: '/catalog/:namespace',
     title: 'Babylon | Catalog',
   },
