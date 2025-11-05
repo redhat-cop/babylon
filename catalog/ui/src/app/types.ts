@@ -336,6 +336,7 @@ export interface ResrouceClaimSummary {
   runtime_default?: string;
   runtime_maximum?: string;
   state: string;
+  error_message?: string;
 }
 export interface ResourceClaimList {
   items: ResourceClaim[];

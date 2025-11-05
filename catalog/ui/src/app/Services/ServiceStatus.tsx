@@ -1,9 +1,10 @@
 import React from 'react';
-import { Spinner } from '@patternfly/react-core';
+import { Spinner, Tooltip } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import StopCircleIcon from '@patternfly/react-icons/dist/js/icons/stop-circle-icon';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import { AnarchySubject, ResourceClaim } from '@app/types';
 import { getMostRelevantResourceAndTemplate } from './service-utils';
@@ -173,6 +174,7 @@ const ServiceStatus: React.FC<{
   const creationTime = Date.parse(resourceClaim.metadata.creationTimestamp);
   const { resource, template: resourceTemplate } = getMostRelevantResourceAndTemplate(resourceClaim);
   const summary = resourceClaim.status?.summary;
+  const errorMessage = summary?.error_message;
   const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
 
   // Check for waiting states BEFORE checking summary
@@ -195,7 +197,15 @@ const ServiceStatus: React.FC<{
 
   if (summary) {
     const { phase: _phase, state: _state } = getPhaseState(summary.state);
-    return <InnerStatus phase={_phase} state={_state} />;
+    return <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
+      <InnerStatus phase={_phase} state={_state} />
+      {errorMessage && <Tooltip position="right" content={errorMessage}>
+        <ExclamationTriangleIcon
+          aria-label="Error message"
+          className="tooltip-icon-only"
+        />
+      </Tooltip>}
+    </div>;
   }
   if (new Date(resourceClaim.spec.lifespan?.start).getTime() > new Date().getTime()) {
     return <InnerStatus phase="scheduled" state="scheduled" />;
