@@ -641,7 +641,7 @@ const MultiWorkshopCreate: React.FC = () => {
           </p>
           <p style={{ marginTop: '8px' }}>
             If you need assistance or our workshop white glove service, please{' '}
-            <a href="https://red.ht/workshop-help" target="_blank" rel="noopener noreferrer">
+            <a href="https://issues.redhat.com/servicedesk/customer/portal/36/create/96" target="_blank" rel="noopener noreferrer">
               raise a ticket with our team
             </a>{' '}
             or reach out via the{' '}
@@ -895,7 +895,7 @@ const MultiWorkshopCreate: React.FC = () => {
               <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                 Maximum 30 seats allowed.{' '}
                 <a
-                  href="https://red.ht/workshop-help"
+                  href="https://issues.redhat.com/servicedesk/customer/portal/36/create/96"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'var(--pf-t--global--color--brand--default)' }}
