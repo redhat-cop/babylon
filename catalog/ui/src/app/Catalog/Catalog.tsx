@@ -70,7 +70,7 @@ import LoadingSection from '@app/components/LoadingSection';
 
 import './catalog.css';
 
-const DEFAULT_CATEGORIES = ['Demos', 'Labs', 'Workshops'];
+const DEFAULT_CATEGORIES = ['Demos', 'Labs', 'Workshops', 'Open_Environments'];
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -564,11 +564,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   }
 
   function onSelectCategories(categories: string[]) {
-    if (categories && categories.length > 0) {
-      searchParams.set('categories', JSON.stringify(categories));
-    } else if (searchParams.has('categories')) {
-      searchParams.delete('categories');
-    }
+    // Always set the categories param, even if empty, to prevent defaults from being reapplied
+    searchParams.set('categories', JSON.stringify(categories || []));
     setSearchParams(searchParams);
   }
 

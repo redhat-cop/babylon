@@ -28,7 +28,7 @@ const Navigation: React.FC = () => {
   }
 
   const catalogNavigation = (
-    <NavExpandable title="Catalog" isExpanded={locationStartsWith('/catalog')}>
+    <NavExpandable title="Explore" isExpanded={locationStartsWith('/catalog')}>
       <NavItem>
         <NavLink
           className={
@@ -48,6 +48,26 @@ const Navigation: React.FC = () => {
         >
           Favorites
         </NavLink>
+      </NavItem>
+      <NavItem>
+        <a
+          href="https://www.redhat.com/en/interactive-experiences"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="pf-v6-c-nav__link"
+        >
+          Interactive Experiences
+        </a>
+      </NavItem>
+      <NavItem>
+        <a
+          href="https://www.redhat.com/architect/portfolio/"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="pf-v6-c-nav__link"
+        >
+          Architecture Center
+        </a>
       </NavItem>
     </NavExpandable>
   );
