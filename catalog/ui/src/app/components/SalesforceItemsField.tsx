@@ -37,8 +37,8 @@ const SalesforceItemsField: React.FC<{
   isRequired?: boolean;
   fieldId?: string;
   standalone?: boolean;
-  hideExistingItems?: boolean;
-}> = ({ label = 'Salesforce items', helperText, items, onChange, isRequired = false, fieldId = 'salesforce-items', standalone = true, hideExistingItems = false }) => {
+  allowDelete?: boolean;
+}> = ({ label = 'Salesforce items', helperText, items, onChange, isRequired = false, fieldId = 'salesforce-items', standalone = true, allowDelete = true }) => {
   const { sfdc_enabled } = useInterfaceConfig();
   
   // Existing items (from props) - these are read-only
@@ -52,7 +52,7 @@ const SalesforceItemsField: React.FC<{
     valid: false,
     message: '',
   });
-  const [showAddForm, setShowAddForm] = useState(hideExistingItems || existingItems.length === 0);
+  const [showAddForm, setShowAddForm] = useState(existingItems.length === 0);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   const debouncedValidate = useDebounce(async (item: SalesforceItemWithOptionalType, currentItems: SalesforceItem[]) => {
@@ -63,10 +63,7 @@ const SalesforceItemsField: React.FC<{
     if (validated.valid && validated.id && validated.type) {
       onChange([...currentItems, { id: validated.id, type: validated.type as SfdcType }]);
       setNewItem({ id: '', type: null, validating: false, valid: false, message: '' });
-      // Keep form visible when hideExistingItems is true
-      if (!hideExistingItems) {
-        setShowAddForm(false);
-      }
+      setShowAddForm(false);
     }
   }, 600);
 
@@ -97,13 +94,6 @@ const SalesforceItemsField: React.FC<{
     debouncedValidate(updatedItem, existingItems);
   }, [newItem, debouncedValidate, existingItems]);
 
-  // Ensure the form is always visible when hideExistingItems is true
-  useEffect(() => {
-    if (hideExistingItems && !showAddForm) {
-      setShowAddForm(true);
-    }
-  }, [hideExistingItems, showAddForm]);
-
   // Show the form when there are no existing items
   useEffect(() => {
     if (existingItems.length === 0 && !showAddForm) {
@@ -115,7 +105,7 @@ const SalesforceItemsField: React.FC<{
   const content = (
     <>
       {/* Display existing items as read-only input fields */}
-      {!hideExistingItems && existingItems.map((item, idx) => (
+      {existingItems.map((item, idx) => (
         <div key={`existing-${idx}`} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16, minWidth: '600px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -165,12 +155,14 @@ const SalesforceItemsField: React.FC<{
               <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
                 <OutlinedQuestionCircleIcon className="tooltip-icon-only" style={{ flexShrink: 0 }} />
               </Tooltip>
-              <Button 
-                variant="plain" 
-                aria-label="Remove" 
-                onClick={() => onChange(existingItems.filter((_, i) => i !== idx))}
-                icon={<TrashIcon />}
-              />
+              {allowDelete && (
+                <Button 
+                  variant="plain" 
+                  aria-label="Remove" 
+                  onClick={() => onChange(existingItems.filter((_, i) => i !== idx))}
+                  icon={<TrashIcon />}
+                />
+              )}
             </div>
           </div>
         </div>
