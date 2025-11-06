@@ -60,7 +60,7 @@ const SalesforceItemsEditModal: React.FC<SalesforceItemsEditModalProps> = ({
             helperText="Add one or more Salesforce IDs (Opportunity, Campaign, or Project)."
             items={localItems}
             onChange={setLocalItems}
-            hideExistingItems={!isAdmin}
+            allowDelete={isAdmin}
           />
         </div>
       </ModalBody>
