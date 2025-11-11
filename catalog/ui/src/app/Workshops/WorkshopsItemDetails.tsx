@@ -586,12 +586,14 @@ const WorkshopsItemDetails: React.FC<{
                 },
               },
             });
-            await patchWorkshopProvisionSpec(workshopProvisions[0].metadata.name, workshopProvisions[0].metadata.namespace, {
-              parameters: {
-                ...workshopProvisions[0].spec.parameters,
-                salesforce_items: JSON.stringify(next),
-              },
-            });
+            for (let wp of workshopProvisions) {
+              await patchWorkshopProvisionSpec(wp.metadata.name, wp.metadata.namespace, {
+                parameters: {
+                  ...wp.spec.parameters,
+                  salesforce_items: JSON.stringify(next),
+                },
+              });
+            }
             if (!resourceClaims || resourceClaims.length === 0) return;
             for (let rc of resourceClaims) {
               const annotations = { ...rc.metadata.annotations };
