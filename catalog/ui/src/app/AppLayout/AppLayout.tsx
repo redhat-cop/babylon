@@ -9,6 +9,7 @@ import Navigation from './Navigation';
 import { publicFetcher } from '@app/api';
 import useSWRImmutable from 'swr/immutable';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import { NotificationDrawerProvider, useNotificationDrawer } from './NotificationDrawerContext';
 
 const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : [];
 
@@ -56,32 +57,42 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       isMobileView={isMobileView}
       onNavToggleMobile={onNavToggleMobile}
       onNavToggle={onNavToggle}
-      theme={partner_connect_header_enabled ? 'light200' : 'dark'}
     />
   );
 
-  return (
-    <Suspense fallback={<LoadingSection />}>
-      {partner_connect_header_enabled ? (
-        <PageSection
-          hasBodyWrapper={false}
-          style={{ minHeight: 'auto', padding: 0, zIndex: 999, position: 'relative' }}
-        >
-          <div>
-            <div dangerouslySetInnerHTML={{ __html: partnerHeaderHtml }}></div>
-          </div>
-        </PageSection>
-      ) : null}
+  const PageContent = () => {
+    const notificationDrawerContext = useNotificationDrawer();
+    return (
       <Page
         className={`app-layout ${optionalFlags.map((flag) => `optional-flags__${flag}`).join(' ')}`}
         mainContainerId="primary-app-container"
         masthead={_Header}
         sidebar={Sidebar}
         onPageResize={(_event, props: { mobileView: boolean; windowSize: number }) => onPageResize(props)}
+        notificationDrawer={notificationDrawerContext?.notificationDrawer || undefined}
+        isNotificationDrawerExpanded={notificationDrawerContext?.isDrawerExpanded ?? false}
       >
         {children}
       </Page>
-    </Suspense>
+    );
+  };
+
+  return (
+    <NotificationDrawerProvider>
+      <Suspense fallback={<LoadingSection />}>
+        {partner_connect_header_enabled ? (
+          <PageSection
+            hasBodyWrapper={false}
+            style={{ minHeight: 'auto', padding: 0, zIndex: 999, position: 'relative' }}
+          >
+            <div>
+              <div dangerouslySetInnerHTML={{ __html: partnerHeaderHtml }}></div>
+            </div>
+          </PageSection>
+        ) : null}
+        <PageContent />
+      </Suspense>
+    </NotificationDrawerProvider>
   );
 };
 

@@ -14,6 +14,10 @@ import {
   MenuToggle,
   PageToggleButton,
   MenuToggleElement,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
@@ -26,6 +30,7 @@ import useSession from '@app/utils/useSession';
 import useHelpLink from '@app/utils/useHelpLink';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import BarsIcon from '@patternfly/react-icons/dist/js/icons/bars-icon';
+import IncidentsNotificationDrawer from '@app/components/IncidentsNotificationDrawer';
 
 import './header.css';
 
@@ -34,10 +39,9 @@ const Header: React.FC<{
   onNavToggle: () => void;
   isNavOpen: boolean;
   isMobileView: boolean;
-  theme: 'dark' | 'light200';
-}> = ({ isNavOpen, isMobileView, onNavToggle, onNavToggleMobile, theme = 'dark' }) => {
+}> = ({ isNavOpen, isMobileView, onNavToggle, onNavToggleMobile }) => {
   const [isUserControlDropdownOpen, setIsUserControlDropdownOpen] = useState(false);
-  const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
+  const [isUserHelpDropdownOpen, setIsUserHelpDropdownOpen] = useState(false);
   const { clearImpersonation, userImpersonated } = useImpersonateUser();
   const [impersonateUserModalIsOpen, setImpersonateUserModalIsOpen] = useState(false);
   const { isAdmin, email, userInterface } = useSession().getSession();
@@ -52,7 +56,7 @@ const Header: React.FC<{
     setIsUserControlDropdownOpen(false);
   }
 
-  function LogoImg() {
+  function LogoImg({ theme }: { theme: 'dark' | 'light200' }) {
     if (userInterface == 'summit') {
       return (
         <img
@@ -68,7 +72,7 @@ const Header: React.FC<{
   }
   const onSelect = (event?: React.MouseEvent<Element, MouseEvent>, value?: string | number) => {
     event.preventDefault();
-    setUserHelpDropdownOpen(false);
+    setIsUserHelpDropdownOpen(false);
     window.open(value as string, '_blank');
     return null;
   };
@@ -142,90 +146,99 @@ const Header: React.FC<{
   }
 
   const headerTools = (
-    <div style={{ marginLeft: 'auto' }}>
-      {feedback_link ? (
-        <Button
-          variant="link"
-          style={{ color: theme === 'dark' ? '#fff' : '#151515' }}
-          icon={<CommentIcon style={{ fill: theme === 'dark' ? '#fff' : '#151515' }} />}
-          onClick={() => window.open(feedback_link, '_blank')}
-        >
-          Feedback
-        </Button>
-      ) : null}
-
-      <Dropdown
-        isOpen={isUserHelpDropdownOpen}
-        onOpenChange={(isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
-        onOpenChangeKeys={['Escape']}
-        onSelect={onSelect}
-        ref={menuRef}
-        isScrollable
-        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-          <MenuToggle
-            aria-label="Help menu"
-            ref={toggleRef}
-            variant="plain"
-            onClick={() => setUserHelpDropdownOpen(true)}
-            isExpanded={isUserHelpDropdownOpen}
-            style={{ width: 'auto', color: theme === 'dark' ? '#fff' : '#151515' }}
-            icon={<QuestionCircleIcon style={{ fill: theme === 'dark' ? '#fff' : '#151515' }} />}
-          >
-            Help
-          </MenuToggle>
-        )}
-      >
-        <DropdownList>{userHelpDropdownItems}</DropdownList>
-      </Dropdown>
-
-      <Dropdown
-        isOpen={isUserControlDropdownOpen}
-        onOpenChange={(isOpen: boolean) => setIsUserControlDropdownOpen(isOpen)}
-        isScrollable
-        toggle={(el: React.Ref<MenuToggleElement>) => (
-          <MenuToggle
-            ref={el}
-            variant="plainText"
-            aria-label="Log in menu"
-            onClick={() => setIsUserControlDropdownOpen((isOpen) => !isOpen)}
-            className={theme === 'dark' ? 'header-component__user-controls--dark' : 'header-component__user-controls--light'}
-            style={{ width: 'auto', color: userImpersonated ? '#FF0000' : theme === 'dark' ? '#fff' : '#151515', fill: theme === 'dark' ? '#fff' : '#151515' }}
-          >
-            {userImpersonated ? userImpersonated : email}
-          </MenuToggle>
-        )}
-      >
-        <DropdownList>{UserControlDropdownItems.map((item) => item)}</DropdownList>
-      </Dropdown>
-
-      {impersonateUserModalIsOpen ? (
-        <ImpersonateUserModal isOpen={true} onClose={() => setImpersonateUserModalIsOpen(false)} />
-      ) : null}
-    </div>
+    <Toolbar>
+      <ToolbarContent>
+        <ToolbarGroup align={{ default: 'alignEnd' }}>
+          <IncidentsNotificationDrawer />
+          <ToolbarGroup variant="action-group-plain">
+            {feedback_link ? (
+              <ToolbarItem>
+                <Button
+                  variant="plain"
+                  icon={<CommentIcon />}
+                  onClick={() => window.open(feedback_link, '_blank')}
+                >
+                  Feedback
+                </Button>
+              </ToolbarItem>
+            ) : null}
+            <ToolbarItem>
+              <Dropdown
+                isOpen={isUserHelpDropdownOpen}
+                onOpenChange={(isOpen: boolean) => setIsUserHelpDropdownOpen(isOpen)}
+                onOpenChangeKeys={['Escape']}
+                onSelect={onSelect}
+                ref={menuRef}
+                isScrollable
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    aria-label="Help menu"
+                    ref={toggleRef}
+                    variant="plain"
+                    onClick={() => setIsUserHelpDropdownOpen(true)}
+                    isExpanded={isUserHelpDropdownOpen}
+                    icon={<QuestionCircleIcon />}
+                  >
+                    Help
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>{userHelpDropdownItems}</DropdownList>
+              </Dropdown>
+            </ToolbarItem>
+            <ToolbarItem>
+              <Dropdown
+                isOpen={isUserControlDropdownOpen}
+                onOpenChange={(isOpen: boolean) => setIsUserControlDropdownOpen(isOpen)}
+                isScrollable
+                toggle={(el: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={el}
+                    variant="plainText"
+                    aria-label="Log in menu"
+                    onClick={() => setIsUserControlDropdownOpen((isOpen) => !isOpen)}
+                    style={{ width: 'auto', color: userImpersonated ? '#FF0000' : '#151515', fill: '#151515' }}
+                  >
+                    {userImpersonated ? userImpersonated : email}
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>{UserControlDropdownItems.map((item) => item)}</DropdownList>
+              </Dropdown>
+            </ToolbarItem>
+          </ToolbarGroup>
+        </ToolbarGroup>
+      </ToolbarContent>
+    </Toolbar>
   );
 
   return (
-    <Masthead style={theme === 'dark' ? {backgroundColor: 'rgb(21,21,21)'} : {}} className="header-component">
-      <MastheadMain>
-        <MastheadToggle>
-          <PageToggleButton
-            variant="plain"
-            aria-label="Global navigation"
-            isSidebarOpen={isNavOpen}
-            onSidebarToggle={isMobileView ? onNavToggleMobile : onNavToggle}
-            id="nav-toggle"
-          >
-            <BarsIcon color={theme === 'dark' ? '#fff' : '#151515'} id="nav-toggle" />
-          </PageToggleButton>
-        </MastheadToggle>
-        <MastheadBrand data-codemods>
-          <MastheadLogo data-codemods href="/" style={{ display: 'flex', alignItems: 'center' }}>
-            <LogoImg />
-          </MastheadLogo>
-        </MastheadBrand>
-      </MastheadMain>
-      <MastheadContent>{headerTools}</MastheadContent>
-    </Masthead>
+    <>
+      {impersonateUserModalIsOpen ? (
+        <ImpersonateUserModal isOpen={true} onClose={() => setImpersonateUserModalIsOpen(false)} />
+      ) : null}
+      <Masthead className="header-component">
+        <MastheadMain>
+          <MastheadToggle>
+            <PageToggleButton
+              variant="plain"
+              aria-label="Global navigation"
+              isSidebarOpen={isNavOpen}
+              onSidebarToggle={isMobileView ? onNavToggleMobile : onNavToggle}
+              id="nav-toggle"
+            >
+              <BarsIcon id="nav-toggle" />
+            </PageToggleButton>
+          </MastheadToggle>
+          <MastheadBrand data-codemods>
+            <MastheadLogo data-codemods href="/" style={{ display: 'flex', alignItems: 'center' }}>
+              <LogoImg theme="light200" />
+            </MastheadLogo>
+          </MastheadBrand>
+        </MastheadMain>
+        <MastheadContent>{headerTools}</MastheadContent>
+      </Masthead>
+    </>
   );
 };
 

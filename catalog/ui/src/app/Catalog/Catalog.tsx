@@ -64,8 +64,6 @@ import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
 import CatalogNamespaceSelect from './CatalogNamespaceSelect';
 import CatalogContent from './CatalogContent';
-import IncidentsBanner from '@app/components/IncidentsBanner';
-import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import LoadingSection from '@app/components/LoadingSection';
 
 import './catalog.css';
@@ -229,7 +227,6 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const { namespace: catalogNamespaceName } = useParams();
   const isFavoritesPage = location.pathname.startsWith('/catalog/favorites');
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
-  const { incidents_enabled } = useInterfaceConfig();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
   const [sortBy, setSortBy] = useState<{ isOpen: boolean; selected: 'Featured' | 'Rating' | 'AZ' | 'ZA' }>({
     isOpen: false,
@@ -601,7 +598,6 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
 
   return (
     <>
-      {incidents_enabled ? <IncidentsBanner /> : null}
       <Drawer isExpanded={openCatalogItem ? true : false}>
         <DrawerContent
           panelContent={
