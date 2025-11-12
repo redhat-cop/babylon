@@ -57,7 +57,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       isMobileView={isMobileView}
       onNavToggleMobile={onNavToggleMobile}
       onNavToggle={onNavToggle}
-      theme={partner_connect_header_enabled ? 'light200' : 'dark'}
     />
   );
 
@@ -72,7 +71,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
         onPageResize={(_event, props: { mobileView: boolean; windowSize: number }) => onPageResize(props)}
         notificationDrawer={notificationDrawerContext?.notificationDrawer || undefined}
         isNotificationDrawerExpanded={notificationDrawerContext?.isDrawerExpanded ?? false}
-        onNotificationDrawerExpand={notificationDrawerContext?.onNotificationDrawerExpand}
       >
         {children}
       </Page>

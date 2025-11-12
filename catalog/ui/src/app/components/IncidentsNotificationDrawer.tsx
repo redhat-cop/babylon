@@ -12,7 +12,6 @@ import {
   EmptyState,
   EmptyStateVariant,
 } from '@patternfly/react-core';
-import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import useSWRImmutable from 'swr/immutable';
 import { Incident } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
@@ -21,6 +20,7 @@ import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import { useNotificationDrawer } from '@app/AppLayout/NotificationDrawerContext';
 import TimeInterval from './TimeInterval';
 import EditorViewer from './Editor/EditorViewer';
+import { SearchIcon } from '@patternfly/react-icons';
 
 // Extract a short title from HTML/rich text message
 const extractTitle = (message: string, maxLength: number = 60): string => {
