@@ -39,10 +39,9 @@ const Header: React.FC<{
   onNavToggle: () => void;
   isNavOpen: boolean;
   isMobileView: boolean;
-  theme: 'dark' | 'light200';
-}> = ({ isNavOpen, isMobileView, onNavToggle, onNavToggleMobile, theme = 'dark' }) => {
+}> = ({ isNavOpen, isMobileView, onNavToggle, onNavToggleMobile }) => {
   const [isUserControlDropdownOpen, setIsUserControlDropdownOpen] = useState(false);
-  const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
+  const [isUserHelpDropdownOpen, setIsUserHelpDropdownOpen] = useState(false);
   const { clearImpersonation, userImpersonated } = useImpersonateUser();
   const [impersonateUserModalIsOpen, setImpersonateUserModalIsOpen] = useState(false);
   const { isAdmin, email, userInterface } = useSession().getSession();
@@ -57,7 +56,7 @@ const Header: React.FC<{
     setIsUserControlDropdownOpen(false);
   }
 
-  function LogoImg() {
+  function LogoImg({ theme }: { theme: 'dark' | 'light200' }) {
     if (userInterface == 'summit') {
       return (
         <img
@@ -73,7 +72,7 @@ const Header: React.FC<{
   }
   const onSelect = (event?: React.MouseEvent<Element, MouseEvent>, value?: string | number) => {
     event.preventDefault();
-    setUserHelpDropdownOpen(false);
+    setIsUserHelpDropdownOpen(false);
     window.open(value as string, '_blank');
     return null;
   };
@@ -150,79 +149,23 @@ const Header: React.FC<{
     <Toolbar>
       <ToolbarContent>
         <ToolbarGroup align={{ default: 'alignEnd' }}>
+          <IncidentsNotificationDrawer />
           <ToolbarGroup variant="action-group-plain">
-            <IncidentsNotificationDrawer />
-            <ToolbarGroup
-              variant="action-group-plain"
-              visibility={{
-                default: 'hidden',
-                lg: 'visible'
-              }}
-            >
-              {feedback_link ? (
-                <ToolbarItem>
-                  <Button
-                    variant="link"
-                    style={{ color: theme === 'dark' ? '#fff' : '#151515' }}
-                    icon={<CommentIcon style={{ fill: theme === 'dark' ? '#fff' : '#151515' }} />}
-                    onClick={() => window.open(feedback_link, '_blank')}
-                  >
-                    Feedback
-                  </Button>
-                </ToolbarItem>
-              ) : null}
+            {feedback_link ? (
               <ToolbarItem>
-                <Dropdown
-                  isOpen={isUserHelpDropdownOpen}
-                  onOpenChange={(isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
-                  onOpenChangeKeys={['Escape']}
-                  onSelect={onSelect}
-                  ref={menuRef}
-                  isScrollable
-                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                    <MenuToggle
-                      aria-label="Help menu"
-                      ref={toggleRef}
-                      variant="plain"
-                      onClick={() => setUserHelpDropdownOpen(true)}
-                      isExpanded={isUserHelpDropdownOpen}
-                      style={{ width: 'auto', color: theme === 'dark' ? '#fff' : '#151515' }}
-                      icon={<QuestionCircleIcon style={{ fill: theme === 'dark' ? '#fff' : '#151515' }} />}
-                    >
-                      Help
-                    </MenuToggle>
-                  )}
-                >
-                  <DropdownList>{userHelpDropdownItems}</DropdownList>
-                </Dropdown>
-              </ToolbarItem>
-            </ToolbarGroup>
-          </ToolbarGroup>
-          <ToolbarGroup>
-            <ToolbarItem
-              visibility={{
-                lg: 'hidden'
-              }}
-            >
-              {feedback_link ? (
                 <Button
-                  variant="link"
-                  style={{ color: theme === 'dark' ? '#fff' : '#151515' }}
-                  icon={<CommentIcon style={{ fill: theme === 'dark' ? '#fff' : '#151515' }} />}
+                  variant="plain"
+                  icon={<CommentIcon />}
                   onClick={() => window.open(feedback_link, '_blank')}
                 >
                   Feedback
                 </Button>
-              ) : null}
-            </ToolbarItem>
-            <ToolbarItem
-              visibility={{
-                lg: 'hidden'
-              }}
-            >
+              </ToolbarItem>
+            ) : null}
+            <ToolbarItem>
               <Dropdown
                 isOpen={isUserHelpDropdownOpen}
-                onOpenChange={(isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
+                onOpenChange={(isOpen: boolean) => setIsUserHelpDropdownOpen(isOpen)}
                 onOpenChangeKeys={['Escape']}
                 onSelect={onSelect}
                 ref={menuRef}
@@ -232,10 +175,9 @@ const Header: React.FC<{
                     aria-label="Help menu"
                     ref={toggleRef}
                     variant="plain"
-                    onClick={() => setUserHelpDropdownOpen(true)}
+                    onClick={() => setIsUserHelpDropdownOpen(true)}
                     isExpanded={isUserHelpDropdownOpen}
-                    style={{ width: 'auto', color: theme === 'dark' ? '#fff' : '#151515' }}
-                    icon={<QuestionCircleIcon style={{ fill: theme === 'dark' ? '#fff' : '#151515' }} />}
+                    icon={<QuestionCircleIcon />}
                   >
                     Help
                   </MenuToggle>
@@ -244,9 +186,7 @@ const Header: React.FC<{
                 <DropdownList>{userHelpDropdownItems}</DropdownList>
               </Dropdown>
             </ToolbarItem>
-            <ToolbarItem
-              visibility={{ default: 'hidden', md: 'visible' }}
-            >
+            <ToolbarItem>
               <Dropdown
                 isOpen={isUserControlDropdownOpen}
                 onOpenChange={(isOpen: boolean) => setIsUserControlDropdownOpen(isOpen)}
@@ -257,8 +197,7 @@ const Header: React.FC<{
                     variant="plainText"
                     aria-label="Log in menu"
                     onClick={() => setIsUserControlDropdownOpen((isOpen) => !isOpen)}
-                    className={theme === 'dark' ? 'header-component__user-controls--dark' : 'header-component__user-controls--light'}
-                    style={{ width: 'auto', color: userImpersonated ? '#FF0000' : theme === 'dark' ? '#fff' : '#151515', fill: theme === 'dark' ? '#fff' : '#151515' }}
+                    style={{ width: 'auto', color: userImpersonated ? '#FF0000' : '#151515', fill: '#151515' }}
                   >
                     {userImpersonated ? userImpersonated : email}
                   </MenuToggle>
@@ -278,7 +217,7 @@ const Header: React.FC<{
       {impersonateUserModalIsOpen ? (
         <ImpersonateUserModal isOpen={true} onClose={() => setImpersonateUserModalIsOpen(false)} />
       ) : null}
-      <Masthead style={theme === 'dark' ? {backgroundColor: 'rgb(21,21,21)'} : {}} className="header-component">
+      <Masthead className="header-component">
         <MastheadMain>
           <MastheadToggle>
             <PageToggleButton
@@ -288,12 +227,12 @@ const Header: React.FC<{
               onSidebarToggle={isMobileView ? onNavToggleMobile : onNavToggle}
               id="nav-toggle"
             >
-              <BarsIcon color={theme === 'dark' ? '#fff' : '#151515'} id="nav-toggle" />
+              <BarsIcon id="nav-toggle" />
             </PageToggleButton>
           </MastheadToggle>
           <MastheadBrand data-codemods>
             <MastheadLogo data-codemods href="/" style={{ display: 'flex', alignItems: 'center' }}>
-              <LogoImg />
+              <LogoImg theme="light200" />
             </MastheadLogo>
           </MastheadBrand>
         </MastheadMain>
