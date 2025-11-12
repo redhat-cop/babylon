@@ -702,13 +702,13 @@ const ServicesItemComponent: React.FC<{
             onSelect={(e, tabIndex) => navigate(`/services/${serviceNamespaceName}/${resourceClaimName}/${tabIndex}`)}
           >
             {hasInfoMessageTemplate ? (
-              <Tab eventKey="info" title={<TabTitleText>Info</TabTitleText>}>
+              <Tab eventKey="info" key="info" title={<TabTitleText>Info</TabTitleText>}>
                 {activeTab === 'info' || !activeTab ? (
                   <InfoTab resourceClaim={resourceClaim} showModal={showModal} />
                 ) : null}
               </Tab>
             ) : null}
-            <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
+            <Tab eventKey="details" key="details" title={<TabTitleText>Details</TabTitleText>}>
               {activeTab === 'details' || (!activeTab && !hasInfoMessageTemplate) ? (
                 <DescriptionList isHorizontal>
                   <DescriptionListGroup>
@@ -1018,7 +1018,7 @@ const ServicesItemComponent: React.FC<{
             </Tab>
 
             {statusEnabled ? (
-              <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
+              <Tab eventKey="status" key="status" title={<TabTitleText>Status</TabTitleText>}>
                 {activeTab === 'status' ? (
                   <ServiceItemStatus onCheckStatusRequest={onCheckStatusRequest} resourceClaim={resourceClaim} />
                 ) : null}
@@ -1026,33 +1026,33 @@ const ServicesItemComponent: React.FC<{
             ) : null}
 
             {consoleEnabled ? (
-              <Tab eventKey="console" title={<TabTitleText>Console</TabTitleText>}>
+              <Tab eventKey="console" key="console" title={<TabTitleText>Console</TabTitleText>}>
                 {activeTab === 'console' ? <ServiceOpenStackConsole resourceClaim={resourceClaim} /> : null}
               </Tab>
             ) : null}
 
             {workshopName && !isPartOfWorkshop ? (
-              <React.Fragment>
-                <Tab eventKey="workshop" key="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
-                  {activeTab === 'workshop' ? (
-                    <WorkshopsItemDetails
-                      onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)}
-                      workshop={workshop}
-                      workshopUserAssignments={userAssigmentsList.items}
-                    />
-                  ) : null}
-                </Tab>
-                <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
-                  {activeTab === 'users' ? (
-                    <WorkshopsItemUserAssignments
-                      onUserAssignmentsUpdate={mutateUserAssigments}
-                      userAssignments={userAssigmentsList.items}
-                    />
-                  ) : null}
-                </Tab>
-              </React.Fragment>
+              <Tab eventKey="workshop" key="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
+                {activeTab === 'workshop' ? (
+                  <WorkshopsItemDetails
+                    onWorkshopUpdate={(workshop) => mutateWorkshop(workshop)}
+                    workshop={workshop}
+                    workshopUserAssignments={userAssigmentsList.items}
+                  />
+                ) : null}
+              </Tab>
+            ) : null}
+            {workshopName && !isPartOfWorkshop ? (
+              <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
+                {activeTab === 'users' ? (
+                  <WorkshopsItemUserAssignments
+                    onUserAssignmentsUpdate={mutateUserAssigments}
+                    userAssignments={userAssigmentsList.items}
+                  />
+                ) : null}
+              </Tab>
             ) : serviceHasUsers ? (
-              <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
+              <Tab eventKey="users" key="enable-users" title={<TabTitleText>Users</TabTitleText>}>
                 {activeTab === 'users' ? (
                   <>
                     {!workshopName &&
@@ -1071,7 +1071,7 @@ const ServicesItemComponent: React.FC<{
                 ) : null}
               </Tab>
             ) : null}
-            <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
+            <Tab eventKey="yaml" key="yaml" title={<TabTitleText>YAML</TabTitleText>}>
               {activeTab === 'yaml' ? (
                 <Editor
                   height="500px"
