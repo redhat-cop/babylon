@@ -31,6 +31,7 @@ import {
   Tooltip,
   TextInput,
   Switch,
+  NumberInput,
 } from '@patternfly/react-core';
 import {
   apiPaths,
@@ -331,6 +332,10 @@ const ServicesItemComponent: React.FC<{
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
   );
   const debouncedServiceAlias = useDebounceState(serviceAlias, 300);
+  const opsEffortAnnotation = resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
+  const opsEffortFromAnnotation = useMemo(() => parseInt(opsEffortAnnotation || '0', 10) || 0, [opsEffortAnnotation]);
+  const [opsEffort, setOpsEffort] = useState<number>(opsEffortFromAnnotation);
+  const debouncedOpsEffort = useDebounceState(opsEffort, 300);
   const salesforceItems = parseSalesforceItems(resourceClaim.metadata.annotations || {});
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
@@ -347,7 +352,6 @@ const ServicesItemComponent: React.FC<{
     submitDisabled: boolean;
   }>({ action: null, submitDisabled: false });
 
-
   useEffect(() => {
     if (debouncedServiceAlias !== resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`]) {
       patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
@@ -360,7 +364,39 @@ const ServicesItemComponent: React.FC<{
         mutate(updatedResourceClaim);
       });
     }
-  }, [debouncedServiceAlias, mutate, resourceClaim.metadata.annotations, resourceClaim.metadata.name, resourceClaim.metadata.namespace]);
+  }, [
+    debouncedServiceAlias,
+    mutate,
+    resourceClaim.metadata.annotations,
+    resourceClaim.metadata.name,
+    resourceClaim.metadata.namespace,
+  ]);
+
+  useEffect(() => {
+    setOpsEffort(opsEffortFromAnnotation);
+  }, [opsEffortFromAnnotation]);
+
+  useEffect(() => {
+    if (debouncedOpsEffort !== opsEffortFromAnnotation) {
+      const opsEffortValue =
+        typeof debouncedOpsEffort === 'number' ? debouncedOpsEffort : Number(debouncedOpsEffort) || 0;
+      patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
+        metadata: {
+          annotations: {
+            [`${DEMO_DOMAIN}/ops-effort`]: String(opsEffortValue),
+          },
+        },
+      }).then((updatedResourceClaim) => {
+        mutate(updatedResourceClaim);
+      });
+    }
+  }, [
+    debouncedOpsEffort,
+    opsEffortFromAnnotation,
+    mutate,
+    resourceClaim.metadata.name,
+    resourceClaim.metadata.namespace,
+  ]);
 
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const { data: userNamespaceList } = useSWR<NamespaceList>(
@@ -880,29 +916,79 @@ const ServicesItemComponent: React.FC<{
                   ) : null}
 
                   {!isPartOfWorkshop && isAdmin ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm> </DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <Switch
-                          id="white-glove-switch"
-                          aria-label="White-Glove Support"
-                          label="White-Glove Support (for admins to tick when giving a white gloved experience)"
-                          isChecked={whiteGloved}
-                          hasCheckIcon
-                          onChange={async (_event: unknown, isChecked: boolean) => {
-                            mutate(
-                              await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
-                                metadata: {
-                                  labels: {
-                                    [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
-                                  },
-                                },
-                              }),
-                            );
-                          }}
-                        />
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
+                    <>
+                      <DescriptionListGroup className="services-item__admin-section">
+                        <DescriptionListTerm>Admin Settings</DescriptionListTerm>
+                        <DescriptionListDescription className="services-item__admin-description">
+                          <div className="services-item__admin-fields">
+                            <div className="services-item__admin-field">
+                              <Switch
+                                id="white-glove-switch"
+                                aria-label="White-Glove Support"
+                                label="White-Glove Support (for admins to tick when giving a white gloved experience)"
+                                isChecked={whiteGloved}
+                                hasCheckIcon
+                                onChange={async (_event: unknown, isChecked: boolean) => {
+                                  mutate(
+                                    await patchResourceClaim(
+                                      resourceClaim.metadata.namespace,
+                                      resourceClaim.metadata.name,
+                                      {
+                                        metadata: {
+                                          labels: {
+                                            [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
+                                          },
+                                        },
+                                      },
+                                    ),
+                                  );
+                                }}
+                              />
+                            </div>
+                            <div className="services-item__admin-field">
+                              <div className="service-item__group-control--single" style={{ maxWidth: 350 }}>
+                                <label
+                                  htmlFor="ops-effort-input"
+                                  style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                                >
+                                  Ops Effort
+                                </label>
+                                <NumberInput
+                                  id="ops-effort-input"
+                                  aria-label="Ops Effort"
+                                  min={0}
+                                  value={opsEffort}
+                                  onMinus={() => {
+                                    const newValue = Math.max(0, (typeof opsEffort === 'number' ? opsEffort : 0) - 1);
+                                    setOpsEffort(newValue);
+                                  }}
+                                  onPlus={() => {
+                                    const newValue = (typeof opsEffort === 'number' ? opsEffort : 0) + 1;
+                                    setOpsEffort(newValue);
+                                  }}
+                                  onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                    const inputValue = event.currentTarget.value;
+                                    const value = inputValue === '' ? 0 : parseInt(inputValue, 10);
+                                    if (!isNaN(value) && value >= 0) {
+                                      setOpsEffort(value);
+                                    }
+                                  }}
+                                />
+                                <Tooltip
+                                  position="right"
+                                  content={<div>Operations effort value for this workshop.</div>}
+                                >
+                                  <OutlinedQuestionCircleIcon
+                                    aria-label="Operations effort value for this workshop."
+                                    className="tooltip-icon-only"
+                                  />
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </div>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    </>
                   ) : null}
                   <ConditionalWrapper
                     condition={resourceClaim.spec.resources && resourceClaim.spec.resources.length > 1}
