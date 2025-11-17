@@ -68,8 +68,6 @@ import LoadingSection from '@app/components/LoadingSection';
 
 import './catalog.css';
 
-const DEFAULT_CATEGORIES = ['Demos', 'Labs', 'Workshops', 'Open_Environments'];
-
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
   const labels = [];
@@ -255,13 +253,9 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         return [];
       }
     }
-    // Default categories for regular catalog page (not favorites)
-    if (!isFavoritesPage) {
-      return [...DEFAULT_CATEGORIES];
-    }
     // Default to empty (show all items)
     return [];
-  }, [searchParams, isFavoritesPage]);
+  }, [searchParams]);
   const labelsString = searchParams.has('labels') ? searchParams.get('labels') : null;
   const adminStatusString = searchParams.has('adminStatus') ? searchParams.get('adminStatus') : null;
   const selectedAdminFilter: string[] = useMemo(
@@ -283,19 +277,6 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       searchInputStringCb(searchString);
     }
   }, [searchString, searchInputStringCb]);
-
-  // Set default categories in URL params if not already set (only for regular catalog page)
-  // Don't set defaults if categories is explicitly set to empty array
-  useLayoutEffect(() => {
-    if (!searchParams.has('category') && !isFavoritesPage) {
-      if (!searchParams.has('categories')) {
-        // No categories param at all - set defaults
-        searchParams.set('categories', JSON.stringify(DEFAULT_CATEGORIES));
-        setSearchParams(searchParams, { replace: true });
-      }
-      // If categories param exists (even if empty), leave it as is
-    }
-  }, [isFavoritesPage, searchParams, setSearchParams]);
 
   const compareCatalogItems = useCallback(
     (a: CatalogItem, b: CatalogItem): number => {
