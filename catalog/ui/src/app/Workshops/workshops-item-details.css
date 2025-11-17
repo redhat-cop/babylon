@@ -5,3 +5,27 @@
 .workshops-item-details.pf-v6-c-description-list[class*='pf-m-horizontal'] {
   --pf-v6-c-description-list__term--width: 142px !important;
 }
+
+.workshops-item-details__admin-section.pf-v6-c-description-list__group {
+  border-top: 2px solid var(--pf-t--chart--color--black--400) !important;
+  margin-top: var(--pf-t--global--spacer--md) !important;
+  margin-bottom: var(--pf-t--global--spacer--md) !important;
+}
+
+.workshops-item-details__admin-description.pf-v6-c-description-list__description {
+  border-left: 3px solid var(--pf-t--chart--color--black--300) !important;
+  background-color: var(--pf-t--color--background--disabled, #f5f5f5) !important;
+  padding: var(--pf-t--global--spacer--md) !important;
+  border-radius: var(--pf-t--global--border--radius--sm, 4px) !important;
+}
+
+.workshops-item-details__admin-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--md);
+}
+
+.workshops-item-details__admin-field {
+  display: flex;
+  align-items: center;
+}
