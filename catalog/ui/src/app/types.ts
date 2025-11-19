@@ -827,3 +827,60 @@ export interface SalesforceItem {
   type: 'campaign' | 'project' | 'opportunity';
   id: string;
 }
+export interface UserActivityItem {
+  request_id: string;
+  workshop_id: string;
+  requested_at: string;
+  provisioned_at: string;
+  retired_at: string | null;
+  lifetime_interval: string;
+  display_name: string;
+  category: string;
+  resourceclaim_name: string;
+  resourceclaim_namespace: string;
+  user_experiences: number;
+  catalog: {
+    asset_uuid: string;
+    name: string;
+    display_name: string;
+    category: string;
+  };
+  costs: {
+    usage_amount: number;
+    chargeback_amount: number;
+    chargeback_user_amount: number;
+    chargeback_cost_center: number;
+    chargeback_user: boolean;
+  };
+  requester: {
+    user_id: number;
+    email: string;
+    full_name: string;
+    username: string;
+    employee_number: number;
+    supervisor_number: number;
+    last_login: string;
+    rhat_job_title: string;
+    jobfamily: string;
+    title: string;
+    geo: string;
+    cost_center: number;
+    is_manager: boolean;
+  };
+  sales_items: Array<{
+    sales_number: string;
+    sales_type: string;
+  }>;
+}
+
+export interface UserActivityResponse {
+  email: string;
+  page: number;
+  page_size: number;
+  total_items: number;
+  total_pages: number;
+  total_usage_amount: number;
+  total_chargeback_amount: number;
+  total_chargeback_user: number;
+  items: UserActivityItem[];
+}

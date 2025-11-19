@@ -39,6 +39,7 @@ const ResourcePoolInstance = React.lazy(() => import('@app/Admin/ResourcePoolIns
 const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'));
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 const CatalogItemAdmin = React.lazy(() => import('@app/Admin/CatalogItemAdmin'));
+const Activity = React.lazy(() => import('@app/Activity'));
 
 const appRoutes: IAppRoute[] = [
   {
@@ -90,6 +91,11 @@ const appRoutes: IAppRoute[] = [
     component: Services,
     path: '/services',
     title: 'Babylon | Services',
+  },
+  {
+    component: Activity,
+    path: '/activity',
+    title: 'Babylon | Activity',
   },
   {
     component: MultiWorkshopCreate,

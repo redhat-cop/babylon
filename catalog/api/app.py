@@ -845,6 +845,26 @@ async def usage_cost_workshop(request):
         url=f"{reporting_api}/usage-cost/workshop/{workshop_id}",
     )
 
+@routes.get("/api/users/activity")
+async def user_activity(request):
+    user = await get_proxy_user(request)
+    email = user['metadata']['name']
+    page = request.query.get('page')
+    page_size = request.query.get('page_size')
+    queryString = ""
+    if page:
+        queryString = f"?page={page}"
+        if page_size:
+            queryString = f"{queryString}&page_size={page_size}"
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/users/activity/{email}{queryString}",
+    )
+
 @routes.get("/api/event/{namespace}/{name}")
 async def public_multiworkshop_get(request):
     """
