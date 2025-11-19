@@ -750,9 +750,13 @@ const ServicesItemComponent: React.FC<{
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <Link to={`/catalog?item=${catalogItem?.metadata.namespace}/${catalogItem?.metadata.name}`}>
-                        {resourceClaim.metadata.name}
-                      </Link>
+                      {catalogItem?.metadata.namespace && catalogItem?.metadata.name ? (
+                        <Link to={`/catalog?item=${catalogItem?.metadata.namespace}/${catalogItem?.metadata.name}`}>
+                          {resourceClaim.metadata.name}
+                        </Link>
+                      ) : (
+                        <p>{resourceClaim.metadata.name}</p>
+                      )}
                       {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
                     </DescriptionListDescription>
                   </DescriptionListGroup>

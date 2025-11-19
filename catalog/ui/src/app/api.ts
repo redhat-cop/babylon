@@ -198,7 +198,12 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
-function addPurposeAndSfdc(_definition: K8sObject, parameterValues: Record<string, unknown>, skippedSfdc: boolean, salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>) {
+function addPurposeAndSfdc(
+  _definition: K8sObject,
+  parameterValues: Record<string, unknown>,
+  skippedSfdc: boolean,
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>,
+) {
   const d = Object.assign({}, _definition) as ResourceClaim | Workshop;
   // Purpose & SFDC
   if (parameterValues.purpose) {
@@ -353,7 +358,7 @@ export async function checkSalesforceId(
   }
   try {
     const response = await debouncedApiFetch(`/api/salesforce/${id}?${sales_type ? `sales_type=${sales_type}` : ''}`);
-    const data: {success: boolean; message: string} = await response.json();
+    const data: { success: boolean; message: string } = await response.json();
     return { valid: data.success, message: data.message };
   } catch (errorResponse: unknown) {
     try {
@@ -1281,7 +1286,7 @@ export async function createWorkshopFromAsset({
   asset,
   multiworkshopData,
   catalogItem,
-  salesforceItems
+  salesforceItems,
 }: {
   multiworkshopName: string;
   multiworkshopUid: string;
@@ -1343,7 +1348,7 @@ export async function createWorkshopProvisionFromAsset({
   multiworkshopName,
   multiworkshopUid,
   multiworkshopData,
-  catalogItem
+  catalogItem,
 }: {
   workshop: Workshop;
   asset: { key: string; name: string; namespace: string };
@@ -2252,6 +2257,18 @@ export const apiPaths = {
   USAGE_COST_WORKSHOP: ({ workshopId }: { workshopId: string }) => `/api/usage-cost/workshop/${workshopId}`,
   CATALOG_ITEM_CHECK_AVAILABILITY: ({ agnosticvName }: { agnosticvName: string }) =>
     `/api/${agnosticvName}/check-availability`,
+  USER_ACTIVITY: ({ page, page_size }: { page?: number; page_size?: number }) => {
+    const baseUrl = `/api/users/activity`;
+    const params = new URLSearchParams();
+    if (page !== undefined) {
+      params.append('page', String(page));
+    }
+    if (page_size !== undefined) {
+      params.append('page_size', String(page_size));
+    }
+    const queryString = params.toString();
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+  },
 };
 
 export async function checkCatalogItemAvailability(

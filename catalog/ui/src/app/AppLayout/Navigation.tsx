@@ -88,6 +88,17 @@ const Navigation: React.FC = () => {
     </NavItem>
   ) : null;
 
+  const activityNavigation = (
+    <NavItem>
+      <NavLink
+        to="/activity"
+        className={locationStartsWith('/activity') ? 'pf-m-current' : ''}
+      >
+        Activity
+      </NavLink>
+    </NavItem>
+  );
+
   const multiWorkshopNavigation = userNamespace && multiworkshops_enabled ? (
     <NavItem>
       <NavLink
@@ -202,6 +213,7 @@ const Navigation: React.FC = () => {
       <NavList id="nav-list-simple">
         {catalogNavigation}
         {serviceNavigation}
+        {activityNavigation}
         {multiWorkshopNavigation}
         {adminNavigation}
       </NavList>
