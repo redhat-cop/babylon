@@ -848,9 +848,14 @@ async def usage_cost_workshop(request):
 @routes.get("/api/users/activity")
 async def user_activity(request):
     user = await get_proxy_user(request)
-    email = user['metadata']['name']
+    session = await get_user_session(request, user)
     page = request.query.get('page')
     page_size = request.query.get('page_size')
+    email = user['metadata']['name']
+    impersonate_user = request.headers.get('Impersonate-User')
+    if impersonate_user and session.get('admin'):
+        email = impersonate_user
+
     queryString = ""
     if page:
         queryString = f"?page={page}"
