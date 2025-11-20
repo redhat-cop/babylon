@@ -113,8 +113,9 @@ const Activity: React.FC = () => {
                 </Td>
                 <Td dataLabel="Type">
                   {item.workshop_id
-                    ? `Workshop - ${item.user_experiences} ${item.user_experiences === 1 ? 'Instance' : 'Instances'}`
-                    : 'Service'}
+                    ? `Workshop - ${item.user_experiences} ${item.user_experiences === 1 ? 'Seat' : 'Seats'}`
+                    : `Service ${item.user_experiences && item.user_experiences > 1 ? `- ${item.user_experiences} 'Users'` : ''}`
+                  }
                 </Td>
                 <Td dataLabel="Date requested">
                   {item.requested_at ? new Date(item.requested_at).toLocaleDateString() : '-'}
