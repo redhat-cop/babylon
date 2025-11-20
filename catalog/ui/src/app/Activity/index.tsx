@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PageSection, Title, Pagination, Tooltip } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
@@ -90,22 +91,37 @@ const Activity: React.FC = () => {
         <Table aria-label="User activity table" variant="compact">
           <Thead>
             <Tr>
-              <Th>Resource Claim Name</Th>
-              <Th>Display Name</Th>
-              <Th>User Experiences</Th>
-              <Th>Is Workshop</Th>
+              <Th>Name</Th>
+              <Th>Catalog Item</Th>
+              <Th>Type</Th>
+              <Th>Date requested</Th>
+              <Th>Retirement date</Th>
               <Th>Usage Amount</Th>
-              <Th>Sales Number</Th>
-              <Th>Sales Type</Th>
+              <Th>Salesforce IDs</Th>
             </Tr>
           </Thead>
           <Tbody>
             {data.items.map((item) => (
               <Tr key={item.request_id}>
-                <Td dataLabel="Resource Claim Name">{item.resourceclaim_name || '-'}</Td>
-                <Td dataLabel="Display Name">{item.display_name || '-'}</Td>
-                <Td dataLabel="User Experiences">{item.user_experiences || 0}</Td>
-                <Td dataLabel="Is Workshop">{item.workshop_id ? 'workshop' : '-'}</Td>
+                <Td dataLabel="Name">{item.resourceclaim_name || '-'}</Td>
+                <Td dataLabel="Catalog Item">
+                  {item.catalog?.name ? (
+                    <Link to={`/catalog?search=${encodeURIComponent(item.catalog.name)}`}>{item.catalog.display_name}</Link>
+                  ) : (
+                    item.display_name || '-'
+                  )}
+                </Td>
+                <Td dataLabel="Type">
+                  {item.workshop_id
+                    ? `Workshop - ${item.user_experiences} ${item.user_experiences === 1 ? 'Instance' : 'Instances'}`
+                    : 'Service'}
+                </Td>
+                <Td dataLabel="Date requested">
+                  {item.requested_at ? new Date(item.requested_at).toLocaleDateString() : '-'}
+                </Td>
+                <Td dataLabel="Retirement date">
+                  {item.retired_at ? new Date(item.retired_at).toLocaleDateString() : '-'}
+                </Td>
                 <Td dataLabel="Usage Amount">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--xs)' }}>
                     <CurrencyAmount amount={item.costs.usage_amount} />
@@ -127,15 +143,19 @@ const Activity: React.FC = () => {
                     </Tooltip>
                   </div>
                 </Td>
-                <Td dataLabel="Sales Number">
-                  {item.sales_items && item.sales_items.length > 0
-                    ? item.sales_items.map((salesItem) => salesItem.sales_number).join(', ')
-                    : '-'}
-                </Td>
-                <Td dataLabel="Sales Type">
-                  {item.sales_items && item.sales_items.length > 0
-                    ? item.sales_items.map((salesItem) => salesItem.sales_type).join(', ')
-                    : '-'}
+                <Td dataLabel="Salesforce IDs">
+                  {item.sales_items && item.sales_items.length > 0 ? (
+                    <div style={{ whiteSpace: 'pre-line' }}>
+                      {item.sales_items
+                        .map(
+                          (salesItem) =>
+                            `${salesItem.sales_type.charAt(0).toUpperCase()}${salesItem.sales_type.slice(1)} Id: ${salesItem.sales_number}`,
+                        )
+                        .join('\n')}
+                    </div>
+                  ) : (
+                    '-'
+                  )}
                 </Td>
               </Tr>
             ))}
