@@ -124,13 +124,10 @@ const Activity: React.FC = () => {
                 </Td>
                 <Td dataLabel="Usage Amount">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--xs)' }}>
-                    <CurrencyAmount amount={item.costs.usage_amount} />
+                    <CurrencyAmount amount={item.costs.chargeback_user_amount} />
                     <Tooltip
                       content={
                         <div>
-                          <p>
-                            Chargeback User Amount: <CurrencyAmount amount={item.costs.chargeback_user_amount} />
-                          </p>
                           <p>Charged: {item.costs.chargeback_user ? 'Yes' : 'No'}</p>
                         </div>
                       }

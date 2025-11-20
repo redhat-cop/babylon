@@ -223,7 +223,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { namespace: catalogNamespaceName } = useParams();
-  const isFavoritesPage = location.pathname.startsWith('/catalog/favorites');
+  const showFavorites = searchParams.has('favorites') ? searchParams.get('favorites') === 'true' : false;
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
   const [sortBy, setSortBy] = useState<{ isOpen: boolean; selected: 'Featured' | 'Rating' | 'AZ' | 'ZA' }>({
@@ -462,16 +462,17 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       ],
     };
     const catalogItemsFuse = new Fuse(catalogItemsCpy, options);
-    if (selectedCategories && selectedCategories.length > 0) {
+    // Apply category and favorites filter with OR logic
+    if ((selectedCategories && selectedCategories.length > 0) || showFavorites) {
       catalogItemsFuse.remove((ci) => {
-        // Check if item matches any selected category (OR logic)
-        return !selectedCategories.some((category) => {
-            return filterCatalogItemByCategory(ci, category);
-        });
+        // Check if item matches any selected category OR is a favorite (OR logic)
+        const matchesCategory = selectedCategories && selectedCategories.length > 0
+          ? selectedCategories.some((category) => filterCatalogItemByCategory(ci, category))
+          : false;
+        const isFav = showFavorites ? filterFavorites(ci, assetsFavList?.bookmarks || []) : false;
+        
+        return !matchesCategory && !isFav;
       });
-    }
-    if (isFavoritesPage) {
-      catalogItemsFuse.remove((ci) => !filterFavorites(ci, assetsFavList?.bookmarks || []));
     }
     if (selectedLabels) {
       catalogItemsFuse.remove((ci) => !filterCatalogItemByLabels(ci, selectedLabels));
@@ -480,7 +481,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
     }
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [catalogItems, compareCatalogItems, selectedCategories, isFavoritesPage, assetsFavList?.bookmarks, selectedLabels, isAdmin, selectedAdminFilter, activeIncidents]);
+  }, [catalogItems, compareCatalogItems, selectedCategories, showFavorites, assetsFavList?.bookmarks, selectedLabels, isAdmin, selectedAdminFilter, activeIncidents]);
 
   const catalogItemsResult = useMemo(() => {
     const items = searchString
@@ -526,24 +527,25 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   }
 
   function onSelectCatalogNamespace(namespaceName: string) {
-    if (isFavoritesPage) {
-      if (namespaceName) {
-        navigate(`/catalog/favorites/${namespaceName}${location.search}`);
-      } else {
-        navigate(`/catalog/favorites${location.search}`);
-      }
+    if (namespaceName) {
+      navigate(`/catalog/${namespaceName}${location.search}`);
     } else {
-      if (namespaceName) {
-        navigate(`/catalog/${namespaceName}${location.search}`);
-      } else {
-        navigate(`/catalog${location.search}`);
-      }
+      navigate(`/catalog${location.search}`);
     }
   }
 
   function onSelectCategories(categories: string[]) {
     // Always set the categories param, even if empty, to prevent defaults from being reapplied
     searchParams.set('categories', JSON.stringify(categories || []));
+    setSearchParams(searchParams);
+  }
+
+  function onFavoritesChange(enabled: boolean) {
+    if (enabled) {
+      searchParams.set('favorites', 'true');
+    } else {
+      searchParams.delete('favorites');
+    }
     setSearchParams(searchParams);
   }
 
@@ -560,6 +562,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     const newParams = new URLSearchParams();
     // Explicitly set empty categories array to uncheck all categories
     newParams.set('categories', JSON.stringify([]));
+    // Remove favorites filter
+    newParams.delete('favorites');
     setSearchParams(newParams);
     if (searchInputStringCb) searchInputStringCb('');
   }
@@ -570,8 +574,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     const hasLabels = selectedLabels && Object.keys(selectedLabels).length > 0;
     const hasAdminFilter = isAdmin && selectedAdminFilter && selectedAdminFilter.length > 0;
     const hasCategories = selectedCategories.length > 0;
-    return hasSearch || hasLabels || hasAdminFilter || hasCategories;
-  }, [searchString, selectedLabels, selectedAdminFilter, selectedCategories, isAdmin]);
+    return hasSearch || hasLabels || hasAdminFilter || hasCategories || showFavorites;
+  }, [searchString, selectedLabels, selectedAdminFilter, selectedCategories, showFavorites, isAdmin]);
 
   if (isLoading) {
     return <LoadingSection />;
@@ -628,6 +632,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                             catalogItems={catalogItems}
                             onSelect={onSelectCategories}
                             selected={selectedCategories}
+                            showFavorites={showFavorites}
+                            onFavoritesChange={onFavoritesChange}
                           />
                         </StackItem>
                         <StackItem>
