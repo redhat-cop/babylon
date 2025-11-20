@@ -582,8 +582,8 @@ const WorkshopsItemDetails: React.FC<{
                 />
               </div>
               <div className="workshops-item-details__admin-field">
-                <div className="service-item__group-control--single" style={{ maxWidth: 350 }}>
-                  <label htmlFor="ops-effort-input" style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}>
+                <div className="workshops-item-details__group-control--single" style={{ maxWidth: 350 }}>
+                  <label htmlFor="ops-effort-input">
                     Ops Effort
                   </label>
                   <NumberInput

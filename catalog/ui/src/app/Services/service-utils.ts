@@ -95,8 +95,8 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
 }
 
 export function getAutoStopTime(resourceClaim: ResourceClaim): number {
-  if (resourceClaim.spec?.provider?.parameterValues?.stop_timestamp) {
-    return Date.parse(resourceClaim.spec.provider.parameterValues.stop_timestamp);
+  if (resourceClaim.status?.provider?.parameterValues?.stop_timestamp) {
+    return Date.parse(resourceClaim.status.provider.parameterValues.stop_timestamp);
   }
   const autoStopTimes = resourceClaim.spec?.resources
     ? resourceClaim.spec.resources
