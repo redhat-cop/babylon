@@ -9,11 +9,10 @@ import CurrencyAmount from '@app/components/CurrencyAmount';
 import { UserActivityResponse } from '@app/types';
 
 async function fetchUserActivity(page: number, pageSize: number): Promise<UserActivityResponse> {
-  // API uses 0-based page indexing, but we use 1-based in state
-  const apiPage = page - 1;
+  // API uses 1-based page indexing
   // Ensure pageSize is within valid range (1-50)
   const validPageSize = Math.min(Math.max(1, pageSize), 50);
-  const url = apiPaths.USER_ACTIVITY({ page: apiPage, page_size: validPageSize });
+  const url = apiPaths.USER_ACTIVITY({ page, page_size: validPageSize });
   const response = await apiFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch user activity: ${response.statusText}`);
@@ -78,7 +77,7 @@ const Activity: React.FC = () => {
       <PageSection hasBodyWrapper={false}>
         <Pagination
           itemCount={data.total_items}
-          page={data.page + 1} // API uses 0-based indexing, Pagination uses 1-based
+          page={data.page} // API uses 1-based indexing
           perPage={data.page_size}
           onSetPage={onSetPage}
           onPerPageSelect={onPerPageSelect}
