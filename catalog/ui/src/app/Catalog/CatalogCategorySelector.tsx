@@ -20,8 +20,10 @@ const CatalogCategorySelector: React.FC<{
   catalogItems: CatalogItem[];
   onSelect: (categories: string[]) => void;
   selected: string[];
+  showFavorites?: boolean;
+  onFavoritesChange?: (enabled: boolean) => void;
   isHorizontal?: boolean;
-}> = ({ catalogItems, onSelect, selected, isHorizontal = false }) => {
+}> = ({ catalogItems, onSelect, selected, showFavorites = false, onFavoritesChange, isHorizontal = false }) => {
   const categories = useMemo(() => {
     const cats = Array.from(
       new Set((catalogItems || []).map((ci) => getCategory(ci)).filter((category) => category !== null)),
@@ -57,6 +59,17 @@ const CatalogCategorySelector: React.FC<{
 
   return (
     <Stack className="catalog-category-selector" hasGutter style={isHorizontal ? { flexDirection: 'row', flexWrap: 'wrap' } : undefined}>
+      {onFavoritesChange && (
+        <StackItem key="favorites">
+          <Checkbox
+            id="category-favorites"
+            label="Favorites"
+            isChecked={showFavorites}
+            onChange={(_, checked) => onFavoritesChange(checked)}
+            aria-label="Favorites"
+          />
+        </StackItem>
+      )}
       {categories.map((category) => {
         return (
           <StackItem key={category}>
