@@ -29,3 +29,9 @@
   display: flex;
   align-items: center;
 }
+.workshops-item-details__group-control--single {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-t--global--spacer--md);
+  align-items: center;
+}

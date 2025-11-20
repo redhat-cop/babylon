@@ -951,10 +951,7 @@ const ServicesItemComponent: React.FC<{
                             </div>
                             <div className="services-item__admin-field">
                               <div className="service-item__group-control--single" style={{ maxWidth: 350 }}>
-                                <label
-                                  htmlFor="ops-effort-input"
-                                  style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
-                                >
+                                <label htmlFor="ops-effort-input">
                                   Ops Effort
                                 </label>
                                 <NumberInput

@@ -59,13 +59,7 @@ export function getEstimatedCost(catalogItem: CatalogItem) {
   }
   return null;
 }
-function getEstimatedCostFormatted(catalogItem: CatalogItem) {
-  const estimatedCost = getEstimatedCost(catalogItem);
-  if (estimatedCost) {
-    return formatCurrency(estimatedCost);
-  }
-  return null;
-}
+
 export function getLastSuccessfulProvisionTime(catalogItem: CatalogItem) {
   if (catalogItem.metadata.annotations?.[`${CATALOG_MANAGER_DOMAIN}/lastSuccessfulProvision`]) {
     const now = new Date();

@@ -324,6 +324,7 @@ export interface ResourceHandleResource {
 export interface ResourceClaim extends K8sObject {
   spec: ResourceClaimSpec;
   status?: {
+    provider?: ResourceClaimProvider;
     lifespan: ResourceClaimStatusLifespan;
     resourceHandle: K8sObjectReference;
     resources: ResourceHandleResource[];
