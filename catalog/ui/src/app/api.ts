@@ -483,7 +483,7 @@ export async function createServiceRequest({
           ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.user) }
           : {}),
         [`${DEMO_DOMAIN}/scheduled`]:
-          startDate && startDate.getTime() + parseDuration('15min') > Date.now() ? 'true' : 'false',
+          startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         ...(catalogItem.spec.workshopUiDisabled ? { [`${DEMO_DOMAIN}/workshopUiDisabled`]: 'true' } : {}),
       },
       labels: {
@@ -611,7 +611,6 @@ export async function createWorkshop({
   const session = await getApiSession();
   // Generate workshop name with random suffix and ensure Kubernetes compliance
   const workshopName = generateK8sNameWithSuffix(customWorkshopName || catalogItem.metadata.name);
-
   const _definition: Workshop = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'Workshop',
@@ -635,7 +634,7 @@ export async function createWorkshop({
             ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.info) }
             : {}),
         [`${DEMO_DOMAIN}/scheduled`]:
-          startDate && startDate.getTime() + parseDuration('15min') > Date.now() ? 'true' : 'false',
+          startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
         ...(customAnnotations || {}),
