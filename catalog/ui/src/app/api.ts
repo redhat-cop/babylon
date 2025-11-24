@@ -350,14 +350,14 @@ export async function bulkAssignWorkshopUsers({
 export async function checkSalesforceId(
   id: string,
   debouncedApiFetch: (path: string) => Promise<Response>,
-  sales_type?: string,
+  sales_type: string,
 ): Promise<{ valid: boolean; message: string }> {
   const defaultMessage = 'A valid Salesforce ID is required for the selected activity / purpose';
   if (!id) {
     return { valid: false, message: defaultMessage };
   }
   try {
-    const response = await debouncedApiFetch(`/api/salesforce/${id}?${sales_type ? `sales_type=${sales_type}` : ''}`);
+    const response = await debouncedApiFetch(`/api/salesforce/${id}?sales_type=${sales_type}`);
     const data: { success: boolean; message: string } = await response.json();
     return { valid: data.success, message: data.message };
   } catch (errorResponse: unknown) {
