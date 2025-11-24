@@ -187,13 +187,9 @@ export async function checkConditionsInFormState(
   try {
     if (initialState.sfdc_enabled) {
       const firstItem = initialState.salesforceItems?.[0];
-      if (firstItem?.id) {
+      if (firstItem?.id && firstItem?.type) {
         conditionValues['salesforce_id'] = firstItem.id;
-        await _checkCondition(
-          'check_salesforce_id(salesforce_id)',
-          { salesforce_id: firstItem.id, sales_type: firstItem.type },
-          debouncedApiFetch,
-        );
+        conditionValues['sales_type'] = firstItem.type;
       }
     }
     for (const [, parameterState] of Object.entries(parameters)) {
