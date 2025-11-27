@@ -1,5 +1,5 @@
 #!/bin/bash
-AGNOSTICV_VERSION=v0.8.1
+AGNOSTICV_VERSION=v1.0.0-pre
 
 set -x
 set -eo pipefail
