@@ -21,11 +21,13 @@
           Status: {{ service_status }}
         </mj-text>
         <mj-text font-family="Red Hat Display" font-weight="regular" align="center" font-size="35px" color="#000" line-height="1.2">
-          {{ service_display_name }}
+          Workshop: {{ workshop_name }}
         </mj-text>
+        {% if workshop_id %}
         <mj-text font-family="Red Hat Text" font-weight="regular" align="center" font-size="16px" color="#000" line-height="1.2">
-          from {{ catalog_namespace.display_name }}
+          Workshop ID: {{ workshop_id }}
         </mj-text>
+        {% endif %}
       </mj-column>
     </mj-section>
 
@@ -37,14 +39,23 @@
     </mj-section>
     <!-- Text -->
     <mj-section padding-top="12px" padding-bottom="12px" padding-left="12px" padding-right="12px" background-color="#f0f0f0">
-      {% block content %}{% endblock %}
-    </mj-section>
+      <mj-column>
+        <mj-text font-family="Red Hat Text" color="#4a5557" font-size="16px" line-height="1.5" padding-bottom="12px">
 
-    {% if template_error_message is defined %}
-    <mj-section padding-top="12px" padding-bottom="12px" padding-left="12px" padding-right="12px" background-color="#f0f0f0">
-      {{ template_error_message }}
+          <p><b>Reminder:</b><br>
+          Your workshop <strong>{{ workshop_name }}</strong> will expire and be deleted in {{ retirement_timedelta_humanized }} at {{ retirement_timestamp }}.</p>
+
+          <p>In order to conserve resources, we cannot archive or restore any data in this environment.
+          All data will be lost upon expiration.</p>
+
+          {% if service_url %}
+          <p>You may manage your workshop at:<br>
+          <a href="{{ service_url }}">{{ service_url }}</a>.</p>
+          {% endif %}
+
+        </mj-text>
+      </mj-column>
     </mj-section>
-    {% endif %}
 
     <!-- Footer -->
     <mj-section padding-top="12px" padding-bottom="6px" padding-left="12px" padding-right="12px">
@@ -65,3 +76,4 @@
     <!-- Footer -->
   </mj-body>
 </mjml>
+
