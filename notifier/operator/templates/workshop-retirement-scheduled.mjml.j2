@@ -1,0 +1,79 @@
+<mjml>
+  <mj-body>
+    <!-- Company Header -->
+    <mj-section full-width="full-width" background-color="#151515" padding-top="8px" padding-bottom="8px" padding-left="12px" padding-right="12px">
+      <mj-group>
+        <mj-column vertical-align="middle">
+          <mj-image href="https://demo.redhat.com/" title="RedHat" alt="RedHat" width="185px" src="https://gpte-public.s3.amazonaws.com/logo-rhpds.png" />
+        </mj-column>
+      </mj-group>
+    </mj-section>
+    <!-- spacer -->
+    <mj-section padding-top="0" padding-bottom="0" padding-left="0" padding-right="0">
+      <mj-column>
+        <mj-spacer height="25px" />
+      </mj-column>
+    </mj-section>
+    <!-- Title -->
+    <mj-section padding-top="21px" padding-bottom="12px" padding-left="12px" padding-right="12px">
+      <mj-column>
+        <mj-text font-family="Red Hat Text" font-weight="regular" align="center" font-size="16px" color="#000" line-height="1.2">
+          Status: {{ service_status }}
+        </mj-text>
+        <mj-text font-family="Red Hat Display" font-weight="regular" align="center" font-size="35px" color="#000" line-height="1.2">
+          Workshop: {{ workshop_name }}
+        </mj-text>
+        {% if workshop_id %}
+        <mj-text font-family="Red Hat Text" font-weight="regular" align="center" font-size="16px" color="#000" line-height="1.2">
+          Workshop ID: {{ workshop_id }}
+        </mj-text>
+        {% endif %}
+      </mj-column>
+    </mj-section>
+
+    <!-- spacer -->
+    <mj-section padding-top="0" padding-bottom="0" padding-left="0" padding-right="0">
+      <mj-column>
+        <mj-spacer height="25px" />
+      </mj-column>
+    </mj-section>
+    <!-- Text -->
+    <mj-section padding-top="12px" padding-bottom="12px" padding-left="12px" padding-right="12px" background-color="#f0f0f0">
+      <mj-column>
+        <mj-text font-family="Red Hat Text" color="#4a5557" font-size="16px" line-height="1.5" padding-bottom="12px">
+
+          <p><b>Reminder:</b><br>
+          Your workshop <strong>{{ workshop_name }}</strong> will expire and be deleted in {{ retirement_timedelta_humanized }} at {{ retirement_timestamp }}.</p>
+
+          <p>In order to conserve resources, we cannot archive or restore any data in this environment.
+          All data will be lost upon expiration.</p>
+
+          {% if service_url %}
+          <p>You may manage your workshop at:<br>
+          <a href="{{ service_url }}">{{ service_url }}</a>.</p>
+          {% endif %}
+
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section padding-top="12px" padding-bottom="6px" padding-left="12px" padding-right="12px">
+      <mj-column>
+        <mj-text align="center" font-size="12px" color="#4a5557" font-family="Red Hat Text" line-height="1.5">
+          Reach us in our <a style="text-decoration: none;" href="https://red.ht/open-support" target="_blank" title="Help Center">Help Center</a> for any further assistance or ask our community on <a style="text-decoration: none;" href="https://redhat.enterprise.slack.com/archives/C04N203SNUW" target="_blank" title="Slack">Slack</a>.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section padding-top="6px" padding-bottom="12px" padding-left="12px" padding-right="12px">
+      <mj-column>
+        <mj-text align="center" font-size="12px" color="#4a5557" font-family="Red Hat Text" line-height="1.5">
+          <b>RedHat
+          </b> &copy; Copyright 2024 - All rights reserved
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <!-- Footer -->
+  </mj-body>
+</mjml>
+

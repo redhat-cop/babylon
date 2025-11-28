@@ -30,6 +30,7 @@ from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 from resource_claim import ResourceClaim
 from service_namespace import ServiceNamespace
+from workshop import Workshop
 
 redis_host = os.environ.get('REDIS_HOST', 'localhost')
 redis_password = os.environ.get('REDIS_PASSWORD', None)
@@ -115,6 +116,7 @@ yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
 
 retirement_tasks = {}
 stop_tasks = {}
+workshop_retirement_tasks = {}
 
 @kopf.on.startup()
 async def configure(settings: kopf.OperatorSettings, **_):
@@ -176,7 +178,7 @@ async def resourceclaim_event(event, logger, **_):
         return
 
     # Cancel any pending tasks
-    await cancel_tasks(resource_claim, logger)
+    await cancel_resource_claim_tasks(resource_claim, logger)
 
     catalog_item = await CatalogItem.get(
         name = resource_claim.catalog_item_name,
@@ -219,7 +221,60 @@ async def resourceclaim_event(event, logger, **_):
     else:
         logger.warning(event)
 
-async def cancel_tasks(resource_claim, logger):
+@kopf.on.event(
+    Babylon.babylon_domain, Babylon.babylon_api_version, 'workshops',
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def workshop_event(event, logger, **_):
+    workshop_definition = event.get('object')
+    if not workshop_definition \
+    or workshop_definition.get('kind') != 'Workshop':
+        logger.warning(event)
+        return
+
+    workshop = Workshop(definition=workshop_definition)
+
+    # Ignore workshops marked with disable
+    if workshop.notifier_disable:
+        logger.debug("Notifier disabled")
+        return
+
+    # Too early to notify if there is no status yet
+    if not workshop.has_status:
+        logger.debug("No status")
+        return
+
+    # Cancel any pending tasks
+    await cancel_workshop_tasks(workshop, logger)
+
+    # Get email addresses
+    email_addresses = []
+    if workshop.requester_email:
+        email_addresses.append(workshop.requester_email)
+
+    if only_send_to:
+        if only_send_to in email_addresses:
+            email_addresses = [only_send_to]
+        else:
+            email_addresses = []
+
+    if not email_addresses:
+        # Nobody to notify, so just skip
+        logger.debug("No contact email")
+        return
+
+    kwargs = dict(
+        email_addresses = email_addresses,
+        logger = logger,
+        workshop = workshop,
+    )
+
+    if event['type'] in ['ADDED', 'MODIFIED', None]:
+        await handle_workshop_event(**kwargs)
+    else:
+        logger.warning(event)
+
+async def cancel_resource_claim_tasks(resource_claim, logger):
     uid = resource_claim.uid
 
     retirement_task = retirement_tasks.pop(uid, None)
@@ -235,6 +290,17 @@ async def cancel_tasks(resource_claim, logger):
         stop_task.cancel()
         try:
             await stop_task
+        except asyncio.CancelledError:
+            pass
+
+async def cancel_workshop_tasks(workshop, logger):
+    uid = workshop.uid
+
+    retirement_task = workshop_retirement_tasks.pop(uid, None)
+    if retirement_task:
+        retirement_task.cancel()
+        try:
+            await retirement_task
         except asyncio.CancelledError:
             pass
 
@@ -274,6 +340,27 @@ def create_stop_task(logger, resource_claim, **kwargs):
                 interval = notification_interval,
                 logger = kopf.LocalObjectLogger(body=resource_claim.definition, settings=kopf.OperatorSettings()),
                 resource_claim = resource_claim,
+                **kwargs,
+            )
+        )
+
+def create_workshop_retirement_task(logger, workshop, **kwargs):
+    retirement_timestamp = workshop.lifespan_end
+    if not retirement_timestamp:
+        return
+    retirement_datetime = isoparse(retirement_timestamp)
+
+    notification_timedelta = (
+        retirement_datetime - datetime.now(timezone.utc) - timedelta(days=1)
+    )
+    notification_interval = notification_timedelta.total_seconds()
+    if notification_interval > 0:
+        logger.info("scheduled workshop retirement notification in " + naturaldelta(notification_timedelta))
+        workshop_retirement_tasks[workshop.uid] = asyncio.create_task(
+            notify_workshop_retirement_scheduled_after(
+                interval = notification_interval,
+                logger = kopf.LocalObjectLogger(body=workshop.definition, settings=kopf.OperatorSettings()),
+                workshop = workshop,
                 **kwargs,
             )
         )
@@ -326,6 +413,11 @@ async def handle_resource_claim_event(catalog_item, **kwargs):
         await notify_if_stop_complete(catalog_item=catalog_item, **kwargs)
     if not catalog_item.stop_failed_email_disabled:
         await notify_if_stop_failed(catalog_item=catalog_item, **kwargs)
+
+async def handle_workshop_event(**kwargs):
+    await notify_if_workshop_provision_started(**kwargs)
+    await notify_if_workshop_ready(**kwargs)
+    create_workshop_retirement_task(**kwargs)
 
 def kebabToCamelCase(kebab_string):
     return ''.join([s if i == 0 else s.capitalize() for i, s in enumerate(kebab_string.split('-'))])
@@ -516,6 +608,56 @@ async def notify_if_stop_failed(catalog_item, catalog_namespace, email_addresses
         email_addresses = email_addresses,
         logger = logger,
         resource_claim = resource_claim,
+    )
+
+async def notify_if_workshop_provision_started(email_addresses, logger, workshop):
+    creation_ts = workshop.creation_timestamp
+    creation_dt = isoparse(creation_ts)
+
+    if creation_dt < datetime.now(timezone.utc) - timedelta(hours=2):
+        logger.debug("Too old to notify workshop provision started")
+        return
+
+    if not workshop.provision_started:
+        logger.debug("Workshop provision not started")
+        return
+
+    rkey = f"{workshop.uid}/provision-started"
+    notified = await redis_connection.getset(rkey, creation_ts)
+    if notified == creation_ts:
+        logger.debug(f"Already notified workshop provision started")
+        return
+    await redis_connection.expire(rkey, timedelta(days=1))
+
+    await notify_workshop_provision_started(
+        email_addresses = email_addresses,
+        logger = logger,
+        workshop = workshop,
+    )
+
+async def notify_if_workshop_ready(email_addresses, logger, workshop):
+    creation_ts = workshop.creation_timestamp
+    creation_dt = isoparse(creation_ts)
+
+    if creation_dt < datetime.now(timezone.utc) - timedelta(days=1):
+        logger.debug("Too old to notify workshop ready")
+        return
+
+    if not workshop.provision_complete:
+        logger.debug("Workshop provision not complete")
+        return
+
+    rkey = f"{workshop.uid}/ready"
+    notified = await redis_connection.getset(rkey, creation_ts)
+    if notified == creation_ts:
+        logger.debug(f"Already notified workshop ready")
+        return
+    await redis_connection.expire(rkey, timedelta(days=7))
+
+    await notify_workshop_ready(
+        email_addresses = email_addresses,
+        logger = logger,
+        workshop = workshop,
     )
 
 async def notify_deleted(catalog_item, catalog_namespace, email_addresses, logger, resource_claim):
@@ -715,6 +857,46 @@ async def notify_stop_failed(catalog_item, catalog_namespace, email_addresses, l
         template = "stop-failed",
     )
 
+async def notify_workshop_provision_started(email_addresses, logger, workshop):
+    logger.info("sending workshop provision-started notification", extra=dict(to=email_addresses))
+    await send_workshop_notification_email(
+        logger = logger,
+        subject = f"Workshop {workshop.name} has begun provisioning",
+        to = email_addresses,
+        template = "workshop-provision-started",
+        workshop = workshop,
+    )
+
+async def notify_workshop_ready(email_addresses, logger, workshop):
+    logger.info("sending workshop ready notification", extra=dict(to=email_addresses))
+    await send_workshop_notification_email(
+        logger = logger,
+        subject = f"Workshop {workshop.name} is ready",
+        to = email_addresses,
+        template = "workshop-ready",
+        workshop = workshop,
+    )
+
+async def notify_workshop_retirement_scheduled_after(interval, workshop, **kwargs):
+    try:
+        await asyncio.sleep(interval)
+        await workshop.refetch()
+        if not workshop.ignore:
+            await notify_workshop_retirement_scheduled(workshop=workshop, **kwargs)
+    except asyncio.CancelledError:
+        pass
+
+async def notify_workshop_retirement_scheduled(email_addresses, logger, workshop):
+    logger.info("sending workshop retirement schedule notification")
+
+    await send_workshop_notification_email(
+        logger = logger,
+        subject = f"Workshop {workshop.name} will be retired soon",
+        to = email_addresses,
+        template = "workshop-retirement-scheduled",
+        workshop = workshop,
+    )
+
 def get_template_vars(catalog_item, catalog_namespace, resource_claim):
     provision_data, provision_data_for_component = resource_claim.get_provision_data()
 
@@ -836,6 +1018,60 @@ async def send_notification_email(
 
     for attachment in attachments:
         msg.attach(attachment)
+
+    await send_email_message(msg, logger=logger)
+
+async def send_workshop_notification_email(
+    logger,
+    subject,
+    to,
+    template,
+    workshop,
+):
+    retirement_timestamp = workshop.lifespan_end
+    retirement_datetime = isoparse(retirement_timestamp) if retirement_timestamp else None
+    retirement_timedelta = retirement_datetime - datetime.now(timezone.utc) if retirement_datetime else None
+    retirement_timedelta_humanized = naturaldelta(retirement_timedelta + timedelta(seconds=30)) if retirement_timedelta else None
+
+    template_vars = {
+        "workshop": workshop,
+        "workshop_name": workshop.name,
+        "workshop_id": workshop.workshop_id,
+        "service_url": workshop.service_url,
+        "retirement_datetime": retirement_datetime,
+        "retirement_timestamp": retirement_timestamp,
+        "retirement_timedelta": retirement_timedelta,
+        "retirement_timedelta_humanized": retirement_timedelta_humanized,
+        "service_status": ' '.join(elem.capitalize() for elem in template.replace('-', ' ').split()),
+    }
+
+    email_subject = j2env.from_string(subject).render(**template_vars)
+    
+    # Render standard template to get mjml template
+    mjml_template = j2env.get_template(template + '.mjml.j2').render(**template_vars)
+
+    # Call for the MJML CLI to generate final HTML
+    try:
+        email_body = subprocess.run(
+                        ['mjml', '-i'],
+                        stdout=subprocess.PIPE,
+                        input=mjml_template,
+                        encoding='ascii').stdout
+    except Exception as exception:
+        email_body = (
+            "<p><b>Attention:</b> "
+            "A custom message template was configured for your service, "
+            "but unfortunately, rendering failed with the following error:</p> "
+            f"<p>{exception}</p>"
+        )
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = email_subject
+    msg['From'] = f"{smtp_sender} <{smtp_from}>"
+    msg['To'] = ', '.join(to)
+
+    msg.attach(MIMEText(html2text(email_body), 'plain'))
+    msg.attach(MIMEText(email_body, 'html'))
 
     await send_email_message(msg, logger=logger)
 
