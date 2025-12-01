@@ -44,6 +44,8 @@ rules:
   - {{ .Values.babylon.domain }}
   resources:
   - catalogitems
+  - workshops
+  - workshopprovisions
   verbs:
   - get
   - list
@@ -55,8 +57,6 @@ rules:
   - resourcehandles
   - resourcepools
   - resourceproviders
-  - workshops
-  - workshopprovisions
   verbs:
   - get
   - list

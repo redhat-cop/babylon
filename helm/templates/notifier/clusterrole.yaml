@@ -48,6 +48,8 @@ rules:
   - {{ .Values.catalog.api.group }}
   resources:
   - catalogitems
+  - workshops
+  - workshopprovisions
   verbs:
   - get
   - list
@@ -59,8 +61,6 @@ rules:
   - resourcehandles
   - resourcepools
   - resourceproviders
-  - workshops
-  - workshopprovisions
   verbs:
   - get
   - list
