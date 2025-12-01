@@ -239,8 +239,8 @@ async def workshop_event(event, logger, **_):
         logger.debug("Notifier disabled")
         return
 
-    # Too early to notify if there is no status yet
-    if not workshop.has_status:
+    # Too early to notify if there is no status yet (except for delete events)
+    if event['type'] != 'DELETED' and not workshop.has_status:
         logger.debug("No status")
         return
 
@@ -269,7 +269,9 @@ async def workshop_event(event, logger, **_):
         workshop = workshop,
     )
 
-    if event['type'] in ['ADDED', 'MODIFIED', None]:
+    if event['type'] == 'DELETED':
+        await handle_workshop_delete(**kwargs)
+    elif event['type'] in ['ADDED', 'MODIFIED', None]:
         await handle_workshop_event(**kwargs)
     else:
         logger.warning(event)
@@ -413,6 +415,9 @@ async def handle_resource_claim_event(catalog_item, **kwargs):
         await notify_if_stop_complete(catalog_item=catalog_item, **kwargs)
     if not catalog_item.stop_failed_email_disabled:
         await notify_if_stop_failed(catalog_item=catalog_item, **kwargs)
+
+async def handle_workshop_delete(**kwargs):
+    await notify_workshop_deleted(**kwargs)
 
 async def handle_workshop_event(**kwargs):
     await notify_if_workshop_provision_started(**kwargs)
@@ -894,6 +899,16 @@ async def notify_workshop_retirement_scheduled(email_addresses, logger, workshop
         subject = f"Workshop {workshop.name} will be retired soon",
         to = email_addresses,
         template = "workshop-retirement-scheduled",
+        workshop = workshop,
+    )
+
+async def notify_workshop_deleted(email_addresses, logger, workshop):
+    logger.info("sending workshop deleted notification", extra=dict(to=email_addresses))
+    await send_workshop_notification_email(
+        logger = logger,
+        subject = f"Workshop {workshop.name} has been deleted",
+        to = email_addresses,
+        template = "workshop-deleted",
         workshop = workshop,
     )
 
