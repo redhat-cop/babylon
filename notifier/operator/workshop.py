@@ -75,7 +75,7 @@ class Workshop:
 
     @property
     def requester(self):
-        return self.annotations.get('openshift.io/requester')
+        return self.annotations.get('demo.redhat.com/requester')
 
     @property
     def requester_email(self):
