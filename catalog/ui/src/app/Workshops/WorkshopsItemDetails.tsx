@@ -44,6 +44,7 @@ import CurrencyAmount from '@app/components/CurrencyAmount';
 import TimeInterval from '@app/components/TimeInterval';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import useDebounceState from '@app/utils/useDebounceState';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './workshops-item-details.css';
 
@@ -65,6 +66,7 @@ const WorkshopsItemDetails: React.FC<{
   usageCost,
 }) => {
   const { isAdmin } = useSession().getSession();
+  const { sfdc_enabled } = useInterfaceConfig();
   const { cache } = useSWRConfig();
   const whiteGloved = getWhiteGloved(workshop);
   const isLocked = isWorkshopLocked(workshop);
@@ -547,7 +549,7 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListGroup>
       ) : null}
 
-      {workshopProvisions.length > 0 && (
+      {workshopProvisions.length > 0 && sfdc_enabled ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
           <DescriptionListDescription>
@@ -564,7 +566,7 @@ const WorkshopsItemDetails: React.FC<{
             </Button>
           </DescriptionListDescription>
         </DescriptionListGroup>
-      )}
+      ): null}
 
       {isAdmin ? (
         <DescriptionListGroup className="workshops-item-details__admin-section">

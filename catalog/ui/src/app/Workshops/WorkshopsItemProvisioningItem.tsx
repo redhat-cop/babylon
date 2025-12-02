@@ -18,12 +18,14 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
 import useSWR, { useSWRConfig } from 'swr';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 const WorkshopsItemProvisioningItem: React.FC<{
   workshop: Workshop;
   workshopProvision: WorkshopProvision;
 }> = ({ workshop, workshopProvision }) => {
   const { isAdmin } = useSession().getSession();
+  const { sfdc_enabled } = useInterfaceConfig();
   const { mutate } = useSWRConfig();
   const { data: catalogItem } = useSWR<CatalogItem>(
     workshopProvision.spec.catalogItem
@@ -99,7 +101,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
-              max={workshopProvision.spec.parameters?.salesforce_id ? workshop.spec.multiuserServices ? 5 : 30 : 1}
+              max={sfdc_enabled && workshopProvision.spec.parameters?.salesforce_id ? workshop.spec.multiuserServices ? 5 : 30 : 1}
               adminModifier={true}
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
@@ -115,7 +117,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
                 ) : (
                   <p>
                     Number of independent instances for the workshop, each user gets a dedicated instance. <br />
-                    Salesforce Id is required to increase it.
+                    {sfdc_enabled ? 'Salesforce Id is required to increase it.' : ''}
                   </p>
                 )
               }

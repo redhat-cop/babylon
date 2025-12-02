@@ -105,9 +105,10 @@ import useDebounceState from '@app/utils/useDebounceState';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useSWRImmutable from 'swr/immutable';
+import { PlusCircleIcon } from '@patternfly/react-icons';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 import './services-item.css';
-import { PlusCircleIcon } from '@patternfly/react-icons';
 
 const ComponentDetailsList: React.FC<{
   resourceState: AnarchySubject;
@@ -306,6 +307,7 @@ const ServicesItemComponent: React.FC<{
 }> = ({ activeTab, resourceClaimName, serviceNamespaceName }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { sfdc_enabled } = useInterfaceConfig();
   const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [expanded, setExpanded] = useState([]);
@@ -902,7 +904,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {!isPartOfWorkshop ? (
+                  {!isPartOfWorkshop && sfdc_enabled ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
                       <DescriptionListDescription>
