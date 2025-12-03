@@ -63,6 +63,7 @@ import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled } from 
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import useSystemStatus from '@app/utils/useSystemStatus';
 import DateTimePicker from '@app/components/DateTimePicker';
 
 import './catalog-item-form.css';
@@ -82,6 +83,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const prevSandboxParametersRef = React.useRef<Record<string, unknown>>({});
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
+  const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage, isServiceOrderingBlocked, serviceOrderingBlockedMessage } = useSystemStatus();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher,
@@ -146,8 +148,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const purposeObj =
     purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
   const incident = getStatus(catalogItemIncident);
+  // Check if ordering is blocked by system status (workshop or service ordering)
+  const isOrderingBlocked = formState.workshop 
+    ? (isWorkshopOrderingBlocked && !isAdmin) 
+    : (isServiceOrderingBlocked && !isAdmin);
+  const orderingBlockedMessage = formState.workshop 
+    ? workshopOrderingBlockedMessage 
+    : serviceOrderingBlockedMessage;
   const submitRequestEnabled =
-    incident && incident.disabled && !isAdmin ? false : checkEnableSubmit(formState) && !isLoading;
+    isOrderingBlocked ? false : (incident && incident.disabled && !isAdmin ? false : checkEnableSubmit(formState) && !isLoading);
 
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
@@ -1191,6 +1200,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         ) : null}
 
         <div>
+          {isOrderingBlocked && (
+            <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Alert variant="warning" title={formState.workshop ? "Workshop Ordering Temporarily Disabled" : "Service Ordering Temporarily Disabled"} isInline>
+                <p>{orderingBlockedMessage || (formState.workshop 
+                  ? "Workshop ordering is temporarily disabled. Please try again later." 
+                  : "Service ordering is temporarily disabled. Please try again later.")}</p>
+              </Alert>
+            </AlertGroup>
+          )}
+
           {availabilityLoading && (
             <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               <Alert variant="info" title="Checking availability..." isInline>

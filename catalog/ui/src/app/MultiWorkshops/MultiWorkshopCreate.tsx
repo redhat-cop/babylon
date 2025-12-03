@@ -56,6 +56,7 @@ import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
 import DateTimePicker from '@app/components/DateTimePicker';
 import purposeOptions from './purposeOptions.json';
+import useSystemStatus from '@app/utils/useSystemStatus';
 
 import './multiworkshop-create.css';
 
@@ -73,6 +74,7 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
 const MultiWorkshopCreate: React.FC = () => {
   const navigate = useNavigate();
   const { userNamespace, isAdmin, serviceNamespaces } = useSession().getSession();
+  const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage } = useSystemStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
   const [currentAssetIndex, setCurrentAssetIndex] = useState<number | null>(null);
@@ -304,7 +306,10 @@ const MultiWorkshopCreate: React.FC = () => {
   const hasAtLeastOneSalesforce = (createFormData.salesforceItems || []).some(
     (i) => (i?.id || '').trim() && (i?.type || null),
   );
+  // Check if workshop ordering is blocked (admins can bypass)
+  const isOrderingBlocked = isWorkshopOrderingBlocked && !isAdmin;
   const isFormValid =
+    !isOrderingBlocked &&
     createFormData.name &&
     createFormData.startDate &&
     createFormData.endDate &&
@@ -600,6 +605,16 @@ const MultiWorkshopCreate: React.FC = () => {
         <Title headingLevel="h1" size="2xl">
           Create Multi Asset Workshop
         </Title>
+
+        {/* Workshop Ordering Blocked Notice */}
+        {isOrderingBlocked && (
+          <Alert variant="danger" title="Workshop Ordering Temporarily Disabled" style={{ marginTop: '16px' }}>
+            <p>
+              {workshopOrderingBlockedMessage || 
+                "Workshop ordering is temporarily disabled. Please try again later."}
+            </p>
+          </Alert>
+        )}
 
         {/* Early Release Notice */}
         <Alert variant="warning" title="Early Release - Limited Catalog Items Available" style={{ marginTop: '16px' }}>

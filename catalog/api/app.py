@@ -22,6 +22,7 @@ console_url = None
 redis_connection = None
 babylon_namespace = os.environ.get('BABYLON_NAMESPACE')
 interface_name = os.environ.get('INTERFACE_NAME');
+system_status_configmap_name = os.environ.get('SYSTEM_STATUS_CONFIGMAP', 'babylon-system-status')
 groups = []
 groups_last_update = 0
 admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
@@ -1020,6 +1021,151 @@ async def workshop_post(request):
 
 
 
+
+
+async def get_system_status_from_configmap():
+    """
+    Read system status from the ConfigMap.
+    Returns default values if ConfigMap doesn't exist or on error.
+    """
+    default_status = {
+        'workshops_ordering_blocked': False,
+        'workshops_ordering_blocked_message': '',
+        'services_ordering_blocked': False,
+        'services_ordering_blocked_message': '',
+    }
+    try:
+        configmap = await core_v1_api.read_namespaced_config_map(
+            name=system_status_configmap_name,
+            namespace=babylon_namespace
+        )
+        data = configmap.data or {}
+        return {
+            'workshops_ordering_blocked': data.get('workshops_ordering_blocked', 'false').lower() == 'true',
+            'workshops_ordering_blocked_message': data.get('workshops_ordering_blocked_message', ''),
+            'services_ordering_blocked': data.get('services_ordering_blocked', 'false').lower() == 'true',
+            'services_ordering_blocked_message': data.get('services_ordering_blocked_message', ''),
+        }
+    except kubernetes_asyncio.client.exceptions.ApiException as e:
+        if e.status == 404:
+            logging.warning(f"System status ConfigMap '{system_status_configmap_name}' not found in namespace '{babylon_namespace}'")
+        else:
+            logging.error(f"Error reading system status ConfigMap: {e}")
+        return default_status
+    except Exception as e:
+        logging.error(f"Unexpected error reading system status ConfigMap: {e}")
+        return default_status
+
+
+@routes.get("/api/system/status")
+async def get_system_status(request):
+    """
+    Get current system status including workshop/service ordering blocks.
+    This endpoint is publicly accessible (no auth required) so the UI can check status.
+    """
+    status = await get_system_status_from_configmap()
+    return web.json_response(status)
+
+
+@routes.patch("/api/system/status")
+async def update_system_status(request):
+    """
+    Update system status (admin only).
+    Allows admins to block/unblock workshop and service ordering.
+    
+    Request body example:
+    {
+        "workshops_ordering_blocked": true,
+        "workshops_ordering_blocked_message": "Workshop ordering is temporarily disabled due to capacity issues.",
+        "services_ordering_blocked": false,
+        "services_ordering_blocked_message": ""
+    }
+    """
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    
+    if not session.get('admin'):
+        raise web.HTTPForbidden(reason="Admin access required to update system status")
+    
+    if not request.can_read_body:
+        raise web.HTTPBadRequest(reason="Request body required")
+    
+    try:
+        data = await request.json()
+    except json.JSONDecodeError:
+        raise web.HTTPBadRequest(reason="Invalid JSON in request body")
+    
+    # Validate request data
+    allowed_fields = {
+        'workshops_ordering_blocked',
+        'workshops_ordering_blocked_message',
+        'services_ordering_blocked', 
+        'services_ordering_blocked_message'
+    }
+    
+    for key in data.keys():
+        if key not in allowed_fields:
+            raise web.HTTPBadRequest(reason=f"Unknown field: {key}")
+    
+    try:
+        # Read current ConfigMap
+        try:
+            configmap = await core_v1_api.read_namespaced_config_map(
+                name=system_status_configmap_name,
+                namespace=babylon_namespace
+            )
+            current_data = configmap.data or {}
+        except kubernetes_asyncio.client.exceptions.ApiException as e:
+            if e.status == 404:
+                # ConfigMap doesn't exist, create it
+                configmap = kubernetes_asyncio.client.V1ConfigMap(
+                    metadata=kubernetes_asyncio.client.V1ObjectMeta(
+                        name=system_status_configmap_name,
+                        namespace=babylon_namespace
+                    ),
+                    data={}
+                )
+                current_data = {}
+            else:
+                raise
+        
+        # Update with new values
+        for key, value in data.items():
+            if key.endswith('_blocked'):
+                current_data[key] = 'true' if value else 'false'
+            else:
+                current_data[key] = str(value) if value is not None else ''
+        
+        configmap.data = current_data
+        
+        # Save ConfigMap
+        try:
+            await core_v1_api.replace_namespaced_config_map(
+                name=system_status_configmap_name,
+                namespace=babylon_namespace,
+                body=configmap
+            )
+        except kubernetes_asyncio.client.exceptions.ApiException as e:
+            if e.status == 404:
+                await core_v1_api.create_namespaced_config_map(
+                    namespace=babylon_namespace,
+                    body=configmap
+                )
+            else:
+                raise
+        
+        # Log the change
+        logging.info(f"System status updated by {user['metadata']['name']}: {data}")
+        
+        # Return updated status
+        return web.json_response(await get_system_status_from_configmap())
+        
+    except kubernetes_asyncio.client.exceptions.ApiException as e:
+        logging.error(f"Error updating system status ConfigMap: {e}")
+        raise web.HTTPInternalServerError(reason="Failed to update system status")
+    except Exception as e:
+        logging.error(f"Unexpected error updating system status: {e}")
+        raise web.HTTPInternalServerError(reason="Failed to update system status")
 
 
 @routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems")

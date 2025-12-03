@@ -2268,7 +2268,29 @@ export const apiPaths = {
     const queryString = params.toString();
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   },
+  SYSTEM_STATUS: () => `/api/system/status`,
 };
+
+export type SystemStatus = {
+  workshops_ordering_blocked: boolean;
+  workshops_ordering_blocked_message: string;
+  services_ordering_blocked: boolean;
+  services_ordering_blocked_message: string;
+};
+
+export async function getSystemStatus(): Promise<SystemStatus> {
+  const response = await apiFetch(apiPaths.SYSTEM_STATUS());
+  return response.json();
+}
+
+export async function updateSystemStatus(status: Partial<SystemStatus>): Promise<SystemStatus> {
+  const response = await apiFetch(apiPaths.SYSTEM_STATUS(), {
+    method: 'PATCH',
+    body: JSON.stringify(status),
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.json();
+}
 
 export async function checkCatalogItemAvailability(
   agnosticvName: string,

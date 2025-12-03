@@ -39,6 +39,7 @@ const ResourcePoolInstance = React.lazy(() => import('@app/Admin/ResourcePoolIns
 const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'));
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 const CatalogItemAdmin = React.lazy(() => import('@app/Admin/CatalogItemAdmin'));
+const SystemStatus = React.lazy(() => import('@app/Admin/SystemStatus'));
 const Activity = React.lazy(() => import('@app/Activity'));
 
 const appRoutes: IAppRoute[] = [
@@ -170,7 +171,12 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | Multi Asset Workshop',
     accessControl: 'admin',
   },
-
+  {
+    component: SystemStatus,
+    path: '/admin/system-status',
+    title: 'Babylon | System Status',
+    accessControl: 'admin',
+  },
 
   {
     component: AnarchyActionInstance,
