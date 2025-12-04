@@ -2256,7 +2256,17 @@ export const apiPaths = {
   USAGE_COST_WORKSHOP: ({ workshopId }: { workshopId: string }) => `/api/usage-cost/workshop/${workshopId}`,
   CATALOG_ITEM_CHECK_AVAILABILITY: ({ agnosticvName }: { agnosticvName: string }) =>
     `/api/${agnosticvName}/check-availability`,
-  USER_ACTIVITY: ({ page, page_size }: { page?: number; page_size?: number }) => {
+  USER_ACTIVITY: ({
+    page,
+    page_size,
+    start_date,
+    end_date,
+  }: {
+    page?: number;
+    page_size?: number;
+    start_date?: string;
+    end_date?: string;
+  }) => {
     const baseUrl = `/api/users/activity`;
     const params = new URLSearchParams();
     if (page !== undefined) {
@@ -2264,6 +2274,12 @@ export const apiPaths = {
     }
     if (page_size !== undefined) {
       params.append('page_size', String(page_size));
+    }
+    if (start_date !== undefined) {
+      params.append('start_date', start_date);
+    }
+    if (end_date !== undefined) {
+      params.append('end_date', end_date);
     }
     const queryString = params.toString();
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;

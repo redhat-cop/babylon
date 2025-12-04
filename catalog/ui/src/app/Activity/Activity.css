@@ -1,0 +1,23 @@
+.activity-summary-card {
+  background: linear-gradient(135deg, 
+    var(--pf-t--global--background--color--secondary--default) 0%,
+    var(--pf-t--global--background--color--primary--default) 100%
+  );
+  border-radius: var(--pf-t--global--border--radius--medium);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+
+.activity-summary-card .pf-v6-c-card__body {
+  padding: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg);
+}
+
+.activity-summary-card span {
+  font-size: var(--pf-t--global--font--size--body--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.activity-summary-card strong {
+  color: var(--pf-t--global--text--color--brand--default);
+}
+

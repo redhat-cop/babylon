@@ -14,7 +14,7 @@ const PatientNumberInput: React.FC<
   } & Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'>
 > = ({ min, max, onChange, onChangeDelay, value, adminModifier = false, ...rest }) => {
   const [state, setState] = useState<{
-    timeout?: string | number | NodeJS.Timeout;
+    timeout?: string | number;
     value: number;
   }>({ value: value });
   const { isAdmin } = useSession().getSession();
@@ -25,11 +25,11 @@ const PatientNumberInput: React.FC<
       const validatedValue =
         min !== undefined && newValue < min ? min : _max !== undefined && newValue > _max ? _max : newValue;
       setState((prevState) => {
-        if (prevState.timeout) {
-          clearTimeout(prevState.timeout);
+        if (prevState.timeout !== undefined) {
+          clearTimeout(Number(prevState.timeout));
         }
         return {
-          timeout: setTimeout(onChange, onChangeDelay || 1000, validatedValue),
+          timeout: setTimeout(onChange, onChangeDelay || 1000, validatedValue) as unknown as string | number,
           value: validatedValue,
         };
       });
