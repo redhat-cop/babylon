@@ -152,6 +152,15 @@ const Activity: React.FC = () => {
     );
   }
 
+  if (!data || !data.items || data.items.length === 0) {
+    return (
+      <PageSection>
+        <Title headingLevel="h1">My Activity</Title>
+        <p>No activity found.</p>
+      </PageSection>
+    );
+  }
+
   const onSetPage = (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
     setPage(newPage);
   };
