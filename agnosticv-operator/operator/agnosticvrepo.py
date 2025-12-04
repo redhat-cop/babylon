@@ -1627,14 +1627,14 @@ class AgnosticVRepo(CachedKopfObject):
         await self.delete_components(logger=logger)
 
     async def handle_resume(self, logger):
-        # Resume operations should use incremental processing for efficiency
+        # Resume operations requires full processing to handle upgrade changes
         logger.debug(f"handle_resume triggered for {self.name}")
         await self.manage_components(logger=logger, changed_only=False)
 
     async def handle_update(self, logger):
-        # Update operations should use incremental processing for efficiency  
+        # Update to AgnostiVRepo object requires full processing
         logger.debug(f"handle_update triggered for {self.name}")
-        await self.manage_components(logger=logger, changed_only=True)
+        await self.manage_components(logger=logger, changed_only=False)
 
     async def manage_component(self, source, logger):
         definition = await self.get_component_definition(source=source, logger=logger)
