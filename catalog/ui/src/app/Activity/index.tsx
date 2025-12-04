@@ -40,7 +40,7 @@ const Activity: React.FC = () => {
   if (error) {
     return (
       <PageSection>
-        <Title headingLevel="h1">Activity</Title>
+        <Title headingLevel="h1">My Activity</Title>
         <p>Error loading activity: {error.message}</p>
       </PageSection>
     );
@@ -49,7 +49,7 @@ const Activity: React.FC = () => {
   if (!data || !data.items || data.items.length === 0) {
     return (
       <PageSection>
-        <Title headingLevel="h1">Activity</Title>
+        <Title headingLevel="h1">My Activity</Title>
         <p>No activity found.</p>
       </PageSection>
     );
@@ -73,7 +73,7 @@ const Activity: React.FC = () => {
   return (
     <>
       <PageSection variant="default">
-        <Title headingLevel="h1">Activity</Title>
+        <Title headingLevel="h1">My Activity</Title>
       </PageSection>
       <PageSection hasBodyWrapper={false}>
         <Pagination

@@ -8,7 +8,6 @@ import {
   Switch,
   TextArea,
   FormGroup,
-  FormHelperText,
   Form,
   Button,
   Alert,
@@ -195,9 +194,6 @@ const SystemStatus: React.FC = () => {
                     rows={3}
                     isDisabled={!currentWorkshopsBlocked}
                   />
-                  <FormHelperText>
-                    Custom message to display to users when workshop ordering is blocked
-                  </FormHelperText>
                 </FormGroup>
               </Form>
             </CardBody>
@@ -238,9 +234,6 @@ const SystemStatus: React.FC = () => {
                     rows={3}
                     isDisabled={!currentServicesBlocked}
                   />
-                  <FormHelperText>
-                    Custom message to display to users when service ordering is blocked
-                  </FormHelperText>
                 </FormGroup>
               </Form>
             </CardBody>

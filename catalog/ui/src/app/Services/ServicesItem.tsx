@@ -671,7 +671,7 @@ const ServicesItemComponent: React.FC<{
                 <BreadcrumbItem
                   render={({ className }) => (
                     <Link to="/services" className={className}>
-                      Services
+                      My Services
                     </Link>
                   )}
                 />
@@ -689,7 +689,7 @@ const ServicesItemComponent: React.FC<{
                 <BreadcrumbItem
                   render={({ className }) => (
                     <Link to={`/services/${serviceNamespaceName}`} className={className}>
-                      Services
+                      My Services
                     </Link>
                   )}
                 />

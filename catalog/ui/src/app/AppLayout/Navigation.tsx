@@ -28,7 +28,7 @@ const Navigation: React.FC = () => {
   }
 
   const catalogNavigation = (
-    <NavExpandable title="Explore" isExpanded={locationStartsWith('/catalog')}>
+    <NavExpandable title="Explore Content" isExpanded={locationStartsWith('/catalog')}>
       <NavItem>
         <NavLink
           className={locationStartsWith('/catalog') ? 'pf-m-current' : ''}
@@ -83,7 +83,7 @@ const Navigation: React.FC = () => {
             : ''
         }
       >
-        Services
+        My Services
       </NavLink>
     </NavItem>
   ) : null;
@@ -94,7 +94,7 @@ const Navigation: React.FC = () => {
         to="/activity"
         className={locationStartsWith('/activity') ? 'pf-m-current' : ''}
       >
-        Activity
+        My Activity
       </NavLink>
     </NavItem>
   );
