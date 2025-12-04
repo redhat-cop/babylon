@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import {
   PageSection,
   Title,
@@ -204,7 +203,6 @@ const Activity: React.FC = () => {
             <Thead>
               <Tr>
                 <Th>Name</Th>
-                <Th>Catalog Item</Th>
                 <Th>Type</Th>
                 <Th>Date requested</Th>
                 <Th>Retirement date</Th>
@@ -218,15 +216,6 @@ const Activity: React.FC = () => {
                   <Td dataLabel="Name">
                     {item.display_name || '-'}
                     <span style={{ fontSize: '0.6rem', fontStyle: 'italic', padding: '0 var(--pf-t--global--spacer--xs)' }}>({item.resourceclaim_name || '-'})</span>
-                  </Td>
-                  <Td dataLabel="Catalog Item">
-                    {item.catalog?.name ? (
-                      <Link to={`/catalog?search=${encodeURIComponent(item.catalog.name)}`}>
-                        {item.catalog.display_name}
-                      </Link>
-                    ) : (
-                      item.display_name || '-'
-                    )}
                   </Td>
                   <Td dataLabel="Type">
                     {item.workshop_id
