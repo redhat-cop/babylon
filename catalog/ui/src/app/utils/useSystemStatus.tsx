@@ -25,6 +25,8 @@ export default function useSystemStatus() {
         workshops_ordering_blocked_message: '',
         services_ordering_blocked: false,
         services_ordering_blocked_message: '',
+        last_updated_by: '',
+        last_updated_at: '',
       },
     }
   );
