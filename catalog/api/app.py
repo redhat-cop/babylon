@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+from datetime import datetime, timezone
 
 import aiohttp
 from aiohttp import web
@@ -1033,6 +1034,8 @@ async def get_system_status_from_configmap():
         'workshops_ordering_blocked_message': '',
         'services_ordering_blocked': False,
         'services_ordering_blocked_message': '',
+        'last_updated_by': '',
+        'last_updated_at': '',
     }
     try:
         configmap = await core_v1_api.read_namespaced_config_map(
@@ -1045,6 +1048,8 @@ async def get_system_status_from_configmap():
             'workshops_ordering_blocked_message': data.get('workshops_ordering_blocked_message', ''),
             'services_ordering_blocked': data.get('services_ordering_blocked', 'false').lower() == 'true',
             'services_ordering_blocked_message': data.get('services_ordering_blocked_message', ''),
+            'last_updated_by': data.get('last_updated_by', ''),
+            'last_updated_at': data.get('last_updated_at', ''),
         }
     except kubernetes_asyncio.client.exceptions.ApiException as e:
         if e.status == 404:
@@ -1135,6 +1140,10 @@ async def update_system_status(request):
                 current_data[key] = 'true' if value else 'false'
             else:
                 current_data[key] = str(value) if value is not None else ''
+        
+        # Record who made the change and when
+        current_data['last_updated_by'] = user['metadata']['name']
+        current_data['last_updated_at'] = datetime.now(timezone.utc).isoformat()
         
         configmap.data = current_data
         

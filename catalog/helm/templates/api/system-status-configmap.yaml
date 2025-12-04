@@ -16,4 +16,7 @@ data:
   services_ordering_blocked: "false"
   # Custom message to display to users when service ordering is blocked
   services_ordering_blocked_message: ""
+  # Audit fields - automatically updated by the API
+  last_updated_by: ""
+  last_updated_at: ""
 

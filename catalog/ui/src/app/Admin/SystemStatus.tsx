@@ -8,6 +8,7 @@ import {
   Switch,
   TextArea,
   FormGroup,
+  FormHelperText,
   Form,
   Button,
   Alert,
@@ -19,6 +20,8 @@ import {
   DescriptionListTerm,
   DescriptionListDescription,
 } from '@patternfly/react-core';
+import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import useSWR from 'swr';
 import { apiPaths, fetcher, updateSystemStatus, SystemStatus as SystemStatusType } from '@app/api';
 
@@ -37,6 +40,7 @@ const SystemStatus: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   // Local form state
   const [workshopsBlocked, setWorkshopsBlocked] = useState<boolean | undefined>(undefined);
@@ -56,7 +60,12 @@ const SystemStatus: React.FC = () => {
     (servicesBlocked !== undefined && servicesBlocked !== systemStatus?.services_ordering_blocked) ||
     (servicesMessage !== undefined && servicesMessage !== systemStatus?.services_ordering_blocked_message);
 
-  const handleSave = async () => {
+  // Check if user is trying to disable (block) any ordering
+  const isDisablingOrdering = 
+    (workshopsBlocked === true && systemStatus?.workshops_ordering_blocked !== true) ||
+    (servicesBlocked === true && systemStatus?.services_ordering_blocked !== true);
+
+  const performSave = async () => {
     setIsSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
@@ -97,13 +106,19 @@ const SystemStatus: React.FC = () => {
     }
   };
 
-  const handleReset = () => {
-    setWorkshopsBlocked(undefined);
-    setWorkshopsMessage(undefined);
-    setServicesBlocked(undefined);
-    setServicesMessage(undefined);
-    setSaveError(null);
-    setSaveSuccess(false);
+  const handleSave = () => {
+    // If user is disabling ordering, show confirmation modal
+    if (isDisablingOrdering) {
+      setIsConfirmModalOpen(true);
+    } else {
+      // Otherwise, save directly
+      performSave();
+    }
+  };
+
+  const handleConfirmDisable = () => {
+    setIsConfirmModalOpen(false);
+    performSave();
   };
 
   if (isLoading) {
@@ -154,10 +169,16 @@ const SystemStatus: React.FC = () => {
                 <FormGroup fieldId="workshops-blocked">
                   <Switch
                     id="workshops-blocked-switch"
-                    label="Workshop ordering is ENABLED"
-                    labelOff="Workshop ordering is BLOCKED"
+                    label={currentWorkshopsBlocked ? "Workshop ordering is BLOCKED" : "Workshop ordering is ENABLED"}
                     isChecked={!currentWorkshopsBlocked}
-                    onChange={(_event, checked) => setWorkshopsBlocked(!checked)}
+                    onChange={(_event, checked) => {
+                      const isBlocked = !checked;
+                      setWorkshopsBlocked(isBlocked);
+                      // Clear message when re-enabling ordering
+                      if (!isBlocked) {
+                        setWorkshopsMessage('');
+                      }
+                    }}
                     aria-label="Toggle workshop ordering"
                   />
                 </FormGroup>
@@ -165,7 +186,6 @@ const SystemStatus: React.FC = () => {
                 <FormGroup 
                   label="Block Message" 
                   fieldId="workshops-message"
-                  helperText="Custom message to display to users when workshop ordering is blocked"
                 >
                   <TextArea
                     id="workshops-message"
@@ -175,6 +195,9 @@ const SystemStatus: React.FC = () => {
                     rows={3}
                     isDisabled={!currentWorkshopsBlocked}
                   />
+                  <FormHelperText>
+                    Custom message to display to users when workshop ordering is blocked
+                  </FormHelperText>
                 </FormGroup>
               </Form>
             </CardBody>
@@ -189,10 +212,16 @@ const SystemStatus: React.FC = () => {
                 <FormGroup fieldId="services-blocked">
                   <Switch
                     id="services-blocked-switch"
-                    label="Service ordering is ENABLED"
-                    labelOff="Service ordering is BLOCKED"
+                    label={currentServicesBlocked ? "Service ordering is BLOCKED" : "Service ordering is ENABLED"}
                     isChecked={!currentServicesBlocked}
-                    onChange={(_event, checked) => setServicesBlocked(!checked)}
+                    onChange={(_event, checked) => {
+                      const isBlocked = !checked;
+                      setServicesBlocked(isBlocked);
+                      // Clear message when re-enabling ordering
+                      if (!isBlocked) {
+                        setServicesMessage('');
+                      }
+                    }}
                     aria-label="Toggle service ordering"
                   />
                 </FormGroup>
@@ -200,7 +229,6 @@ const SystemStatus: React.FC = () => {
                 <FormGroup 
                   label="Block Message" 
                   fieldId="services-message"
-                  helperText="Custom message to display to users when service ordering is blocked"
                 >
                   <TextArea
                     id="services-message"
@@ -210,6 +238,9 @@ const SystemStatus: React.FC = () => {
                     rows={3}
                     isDisabled={!currentServicesBlocked}
                   />
+                  <FormHelperText>
+                    Custom message to display to users when service ordering is blocked
+                  </FormHelperText>
                 </FormGroup>
               </Form>
             </CardBody>
@@ -218,27 +249,14 @@ const SystemStatus: React.FC = () => {
       </Split>
 
       <div style={{ marginTop: '1.5rem' }}>
-        <Split hasGutter>
-          <SplitItem>
-            <Button 
-              variant="primary" 
-              onClick={handleSave} 
-              isDisabled={!hasChanges || isSaving}
-              isLoading={isSaving}
-            >
-              Save Changes
-            </Button>
-          </SplitItem>
-          <SplitItem>
-            <Button 
-              variant="secondary" 
-              onClick={handleReset}
-              isDisabled={!hasChanges || isSaving}
-            >
-              Reset
-            </Button>
-          </SplitItem>
-        </Split>
+        <Button 
+          variant="primary" 
+          onClick={handleSave} 
+          isDisabled={!hasChanges || isSaving}
+          isLoading={isSaving}
+        >
+          Save Changes
+        </Button>
       </div>
 
       <Card style={{ marginTop: '2rem' }}>
@@ -273,12 +291,71 @@ const SystemStatus: React.FC = () => {
                 )}
               </DescriptionListDescription>
             </DescriptionListGroup>
+            {systemStatus?.last_updated_by && (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Last Updated By</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {systemStatus.last_updated_by}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
+            {systemStatus?.last_updated_at && (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Last Updated At</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {new Date(systemStatus.last_updated_at).toLocaleString()}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
           </DescriptionList>
         </CardBody>
       </Card>
+
+      {/* Confirmation Modal for Disabling Ordering */}
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        title="Are you sure you want to disable this functionality?"
+        titleIconVariant="warning"
+        variant={ModalVariant.small}
+        actions={[
+          <Button
+            key="confirm"
+            variant="danger"
+            onClick={handleConfirmDisable}
+          >
+            Yes, Disable Ordering
+          </Button>,
+          <Button
+            key="cancel"
+            variant="link"
+            onClick={() => setIsConfirmModalOpen(false)}
+          >
+            Cancel
+          </Button>,
+        ]}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+          <ExclamationTriangleIcon 
+            style={{ 
+              color: 'var(--pf-t--global--color--status--warning--default)', 
+              fontSize: '2rem',
+              flexShrink: 0,
+              marginTop: '0.25rem'
+            }} 
+          />
+          <div>
+            <p style={{ marginBottom: '1rem' }}>
+              <strong>This action affects the entire platform and may impact all users.</strong>
+            </p>
+            <p>
+              Make sure you have manager approval before proceeding. Do you want to continue?
+            </p>
+          </div>
+        </div>
+      </Modal>
     </PageSection>
   );
 };
 
 export default SystemStatus;
-

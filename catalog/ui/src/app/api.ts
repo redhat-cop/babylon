@@ -2276,6 +2276,8 @@ export type SystemStatus = {
   workshops_ordering_blocked_message: string;
   services_ordering_blocked: boolean;
   services_ordering_blocked_message: string;
+  last_updated_by: string;
+  last_updated_at: string;
 };
 
 export async function getSystemStatus(): Promise<SystemStatus> {
