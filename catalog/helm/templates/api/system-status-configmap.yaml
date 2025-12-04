@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: babylon-system-status
+  namespace: {{ include "babylon-catalog.namespaceName" . }}
+  labels:
+    {{- include "babylon-catalog.labels" . | nindent 4 }}
+data:
+  # Workshop ordering block configuration
+  # Set to "true" to block all workshop ordering (during incidents, capacity issues, etc.)
+  workshops_ordering_blocked: "false"
+  # Custom message to display to users when workshop ordering is blocked
+  workshops_ordering_blocked_message: ""
+  # Service ordering block configuration  
+  # Set to "true" to block all service ordering
+  services_ordering_blocked: "false"
+  # Custom message to display to users when service ordering is blocked
+  services_ordering_blocked_message: ""
+

@@ -147,7 +147,7 @@ const WorkshopsItemServices: React.FC<{
               delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
             };
             const canDelete =
-              resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length === workshopProvisions?.[0].spec.count;
+              resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length === workshopProvisions?.[0]?.spec?.count;
             // Find lab user interface information either in the resource claim or inside resources
             // associated with the provisioned service.
             const labUserInterfaceData =
