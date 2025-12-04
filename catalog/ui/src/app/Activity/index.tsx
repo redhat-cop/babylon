@@ -215,7 +215,10 @@ const Activity: React.FC = () => {
             <Tbody>
               {data.items.map((item) => (
                 <Tr key={item.request_id}>
-                  <Td dataLabel="Name">{item.resourceclaim_name || '-'}</Td>
+                  <Td dataLabel="Name">
+                    {item.display_name || '-'}
+                    <span style={{ fontSize: '0.6rem', fontStyle: 'italic', padding: '0 var(--pf-t--global--spacer--xs)' }}>({item.resourceclaim_name || '-'})</span>
+                  </Td>
                   <Td dataLabel="Catalog Item">
                     {item.catalog?.name ? (
                       <Link to={`/catalog?search=${encodeURIComponent(item.catalog.name)}`}>
