@@ -24,6 +24,16 @@ rules:
   - get
   - list
 - apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - create
+  - patch
+  - update
+- apiGroups:
   - babylon.gpte.redhat.com
   resources:
   - workshops
