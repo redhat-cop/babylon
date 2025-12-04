@@ -76,27 +76,27 @@ const appRoutes: IAppRoute[] = [
   {
     component: Services,
     path: '/services/:namespace/:name/:tab',
-    title: 'Babylon | Services',
+    title: 'Babylon | My Services',
   },
   {
     component: Services,
     path: '/services/:namespace/:name',
-    title: 'Babylon | Services',
+    title: 'Babylon | My Services',
   },
   {
     component: Services,
     path: '/services/:namespace',
-    title: 'Babylon | Services',
+    title: 'Babylon | My Services',
   },
   {
     component: Services,
     path: '/services',
-    title: 'Babylon | Services',
+    title: 'Babylon | My Services',
   },
   {
     component: Activity,
     path: '/activity',
-    title: 'Babylon | Activity',
+    title: 'Babylon | My Activity',
   },
   {
     component: MultiWorkshopCreate,

@@ -438,7 +438,7 @@ const ServicesList: React.FC<{
         <Split hasGutter>
           <SplitItem isFilled>
             <Breadcrumb>
-              <BreadcrumbItem>Services</BreadcrumbItem>
+              <BreadcrumbItem>My Services</BreadcrumbItem>
             </Breadcrumb>
           </SplitItem>
           <SplitItem>

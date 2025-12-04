@@ -47,9 +47,9 @@ describe('Catalog Page Layout Scenario', () => {
     const testVar = getAllByText('Catalog')[0];
     await waitFor(() => expect(testVar).toBeInTheDocument());
   });
-  test("When app layout renders, should display 'Services' option", async () => {
+  test("When app layout renders, should display 'My Services' option", async () => {
     const { getByText } = render(<AppLayout title="test">Test</AppLayout>);
-    const testVar = getByText('Services');
+    const testVar = getByText('My Services');
     await waitFor(() => expect(testVar).toBeInTheDocument());
   });
   test('When app layout renders, should display user name', async () => {
