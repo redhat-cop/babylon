@@ -26,15 +26,20 @@ function getMonthDateRange(monthOffset: number = 0): { start_date: string; end_d
   const year = now.getFullYear();
   const month = now.getMonth() + monthOffset;
 
-  // Start of month at 00:00:00.000 UTC
-  const startDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
-  // End of month at 23:59:59.999 UTC
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const endDate = new Date(Date.UTC(year, month, lastDay, 23, 59, 59, 999));
+  const startDate = new Date(year, month, 1);
+  const endDate = new Date(year, month + 1, 0); // Last day of the month
+
+  // Format as YYYY-MM-DD
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
 
   return {
-    start_date: startDate.toISOString(),
-    end_date: endDate.toISOString(),
+    start_date: formatDate(startDate),
+    end_date: formatDate(endDate),
   };
 }
 
