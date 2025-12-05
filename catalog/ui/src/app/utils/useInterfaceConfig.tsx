@@ -13,6 +13,8 @@ type TInterface = {
   learn_more_link: string;
   workshop_support_link: string;
   workshop_support_text: string;
+  onboarding_support_link: string;
+  onboarding_support_text: string;
   sfdc_enabled: boolean;
   partner_connect_header_enabled: boolean;
   multiworkshops_enabled: boolean;
@@ -37,6 +39,8 @@ export default function useInterfaceConfig() {
       learn_more_link: '',
       workshop_support_link: '',
       workshop_support_text: '',
+      onboarding_support_link: '',
+      onboarding_support_text: '',
       sfdc_enabled: true,
       partner_connect_header_enabled: false,
       multiworkshops_enabled: true
