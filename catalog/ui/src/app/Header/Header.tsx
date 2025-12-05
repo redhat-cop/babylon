@@ -77,32 +77,37 @@ const Header: React.FC<{
     return null;
   };
 
-  const userHelpDropdownItems = [
-    <DropdownItem key="open-support" value={helpLink}>
-      {help_text}
-    </DropdownItem>,
-  ];
+  const userHelpDropdownItems = [];
+  if (helpLink) {
+    userHelpDropdownItems.push(
+      <DropdownItem key="open-support" value={helpLink}>
+        {help_text}
+      </DropdownItem>,
+    );
+  }
 
-  if (userInterface === 'rhpds') {
+  if (workshop_support_link) {
     userHelpDropdownItems.push(
       <DropdownItem key="workshop-support" value={workshop_support_link}>
         {workshop_support_text}
       </DropdownItem>,
     );
-    if (onboarding_support_link) {
-      userHelpDropdownItems.push(
-        <DropdownItem key="onboarding-support" value={onboarding_support_link}>
-          {onboarding_support_text}
-        </DropdownItem>,
-      );
-    }
+  }
+  if (onboarding_support_link) {
+    userHelpDropdownItems.push(
+      <DropdownItem key="onboarding-support" value={onboarding_support_link}>
+        {onboarding_support_text}
+      </DropdownItem>,
+    );
   }
 
-  userHelpDropdownItems.push(
-    <DropdownItem key="status-page-link" value={status_page_url}>
-      Status Page
-    </DropdownItem>,
-  );
+  if (status_page_url) {
+    userHelpDropdownItems.push(
+        <DropdownItem key="status-page-link" value={status_page_url}>
+          Status Page
+        </DropdownItem>,
+      );
+  }
 
   if (userInterface === 'rhpds') {
     userHelpDropdownItems.push(
@@ -111,11 +116,13 @@ const Header: React.FC<{
       </DropdownItem>,
     );
   }
-  userHelpDropdownItems.push(
-    <DropdownItem key="learn-more" value={learn_more_link}>
-      Learn more
-    </DropdownItem>,
-  );
+  if (learn_more_link) {
+    userHelpDropdownItems.push(
+      <DropdownItem key="learn-more" value={learn_more_link}>
+        Learn more
+      </DropdownItem>,
+    );
+  }
   if (userInterface === 'rhpds') {
     userHelpDropdownItems.push(
       <DropdownItem
