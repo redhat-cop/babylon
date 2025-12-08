@@ -47,7 +47,7 @@
     "babel-plugin-transform-imports": "^2.0.0",
     "copy-webpack-plugin": "^13.0.1",
     "css-loader": "^6.11.0",
-    "css-minimizer-webpack-plugin": "^5.0.1",
+    "css-minimizer-webpack-plugin": "^7.0.3",
     "dotenv-webpack": "^8.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.37.5",
