@@ -851,18 +851,15 @@ async def usage_cost_workshop(request):
 async def user_activity(request):
     user = await get_proxy_user(request)
     session = await get_user_session(request, user)
-    page = request.query.get('page')
-    page_size = request.query.get('page_size')
     email = user['metadata']['name']
     impersonate_user = request.headers.get('Impersonate-User')
     if impersonate_user and session.get('admin'):
         email = impersonate_user
 
-    queryString = ""
-    if page:
-        queryString = f"?page={page}"
-        if page_size:
-            queryString = f"{queryString}&page_size={page_size}"
+    # Forward all query parameters
+    query_params = "&".join(f"{key}={value}" for key, value in request.query.items())
+    queryString = f"?{query_params}" if query_params else ""
+
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
