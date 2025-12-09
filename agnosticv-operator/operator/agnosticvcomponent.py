@@ -1,5 +1,6 @@
 import json
 from copy import deepcopy
+from typing import Mapping
 
 import jinja2
 import kopf
@@ -384,6 +385,10 @@ class AgnosticVComponent(KopfObject):
             "stage": self.stage,
         }
 
+    @property
+    def zerotouch_config(self) -> Mapping|None:
+        return self.__meta__.get('zerotouch')
+
     def __anarchy_governor_definition(self):
         definition = {
             "apiVersion": Babylon.anarchy_api_version,
@@ -593,6 +598,9 @@ class AgnosticVComponent(KopfObject):
     
         if self.catalog_terms_of_service:
             definition['spec']['termsOfService'] = self.catalog_terms_of_service
+
+        if self.zerotouch_config:
+            definition['spec']['zerotouch'] = self.zerotouch_config
 
         if self.catalog_external_url:
             definition['spec']['externalUrl'] = self.catalog_external_url
