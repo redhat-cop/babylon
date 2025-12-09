@@ -319,7 +319,8 @@ const ServicesItemComponent: React.FC<{
     refreshInterval: 8000,
     compare: compareK8sObjects,
   });
-  useErrorHandler(error?.status === 404 ? error : null);
+  // Show 404 when resourceClaim is not found or is being deleted
+  useErrorHandler(error?.status === 404 || resourceClaim?.metadata?.deletionTimestamp ? { status: 404 } : null);
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
       ? apiPaths.CATALOG_ITEM({

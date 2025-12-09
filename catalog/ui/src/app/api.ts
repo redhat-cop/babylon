@@ -2281,10 +2281,6 @@ export const apiPaths = {
     if (end_date !== undefined) {
       params.append('end_date', end_date);
     }
-    // Add ignore_cache when date filters are used
-    if (start_date !== undefined || end_date !== undefined) {
-      params.append('ignore_cache', 'true');
-    }
     const queryString = params.toString();
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   },
