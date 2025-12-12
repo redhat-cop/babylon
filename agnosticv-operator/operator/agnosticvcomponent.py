@@ -7,6 +7,7 @@ import kubernetes_asyncio
 from babylon import Babylon
 from kopfobject import KopfObject
 from str2bool import str2bool
+from uuid import UUID
 
 import agnosticvrepo
 
@@ -52,6 +53,7 @@ jinja2env = jinja2.Environment(
     undefined = jinja2.ChainableUndefined,
 )
 jinja2env.filters['bool'] = lambda x: bool(str2bool(x)) if isinstance(x, str) else bool(x)
+jinja2env.filters['uuid2int'] = lambda x: int(UUID(x))
 
 class AgnosticVComponent(KopfObject):
     api_group = Babylon.agnosticv_api_group
@@ -379,6 +381,7 @@ class AgnosticVComponent(KopfObject):
     @property
     def template_vars(self):
         return {
+            "asset_uuid": self.asset_uuid,
             "merged_vars": self.definition,
             **self.definition,
             "stage": self.stage,
@@ -1062,7 +1065,7 @@ class AgnosticVComponent(KopfObject):
     async def __create_anarchy_governor(self, definition, logger):
         name = definition['metadata']['name']
         namespace = definition['metadata']['namespace']
-        await Babylon.custom_objects_api.create_namespaced_custom_object(
+        anarchy_governor = await Babylon.custom_objects_api.create_namespaced_custom_object(
             body = definition,
             group = Babylon.anarchy_api_group,
             namespace = namespace,
@@ -1070,6 +1073,7 @@ class AgnosticVComponent(KopfObject):
             version = Babylon.anarchy_version,
         )
         logger.info(f"Created AnarchyGovernor {name} in {namespace}")
+        return anarchy_governor
 
     async def __create_resource_provider(self, definition, logger):
         await Babylon.custom_objects_api.create_namespaced_custom_object(
@@ -1099,13 +1103,17 @@ class AgnosticVComponent(KopfObject):
             await self.__delete_anarchy_governor(logger=logger)
             return
 
+        anarchy_namespace = self.anarchy_namespace
+
+        status_patch = {}
+
         definition = self.__anarchy_governor_definition()
         current_state = None
         try:
             current_state = await Babylon.custom_objects_api.get_namespaced_custom_object(
                 group = Babylon.anarchy_api_group,
                 name = definition['metadata']['name'],
-                namespace = definition['metadata']['namespace'],
+                namespace = anarchy_namespace,
                 plural = 'anarchygovernors',
                 version = Babylon.anarchy_version,
             )
@@ -1114,17 +1122,74 @@ class AgnosticVComponent(KopfObject):
                 raise
 
         if current_state:
-            await self.__update_anarchy_governor(
+            current_state = await self.__update_anarchy_governor(
                 current_state = current_state,
                 definition = definition,
                 logger = logger,
                 retries = retries,
             )
         else:
-            await self.__create_anarchy_governor(
+            current_state = await self.__create_anarchy_governor(
                 definition = definition,
                 logger = logger,
             )
+
+        # If AnarchyGovernor namespace changes it is still necessary to maintain deprecated
+        # AnarchyGovernors as there might be existing AnarchySubjects referencing them.
+        deprecated_anarchy_governors = None
+        if self.status:
+            deprecated_namespaces = set()
+            namespace = self.status.get('anarchyGovernor', {}).get('namespace')
+            if namespace is not None:
+                deprecated_namespaces.add(namespace)
+            for governor in self.status.get('deprecatedAnarchyGovernors', []):
+                namespace = governor['namespace']
+                if namespace != anarchy_namespace:
+                    deprecated_namespaces.add(namespace)
+            deprecated_namespaces.discard(anarchy_namespace)
+
+            for namespace in deprecated_namespaces:
+                definition['metadata']['namespace'] = namespace
+                try:
+                    state = await Babylon.custom_objects_api.get_namespaced_custom_object(
+                        group = Babylon.anarchy_api_group,
+                        name = definition['metadata']['name'],
+                        namespace = namespace,
+                        plural = 'anarchygovernors',
+                        version = Babylon.anarchy_version,
+                    )
+                except kubernetes_asyncio.client.rest.ApiException as e:
+                    if e.status == 404:
+                        continue
+                    else:
+                        raise
+
+                if deprecated_anarchy_governors is None:
+                    deprecated_anarchy_governors = []
+                deprecated_anarchy_governors.append({
+                    "name": state['metadata']['name'],
+                    "namespace": state['metadata']['namespace'],
+                    "uid": state['metadata']['uid'],
+                })
+
+                try:
+                    state = await self.__update_anarchy_governor(
+                        current_state = state,
+                        definition = definition,
+                        logger = logger,
+                        retries = 0,
+                    )
+                except Exception:
+                    logger.exception(f"Failed to update deprecated AnarchyGovernor {self.anarchy_governor} in {namespace}")
+
+        await self.merge_patch_status({
+            "anarchyGovernor": {
+                "name": current_state['metadata']['name'],
+                "namespace": current_state['metadata']['namespace'],
+                "uid": current_state['metadata']['uid'],
+            },
+            "deprecatedAnarchyGovernors": deprecated_anarchy_governors,
+        })
 
     async def __manage_catalog_item(self, logger, retries=5):
         if self.catalog_disable:
@@ -1209,11 +1274,11 @@ class AgnosticVComponent(KopfObject):
         # FIXME - agnosticv-operator handling of None/null was unpredictable
         if remove_none_values(merged_definition) == remove_none_values(current_state):
             logger.debug("AnarchyGovernor {name} in {namespace} is unchanged.")
-            return
+            return current_state
 
         logger.info(f"Updating AnarchyGovernor {name} in {namespace}")
         try:
-            await Babylon.custom_objects_api.replace_namespaced_custom_object(
+            return await Babylon.custom_objects_api.replace_namespaced_custom_object(
                 body = merged_definition,
                 group = Babylon.anarchy_api_group,
                 name = name,
@@ -1223,10 +1288,10 @@ class AgnosticVComponent(KopfObject):
             )
         except kubernetes_asyncio.client.rest.ApiException as e:
             if e.status == 404:
-                await self.__create_anarchy_governor(definition=definition, logger=logger)
+                return await self.__create_anarchy_governor(definition=definition, logger=logger)
             elif e.status == 409:
                 if retries:
-                    await self.__manage_anarchy_governor(logger=logger, retries=retries-1)
+                    return await self.__manage_anarchy_governor(logger=logger, retries=retries-1)
                 else:
                     raise kopf.TemporaryError(
                         f"Failed to update AnarchyGovernor {name} in {namespace}: 409 conflict",
