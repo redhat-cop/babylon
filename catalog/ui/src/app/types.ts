@@ -882,6 +882,7 @@ export interface UserActivityResponse {
   total_pages: number;
   total_usage_amount: number;
   total_chargeback_amount: number;
+  total_user_experiences: number;
   total_chargeback_user: number;
   items: UserActivityItem[];
 }
