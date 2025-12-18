@@ -14,6 +14,7 @@ import {
   FormGroup,
   Button,
   NumberInput,
+  Popover,
 } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
@@ -271,7 +272,51 @@ const WorkshopsItemDetails: React.FC<{
       ) : null}
 
       <DescriptionListGroup>
-        <DescriptionListTerm>Amount spent</DescriptionListTerm>
+        <DescriptionListTerm>
+          Amount spent{' '}
+          <Popover
+            triggerAction="hover"
+            headerContent="How is Amount spent calculated?"
+            bodyContent={
+              <div>
+                <p>
+                  Amount spent represents an estimated cost based on the cloud provider and service backing this
+                  environment. Cost calculations follow provider-specific models and are updated once per day.
+                </p>
+                <p>
+                  <strong>Cost models by provider and service</strong>
+                </p>
+                <p>
+                  <strong>AWS and Azure</strong>
+                  <br />
+                  Costs are sourced directly from the cloud account or subscription and accrue from provisioning to
+                  deletion of resources.
+                </p>
+                <p>
+                  <strong>OpenShift CNV</strong>
+                  <br />
+                  Costs are calculated using a fixed hourly price list, based on project usage, and accrue from
+                  provisioning to deletion.
+                </p>
+                <p>
+                  <strong>GCP</strong>
+                  <br />
+                  Costs are sourced directly from the associated GCP project.
+                </p>
+                <p>
+                  The amount shown is the total accumulated cost, starting from the provision start date and time,
+                  including any initial provisioning or pool-related resources.
+                </p>
+              </div>
+            }
+          >
+            <OutlinedQuestionCircleIcon
+              aria-label="Amount spent calculation information"
+              className="tooltip-icon-only"
+              style={{ cursor: 'pointer' }}
+            />
+          </Popover>
+        </DescriptionListTerm>
         <DescriptionListDescription>
           {usageCost?.total_cost ? (
             <p>
