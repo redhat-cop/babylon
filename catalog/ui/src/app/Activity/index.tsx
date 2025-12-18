@@ -99,8 +99,8 @@ const ActivitySummary: React.FC = () => {
                   <Skeleton width="300px" />
                 ) : (
                   <span>
-                    <strong>{currentMonthData?.total_items ?? 0}</strong> experience
-                    {currentMonthData?.total_items !== 1 ? 's' : ''} delivered this month, representing{' '}
+                    <strong>{currentMonthData?.total_user_experiences ?? 0}</strong> experience
+                    {currentMonthData?.total_user_experiences !== 1 ? 's' : ''} delivered this month, representing{' '}
                     <strong>{formatEuro(currentMonthData?.total_usage_amount ?? 0)}</strong> in usage.
                   </span>
                 )}
@@ -117,8 +117,8 @@ const ActivitySummary: React.FC = () => {
                   <Skeleton width="300px" />
                 ) : (
                   <span>
-                    <strong>{lastMonthData?.total_items ?? 0}</strong> experience
-                    {lastMonthData?.total_items !== 1 ? 's' : ''} last month, resulting in a chargeback of{' '}
+                    <strong>{lastMonthData?.total_user_experiences ?? 0}</strong> experience
+                    {lastMonthData?.total_user_experiences !== 1 ? 's' : ''} last month, resulting in a chargeback of{' '}
                     <strong>{formatEuro(lastMonthData?.total_chargeback_user ?? 0)}</strong>.
                   </span>
                 )}
