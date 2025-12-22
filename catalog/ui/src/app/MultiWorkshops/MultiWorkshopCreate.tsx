@@ -60,6 +60,9 @@ import useSystemStatus from '@app/utils/useSystemStatus';
 
 import './multiworkshop-create.css';
 
+// 8 hours in milliseconds - lead time before ready-by date when provisioning starts
+const READY_BY_LEAD_TIME_MS = 8 * 60 * 60 * 1000;
+
 export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
   const items = [];
   let continueId: Nullable<string> = null;
@@ -85,7 +88,7 @@ const MultiWorkshopCreate: React.FC = () => {
     // Default provisioning start date is current time
     // Ready by date will be 8 hours after provisioning start
     const defaultProvisioningDate = now;
-    const endDateTime = new Date(now.getTime() + 32 * 60 * 60 * 1000); // 24h after ready by date (now + 8h + 24h)
+    const endDateTime = new Date(now.getTime() + READY_BY_LEAD_TIME_MS + 24 * 60 * 60 * 1000); // 24h after ready by date
 
     return {
       name: '',
@@ -390,6 +393,9 @@ const MultiWorkshopCreate: React.FC = () => {
                 retryCount: 3,
                 delay: index * 100, // Stagger creation to avoid naming conflicts
                 salesforceItems: createFormData.salesforceItems || [],
+                readyByDate: useDirectProvisioningDate && createFormData.startDate 
+                  ? new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS) 
+                  : undefined,
               });
 
               // Create workshop provision for this asset
@@ -766,7 +772,7 @@ const MultiWorkshopCreate: React.FC = () => {
                   isDisabled={useDirectProvisioningDate}
                   onSelect={(d: Date) => {
                     setCreateFormData((prev) => {
-                      const actualStartDate = new Date(d.getTime() + 8 * 60 * 60 * 1000); // Actual start is 8 hours after provisioning
+                      const actualStartDate = new Date(d.getTime() + READY_BY_LEAD_TIME_MS); // Actual start is 8 hours after provisioning
                       const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
                       return {
                         ...prev,
@@ -829,13 +835,13 @@ const MultiWorkshopCreate: React.FC = () => {
                     key={`ready-by-${useDirectProvisioningDate}`}
                     defaultTimestamp={
                       createFormData.startDate
-                        ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Show actual start date (8 hours after provisioning)
-                        : Date.now() + 8 * 60 * 60 * 1000
+                        ? createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS // Show actual start date (8 hours after provisioning)
+                        : Date.now() + READY_BY_LEAD_TIME_MS
                     }
-                    forceUpdateTimestamp={createFormData.startDate?.getTime() + 8 * 60 * 60 * 1000}
+                    forceUpdateTimestamp={createFormData.startDate?.getTime() + READY_BY_LEAD_TIME_MS}
                     onSelect={(d: Date) => {
                       // Calculate provisioning date as 8 hours BEFORE ready by date
-                      const provisioningDate = new Date(d.getTime() - 8 * 60 * 60 * 1000);
+                      const provisioningDate = new Date(d.getTime() - READY_BY_LEAD_TIME_MS);
                       setCreateFormData((prev) => {
                         const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000); // End date based on ready by date
                         return {
@@ -845,7 +851,7 @@ const MultiWorkshopCreate: React.FC = () => {
                         };
                       });
                     }}
-                    minDate={Date.now() + 8 * 60 * 60 * 1000} // Minimum must account for 8-hour provisioning lead time
+                    minDate={Date.now() + READY_BY_LEAD_TIME_MS} // Minimum must account for 8-hour provisioning lead time
                   />
                   <Tooltip
                     position="right"
@@ -874,8 +880,8 @@ const MultiWorkshopCreate: React.FC = () => {
                   defaultTimestamp={createFormData.endDate.getTime()}
                   minDate={
                     useDirectProvisioningDate
-                      ? createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Min date is ready by date
-                      : createFormData.startDate.getTime() + 8 * 60 * 60 * 1000 // Min date is 8 hours after provisioning
+                      ? createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS // Min date is ready by date
+                      : createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS // Min date is 8 hours after provisioning
                   }
                   onSelect={(date: Date) => {
                     setCreateFormData((prev) => ({ ...prev, endDate: date }));
