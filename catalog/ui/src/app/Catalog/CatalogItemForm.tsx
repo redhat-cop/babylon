@@ -68,6 +68,9 @@ import DateTimePicker from '@app/components/DateTimePicker';
 
 import './catalog-item-form.css';
 
+// 8 hours in milliseconds - lead time before ready-by date when provisioning starts
+const READY_BY_LEAD_TIME_MS = 8 * 60 * 60 * 1000;
+
 const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceName: string }> = ({
   catalogItemName,
   catalogNamespaceName,
@@ -331,6 +334,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         stopDate: formState.stopDate,
         endDate: formState.endDate,
         startDate: formState.startDate,
+        readyByDate: useDirectProvisioningDate && formState.startDate 
+          ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS) 
+          : undefined,
         email,
         parameterValues,
         skippedSfdc: formState.salesforceId.skip,
@@ -365,6 +371,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         startDate: formState.startDate,
         stopDate: formState.stopDate,
         endDate: formState.endDate,
+        readyByDate: useDirectProvisioningDate && formState.startDate 
+          ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS) 
+          : undefined,
         email,
         skippedSfdc: formState.salesforceId.skip,
         whiteGloved: formState.whiteGloved,
@@ -871,13 +880,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         key={`ready-by-${useDirectProvisioningDate}`}
                         defaultTimestamp={
                           formState.startDate
-                            ? formState.startDate.getTime() + 8 * 60 * 60 * 1000 // Show actual start date (8 hours after provisioning)
-                            : Date.now() + 8 * 60 * 60 * 1000
+                            ? formState.startDate.getTime() + READY_BY_LEAD_TIME_MS // Show actual start date (8 hours after provisioning)
+                            : Date.now() + READY_BY_LEAD_TIME_MS
                         }
-                        forceUpdateTimestamp={formState.startDate?.getTime() + 8 * 60 * 60 * 1000}
+                        forceUpdateTimestamp={formState.startDate?.getTime() + READY_BY_LEAD_TIME_MS}
                         onSelect={(d: Date) => {
                           // Calculate provisioning date as 8 hours BEFORE ready by date
-                          const provisioningDate = new Date(d.getTime() - 8 * 60 * 60 * 1000);
+                          const provisioningDate = new Date(d.getTime() - READY_BY_LEAD_TIME_MS);
                           dispatchFormState({
                             type: 'dates',
                             startDate: provisioningDate, // Internal API still uses provisioning date as startDate
@@ -897,7 +906,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                             ),
                           });
                         }}
-                        minDate={Date.now() + 8 * 60 * 60 * 1000} // Minimum must account for 8-hour provisioning lead time
+                        minDate={Date.now() + READY_BY_LEAD_TIME_MS} // Minimum must account for 8-hour provisioning lead time
                       />
                       <Tooltip
                         position="right"

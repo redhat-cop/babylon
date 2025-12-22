@@ -4,6 +4,7 @@ import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import useSWR, { useSWRConfig } from 'swr';
 import {
+  Alert,
   Breadcrumb,
   BreadcrumbItem,
   Bullseye,
@@ -60,6 +61,7 @@ import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
 import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopLocked, isWorkshopStarted } from './workshops-utils';
 import Label from '@app/components/Label';
+import LocalTimestamp from '@app/components/LocalTimestamp';
 import ProjectSelector from '@app/components/ProjectSelector';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import parseDuration from 'parse-duration';
@@ -486,6 +488,14 @@ const WorkshopsItemComponent: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
+      {workshop.metadata?.annotations?.[`${BABYLON_DOMAIN}/ready-by`] && 
+       new Date(workshop.metadata.annotations[`${BABYLON_DOMAIN}/ready-by`]).getTime() > Date.now() ? (
+        <PageSection hasBodyWrapper={false} key="ready-by-alert" style={{ paddingBottom: 0 }}>
+          <Alert variant="info" isInline title="Scheduled Ready Time">
+            This workshop is scheduled to be ready by <LocalTimestamp timestamp={workshop.metadata.annotations[`${BABYLON_DOMAIN}/ready-by`]} />.
+          </Alert>
+        </PageSection>
+      ) : null}
       <PageSection hasBodyWrapper={false} key="body" className="workshops-item__body">
         <Tabs
           activeKey={activeTab || 'details'}

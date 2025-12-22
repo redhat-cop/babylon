@@ -76,6 +76,7 @@ type CreateServiceRequestOpt = {
   stopDate?: Date;
   endDate: Date;
   startDate?: Date;
+  readyByDate?: Date;
   useAutoDetach: boolean;
   email: string;
   skippedSfdc: boolean;
@@ -450,6 +451,7 @@ export async function createServiceRequest({
   startDate,
   stopDate,
   endDate,
+  readyByDate,
   usePoolIfAvailable,
   useAutoDetach,
   email,
@@ -485,6 +487,7 @@ export async function createServiceRequest({
         [`${DEMO_DOMAIN}/scheduled`]:
           startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         ...(catalogItem.spec.workshopUiDisabled ? { [`${DEMO_DOMAIN}/workshopUiDisabled`]: 'true' } : {}),
+        ...(readyByDate ? { [`${BABYLON_DOMAIN}/ready-by`]: dateToApiString(readyByDate) } : {}),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -581,6 +584,7 @@ export async function createWorkshop({
   stopDate,
   endDate,
   startDate,
+  readyByDate,
   email,
   parameterValues,
   skippedSfdc,
@@ -599,6 +603,7 @@ export async function createWorkshop({
   endDate?: Date;
   stopDate?: Date;
   startDate?: Date;
+  readyByDate?: Date;
   email: string;
   parameterValues: Record<string, unknown>;
   skippedSfdc: boolean;
@@ -637,6 +642,7 @@ export async function createWorkshop({
           startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
+        ...(readyByDate ? { [`${BABYLON_DOMAIN}/ready-by`]: dateToApiString(readyByDate) } : {}),
         ...(customAnnotations || {}),
       },
     },
@@ -1228,6 +1234,7 @@ export async function createWorkshopFromAssetWithRetry({
   retryCount = 3,
   delay = 0,
   salesforceItems,
+  readyByDate,
 }: {
   multiworkshopName: string;
   multiworkshopUid: string;
@@ -1238,6 +1245,7 @@ export async function createWorkshopFromAssetWithRetry({
   retryCount?: number;
   delay?: number;
   salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+  readyByDate?: Date;
 }): Promise<Workshop> {
   // Add initial delay to stagger requests
   if (delay > 0) {
@@ -1256,6 +1264,7 @@ export async function createWorkshopFromAssetWithRetry({
         multiworkshopData,
         catalogItem,
         salesforceItems,
+        readyByDate,
       });
     } catch (error: unknown) {
       lastError = error as Error;
@@ -1286,6 +1295,7 @@ export async function createWorkshopFromAsset({
   multiworkshopData,
   catalogItem,
   salesforceItems,
+  readyByDate,
 }: {
   multiworkshopName: string;
   multiworkshopUid: string;
@@ -1294,6 +1304,7 @@ export async function createWorkshopFromAsset({
   multiworkshopData: Record<string, unknown>;
   catalogItem?: CatalogItem;
   salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+  readyByDate?: Date;
 }): Promise<Workshop> {
   if (!catalogItem) {
     throw new Error('CatalogItem is required for creating Workshop');
@@ -1320,6 +1331,7 @@ export async function createWorkshopFromAsset({
     serviceNamespace,
     startDate: multiworkshopData.startDate ? new Date(multiworkshopData.startDate as string) : undefined,
     endDate: multiworkshopData.endDate ? new Date(multiworkshopData.endDate as string) : undefined,
+    readyByDate,
     email: session.user,
     parameterValues: {
       purpose: multiworkshopData.purpose,
