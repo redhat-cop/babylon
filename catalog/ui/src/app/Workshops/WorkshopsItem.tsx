@@ -512,7 +512,7 @@ const WorkshopsItemComponent: React.FC<{
       </PageSection>
       {workshop.spec?.lifespan?.readyBy && 
        new Date(workshop.spec.lifespan.readyBy).getTime() > Date.now() ? (
-        <PageSection hasBodyWrapper={false} key="ready-by-alert" style={{ paddingBottom: 0 }}>
+        <PageSection hasBodyWrapper={false} key="ready-by-alert">
           <Alert variant="info" isInline title="Scheduled Ready Time">
             This workshop is scheduled to be ready by <LocalTimestamp timestamp={workshop.spec.lifespan.readyBy} />.
           </Alert>

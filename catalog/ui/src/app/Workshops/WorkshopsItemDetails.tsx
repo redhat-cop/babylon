@@ -75,9 +75,7 @@ const WorkshopsItemDetails: React.FC<{
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
-  const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(
-    !!workshop.spec?.lifespan?.readyBy
-  );
+  const readyByDate = workshop.spec?.lifespan?.readyBy;
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
   const opsEffortFromAnnotation = useMemo(() => parseInt(opsEffortAnnotation || '0', 10) || 0, [opsEffortAnnotation]);
@@ -458,7 +456,7 @@ const WorkshopsItemDetails: React.FC<{
                       variant="extended"
                       onClick={() => (showModal ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null)}
                       className="workshops-item__schedule-btn"
-                      isDisabled={!showModal || useDirectProvisioningDate}
+                      isDisabled={!showModal}
                       time={autoStartTime}
                     />
                     <Tooltip position="right" content={<p>Select when you want the workshop provisioning to start.</p>}>
@@ -468,52 +466,10 @@ const WorkshopsItemDetails: React.FC<{
                       />
                     </Tooltip>
                   </div>
-
-                  {/* Provisioning Mode Toggle */}
-                  {isAdmin && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--pf-t--global--spacer--sm)',
-                        marginTop: 'var(--pf-t--global--spacer--md)',
-                      }}
-                    >
-                      <Switch
-                        id="provisioning-mode-switch"
-                        aria-label="Set ready by date"
-                        label={
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            Set ready by date
-                            <BetaBadge />
-                          </div>
-                        }
-                        isChecked={useDirectProvisioningDate}
-                        hasCheckIcon
-                        onChange={(_event, isChecked) => {
-                          setUseDirectProvisioningDate(isChecked);
-                        }}
-                      />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            When enabled, allows you to specify when the workshop should be ready by (8 hours after
-                            provisioning starts).
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="When enabled, allows you to specify when the workshop should be ready by."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  )}
                 </FormGroup>
 
-                {/* Ready by Date - Only show when switch is enabled and user is admin */}
-                {isAdmin && useDirectProvisioningDate && (
+                {/* Ready by Date - Only show when ready by date is set and user is admin */}
+                {isAdmin && readyByDate && (
                   <FormGroup fieldId="workshopReadyByDate" label="Ready by">
                     <div
                       style={{
@@ -533,7 +489,7 @@ const WorkshopsItemDetails: React.FC<{
                         }}
                         className="workshops-item__schedule-btn"
                         isDisabled={!showModal}
-                        time={autoStartTime + READY_BY_LEAD_TIME_MS} // Show ready by date as 8 hours after provisioning
+                        time={readyByDate} // Show ready by date as 8 hours after provisioning
                       />
                       <Tooltip
                         position="right"
