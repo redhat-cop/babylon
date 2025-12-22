@@ -15,7 +15,7 @@ import { getMaxRuntime } from '@app/Services/service-utils';
 const minDefault = parseDuration('6h');
 
 const WorkshopScheduleAction: React.FC<{
-  action: 'retirement' | 'stop' | 'start' | 'start-date';
+  action: 'retirement' | 'stop' | 'start' | 'start-date' | 'ready-by-date';
   resourceClaims: ResourceClaim[];
   workshop: Workshop;
   workshopProvisions: WorkshopProvision[];

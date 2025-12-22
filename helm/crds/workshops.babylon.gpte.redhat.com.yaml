@@ -89,6 +89,12 @@ spec:
                       Start of lifespan for Workshop any WorkshopProvisions that belong to it.
                     type: string
                     format: date-time
+                  readyBy:
+                    description: >-
+                      Target date and time when the Workshop should be ready for use.
+                      Provisioning will be scheduled to complete before this time.
+                    type: string
+                    format: date-time
                   maximum:
                     description: >-
                       Maximum lifespan which may be requested for a workshop relative to its creation.

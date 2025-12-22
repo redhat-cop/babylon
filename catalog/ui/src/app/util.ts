@@ -20,6 +20,9 @@ export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 export const DEMO_DOMAIN = 'demo.redhat.com';
 export const CATALOG_MANAGER_DOMAIN = `catalog-manager.${DEMO_DOMAIN}`;
 
+// 8 hours in milliseconds - lead time before ready-by date when provisioning starts
+export const READY_BY_LEAD_TIME_MS = 8 * 60 * 60 * 1000;
+
 // Force all links to target new window and not pass unsafe attributes
 dompurify.addHook('afterSanitizeAttributes', function (node) {
   if (node.tagName == 'A' && node.getAttribute('href')) {

@@ -46,7 +46,7 @@ import {
   SandboxCloudSelector,
   TPurposeOpts,
 } from '@app/types';
-import { checkAccessControl, displayName, getStageFromK8sObject, isLabDeveloper, randomString } from '@app/util';
+import { checkAccessControl, displayName, getStageFromK8sObject, isLabDeveloper, randomString, READY_BY_LEAD_TIME_MS } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
 import useDebounce from '@app/utils/useDebounce';
@@ -67,9 +67,6 @@ import useSystemStatus from '@app/utils/useSystemStatus';
 import DateTimePicker from '@app/components/DateTimePicker';
 
 import './catalog-item-form.css';
-
-// 8 hours in milliseconds - lead time before ready-by date when provisioning starts
-const READY_BY_LEAD_TIME_MS = 8 * 60 * 60 * 1000;
 
 const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceName: string }> = ({
   catalogItemName,
@@ -371,9 +368,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         startDate: formState.startDate,
         stopDate: formState.stopDate,
         endDate: formState.endDate,
-        readyByDate: useDirectProvisioningDate && formState.startDate 
-          ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS) 
-          : undefined,
         email,
         skippedSfdc: formState.salesforceId.skip,
         whiteGloved: formState.whiteGloved,

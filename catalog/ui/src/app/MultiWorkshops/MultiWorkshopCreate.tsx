@@ -48,6 +48,7 @@ import {
   FETCH_BATCH_LIMIT,
   getStageFromK8sObject,
   isResourceClaimPartOfWorkshop,
+  READY_BY_LEAD_TIME_MS,
 } from '@app/util';
 import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
 import CatalogItemSelectorModal from './CatalogItemSelectorModal';
@@ -59,9 +60,6 @@ import purposeOptions from './purposeOptions.json';
 import useSystemStatus from '@app/utils/useSystemStatus';
 
 import './multiworkshop-create.css';
-
-// 8 hours in milliseconds - lead time before ready-by date when provisioning starts
-const READY_BY_LEAD_TIME_MS = 8 * 60 * 60 * 1000;
 
 export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
   const items = [];

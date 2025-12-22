@@ -76,7 +76,6 @@ type CreateServiceRequestOpt = {
   stopDate?: Date;
   endDate: Date;
   startDate?: Date;
-  readyByDate?: Date;
   useAutoDetach: boolean;
   email: string;
   skippedSfdc: boolean;
@@ -451,7 +450,6 @@ export async function createServiceRequest({
   startDate,
   stopDate,
   endDate,
-  readyByDate,
   usePoolIfAvailable,
   useAutoDetach,
   email,
@@ -487,7 +485,6 @@ export async function createServiceRequest({
         [`${DEMO_DOMAIN}/scheduled`]:
           startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         ...(catalogItem.spec.workshopUiDisabled ? { [`${DEMO_DOMAIN}/workshopUiDisabled`]: 'true' } : {}),
-        ...(readyByDate ? { [`${BABYLON_DOMAIN}/ready-by`]: dateToApiString(readyByDate) } : {}),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -642,7 +639,6 @@ export async function createWorkshop({
           startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
-        ...(readyByDate ? { [`${BABYLON_DOMAIN}/ready-by`]: dateToApiString(readyByDate) } : {}),
         ...(customAnnotations || {}),
       },
     },
@@ -652,6 +648,7 @@ export async function createWorkshop({
       lifespan: {
         ...(startDate ? { start: dateToApiString(startDate) } : {}),
         ...(endDate ? { end: dateToApiString(endDate) } : {}),
+        ...(readyByDate ? { readyBy: dateToApiString(readyByDate) } : {}),
         maximum: catalogItem.spec.lifespan?.maximum,
         relativeMaximum: catalogItem.spec.lifespan?.relativeMaximum,
       },
