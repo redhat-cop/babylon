@@ -22,7 +22,7 @@ import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/ou
 import BetaBadge from '@app/components/BetaBadge';
 import { apiPaths, patchResourceClaim, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import { RequestUsageCost, ResourceClaim, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno, READY_BY_LEAD_TIME_MS } from '@app/util';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useDebounce from '@app/utils/useDebounce';
@@ -75,7 +75,9 @@ const WorkshopsItemDetails: React.FC<{
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
-  const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
+  const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(
+    !!workshop.spec?.lifespan?.readyBy
+  );
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
   const opsEffortFromAnnotation = useMemo(() => parseInt(opsEffortAnnotation || '0', 10) || 0, [opsEffortAnnotation]);
@@ -526,12 +528,12 @@ const WorkshopsItemDetails: React.FC<{
                         variant="extended"
                         onClick={() => {
                           if (showModal) {
-                            showModal({ resourceClaims: [], action: 'scheduleStartDate' });
+                            showModal({ resourceClaims: [], action: 'scheduleReadyByDate' });
                           }
                         }}
                         className="workshops-item__schedule-btn"
                         isDisabled={!showModal}
-                        time={autoStartTime + 8 * 60 * 60 * 1000} // Show ready by date as 8 hours after provisioning
+                        time={autoStartTime + READY_BY_LEAD_TIME_MS} // Show ready by date as 8 hours after provisioning
                       />
                       <Tooltip
                         position="right"

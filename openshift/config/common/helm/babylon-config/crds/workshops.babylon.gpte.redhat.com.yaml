@@ -89,6 +89,12 @@ spec:
                       Start of lifespan for Workshop any WorkshopProvisions that belong to it.
                     type: string
                     format: date-time
+                  readyBy:
+                    description: >-
+                      Target date and time when the Workshop should be ready for use.
+                      Provisioning will be scheduled to complete before this time.
+                    type: string
+                    format: date-time
               multiuserServices:
                 description: >-
                   Flag to indicate that services for this workshop are multi-user.

@@ -579,6 +579,7 @@ export interface WorkshopSpec {
   lifespan?: {
     end?: string;
     start?: string;
+    readyBy?: string;
     maximum?: string;
     relativeMaximum?: string;
   };

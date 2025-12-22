@@ -5,7 +5,6 @@ import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import useSWR, { useSWRConfig } from 'swr';
 import {
-  Alert,
   Breadcrumb,
   BreadcrumbItem,
   Bullseye,
@@ -417,7 +416,6 @@ const ServicesItemComponent: React.FC<{
   };
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
-  const readyByDate = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/ready-by`];
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const whiteGloved = getWhiteGloved(resourceClaim);
   const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state?: K8sObject }) => r.state);
@@ -731,13 +729,6 @@ const ServicesItemComponent: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
-      {readyByDate && new Date(readyByDate).getTime() > Date.now() ? (
-        <PageSection hasBodyWrapper={false} key="ready-by-alert" style={{ paddingBottom: 0 }}>
-          <Alert variant="info" isInline title="Scheduled Ready Time">
-            This service is scheduled to be ready by <LocalTimestamp timestamp={readyByDate} />.
-          </Alert>
-        </PageSection>
-      ) : null}
       {resourceClaim.spec.resources &&
       resourceClaim.spec.resources[0].provider.name === 'babylon-service-request-configmap' &&
       !isAdmin ? (

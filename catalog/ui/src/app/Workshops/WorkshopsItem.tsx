@@ -23,6 +23,7 @@ import {
   deleteWorkshop,
   fetcher,
   fetcherItemsInAllPages,
+  patchWorkshop,
   patchWorkshopProvision,
   SERVICES_KEY,
   setWorkshopLifespanEnd,
@@ -48,6 +49,7 @@ import {
   FETCH_BATCH_LIMIT,
   getStageFromK8sObject,
   namespaceToServiceNamespaceMapper,
+  READY_BY_LEAD_TIME_MS,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -79,7 +81,8 @@ export interface ModalState {
     | 'scheduleStop'
     | 'scheduleStart'
     | 'scheduleStartDate'
-    | 'startWorkshop';
+    | 'startWorkshop'
+    | 'scheduleReadyByDate';
   resourceClaims?: ResourceClaim[];
 }
 
@@ -111,7 +114,7 @@ const WorkshopsItemComponent: React.FC<{
         action === 'startWorkshop'
       ) {
         openModalAction();
-      } else if (action === 'scheduleDelete' || action === 'scheduleStop' || action === 'scheduleStart' || action === 'scheduleStartDate') {
+      } else if (action === 'scheduleDelete' || action === 'scheduleStop' || action === 'scheduleStart' || action === 'scheduleStartDate' || action === 'scheduleReadyByDate') {
         openModalSchedule();
       }
     },
@@ -372,6 +375,24 @@ const WorkshopsItemComponent: React.FC<{
         resourceClaims,
       );
       mutateWorkshop(workshopUpdated);
+    } else if (modalState.action === 'scheduleReadyByDate') {
+      // Update the ready-by in spec.lifespan (provisioning time + 8 hours lead time)
+      const readyByDate = new Date(date.getTime() + READY_BY_LEAD_TIME_MS);
+      await startWorkshop(
+        workshop,
+        !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(new Date(date.getTime())) : null,
+        !isWorkshopStarted(workshop, workshopProvisions)
+          ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
+          : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
+        resourceClaims,
+      );
+      const workshopUpdated = await patchWorkshop({
+        name: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        patch: { spec: { lifespan: { readyBy: dateToApiString(readyByDate) } } },
+      });
+      
+      mutateWorkshop(workshopUpdated);
     }
   }
 
@@ -414,6 +435,8 @@ const WorkshopsItemComponent: React.FC<{
                 ? 'start'
                 : modalState.action === 'scheduleStartDate'
                   ? 'start-date'
+                  : modalState.action === 'scheduleReadyByDate'
+                    ? 'ready-by-date'
                   : 'stop'
           }
           workshop={workshop}
@@ -488,11 +511,11 @@ const WorkshopsItemComponent: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
-      {workshop.metadata?.annotations?.[`${BABYLON_DOMAIN}/ready-by`] && 
-       new Date(workshop.metadata.annotations[`${BABYLON_DOMAIN}/ready-by`]).getTime() > Date.now() ? (
+      {workshop.spec?.lifespan?.readyBy && 
+       new Date(workshop.spec.lifespan.readyBy).getTime() > Date.now() ? (
         <PageSection hasBodyWrapper={false} key="ready-by-alert" style={{ paddingBottom: 0 }}>
           <Alert variant="info" isInline title="Scheduled Ready Time">
-            This workshop is scheduled to be ready by <LocalTimestamp timestamp={workshop.metadata.annotations[`${BABYLON_DOMAIN}/ready-by`]} />.
+            This workshop is scheduled to be ready by <LocalTimestamp timestamp={workshop.spec.lifespan.readyBy} />.
           </Alert>
         </PageSection>
       ) : null}
