@@ -376,11 +376,10 @@ const WorkshopsItemComponent: React.FC<{
       );
       mutateWorkshop(workshopUpdated);
     } else if (modalState.action === 'scheduleReadyByDate') {
-      // Update the ready-by in spec.lifespan (provisioning time + 8 hours lead time)
-      const readyByDate = new Date(date.getTime() + READY_BY_LEAD_TIME_MS);
+      const readyByDate = new Date(date.getTime());
       await startWorkshop(
         workshop,
-        !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(new Date(date.getTime())) : null,
+        !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(new Date(date.getTime() + READY_BY_LEAD_TIME_MS)) : null,
         !isWorkshopStarted(workshop, workshopProvisions)
           ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
           : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
