@@ -90,6 +90,22 @@ class Workshop(CachedKopfObject):
     def workshop_id(self):
         return self.labels.get(Babylon.workshop_id_label)
 
+    @property
+    def auto_scaling_enabled(self):
+        return self.spec.get('autoScaling', {}).get('enabled', False)
+    
+    @property
+    def auto_scaling_threshold(self):
+        return self.spec.get('autoScaling', {}).get('threshold', 0.8)
+    
+    @property
+    def auto_scaling_factor(self):
+        return self.spec.get('autoScaling', {}).get('scaleFactor', 1.5)
+    
+    @property
+    def auto_scaling_max_provisions(self):
+        return self.spec.get('autoScaling', {}).get('maxProvisions', 100)
+
     def get_workshop_provisions(self):
         return workshopprovision.WorkshopProvision.get_for_workshop(self)
 
@@ -221,6 +237,19 @@ class Workshop(CachedKopfObject):
             total_resource_claim_count += provision_status.get('resourceClaimCount', 0)
             total_retry_count += provision_status.get('retryCount', 0)
             total_ordered_count += workshop_provision.count
+
+        # Auto-scaling: trigger check for each WorkshopProvision
+        if self.auto_scaling_enabled and total_user_count > 0:
+            utilization_rate = assigned_user_count / total_user_count
+            
+            if utilization_rate >= self.auto_scaling_threshold:
+                for workshop_provision in self.get_workshop_provisions():
+                    await workshop_provision.handle_auto_scaling(
+                        workshop_utilization_rate=utilization_rate,
+                        scaling_threshold=self.auto_scaling_threshold,
+                        scaling_factor=self.auto_scaling_factor,
+                        max_provisions=self.auto_scaling_max_provisions
+                    )
 
         await self.merge_patch_status({
             "userCount": {
