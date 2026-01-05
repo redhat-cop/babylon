@@ -885,7 +885,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                             type: 'dates',
                             startDate: provisioningDate, // Internal API still uses provisioning date as startDate
                             stopDate: new Date(
-                              provisioningDate.getTime() +
+                              d.getTime() +
                                 parseDuration(
                                   formState.activity?.startsWith('Customer Facing')
                                     ? '365d'
@@ -893,7 +893,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                                 ),
                             ),
                             endDate: new Date(
-                              provisioningDate.getTime() +
+                              d.getTime() +
                                 parseDuration(
                                   catalogItem.spec.lifespan?.default || '30h'
                                 )
