@@ -377,6 +377,8 @@ const WorkshopsItemComponent: React.FC<{
       mutateWorkshop(workshopUpdated);
     } else if (modalState.action === 'scheduleReadyByDate') {
       const readyByDate = new Date(date.getTime());
+      // Calculate auto-stop time: 12 hours after the ready-by date
+      const autoStopTime = new Date(readyByDate.getTime() + 12 * 60 * 60 * 1000);
       await startWorkshop(
         workshop,
         !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(new Date(date.getTime() + READY_BY_LEAD_TIME_MS)) : null,
@@ -388,7 +390,12 @@ const WorkshopsItemComponent: React.FC<{
       const workshopUpdated = await patchWorkshop({
         name: workshop.metadata.name,
         namespace: workshop.metadata.namespace,
-        patch: { spec: { lifespan: { readyBy: dateToApiString(readyByDate) } } },
+        patch: {
+          spec: {
+            lifespan: { readyBy: dateToApiString(readyByDate) },
+            actionSchedule: { stop: dateToApiString(autoStopTime) },
+          },
+        },
       });
       
       mutateWorkshop(workshopUpdated);
