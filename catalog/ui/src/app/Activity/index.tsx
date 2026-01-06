@@ -76,10 +76,10 @@ const ActivitySummary: React.FC = () => {
     { refreshInterval: 60000 },
   );
 
-  const formatEuro = (amount: number) => {
+  const formatUSD = (amount: number) => {
     return new Intl.NumberFormat('en-EU', {
       style: 'currency',
-      currency: 'EUR',
+      currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -119,7 +119,7 @@ const ActivitySummary: React.FC = () => {
                   <span>
                     <strong>{lastMonthData?.total_user_experiences ?? 0}</strong> experience
                     {lastMonthData?.total_user_experiences !== 1 ? 's' : ''} last month, resulting in a chargeback of{' '}
-                    <strong>{formatEuro(lastMonthData?.total_chargeback_user ?? 0)}</strong>.
+                    <strong>{formatUSD(lastMonthData?.total_chargeback_user ?? 0)}</strong>.
                   </span>
                 )}
               </FlexItem>
