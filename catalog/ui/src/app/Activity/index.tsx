@@ -101,7 +101,7 @@ const ActivitySummary: React.FC = () => {
                   <span>
                     <strong>{currentMonthData?.total_user_experiences ?? 0}</strong> experience
                     {currentMonthData?.total_user_experiences !== 1 ? 's' : ''} delivered this month, representing{' '}
-                    <strong>{formatEuro(currentMonthData?.total_usage_amount ?? 0)}</strong> in usage.
+                    <strong>{formatUSD(currentMonthData?.total_usage_amount ?? 0)}</strong> in usage.
                   </span>
                 )}
               </FlexItem>
