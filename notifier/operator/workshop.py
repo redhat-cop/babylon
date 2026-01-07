@@ -65,7 +65,9 @@ class Workshop:
         provision_count = self.definition.get('status', {}).get('provisionCount', {})
         active = provision_count.get('active', 0)
         ordered = provision_count.get('ordered', 0)
-        return ordered > 0 and active > 0 and ordered == active
+        user_count = self.definition.get('status', {}).get('userCount', {})
+        user_count_total = user_count.get('total', 0)
+        return ordered > 0 and active > 0 and ordered == active and user_count_total > 0
 
     @property
     def provision_started(self):
