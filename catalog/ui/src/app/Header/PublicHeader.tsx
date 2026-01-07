@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Button,
   Dropdown,
   DropdownList,
   DropdownItem,
@@ -13,7 +12,6 @@ import {
   MenuToggle,
   MenuToggleElement,
 } from '@patternfly/react-core';
-import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import { useInterface } from '@app/utils/useInterfaceConfig';
@@ -57,20 +55,17 @@ const PublicHeader: React.FC = () => {
     >
       How to videos
     </DropdownItem>,
+    ...(feedback_link
+      ? [
+          <DropdownItem key="feedback" value={feedback_link}>
+            Feedback
+          </DropdownItem>,
+        ]
+      : []),
   ];
 
   const HeaderTools = (
     <div style={{ marginLeft: 'auto' }}>
-      {feedback_link ? (
-        <Button
-          variant="link"
-          icon={<CommentIcon style={{ fill: '#fff' }} />}
-          style={{ color: '#fff' }}
-          onClick={() => window.open(feedback_link, '_blank')}
-        >
-          Feedback
-        </Button>
-      ) : null}
       <Dropdown
         aria-label="Help menu"
         isOpen={isUserHelpDropdownOpen}
