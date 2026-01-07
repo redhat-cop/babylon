@@ -107,6 +107,12 @@ spec:
                     - always
                     - missing
                     - never
+              defaults:
+                description: >-
+                  Settings applied as defaults for configuration of items from AgnosticV repository.
+                  Currently only dictionary is supported without list merge functionality.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
               execution_environment_allow_list_extra:
                 type: array
                 items:
@@ -161,6 +167,12 @@ spec:
                     description: >-
                       Name of secret with GitHub webhook secret as `secret` in secret data.
                     type: string
+              overrides:
+                description: >-
+                  Settings applied to override configuration of items from AgnosticV repository.
+                  Currently only dictionary is supported without list merge functionality.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
               pollingInterval:
                 description: >-
                   Polling interval for checking for AgnosticV Repo Updates
