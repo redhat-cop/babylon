@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Button,
   Dropdown,
   DropdownList,
   DropdownItem,
@@ -20,7 +19,6 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
-import CommentIcon from '@patternfly/react-icons/dist/js/icons/comment-icon';
 
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import ImpersonateUserModal from '@app/components/ImpersonateUserModal';
@@ -140,6 +138,13 @@ const Header: React.FC<{
       </DropdownItem>,
     );
   }
+  if (feedback_link) {
+    userHelpDropdownItems.push(
+      <DropdownItem key="feedback" value={feedback_link}>
+        Feedback
+      </DropdownItem>,
+    );
+  }
   const UserControlDropdownItems = [
     <DropdownItem
       key="logout"
@@ -172,17 +177,6 @@ const Header: React.FC<{
         <ToolbarGroup align={{ default: 'alignEnd' }}>
           <IncidentsNotificationDrawer />
           <ToolbarGroup variant="action-group-plain">
-            {feedback_link ? (
-              <ToolbarItem>
-                <Button
-                  variant="plain"
-                  icon={<CommentIcon />}
-                  onClick={() => window.open(feedback_link, '_blank')}
-                >
-                  Feedback
-                </Button>
-              </ToolbarItem>
-            ) : null}
             <ToolbarItem>
               <Dropdown
                 isOpen={isUserHelpDropdownOpen}

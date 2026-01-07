@@ -65,7 +65,7 @@ const Navigation: React.FC = () => {
             rel="noreferrer noopener"
             className="pf-v6-c-nav__link"
           >
-            MaaS Service
+            Model-as-a-Service (MaaS)
           </a>
         </NavItem>
       ) : null}
