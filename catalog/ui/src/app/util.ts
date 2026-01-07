@@ -59,7 +59,7 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
     } else {
       if (catalogItemName && catalogItemDisplayName && _item.metadata.name === catalogItemName) {
         return catalogItemDisplayName;
-      } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName.replace(/\./g, "-"))) {
+      } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName.split('.').slice(0, -1).join('.'))) {
         return `${catalogItemDisplayName} - ${_item.metadata.name.substring(1 + catalogItemName.length)}`;
       } else if (catalogItemName && catalogItemDisplayName && _item.metadata.name.startsWith(catalogItemName)) {
         return `${catalogItemDisplayName} - ${_item.metadata.name.substring(1 + catalogItemName.length)}`;
