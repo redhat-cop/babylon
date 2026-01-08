@@ -25,7 +25,7 @@ test/functional/
 ## Environment Variables
 
 ```bash
-export GH_TEST_REPO="your-org/test-agnosticv-repo"    # Test repository
+export GH_TEST_REPO="test-agnosticv-repo"             # Test repository
 export GH_TEST_ORG="your-org"                         # GitHub organization
 export OPERATOR_NAMESPACE="babylon-config"            # Kubernetes namespace
 export WEBHOOK_URL="https://your-webhook-url"         # Webhook endpoint (optional)

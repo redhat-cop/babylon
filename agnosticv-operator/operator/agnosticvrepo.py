@@ -22,6 +22,8 @@ import pytimeparse
 from babylon import Babylon
 from agnosticvcomponent import AgnosticVComponent
 from cachedkopfobject import CachedKopfObject
+from onedict.merger import merge
+from onedict.solvers import keep_new
 
 # Add aiofiles wrapping for chmod
 aiofiles.os.chmod = aiofiles.os.wrap(os.chmod)
@@ -117,6 +119,10 @@ class AgnosticVRepo(CachedKopfObject):
         return self.spec.get('default_execution_environment')
 
     @property
+    def defaults(self):
+        return self.spec.get('defaults', {})
+
+    @property
     def execution_environment_allow_list(self):
         return (
             Babylon.execution_environment_allow_list +
@@ -176,6 +182,10 @@ class AgnosticVRepo(CachedKopfObject):
     @property
     def last_successful_git_hexsha(self):
         return self.status.get('git', {}).get('commit')
+
+    @property
+    def overrides(self):
+        return self.spec.get('overrides', {})
 
     @property
     def polling_interval(self):
@@ -714,7 +724,7 @@ class AgnosticVRepo(CachedKopfObject):
         stdout, stderr = await self.agnosticv_exec(
             '--merge', component_file_path, '--output=json',
         )
-        definition = json.loads(stdout)
+        definition = merge(self.defaults, json.loads(stdout), self.overrides, conflict_solvers=[keep_new])
         if self.anarchy_collections:
             definition['__meta__'].setdefault('anarchy', {})['collections'] = self.anarchy_collections
         definition['__meta__'].setdefault('anarchy', {})['roles'] = self.anarchy_roles
