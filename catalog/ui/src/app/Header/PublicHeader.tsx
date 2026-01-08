@@ -58,7 +58,7 @@ const PublicHeader: React.FC = () => {
     ...(feedback_link
       ? [
           <DropdownItem key="feedback" value={feedback_link}>
-            Feedback
+            Provide Feedback
           </DropdownItem>,
         ]
       : []),

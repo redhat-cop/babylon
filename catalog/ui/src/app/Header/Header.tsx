@@ -141,7 +141,7 @@ const Header: React.FC<{
   if (feedback_link) {
     userHelpDropdownItems.push(
       <DropdownItem key="feedback" value={feedback_link}>
-        Feedback
+        Provide Feedback
       </DropdownItem>,
     );
   }
