@@ -390,8 +390,14 @@ export interface ResourceClaimSpecResource {
   template: ResourceClaimSpecResourceTemplate;
 }
 
+export interface ResourceHandleStatus {
+  ready?: boolean;
+  healthy?: boolean;
+}
+
 export interface ResourceHandle extends K8sObject {
   spec: ResourceHandleSpec;
+  status?: ResourceHandleStatus;
 }
 
 export interface ResourceHandleList {
