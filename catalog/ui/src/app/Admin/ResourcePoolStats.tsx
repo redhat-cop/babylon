@@ -4,7 +4,7 @@ import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { ResourceHandle } from '@app/types';
 import useSWR from 'swr';
 import { FETCH_BATCH_LIMIT } from '@app/util';
-import usePoolStatus from './usePoolStatus';
+import getPoolStatus from './getPoolStatus';
 
 function fetchResourceHandlesFromResourcePool(resourcePoolName: string) {
   return fetcherItemsInAllPages((continueId) =>
@@ -27,7 +27,7 @@ const ResourcePoolStats: React.FC<{ resourcePoolName: string; minAvailable: numb
     }),
     () => fetchResourceHandlesFromResourcePool(resourcePoolName),
   );
-  const { total, taken, available } = usePoolStatus(resourceHandles);
+  const { total, taken, available } = getPoolStatus(resourceHandles);
 
   return (
     <ul style={{ display: 'flex', flexDirection: 'row', gap: "var(--pf-t--global--spacer--xs)" }}>

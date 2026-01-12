@@ -35,7 +35,7 @@ import { useErrorHandler } from 'react-error-boundary';
 import useSWR from 'swr';
 import { BABYLON_DOMAIN, compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
-import usePoolStatus from './usePoolStatus';
+import getPoolStatus from './getPoolStatus';
 import useSession from '@app/utils/useSession';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
@@ -85,7 +85,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
       : null,
     () => fetchResourceHandlesFromResourcePool(resourcePoolName),
   );
-  const { total, taken, available } = usePoolStatus(resourceHandles);
+  const { total, taken, available } = getPoolStatus(resourceHandles);
 
   function mutateResourcePoolsList(data: ResourcePoolList) {
     matchMutate([{ name: 'RESOURCE_POOLS', arguments: { limit: FETCH_BATCH_LIMIT }, data }]);
