@@ -28,7 +28,7 @@ const Navigation: React.FC = () => {
   }
 
   const catalogNavigation = (
-    <NavExpandable title="Explore Content" isExpanded={locationStartsWith('/catalog')}>
+    <NavExpandable title="Explore Content" isExpanded={true}>
       <NavItem>
         <NavLink
           className={locationStartsWith('/catalog') ? 'pf-m-current' : ''}
