@@ -309,6 +309,10 @@ const MultiWorkshopCreate: React.FC = () => {
   );
   // Check if workshop ordering is blocked (admins can bypass)
   const isOrderingBlocked = isWorkshopOrderingBlocked && !isAdmin;
+  const isSalesforceRequired =
+    !isAdmin &&
+    purposeOptions.find((p) => p.name === createFormData.purpose && p.activity === createFormData.activity)
+      ?.sfdcRequired !== false;
   const isFormValid =
     !isOrderingBlocked &&
     createFormData.name &&
@@ -316,7 +320,7 @@ const MultiWorkshopCreate: React.FC = () => {
     createFormData.endDate &&
     createFormData.activity &&
     createFormData.purpose &&
-    (isAdmin || hasAtLeastOneSalesforce) &&
+    (!isSalesforceRequired || hasAtLeastOneSalesforce) &&
     !wouldExceedQuota;
 
   async function onCreateMultiWorkshop(): Promise<void> {
@@ -391,9 +395,10 @@ const MultiWorkshopCreate: React.FC = () => {
                 retryCount: 3,
                 delay: index * 100, // Stagger creation to avoid naming conflicts
                 salesforceItems: createFormData.salesforceItems || [],
-                readyByDate: useDirectProvisioningDate && createFormData.startDate 
-                  ? new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS) 
-                  : undefined,
+                readyByDate:
+                  useDirectProvisioningDate && createFormData.startDate
+                    ? new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)
+                    : undefined,
               });
 
               // Create workshop provision for this asset
@@ -614,8 +619,7 @@ const MultiWorkshopCreate: React.FC = () => {
         {isOrderingBlocked && (
           <Alert variant="danger" title="Workshop Ordering Temporarily Disabled" style={{ marginTop: '16px' }}>
             <p>
-              {workshopOrderingBlockedMessage || 
-                "Workshop ordering is temporarily disabled. Please try again later."}
+              {workshopOrderingBlockedMessage || 'Workshop ordering is temporarily disabled. Please try again later.'}
             </p>
           </Alert>
         )}
@@ -660,7 +664,11 @@ const MultiWorkshopCreate: React.FC = () => {
           </p>
           <p style={{ marginTop: '8px' }}>
             If you need assistance or our workshop white glove service, please{' '}
-            <a href="https://issues.redhat.com/servicedesk/customer/portal/36/create/96" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://issues.redhat.com/servicedesk/customer/portal/36/create/96"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               raise a ticket with our team
             </a>{' '}
             or reach out via the{' '}
@@ -953,8 +961,7 @@ const MultiWorkshopCreate: React.FC = () => {
                   <span
                     style={{
                       fontSize: 'var(--pf-t--global--font--size--xs)',
-                      color:
-                        'var(--pf-t--color--gray--60)',
+                      color: 'var(--pf-t--color--gray--60)',
                       fontStyle: 'italic',
                       fontWeight: 400,
                     }}
@@ -963,7 +970,7 @@ const MultiWorkshopCreate: React.FC = () => {
                   </span>
                 </span>
               }
-              isRequired={!isAdmin}
+              isRequired={isSalesforceRequired}
             />
           </div>
 
