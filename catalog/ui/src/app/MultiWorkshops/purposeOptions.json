@@ -120,6 +120,13 @@
     "requiredRoles": ["rhpds-devs-rh1", "rhpds-admins", "rhpds-devs-summit"]
   },
   {
+    "name": "RH1 2026",
+    "description": "",
+    "activity": "Brand Event",
+    "sfdcRequired": false,
+    "requiredRoles": ["rhpds-devs-rh1-2026", "rhpds-admins"]
+  },
+  {
     "name": "ETX",
     "description": "",
     "activity": "Brand Event",
