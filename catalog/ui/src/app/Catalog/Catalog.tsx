@@ -57,6 +57,7 @@ import {
   CUSTOM_LABELS,
   getStatusFromCatalogItem,
   getRating,
+  getSLA,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
@@ -290,42 +291,47 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         } else {
           // sortBy === 'Featured' and 'Rating'
           if (sortBy.selected === 'Featured') {
-            const selector = `${CUSTOM_LABELS.FEATURED_SCORE.domain}/${CUSTOM_LABELS.FEATURED_SCORE.key}`;
-            const aRating = a.metadata.labels?.[selector];
-            const bRating = b.metadata.labels?.[selector];
-            if (aRating || bRating) {
-              if (aRating && bRating) return parseInt(aRating, 10) < parseInt(bRating, 10) ? 1 : -1;
-              if (bRating) return 1;
-              return -1;
+            const aSLA = getSLA(a);
+            const bSLA = getSLA(b);
+            const aIsFeatured = aSLA === 'Featured';
+            const bIsFeatured = bSLA === 'Featured';
+
+            // If one is Featured and the other isn't, Featured comes first
+            if (aIsFeatured !== bIsFeatured) {
+              return aIsFeatured ? -1 : 1;
             }
-          } else if (sortBy.selected === 'Rating') {
+          }
+          // Both 'Featured' and 'Rating' sort use weighted rating logic
+          if (sortBy.selected === 'Featured' || sortBy.selected === 'Rating') {
             // Rating sorting with weighted score considering number of ratings
             // Uses logarithmic scale to give diminishing returns boost based on rating count
             const MIN_RATINGS_FOR_BOOST = 3; // Minimum ratings to receive any boost
             const RATING_LOG_BASE = 50; // Base for logarithmic scaling (higher = less aggressive boost)
             const MAX_BOOST = 0.15; // Maximum boost percentage (15%)
-            
+
             const aRatingData = getRating(a);
             const bRatingData = getRating(b);
-            
+
             if (aRatingData || bRatingData) {
               if (aRatingData && bRatingData) {
                 const aRatingCount = aRatingData.totalRatings || 0;
                 const bRatingCount = bRatingData.totalRatings || 0;
-                
+
                 // Calculate boost using logarithmic scale: log(ratingCount + 1) / log(base)
                 // This gives diminishing returns as rating count increases
-                const aBoost = aRatingCount >= MIN_RATINGS_FOR_BOOST
-                  ? MAX_BOOST * Math.log(aRatingCount + 1) / Math.log(RATING_LOG_BASE)
-                  : 0;
-                const bBoost = bRatingCount >= MIN_RATINGS_FOR_BOOST
-                  ? MAX_BOOST * Math.log(bRatingCount + 1) / Math.log(RATING_LOG_BASE)
-                  : 0;
-                
+                const aBoost =
+                  aRatingCount >= MIN_RATINGS_FOR_BOOST
+                    ? (MAX_BOOST * Math.log(aRatingCount + 1)) / Math.log(RATING_LOG_BASE)
+                    : 0;
+                const bBoost =
+                  bRatingCount >= MIN_RATINGS_FOR_BOOST
+                    ? (MAX_BOOST * Math.log(bRatingCount + 1)) / Math.log(RATING_LOG_BASE)
+                    : 0;
+
                 // Weighted score = rating * (1 + boost)
                 const aWeightedScore = aRatingData.ratingScore * (1 + aBoost);
                 const bWeightedScore = bRatingData.ratingScore * (1 + bBoost);
-                
+
                 if (Math.abs(aWeightedScore - bWeightedScore) > 0.001) {
                   return aWeightedScore < bWeightedScore ? 1 : -1;
                 }
@@ -466,11 +472,12 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     if ((selectedCategories && selectedCategories.length > 0) || showFavorites) {
       catalogItemsFuse.remove((ci) => {
         // Check if item matches any selected category OR is a favorite (OR logic)
-        const matchesCategory = selectedCategories && selectedCategories.length > 0
-          ? selectedCategories.some((category) => filterCatalogItemByCategory(ci, category))
-          : false;
+        const matchesCategory =
+          selectedCategories && selectedCategories.length > 0
+            ? selectedCategories.some((category) => filterCatalogItemByCategory(ci, category))
+            : false;
         const isFav = showFavorites ? filterFavorites(ci, assetsFavList?.bookmarks || []) : false;
-        
+
         return !matchesCategory && !isFav;
       });
     }
@@ -481,7 +488,17 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
       catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
     }
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [catalogItems, compareCatalogItems, selectedCategories, showFavorites, assetsFavList?.bookmarks, selectedLabels, isAdmin, selectedAdminFilter, activeIncidents]);
+  }, [
+    catalogItems,
+    compareCatalogItems,
+    selectedCategories,
+    showFavorites,
+    assetsFavList?.bookmarks,
+    selectedLabels,
+    isAdmin,
+    selectedAdminFilter,
+    activeIncidents,
+  ]);
 
   const catalogItemsResult = useMemo(() => {
     const items = searchString
@@ -613,16 +630,17 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
               <Card>
                 <CardBody style={{ padding: 0 }}>
                   <Sidebar tabIndex={0}>
-                    <SidebarPanel style={{ marginTop: 'var(--pf-t--global--spacer--xl)', borderLeft: '1px solid var(--pf-v6-c-card--BorderColor)', padding: '0 var(--pf-t--global--spacer--md)' }}>
+                    <SidebarPanel
+                      style={{
+                        marginTop: 'var(--pf-t--global--spacer--xl)',
+                        borderLeft: '1px solid var(--pf-v6-c-card--BorderColor)',
+                        padding: '0 var(--pf-t--global--spacer--md)',
+                      }}
+                    >
                       <Stack hasGutter>
                         {hasActiveFilters && (
                           <StackItem>
-                            <Button
-                              variant="secondary"
-                              icon={<TimesIcon />}
-                              onClick={onClearFilters}
-                              size="sm"
-                            >
+                            <Button variant="secondary" icon={<TimesIcon />} onClick={onClearFilters} size="sm">
                               Clear all filters
                             </Button>
                           </StackItem>
@@ -654,10 +672,10 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
                               <StackItem>
                                 <Title headingLevel="h2">
                                   {selectedCategories && selectedCategories.length > 0
-                                      ? selectedCategories.length === 1
-                                        ? formatString(selectedCategories[0])
-                                        : `${selectedCategories.length} Categories Selected`
-                                      : 'All Items'}
+                                    ? selectedCategories.length === 1
+                                      ? formatString(selectedCategories[0])
+                                      : `${selectedCategories.length} Categories Selected`
+                                    : 'All Items'}
                                 </Title>
                               </StackItem>
                               <StackItem>
