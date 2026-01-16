@@ -30,6 +30,7 @@ class Babylon():
     resource_broker_ignore_label = f"{poolboy_domain}/ignore"
     resource_claim_label = f"{poolboy_domain}/resource-claim"
     resource_pool_annotation = f"{poolboy_domain}/resource-pool-name"
+    service_access_annotation = f"{babylon_domain}/service-access"
     url_annotation = f"{babylon_domain}/url"
     workshop_label = f"{babylon_domain}/workshop"
     workshop_id_label = f"{babylon_domain}/workshop-id"
@@ -41,10 +42,14 @@ class Babylon():
 
     workshop_fail_percentage_threshold = int(os.environ.get('WORKSHOP_FAIL_PERCENTAGE_THRESHOLD', 60))
 
+    # Initialized on startup
+    api_client = None
+    core_v1_api = None
+    rbac_authorization_api = None
+
     @classmethod
     async def on_cleanup(cls):
-        await cls.core_v1_api.api_client.close()
-        await cls.custom_objects_api.api_client.close()
+        await cls.api_client.close()
 
     @classmethod
     async def on_startup(cls):
@@ -53,5 +58,7 @@ class Babylon():
         else:
             await kubernetes_asyncio.config.load_kube_config()
 
-        cls.core_v1_api = kubernetes_asyncio.client.CoreV1Api()
-        cls.custom_objects_api = kubernetes_asyncio.client.CustomObjectsApi()
+        cls.api_client = kubernetes_asyncio.client.ApiClient()
+        cls.core_v1_api = kubernetes_asyncio.client.CoreV1Api(cls.api_client)
+        cls.rbac_authorization_api = kubernetes_asyncio.client.RbacAuthorizationV1Api(cls.api_client)
+        cls.custom_objects_api = kubernetes_asyncio.client.CustomObjectsApi(cls.api_client)

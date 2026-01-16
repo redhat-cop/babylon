@@ -127,6 +127,30 @@ spec:
               diffBase:
                 description: Kopf diffbase
                 type: string
+              provisionCount:
+                type: object
+                properties:
+                  ordered:
+                    description: Total number of ordered provisions.
+                    type: integer
+                  failed:
+                    description: Number of provisions that have failed.
+                    type: integer
+                  active:
+                    description: Number of provisions that are active.
+                    type: integer
+                  retries:
+                    description: Number of provisions retries.
+                    type: integer
+              resourceClaims:
+                description: >-
+                  References to ResourceClaims associated with this Workshop.
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    uid:
+                      type: string
               userAssignments:
                 description: >-
                   References to WorkshopUserAssignments.
@@ -165,21 +189,15 @@ spec:
                   total:
                     description: Total user assignments for workshop.
                     type: integer
-              provisionCount:
+              workshopProvisions:
+                description: >-
+                  References to WorkshopProvisions associated with this Workshop.
                 type: object
-                properties:
-                  ordered:
-                    description: Total number of ordered provisions.
-                    type: integer
-                  failed:
-                    description: Number of provisions that have failed.
-                    type: integer
-                  active:
-                    description: Number of provisions that are active.
-                    type: integer
-                  retries:
-                    description: Number of provisions retries.
-                    type: integer
+                additionalProperties:
+                  type: object
+                  properties:
+                    uid:
+                      type: string
         required:
         - apiVersion
         - kind

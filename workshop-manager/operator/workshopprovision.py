@@ -270,6 +270,7 @@ class WorkshopProvision(CachedKopfObject):
             )
 
         logger.info(f"Created {resource_claim} for {self}")
+        await workshop.add_resource_claim_to_status(resource_claim, logger=logger)
         return resource_claim
 
     async def delete_all_resource_claims(self, logger):
@@ -288,6 +289,15 @@ class WorkshopProvision(CachedKopfObject):
             await self.set_owner_references(logger=logger)
 
     async def handle_delete(self, logger):
+        try:
+            workshop = await self.get_workshop()
+            await workshop.remove_workshop_provision_from_status(self, logger=logger)
+        except k8sApiException as exception:
+            if exception.status != 404:
+                logger.exception(
+                    "Failed to remove from workshop %s status while handling delete for %s",
+                    self.workshop_name, self
+                )
         async with self.lock:
             logger.info(f"Handling delete for {self}")
             await self.delete_all_resource_claims(logger=logger)
@@ -322,6 +332,8 @@ class WorkshopProvision(CachedKopfObject):
                     "Workshop {self.workshop_name} was not found.", delay=60
                 )
             raise
+
+        await workshop.add_workshop_provision_to_status(self, logger=logger)
 
         if not workshop.workshop_id:
             logger.info(f"Waiting for workshop id assignment for {workshop}")

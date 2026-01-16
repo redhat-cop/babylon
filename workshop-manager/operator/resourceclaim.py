@@ -32,23 +32,28 @@ class ResourceClaim(K8sObject):
         event_type = event.get('type')
         logger.debug(f"Handling {resource_claim} {event.get('type') or 'EVENT'}")
 
-        if event.get('type') == 'DELETED' or resource_claim.deletion_timestamp is not None:
-            await resource_claim.delete_workshop_user_assignments(logger=logger)
-            return
-
-        if not resource_claim.provision_complete or resource_claim.is_failed:
-            return
-
+        workshop = None
         try:
             workshop = await resource_claim.get_workshop()
         except k8sApiException as exception:
-            if exception.status == 404:
-                logger.warning(
-                    f"{resource_claim} references mising Workshop {resource_claim.workshop_name}"
-                )
-                return
-            else:
-                raise
+            if exception.status != 404:
+                logger.exception("Failed to get workshop %s", resource_claim.workshop_name)
+
+        if event.get('type') == 'DELETED' or resource_claim.deletion_timestamp is not None:
+            await workshop.remove_resource_claim_from_status(resource_claim, logger=logger)
+            await resource_claim.delete_workshop_user_assignments(logger=logger)
+            return
+
+        if workshop is None:
+            logger.warning(
+                f"{resource_claim} references mising Workshop {resource_claim.workshop_name}"
+            )
+            return
+
+        await workshop.add_resource_claim_to_status(resource_claim, logger=logger)
+
+        if not resource_claim.provision_complete or resource_claim.is_failed:
+            return
 
         async with workshop.lock:
             await resource_claim.manage_workshop_user_assignments(

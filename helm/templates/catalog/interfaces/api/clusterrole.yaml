@@ -47,3 +47,11 @@ rules:
   - patch
   - watch
   - update
+- apiGroups:
+  - {{ resourceBroker.api.group }}
+  resources:
+  - resourceclaims
+  verbs:
+  - get
+  - list
+  - watch

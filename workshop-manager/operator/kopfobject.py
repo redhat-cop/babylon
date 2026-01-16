@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 import kubernetes_asyncio
+from kubernetes_asyncio.client.models import V1OwnerReference
 
 from babylon import Babylon
 
@@ -106,6 +107,15 @@ class KopfObject:
             "name": self.name,
             "uid": self.uid,
         }
+
+    def as_owner_ref_object(self):
+        return V1OwnerReference(
+            api_version=self.api_group_version,
+            controller=True,
+            kind=self.kind,
+            name=self.name,
+            uid=self.uid,
+        )
 
     def as_reference(self):
         return {
