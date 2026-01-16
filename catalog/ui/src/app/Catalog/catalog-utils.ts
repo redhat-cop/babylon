@@ -23,7 +23,13 @@ export function getStage(catalogItem: CatalogItem) {
   return catalogItem.metadata.labels?.[`${domain}/${key}`];
 }
 
-const supportedSLAs = ['Enterprise_Premium', 'Enterprise_Standard', 'Community', 'External_Support'] as const;
+const supportedSLAs = [
+  'Featured',
+  'Enterprise_Premium',
+  'Enterprise_Standard',
+  'Community',
+  'External_Support',
+] as const;
 type SLAs = (typeof supportedSLAs)[number];
 export function getSLA(catalogItem: CatalogItem): SLAs {
   const { domain, key } = CUSTOM_LABELS.SLA;
