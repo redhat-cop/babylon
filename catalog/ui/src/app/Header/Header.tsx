@@ -124,7 +124,7 @@ const Header: React.FC<{
   if (learn_more_link) {
     userHelpDropdownItems.push(
       <DropdownItem key="learn-more" value={learn_more_link}>
-        Learn more
+        About RHDP
       </DropdownItem>,
     );
   }
@@ -145,6 +145,11 @@ const Header: React.FC<{
       </DropdownItem>,
     );
   }
+  userHelpDropdownItems.push(
+    <DropdownItem key="request-catalog-item" value="https://red.ht/demo-onboarding">
+      Request new catalog item
+    </DropdownItem>,
+  );
   const UserControlDropdownItems = [
     <DropdownItem
       key="logout"
