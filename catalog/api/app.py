@@ -7,11 +7,11 @@ import json
 import logging
 import os
 import re
+import time
 from datetime import datetime, timezone
 
 import aiohttp
 from aiohttp import web
-import time
 
 import kubernetes_asyncio
 import redis.asyncio as redis
@@ -44,7 +44,13 @@ def proxy_api_client(session):
     api_client = HotfixKubeApiClient()
     if os.environ.get('ENVIRONMENT') == 'development':
         return api_client
+    set_impersonation_for_session(api_client, session)
+    return api_client
+
+def set_impersonation_for_session(api_client, session):
+    """Set headers in api_client to impersonate session user ."""
     api_client.default_headers['Impersonate-User'] = session['user']
+    api_client.default_headers.discard('Impersonate-Group')
     for group in session['groups']:
         api_client.default_headers.add('Impersonate-Group', group)
     return api_client
@@ -66,7 +72,7 @@ async def api_proxy(method, url, headers, data=None, params=None):
             url=url,
         )
         excluded_headers = [
-            'connection', 
+            'connection',
             'content-encoding',
             'content-length',
             'keep-alive',
@@ -133,24 +139,32 @@ async def check_admin_access(api_client):
     Check and return true if api_client is configured with babylon admin access.
     Access is determined by whether the user can directly manage AnarchySubjects.
     """
+    return await check_api_access(api_client, 'anarchy.gpte.redhat.com', 'anarchysubjects', 'patch')
+
+async def check_api_access(api_client, group, plural, verb, namespace=None, name=None):
+    """
+    Check and return true if api_client has specified access rights.
+    """
+    self_subject_access_review = {
+        "apiVersion": "authorization.k8s.io/v1",
+        "kind": "SelfSubjectAccessReview",
+        "spec": {
+            "resourceAttributes": {
+                "group": group,
+                "resource": plural,
+                "verb": verb,
+            }
+        }
+    }
+    if namespace is not None:
+        self_subject_access_review['spec']['resourceAttributes']['namespace'] = namespace
+    if name is not None:
+        self_subject_access_review['spec']['resourceAttributes']['name'] = name
     (data, status, headers) = await api_client.call_api(
         '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
         'POST',
         auth_settings = ['BearerToken'],
-        body = {
-           "apiVersion": "authorization.k8s.io/v1",
-           "kind": "SelfSubjectAccessReview",
-           "spec": {
-             "resourceAttributes": {
-               "group": "anarchy.gpte.redhat.com",
-               "resource": "anarchysubjects",
-               "verb": "patch",
-             }
-           },
-           "status": {
-             "allowed": False
-           }
-        },
+        body = self_subject_access_review,
         response_types_map = {
             201: "object",
             401: None,
@@ -163,30 +177,7 @@ async def check_user_support_access(api_client):
     Check and return true if api_client is configured with babylon admin access.
     Access is determined by whether the user can manage ResourceClaims in any namespace.
     """
-    (data, status, headers) = await api_client.call_api(
-        '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
-        'POST',
-        auth_settings = ['BearerToken'],
-        body = {
-           "apiVersion": "authorization.k8s.io/v1",
-           "kind": "SelfSubjectAccessReview",
-           "spec": {
-             "resourceAttributes": {
-               "group": "poolboy.gpte.redhat.com",
-               "resource": "resourceclaims",
-               "verb": "patch",
-             }
-           },
-           "status": {
-             "allowed": False
-           }
-        },
-        response_types_map = {
-            201: "object",
-            401: None,
-        }
-    )
-    return data.get('status', {}).get('allowed', False)
+    return await check_api_access(api_client, "poolboy.gpte.redhat.com", "resourceclaims", "patch")
 
 async def get_catalog_namespaces(api_client):
     namespaces = []
@@ -194,25 +185,9 @@ async def get_catalog_namespaces(api_client):
         label_selector = f"babylon.gpte.redhat.com/interface={interface_name}" if interface_name else 'babylon.gpte.redhat.com/catalog'
     )
     for ns in namespace_list.items:
-        (data, status, headers) = await api_client.call_api(
-            '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
-            'POST',
-            auth_settings = ['BearerToken'],
-            body = {
-               "apiVersion": "authorization.k8s.io/v1",
-               "kind": "SelfSubjectAccessReview",
-               "spec": {
-                 "resourceAttributes": {
-                   "group": "babylon.gpte.redhat.com",
-                   "resource": "catalogitems",
-                   "verb": "list",
-                   "namespace": ns.metadata.name
-                 }
-               },
-            },
-            response_types_map = {201: "object"},
-        )
-        if data.get('status', {}).get('allowed', False):
+        if await check_api_access(
+            api_client, "babylon.gpte.redhat.com", "catalogitems", "list", ns.metadata.name
+        ):
             namespaces.append({
                 'name': ns.metadata.name,
                 'displayName': ns.metadata.annotations.get('openshift.io/display-name', ns.metadata.name),
@@ -326,10 +301,20 @@ async def get_user_session(request, user):
         raise web.HTTPUnauthorized(reason="Invalid bearer token, user mismatch")
     return session
 
-async def start_user_session(user, groups):
+async def set_impersonation_for_request(api_client, session, request):
+    """Set api_client headers for user impersonation if user is admin."""
+    impersonate_user = request.headers.get('Impersonate-User')
+    if impersonate_user and session.get('admin'):
+        api_client.default_headers['Impersonate-User'] = impersonate_user
+        api_client.default_headers.discard('Impersonate-Group')
+        user_groups = await get_user_groups(impersonate_user)
+        for group in user_groups:
+            api_client.default_headers.add('Impersonate-Group', group)
+
+async def start_user_session(user, user_groups):
     session = {
         'user': user['metadata']['name'],
-        'groups': groups,
+        'groups': user_groups,
         'roles': []
     }
 
@@ -356,31 +341,31 @@ async def start_user_session(user, groups):
 def replace_template_variables(data, job_vars):
     """
     Replace Jinja2-like template variables in a data structure with values from job_vars.
-    
+
     Template format: {{ job_vars.variable_name | default('default_value') }}
     Only replaces variables that exist in the job_vars dictionary.
-    
+
     Args:
         data: The data structure (dict, list, str, etc.) to process
         job_vars: Dictionary containing variable values
-        
+
     Returns:
         The data structure with template variables replaced where applicable
     """
     if isinstance(data, dict):
         return {key: replace_template_variables(value, job_vars) for key, value in data.items()}
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return [replace_template_variables(item, job_vars) for item in data]
-    elif isinstance(data, str):
+    if isinstance(data, str):
         # Pattern to match both:
         # {{ job_vars.variable_name }} and
         # {{ job_vars.variable_name | default('default_value') }}
         pattern = r'\{\{\s*(job_vars\.[^|\s}]+)(?:\s*\|\s*default\([\'"]([^\'"]*)[\'"]?\))?\s*\}\}'
-        
+
         def replace_match(match):
             var_name = match.group(1)
             default_value = match.group(2)  # The default value if present
-            
+
             # If variable exists in job_vars, use it
             if var_name in job_vars:
                 return str(job_vars[var_name])
@@ -390,24 +375,23 @@ def replace_template_variables(data, job_vars):
             else:
                 # Return the original template unchanged (no variable and no default)
                 return match.group(0)
-        
+
         return re.sub(pattern, replace_match, data)
-    else:
-        return data
+    return data
 
 routes = web.RouteTableDef()
 @routes.get('/auth/session')
 async def get_auth_session(request):
     user = await get_proxy_user(request)
-    groups = await get_user_groups(user)
-    api_client, session, token = await start_user_session(user, groups)
+    user_groups = await get_user_groups(user)
+    api_client, session, token = await start_user_session(user, user_groups)
     try:
         user_is_admin = session.get('admin', False)
         roles = session.get('roles', [])
         ret = {
             "admin": user_is_admin,
             "consoleURL": console_url,
-            "groups": groups,
+            "groups": user_groups,
             "user": user['metadata']['name'],
             "token": token,
             "catalogNamespaces": session['catalogNamespaces'],
@@ -438,19 +422,19 @@ async def get_auth_users_info(request):
     try:
         if not session.get('admin'):
             raise web.HTTPForbidden()
-    
+
         test_api_client = HotfixKubeApiClient()
         test_api_client.default_headers['Impersonate-User'] = user_name
-    
-        groups = await get_user_groups(user_name)
-        for group in groups:
+
+        user_groups = await get_user_groups(user_name)
+        for group in user_groups:
             test_api_client.default_headers.add('Impersonate-Group', group)
         user_is_admin = await check_admin_access(test_api_client)
         roles = []
         if not user_is_admin:
             if await check_user_support_access(test_api_client):
                 roles.append('userSupport')
-    
+
         try:
             user = await custom_objects_api.get_cluster_custom_object(
                 group='user.openshift.io',
@@ -461,15 +445,14 @@ async def get_auth_users_info(request):
         except kubernetes_asyncio.client.exceptions.ApiException as exception:
             if exception.status == 404:
                 raise web.HTTPNotFound()
-            else:
-                raise
-    
+            raise
+
         catalog_namespaces = await get_catalog_namespaces(test_api_client)
         user_namespace, service_namespaces = await get_service_namespaces(user, test_api_client)
-    
+
         ret = {
             "admin": user_is_admin,
-            "groups": groups,
+            "groups": user_groups,
             "roles": roles,
             "user": user_name,
             "catalogNamespaces": catalog_namespaces,
@@ -650,7 +633,7 @@ async def list_sfdc_accounts(request):
         method="GET",
         url=f"{reporting_api}/search/accounts/sfdc?{queryString}",
     )
-    
+
 @routes.get("/api/salesforce/{salesforce_id}")
 async def salesforce_id_validation(request):
     salesforce_id = request.match_info.get('salesforce_id')
@@ -701,19 +684,19 @@ async def catalog_item_check_availability(request):
     sandboxes = meta.get('sandboxes')
     if not sandboxes:
         raise web.HTTPNotFound(reason="AgnosticV component has no sandboxes defined")
-    
+
     # Get request data (array of objects)
     request_data = await request.json()
-    
+
     # Process each request object in the array
     resources = []
     for request_obj in request_data:
         request_kind = request_obj.get('kind')
         annotations = request_obj.get('annotations', {})
-        
+
         # Prepend 'job_vars.param_selector_' to each annotation key
         job_vars = {f"job_vars.param_selector_{key}": value for key, value in annotations.items()}
-        
+
         # Find matching sandbox for this request's kind
         for sandbox in sandboxes:
             if sandbox.get('kind') == request_kind:
@@ -723,7 +706,7 @@ async def catalog_item_check_availability(request):
                 sandbox_copy = replace_template_variables(sandbox_copy, job_vars)
                 # Create processed request object with the modified sandbox
                 resources.append(sandbox_copy)
-    
+
     # First, get access token from login endpoint
     async with aiohttp.ClientSession() as session:
         login_headers = {
@@ -734,10 +717,10 @@ async def catalog_item_check_availability(request):
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
             access_token = login_data.get("access_token")
-            
+
             if not access_token:
                 raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
-    
+
     # Use access token for placements/dry-run endpoint
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -874,13 +857,13 @@ async def public_multiworkshop_get(request):
     """
     Publicly accessible endpoint to get basic multiworkshop information.
     This endpoint doesn't require authentication and is used by the event landing page.
-    
+
     Returns basic multiworkshop details needed for the public event page without
     exposing sensitive data or requiring user authentication.
     """
     namespace = request.match_info.get('namespace')
     name = request.match_info.get('name')
-    
+
     try:
         # Get multiworkshop directly from kubernetes API without user authentication
         multiworkshop = await custom_objects_api.get_namespaced_custom_object(
@@ -890,15 +873,14 @@ async def public_multiworkshop_get(request):
             plural='multiworkshops',
             name=name
         )
-        
+
         return web.json_response(multiworkshop)
-        
+
     except kubernetes_asyncio.client.exceptions.ApiException as e:
         if e.status == 404:
             return web.json_response({'error': 'MultiWorkshop not found'}, status=404)
-        else:
-            logging.error(f"Error fetching multiworkshop {namespace}/{name}: {e}")
-            return web.json_response({'error': 'Internal server error'}, status=500)
+        logging.error(f"Error fetching multiworkshop {namespace}/{name}: {e}")
+        return web.json_response({'error': 'Internal server error'}, status=500)
     except Exception as e:
         logging.error(f"Error fetching multiworkshop {namespace}/{name}: {str(e)}")
         return web.json_response({'error': 'Internal server error'}, status=500)
@@ -924,7 +906,7 @@ async def workshop_get(request):
         "displayName": workshop['spec'].get('displayName'),
         "name": workshop['metadata']['name'],
         "namespace": workshop['metadata']['namespace'],
-        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template') 
+        "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template')
             or workshop['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
     }
     return web.json_response(ret)
@@ -971,7 +953,7 @@ async def workshop_post(request):
         group='babylon.gpte.redhat.com',
         label_selector=f"babylon.gpte.redhat.com/workshop={workshop_name}",
         namespace=workshop_namespace,
-        plural='workshopuserassignments', 
+        plural='workshopuserassignments',
         version='v1',
     )
 
@@ -1074,7 +1056,7 @@ async def update_system_status(request):
     """
     Update system status (admin only).
     Allows admins to block/unblock workshop and service ordering.
-    
+
     Request body example:
     {
         "workshops_ordering_blocked": true,
@@ -1085,30 +1067,30 @@ async def update_system_status(request):
     """
     user = await get_proxy_user(request)
     session = await get_user_session(request, user)
-    
+
     if not session.get('admin'):
         raise web.HTTPForbidden(reason="Admin access required to update system status")
-    
+
     if not request.can_read_body:
         raise web.HTTPBadRequest(reason="Request body required")
-    
+
     try:
         data = await request.json()
     except json.JSONDecodeError:
         raise web.HTTPBadRequest(reason="Invalid JSON in request body")
-    
+
     # Validate request data
     allowed_fields = {
         'workshops_ordering_blocked',
         'workshops_ordering_blocked_message',
-        'services_ordering_blocked', 
+        'services_ordering_blocked',
         'services_ordering_blocked_message'
     }
-    
+
     for key in data.keys():
         if key not in allowed_fields:
             raise web.HTTPBadRequest(reason=f"Unknown field: {key}")
-    
+
     try:
         # Read current ConfigMap
         try:
@@ -1130,20 +1112,20 @@ async def update_system_status(request):
                 current_data = {}
             else:
                 raise
-        
+
         # Update with new values
         for key, value in data.items():
             if key.endswith('_blocked'):
                 current_data[key] = 'true' if value else 'false'
             else:
                 current_data[key] = str(value) if value is not None else ''
-        
+
         # Record who made the change and when
         current_data['last_updated_by'] = user['metadata']['name']
         current_data['last_updated_at'] = datetime.now(timezone.utc).isoformat()
-        
+
         configmap.data = current_data
-        
+
         # Save ConfigMap
         try:
             await core_v1_api.replace_namespaced_config_map(
@@ -1159,13 +1141,13 @@ async def update_system_status(request):
                 )
             else:
                 raise
-        
+
         # Log the change
         logging.info(f"System status updated by {user['metadata']['name']}: {data}")
-        
+
         # Return updated status
         return web.json_response(await get_system_status_from_configmap())
-        
+
     except kubernetes_asyncio.client.exceptions.ApiException as e:
         logging.error(f"Error updating system status ConfigMap: {e}")
         raise web.HTTPInternalServerError(reason="Failed to update system status")
@@ -1173,51 +1155,24 @@ async def update_system_status(request):
         logging.error(f"Unexpected error updating system status: {e}")
         raise web.HTTPInternalServerError(reason="Failed to update system status")
 
-
-@routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems")
-@routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems/{name}")
-async def openshift_api_proxy_with_cache(request):
+@routes.get("/apis/{api_group:babylon\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:workshops|workshopprovisions|workshopuserassignments}")
+@routes.get("/apis/{api_group:poolboy\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:resourceclaims}")
+async def openshift_api_list_by_get_rbac(request):
+    """List items with special handling so that users can list items in a
+    namespace if they can perform a 'get' call on the item."""
+    api_group = request.match_info.get('api_group')
     namespace = request.match_info.get('namespace')
+    plural = request.match_info.get('plural')
 
-    user = await get_proxy_user(request)
-    session = await get_user_session(request, user)
-
-    for catalog_namespace in session.get('catalogNamespaces', []):
-        if catalog_namespace['name'] == namespace:
-            break
-    else:
-        raise web.HTTPForbidden()
-
-    resp, cache_time = response_cache.get(request.path_qs, (None, None))
-    if resp != None and time.time() - cache_time < response_cache_clean_interval:
-        return web.Response(
-            body=resp.body,
-            headers=resp.headers,
-            status=resp.status,
-        )
-
-    resp = await openshift_api_proxy(request)
-    response_cache[request.path_qs] = (resp, time.time())
-    return resp
-
-@routes.delete("/{path:apis?/.*}")
-@routes.get("/{path:apis?/.*}")
-@routes.patch("/{path:apis?/.*}")
-@routes.post("/{path:apis?/.*}")
-@routes.put("/{path:apis?/.*}")
-async def openshift_api_proxy(request):
     user = await get_proxy_user(request)
     session = await get_user_session(request, user)
     api_client = proxy_api_client(session)
 
     try:
-        impersonate_user = request.headers.get('Impersonate-User')
-        if impersonate_user and session.get('admin'):
-            api_client.default_headers['Impersonate-User'] = impersonate_user
-            api_client.default_headers.discard('Impersonate-Group')
-            groups = await get_user_groups(impersonate_user)
-            for group in groups:
-                api_client.default_headers.add('Impersonate-Group', group)
+        await set_impersonation_for_request(api_client, session, request)
+        ret = await openshift_api_proxy(request, api_client)
+        if ret.status != 403:
+            return ret
 
         header_params = {}
         if request.headers.get('Accept'):
@@ -1225,7 +1180,7 @@ async def openshift_api_proxy(request):
         if request.content_type and request.can_read_body:
             header_params['Content-Type'] = request.content_type
 
-        response = await api_client.call_api(
+        response = await app_api_client.call_api(
             request.path,
             request.method,
             auth_settings = ['BearerToken'],
@@ -1236,12 +1191,16 @@ async def openshift_api_proxy(request):
         )
         data = json.loads(await response.read())
 
-        # Strip out metadata.managedFields
-        if 'managedFields' in data.get('metadata', {}):
-            del data['metadata']['managedFields']
+        # Filter list result by only items for which get is allowed
+        filtered_items = []
         for item in data.get('items', []):
-            if 'managedFields' in item.get('metadata', {}):
-                del item['metadata']['managedFields']
+            if await check_api_access(
+                api_client, api_group, plural, 'get', namespace, item['metadata']['name']
+            ):
+                # Strip out metadata.managedFields
+                item['metadata'].pop('managedFields', None)
+                filtered_items.append(item)
+        data['items'] = filtered_items
 
         headers={
             key: val for key, val in response.headers.items()
@@ -1264,12 +1223,105 @@ async def openshift_api_proxy(request):
                 headers={"Content-Type": "application/json"},
                 status=exception.status,
             )
-        else:
-            return web.Response(
-                status=exception.status,
-            )
+        return web.Response(
+            status=exception.status,
+        )
     finally:
         await api_client.close()
+
+@routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems")
+@routes.get("/apis/babylon.gpte.redhat.com/v1/namespaces/{namespace}/catalogitems/{name}")
+async def openshift_api_proxy_with_cache(request):
+    namespace = request.match_info.get('namespace')
+
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+
+    for catalog_namespace in session.get('catalogNamespaces', []):
+        if catalog_namespace['name'] == namespace:
+            break
+    else:
+        raise web.HTTPForbidden()
+
+    resp, cache_time = response_cache.get(request.path_qs, (None, None))
+    if resp is not None and time.time() - cache_time < response_cache_clean_interval:
+        return web.Response(
+            body=resp.body,
+            headers=resp.headers,
+            status=resp.status,
+        )
+
+    resp = await openshift_api_proxy(request)
+    response_cache[request.path_qs] = (resp, time.time())
+    return resp
+
+@routes.delete("/{path:apis?/.*}")
+@routes.get("/{path:apis?/.*}")
+@routes.patch("/{path:apis?/.*}")
+@routes.post("/{path:apis?/.*}")
+@routes.put("/{path:apis?/.*}")
+async def openshift_api_proxy(request, api_client=None):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+
+    # Open api_client if not passed as argument
+    opened_api_client = False
+    if api_client is None:
+        opened_api_client = True
+        api_client = proxy_api_client(session)
+
+    try:
+        await set_impersonation_for_request(api_client, session, request)
+
+        header_params = {}
+        if request.headers.get('Accept'):
+            header_params['Accept'] = request.headers['Accept']
+        if request.content_type and request.can_read_body:
+            header_params['Content-Type'] = request.content_type
+
+        response = await api_client.call_api(
+            request.path,
+            request.method,
+            auth_settings = ['BearerToken'],
+            body = await request.json() if request.can_read_body else None,
+            header_params = header_params,
+            query_params = [(k, v) for k, v in request.query.items()] if request.query else None,
+            _preload_content = False,
+        )
+        data = json.loads(await response.read())
+
+        # Strip out metadata.managedFields
+        data['metadata'].pop('managedFields', None)
+        for item in data.get('items', []):
+            item['metadata'].pop('managedFields', None)
+
+        headers={
+            key: val for key, val in response.headers.items()
+            if key.lower() not in ('content-encoding', 'content-length', 'content-type', 'transfer-encoding')
+        }
+
+        data = gzip.compress(bytes(json.dumps(data), 'utf-8'), compresslevel=5)
+        headers['Content-Encoding'] = 'gzip'
+        headers['Content-Type'] = 'application/json'
+
+        return web.Response(
+            body=data,
+            headers=headers,
+            status=response.status,
+        )
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.body:
+            return web.Response(
+                body=exception.body,
+                headers={"Content-Type": "application/json"},
+                status=exception.status,
+            )
+        return web.Response(
+            status=exception.status,
+        )
+    finally:
+        if opened_api_client:
+            await api_client.close()
 
 async def response_cache_clean():
     """Periodically remove old cache entries to avoid memory leak."""

@@ -15,9 +15,6 @@ from workshopuserassignment import WorkshopUserAssignment
 from multiworkshop import MultiWorkshop
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
-from userassignment import UserAssignment
-
-import workshopuserassignment
 
 @kopf.on.startup()
 async def on_startup(settings: kopf.OperatorSettings, logger, **_):
@@ -91,7 +88,7 @@ async def workshop_resume(logger, **kwargs):
     Workshop.api_group, Workshop.api_version, Workshop.plural,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def workshop_update(logger, old, new, **kwargs):
+async def workshop_update(logger, **kwargs):
     workshop = Workshop.load(**kwargs)
     await workshop.handle_update(logger=logger)
 
