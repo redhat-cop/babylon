@@ -48,7 +48,7 @@ rules:
   - watch
   - update
 - apiGroups:
-  - {{ resourceBroker.api.group }}
+  - {{ .Values.resourceBroker.api.group }}
   resources:
   - resourceclaims
   verbs:
