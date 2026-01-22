@@ -661,6 +661,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     type: 'workshop',
                     workshop: isChecked ? workshopInitialProps : null,
                   });
+                  if (isChecked) {
+                    dispatchFormState({
+                      type: 'usePoolIfAvailable',
+                      usePoolIfAvailable: false,
+                    });
+                  }
                   if (!formState.startDate) {
                     dispatchFormState({
                       type: 'dates',
