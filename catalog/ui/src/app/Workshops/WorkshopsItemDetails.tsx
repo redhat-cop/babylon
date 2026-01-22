@@ -15,8 +15,12 @@ import {
   Button,
   NumberInput,
   Popover,
+  Label,
+  LabelGroup,
+  TextInput,
 } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList } from '@patternfly/react-core';
+import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import BetaBadge from '@app/components/BetaBadge';
@@ -77,7 +81,21 @@ const WorkshopsItemDetails: React.FC<{
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const readyByDate = workshop.spec?.lifespan?.readyBy;
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
+  const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
+  const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
+  
+  // Parse service access users from annotation
+  const serviceAccessAnnotation = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/service-access`];
+  const serviceAccessUsers = useMemo(() => {
+    if (!serviceAccessAnnotation) return [];
+    try {
+      const parsed = JSON.parse(serviceAccessAnnotation);
+      return parsed.users || [];
+    } catch {
+      return [];
+    }
+  }, [serviceAccessAnnotation]);
   const opsEffortFromAnnotation = useMemo(() => parseInt(opsEffortAnnotation || '0', 10) || 0, [opsEffortAnnotation]);
   const [opsEffort, setOpsEffort] = useState<number>(opsEffortFromAnnotation);
   const debouncedOpsEffort = useDebounceState(opsEffort, 1000);
@@ -215,6 +233,47 @@ const WorkshopsItemDetails: React.FC<{
     workshop.metadata.namespace,
     onWorkshopUpdate,
   ]);
+
+  async function handleAddServiceAccessUser() {
+    const email = newServiceAccessEmail.trim();
+    if (!email) return;
+    
+    const updatedUsers = [...serviceAccessUsers, email];
+    const patchObj = {
+      metadata: {
+        annotations: {
+          [`${BABYLON_DOMAIN}/service-access`]: JSON.stringify({ users: updatedUsers }),
+        },
+      },
+    };
+    
+    const updatedWorkshop = await patchWorkshop({
+      name: workshop.metadata.name,
+      namespace: workshop.metadata.namespace,
+      patch: patchObj,
+    });
+    onWorkshopUpdate(updatedWorkshop);
+    setNewServiceAccessEmail('');
+    setModalAddServiceAccess(false);
+  }
+
+  async function handleRemoveServiceAccessUser(emailToRemove: string) {
+    const updatedUsers = serviceAccessUsers.filter((email: string) => email !== emailToRemove);
+    const patchObj = {
+      metadata: {
+        annotations: {
+          [`${BABYLON_DOMAIN}/service-access`]: JSON.stringify({ users: updatedUsers }),
+        },
+      },
+    };
+    
+    const updatedWorkshop = await patchWorkshop({
+      name: workshop.metadata.name,
+      namespace: workshop.metadata.namespace,
+      patch: patchObj,
+    });
+    onWorkshopUpdate(updatedWorkshop);
+  }
 
   return (
     <DescriptionList isHorizontal className="workshops-item-details">
@@ -425,6 +484,45 @@ const WorkshopsItemDetails: React.FC<{
         ) : (
           <DescriptionListDescription>-</DescriptionListDescription>
         )}
+      </DescriptionListGroup>
+
+      <DescriptionListGroup>
+        <DescriptionListTerm>
+          Collaborators{' '}
+          <Tooltip position="right" content={<p>Users who have access to this workshop service.</p>}>
+            <OutlinedQuestionCircleIcon
+              aria-label="Users who have access to this workshop service."
+              className="tooltip-icon-only"
+            />
+          </Tooltip>
+        </DescriptionListTerm>
+        <DescriptionListDescription>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+            {serviceAccessUsers.length > 0 ? (
+              <LabelGroup>
+                {serviceAccessUsers.map((email: string) => (
+                  <Label
+                    key={email}
+                    onClose={() => handleRemoveServiceAccessUser(email)}
+                    closeBtnAriaLabel={`Remove ${email}`}
+                  >
+                    {email}
+                  </Label>
+                ))}
+              </LabelGroup>
+            ) : (
+              <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>No collaborators configured</span>
+            )}
+            <Button
+              variant="link"
+              icon={<PlusCircleIcon />}
+              onClick={() => setModalAddServiceAccess(true)}
+              style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
+            >
+              Add Collaborator
+            </Button>
+          </div>
+        </DescriptionListDescription>
       </DescriptionListGroup>
 
       {autoStartTime && autoStartTime > Date.now() ? (
@@ -674,6 +772,51 @@ const WorkshopsItemDetails: React.FC<{
           isAdmin={isAdmin}
         />
       )}
+
+      <Modal
+        variant={ModalVariant.small}
+        title="Add Collaborator"
+        isOpen={modalAddServiceAccess}
+        onClose={() => {
+          setModalAddServiceAccess(false);
+          setNewServiceAccessEmail('');
+        }}
+        actions={[
+          <Button
+            key="add"
+            variant="primary"
+            onClick={handleAddServiceAccessUser}
+            isDisabled={!newServiceAccessEmail.trim()}
+          >
+            Add
+          </Button>,
+          <Button
+            key="cancel"
+            variant="link"
+            onClick={() => {
+              setModalAddServiceAccess(false);
+              setNewServiceAccessEmail('');
+            }}
+          >
+            Cancel
+          </Button>,
+        ]}
+      >
+        <FormGroup label="Email address" isRequired fieldId="service-access-email">
+          <TextInput
+            id="service-access-email"
+            type="email"
+            value={newServiceAccessEmail}
+            onChange={(_event, value) => setNewServiceAccessEmail(value)}
+            placeholder="user@example.com"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
+                handleAddServiceAccessUser();
+              }
+            }}
+          />
+        </FormGroup>
+      </Modal>
     </DescriptionList>
   );
 };
