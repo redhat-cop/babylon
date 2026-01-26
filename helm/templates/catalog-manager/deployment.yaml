@@ -1,0 +1,66 @@
+{{- $catalogManager := .Values.catalogManager }}
+{{- if $catalogManager.deploy }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-catalog-manager
+  namespace: {{ $catalogManager.namespace.name }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: catalog-manager
+spec:
+  replicas: {{ $catalogManager.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: catalog-manager
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: catalog-manager
+    spec:
+      containers:
+      - name: catalog-manager
+        env:
+        - name: KOPF_OPTIONS
+          value: "--log-format=json"
+        - name: KOPF_PEERING
+          value: babylon-catalog-manager
+        - name: SALESFORCE_AUTHORIZATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ $catalogManager.salesforceApi.secretName | default "babylon-catalog-manager-salesforce-api" }}
+              key: salesforce-api-token
+        image: {{ $catalogManager.image.repository }}:{{ $catalogManager.image.tag }}
+        imagePullPolicy: {{ $catalogManager.image.pullPolicy }}
+        resources:
+          {{- toYaml $catalogManager.resources | nindent 10 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      {{- with $catalogManager.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $catalogManager.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: babylon-catalog-manager
+      terminationGracePeriodSeconds: 30
+      {{- with $catalogManager.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $catalogManager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
