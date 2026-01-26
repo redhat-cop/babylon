@@ -286,3 +286,25 @@ ratings:
       memory: 256Mi
   babylon:
     domain: babylon.gpte.redhat.com
+
+catalogManager:
+  deploy: true
+  replicaCount: 1
+  namespace:
+    create: true
+    name: babylon-catalog-manager
+  image:
+    repository: quay.io/redhat-gpte/babylon-catalog-manager
+    pullPolicy: Always
+    tag: v1.0.18
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 368Mi
+  salesforceApi:
+    deploy: true
+    secretName: babylon-catalog-manager-salesforce-api
+    bitwardenSecret: salesforce_api_login_token
