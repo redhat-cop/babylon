@@ -75,6 +75,7 @@ const renderResourceClaimRow = ({
     resourceClaim?.status?.summary?.provision_data?.labUserInterfaceUrl ||
     resourceClaim?.status?.summary?.provision_data?.lab_ui_url ||
     resourceClaim?.status?.summary?.provision_data?.bookbag_url ||
+    resourceClaim?.status?.summary?.provision_data?.showroom_primary_view_url ||
     resources
       .map((r) => {
         const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;

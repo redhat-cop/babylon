@@ -182,7 +182,7 @@ const WorkshopsItemServices: React.FC<{
               resources
                 .map((r) => {
                   const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
-                  return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
+                  return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url || data?.showroom_primary_view_url;
                 })
                 .find((u) => u != null);
             const cells: unknown[] = [

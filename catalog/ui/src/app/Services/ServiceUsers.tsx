@@ -101,9 +101,9 @@ const ServiceUsers: React.FC<{
 
   return (
     <>
-      {Object.entries(users).map(([userName, userData]: [userName: string, userData: {labUserInterfaceUrl?: string, lab_ui_url?: string, bookbag_url?: string, msg?: string}]) => {
+      {Object.entries(users).map(([userName, userData]: [userName: string, userData: {labUserInterfaceUrl?: string, lab_ui_url?: string, bookbag_url?: string, showroom_primary_view_url?: string, msg?: string}]) => {
         const userLabUrl =
-          labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url;
+          labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url || userData.showroom_primary_view_url;
         const userDataEntries = Object.entries(userData).filter(
           ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg' && key !== 'showroom_primary_view_url',
         );

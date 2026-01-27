@@ -484,7 +484,7 @@ const ServicesItemComponent: React.FC<{
           const anarchySubject = r as AnarchySubject;
           data = anarchySubject.spec?.vars?.provision_data;
         }
-        return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url;
+        return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url || data?.showroom_primary_view_url;
       })
       .find((u) => u != null);
 
