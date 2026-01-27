@@ -6,6 +6,7 @@ metadata:
   name: babylon-system-status
   namespace: {{ $namespace }}
   labels:
+    component: babylon-system-status
     {{- include "babylon.labels" $ | nindent 4 }}
 data:
   # Workshop ordering block configuration
