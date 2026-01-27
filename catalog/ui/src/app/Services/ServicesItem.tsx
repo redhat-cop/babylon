@@ -1092,6 +1092,7 @@ const ServicesItemComponent: React.FC<{
                                 key === 'bookbag_url' ||
                                 key === 'lab_ui_url' ||
                                 key === 'labUserInterfaceUrl' ||
+                                key === 'showroom_primary_view_url' ||
                                 key === 'msg' ||
                                 key === 'users'
                               ) {
