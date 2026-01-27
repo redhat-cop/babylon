@@ -29,7 +29,6 @@ from catalog_namespace import CatalogNamespace
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 from resource_claim import ResourceClaim
-from service_namespace import ServiceNamespace
 from workshop import Workshop
 
 redis_host = os.environ.get('REDIS_HOST', 'localhost')
@@ -191,9 +190,10 @@ async def resourceclaim_event(event, logger, **_):
         return
 
     catalog_namespace = await CatalogNamespace.get(resource_claim.catalog_item_namespace)
-    service_namespace = await ServiceNamespace.get(resource_claim.namespace)
 
-    email_addresses = service_namespace.get_email_recipients(resource_claim)
+    email_addresses = []
+    if resource_claim.requester_email:
+        email_addresses.append(resource_claim.requester_email)
 
     if only_send_to:
         if only_send_to in email_addresses:
