@@ -140,6 +140,18 @@ class ResourceClaim:
         return 'disable' == self.annotations.get(f"babylon.gpte.redhat.com/notifier")
 
     @property
+    def requester(self):
+        return self.annotations.get('demo.redhat.com/requester')
+
+    @property
+    def requester_email(self):
+        """Get email from requester if it looks like an email address"""
+        requester = self.requester
+        if requester and '@' in requester:
+            return requester
+        return None
+
+    @property
     def provision_complete(self):
         if not 'status' in self.definition \
         or not 'resources' in self.definition['status']:
