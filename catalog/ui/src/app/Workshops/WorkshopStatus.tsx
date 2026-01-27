@@ -29,7 +29,7 @@ const WorkshopStatus: React.FC<{
   resourceClaims: ResourceClaim[];
 }> = ({ resourceClaims }) => {
   const resourceClaimsStatus: { uid: string; state: string }[] = [];
-  for (let resourceClaim of resourceClaims) {
+  for (let resourceClaim of resourceClaims.filter((rc) => !rc.metadata.deletionTimestamp)) {
     const summary = resourceClaim.status?.summary;
     if (summary) {
       resourceClaimsStatus.push({ uid: resourceClaim.metadata.uid, state: summary.state });
