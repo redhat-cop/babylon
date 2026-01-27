@@ -105,7 +105,7 @@ const ServiceUsers: React.FC<{
         const userLabUrl =
           labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url;
         const userDataEntries = Object.entries(userData).filter(
-          ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg',
+          ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg' && key !== 'showroom_primary_view_url',
         );
         const userMessages: string = userData.msg;
         return (

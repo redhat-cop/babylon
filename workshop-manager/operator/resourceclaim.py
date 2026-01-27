@@ -19,7 +19,7 @@ class ResourceClaim(K8sObject):
     kind = 'ResourceClaim'
     plural = 'resourceclaims'
 
-    lab_ui_url_keys = ('bookbag_url', 'lab_ui_url', 'labUserInterfaceUrl')
+    lab_ui_url_keys = ('bookbag_url', 'lab_ui_url', 'labUserInterfaceUrl', 'showroom_primary_view_url')
 
     @classmethod
     async def handle_event(cls, event, logger):
