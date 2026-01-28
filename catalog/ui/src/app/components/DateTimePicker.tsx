@@ -130,14 +130,38 @@ const DateTimePicker: React.FC<{
     return true;
   };
 
-  const timeOptions = hours.map((hour) =>
-    minutes
-      .map((minute) => (
-        <DropdownItem key={`${hour}-${minute}`} value={formatAmPm(`${hour}:${minute}`)} component="button">
-          {formatAmPm(`${hour}:${minute}`)}
-        </DropdownItem>
-      )),
-  );
+  // Check if a time option is valid (not in the past when minDate is set)
+  const isTimeOptionValid = (hour: string, minute: string): boolean => {
+    if (!minDate) return true;
+    
+    const selectedDateObj = new Date(valueDate);
+    const minDateObj = new Date(minDate);
+    
+    // Check if selected date is the same day as minDate
+    const isSameDay = 
+      selectedDateObj.getFullYear() === minDateObj.getFullYear() &&
+      selectedDateObj.getMonth() === minDateObj.getMonth() &&
+      selectedDateObj.getDate() === minDateObj.getDate();
+    
+    if (!isSameDay) return true;
+    
+    // If same day, check if the time is in the future
+    const timeInMinutes = Number(hour) * 60 + Number(minute);
+    const minTimeInMinutes = minDateObj.getHours() * 60 + minDateObj.getMinutes();
+    
+    return timeInMinutes >= minTimeInMinutes;
+  };
+
+  const timeOptions = hours
+    .flatMap((hour) =>
+      minutes
+        .filter((minute) => isTimeOptionValid(hour, minute))
+        .map((minute) => (
+          <DropdownItem key={`${hour}-${minute}`} value={formatAmPm(`${hour}:${minute}`)} component="button">
+            {formatAmPm(`${hour}:${minute}`)}
+          </DropdownItem>
+        )),
+    );
 
   const calendar = (
     <CalendarMonth
@@ -174,7 +198,7 @@ const DateTimePicker: React.FC<{
         </MenuToggle>
       )}
     >
-      <DropdownList>{timeOptions.map((item) => item)}</DropdownList>
+      <DropdownList>{timeOptions}</DropdownList>
     </Dropdown>
   );
 
