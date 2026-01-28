@@ -20,7 +20,8 @@ const WorkshopScheduleAction: React.FC<{
   workshop: Workshop;
   workshopProvisions: WorkshopProvision[];
   setState?: React.Dispatch<React.SetStateAction<Date>>;
-}> = ({ action, resourceClaims, workshop, workshopProvisions, setState }) => {
+  setIsDisabled?: React.Dispatch<React.SetStateAction<boolean>>;
+}> = ({ action, resourceClaims, workshop, workshopProvisions, setState, setIsDisabled }) => {
   const { isAdmin } = useSession().getSession();
   let maxDate: number = null;
   let currentActionDate: Date = null;
@@ -54,6 +55,14 @@ const WorkshopScheduleAction: React.FC<{
       setState(selectedDate);
     }
   }, [setState, selectedDate, action]);
+
+  // Disable submit button if date is in the past for start-date action
+  useEffect(() => {
+    if (setIsDisabled && action === 'start-date') {
+      const isInPast = selectedDate.getTime() < Date.now();
+      setIsDisabled(isInPast);
+    }
+  }, [setIsDisabled, selectedDate, action]);
 
   const actionLabel =
     action === 'retirement' ? 'Auto-destroy' : 
