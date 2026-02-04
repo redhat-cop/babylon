@@ -101,6 +101,7 @@ const WorkshopsItemComponent: React.FC<{
   const [modalSchedule, openModalSchedule] = useModal();
   const { cache } = useSWRConfig();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
+  const [highlightAutoDestroy, setHighlightAutoDestroy] = useState(false);
   const showModal = useCallback(
     ({ action, resourceClaims }: ModalState) => {
       setModalState({ action, resourceClaims });
@@ -355,7 +356,7 @@ const WorkshopsItemComponent: React.FC<{
       const workshopUpdated = await stopWorkshop(workshop, date);
       mutateWorkshop(workshopUpdated);
     } else if (modalState.action === 'scheduleStart') {
-      const workshopUpdated = await startWorkshop(
+      let workshopUpdated = await startWorkshop(
         workshop,
         !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(new Date(date.getTime())) : null,
         !isWorkshopStarted(workshop, workshopProvisions)
@@ -363,7 +364,24 @@ const WorkshopsItemComponent: React.FC<{
           : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
         resourceClaims,
       );
+      // If workshop has readyBy date, update it to be provisioning date + lead time
+      if (workshop.spec?.lifespan?.readyBy) {
+        const newReadyByDate = new Date(date.getTime() + READY_BY_LEAD_TIME_MS);
+        workshopUpdated = await patchWorkshop({
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          patch: {
+            spec: {
+              lifespan: {
+                readyBy: dateToApiString(newReadyByDate),
+              },
+            },
+          },
+        });
+      }
       mutateWorkshop(workshopUpdated);
+      // Highlight auto-destroy in details after changing start date
+      setHighlightAutoDestroy(true);
     } else if (modalState.action === 'scheduleStartDate') {
       // Note: date here is already converted back to provisioning time by WorkshopScheduleAction
       const workshopUpdated = await startWorkshop(
@@ -375,6 +393,8 @@ const WorkshopsItemComponent: React.FC<{
         resourceClaims,
       );
       mutateWorkshop(workshopUpdated);
+      // Highlight auto-destroy in details after changing start date
+      setHighlightAutoDestroy(true);
     } else if (modalState.action === 'scheduleReadyByDate') {
       const readyByDate = new Date(date.getTime());
       // Calculate auto-stop time: 12 hours after the ready-by date
@@ -399,6 +419,8 @@ const WorkshopsItemComponent: React.FC<{
       });
       
       mutateWorkshop(workshopUpdated);
+      // Highlight auto-destroy in details after changing ready-by date
+      setHighlightAutoDestroy(true);
     }
   }
 
@@ -439,10 +461,8 @@ const WorkshopsItemComponent: React.FC<{
               ? 'retirement'
               : modalState.action === 'scheduleStart'
                 ? 'start'
-                : modalState.action === 'scheduleStartDate'
+                : modalState.action === 'scheduleStartDate' || modalState.action === 'scheduleReadyByDate'
                   ? 'start-date'
-                  : modalState.action === 'scheduleReadyByDate'
-                    ? 'ready-by-date'
                   : 'stop'
           }
           workshop={workshop}
@@ -540,6 +560,8 @@ const WorkshopsItemComponent: React.FC<{
                 workshopProvisions={workshopProvisions}
                 workshopUserAssignments={userAssigmentsList?.items || []}
                 usageCost={usageCost}
+                highlightAutoDestroy={highlightAutoDestroy}
+                onHighlightAutoDestroyComplete={() => setHighlightAutoDestroy(false)}
               />
             ) : null}
           </Tab>
