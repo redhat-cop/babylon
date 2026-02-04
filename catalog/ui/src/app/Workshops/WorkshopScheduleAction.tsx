@@ -15,7 +15,7 @@ import { getMaxRuntime } from '@app/Services/service-utils';
 const minDefault = parseDuration('6h');
 
 const WorkshopScheduleAction: React.FC<{
-  action: 'retirement' | 'stop' | 'start' | 'start-date' | 'ready-by-date';
+  action: 'retirement' | 'stop' | 'start' | 'start-date';
   resourceClaims: ResourceClaim[];
   workshop: Workshop;
   workshopProvisions: WorkshopProvision[];
@@ -34,8 +34,13 @@ const WorkshopScheduleAction: React.FC<{
     } else if (action === 'start') {
       currentActionDate = autoStartTime ? new Date(autoStartTime) : null;
     } else if (action === 'start-date') {
-      // User start date is 6 hours after provisioning time
-      currentActionDate = autoStartTime ? new Date(autoStartTime + (6 * 60 * 60 * 1000)) : null;
+      // Use readyBy date if available, otherwise calculate from provisioning time + 6 hours
+      const readyByDate = workshop.spec?.lifespan?.readyBy;
+      if (readyByDate) {
+        currentActionDate = new Date(readyByDate);
+      } else {
+        currentActionDate = autoStartTime ? new Date(autoStartTime + (6 * 60 * 60 * 1000)) : null;
+      }
     }
   } else {
     currentActionDate = autoStopTime ? new Date(autoStopTime) : null;
@@ -56,11 +61,16 @@ const WorkshopScheduleAction: React.FC<{
     }
   }, [setState, selectedDate, action]);
 
-  // Disable submit button if date is in the past for start-date action
+  // Disable submit button if date is in the past for start/start-date actions
   useEffect(() => {
-    if (setIsDisabled && action === 'start-date') {
-      const isInPast = selectedDate.getTime() < Date.now();
-      setIsDisabled(isInPast);
+    if (setIsDisabled) {
+      if (action === 'start' || action === 'start-date') {
+        const isInPast = selectedDate.getTime() < Date.now();
+        setIsDisabled(isInPast);
+      } else {
+        // Reset disabled state for other actions
+        setIsDisabled(false);
+      }
     }
   }, [setIsDisabled, selectedDate, action]);
 

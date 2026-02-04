@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
@@ -41,6 +41,7 @@ import {
   getWorkshopAutoStopTime,
   getWorkshopLifespan,
   isWorkshopLocked,
+  isWorkshopStarted,
 } from './workshops-utils';
 import { ModalState } from './WorkshopsItem';
 import WorkshopStatus from './WorkshopStatus';
@@ -61,6 +62,8 @@ const WorkshopsItemDetails: React.FC<{
   workshopUserAssignments?: WorkshopUserAssignment[];
   showModal?: ({ action, resourceClaims }: ModalState) => void;
   usageCost?: RequestUsageCost;
+  highlightAutoDestroy?: boolean;
+  onHighlightAutoDestroyComplete?: () => void;
 }> = ({
   onWorkshopUpdate,
   workshopProvisions = [],
@@ -69,6 +72,8 @@ const WorkshopsItemDetails: React.FC<{
   showModal,
   workshopUserAssignments,
   usageCost,
+  highlightAutoDestroy,
+  onHighlightAutoDestroyComplete,
 }) => {
   const { isAdmin } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
@@ -102,6 +107,27 @@ const WorkshopsItemDetails: React.FC<{
 
   const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, workshopProvisions);
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
+
+  // Ref for auto-destroy section to scroll and highlight
+  const autoDestroyRef = useRef<HTMLDivElement>(null);
+  const [autoDestroyHighlighted, setAutoDestroyHighlighted] = useState(false);
+
+  // Handle highlighting auto-destroy section when triggered from parent
+  useEffect(() => {
+    if (highlightAutoDestroy && autoDestroyRef.current) {
+      // Scroll to auto-destroy section
+      autoDestroyRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Add highlight effect
+      setAutoDestroyHighlighted(true);
+      // Remove highlight after animation and notify parent
+      const timer = setTimeout(() => {
+        setAutoDestroyHighlighted(false);
+        onHighlightAutoDestroyComplete?.();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [highlightAutoDestroy, onHighlightAutoDestroyComplete]);
 
   const onToggleClick = () => {
     setUserRegistrationSelectIsOpen(!userRegistrationSelectIsOpen);
@@ -630,24 +656,36 @@ const WorkshopsItemDetails: React.FC<{
       ) : null}
 
       {resourceClaims ? (
-        <DescriptionListGroup>
-          <DescriptionListTerm>Auto-Destroy</DescriptionListTerm>
-          <DescriptionListDescription>
-            <AutoStopDestroy
-              type="auto-destroy"
-              onClick={() => {
-                if (showModal && !isLocked) {
-                  showModal({ resourceClaims, action: 'scheduleDelete' });
-                }
-              }}
-              time={autoDestroyTime}
-              isDisabled={isLocked || !showModal}
-              variant="extended"
-              className="workshops-item__schedule-btn"
-              notDefinedMessage="- Not defined -"
-            />
-          </DescriptionListDescription>
-        </DescriptionListGroup>
+        <div ref={autoDestroyRef}>
+          <DescriptionListGroup className={autoDestroyHighlighted ? 'workshops-item-details__highlight' : ''}>
+            <DescriptionListTerm>
+              Auto-Destroy{' '}
+              {!isWorkshopStarted(workshop, workshopProvisions) && (
+                <Tooltip 
+                  content="The auto-destroy date is automatically adjusted when the start date changes to maintain the workshop lifespan."
+                  isVisible={autoDestroyHighlighted}
+                >
+                  <OutlinedQuestionCircleIcon className="workshops-item-details__info-icon" />
+                </Tooltip>
+              )}
+            </DescriptionListTerm>
+            <DescriptionListDescription>
+              <AutoStopDestroy
+                type="auto-destroy"
+                onClick={() => {
+                  if (showModal && !isLocked) {
+                    showModal({ resourceClaims, action: 'scheduleDelete' });
+                  }
+                }}
+                time={autoDestroyTime}
+                isDisabled={isLocked || !showModal}
+                variant="extended"
+                className="workshops-item__schedule-btn"
+                notDefinedMessage="- Not defined -"
+              />
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        </div>
       ) : null}
 
       {workshopProvisions.length > 0 && sfdc_enabled ? (
