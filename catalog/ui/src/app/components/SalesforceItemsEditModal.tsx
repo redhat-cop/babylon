@@ -27,11 +27,15 @@ const SalesforceItemsEditModal: React.FC<SalesforceItemsEditModalProps> = ({
 }) => {
   const [localItems, setLocalItems] = React.useState<SalesforceItem[]>(items);
   const [isSaving, setIsSaving] = React.useState(false);
+  const prevIsOpenRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (isOpen) {
+    // Only reset items when modal first opens (not when items prop changes while open)
+    // This prevents losing user input when switching browser tabs
+    if (isOpen && !prevIsOpenRef.current) {
       setLocalItems(items);
     }
+    prevIsOpenRef.current = isOpen;
   }, [items, isOpen]);
 
   const handleSave = async () => {
