@@ -61,6 +61,7 @@ import WorkshopsItemProvisioning from './WorkshopsItemProvisioning';
 import WorkshopsItemServices from './WorkshopsItemServices';
 import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
+import WorkshopInfoTab, { getWorkshopInfoMessageTemplate } from './WorkshopInfoTab';
 import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopLocked, isWorkshopStarted } from './workshops-utils';
 import Label from '@app/components/Label';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -227,6 +228,9 @@ const WorkshopsItemComponent: React.FC<{
       dedupingInterval: 3000, // Dedupe requests
     },
   );
+
+  // Check if workshop has an info message template
+  const hasInfoMessageTemplate = !!getWorkshopInfoMessageTemplate(workshop);
 
   const revalidate = useCallback(
     ({ updatedItems, action }: { updatedItems: ResourceClaim[]; action: 'update' | 'delete' }) => {
@@ -551,7 +555,7 @@ const WorkshopsItemComponent: React.FC<{
           onSelect={(e, tabIndex) => navigate(`/workshops/${serviceNamespaceName}/${workshopName}/${tabIndex}`)}
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
-            {activeTab === 'details' ? (
+            {activeTab === 'details' || !activeTab ? (
               <WorkshopsItemDetails
                 onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
                 workshop={workshop}
@@ -565,6 +569,18 @@ const WorkshopsItemComponent: React.FC<{
               />
             ) : null}
           </Tab>
+          {hasInfoMessageTemplate ? (
+            <Tab eventKey="info" key="info" title={<TabTitleText>Info</TabTitleText>}>
+              {activeTab === 'info' ? (
+                <WorkshopInfoTab
+                  workshop={workshop}
+                  resourceClaims={resourceClaims || []}
+                  workshopProvisions={workshopProvisions || []}
+                  showModal={showModal}
+                />
+              ) : null}
+            </Tab>
+          ) : null}
           {enableManageWorkshopProvisions ? (
             <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
               {activeTab === 'provision' ? (

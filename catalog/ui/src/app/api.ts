@@ -630,11 +630,12 @@ export async function createWorkshop({
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
+        ...(catalogItem.spec.messageTemplates?.info
+          ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.info) }
+          : {}),
         ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
-          ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.user) }
-          : catalogItem.spec.messageTemplates?.info
-            ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates?.info) }
-            : {}),
+          ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.user) }
+          : {}),
         [`${DEMO_DOMAIN}/scheduled`]:
           startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
