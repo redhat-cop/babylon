@@ -10,15 +10,20 @@ const SelectableTable: React.FC<{
     if (rowId === -1) {
       onSelectAll(isSelected);
     } else {
-      const rowOnSelect = rows[rowId]?.onSelect;
+      const row = rows[rowId];
+      if (row?.disableSelection) {
+        return; // Don't allow selection for disabled rows
+      }
+      const rowOnSelect = row?.onSelect;
       if (rowOnSelect) {
         rowOnSelect(isSelected);
       }
     }
   }
 
-  // Calculate if all rows are selected for the header checkbox
-  const allRowsSelected = rows.length > 0 && rows.every((row) => row.selected);
+  // Calculate if all selectable rows are selected for the header checkbox
+  const selectableRows = rows.filter((row) => !row.disableSelection);
+  const allRowsSelected = selectableRows.length > 0 && selectableRows.every((row) => row.selected);
 
   return (
     <Table aria-label="Selectable Table" variant="compact">
@@ -42,6 +47,7 @@ const SelectableTable: React.FC<{
               select={{
                 onSelect: (_event, isSelected) => onSelect(null, isSelected, rowIndex),
                 isSelected: row.selected || false,
+                isDisabled: row.disableSelection || false,
                 rowIndex,
               }}
             />

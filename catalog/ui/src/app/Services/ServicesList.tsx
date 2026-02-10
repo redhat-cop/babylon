@@ -51,6 +51,7 @@ import ServiceActions from './ServiceActions';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import renderResourceClaimRow from './renderResourceClaimRow';
 import renderWorkshopRow from './renderWorkshopRow';
+import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 
 import './services-list.css';
 
@@ -493,12 +494,18 @@ const ServicesList: React.FC<{
             }
             onSelectAll={(isSelected) => {
               if (isSelected) {
-                setSelectedUids(services.map((s) => s.metadata.uid));
+                // Exclude locked workshops from bulk selection
+                setSelectedUids(
+                  services
+                    .filter((s) => !(s.kind === 'Workshop' && isWorkshopLocked(s as Workshop)))
+                    .map((s) => s.metadata.uid)
+                );
               } else {
                 setSelectedUids([]);
               }
             }}
             rows={services.map((service: Service) => {
+              const isLocked = service.kind === 'Workshop' && isWorkshopLocked(service as Workshop);
               const selectObj = {
                 onSelect: (isSelected: boolean) =>
                   setSelectedUids((uids: string[]) => {
@@ -513,6 +520,7 @@ const ServicesList: React.FC<{
                     }
                   }),
                 selected: selectedUids.includes(service.metadata.uid),
+                disableSelection: isLocked,
               };
               if (service.kind === 'ResourceClaim') {
                 return Object.assign(

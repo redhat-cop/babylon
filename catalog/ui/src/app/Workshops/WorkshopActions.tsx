@@ -48,9 +48,10 @@ const WorkshopActions: React.FC<{
     actionDropdownItems.push(
       <ActionDropdownItem
         key="startServices"
-        isDisabled={!actionHandlers.start}
+        isDisabled={isLocked || !actionHandlers.start}
         label="Start Workshop instances"
         onSelect={actionHandlers.start}
+        icon={isLocked ? <LockedIcon /> : null}
       />,
     );
   }
