@@ -578,9 +578,9 @@ const WorkshopsItemDetails: React.FC<{
                     <AutoStopDestroy
                       type="auto-start"
                       variant="extended"
-                      onClick={() => (showModal ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null)}
+                      onClick={() => (showModal && !isLocked ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null)}
                       className="workshops-item__schedule-btn"
-                      isDisabled={!showModal}
+                      isDisabled={isLocked || !showModal}
                       time={autoStartTime}
                     />
                     <Tooltip position="right" content={<p>Select when you want the workshop provisioning to start.</p>}>
@@ -607,12 +607,12 @@ const WorkshopsItemDetails: React.FC<{
                         type="auto-start"
                         variant="extended"
                         onClick={() => {
-                          if (showModal) {
+                          if (showModal && !isLocked) {
                             showModal({ resourceClaims: [], action: 'scheduleReadyByDate' });
                           }
                         }}
                         className="workshops-item__schedule-btn"
-                        isDisabled={!showModal}
+                        isDisabled={isLocked || !showModal}
                         time={readyByDate} // Show ready by date as 8 hours after provisioning
                       />
                       <Tooltip
