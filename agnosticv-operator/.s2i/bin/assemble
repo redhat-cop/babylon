@@ -1,5 +1,5 @@
 #!/bin/bash
-AGNOSTICV_VERSION=v1.0.0-pre
+AGNOSTICV_VERSION=v1.0.0
 
 set -x
 set -eo pipefail
@@ -10,10 +10,9 @@ mkdir -p /opt/app-root/bin || :
 mkdir -p /opt/app-root/.ssh || :
 cp .ssh/known_hosts /opt/app-root/.ssh/known_hosts
 
-if [[ ! -x /opt/app-root/bin/agnosticv ]] || [[ "${AGNOSTICV_VERSION}" != "$(/opt/app-root/bin/agnosticv --version | sed -ne 's/^Version: //p')" ]];
-then
-  curl -sL --retry 5 https://github.com/redhat-cop/agnosticv/releases/download/${AGNOSTICV_VERSION}/agnosticv_linux_amd64 -o /opt/app-root/bin/agnosticv
-  chmod a+x /opt/app-root/bin/agnosticv
+if [[ ! -x /opt/app-root/bin/agnosticv ]] || [[ "${AGNOSTICV_VERSION}" != "$(/opt/app-root/bin/agnosticv --version | sed -ne 's/^Version: //p')" ]]; then
+    curl -sL --retry 5 https://github.com/redhat-cop/agnosticv/releases/download/${AGNOSTICV_VERSION}/agnosticv_linux_amd64 -o /opt/app-root/bin/agnosticv
+    chmod a+x /opt/app-root/bin/agnosticv
 fi
 
 exec /usr/libexec/s2i/assemble
