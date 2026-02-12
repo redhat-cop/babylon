@@ -103,25 +103,6 @@ const WorkshopsItemComponent: React.FC<{
   const { cache } = useSWRConfig();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
   const [highlightAutoDestroy, setHighlightAutoDestroy] = useState(false);
-  const showModal = useCallback(
-    ({ action, resourceClaims }: ModalState) => {
-      setModalState({ action, resourceClaims });
-      if (action === 'delete') {
-        openModalDelete();
-      } else if (
-        action === 'deleteService' ||
-        action === 'restartService' ||
-        action === 'startServices' ||
-        action === 'stopServices' ||
-        action === 'startWorkshop'
-      ) {
-        openModalAction();
-      } else if (action === 'scheduleDelete' || action === 'scheduleStop' || action === 'scheduleStart' || action === 'scheduleStartDate' || action === 'scheduleReadyByDate') {
-        openModalSchedule();
-      }
-    },
-    [openModalAction, openModalDelete, openModalSchedule],
-  );
   const enableFetchUserNamespaces = isAdmin;
   const enableManageWorkshopProvisions =
     isAdmin || sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
@@ -248,6 +229,31 @@ const WorkshopsItemComponent: React.FC<{
       }
     },
     [mutateRC, resourceClaims],
+  );
+
+  const showModal = useCallback(
+    async ({ action, resourceClaims: modalResourceClaims }: ModalState) => {
+      if (action === 'delete') {
+        setModalState({ action, resourceClaims: modalResourceClaims });
+        openModalDelete();
+      } else if (
+        action === 'deleteService' ||
+        action === 'restartService' ||
+        action === 'startServices' ||
+        action === 'stopServices' ||
+        action === 'startWorkshop'
+      ) {
+        setModalState({ action, resourceClaims: modalResourceClaims });
+        openModalAction();
+      } else if (action === 'scheduleDelete' || action === 'scheduleStop' || action === 'scheduleStart' || action === 'scheduleStartDate' || action === 'scheduleReadyByDate') {
+        // Fetch fresh resourceClaims before opening schedule modal to ensure we have the latest data
+        // (new resourceClaims might have been created since the last fetch)
+        const freshResourceClaims = await mutateRC();
+        setModalState({ action, resourceClaims: freshResourceClaims });
+        openModalSchedule();
+      }
+    },
+    [openModalAction, openModalDelete, openModalSchedule, mutateRC],
   );
 
   const mutateUserAssigments = useCallback(
