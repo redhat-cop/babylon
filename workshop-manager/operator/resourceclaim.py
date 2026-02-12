@@ -317,23 +317,30 @@ class ResourceClaim(K8sObject):
                 }
             }
 
-        if (start_datetime and self.start_datetime and start_datetime != self.start_datetime) \
-        or (stop_datetime and self.stop_datetime and stop_datetime != self.stop_datetime):
+        # Check if action schedule needs to be adjusted:
+        # - Start: only update if both values exist and are different
+        # - Stop: update if new value provided AND (no existing value OR values are different)
+        start_needs_update = start_datetime and self.start_datetime and start_datetime != self.start_datetime
+        stop_needs_update = stop_datetime and (not self.stop_datetime or stop_datetime != self.stop_datetime)
+
+        if start_needs_update or stop_needs_update:
             logger.info(f"Adjusting action schedule of {self}")
             if self.is_old_format:
                 resource_claim_patch.setdefault('spec', {}).setdefault('resources', [])
                 for resource in self.definition.get('spec', {}).get('resources', []):
                     resource_copy = deepcopy(resource)
                     action_schedule = resource_copy.get('template', {}).get('spec', {}).get('vars', {}).get('action_schedule', {})
-                    if start_datetime and 'start' in action_schedule:
+                    if start_needs_update and 'start' in action_schedule:
                         action_schedule['start'] = start_datetime.strftime('%FT%TZ')
-                    if stop_datetime and 'stop' in action_schedule:
+                    if stop_needs_update:
                         action_schedule['stop'] = stop_datetime.strftime('%FT%TZ')
                     resource_claim_patch['spec']['resources'].append(resource_copy)
             else:
                 resource_claim_patch.setdefault('spec', {}).setdefault('provider', {}).setdefault('parameterValues', {})
-                resource_claim_patch['spec']['provider']['parameterValues']['start_timestamp'] = start_datetime.strftime('%FT%TZ')
-                resource_claim_patch['spec']['provider']['parameterValues']['stop_timestamp'] = stop_datetime.strftime('%FT%TZ')
+                if start_needs_update:
+                    resource_claim_patch['spec']['provider']['parameterValues']['start_timestamp'] = start_datetime.strftime('%FT%TZ')
+                if stop_needs_update:
+                    resource_claim_patch['spec']['provider']['parameterValues']['stop_timestamp'] = stop_datetime.strftime('%FT%TZ')
 
         if resource_claim_patch:
             await self.merge_patch(resource_claim_patch)
