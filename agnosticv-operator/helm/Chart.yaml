@@ -3,5 +3,5 @@ apiVersion: v2
 name: babylon-agnosticv-operator
 description: Operator for managing babylon configuraion from AgnosticV repositories
 type: application
-version: 2.0.0
-appVersion: 2.0.0
+version: 0.41.5
+appVersion: 0.41.5
