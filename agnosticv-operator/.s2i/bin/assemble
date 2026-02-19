@@ -1,18 +1,21 @@
 #!/bin/bash
 AGNOSTICV_VERSION=v1.0.0
+APP_ROOT=${APP_ROOT:-/opt/app-root}
 
 set -x
 set -eo pipefail
 shopt -s dotglob
 
-mkdir -p /opt/app-root/src || :
-mkdir -p /opt/app-root/bin || :
-mkdir -p /opt/app-root/.ssh || :
-cp .ssh/known_hosts /opt/app-root/.ssh/known_hosts
+[[ -d ${APP_ROOT}/src ]] || mkdir -p ${APP_ROOT}/src
+[[ -d ${APP_ROOT}/bin ]] || mkdir -p ${APP_ROOT}/bin
+[[ -d ${APP_ROOT}/.ssh ]] || mkdir -p ${APP_ROOT}/.ssh
+cp .ssh/known_hosts ${APP_ROOT}/.ssh/known_hosts
 
-if [[ ! -x /opt/app-root/bin/agnosticv ]] || [[ "${AGNOSTICV_VERSION}" != "$(/opt/app-root/bin/agnosticv --version | sed -ne 's/^Version: //p')" ]]; then
-    curl -sL --retry 5 https://github.com/redhat-cop/agnosticv/releases/download/${AGNOSTICV_VERSION}/agnosticv_linux_amd64 -o /opt/app-root/bin/agnosticv
-    chmod a+x /opt/app-root/bin/agnosticv
+if [[ ! -x ${APP_ROOT}/bin/agnosticv ]] || [[ "${AGNOSTICV_VERSION}" != "$(${APP_ROOT}/bin/agnosticv --version | sed -ne 's/^Version: //p')" ]]; then
+    curl -sL --retry 5 https://github.com/redhat-cop/agnosticv/releases/download/${AGNOSTICV_VERSION}/agnosticv_linux_amd64 -o ${APP_ROOT}/bin/agnosticv
+    chmod a+x ${APP_ROOT}/bin/agnosticv
 fi
 
-exec /usr/libexec/s2i/assemble
+if [[ -z "$RUN_LOCAL" ]]; then
+    exec /usr/libexec/s2i/assemble
+fi
