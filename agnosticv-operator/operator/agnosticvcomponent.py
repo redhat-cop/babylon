@@ -159,18 +159,21 @@ class AgnosticVComponent(KopfObject):
         """
         description = self.catalog_meta.get('description', {})
         if isinstance(description, dict):
-            return description
+            return {
+                "content": self.catalog_description_content,
+                "format": self.catalog_description_format,
+            }
         return {}
 
     @property
     def catalog_description_content(self):
-        return self.catalog_description.get('content',
+        return self.catalog_meta.get('description', {}).get('content',
             "Missing description, please add description.adoc or description.html in agnosticv."
         ).rstrip()
 
     @property
     def catalog_description_format(self):
-        return self.catalog_description.get('format', 'asciidoc')
+        return self.catalog_meta.get('description', {}).get('format', 'asciidoc')
 
     @property
     def catalog_disable(self):
@@ -228,8 +231,10 @@ class AgnosticVComponent(KopfObject):
         return self.__meta__.get('catalog', {})
 
     @property
-    def catalog_multiuser(self):
-        return self.catalog_meta.get('multiuser', False)
+    def catalog_multiuser(self) -> bool:
+        """Deprecated flag to indicate workshop user mode.
+        Single and multi user is considered "multiuser" because they both report `users`."""
+        return self.catalog_workshop_user_mode != 'none'
 
     @property
     def catalog_owners(self):
@@ -258,6 +263,18 @@ class AgnosticVComponent(KopfObject):
     @property
     def catalog_workshop_ui_max_instances(self):
         return self.catalog_meta.get('workshopUiMaxInstances', 30)
+
+    @property
+    def catalog_workshop_user_mode(self) -> str:
+        """Workshop user handling."""
+        # Check if explicitly declared.
+        if 'workshop_user_mode' in self.catalog_meta:
+            return self.catalog_meta['workshop_user_mode']
+        # Fallback to deprecated multiuser boolean
+        if self.catalog_meta.get('multiuser'):
+            return "multi"
+        # Otherwise default to "none"
+        return "none"
 
     @property
     def definition(self):
@@ -548,6 +565,7 @@ class AgnosticVComponent(KopfObject):
                 "displayName": self.catalog_display_name,
                 "keywords": self.catalog_keywords,
                 "lastUpdate": self.last_update,
+                "workshopUserMode": self.catalog_workshop_user_mode,
             }
         }
 
@@ -560,9 +578,6 @@ class AgnosticVComponent(KopfObject):
 
         if self.access_control:
             definition['spec']['accessControl'] = self.access_control
-
-        if self.bookbag:
-            definition['spec']['bookbag'] = self.bookbag
 
         for key, value in self.catalog_labels.items():
             definition['metadata']['labels'][f"{Babylon.catalog_api_group}/{key}"] = value
@@ -578,26 +593,9 @@ class AgnosticVComponent(KopfObject):
             for catalog_parameter in self.catalog_parameters:
                 parameter = {
                     key: value for key, value in catalog_parameter.items()
-                    if key not in ('components', 'resourceIndexes')
+                    if key not in {'components', 'variable'}
                 }
                 definition['spec']['parameters'].append(parameter)
-                # Compatibility with deprecated resourceIndexes
-                if 'components' in catalog_parameter:
-                    resource_indexes = set()
-                    for component in catalog_parameter['components']:
-                        component_name = component['name']
-                        if component_name == 'all':
-                            for idx in range(len(self.linked_components)):
-                                resource_indexes.add(idx)
-                            if self.deployer_type:
-                                resource_indexes.add(len(self.linked_components))
-                        elif component_name == 'current':
-                            resource_indexes.add(len(catalog_parameter['components']))
-                        else:
-                            for idx, linked_component in enumerate(self.linked_components):
-                                if linked_component.name == component_name:
-                                    resource_indexes.add(idx)
-                    parameter['resourceIndexes'] = list(resource_indexes)
     
         if self.catalog_terms_of_service:
             definition['spec']['termsOfService'] = self.catalog_terms_of_service
@@ -657,6 +655,9 @@ class AgnosticVComponent(KopfObject):
             if len(self.catalog_owners) > 0:
                 definition['spec']['owners'] = self.catalog_owners
 
+            if self.deployer_provision_time_estimate:
+                definition['spec']['provisionTimeEstimate'] = self.deployer_provision_time_estimate
+
             if self.catalog_workshop_lab_ui_redirect:
                 definition['spec']['workshopLabUiRedirect'] = self.catalog_workshop_lab_ui_redirect
 
@@ -664,9 +665,6 @@ class AgnosticVComponent(KopfObject):
                 definition['spec']['workshopUiDisabled'] = True
             else:
                 definition['spec']['workshopUiMaxInstances'] = self.catalog_workshop_ui_max_instances
-
-            if self.deployer_provision_time_estimate:
-                definition['spec']['provisionTimeEstimate'] = self.deployer_provision_time_estimate
 
         return definition
 

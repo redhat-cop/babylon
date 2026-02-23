@@ -33,7 +33,551 @@ spec:
           spec:
             description: Specification of CatalogItem
             type: object
-            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              accessControl:
+                description: >-
+                  Access control settings.
+                  Access control is exposed through catalog item if configured and is also applied to requests which bypass the catalog by using the API.
+                type: object
+                properties:
+                  allowGroups:
+                    description: >-
+                      List of user group names to allow.
+                      Group names are OpenShift user groups.
+                      If set then only these groups are allowed to access the item.
+                      If unset then all groups are allowed.
+                    type: array
+                    items:
+                      type: string
+                  denyGroups:
+                    description: >-
+                      List of user group names to deny.
+                      Deny overrides allow and view-only.
+                    type: array
+                    items:
+                      type: string
+                  viewOnlyGroups:
+                    description: >-
+                      List of user group names to allow to view catalog items but not order.
+                      Allow and deny both override view-only.
+                    type: array
+                    items:
+                      type: string
+              agnosticvRepo:
+                description:
+                  Information about source AgnosticV repository.
+                type: object
+                properties:
+                  git:
+                    type: object
+                    properties:
+                      ref:
+                        type: string
+                      url:
+                        type: string
+                  name:
+                    type: string
+              category:
+                type: string
+              description:
+                description: >-
+                  Description of catalog item.
+                type: object
+                required:
+                  - content
+                  - format
+                properties:
+                  content:
+                    description: >-
+                      Catalog item description content in HTML or AsciiDoc
+                    type: string
+                  format:
+                    description: >-
+                      Description content format. May be "asciidoc" or "html".
+                    type: string
+                    enum:
+                      - asciidoc
+                      - html
+              displayName:
+                description: >-
+                  Display name for catalog item.
+                type: string
+              email:
+                type: object
+                properties:
+                  from:
+                    type: string
+              externalUrl:
+                description: >-
+                  Display name for catalog item.
+                type: string
+              icon:
+                type: object
+                properties:
+                  alt:
+                    type: string
+                  url:
+                    type: string
+              keywords:
+                type: array
+                items:
+                  type: string
+              lastUpdate:
+                type: object
+                properties:
+                  git:
+                    type: object
+                    properties:
+                      author:
+                        type: string
+                      committer:
+                        type: string
+                      hash:
+                        type: string
+                      message:
+                        type: string
+                      when_author:
+                        type: string
+                      when_committer:
+                        type: string
+              lifespan:
+                type: object
+                properties:
+                  default:
+                    type: string
+                  maximum:
+                    type: string
+                  relativeMaximum:
+                    type: string
+              linkedComponents:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    displayName:
+                      type: string
+                    name:
+                      type: string
+              messageTemplates:
+                type: object
+                properties:
+                  info:
+                    type: object
+                    properties:
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - asciidoc
+                  provisionFailed:
+                    description: >-
+                      Configuration to send notification that provision failed.
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                  provisionStarted:
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                  retirementScheduled:
+                    description: >-
+                      Configuration to send notification that retirement date is approaching when
+                      service will be automatically deleted.
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                      timeIntervalBeforeRetirement:
+                        description: >-
+                          Configure time interval before automatic delete when to send notification.
+                        type: string
+                  serviceDeleted:
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                  serviceReady:
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                  startComplete:
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                  startFailed:
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                  stopComplete:
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                  stopFailed:
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                  stopScheduled:
+                    type: object
+                    properties:
+                      disable:
+                        type: boolean
+                      emailSubject:
+                        type: string
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - jinja2
+                  user:
+                    description: >-
+                      Message template to present to users of a multi-user service.
+                    type: object
+                    properties:
+                      outputFormat:
+                        type: string
+                        enum:
+                          - html
+                      template:
+                        type: string
+                      templateFormat:
+                        type: string
+                        enum:
+                          - asciidoc
+              multiuser:
+                description: >-
+                  Boolean flag to indicate if the catalog item provisions infrastructure for a multi-user catalog item.
+                  If set then a ".user" catalog item will be created in addition to the infra catalog item.
+                type: boolean
+              owners:
+                description: >-
+                  Who owns this catalog item.
+                  Who can be called upon to fix breaking catalog items?
+                  Who should be notified in case of major catalog item changes?
+                type: object
+                required:
+                  - maintainer
+                properties:
+                  maintainer:
+                    description: >-
+                      Mandatory.
+                      Who are the primary maintainers of this catalog item.
+                      There can be one or more maintainers. Maintainers must be Red Hat employees.
+                    type: array
+                    minItems: 1
+                    items:
+                      type: object
+                      required:
+                        - email
+                        - name
+                      properties:
+                        email:
+                          description: >-
+                            email of the maintainer.
+                          type: string
+                        name:
+                          description: >-
+                            Full name of the maintainer.
+                          type: string
+              parameters:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    annotation:
+                      description: >-
+                        Annotation to set for this form parameter.
+                        If annotation is set then by default no deployer job variable is set unless a variable name is specifically configured.
+                      type: string
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                    description:
+                      description: >-
+                        Description of this parameter for the user to understand its function.
+                      type: string
+                    formLabel:
+                      description: >-
+                        Form label for this parameter.
+                      type: string
+                    formGroup:
+                      description: >-
+                        Form group label which should be used to group together parameters.
+                        This is useful to group boolean checkboxes under a common heading.
+                      type: string
+                    formDisableCondition:
+                      description: >-
+                        JavaScript statement used to determine whether a parameter should be disabled on the form.
+                        Parameter values may be accessed as variables by parameter name.
+                        If a true value is return then the form element for this parameter will appear disabled.
+                      type: string
+                    formHideCondition:
+                      description: >-
+                        JavaScript statement used to determine whether a parameter should be hidden on the form.
+                        Parameter values may be accessed as variables by parameter name.
+                        If a true value is return then the form element for this parameter will not appear on the form.
+                      type: string
+                    formRequireCondition:
+                      description: >-
+                        JavaScript statement used to detrimen when a parameter is required.
+                        Parameter values may be accessed as variables by parameter name.
+                      type: string
+                    name:
+                      description: >-
+                        Parameter name and default value for variable name.
+                      type: string
+                      pattern: ^[a-zA-Z_][a-z-A-Z_0-9]+$
+                    openAPIV3Schema:
+                      description: >-
+                        OpenAPIv3 schema used to validate parameter value.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    required:
+                      description: >-
+                        Boolean flag to indicate whether the parameter is required.
+                      type: boolean
+                    sandboxCloudSelectors:
+                      description: sandboxCloudSelectors used to validate the availability of the CI.
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - annotation
+                          - kind
+                        properties:
+                          annotation:
+                            type: string
+                            description: The name of the sandbox property (e.g., virt).
+                          kind:
+                            type: string
+                            description: The type of sandbox environment (e.g., OcpSandbox).
+                    validation:
+                      description: >-
+                        JavaScript statement used to validate form parameter value.
+                        Parameter values may be accessed as variables by parameter name.
+                        The function `check_salesforce_id` is available to validate Salesforce (SFDC) ids.
+                        Code may return a javascript Error object with a message to show the user.
+                        Example: `user_count * 10 < worker_instance_count || Error("Maximum of ten users per worker instance.")`
+                      type: string
+                    value:
+                      description: >-
+                        Default value for parameter.
+                        If not specified then openApiV3Schema will be checked for default.
+                      type: string
+              provisionTimeEstimate:
+                type: string
+              resources:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    provider:
+                      type: object
+                      properties:
+                        apiVersion:
+                          type: string
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+              runtime:
+                type: object
+                properties:
+                  default:
+                    type: string
+                  maximum:
+                    type: string
+              termsOfService:
+                description:
+                  HTML content for terms of service to appear on the service request form.
+                type: string
+              workshopLabUiRedirect:
+                description: >-
+                  Boolean flag to indicate that by default workshops should redirect users to the lab interface URL, if available.
+                type: boolean
+              workshopUiDisabled:
+                description: >-
+                  Boolean flag to indicate if the catalog item shoud not support the ability to enable the Workshop User Interface.
+                type: boolean
+              workshopUiMaxInstances:
+                description: >-
+                  Maximum number of instances supported in a single the workshop. 0 means no limit.
+                type: integer
+              workshopUserMode:
+                type: string
+                enum:
+                - multi
+                - none
+                - single
+              zerotouchAccess:
+                description: >-
+                  Zerotouch access configuration.
+                type: object
+                properties:
+                  enable:
+                    description: >-
+                      Boolean to indicate whether an item should be available in the zerotouch interface on zero.rhdp.net.
+                    type: boolean
+                  lifespan:
+                    description: >-
+                      Lifespan for item when ordered through zerotouch interface.
+                      Format is whole number followed by time unit: "d", "h", "m", or "s".
+                      For example, "90m" for ninety minutes.
+                    type: string
+                    pattern: ^[0-9]+[dhms]$
+                  limits:
+                    description: >-
+                      Usage limits when ordered through the zerotouch interface.
+                      Limits are applied across all items so, for example, if a limit is
+                      five per twenty-four hour period then the user will be unable to order
+                      this item if they have had five of any zerotouch items in the last twenty-four
+                      hour period.
+                    type: object
+                    properties:
+                      user:
+                        description: >-
+                          Limits to apply based on the SSO user ordering the item.
+                          Each unit is a number and a time period.
+                          The usage must be under all configured limits to be allowed.
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - count
+                            - timePeriod
+                          properties:
+                            count:
+                              type: integer
+                            timePeriod:
+                              type: string
+                              pattern: ^[0-9]+[dhms]$
+
           status:
             description: Status of CatalogItem
             type: object
