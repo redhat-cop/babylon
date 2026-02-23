@@ -6,9 +6,9 @@ set -x
 set -eo pipefail
 shopt -s dotglob
 
-[[ -d ${APP_ROOT}/src ]] || mkdir -p ${APP_ROOT}/src
-[[ -d ${APP_ROOT}/bin ]] || mkdir -p ${APP_ROOT}/bin
-[[ -d ${APP_ROOT}/.ssh ]] || mkdir -p ${APP_ROOT}/.ssh
+mkdir -p ${APP_ROOT}/src
+mkdir -p ${APP_ROOT}/bin
+mkdir -p ${APP_ROOT}/.ssh
 cp .ssh/known_hosts ${APP_ROOT}/.ssh/known_hosts
 
 if [[ ! -x ${APP_ROOT}/bin/agnosticv ]] || [[ "${AGNOSTICV_VERSION}" != "$(${APP_ROOT}/bin/agnosticv --version | sed -ne 's/^Version: //p')" ]]; then
