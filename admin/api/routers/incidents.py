@@ -65,6 +65,7 @@ async def update_incident(incident_id: int, incident: IncidentCreate):
         incident_db.level = incident.level
         incident_db.message = incident.message
         incident_db.interface = incident.interface
+        incident_db.is_highlighted = incident.is_highlighted
         incident_db = await incident_db.save()
         return incident_db.to_dict(True)
     except HTTPException:

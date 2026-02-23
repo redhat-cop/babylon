@@ -46,6 +46,7 @@ class IncidentSchema(BaseModel):
     interface: str = Field(..., description="Interface origin of the incident")
     level: IncidentLevel = Field(..., description="Level of the incident")
     message: str = Field(None, description="Message of the incident")
+    is_highlighted: bool = Field(False, description="Whether the incident is highlighted")
     created_at: datetime = Field(None, description="Date of creation of the incident")
     updated_at: datetime = Field(None, description="Date of update of the incident")
 
@@ -60,3 +61,4 @@ class IncidentCreate(BaseModel):
     message: str = Field(..., description="Message of the incident")
     incident_type: IncidentType = Field(default='general', description="Type of the incident")
     interface: str = Field(..., description="Interface origin of the incident")
+    is_highlighted: bool = Field(default=False, description="Whether the incident is highlighted")
