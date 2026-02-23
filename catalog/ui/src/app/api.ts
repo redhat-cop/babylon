@@ -479,7 +479,7 @@ export async function createServiceRequest({
         ...(catalogItem.spec.messageTemplates?.info
           ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.info) }
           : {}),
-        ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
+        ...(catalogItem.spec.workshopUserMode !== 'none' && catalogItem.spec.messageTemplates?.user
           ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.user) }
           : {}),
         [`${DEMO_DOMAIN}/scheduled`]:
@@ -633,7 +633,7 @@ export async function createWorkshop({
         ...(catalogItem.spec.messageTemplates?.info
           ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.info) }
           : {}),
-        ...(catalogItem.spec.multiuser && catalogItem.spec.messageTemplates?.user
+        ...(catalogItem.spec.workshopUserMode !== 'none' && catalogItem.spec.messageTemplates?.user
           ? { [`${DEMO_DOMAIN}/user-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.user) }
           : {}),
         [`${DEMO_DOMAIN}/scheduled`]:
@@ -644,7 +644,7 @@ export async function createWorkshop({
       },
     },
     spec: {
-      multiuserServices: catalogItem.spec.multiuser,
+      multiuserServices: catalogItem.spec.worshopUserMode !== 'none',
       openRegistration: openRegistration,
       lifespan: {
         ...(startDate ? { start: dateToApiString(startDate) } : {}),

@@ -181,9 +181,9 @@ export interface CatalogItemSpec {
     startComplete?: MessageTemplate;
     stopComplete?: MessageTemplate;
   };
-  multiuser?: boolean;
   workshopUiDisabled?: boolean;
   workshopUiMaxInstances?: number;
+  workshopUserMode?: string;
   parameters?: CatalogItemSpecParameter[];
   provisionTimeEstimate?: string;
   resources?: any[];

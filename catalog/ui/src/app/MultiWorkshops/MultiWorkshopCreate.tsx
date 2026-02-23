@@ -270,7 +270,7 @@ const MultiWorkshopCreate: React.FC = () => {
 
         // For multiuser catalog items, don't multiply by seats (one instance serves all users)
         // For single-user catalog items, multiply by seats (each user needs their own instance)
-        const isMultiuser = catalogItem?.spec?.multiuser === true;
+        const isMultiuser = catalogItem?.spec?.workshopUserMode === 'multi';
         totalHourlyCost += isMultiuser ? hourlyCost : hourlyCost * createFormData.numberSeats;
         hasCostData = true;
       }

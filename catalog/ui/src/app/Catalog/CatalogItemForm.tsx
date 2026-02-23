@@ -109,10 +109,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       description: '<p></p>',
       displayName: _displayName,
       provisionCount: 1,
-      provisionConcurrency: catalogItem.spec.multiuser ? 1 : 10,
+      provisionConcurrency: catalogItem.spec.workshopUserMode === 'multi' ? 1 : 10,
       provisionStartDelay: 30,
     }),
-    [_displayName, catalogItem.spec.multiuser],
+    [_displayName, catalogItem.spec.workshopUserMode === 'multi'],
   );
 
   const onToggleClick = () => {
@@ -679,7 +679,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 position="right"
                 isContentLeftAligned
                 content={
-                  catalogItem.spec.multiuser ? (
+                  catalogItem.spec.workshopUserMode === 'multi' ? (
                     <p>Setup a user interface for the workshop attendees to access their credentials.</p>
                   ) : (
                     <ul>
@@ -1053,7 +1053,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 </Tooltip>
               </div>
             </FormGroup>
-            {catalogItem.spec.multiuser ? null : (
+            {catalogItem.spec.workshopUserMode === 'multi' ? null : (
               <>
                 <FormGroup key="provisionCount" fieldId="workshopProvisionCount" label="Workshop User Count">
                   <div className="catalog-item-form__group-control--single">
