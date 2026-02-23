@@ -644,7 +644,7 @@ export async function createWorkshop({
       },
     },
     spec: {
-      multiuserServices: catalogItem.spec.worshopUserMode !== 'none',
+      multiuserServices: catalogItem.spec.workshopUserMode !== 'none',
       openRegistration: openRegistration,
       lifespan: {
         ...(startDate ? { start: dateToApiString(startDate) } : {}),
