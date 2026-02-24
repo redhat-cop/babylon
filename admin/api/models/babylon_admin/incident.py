@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Optional, List
 from sqlalchemy import (
+    Boolean,
     Column,
     CheckConstraint,
     Integer,
@@ -27,6 +28,7 @@ class Incident(CustomBase):
     level = Column(String)
     interface = Column(String)
     message = Column(Text)
+    is_highlighted = Column(Boolean, default=False, nullable=False)
 
     async def check_existing(self) -> Optional[Incident]:
         async with db.get_session() as session:

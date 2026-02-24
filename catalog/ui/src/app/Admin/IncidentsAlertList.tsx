@@ -29,16 +29,18 @@ const initialState: IncidentData = {
   level: 'info',
   incident_type: 'general',
   status: 'active',
+  is_highlighted: false,
 };
 function reducer(
   state: IncidentData,
   action: {
-    type: 'clear_state' | 'edit_incident' | 'new_incident' | 'set_status' | 'set_message' | 'set_level';
+    type: 'clear_state' | 'edit_incident' | 'new_incident' | 'set_status' | 'set_message' | 'set_level' | 'set_is_highlighted';
     incident?: IncidentData;
     message?: string;
     status?: 'active' | 'resolved';
     level?: 'info' | 'critical' | 'warning';
     interface?: string;
+    is_highlighted?: boolean;
   },
 ) {
   switch (action.type) {
@@ -54,6 +56,7 @@ function reducer(
         message: action.incident.message,
         status: action.incident.status,
         interface: action.incident.interface,
+        is_highlighted: action.incident.is_highlighted,
       };
     }
     case 'new_incident': {
@@ -67,6 +70,9 @@ function reducer(
     }
     case 'set_level': {
       return { ...state, level: action.level };
+    }
+    case 'set_is_highlighted': {
+      return { ...state, is_highlighted: action.is_highlighted };
     }
   }
 }
@@ -107,6 +113,7 @@ const IncidentsAlertList: React.FC = () => {
         level: incident.level,
         message: incident.message,
         interface: incident.interface,
+        is_highlighted: incident.is_highlighted,
       }),
     });
 
@@ -181,6 +188,17 @@ const IncidentsAlertList: React.FC = () => {
                   </SelectOption>
                 </SelectList>
               </Select>
+            </div>
+          </FormGroup>
+          <FormGroup fieldId="is_highlighted" label="Display as banner" hasNoPaddingTop>
+            <div className="incidents__form-group-control--single">
+              <Switch
+                id="incidents__form-highlighted"
+                aria-label="Display as banner"
+                label="Show as banner instead of notification"
+                isChecked={state.is_highlighted}
+                onChange={(_event, v) => dispatch({ type: 'set_is_highlighted', is_highlighted: v })}
+              />
             </div>
           </FormGroup>
         </Form>

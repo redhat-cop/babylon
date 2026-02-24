@@ -48,7 +48,7 @@ const IncidentsBanner: React.FC = () => {
   return (
     <>
       {data
-        .filter((i) => !closedItems.find((c) => c.id === i.id))
+        .filter((i) => i.is_highlighted && !closedItems.find((c) => c.id === i.id))
         .map((i) => (
           <Banner
             key={i.id}

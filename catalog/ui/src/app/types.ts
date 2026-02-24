@@ -744,6 +744,7 @@ export type Incident = {
   level: 'info' | 'warning' | 'critical';
   message: string;
   status: 'active' | 'resolved';
+  is_highlighted: boolean;
   created_at: string;
   updated_at: string;
 };

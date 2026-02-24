@@ -68,6 +68,8 @@ import CatalogContent from './CatalogContent';
 import LoadingSection from '@app/components/LoadingSection';
 
 import './catalog.css';
+import IncidentsBanner from '@app/components/IncidentsBanner';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
 function handleExportCsv(catalogItems: CatalogItem[]) {
   const annotations = [];
@@ -222,6 +224,7 @@ export async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]>
 const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ userHasRequiredPropertiesToAccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { incidents_enabled } = useInterfaceConfig();
   const [searchParams, setSearchParams] = useSearchParams();
   const { namespace: catalogNamespaceName } = useParams();
   const showFavorites = searchParams.has('favorites') ? searchParams.get('favorites') === 'true' : false;
@@ -600,6 +603,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
 
   return (
     <>
+      {incidents_enabled ? <IncidentsBanner /> : null}
       <Drawer isExpanded={openCatalogItem ? true : false}>
         <DrawerContent
           panelContent={
