@@ -1,0 +1,51 @@
+# Babylon Service Access Manager
+
+## Development OpenShift Build
+
+The OpenShift build process is a bit slower for development but has the advantage of being a bit closer to a normal deployment of the babylon-workshop-manager.
+It is often best to iterate development using `odo` and also test with an OpenShift build and deployment prior to opening a pull request.
+
+. Create a project for development using `oc`:
++
+-----------------------------------------------
+oc new-project babylon-workshop-manager-dev
+-----------------------------------------------
+
+. Process OpenShift build template to create BuildConfig and ImageStream:
++
+---------------------------------------------------------
+oc process --local -f build-template.yaml | oc apply -f -
+---------------------------------------------------------
+
+. Build babylon-workshop-manager image from local source:
++
+------------------------------------------------------------------
+oc start-build babylon-workshop-manager --from-dir=.. --follow
+------------------------------------------------------------------
+
+. Deploy babylon-workshop-manager from build image
++
+--------------------------------------------------------------------------------
+helm template helm \
+--set nameOverride=babylon-workshop-manager-dev \
+--set namespace.create=false \
+--set=image.override="$(oc get imagestream babylon-workshop-manager -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}')" \
+| oc apply -f -
+--------------------------------------------------------------------------------
+
+. Cleanup
++
+Remove resources created from the helm template:
++
+-----------------------------------------------------
+helm template helm \
+--set nameOverride=babylon-workshop-manager-dev \
+--set namespace.create=false \
+| oc delete -f -
+-----------------------------------------------------
++
+Remove BuildConfig and ImageStream:
++
+----------------------------------------------------------
+oc process --local -f build-template.yaml | oc delete -f -
+----------------------------------------------------------

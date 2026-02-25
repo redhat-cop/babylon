@@ -1,0 +1,220 @@
+from datetime import datetime, timezone
+
+from kubernetes_asyncio.client.rest import ApiException as k8sApiException
+from kubernetes_asyncio.client.models import V1OwnerReference
+
+from babylon import Babylon
+
+class K8sObject:
+    @classmethod
+    async def create(cls, definition):
+        namespace = definition['metadata'].get('namespace')
+        if namespace is None:
+            return cls(
+                await Babylon.custom_objects_api.create_cluster_custom_object(
+                    group = cls.api_group,
+                    plural = cls.plural,
+                    version = cls.api_version,
+                    body = definition,
+                )
+            )
+
+        return cls(
+            await Babylon.custom_objects_api.create_namespaced_custom_object(
+                group = cls.api_group,
+                namespace = namespace,
+                plural = cls.plural,
+                version = cls.api_version,
+                body = definition,
+            )
+        )
+
+    @classmethod
+    async def fetch(cls, name, namespace=None):
+        return cls(await cls.fetch_definition(name, namespace))
+
+    @classmethod
+    async def fetch_definition(cls, name, namespace=None):
+        if namespace is None:
+            return await Babylon.custom_objects_api.get_cluster_custom_object(
+                group = cls.api_group,
+                name = name,
+                plural = cls.plural,
+                version = cls.api_version,
+            )
+
+        return await Babylon.custom_objects_api.get_namespaced_custom_object(
+            group = cls.api_group,
+            name = name,
+            namespace = namespace,
+            plural = cls.plural,
+            version = cls.api_version,
+        )
+
+    @classmethod
+    async def list(cls, label_selector=None, namespace=None):
+        _continue = None
+        while True:
+            if namespace is None:
+                obj_list = await Babylon.custom_objects_api.list_cluster_custom_object(
+                    group = cls.api_group,
+                    label_selector = label_selector,
+                    plural = cls.plural,
+                    version = cls.api_version,
+                    limit = 20,
+                    _continue = _continue
+                )
+            else:
+                obj_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
+                    group = cls.api_group,
+                    label_selector = label_selector,
+                    namespace = namespace,
+                    plural = cls.plural,
+                    version = cls.api_version,
+                    limit = 20,
+                    _continue = _continue
+                )
+            for definition in obj_list.get('items', []):
+                yield cls(definition=definition)
+            _continue = obj_list['metadata'].get('continue')
+            if not _continue:
+                return
+
+    def __init__(self, definition):
+        self.definition = definition
+
+    def __str__(self):
+        if self.namespace is None:
+            return f"{self.kind} {self.name}"
+        return f"{self.kind} {self.name} in {self.namespace}"
+
+    @property
+    def annotations(self):
+        return self.metadata.get('annotations', {})
+
+    @property
+    def api_group_version(self):
+        return f"{self.api_group}/{self.api_version}"
+
+    @property
+    def creation_datetime(self):
+        return datetime.strptime(
+            self.creation_timestamp, '%Y-%m-%dT%H:%M:%SZ'
+        ).replace(tzinfo=timezone.utc)
+
+    @property
+    def creation_timestamp(self):
+        return self.metadata['creationTimestamp']
+
+    @property
+    def deletion_timestamp(self) -> str|None:
+        return self.metadata.get('deletionTimestamp')
+
+    @property
+    def labels(self):
+        return self.metadata.get('labels', {})
+
+    @property
+    def metadata(self):
+        return self.definition['metadata']
+
+    @property
+    def name(self):
+        return self.metadata['name']
+
+    @property
+    def namespace(self):
+        return self.metadata.get('namespace')
+
+    @property
+    def spec(self):
+        return self.definition['spec']
+
+    @property
+    def status(self):
+        return self.definition.get('status', {})
+
+    @property
+    def uid(self):
+        return self.metadata['uid']
+
+    def as_owner_reference(self):
+        return V1OwnerReference(
+            api_version=self.api_group_version,
+            controller=True,
+            kind=self.kind,
+            name=self.name,
+            uid=self.uid,
+        )
+
+    def as_owner_reference_dict(self):
+        return {
+            "apiVersion": self.api_group_version,
+            "controller": True,
+            "kind": self.kind,
+            "name": self.name,
+            "uid": self.uid,
+        }
+
+    async def delete(self):
+        try:
+            if self.namespace is None:
+                self.definition = await Babylon.custom_objects_api.delete_cluster_custom_object(
+                    group = self.api_group,
+                    name = self.name,
+                    plural = self.plural,
+                    version = self.api_version,
+                )
+            else:
+                self.definition = await Babylon.custom_objects_api.delete_namespaced_custom_object(
+                    group = self.api_group,
+                    name = self.name,
+                    namespace = self.namespace,
+                    plural = self.plural,
+                    version = self.api_version,
+                )
+        except k8sApiException as exception:
+            if exception.status != 404:
+                raise
+
+    async def merge_patch(self, patch):
+        if self.namespace is None:
+            self.definition = await Babylon.custom_objects_api.patch_cluster_custom_object(
+                group = self.api_group,
+                name = self.name,
+                plural = self.plural,
+                version = self.api_version,
+                body = patch,
+                _content_type = 'application/merge-patch+json',
+            )
+        else:
+            self.definition = await Babylon.custom_objects_api.patch_namespaced_custom_object(
+                group = self.api_group,
+                name = self.name,
+                namespace = self.namespace,
+                plural = self.plural,
+                version = self.api_version,
+                body = patch,
+                _content_type = 'application/merge-patch+json',
+            )
+
+    async def merge_patch_status(self, patch):
+        if self.namespace is None:
+            self.definition = await Babylon.custom_objects_api.patch_cluster_custom_object_status(
+                group = self.api_group,
+                name = self.name,
+                plural = self.plural,
+                version = self.api_version,
+                body = {"status": patch},
+                _content_type = 'application/merge-patch+json',
+            )
+        else:
+            self.definition = await Babylon.custom_objects_api.patch_namespaced_custom_object_status(
+                group = self.api_group,
+                name = self.name,
+                namespace = self.namespace,
+                plural = self.plural,
+                version = self.api_version,
+                body = {"status": patch},
+                _content_type = 'application/merge-patch+json',
+            )
