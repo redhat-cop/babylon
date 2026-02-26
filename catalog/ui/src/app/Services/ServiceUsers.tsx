@@ -7,6 +7,7 @@ import {
 } from '@patternfly/react-core';
 import { renderContent, BABYLON_DOMAIN } from '@app/util';
 import { ResourceClaim } from '@app/types';
+import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 
 const UserMessage: React.FC<{
   userName: string;
@@ -36,7 +37,7 @@ const UserMessage: React.FC<{
           <DescriptionListGroup>
             <DescriptionListTerm>Lab URL</DescriptionListTerm>
             <DescriptionListDescription>
-              <a href={userLabUrl}>{userLabUrl}</a>
+              <a href={userLabUrl} target="_blank" rel="noopener noreferrer">{userLabUrl} <ExternalLinkAltIcon /></a>
             </DescriptionListDescription>
           </DescriptionListGroup>
         ) : null}
