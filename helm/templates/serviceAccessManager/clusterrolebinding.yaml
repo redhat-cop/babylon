@@ -1,0 +1,19 @@
+{{- $serviceAccessManager := .Values.serviceAccessManager }}
+{{- if and $serviceAccessManager.deploy }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: babylon-service-access-manager
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: service-access-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: babylon-service-access-manager
+subjects:
+- kind: ServiceAccount
+  name: babylon-service-access-manager
+  namespace: {{ $serviceAccessManager.namespace.name }}
+{{- end }}

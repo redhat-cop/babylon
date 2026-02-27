@@ -1,0 +1,55 @@
+{{- $serviceAccessManager := .Values.serviceAccessManager }}
+{{ if $serviceAccessManager.deploy }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-service-access-manager
+  namespace: {{ $serviceAccessManager.namespace.name }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: service-access-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: service-access-manager
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: service-access-manager
+    spec:
+      containers:
+      - name: service-access-manager
+        image: {{ $serviceAccessManager.image.repository }}:{{ $serviceAccessManager.image.tag }}
+        imagePullPolicy: {{ $serviceAccessManager.image.pullPolicy }}
+        resources:
+          {{- toYaml $serviceAccessManager.resources | nindent 10 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      {{- with $serviceAccessManager.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $serviceAccessManager.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: babylon-service-access-manager
+      terminationGracePeriodSeconds: 30
+      {{- with $serviceAccessManager.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $serviceAccessManager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{ end }}
