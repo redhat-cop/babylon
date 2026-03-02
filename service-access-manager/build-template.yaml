@@ -1,0 +1,48 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  annotations:
+    description: babylon-service-access-manager deploy
+  name: babylon-service-access-manager-build
+
+parameters:
+- name: NAME
+  value: babylon-service-access-manager
+- name: GIT_REPO
+  value: https://github.com/redhat-cop/babylon.git
+- name: GIT_REF
+  value: main
+
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: ${NAME}
+  spec:
+    lookupPolicy:
+      local: false
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      contextDir: service-access-manager
+      git:
+        uri: ${GIT_REPO}
+        ref: ${GIT_REF}
+    strategy:
+      type: Source
+      dockerStrategy:
+        dockerfilePath: Containerfile
+        forcePull: true
+    triggers: []

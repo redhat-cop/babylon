@@ -219,6 +219,23 @@ resourceBroker:
   namespace: poolboy
   serviceAccountName: poolboy
 
+serviceAccessManager:
+  deploy: true
+  image:
+    repository: quay.io/rhpds/babylon-service-access-manager
+    pullPolicy: IfNotPresent
+    tag: v0.1.0
+  namespace:
+    create: true
+    name: babylon-service-access-manager
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 1Gi
+
 workshopManager:
   api:
     group: babylon.gpte.redhat.com
