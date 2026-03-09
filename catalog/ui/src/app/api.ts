@@ -13,6 +13,7 @@ import {
   ResourceHandle,
   ResourcePool,
   ResourceProvider,
+  ServiceAccessConfig,
   ServiceNamespace,
   Workshop,
   WorkshopProvision,
@@ -2052,6 +2053,105 @@ export async function updateWorkshop(workshop: Workshop) {
   return updateK8sObject(workshop);
 }
 
+export async function getServiceAccessConfig({
+  name,
+  namespace,
+}: {
+  name: string;
+  namespace: string;
+}): Promise<ServiceAccessConfig | null> {
+  try {
+    return await getK8sObject<ServiceAccessConfig>({
+      apiVersion: `${BABYLON_DOMAIN}/v1`,
+      name,
+      namespace,
+      plural: 'serviceaccessconfigs',
+    });
+  } catch (error: unknown) {
+    if ((error as Response).status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function createServiceAccessConfig({
+  name,
+  namespace,
+  workshopName,
+  workshopNamespace,
+  users,
+}: {
+  name: string;
+  namespace: string;
+  workshopName: string;
+  workshopNamespace: string;
+  users: string[];
+}): Promise<ServiceAccessConfig> {
+  const definition: ServiceAccessConfig = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'ServiceAccessConfig',
+    metadata: {
+      name,
+      namespace,
+      labels: {
+        [`${BABYLON_DOMAIN}/workshop`]: workshopName,
+        [`${BABYLON_DOMAIN}/workshop-namespace`]: workshopNamespace,
+      },
+    },
+    spec: {
+      kind: 'Workshop',
+      name: workshopName,
+      users: users.map((email) => ({ name: email })),
+    },
+  };
+  return await createK8sObject(definition);
+}
+
+export async function patchServiceAccessConfig({
+  name,
+  namespace,
+  users,
+}: {
+  name: string;
+  namespace: string;
+  users: string[];
+}): Promise<ServiceAccessConfig> {
+  return await patchK8sObject<ServiceAccessConfig>({
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    name,
+    namespace,
+    plural: 'serviceaccessconfigs',
+    patch: {
+      spec: {
+        users: users.map((email) => ({ name: email })),
+      },
+    },
+  });
+}
+
+export async function deleteServiceAccessConfig({
+  name,
+  namespace,
+}: {
+  name: string;
+  namespace: string;
+}): Promise<ServiceAccessConfig | null> {
+  const definition: ServiceAccessConfig = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'ServiceAccessConfig',
+    metadata: {
+      name,
+      namespace,
+    },
+    spec: {
+      kind: 'Workshop',
+      name: '',
+    },
+  };
+  return await deleteK8sObject(definition);
+}
+
 export function setProvisionRating(
   requestUid: string,
   rating: number,
@@ -2255,6 +2355,16 @@ export const apiPaths = {
   WORKSHOP_SUPPORT: () => `/api/admin/workshop/support`,
   WORKSHOP_USER_ASSIGNMENTS: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopuserassignments?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName}`,
+  SERVICE_ACCESS_CONFIG: ({ namespace, name }: { namespace: string; name: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/serviceaccessconfigs/${name}`,
+  SERVICE_ACCESS_CONFIGS_FOR_WORKSHOP: ({
+    workshopName,
+    workshopNamespace,
+  }: {
+    workshopName: string;
+    workshopNamespace: string;
+  }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/serviceaccessconfigs?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName},${BABYLON_DOMAIN}/workshop-namespace=${workshopNamespace}`,
   SFDC_ACCOUNTS: ({ sales_type, account_value }: { sales_type: string; account_value: string }) =>
     `/api/salesforce/accounts?sales_type=${sales_type}&value=${account_value}`,
   SFDC_BY_ACCOUNT: ({ sales_type, account_id }: { sales_type: string; account_id: string }) =>

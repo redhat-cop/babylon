@@ -24,8 +24,17 @@ import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import BetaBadge from '@app/components/BetaBadge';
-import { apiPaths, patchResourceClaim, patchWorkshop, patchWorkshopProvision } from '@app/api';
-import { RequestUsageCost, ResourceClaim, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
+import {
+  apiPaths,
+  patchResourceClaim,
+  patchWorkshop,
+  patchWorkshopProvision,
+  getServiceAccessConfig,
+  createServiceAccessConfig,
+  patchServiceAccessConfig,
+  deleteServiceAccessConfig,
+} from '@app/api';
+import { RequestUsageCost, ResourceClaim, ServiceAccessConfig, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno, READY_BY_LEAD_TIME_MS } from '@app/util';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
@@ -88,19 +97,33 @@ const WorkshopsItemDetails: React.FC<{
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
   const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
+  const [serviceAccessConfig, setServiceAccessConfig] = useState<ServiceAccessConfig | null>(null);
+  const [serviceAccessLoading, setServiceAccessLoading] = useState(true);
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
   
-  // Parse service access users from annotation
-  const serviceAccessAnnotation = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/service-access`];
   const serviceAccessUsers = useMemo(() => {
-    if (!serviceAccessAnnotation) return [];
-    try {
-      const parsed = JSON.parse(serviceAccessAnnotation);
-      return parsed.users || [];
-    } catch {
-      return [];
+    if (!serviceAccessConfig?.spec?.users) return [];
+    return serviceAccessConfig.spec.users.map((u) => u.name);
+  }, [serviceAccessConfig]);
+
+  useEffect(() => {
+    async function fetchServiceAccessConfig() {
+      setServiceAccessLoading(true);
+      try {
+        const config = await getServiceAccessConfig({
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+        });
+        setServiceAccessConfig(config);
+      } catch (error) {
+        console.error('Failed to fetch ServiceAccessConfig:', error);
+        setServiceAccessConfig(null);
+      } finally {
+        setServiceAccessLoading(false);
+      }
     }
-  }, [serviceAccessAnnotation]);
+    fetchServiceAccessConfig();
+  }, [workshop.metadata.name, workshop.metadata.namespace]);
   const opsEffortFromAnnotation = useMemo(() => parseInt(opsEffortAnnotation || '0', 10) || 0, [opsEffortAnnotation]);
   const [opsEffort, setOpsEffort] = useState<number>(opsEffortFromAnnotation);
   const debouncedOpsEffort = useDebounceState(opsEffort, 1000);
@@ -265,40 +288,54 @@ const WorkshopsItemDetails: React.FC<{
     if (!email) return;
     
     const updatedUsers = [...serviceAccessUsers, email];
-    const patchObj = {
-      metadata: {
-        annotations: {
-          [`${BABYLON_DOMAIN}/service-access`]: JSON.stringify({ users: updatedUsers }),
-        },
-      },
-    };
     
-    const updatedWorkshop = await patchWorkshop({
-      name: workshop.metadata.name,
-      namespace: workshop.metadata.namespace,
-      patch: patchObj,
-    });
-    onWorkshopUpdate(updatedWorkshop);
+    try {
+      if (serviceAccessConfig) {
+        const updatedConfig = await patchServiceAccessConfig({
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          users: updatedUsers,
+        });
+        setServiceAccessConfig(updatedConfig);
+      } else {
+        const newConfig = await createServiceAccessConfig({
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          workshopName: workshop.metadata.name,
+          workshopNamespace: workshop.metadata.namespace,
+          users: updatedUsers,
+        });
+        setServiceAccessConfig(newConfig);
+      }
+    } catch (error) {
+      console.error('Failed to update ServiceAccessConfig:', error);
+    }
+    
     setNewServiceAccessEmail('');
     setModalAddServiceAccess(false);
   }
 
   async function handleRemoveServiceAccessUser(emailToRemove: string) {
     const updatedUsers = serviceAccessUsers.filter((email: string) => email !== emailToRemove);
-    const patchObj = {
-      metadata: {
-        annotations: {
-          [`${BABYLON_DOMAIN}/service-access`]: JSON.stringify({ users: updatedUsers }),
-        },
-      },
-    };
     
-    const updatedWorkshop = await patchWorkshop({
-      name: workshop.metadata.name,
-      namespace: workshop.metadata.namespace,
-      patch: patchObj,
-    });
-    onWorkshopUpdate(updatedWorkshop);
+    try {
+      if (updatedUsers.length === 0) {
+        await deleteServiceAccessConfig({
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+        });
+        setServiceAccessConfig(null);
+      } else {
+        const updatedConfig = await patchServiceAccessConfig({
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          users: updatedUsers,
+        });
+        setServiceAccessConfig(updatedConfig);
+      }
+    } catch (error) {
+      console.error('Failed to update ServiceAccessConfig:', error);
+    }
   }
 
   return (
@@ -524,7 +561,9 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListTerm>
         <DescriptionListDescription>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
-            {serviceAccessUsers.length > 0 ? (
+            {serviceAccessLoading ? (
+              <LoadingIcon />
+            ) : serviceAccessUsers.length > 0 ? (
               <LabelGroup>
                 {serviceAccessUsers.map((email: string) => (
                   <Label

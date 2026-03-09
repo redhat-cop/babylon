@@ -596,6 +596,29 @@ export interface WorkshopUserAssignmentList {
   items: WorkshopUserAssignment[];
 }
 
+export interface ServiceAccessConfig extends K8sObject {
+  spec: ServiceAccessConfigSpec;
+  status?: ServiceAccessConfigStatus;
+}
+
+export interface ServiceAccessConfigSpec {
+  kind: 'ResourceClaim' | 'Workshop';
+  name: string;
+  users?: Array<{ name: string }>;
+}
+
+export interface ServiceAccessConfigStatus {
+  serviceAccesses?: Array<{
+    name: string;
+    namespace: string;
+  }>;
+}
+
+export interface ServiceAccessConfigList {
+  items: ServiceAccessConfig[];
+  metadata: K8sObjectListMeta;
+}
+
 export interface WorkshopUserAssignmentSpec {
   data?: any;
   messages?: string;
