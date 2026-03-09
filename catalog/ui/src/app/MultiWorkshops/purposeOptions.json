@@ -106,14 +106,14 @@
     "sfdcRequired": true
   },
   {
-    "name": "AnsibleFest 2025",
+    "name": "AnsibleFest 2026",
     "description": "",
     "activity": "Brand Event",
     "sfdcRequired": false,
     "requiredRoles": ["rhpds-devs-rh1", "rhpds-admins", "rhpds-devs-summit"]
   },
   {
-    "name": "Summit 2025",
+    "name": "Summit 2026",
     "description": "",
     "activity": "Brand Event",
     "sfdcRequired": false,
