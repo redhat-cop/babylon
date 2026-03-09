@@ -5,7 +5,7 @@
   "repository": "https://github.com/redhat-cop/babylon.git",
   "homepage": "https://github.com/redhat-cop/babylon",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "scripts": {
     "prebuild": "if test \"$KEEP_ASSETS\" != \"true\" ; then npm run clean ; fi ",
     "dr:surge": "node dr-surge.js",
@@ -28,7 +28,6 @@
     "@babel/preset-typescript": "^7.28.5",
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^9.39.2",
-    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
