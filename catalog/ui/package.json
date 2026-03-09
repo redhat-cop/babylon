@@ -45,7 +45,7 @@
     "babel-core": "^6.26.3",
     "babel-loader": "^10.1.0",
     "babel-plugin-transform-imports": "^2.0.0",
-    "copy-webpack-plugin": "^13.0.1",
+    "copy-webpack-plugin": "^14.0.0",
     "css-loader": "^6.11.0",
     "css-minimizer-webpack-plugin": "^5.0.1",
     "dotenv-webpack": "^8.1.1",
