@@ -43,7 +43,7 @@
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.55.0",
     "babel-core": "^6.26.3",
-    "babel-loader": "^10.0.0",
+    "babel-loader": "^10.1.0",
     "babel-plugin-transform-imports": "^2.0.0",
     "copy-webpack-plugin": "^13.0.1",
     "css-loader": "^6.11.0",
